@@ -11,6 +11,14 @@ RUN apt-get update \
       ca-certificates locales-all \
  && rm -rf /var/lib/apt/lists/*
 
+# Ferramentas acrescentadas na implementação (camada separada, pra não mexer nas versões de cima):
+# referência do ul-misc (dc, tree, xxd, strings, envsubst, less, killall) e do ul-net (curl, wget,
+# observados sem rede, já que o oráculo roda com --network none).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      dc tree xxd binutils gettext-base less psmisc curl wget \
+ && rm -rf /var/lib/apt/lists/*
+
 # awk alvo é o gawk (decisão do design v2).
 RUN update-alternatives --set awk /usr/bin/gawk
 
