@@ -1,0 +1,783 @@
+{
+  "experiment": "e04-hostfs-escape",
+  "title": "Confinamento e semântica de caminho do hostfs",
+  "generated_at": "2026-10-02T23:39:57Z",
+  "host": {
+    "kernel": "6.12.101+deb13-amd64",
+    "cpus": 16,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+  },
+  "hypotheses": [
+    {
+      "id": "H18",
+      "verdict": "partial",
+      "summary": "Contra fuga, todos os candidatos seguraram (0 leituras do canário em 29 casos estáticos e 1000000 tentativas de corrida por candidato). Mas o critério também pede errno igual ao Linux, e aí cap-std, openat2 BENEATH e openat2 IN_ROOT erram: delegar a resolução ao kernel do host aplica a semântica do host a symlinks absolutos e a `..` acima da montagem. Os dois candidatos com namei próprio (manual e híbrido, symlink devolvido e resolvido no namespace do sandbox) batem com o Linux em todos os casos, e o híbrido custa o mesmo que um openat2. Resumo: cap-std: 0 fugas, 18/29 iguais ao Linux; openat2 BENEATH: 0 fugas, 18/29 iguais ao Linux; openat2 IN_ROOT: 0 fugas, 25/29 iguais ao Linux; namei manual (O_PATH|O_NOFOLLOW): 0 fugas, 29/29 iguais ao Linux; namei híbrido (openat2 NO_SYMLINKS + manual): 0 fugas, 29/29 iguais ao Linux.",
+      "evidence": {
+        "per_candidate": [
+          "cap-std: 0 fugas, 18/29 iguais ao Linux",
+          "openat2 BENEATH: 0 fugas, 18/29 iguais ao Linux",
+          "openat2 IN_ROOT: 0 fugas, 25/29 iguais ao Linux",
+          "namei manual (O_PATH|O_NOFOLLOW): 0 fugas, 29/29 iguais ao Linux",
+          "namei híbrido (openat2 NO_SYMLINKS + manual): 0 fugas, 29/29 iguais ao Linux"
+        ],
+        "total_escapes": 0
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "name": "cap-std",
+      "version": "4.0.3",
+      "role": "hostfs",
+      "category": "b",
+      "fit": "does_not_fit",
+      "notes": "Confina (BENEATH por baixo), mas resolve symlink com a semântica do host: alvo absoluto e `..` acima da montagem viram erro próprio sem errno, em vez de seguir no namespace do sandbox.",
+      "metrics": {
+        "content_mismatches": [
+          "dotdot-to-sandbox-etc: obtido erro sem errno: a path led outside of the filesystem, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-to-guest-etc: obtido erro sem errno: a path led outside of the filesystem, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc: obtido erro sem errno: a path led outside of the filesystem, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest: obtido erro sem errno: a path led outside of the filesystem, Linux conteúdo \"INSIDE-FILE\""
+        ],
+        "errno_mismatches": [
+          "dotdot-inside-then-out: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "dotdot-deep-out: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "symlink-absolute-out: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "symlink-relative-out: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "symlink-relative-out-via-dir: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "magic-link-proc-root: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "magic-link-proc-fd: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT"
+        ],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 4158.8,
+          "16": 5592.4,
+          "4": 4442.5
+        },
+        "linux_parity": "18/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "erro sem errno: a path led outside of the filesystem",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "erro sem errno: a path led outside of the filesystem",
+          "dotdot-to-sandbox-etc": "erro sem errno: a path led outside of the filesystem",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "erro sem errno: a path led outside of the filesystem",
+          "magic-link-proc-root": "erro sem errno: a path led outside of the filesystem",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "erro sem errno: a path led outside of the filesystem",
+          "symlink-absolute-out": "erro sem errno: a path led outside of the filesystem",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "erro sem errno: a path led outside of the filesystem",
+          "symlink-relative-out-via-dir": "erro sem errno: a path led outside of the filesystem",
+          "symlink-to-guest-etc": "erro sem errno: a path led outside of the filesystem",
+          "symlink-up-to-guest-etc": "erro sem errno: a path led outside of the filesystem",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "conteúdo legítimo": 341411,
+          "erro sem errno: a path led outside of the filesystem": 658589,
+          "trocas feitas pela outra thread": 229662
+        }
+      }
+    },
+    {
+      "name": "openat2 BENEATH",
+      "version": "Linux 6.12 openat2 (rustix 1.x)",
+      "role": "hostfs",
+      "category": "a",
+      "fit": "does_not_fit",
+      "notes": "Confina, mas qualquer symlink absoluto ou `..` acima da montagem vira EXDEV, um errno que o Linux nunca daria pro processo do sandbox.",
+      "metrics": {
+        "content_mismatches": [
+          "dotdot-to-sandbox-etc: obtido EXDEV, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-to-guest-etc: obtido EXDEV, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc: obtido EXDEV, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest: obtido EXDEV, Linux conteúdo \"INSIDE-FILE\""
+        ],
+        "errno_mismatches": [
+          "dotdot-inside-then-out: obtido EXDEV, Linux ENOENT",
+          "dotdot-deep-out: obtido EXDEV, Linux ENOENT",
+          "symlink-absolute-out: obtido EXDEV, Linux ENOENT",
+          "symlink-relative-out: obtido EXDEV, Linux ENOENT",
+          "symlink-relative-out-via-dir: obtido EXDEV, Linux ENOENT",
+          "magic-link-proc-root: obtido EXDEV, Linux ENOENT",
+          "magic-link-proc-fd: obtido EXDEV, Linux ENOENT"
+        ],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 4141.7,
+          "16": 5562.0,
+          "4": 4423.9
+        },
+        "linux_parity": "18/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "EXDEV",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "EXDEV",
+          "dotdot-to-sandbox-etc": "EXDEV",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "EXDEV",
+          "magic-link-proc-root": "EXDEV",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "EXDEV",
+          "symlink-absolute-out": "EXDEV",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "EXDEV",
+          "symlink-relative-out-via-dir": "EXDEV",
+          "symlink-to-guest-etc": "EXDEV",
+          "symlink-up-to-guest-etc": "EXDEV",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "EXDEV": 689078,
+          "conteúdo legítimo": 310922,
+          "trocas feitas pela outra thread": 208602
+        }
+      }
+    },
+    {
+      "name": "openat2 IN_ROOT",
+      "version": "Linux 6.12 openat2 (rustix 1.x)",
+      "role": "hostfs",
+      "category": "a",
+      "fit": "does_not_fit",
+      "notes": "Confina como chroot da própria montagem: symlink absoluto e `..` acima da raiz ficam presos dentro do diretório do host, quando no sandbox deveriam apontar pro resto do namespace.",
+      "metrics": {
+        "content_mismatches": [
+          "dotdot-to-sandbox-etc: obtido ENOENT, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-to-guest-etc: obtido ENOENT, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc: obtido ENOENT, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest: obtido ENOENT, Linux conteúdo \"INSIDE-FILE\""
+        ],
+        "errno_mismatches": [],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 4176.9,
+          "16": 5629.2,
+          "4": 4527.8
+        },
+        "linux_parity": "25/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "ENOENT",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "ENOENT",
+          "dotdot-to-sandbox-etc": "ENOENT",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "ENOENT",
+          "magic-link-proc-root": "ENOENT",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "ENOENT",
+          "symlink-absolute-out": "ENOENT",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "ENOENT",
+          "symlink-relative-out-via-dir": "ENOENT",
+          "symlink-to-guest-etc": "ENOENT",
+          "symlink-up-to-guest-etc": "ENOENT",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "ENOENT": 682518,
+          "conteúdo legítimo": 317482,
+          "trocas feitas pela outra thread": 215128
+        }
+      }
+    },
+    {
+      "name": "namei manual (O_PATH|O_NOFOLLOW)",
+      "version": "à mão (rustix 1.x: openat O_PATH|O_NOFOLLOW, fstat, readlinkat no próprio fd)",
+      "role": "hostfs",
+      "category": "a",
+      "fit": "fits",
+      "notes": "O hostfs só faz lookup de um nome por vez sem seguir symlink e devolve o symlink pro namei do sandbox; `..` desempilha o fd pelo qual a resolução passou. Correto, mas 2 syscalls por componente.",
+      "metrics": {
+        "content_mismatches": [],
+        "errno_mismatches": [],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 6931.1,
+          "16": 33412.7,
+          "4": 11597.8
+        },
+        "linux_parity": "29/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "ENOENT",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "ENOENT",
+          "dotdot-to-sandbox-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "ENOENT",
+          "magic-link-proc-root": "ENOENT",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "conteúdo \"INSIDE-FILE\"",
+          "symlink-absolute-out": "ENOENT",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "ENOENT",
+          "symlink-relative-out-via-dir": "ENOENT",
+          "symlink-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "ENOENT": 577779,
+          "conteúdo legítimo": 422221,
+          "trocas feitas pela outra thread": 499752
+        }
+      }
+    },
+    {
+      "name": "namei híbrido (openat2 NO_SYMLINKS + manual)",
+      "version": "à mão (rustix 1.x: openat2 BENEATH|NO_SYMLINKS|NO_MAGICLINKS + namei manual)",
+      "role": "hostfs",
+      "category": "a",
+      "fit": "fits",
+      "notes": "Resolve o resto do caminho numa syscall quando não há symlink nem `..` acima do ponto de partida; o kernel recusa com ELOOP/EXDEV e aí o namei manual assume. Mesma semântica do manual, custo de uma syscall no caso comum.",
+      "metrics": {
+        "content_mismatches": [],
+        "errno_mismatches": [],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 4134.2,
+          "16": 5584.6,
+          "4": 4367.9
+        },
+        "linux_parity": "29/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "ENOENT",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "ENOENT",
+          "dotdot-to-sandbox-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "ENOENT",
+          "magic-link-proc-root": "ENOENT",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "conteúdo \"INSIDE-FILE\"",
+          "symlink-absolute-out": "ENOENT",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "ENOENT",
+          "symlink-relative-out-via-dir": "ENOENT",
+          "symlink-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "ENOENT": 449502,
+          "conteúdo legítimo": 550498,
+          "trocas feitas pela outra thread": 425054
+        }
+      }
+    }
+  ],
+  "metrics": {
+    "candidates": {
+      "cap-std": {
+        "content_mismatches": [
+          "dotdot-to-sandbox-etc: obtido erro sem errno: a path led outside of the filesystem, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-to-guest-etc: obtido erro sem errno: a path led outside of the filesystem, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc: obtido erro sem errno: a path led outside of the filesystem, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest: obtido erro sem errno: a path led outside of the filesystem, Linux conteúdo \"INSIDE-FILE\""
+        ],
+        "errno_mismatches": [
+          "dotdot-inside-then-out: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "dotdot-deep-out: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "symlink-absolute-out: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "symlink-relative-out: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "symlink-relative-out-via-dir: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "magic-link-proc-root: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT",
+          "magic-link-proc-fd: obtido erro sem errno: a path led outside of the filesystem, Linux ENOENT"
+        ],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 4158.8,
+          "16": 5592.4,
+          "4": 4442.5
+        },
+        "linux_parity": "18/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "erro sem errno: a path led outside of the filesystem",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "erro sem errno: a path led outside of the filesystem",
+          "dotdot-to-sandbox-etc": "erro sem errno: a path led outside of the filesystem",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "erro sem errno: a path led outside of the filesystem",
+          "magic-link-proc-root": "erro sem errno: a path led outside of the filesystem",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "erro sem errno: a path led outside of the filesystem",
+          "symlink-absolute-out": "erro sem errno: a path led outside of the filesystem",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "erro sem errno: a path led outside of the filesystem",
+          "symlink-relative-out-via-dir": "erro sem errno: a path led outside of the filesystem",
+          "symlink-to-guest-etc": "erro sem errno: a path led outside of the filesystem",
+          "symlink-up-to-guest-etc": "erro sem errno: a path led outside of the filesystem",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "conteúdo legítimo": 341411,
+          "erro sem errno: a path led outside of the filesystem": 658589,
+          "trocas feitas pela outra thread": 229662
+        }
+      },
+      "namei híbrido (openat2 NO_SYMLINKS + manual)": {
+        "content_mismatches": [],
+        "errno_mismatches": [],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 4134.2,
+          "16": 5584.6,
+          "4": 4367.9
+        },
+        "linux_parity": "29/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "ENOENT",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "ENOENT",
+          "dotdot-to-sandbox-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "ENOENT",
+          "magic-link-proc-root": "ENOENT",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "conteúdo \"INSIDE-FILE\"",
+          "symlink-absolute-out": "ENOENT",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "ENOENT",
+          "symlink-relative-out-via-dir": "ENOENT",
+          "symlink-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "ENOENT": 449502,
+          "conteúdo legítimo": 550498,
+          "trocas feitas pela outra thread": 425054
+        }
+      },
+      "namei manual (O_PATH|O_NOFOLLOW)": {
+        "content_mismatches": [],
+        "errno_mismatches": [],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 6931.1,
+          "16": 33412.7,
+          "4": 11597.8
+        },
+        "linux_parity": "29/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "ENOENT",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "ENOENT",
+          "dotdot-to-sandbox-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "ENOENT",
+          "magic-link-proc-root": "ENOENT",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "conteúdo \"INSIDE-FILE\"",
+          "symlink-absolute-out": "ENOENT",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "ENOENT",
+          "symlink-relative-out-via-dir": "ENOENT",
+          "symlink-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "ENOENT": 577779,
+          "conteúdo legítimo": 422221,
+          "trocas feitas pela outra thread": 499752
+        }
+      },
+      "openat2 BENEATH": {
+        "content_mismatches": [
+          "dotdot-to-sandbox-etc: obtido EXDEV, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-to-guest-etc: obtido EXDEV, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc: obtido EXDEV, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest: obtido EXDEV, Linux conteúdo \"INSIDE-FILE\""
+        ],
+        "errno_mismatches": [
+          "dotdot-inside-then-out: obtido EXDEV, Linux ENOENT",
+          "dotdot-deep-out: obtido EXDEV, Linux ENOENT",
+          "symlink-absolute-out: obtido EXDEV, Linux ENOENT",
+          "symlink-relative-out: obtido EXDEV, Linux ENOENT",
+          "symlink-relative-out-via-dir: obtido EXDEV, Linux ENOENT",
+          "magic-link-proc-root: obtido EXDEV, Linux ENOENT",
+          "magic-link-proc-fd: obtido EXDEV, Linux ENOENT"
+        ],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 4141.7,
+          "16": 5562.0,
+          "4": 4423.9
+        },
+        "linux_parity": "18/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "EXDEV",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "EXDEV",
+          "dotdot-to-sandbox-etc": "EXDEV",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "EXDEV",
+          "magic-link-proc-root": "EXDEV",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "EXDEV",
+          "symlink-absolute-out": "EXDEV",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "EXDEV",
+          "symlink-relative-out-via-dir": "EXDEV",
+          "symlink-to-guest-etc": "EXDEV",
+          "symlink-up-to-guest-etc": "EXDEV",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "EXDEV": 689078,
+          "conteúdo legítimo": 310922,
+          "trocas feitas pela outra thread": 208602
+        }
+      },
+      "openat2 IN_ROOT": {
+        "content_mismatches": [
+          "dotdot-to-sandbox-etc: obtido ENOENT, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-to-guest-etc: obtido ENOENT, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-up-to-guest-etc: obtido ENOENT, Linux conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest: obtido ENOENT, Linux conteúdo \"INSIDE-FILE\""
+        ],
+        "errno_mismatches": [],
+        "escapes_race": 0,
+        "escapes_static": [],
+        "latency_ns_by_components": {
+          "1": 4176.9,
+          "16": 5629.2,
+          "4": 4527.8
+        },
+        "linux_parity": "25/29",
+        "outcomes": {
+          "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+          "dotdot-deep-out": "ENOENT",
+          "dotdot-from-mount-root": "ENOENT",
+          "dotdot-inside-then-out": "ENOENT",
+          "dotdot-to-sandbox-etc": "ENOENT",
+          "file-as-dir": "ENOTDIR",
+          "host-absolute-path": "ENOENT",
+          "magic-link-proc-fd": "ENOENT",
+          "magic-link-proc-root": "ENOENT",
+          "missing": "ENOENT",
+          "name-too-long": "ENAMETOOLONG",
+          "nested-file": "conteúdo \"INSIDE-DEEP\"",
+          "path-too-long": "ENAMETOOLONG",
+          "plain-file": "conteúdo \"INSIDE-FILE\"",
+          "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+          "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+          "read-directory": "EISDIR",
+          "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+          "symlink-absolute-inside-guest": "ENOENT",
+          "symlink-absolute-out": "ENOENT",
+          "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+          "symlink-chain-41": "ELOOP",
+          "symlink-loop": "ELOOP",
+          "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+          "symlink-relative-out": "ENOENT",
+          "symlink-relative-out-via-dir": "ENOENT",
+          "symlink-to-guest-etc": "ENOENT",
+          "symlink-up-to-guest-etc": "ENOENT",
+          "trailing-slash-on-file": "ENOTDIR"
+        },
+        "race_attempts": 1000000,
+        "race_outcomes": {
+          "ENOENT": 682518,
+          "conteúdo legítimo": 317482,
+          "trocas feitas pela outra thread": 215128
+        }
+      }
+    },
+    "cases": [
+      {
+        "id": "plain-file",
+        "path_len": 8
+      },
+      {
+        "id": "nested-file",
+        "path_len": 16
+      },
+      {
+        "id": "absolute-guest-path",
+        "path_len": 14
+      },
+      {
+        "id": "sandbox-etc-passwd",
+        "path_len": 11
+      },
+      {
+        "id": "dotdot-from-mount-root",
+        "path_len": 21
+      },
+      {
+        "id": "dotdot-inside-then-out",
+        "path_len": 28
+      },
+      {
+        "id": "dotdot-deep-out",
+        "path_len": 35
+      },
+      {
+        "id": "dotdot-to-sandbox-etc",
+        "path_len": 20
+      },
+      {
+        "id": "host-absolute-path",
+        "path_len": 77
+      },
+      {
+        "id": "symlink-absolute-out",
+        "path_len": 23
+      },
+      {
+        "id": "symlink-relative-out",
+        "path_len": 23
+      },
+      {
+        "id": "symlink-relative-out-via-dir",
+        "path_len": 24
+      },
+      {
+        "id": "symlink-to-guest-etc",
+        "path_len": 8
+      },
+      {
+        "id": "symlink-up-to-guest-etc",
+        "path_len": 9
+      },
+      {
+        "id": "symlink-absolute-inside-guest",
+        "path_len": 10
+      },
+      {
+        "id": "symlink-relative-inside",
+        "path_len": 11
+      },
+      {
+        "id": "magic-link-proc-root",
+        "path_len": 20
+      },
+      {
+        "id": "magic-link-proc-fd",
+        "path_len": 18
+      },
+      {
+        "id": "symlink-loop",
+        "path_len": 6
+      },
+      {
+        "id": "symlink-chain-40",
+        "path_len": 3
+      },
+      {
+        "id": "symlink-chain-41",
+        "path_len": 3
+      },
+      {
+        "id": "name-too-long",
+        "path_len": 256
+      },
+      {
+        "id": "path-too-long",
+        "path_len": 5200
+      },
+      {
+        "id": "file-as-dir",
+        "path_len": 10
+      },
+      {
+        "id": "trailing-slash-on-file",
+        "path_len": 9
+      },
+      {
+        "id": "missing",
+        "path_len": 8
+      },
+      {
+        "id": "read-directory",
+        "path_len": 3
+      },
+      {
+        "id": "race-dir-static",
+        "path_len": 15
+      },
+      {
+        "id": "preexisting-hardlink",
+        "path_len": 11
+      }
+    ],
+    "linux_reference": {
+      "absolute-guest-path": "conteúdo \"INSIDE-FILE\"",
+      "dotdot-deep-out": "ENOENT",
+      "dotdot-from-mount-root": "ENOENT",
+      "dotdot-inside-then-out": "ENOENT",
+      "dotdot-to-sandbox-etc": "conteúdo \"SANDBOX-PASSWD\"",
+      "file-as-dir": "ENOTDIR",
+      "host-absolute-path": "ENOENT",
+      "magic-link-proc-fd": "ENOENT",
+      "magic-link-proc-root": "ENOENT",
+      "missing": "ENOENT",
+      "name-too-long": "ENAMETOOLONG",
+      "nested-file": "conteúdo \"INSIDE-DEEP\"",
+      "path-too-long": "ENAMETOOLONG",
+      "plain-file": "conteúdo \"INSIDE-FILE\"",
+      "preexisting-hardlink": "conteúdo \"CANARY-OUTSIDE\"",
+      "race-dir-static": "conteúdo \"INSIDE-RACE\"",
+      "read-directory": "EISDIR",
+      "sandbox-etc-passwd": "conteúdo \"SANDBOX-PASSWD\"",
+      "symlink-absolute-inside-guest": "conteúdo \"INSIDE-FILE\"",
+      "symlink-absolute-out": "ENOENT",
+      "symlink-chain-40": "conteúdo \"INSIDE-FILE\"",
+      "symlink-chain-41": "ELOOP",
+      "symlink-loop": "ELOOP",
+      "symlink-relative-inside": "conteúdo \"INSIDE-DEEP\"",
+      "symlink-relative-out": "ENOENT",
+      "symlink-relative-out-via-dir": "ENOENT",
+      "symlink-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+      "symlink-up-to-guest-etc": "conteúdo \"SANDBOX-PASSWD\"",
+      "trailing-slash-on-file": "ENOTDIR"
+    },
+    "reference_latency_ns_by_components": {
+      "1": 4070.63385,
+      "16": 5082.6728,
+      "4": 4355.00235
+    }
+  },
+  "notes": [
+    "A referência de 'igual ao Linux' é o próprio kernel resolvendo o mesmo caminho num namespace materializado (refroot com /etc do sandbox e cópia da jaula em /work) com RESOLVE_IN_ROOT, que é a semântica de chroot.",
+    "Hardlink pré-existente pro canário dentro da montagem é lido por todos os candidatos e não conta como fuga: é um objeto que o dono colocou dentro do diretório montado; a defesa é não montar diretório com hardlink pra fora (ou montar só leitura de uma árvore controlada)."
+  ]
+}

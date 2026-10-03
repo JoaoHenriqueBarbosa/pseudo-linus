@@ -1,0 +1,327 @@
+tool = "yq"
+source = "agent-style"
+
+# yq 3.4.3 (kislyuk): YAML -> JSON (PyYAML) -> jq 1.7.1. Filtros e flags de saída do jq mais usados
+# por agentes. O arquivo `deploy.yaml` se repete de propósito: cada caso é independente.
+
+[[case]]
+id = "yq-identity"
+argv = ["yq", ".", "deploy.yaml"]
+tags = ["identity"]
+[case.files]
+"deploy.yaml" = '''
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app: web
+    tier: frontend
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27
+          ports:
+            - containerPort: 80
+        - name: sidecar
+          image: busybox
+'''
+
+[[case]]
+id = "yq-field-path"
+argv = ["yq", ".metadata.labels.app", "deploy.yaml"]
+tags = ["filter"]
+[case.files]
+"deploy.yaml" = '''
+metadata:
+  name: web
+  labels:
+    app: web
+    tier: frontend
+'''
+
+[[case]]
+id = "yq-field-raw"
+argv = ["yq", "-r", ".metadata.name", "deploy.yaml"]
+tags = ["filter", "raw"]
+[case.files]
+"deploy.yaml" = '''
+metadata:
+  name: web
+'''
+
+[[case]]
+id = "yq-iterate"
+argv = ["yq", ".spec.containers[]", "pod.yaml"]
+tags = ["filter"]
+[case.files]
+"pod.yaml" = '''
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.27
+    - name: sidecar
+      image: busybox
+'''
+
+[[case]]
+id = "yq-iterate-raw-names"
+argv = ["yq", "-r", ".spec.containers[].image", "pod.yaml"]
+tags = ["filter", "raw"]
+[case.files]
+"pod.yaml" = '''
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.27
+    - name: sidecar
+      image: busybox
+'''
+
+[[case]]
+id = "yq-compact"
+argv = ["yq", "-c", ".", "config.yaml"]
+tags = ["identity", "compact"]
+[case.files]
+"config.yaml" = '''
+name: app
+ports: [80, 443]
+env:
+  DEBUG: "false"
+  LEVEL: info
+nested: {a: {b: {c: []}}}
+'''
+
+[[case]]
+id = "yq-map-select"
+argv = ["yq", "-c", "[.services[] | select(.enabled) | .name]", "svc.yaml"]
+tags = ["filter"]
+[case.files]
+"svc.yaml" = '''
+services:
+  - name: api
+    enabled: true
+    replicas: 2
+  - name: worker
+    enabled: false
+    replicas: 1
+  - name: cron
+    enabled: true
+    replicas: 1
+'''
+
+[[case]]
+id = "yq-map-arith"
+argv = ["yq", "-c", ".services | map(.replicas * 2)", "svc.yaml"]
+tags = ["filter", "number"]
+[case.files]
+"svc.yaml" = '''
+services:
+  - name: api
+    replicas: 2
+  - name: worker
+    replicas: 1.5
+'''
+
+[[case]]
+id = "yq-keys"
+argv = ["yq", "-c", "keys", "map.yaml"]
+tags = ["filter"]
+[case.files]
+"map.yaml" = '''
+zeta: 1
+alpha: 2
+mid: 3
+'''
+
+[[case]]
+id = "yq-keys-unsorted"
+argv = ["yq", "-c", "keys_unsorted", "map.yaml"]
+tags = ["filter", "key-order"]
+[case.files]
+"map.yaml" = '''
+zeta: 1
+alpha: 2
+mid: 3
+'''
+
+[[case]]
+id = "yq-length"
+argv = ["yq", ".items | length", "list.yaml"]
+tags = ["filter"]
+[case.files]
+"list.yaml" = '''
+items:
+  - a
+  - b
+  - c
+'''
+
+[[case]]
+id = "yq-to-entries"
+argv = ["yq", "-c", "to_entries", "map.yaml"]
+tags = ["filter"]
+[case.files]
+"map.yaml" = '''
+b: 2
+a: 1
+'''
+
+[[case]]
+id = "yq-with-entries-raw"
+argv = ["yq", "-r", ".env | to_entries[] | \"\\(.key)=\\(.value)\"", "env.yaml"]
+tags = ["filter", "raw"]
+[case.files]
+"env.yaml" = '''
+env:
+  HOST: localhost
+  PORT: 8080
+  TLS: true
+'''
+
+[[case]]
+id = "yq-stdin"
+argv = ["yq", ".a.b"]
+stdin = "a:\n  b: [1, 2]\n"
+tags = ["stdin"]
+
+[[case]]
+id = "yq-stdin-dash"
+argv = ["yq", "-c", ".", "-"]
+stdin = "x: 1\ny: [a, b]\n"
+tags = ["stdin", "compact"]
+
+[[case]]
+id = "yq-sort-by"
+argv = ["yq", "-c", ".items | sort_by(.n) | map(.id)", "list.yaml"]
+tags = ["filter"]
+[case.files]
+"list.yaml" = '''
+items:
+  - {id: c, n: 3}
+  - {id: a, n: 1}
+  - {id: b, n: 2}
+'''
+
+[[case]]
+id = "yq-add"
+argv = ["yq", "[.items[].n] | add", "list.yaml"]
+tags = ["filter", "number"]
+[case.files]
+"list.yaml" = '''
+items:
+  - n: 1
+  - n: 2.5
+  - n: 3
+'''
+
+[[case]]
+id = "yq-paths"
+argv = ["yq", "-c", "[paths]", "tree.yaml"]
+tags = ["filter"]
+[case.files]
+"tree.yaml" = '''
+a:
+  b: 1
+  c: [x, y]
+'''
+
+[[case]]
+id = "yq-two-files"
+argv = ["yq", "-c", ".", "a.yaml", "b.yaml"]
+tags = ["files"]
+[case.files]
+"a.yaml" = "name: a\n"
+"b.yaml" = "name: b\nlist: [1]\n"
+
+[[case]]
+id = "yq-slurp"
+argv = ["yq", "-s", "-c", "map(.name)", "a.yaml", "b.yaml"]
+tags = ["files", "slurp"]
+[case.files]
+"a.yaml" = "name: a\n"
+"b.yaml" = "name: b\n"
+
+[[case]]
+id = "yq-null-input"
+argv = ["yq", "-n", "-c", "{a: 1, b: [2, 3]}"]
+tags = ["null-input"]
+
+[[case]]
+id = "yq-sort-keys"
+argv = ["yq", "-S", ".", "map.yaml"]
+tags = ["identity", "key-order"]
+[case.files]
+"map.yaml" = '''
+zeta: 1
+alpha:
+  y: 1
+  b: 2
+'''
+
+[[case]]
+id = "yq-indent-4"
+argv = ["yq", "--indent", "4", ".", "map.yaml"]
+tags = ["identity", "indent"]
+[case.files]
+"map.yaml" = '''
+a:
+  b: [1, 2]
+'''
+
+[[case]]
+id = "yq-tab"
+argv = ["yq", "--tab", ".", "map.yaml"]
+tags = ["identity", "indent"]
+[case.files]
+"map.yaml" = '''
+a:
+  b: [1]
+'''
+
+[[case]]
+id = "yq-join"
+argv = ["yq", "-r", ".tags | join(\",\")", "t.yaml"]
+tags = ["filter", "raw"]
+[case.files]
+"t.yaml" = '''
+tags:
+  - alpha
+  - beta
+  - gamma
+'''
+
+[[case]]
+id = "yq-tostring-number"
+argv = ["yq", "-c", "[.a, .b, .c] | map(tostring)", "n.yaml"]
+tags = ["filter", "number"]
+[case.files]
+"n.yaml" = '''
+a: 10
+b: 2.50
+c: 1e3
+'''
+
+[[case]]
+id = "yq-has-del"
+argv = ["yq", "-c", "(has(\"a\"), del(.a))", "m.yaml"]
+tags = ["filter"]
+[case.files]
+"m.yaml" = '''
+a: 1
+b: 2
+'''
+
+[[case]]
+id = "yq-update"
+argv = ["yq", "-c", ".spec.replicas = 5 | .spec", "d.yaml"]
+tags = ["filter"]
+[case.files]
+"d.yaml" = '''
+spec:
+  replicas: 3
+  image: x
+'''

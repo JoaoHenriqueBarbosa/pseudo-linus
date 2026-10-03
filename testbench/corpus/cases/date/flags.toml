@@ -1,0 +1,128 @@
+tool = "date"
+source = "agent-style"
+
+# Flags (-, _, 0, ^, #) e largura do +FORMAT, sem -d (relógio congelado, ver format.toml).
+# Instante base: segunda-feira 2026-01-05 09:07:03 UTC.
+
+[[case]]
+id = "date-flag-no-pad"
+argv = ["date", "+%-d|%-m|%-H|%-I|%-j|%-M|%-S|%-e|%-y"]
+tags = ["flags"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-space-pad"
+argv = ["date", "+%_d|%_m|%_H|%_I|%_j|%_M|%_S|%_y"]
+tags = ["flags"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-zero-pad"
+argv = ["date", "+%0e|%0k|%0l"]
+tags = ["flags"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-upper"
+argv = ["date", "+%^a|%^A|%^b|%^B|%^p|%^P|%^Z|%^h"]
+tags = ["flags"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-swap-case"
+argv = ["date", "+%#a|%#A|%#b|%#B|%#p|%#P|%#Z"]
+tags = ["flags"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-width-numeric"
+argv = ["date", "+%10Y|%5d|%4H|%6j"]
+tags = ["flags", "width"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-width-space-pad"
+argv = ["date", "+%_10d|%_5Y|%_4m"]
+tags = ["flags", "width"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-width-no-pad"
+argv = ["date", "+%-10d|%-5H"]
+tags = ["flags", "width"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-width-zero-pad"
+argv = ["date", "+%010d|%04e|%03k"]
+tags = ["flags", "width"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-width-text"
+argv = ["date", "+%10A|%^10b|%12B|%5p"]
+tags = ["flags", "width"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-width-epoch"
+argv = ["date", "+%15s|%_15s|%-s"]
+tags = ["flags", "width"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-width-offset"
+argv = ["date", "+%10z|%_z|%-z|%8:z"]
+tags = ["flags", "width", "offset"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-plus-year"
+argv = ["date", "+%+4Y|%+6Y|%+C"]
+tags = ["flags", "width"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-nanos-precision-zero"
+argv = ["date", "+%3N|%6N|%9N|%-N|%1N"]
+tags = ["flags", "nanos"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-nanos-precision"
+argv = ["date", "-d", "@1767604023.012345678", "+%N|%3N|%6N|%9N|%1N|%-N"]
+tags = ["flags", "nanos", "parse"]
+
+[[case]]
+id = "date-flag-nanos-small"
+argv = ["date", "-d", "@1767604023.000000042", "+%s.%N|%3N"]
+tags = ["flags", "nanos", "parse"]
+
+[[case]]
+id = "date-flag-nanos-in-composite"
+argv = ["date", "-d", "@1767604023.5", "+%T.%3N %s.%N"]
+tags = ["flags", "nanos", "parse"]
+
+[[case]]
+id = "date-flag-combined-dash-upper"
+argv = ["date", "+%-^b %^-d"]
+tags = ["flags"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-pad-on-text"
+argv = ["date", "+[%_a][%0a][%-a]"]
+tags = ["flags"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-composite-directives"
+argv = ["date", "+%_D|%-F|%^c|%-T|%^r"]
+tags = ["flags"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-flag-ampm-afternoon"
+argv = ["date", "+%^p|%#p|%^P|%#P|%-l|%_I"]
+tags = ["flags"]
+env = { FAKETIME = "2026-07-19 15:04:05", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }

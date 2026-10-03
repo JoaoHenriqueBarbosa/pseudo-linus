@@ -1,0 +1,61 @@
+{
+  "cat-missing": {
+    "stdout": "",
+    "stderr": "cat: naoexiste: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "echo": {
+    "stdout": "olá mundo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "faketime-date": {
+    "stdout": "2026-01-15 12:00:00 UTC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fixture-and-write": {
+    "stdout": "-rw-r--r-- 6 'in.txt'\nlrwxrwxrwx 6 'link' -> 'in.txt'\n-rw-r--r-- 6 'out.txt'\ndrwx------ 4096 'sub'\n-rw-r--r-- 1 root root 6 2026-01-15 in.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "c9b229f2c05e42bb33939df423372b9fdfbede6177e9eed7f2b2d50fc70a1712",
+        "data": "c\nb\na\n"
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "in.txt"
+      },
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 448
+      }
+    }
+  },
+  "pipeline-yes-head": {
+    "stdout": "y\ny\ny\nstatus=141 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "stdin-binary": {
+    "stdout": " 00 ff 80\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

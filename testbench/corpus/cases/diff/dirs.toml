@@ -1,0 +1,122 @@
+tool = "diff"
+source = "agent-style"
+
+# Diretórios: -r, -N, -q, "Only in", subdiretórios comuns e tipos diferentes.
+
+[[case]]
+id = "diff-dirs-no-r"
+argv = ["diff", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/changed.txt" = "old\n"
+"b/changed.txt" = "new\n"
+"a/only-a.txt" = "a\n"
+"b/only-b.txt" = "b\n"
+"a/same.txt" = "same\n"
+"b/same.txt" = "same\n"
+"a/sub/deep.txt" = "x\n"
+"b/sub/deep.txt" = "y\n"
+
+[[case]]
+id = "diff-dirs-r"
+argv = ["diff", "-r", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/changed.txt" = "old\n"
+"b/changed.txt" = "new\n"
+"a/only-a.txt" = "a\n"
+"b/only-b.txt" = "b\n"
+"a/same.txt" = "same\n"
+"b/same.txt" = "same\n"
+"a/sub/deep.txt" = "x\n"
+"b/sub/deep.txt" = "y\n"
+"a/sub/gone.txt" = "z\n"
+
+[[case]]
+id = "diff-dirs-ru"
+argv = ["diff", "-ru", "a", "b"]
+tags = ["dirs", "unified"]
+[case.files]
+"a/changed.txt" = "old\nkeep\n"
+"b/changed.txt" = "new\nkeep\n"
+"a/only-a.txt" = "a\n"
+"b/only-b.txt" = "b\n"
+"a/sub/deep.txt" = "x\n"
+"b/sub/deep.txt" = "y\n"
+
+[[case]]
+id = "diff-dirs-r-u-separate"
+argv = ["diff", "-r", "-u", "a", "b"]
+tags = ["dirs", "unified"]
+[case.files]
+"a/f.txt" = "1\n"
+"b/f.txt" = "2\n"
+
+[[case]]
+id = "diff-dirs-rq"
+argv = ["diff", "-rq", "a", "b"]
+tags = ["dirs", "brief"]
+[case.files]
+"a/changed.txt" = "old\n"
+"b/changed.txt" = "new\n"
+"a/only-a.txt" = "a\n"
+"a/same.txt" = "same\n"
+"b/same.txt" = "same\n"
+"a/sub/deep.txt" = "x\n"
+"b/sub/deep.txt" = "y\n"
+
+[[case]]
+id = "diff-dirs-ruN"
+argv = ["diff", "-ruN", "a", "b"]
+tags = ["dirs", "unified", "newfile"]
+[case.files]
+"a/changed.txt" = "old\n"
+"b/changed.txt" = "new\n"
+"a/only-a.txt" = "a\n"
+"b/only-b.txt" = "b\nb2\n"
+
+[[case]]
+id = "diff-dirs-identical"
+argv = ["diff", "-r", "a", "b"]
+tags = ["dirs", "exit"]
+[case.files]
+"a/x.txt" = "same\n"
+"b/x.txt" = "same\n"
+"a/s/y.txt" = "same\n"
+"b/s/y.txt" = "same\n"
+
+[[case]]
+id = "diff-dirs-type-mismatch"
+argv = ["diff", "-r", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/thing" = "file\n"
+"b/thing/inner.txt" = "dir\n"
+
+[[case]]
+id = "diff-dirs-only-in-subdir"
+argv = ["diff", "-r", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/s/x.txt" = "1\n"
+"a/s/y.txt" = "2\n"
+"b/s/x.txt" = "1\n"
+"b/t/z.txt" = "3\n"
+
+[[case]]
+id = "diff-dirs-binary-inside"
+argv = ["diff", "-r", "a", "b"]
+tags = ["dirs", "binary"]
+[case.files]
+"a/blob" = { content_b64 = "AAEC" }
+"b/blob" = { content_b64 = "AAED" }
+"a/t.txt" = "x\n"
+"b/t.txt" = "y\n"
+
+[[case]]
+id = "diff-dirs-trailing-slash"
+argv = ["diff", "-r", "a/", "b/"]
+tags = ["dirs"]
+[case.files]
+"a/f.txt" = "1\n"
+"b/f.txt" = "2\n"

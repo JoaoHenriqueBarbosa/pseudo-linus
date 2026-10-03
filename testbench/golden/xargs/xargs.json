@@ -1,0 +1,273 @@
+{
+  "xargs-0": {
+    "stdout": "com espaço outro\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-0-n1": {
+    "stdout": "a b\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-E-eof": {
+    "stdout": "a b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-I": {
+    "stdout": "item: a fim\nitem: b c fim\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-I-custom": {
+    "stdout": "x-x\ny-y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-L1": {
+    "stdout": "a b\nc\nd e f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-P": {
+    "stdout": "1\n2\n3\n4\n5\n6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-a-file": {
+    "stdout": "x y z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "list.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "862f237cee7d3e58f1002eacf674caaf7948d4a35f9ec0078c521400409ed6f6",
+        "data": "x y\nz\n"
+      }
+    }
+  },
+  "xargs-cat": {
+    "stdout": "A\nB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "06f961b802bc46ee168555f066d28f4f0e9afdf3f88174c1ee6f9de004fc30a0",
+        "data": "A\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c0cde77fa8fef97d476c10aad3d2d54fcc2f336140d073651c2dcccf1e379fd6",
+        "data": "B\n"
+      }
+    }
+  },
+  "xargs-command-fails": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 123,
+    "files": {}
+  },
+  "xargs-command-fails-partial": {
+    "stdout": "ok\n",
+    "stderr": "cat: nope.txt: No such file or directory\n",
+    "exit": 123,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+        "data": "ok\n"
+      }
+    }
+  },
+  "xargs-d-newline": {
+    "stdout": "a b\nc 'd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-default-echo": {
+    "stdout": "a b c d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-echo-explicit": {
+    "stdout": "itens: um dois três\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-empty-without-r": {
+    "stdout": "roda uma vez\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-head": {
+    "stdout": "a1\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "65454a5200a827c042e1379e1f2698d151699e4d76466a3b0e4ebd348f4f131b",
+        "data": "a1\na2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "60f7d20526ca5e01cb32632d83777bf8bed06baeb7a53bce9e86fecaac0e3f6d",
+        "data": "b1\nb2\n"
+      }
+    }
+  },
+  "xargs-missing-command": {
+    "stdout": "",
+    "stderr": "xargs: nope-cmd: No such file or directory\n",
+    "exit": 127,
+    "files": {}
+  },
+  "xargs-n1": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-n2": {
+    "stdout": "par: 1 2\npar: 3 4\npar: 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-pipeline-I-mv": {
+    "stdout": "a.txt.bak\nb.txt.bak\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt.bak": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "b.txt.bak": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "xargs-pipeline-find": {
+    "stdout": "3 ./a.txt\n5 ./d/b.txt\n8 total\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      },
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+        "data": "12345"
+      }
+    }
+  },
+  "xargs-quotes": {
+    "stdout": "a b\nc d\ne f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-r-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-rm": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "keep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "xargs-s-limit": {
+    "stdout": "aaaa bbbb cccc\ndddd eeee ffff\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-t": {
+    "stdout": "a b\nc\n",
+    "stderr": "echo a b\necho c\n",
+    "exit": 0,
+    "files": {}
+  },
+  "xargs-unmatched-quote": {
+    "stdout": "",
+    "stderr": "xargs: unmatched single quote; by default quotes are special to xargs unless you use the -0 option\n",
+    "exit": 1,
+    "files": {}
+  },
+  "xargs-wc": {
+    "stdout": "2 a.txt\n1 b.txt\n3 total\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      }
+    }
+  }
+}

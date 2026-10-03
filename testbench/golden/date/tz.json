@@ -1,0 +1,296 @@
+{
+  "date-tz-backward-link": {
+    "stdout": "2026-07-01 12:00:00  +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-berlin-fall-ambiguous-now-summer": {
+    "stdout": "2026-10-25 02:30:00 CEST 1792888200\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-berlin-fall-ambiguous-now-winter": {
+    "stdout": "2026-10-25 02:30:00 CET 1792891800\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-berlin-spring-gap": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘2026-03-29 02:30’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-tz-berlin-summer": {
+    "stdout": "Wed 2026-07-15 12:00:00 CEST +0200 +02:00 1784109600\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-berlin-winter": {
+    "stdout": "Thu 2026-01-15 12:00:00 CET +0100 +01:00 1768474800\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-chatham": {
+    "stdout": "2026-01-15 12:00:00 +1345 +1345 +13:45\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-colon-prefix": {
+    "stdout": "2026-01-15 12:00:00 -03 -0300\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-empty": {
+    "stdout": "2026-07-01 12:00:00 Universal +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-epoch-in-zones-kolkata": {
+    "stdout": "2026-01-15 17:30:00 IST +0530\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-epoch-in-zones-lord-howe": {
+    "stdout": "2026-01-15 23:00:00 +11 +1100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-epoch-in-zones-sao-paulo": {
+    "stdout": "Thu Jan 15 09:00:00 -03 2026\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-in-string-berlin-to-sao-paulo": {
+    "stdout": "2026-07-01 07:00:00 -03 -0300\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-in-string-posix": {
+    "stdout": "2026-01-15 00:00:00 UTC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-in-string-relative": {
+    "stdout": "2026-01-16 14:00:00 UTC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-in-string-tokyo": {
+    "stdout": "2026-01-15 00:00:00 UTC +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-kathmandu": {
+    "stdout": "2026-01-15 12:00:00 +0545 +0545 +05:45\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-kolkata": {
+    "stdout": "Thu 2026-01-15 12:00:00 IST +0530 +05:30 +05:30:00 +05:30 1768458600\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-lord-howe-half-hour-dst": {
+    "stdout": "2026-07-15 12:00:00 +1030 +1030\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-lord-howe-summer": {
+    "stdout": "Thu 2026-01-15 12:00:00 +11 +1100 +11:00 +11 1768438800\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-lord-howe-winter": {
+    "stdout": "Wed 2026-07-15 12:00:00 +1030 +1030 +10:30 +10:30 1784079000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-new-york-summer": {
+    "stdout": "Wed 2026-07-15 12:00:00 EDT -0400 -04:00 1784131200\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-new-york-winter": {
+    "stdout": "Thu 2026-01-15 12:00:00 EST -0500 -05:00 1768496400\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-ny-date-plus-day-across-dst": {
+    "stdout": "2026-03-08 00:00:00 EST\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-ny-fall-ambiguous-now-summer": {
+    "stdout": "2026-11-01 01:30:00 EDT 1793511000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-ny-fall-ambiguous-now-winter": {
+    "stdout": "2026-11-01 01:30:00 EST 1793514600\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-ny-hours-across-dst": {
+    "stdout": "2026-03-08 13:00:00 EDT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-ny-plus-24h-across-dst": {
+    "stdout": "2026-03-06 08:00:00 EST\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-ny-plus-day-across-dst": {
+    "stdout": "2026-03-08 07:00:00 EDT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-ny-spring-after-gap": {
+    "stdout": "2026-03-08 03:30:00 EDT 1772955000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-ny-spring-gap": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘2026-03-08 02:30’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-tz-ny-summer-date-from-winter": {
+    "stdout": "2026-07-01 12:00:00 EDT -0400\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-ny-tomorrow-across-dst": {
+    "stdout": "2026-03-08 13:00:00 EDT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-offset-converted": {
+    "stdout": "2026-01-15 01:30:00 EST -0500\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-posix-angle-brackets": {
+    "stdout": "2026-01-15 12:00:00 -03 -0300\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-posix-est5edt-summer": {
+    "stdout": "2026-07-01 12:00:00 EDT -0400\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-posix-est5edt-winter": {
+    "stdout": "2026-01-15 12:00:00 EST -0500\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-posix-explicit-rules": {
+    "stdout": "2026-07-01 12:00:00 CEST +0200\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-posix-half-hour": {
+    "stdout": "2026-01-15 12:00:00 +0530 +0530\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-posix-jst": {
+    "stdout": "2026-01-15 12:00:00 JST +0900\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-posix-utc0": {
+    "stdout": "2026-01-15 12:00:00 UTC +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-sao-paulo-historic-dst": {
+    "stdout": "2016-01-15 12:00:00 -02 -0200\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-sao-paulo-historic-gap": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘2018-11-04 00:30’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-tz-sao-paulo-now": {
+    "stdout": "Thu 2026-01-15 12:00:00 -03 -0300 -03:00 1768489200\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-st-johns": {
+    "stdout": "2026-01-15 12:00:00 NST -0330 -03:30\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-tokyo-default-output": {
+    "stdout": "Thu Jan 15 12:00:00 JST 2026\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-unknown-name": {
+    "stdout": "2026-07-01 12:00:00 Foo +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-utc-flag-with-offset-input": {
+    "stdout": "2026-01-15 15:00:00 UTC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-tz-utc-now": {
+    "stdout": "Thu 2026-01-15 12:00:00 UTC +0000 +00:00 1768478400\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,102 @@
+tool = "archive"
+source = "agent-style"
+
+# Comportamento dos CLIs GNU de compressão e arquivo que, no pseudo-linus, seriam nossos (as crates só
+# entregam o codec e o formato). Casos `script`: documentam mensagens, exit codes e efeitos no
+# diretório; nenhum deixa no diretório arquivo com timestamp de criação (o retrato do golden tem que
+# ser determinístico).
+
+[[case]]
+id = "gzip-v-replace"
+script = "gzip -v a.txt; echo \"exit=$?\"; ls"
+tags = ["cli", "gzip"]
+[case.files]
+"a.txt" = "hello world\nhello world\nhello world\n"
+
+[[case]]
+id = "gzip-keep-and-suffix-warning"
+script = "gzip -k -n a.txt; gzip a.txt.gz; echo \"exit=$?\"; ls"
+tags = ["cli", "gzip", "error"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-existing-output"
+script = "gzip -n a.txt </dev/null; echo \"exit=$?\"; ls"
+tags = ["cli", "gzip", "error"]
+[case.files]
+"a.txt" = "new\n"
+"a.txt.gz" = "not really gzip\n"
+
+[[case]]
+id = "gzip-stdin-roundtrip"
+script = "printf 'abc\\n' | gzip -c | gzip -dc; echo \"exit=${PIPESTATUS[*]}\""
+tags = ["cli", "gzip"]
+
+[[case]]
+id = "zcat-multiple-files"
+script = "gzip -k -n a.txt b.txt && zcat a.txt.gz b.txt.gz; rm -f a.txt.gz b.txt.gz"
+tags = ["cli", "gzip"]
+[case.files]
+"a.txt" = "A\n"
+"b.txt" = "B\n"
+
+[[case]]
+id = "bzip2-xz-zstd-lzip-roundtrip"
+script = "for c in 'bzip2' 'xz' 'zstd -q' 'lzip'; do $c -c in.txt | $c -dc | cmp - in.txt && echo \"$c ok\"; done"
+tags = ["cli", "roundtrip"]
+[case.files]
+"in.txt" = "line one\nline two\nline three\n"
+
+[[case]]
+id = "tar-czf-tzvf"
+script = "touch -h -d '2026-01-15 12:00:00' dir/link && tar --sort=name -czf out.tgz dir && tar -tzvf out.tgz; echo \"exit=$?\"; rm -f out.tgz"
+tags = ["cli", "tar"]
+[case.files]
+"dir/a.txt" = "a\n"
+"dir/sub/b.txt" = "bb\n"
+"dir/link" = { symlink = "a.txt" }
+"dir/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "tar-cf-xf-roundtrip"
+script = "touch -h -d '2026-01-15 12:00:00' dir/link && tar --sort=name -cf out.tar dir && mkdir x && tar -xf out.tar -C x && rm out.tar && ls -lR --time-style=+%F x"
+tags = ["cli", "tar"]
+[case.files]
+"dir/a.txt" = "a\n"
+"dir/sub/b.txt" = { content = "bb\n", mode = 0o600 }
+"dir/link" = { symlink = "sub/b.txt" }
+
+[[case]]
+id = "tar-ustar-too-long"
+script = "n=$(printf 'n%.0s' $(seq 1 100)); mkdir -p d/$n/$n && touch d/$n/$n/$n && touch -d '2026-01-15 12:00:00' d/$n/$n/$n d/$n/$n d/$n d && tar --sort=name --format=ustar -cf out.tar d; echo \"exit=$?\"; tar tf out.tar | wc -l; rm -rf out.tar d"
+tags = ["cli", "tar", "error"]
+
+[[case]]
+id = "tar-xf-not-tar"
+script = "tar -xf junk.tar; echo \"exit=$?\""
+tags = ["cli", "tar", "error"]
+[case.files]
+"junk.tar" = "this is not a tar archive at all\n"
+
+[[case]]
+id = "tar-xf-missing-member"
+script = "tar --sort=name -cf out.tar a.txt && tar -xf out.tar nope; echo \"exit=$?\"; rm -f out.tar"
+tags = ["cli", "tar", "error"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "zip-unzip-roundtrip"
+script = "zip -q -X -r out.zip dir && unzip -q out.zip -d x && rm out.zip && ls -lR --time-style=+%F x"
+tags = ["cli", "zip"]
+[case.files]
+"dir/a.txt" = "a\n"
+"dir/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "unzip-t-corrupt"
+script = "unzip -t bad.zip; echo \"exit=$?\""
+tags = ["cli", "zip", "error"]
+[case.files]
+"bad.zip" = { content_b64 = "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFAAAAYS50eHRoZWxsbyB3b3JsZA==" }

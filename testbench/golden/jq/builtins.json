@@ -1,0 +1,452 @@
+{
+  "jq-array-ops": {
+    "stdout": "[3,4]\n[4,3]\n[1,4]\n2\n[2,4]\ntrue\ntrue\n[1,2,3,4,3]\n[1,[2],3]\n[3,4,3,2,1]\ntrue\ntrue\nfalse\ntrue\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-ascii-builtin": {
+    "stdout": "",
+    "stderr": "jq: error: ascii/0 is not defined at <top-level>, line 1:\n[65, 97] | map(ascii)               \njq: 1 compile error\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-ascii-implode-explode": {
+    "stdout": "\"ABé😀\"\n[65,66,233,128512]\n\"abc\"\n\"a\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-capture": {
+    "stdout": "{\"y\":\"2026\",\"m\":\"01\",\"d\":null}\n[{\"n\":\"a\",\"v\":\"1\"},{\"n\":\"bb\",\"v\":\"22\"}]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-date-localtime-faketime": {
+    "stdout": "\"2026-01-15T12:00:00Z\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-deep-recursion": {
+    "stdout": "10000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-def-functions": {
+    "stdout": "[42,3628800,6,2432902008176640000]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-del-variants": {
+    "stdout": "{\"users\":[{\"n\":\"b\"},{\"n\":\"c\"}],\"meta\":{\"x\":1,\"y\":2}}\n{\"users\":[{\"n\":\"a\"},{\"n\":\"c\"}],\"meta\":{\"x\":1,\"y\":2}}\n{}\n{\"users\":[{\"n\":\"a\"},{\"n\":\"b\"},{\"n\":\"c\"}],\"meta\":{\"y\":2}}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-destructuring": {
+    "stdout": "[1,2,3]\n[1,null]\n[{\"b\":2,\"d\":3},null]\n[4,5]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-env-in-filter": {
+    "stdout": "set!\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-from-entries-null-key": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): Cannot use null (null) as object key\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-from-entries-variants": {
+    "stdout": "{\"a\":1,\"c\":3,\"N\":4,\"d\":null,\"e\":null,\"f\":6}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-fromdate-variants": {
+    "stdout": "1768478400\n1768478400\n\"date \\\"2026-01-15\\\" does not match format \\\"%Y-%m-%dT%H:%M:%SZ\\\"\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-fromjson-invalid": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): Invalid numeric literal at EOF at line 1, column 4 (while parsing '{bad')\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-getpath-input-with-dash-keys": {
+    "stdout": "v1\nv2\nv3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-getpath-invalid": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): Cannot index object with number\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-getpath-objects-equality": {
+    "stdout": "[true,true,true,false,false,true]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-getpath-on-arrays-negative": {
+    "stdout": "3\nnull\n2\n\"Cannot index array with string \\\"a\\\"\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-getpath-paths-leaf-update": {
+    "stdout": "{\"a\":10,\"b\":{\"c\":20,\"d\":\"x\"},\"e\":[30]}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-gmtime-dateadd": {
+    "stdout": "[2026,0,15,12,0,0,4,14]\n1768478400\n\"2026-01-15T12:00:00Z\"\n[2026,0,15,12,0,0.5,4,14]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-group-by": {
+    "stdout": "[{\"dept\":null,\"n\":1,\"total\":1},{\"dept\":\"eng\",\"n\":2,\"total\":17},{\"dept\":\"ops\",\"n\":1,\"total\":5}]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-gsub-empty-match": {
+    "stdout": "\"-a-b-c-\"\n\"-a-b-c-\"\n[\"\",\"a\",\"b\",\"c\",\"\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-has-in-contains": {
+    "stdout": "[true,false,true,true,true,2]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-heavy-but-finite": {
+    "stdout": "39999800000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-implicit-object-merge": {
+    "stdout": "{\"a\":{\"b\":1,\"c\":3},\"z\":{\"y\":2}}\n{\"a\":1,\"z\":{\"y\":2}}\n{\"b\":1,\"y\":2}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-in-place-like-walk": {
+    "stdout": "{\"a\":[\"X\",{\"b\":\"Y\"}],\"c\":1}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-input-in-reduce-with-limit": {
+    "stdout": "[1,2]\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-isvalid-and-error-fn": {
+    "stdout": "[1,\"caught: big\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-join-variants": {
+    "stdout": "\"a, 1, , true\"\n\"a-1-null-true\"\n\"\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-label-break": {
+    "stdout": "[1,3,6]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-leaf-paths-removed": {
+    "stdout": "",
+    "stderr": "jq: error: leaf_paths/0 is not defined at <top-level>, line 1:\n[leaf_paths] \njq: 1 compile error\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-limit-first-last-nth": {
+    "stdout": "[0,1,2]\n0\n9\n2\n[]\n0\n4\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-ltrimstr-nonstring": {
+    "stdout": "[\"bc\",1,null,\"bca\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-map-values-with-entries": {
+    "stdout": "{\"a\":2,\"b\":3}\n{\"A\":1,\"B\":2}\n[{\"key\":\"a\",\"value\":1},{\"key\":\"b\",\"value\":2}]\n{\"a\":1,\"b\":2}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-match-object": {
+    "stdout": "{\"offset\":5,\"length\":7,\"string\":\"2026-01\",\"captures\":[{\"offset\":5,\"length\":4,\"string\":\"2026\",\"name\":null},{\"offset\":10,\"length\":2,\"string\":\"01\",\"name\":null}]}\n[1,13,17,25]\n\"y\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-min-max-add-empty": {
+    "stdout": "[null,null,null,null,0]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-now-type": {
+    "stdout": "\"number\"\ntrue\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-object-construction": {
+    "stdout": "{\"name\":\"n\",\"id\":7,\"dyn\":[1],\"lit\":1,\"__loc__\":{\"file\":\"<top-level>\",\"line\":1},\"x7\":true}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-object-construction-multi": {
+    "stdout": "{\"a\":1,\"b\":3}\n{\"a\":1,\"b\":4}\n{\"a\":2,\"b\":3}\n{\"a\":2,\"b\":4}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-optional-iteration-on-object-values": {
+    "stdout": "[2,1]\n[\"b=2\",\"a=1\"]\n[\"a\",\"b\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-path-expression": {
+    "stdout": "[\"a\",0,\"b\"]\n[[],[\"a\"],[\"a\",0],[\"a\",0,\"b\"]]\n\"Invalid path expression with result 1\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-paths-getpath-setpath": {
+    "stdout": "[[\"a\"],[\"a\",\"b\"],[\"a\",\"l\"],[\"a\",\"l\",0],[\"a\",\"l\",1]]\n[[\"a\",\"b\"],[\"a\",\"l\",0]]\n1\nnull\n{\"a\":{\"b\":1,\"l\":[2,\"s\"],\"c\":9}}\n{\"a\":{\"l\":[2,\"s\"]}}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-range-variants": {
+    "stdout": "[0,1,2,3,4]\n[2,5,8]\n[5,3,1]\n[0,0.25,0.5,0.75]\n[]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-recurse-variants": {
+    "stdout": "[1,2,3]\n[1,2,3]\n[{\"id\":1,\"children\":[{\"id\":2,\"children\":[]},{\"id\":3}]}]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-reduce-foreach": {
+    "stdout": "10\n[1,3,6,10]\n[[1,1],[2,3],[3,6],[4,10]]\n7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-regex-invalid": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): Regex failure: end pattern with unmatched parenthesis\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-regex-lookaround-backref": {
+    "stdout": "[true,true,true,[\"oo\"]]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-regex-unicode-classes": {
+    "stdout": "[true,true,4,3]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-scan": {
+    "stdout": "[\"1\",\"22\",\"333\"]\n[[\"a\",\"1\"],[\"b\",\"2\"],[\"c\",\"3\"],[\"3\",\"3\"]]\n[\"c\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-select-map": {
+    "stdout": "2\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-significand-and-friends": {
+    "stdout": "[1,3,8.525161361065413,[0.5,4],12,1,4,1]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-sort-mixed-types": {
+    "stdout": "[null,false,true,1.5,2,10,\"B\",\"a\",\"b\",[1,3],[2],{\"a\":2},{\"b\":1}]\n[\"object\",\"object\",\"array\",\"array\",\"string\",\"string\",\"string\",\"number\",\"number\",\"number\",\"boolean\",\"boolean\",\"null\"]\n[\"1.5\",\"10\",\"2\",\"B\",\"[1,3]\",\"[2]\",\"a\",\"b\",\"false\",\"null\",\"true\",\"{\\\"a\\\":2}\",\"{\\\"b\\\":1}\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-sort-stability-and-strings": {
+    "stdout": "[{\"n\":0,\"s\":\"z\"},{\"n\":0,\"s\":\"ä\"},{\"n\":1,\"s\":\"é\"},{\"n\":1,\"s\":\"E\"}]\n[\"E\",\"z\",\"ä\",\"é\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-splits-and-tostring-object": {
+    "stdout": "{\"a\":\"x\",\"b\":[1,2.0]}\nx\n[\"x\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-splits-limit-negative": {
+    "stdout": "[1,2]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-splits-null-input": {
+    "stdout": "\"split input and separator must be strings\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-splits-on-csv-line": {
+    "stdout": "{\"name\":\"apple\",\"qty\":3}\n{\"name\":\"pear\",\"qty\":10}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-splits-split-regex": {
+    "stdout": "[\"a\",\"b\",\"c\",\"d\"]\n[\"a\",\"b\",\"c\",\"d\"]\n[\"a\",\" b\",\"c\",\"  d\"]\n[\"\",\", b,c,  d\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-splits-tojson-precision": {
+    "stdout": "[\"3.0\",\"1.1\",\"0.30000000000000004\",\"0.00001\",\"12345678912345678\"]\n[\"3.0\",\"1.1\",\"0.30000000000000004\",\"0.00001\",\"12345678912345678\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-strftime-todate": {
+    "stdout": "[\"1970-01-01T00:00:00Z\",\"2026-01-15T12:00:00Z\"]\n\"2026-01-15T12:00:00Z\"\n\"2026-01-15T12:00:00Z\"\n\"Thursday January 15 015 02 15 12 PM UTC\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-string-interpolation-types": {
+    "stdout": "n=1.0 s=x a=[1,\"b\"] o={\"k\":null} z=null f=1.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-string-ops": {
+    "stdout": "[\"Bár.txt\",\"fooBár\",true,true,\"foobár.txt\",\"FOOBáR.TXT\",10,11,[102,111,111],\"fooBár.txt\",[\"fooBár\",\"txt\"],\"ababab\",\"\",[\"f\",\"\",\"Bár.txt\"]]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-string-slices-indices": {
+    "stdout": "\"na\"\n\"nas\"\n\"ba\"\n[1,3]\n1\n3\n\"a\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-strptime-custom-format": {
+    "stdout": "1768480245\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-strptime-mktime": {
+    "stdout": "[2026,0,15,12,0,0,4,14]\n1768478400\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-sub-gsub": {
+    "stdout": "\"f0o   boo  zoo\"\n\"f00   b00  z00\"\n\"foo boo zoo\"\n\"<foo>   boo  zoo\"\n\"fOO   bOO  zOO\"\n\"f__   b__  z__\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-test-regex": {
+    "stdout": "[true,true,false,false]\n[true,false,true,true]\n[true,false,false,true]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-tojson-ascii-control": {
+    "stdout": "{\"s\":\"\\u0000\\u001f\\u007fÿ\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-tojson-fromjson": {
+    "stdout": "\"{\\\"a\\\":[1,\\\"é\\\",null]}\"\n{\"a\":[1,\"é\",null]}\n[1,\"x\"]\n\"[1.10,100000000000000000000]\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-tostream-fromstream": {
+    "stdout": "[[[\"a\",0],1],[[\"a\",1,\"b\"],2],[[\"a\",1,\"b\"]],[[\"a\",1]],[[\"a\"]]]\n{\"a\":[1,{\"b\":2}]}\n[[[0],1],[[1,\"b\"],2],[[1,\"b\"]],[[1]]]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-type-predicates": {
+    "stdout": "[\"number\",\"string\",\"null\",\"boolean\",\"array\",\"object\"]\n[1]\n[\"a\"]\n[[1],{\"a\":1}]\n[1,\"a\",null,true]\n[true]\n[null]\n[{\"a\":1}]\n[[1]]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-unique-by-sort-by": {
+    "stdout": "[{\"k\":\"a\",\"v\":3},{\"k\":\"b\",\"v\":2}]\n[{\"k\":\"a\",\"v\":0},{\"k\":\"b\",\"v\":1},{\"k\":\"b\",\"v\":2},{\"k\":\"a\",\"v\":3}]\n[{\"k\":\"a\",\"v\":3},{\"k\":\"a\",\"v\":0},{\"k\":\"b\",\"v\":2},{\"k\":\"b\",\"v\":1}]\n[\"a\",\"b\"]\n{\"k\":\"a\",\"v\":0}\n{\"k\":\"a\",\"v\":3}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-until-while-repeat": {
+    "stdout": "[1,2,4,8,16,32,64]\n128\n[2,2,2,2,2]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-update-assign-ops": {
+    "stdout": "{\"a\":2,\"c\":4,\"e\":10,\"list\":[10,20],\"b\":2,\"d\":\"dflt\",\"missing\":{\"deep\":1}}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-update-with-empty": {
+    "stdout": "[1,2]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

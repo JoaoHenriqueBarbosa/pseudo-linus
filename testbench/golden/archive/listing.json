@@ -1,0 +1,939 @@
+{
+  "bzcat-seq": {
+    "stdout": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "seq.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 185,
+        "sha256": "02e05320177b0c44837209f63afd147aade66c1d9b00cfe0ec04c3db8f3164aa",
+        "data": {
+          "b64": "QlpoOTFBWSZTWWQDEh0AAFrIAAAQf+AwASMAqejah/qpCAaaaCHqaqeo/PVUr2K1c3zr3VAHDIDY0BAsFpJOxkBsaAgWCwQNAbGQHCgDrAATdrd3Mz27vbV1xXdzJFV3iroLugu6C7oLugoAAHEWekVXtAAAAAAcXGT0VXvwAAAAADisknlV76AAAAAA4rJI/VXvVdOKySL+VlXSqySK6uVdKrJIq8l3Qqskiq1dfxdyRThQkGQDEh0="
+        }
+      }
+    }
+  },
+  "bzip2-c-bytes": {
+    "stdout": {
+      "b64": "QlpoOTFBWSZTWTA38EwAAAvRgAAQQAAiJURAIAAiv9VAbSEAMIpTTqI8tFvi7kinChIGBv4JgA=="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "18cd93350f1f71c261fe09767fdf67abceaf81b766c5def4a0891e4625e1dd35",
+        "data": "plain text\nplain text\nplain text\n"
+      }
+    }
+  },
+  "bzip2-t-truncated": {
+    "stdout": "",
+    "stderr": "bzip2: truncated.bz2: file ends unexpectedly\n\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n",
+    "exit": 2,
+    "files": {
+      "truncated.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "c436329b6cdd6e70d9ba983354365af22b8b57417a51dcaf3bb61dab2c02b255",
+        "data": {
+          "b64": "QlpoOTFBWSZTWWQDEh0AAFrIAAAQf+AwASMAqejah/qpCAaaaCHqag=="
+        }
+      }
+    }
+  },
+  "gzip-c-bytes": {
+    "stdout": {
+      "b64": "H4sIAAAAAAAAAyvISczMUyhJrSjhKsDKBACD/bdRIQAAAA=="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "18cd93350f1f71c261fe09767fdf67abceaf81b766c5def4a0891e4625e1dd35",
+        "data": "plain text\nplain text\nplain text\n"
+      }
+    }
+  },
+  "gzip-d-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "hello": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-dc-missing": {
+    "stdout": "",
+    "stderr": "gzip: nope.gz: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gzip-dc-multi-member": {
+    "stdout": "hello world\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "multi.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 290,
+        "sha256": "2df473c95623d17efb6555cfd209ddaf529ab9173c29bb6685e288cccf7df387",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgAAAAAAAADHdHBFUQhCATBe0fDAKLkn9jO33s/hUIkRXMYLo9FgYQSFWp00KCLHloySJFJFtnkIYe85COXCkqUnyyqqUMNdalHLR206KT9Y9OHHvrSj15OcMRJTnE80OEM53IeZ5lgxCRTTDOed5jLPGa5wRU3ucVt7uF6nct93OUFT7zkFa95hzc8b/t4ywYrNtlimz3ssJc1xqdhjrBHGCQsEiYJm4RRwiphlnD3Z3P3wX1yH91n9+F9eh+f/WRA5efrzoYyoqwoM8qOMqQsKVPKlqrvEO7MKXvKoLKoTCqbyqiyqsyq/i7mzrIyrWwr48q6Mu8Psguy+OwBAAA="
+        }
+      }
+    }
+  },
+  "gzip-dc-not-gzip": {
+    "stdout": "",
+    "stderr": "\ngzip: plain.txt: not in gzip format\n",
+    "exit": 1,
+    "files": {
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c30a92f9ef889c07c781a7cf99f5b71415d4d1289e84473d1b9e6f01feffc62d",
+        "data": "plain text\n"
+      }
+    }
+  },
+  "gzip-l": {
+    "stdout": "         compressed        uncompressed  ratio uncompressed_name\n                 32                  12 -16.7% hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "hello.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "691d5610f9f7c327facbf8856c5293c7a741b8ad2c4fa31775f3cca51c62e9dd",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-l-two": {
+    "stdout": "         compressed        uncompressed  ratio uncompressed_name\n                 32                  12 -16.7% hello\n                258                 492  51.2% seq\n                290                 504  46.0% (totals)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "hello.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "691d5610f9f7c327facbf8856c5293c7a741b8ad2c4fa31775f3cca51c62e9dd",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      },
+      "seq.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 258,
+        "sha256": "621df84ed490d45cc582f73a1f108abbd627a42d5fd3af92d98cc0e05edc85a4",
+        "data": {
+          "b64": "H4sIAAAAAAAAAx3RwRVEIQgEwXtHwwCi5J/Yzt97P4VCJEVzGC6PRYGEEhVqdNCgix5aMkiRSRbZ5CGHvOQjlwpKlJ8sqqlDDXWpRy0dtOik/WPThx760o9eTnDESU5xPNDhDOdyHmeZYMQkU0wznneYyzxmucEVN7nFbe7hep3LfdzlBU+85BWveYc3PG/7eMsGKzbZYps97LCXNcanYY6wRxgkLBImCZuEUcIqYZZw92dz98F9ch/dZ/fhfXofn/1kQOXn686GMqKsKDPKjjKkLClTypaq7xDuzCl7yqCyqEwqm8qosqrMqv4u5s6yMq1sK+PKujLvD7ILsvjsAQAA"
+        }
+      }
+    }
+  },
+  "gzip-lv-named": {
+    "stdout": "method  crc     date  time           compressed        uncompressed  ratio uncompressed_name\ndefla af083b2d Jan 15 12:00                  42                  12 -16.7% named\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "named.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "7256303e63817be778a9fb54e4c254c0d21e176c366fead94d7a39507564b5df",
+        "data": {
+          "b64": "H4sICMDWaGkAA2hlbGxvLnR4dADLSM3JyVcozy/KSeECAC07CK8MAAAA"
+        }
+      }
+    }
+  },
+  "gzip-t-crc": {
+    "stdout": "",
+    "stderr": "\ngzip: crc.gz: invalid compressed data--crc error\n",
+    "exit": 1,
+    "files": {
+      "crc.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 258,
+        "sha256": "51181cff8184a511802b084b4b870f85c27e1a2abd6c10e0dd1cf5128b218dbf",
+        "data": {
+          "b64": "H4sIAAAAAAAAAx3RwRVEIQgEwXtHwwCi5J/Yzt97P4VCJEVzGC6PRYGEEhVqdNCgix5aMkiRSRbZ5CGHvOQjlwpKlJ8sqqlDDXWpRy0dtOik/WPThx760o9eTnDESU5xPNDhDOdyHmeZYMQkU0wznneYyzxmucEVN7nFbe7hep3LfdzlBU+85BWveYc3PG/7eMsGKzbZYps97LCXNcanYY6wRxgkLBImCZuEUcIqYZZw92dz98F9ch/dZ/fhfXofn/1kQOXn686GMqKsKDPKjjKkLClTypaq7xDuzCl7yqCyqEwqm8qosqrMqv4u5s6yMq1sK+PKujLvD7IL//jsAQAA"
+        }
+      }
+    }
+  },
+  "gzip-t-ok": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "seq.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 258,
+        "sha256": "621df84ed490d45cc582f73a1f108abbd627a42d5fd3af92d98cc0e05edc85a4",
+        "data": {
+          "b64": "H4sIAAAAAAAAAx3RwRVEIQgEwXtHwwCi5J/Yzt97P4VCJEVzGC6PRYGEEhVqdNCgix5aMkiRSRbZ5CGHvOQjlwpKlJ8sqqlDDXWpRy0dtOik/WPThx760o9eTnDESU5xPNDhDOdyHmeZYMQkU0wznneYyzxmucEVN7nFbe7hep3LfdzlBU+85BWveYc3PG/7eMsGKzbZYps97LCXNcanYY6wRxgkLBImCZuEUcIqYZZw92dz98F9ch/dZ/fhfXofn/1kQOXn686GMqKsKDPKjjKkLClTypaq7xDuzCl7yqCyqEwqm8qosqrMqv4u5s6yMq1sK+PKujLvD7ILsvjsAQAA"
+        }
+      }
+    }
+  },
+  "gzip-t-truncated": {
+    "stdout": "",
+    "stderr": "\ngzip: truncated.gz: unexpected end of file\n",
+    "exit": 1,
+    "files": {
+      "truncated.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "26b62438732942568cb60c38ebbef0c5891b69e0b6aaa112d4219ae4e38f1ebc",
+        "data": {
+          "b64": "H4sIAAAAAAAAAx3RwRVEIQgEwXs="
+        }
+      }
+    }
+  },
+  "lzip-c-bytes": {
+    "stdout": {
+      "b64": "TFpJUAEMADgbCEeCspz+OEcp6FIscnQ5///9KGAAg/23USEAAAAAAAAAMgAAAAAAAAA="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "18cd93350f1f71c261fe09767fdf67abceaf81b766c5def4a0891e4625e1dd35",
+        "data": "plain text\nplain text\nplain text\n"
+      }
+    }
+  },
+  "lzip-dc-seq": {
+    "stdout": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "seq.lz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 218,
+        "sha256": "e6aeb2b62888ab60579eca6a9c5305613ddb5cb673b1447c634e2e0b0ceeddf3",
+        "data": {
+          "b64": "TFpJUAEMABiCgo8iTvimVffwmaUlDZBFkVpRtJvKrNwFMuyFUp+xSG3v3OhLuWG64JxTf5jIqVQO/D0q0wbXZkQ9VmSmzT3Xxx9E9BjfAgs/4sbGe+Hnf3lEHHm3Qq5luBu1DoThmoIGIzlaf3KqQ/qlmh+SwL5FcXlK1ZPGkAo5rZxlhyq2GjjH4ZMXytA+CeqwUvAQYCbAXl8QkQ25eXh9l0Jg0KY4d+Ej6LsoT4hSLXVYJj9m/eKc69Osh/g9v/8oUgAAsguy+OwBAAAAAAAA2gAAAAAAAAA="
+        }
+      }
+    }
+  },
+  "tar-t-gnu": {
+    "stdout": "tree/\ntree/a.txt\ntree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/\ntree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt\ntree/exec.sh\ntree/hard\ntree/link\ntree/ro.txt\ntree/setuid\ntree/spaces and ünïcode.txt\ntree/sticky/\ntree/sub/\ntree/sub/deep.txt\nbig/\nbig/longlink\nbig/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/\nbig/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/\nbig/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/\nbig/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/file.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "gnu.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 645,
+        "sha256": "be3426b197c0d9dea471689236094e4beda1479dc3203e7d03b42d4b1a4aada0",
+        "data": {
+          "b64": "H4sIAAAAAAACA+1czXKbMBjknKdQp3frH6691y+BQTFMGMiA3DpP1RfoLS9WyZ3pTEiKQxrJcbV7MB5s4xkvu/tJ+mQ7GkOzsGAOhdano8P8eHrONZeCayn9ec40UxnRWQQcJluOhGTjMNil9517/UphPf/lxh5tWP5zpf7OP1cz/rnKWUYY+A+OxnTdQL4PY1ffZEByOOm//gfQ1+l/lf8LJZWE/8fAhm7ol+3Q77dtf3ch/3e8P7kXnP/njGdkC/6vQP+374KwFQhwSf7P1n9MP/V/KblWqP9ioHPWj8Ivcf2bo6k2U3Ox8b8QXv/CqV/JonD5L9w56D8GPn+iu7anU3NjqmYgTQszSE//TTnWAb/jfP7P5/+k0E7/PMbkFOp/Q7twY78//u99/dX8C6kc/6KMMCoA/4aOQ9Af2hOsFvUv5/O/Oer/OBgHBH7y+T8Ze2jrkPpXy/O/fK7/QqD+j4IjJAD9T/dlZSZS9jV5/Nk//qiG2rxjRXC+/hcz/eu8wPpvFBwQ/9D/ZNvq7iFYG5AP+JXjP/cBrP/G4/+wC9kD9nv+l63gnwvv/+A/Iv+1MfeBZgFO+c/Y4vofK4R0oe+SX3j9++EC8j8CPO0oAdLFrt2Hbv99S/+vZDn8PwY+Qv8XL/iL/V9fwX/4/C/HvbHxH+G8H8f/fQ9QyCXA1et/snAJkBER41ZMXP+e/2MwcPqm/JdaC+R/MvnvRnvP879A//f/oP9w1xY0A66C//X+n6sc/p+M/yvJsf8H/r/a/8NdW1L4P/wf/h/J/9UL/i/g//D/y/n/bduZFPakxvL/5f//EM/9n2P9Nwa+mfGBYBMoAAAAACSFX+Oyx48AUAAA"
+        }
+      }
+    }
+  },
+  "tar-tv-bzip2": {
+    "stdout": "-rw-r--r-- root/root        12 2026-01-15 12:00 tree/a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "small.tar.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "8924d6cccd2883f404bfb7559528eba5c5b5d92f6d0c671eaef7b20fa40f3088",
+        "data": {
+          "b64": "QlpoOTFBWSZTWZ2WHbcAAIH7hMoQAUBAAf8AAQBmRJ7AAACACCAAdBpNENPUBo0eo0NqCSmiaAAAaA+6K3MhBGACRC+IzOeVOSQMtWHyaW/E21CHDgAsQDWXMFuD7NDvcR2ks6ZyoxvgDFZicTSlXs5vqt4iERAfi7kinChITssO24A="
+        }
+      }
+    }
+  },
+  "tar-tv-gnu": {
+    "stdout": "drwxr-xr-x root/root         0 2026-01-15 12:00 tree/\n-rw-r--r-- root/root        12 2026-01-15 12:00 tree/a.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/\n-rw-r--r-- root/root         5 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt\n-rwxr-xr-x root/root        18 2025-12-31 23:59 tree/exec.sh\nhrw-r--r-- root/root         0 2026-01-15 12:00 tree/hard link to tree/a.txt\nlrwxrwxrwx root/root         0 2026-01-15 12:00 tree/link -> a.txt\n-r--r--r-- root/root         3 2026-01-15 12:00 tree/ro.txt\n-rwsr-xr-x root/root         1 2026-01-15 12:00 tree/setuid\n-rw-r--r-- root/root         2 2026-01-15 12:00 tree/spaces and ünïcode.txt\ndrwxrwxrwt root/root         0 2026-01-15 12:00 tree/sticky/\ndrwxr-x--- root/root         0 2026-01-15 12:00 tree/sub/\n-rw------- root/root         5 2001-02-03 04:05 tree/sub/deep.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/\nlrwxrwxrwx root/root         0 2026-01-15 12:00 big/longlink -> targettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettarget\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/\n-rw-r--r-- root/root        10 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/file.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "gnu.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 645,
+        "sha256": "be3426b197c0d9dea471689236094e4beda1479dc3203e7d03b42d4b1a4aada0",
+        "data": {
+          "b64": "H4sIAAAAAAACA+1czXKbMBjknKdQp3frH6691y+BQTFMGMiA3DpP1RfoLS9WyZ3pTEiKQxrJcbV7MB5s4xkvu/tJ+mQ7GkOzsGAOhdano8P8eHrONZeCayn9ec40UxnRWQQcJluOhGTjMNil9517/UphPf/lxh5tWP5zpf7OP1cz/rnKWUYY+A+OxnTdQL4PY1ffZEByOOm//gfQ1+l/lf8LJZWE/8fAhm7ol+3Q77dtf3ch/3e8P7kXnP/njGdkC/6vQP+374KwFQhwSf7P1n9MP/V/KblWqP9ioHPWj8Ivcf2bo6k2U3Ox8b8QXv/CqV/JonD5L9w56D8GPn+iu7anU3NjqmYgTQszSE//TTnWAb/jfP7P5/+k0E7/PMbkFOp/Q7twY78//u99/dX8C6kc/6KMMCoA/4aOQ9Af2hOsFvUv5/O/Oer/OBgHBH7y+T8Ze2jrkPpXy/O/fK7/QqD+j4IjJAD9T/dlZSZS9jV5/Nk//qiG2rxjRXC+/hcz/eu8wPpvFBwQ/9D/ZNvq7iFYG5AP+JXjP/cBrP/G4/+wC9kD9nv+l63gnwvv/+A/Iv+1MfeBZgFO+c/Y4vofK4R0oe+SX3j9++EC8j8CPO0oAdLFrt2Hbv99S/+vZDn8PwY+Qv8XL/iL/V9fwX/4/C/HvbHxH+G8H8f/fQ9QyCXA1et/snAJkBER41ZMXP+e/2MwcPqm/JdaC+R/MvnvRnvP879A//f/oP9w1xY0A66C//X+n6sc/p+M/yvJsf8H/r/a/8NdW1L4P/wf/h/J/9UL/i/g//D/y/n/bduZFPakxvL/5f//EM/9n2P9Nwa+mfGBYBMoAAAAACSFX+Oyx48AUAAA"
+        }
+      }
+    }
+  },
+  "tar-tv-missing": {
+    "stdout": "",
+    "stderr": "tar: nope.tar: Cannot open: No such file or directory\ntar: Error is not recoverable: exiting now\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tar-tv-numeric-owner": {
+    "stdout": "-rw-r--r-- 1000/50          12 2026-01-15 12:00 tree/a.txt\n-rwxr-xr-x 1000/50          18 2025-12-31 23:59 tree/exec.sh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "owners.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 184,
+        "sha256": "e03350c54464a67bbfd385055f05f2ddb6ed058f813730a3e3947225dc220f13",
+        "data": {
+          "b64": "H4sIAAAAAAACA+3UQQ7CIBBAUdaeAuPeMhTkPLXS0KSxSYvR40t1rTubqP9tJmRm+8lTjFWzz7esPsYUB+eWKcGbx9sc7HMuxCnxUlvxdW3KXiRIUNqoFVzm3Exaq2bo2/jmrpx1nfo5KQ7DqK/jNJw2Cn8nL/3HW2z3c/pk/8H71/1bu/RvS/2uDqH0b60T+l/Dblsd+3M1p01s06hTzy8AAAAAAAAAAAAAAADwVe5eHObuACgAAA=="
+        }
+      }
+    }
+  },
+  "tar-tv-oldgnu": {
+    "stdout": "drwxr-xr-x root/root         0 2026-01-15 12:00 tree/\n-rw-r--r-- root/root        12 2026-01-15 12:00 tree/a.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/\n-rw-r--r-- root/root         5 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt\n-rwxr-xr-x root/root        18 2025-12-31 23:59 tree/exec.sh\nhrw-r--r-- root/root         0 2026-01-15 12:00 tree/hard link to tree/a.txt\nlrwxrwxrwx root/root         0 2026-01-15 12:00 tree/link -> a.txt\n-r--r--r-- root/root         3 2026-01-15 12:00 tree/ro.txt\n-rwsr-xr-x root/root         1 2026-01-15 12:00 tree/setuid\n-rw-r--r-- root/root         2 2026-01-15 12:00 tree/spaces and ünïcode.txt\ndrwxrwxrwt root/root         0 2026-01-15 12:00 tree/sticky/\ndrwxr-x--- root/root         0 2026-01-15 12:00 tree/sub/\n-rw------- root/root         5 2001-02-03 04:05 tree/sub/deep.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/\nlrwxrwxrwx root/root         0 2026-01-15 12:00 big/longlink -> targettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettarget\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/\n-rw-r--r-- root/root        10 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/file.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "oldgnu.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 647,
+        "sha256": "bf082d03f2a1ae58c072658b1bcef9586446302baadd5fa865d54c53f2be1442",
+        "data": {
+          "b64": "H4sIAAAAAAACA+1czXKbMBjknKdQpnfrH117r18Cg2KYMCYDuHGeqi/QW16skjvTmZAUBzeS42r3AB5s8IyX3f0kfXjsraVZWDAHo/Vx7zDdH19zzaXgWkp/nDPNVEZ0FgH7YSx6QrK+68a5z516/0oxev6L1XgYw/KfK/V3/rma8M9VzjLCwH9w1LZtO/LY9W11kwHJ4aj/6h9A36f/Rf4vlFQS/h8DK7qiX9fdbrtudvcX8n/H+4t7wfl/znhG1uD/CvR/9yEIW4EAF+T/dP3H9Ev/99sc9V8MtM76Ufglrn97sOVqqC82/hfC61849StpjMt/4Y5B/zHw5ZZumh0d6htb1h2pG5hBevqvi74K+B2n8386/yeFdvrnMSanUP9b2oYb+/3xf+/r7+ZfSOX4F0WEUQH4t7Tvgv7QnmA1q385nf/NtUL+x0DfIfCTz//BjvumCql/NT//y6f6NwL1fxQcIAHof3goSjuQYleR55+75x9lV9kPrAhO1/9ion+dG6z/RsEe8Q/9D2NT3j8FawPyAb9w/OdOwPpvPP73m5A9YL/nf9kC/rnw/g/+I/JfWfsQaBbgmP+Mza7/MSOkC32X/MLr3w8XkP8R4GlHCZAuNs02dPvvOf2/0q//w//D4zP0f3HD3+z/+gb+w+d/0W/tGH8L5/08/u97gEIuAS5e/5PGJUBGRIxbMXH9e/4PwcDpWfkvtRbI/2Ty3432Xue/Qf/3/6D/cNcWNAOugf8z/D8XBv6fjP8ryfH8D/x/sf+Hu7ak8H/4P/w/kv+rN/xfwP/h/5fz/7umtSk8kxrL/+f//0O89n+O9d8Y+G77J4KHQAEAAAAgKfwC423DPQBQAAA="
+        }
+      }
+    }
+  },
+  "tar-tv-owners": {
+    "stdout": "-rw-r--r-- alice/staff      12 2026-01-15 12:00 tree/a.txt\n-rwxr-xr-x alice/staff      18 2025-12-31 23:59 tree/exec.sh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "owners.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 184,
+        "sha256": "e03350c54464a67bbfd385055f05f2ddb6ed058f813730a3e3947225dc220f13",
+        "data": {
+          "b64": "H4sIAAAAAAACA+3UQQ7CIBBAUdaeAuPeMhTkPLXS0KSxSYvR40t1rTubqP9tJmRm+8lTjFWzz7esPsYUB+eWKcGbx9sc7HMuxCnxUlvxdW3KXiRIUNqoFVzm3Exaq2bo2/jmrpx1nfo5KQ7DqK/jNJw2Cn8nL/3HW2z3c/pk/8H71/1bu/RvS/2uDqH0b60T+l/Dblsd+3M1p01s06hTzy8AAAAAAAAAAAAAAADwVe5eHObuACgAAA=="
+        }
+      }
+    }
+  },
+  "tar-tv-pax": {
+    "stdout": "drwxr-xr-x root/root         0 2026-01-15 12:00 tree/\n-rw-r--r-- root/root        12 2026-01-15 12:00 tree/a.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/\n-rw-r--r-- root/root         5 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt\n-rwxr-xr-x root/root        18 2025-12-31 23:59 tree/exec.sh\nhrw-r--r-- root/root         0 2026-01-15 12:00 tree/hard link to tree/a.txt\nlrwxrwxrwx root/root         0 2026-01-15 12:00 tree/link -> a.txt\n-r--r--r-- root/root         3 2026-01-15 12:00 tree/ro.txt\n-rwsr-xr-x root/root         1 2026-01-15 12:00 tree/setuid\n-rw-r--r-- root/root         2 2026-01-15 12:00 tree/spaces and ünïcode.txt\ndrwxrwxrwt root/root         0 2026-01-15 12:00 tree/sticky/\ndrwxr-x--- root/root         0 2026-01-15 12:00 tree/sub/\n-rw------- root/root         5 2001-02-03 04:05 tree/sub/deep.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/\nlrwxrwxrwx root/root         0 2026-01-15 12:00 big/longlink -> targettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettarget\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/\ndrwxr-xr-x root/root         0 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/\n-rw-r--r-- root/root        10 2026-01-15 12:00 big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/file.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pax.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 750,
+        "sha256": "e9732d11f8c5d66445f2ee5106839bd2fbddb941e8e72287f105418ecd866b3f",
+        "data": {
+          "b64": "H4sIAAAAAAACA+2bwXKbMBRFWecr6HQfpCcJkkX2XfYXsJENE8Z4ALfkq/oD3eXHKjlZuDiBkERybO5Z2EySsT253PuenuS21joK3MIMiVL7Z0P/eX/NFRfElRD255wpKYNQBR7YNW1am49SV1U79Hdjvz9TWqt/et12rVv9YyPoq/pz2dOfK2JByKC/c3JdllX4u6rL7CoAs2Pv/+wDRG/z/6T8JymZQP6fh/4/0+6HTjNdN9HqZcbynyj+X3/B9/p3PvWfqf+5YuE2bfO7j98Iq0/BtiKoRGfk/3FJR/s/pnr+N5cS/Z8Pymqzht1m7n/d6eV1k59s/U9k/U/G/VIkiVn/EZME//vg+7doUWyiJr/Sy7wK8wJhMD//52mdOXyP8frfn/8JwY3/uY/hFNZ/OiqLzb1j/ROb62/WnyQz+pNj6aH/s/515fQfbQWWg/4X/flvgv7fD3WFgj/7+t/odldkLv0vh+e//Mj/Mfp/L3SwAPx/MMJvtulSN2G6ycLHv5vHP8sq0x9tDkb7f9mb//OYYon5vw/EzcH4/zXx0SJceP13YPpJ63/q+V8lAuc/vLCDt+H/pi2W9w/OjgHaBn/i/IepBOc//Om/W7g8A/q0/8Mm6M+FzX/o71H/TOutoyngvv4zNrj/zxIScWIqv1n4My7MBeq/D6zsaAHmy6JYuz7+/57z/0LGyH9f+h+Mf+xxoE/fDRw9/8nio/0/W/8x/3EPFzK0gj8NgdJ6rVv/jyhAJ/W/E9P383/K+k8kXIogJB93H/I/6pzBo3fVf6FUjPp/Efrb3mKs/ot+/Tfdn0L991P/b583gFzfCO5emyL0D1/W//Zxev7HipD/F6X/UP5LSf36z7D+8wPdsvPPf3evLS69tiD/kf8nz3/1Qv5z5L+f/L9B/g/l/6ooL/kM3FfwP+N0nP8c+78++KXrhxBfAgcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4Cz4B2XnDVwAeAAA"
+        }
+      }
+    }
+  },
+  "tar-tv-ustar": {
+    "stdout": "drwxr-xr-x root/root         0 2026-01-15 12:00 tree/\n-rw-r--r-- root/root        12 2026-01-15 12:00 tree/a.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/\n-rw-r--r-- root/root         5 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt\n-rwxr-xr-x root/root        18 2025-12-31 23:59 tree/exec.sh\nhrw-r--r-- root/root         0 2026-01-15 12:00 tree/hard link to tree/a.txt\nlrwxrwxrwx root/root         0 2026-01-15 12:00 tree/link -> a.txt\n-r--r--r-- root/root         3 2026-01-15 12:00 tree/ro.txt\n-rwsr-xr-x root/root         1 2026-01-15 12:00 tree/setuid\n-rw-r--r-- root/root         2 2026-01-15 12:00 tree/spaces and ünïcode.txt\ndrwxrwxrwt root/root         0 2026-01-15 12:00 tree/sticky/\ndrwxr-x--- root/root         0 2026-01-15 12:00 tree/sub/\n-rw------- root/root         5 2001-02-03 04:05 tree/sub/deep.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ustar.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 463,
+        "sha256": "a90757ec7a12f966ddb212051641468972c925fd4175bcd9ffb4c55e9198b55b",
+        "data": {
+          "b64": "H4sIAAAAAAACA+3aTW6DMBAFYNY5BVX3wb/xeQi4BQXhCoyanqoX6C4Xq027KVUhUWJXEe/bgJIsojzNjG1iO62zJCziKCnHqzO9jvdUUs6o5Ny/TokUIkllEsHQ27xzX6Uzxs59bun9O2V9/vnWHm3Y/Hcu0D/zp2KSP5WMJClB/sFVumlM+mq6ptwksDpj/ZdXyM6r/4v6PxOCcPT/GJ5uYn5+LPZ/In/mLzj1+d91/7+6sOLk35j2GY1/5f1fH3Wx7at/W/8z5uufueoXXCm3/mNEMKz/Ynh8yPZ1m/XVRheVSasazWB99V/lXchxszz/p/t/zqmrfxpjc4r9v86auj2EPv/xff3s/JkgLn8WOHrk/51/Z4L+0D5gMVv/fHr+o6jA/I+hMxj4q5//vbZDXYasfzF//kN/1f8O6/8ojigB1H//khe6T/O2TE8f7em9MKW+4Ypgef3PJvUvFcfznygGjH/Uf2/r4vAW7G8AfsBfuP8jUuH5T7z8h33I/4B8nf+SC/Kn3Pd/5B8x/1Lrl0CnAOP8J2T2+R9RjO+Um/xu4U8odzeY/zH42LEEAAAAAAAAAAAAAAAAAAAAAAAAAAC4H58r3L+xAFAAAA=="
+        }
+      }
+    }
+  },
+  "tar-tv-v7": {
+    "stdout": "-rw-r--r-- 0/0              12 2026-01-15 12:00 tree/a.txt\n-rwxr-xr-x 0/0              18 2025-12-31 23:59 tree/exec.sh\nlrwxrwxrwx 0/0               0 2026-01-15 12:00 tree/link -> a.txt\ndrwxr-x--- 0/0               0 2026-01-15 12:00 tree/sub/\n-rw------- 0/0               5 2001-02-03 04:05 tree/sub/deep.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v7.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 243,
+        "sha256": "7dd58b686d38700331e5538ec2a0260659281e0af5174ea69bdf3332f4220fcb",
+        "data": {
+          "b64": "H4sIAAAAAAACA+3WvQqDMBSGYWevwtJdk5z8XE/VQKSiRS318puELi1Y6BCH+j2L4iJ4eM1ZJmurS7msS5YM87SU8ep9XhnjMuOKk+CKKD7XkvOsyCA5Z/t+LB7j1Lc5vsbxLKF/u9qmnF3K/o1S2/0LEfoXvn5JxoT+DRH638P5VNXdUM0ut40bC9fhL3C8/vtuuCZ8R+w/dr3Rv79/P/8NKd+/SLyXwGv+872uUs9fsR/mr4n5/U9hPPvNv7X2lii3uP+zb/P3u4ERpA3jSovQv2Ea5/8ewthx5AMAAAAAAAAAAAAAAPyPJ3FLBSAAKAAA"
+        }
+      }
+    }
+  },
+  "tar-tv-xz": {
+    "stdout": "-rw-r--r-- root/root        12 2026-01-15 12:00 tree/a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "small.tar.xz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 196,
+        "sha256": "85720c7cda13dff56096dee68fe1faddbcbcf79d62b276990fd2841f6d96888d",
+        "data": {
+          "b64": "/Td6WFoAAATm1rRGBMCBAYBQIQEWAAAAAAAAAMCtVWrgJ/8AeV0AOhyI4KRiGqOeK7G5T1lsdbLpqtgECPrVmYICC7Sp84nSUZkftzXYU2w2bLeP5cLjL3Ior9nAjwheBU8C/+/L4MNezSX1M9AgcYJwLLHkNbRnDtsPidEvZnRd1IuVHXG7FwIZwVb8zmKdWvY0fxKy20Wiug3uMOdzAAAAAADMZlEfiKAisgABnQGAUAAAe2Ao3rHEZ/sCAAAAAARZWg=="
+        }
+      }
+    }
+  },
+  "tar-tv-zstd": {
+    "stdout": "-rw-r--r-- root/root        12 2026-01-15 12:00 tree/a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "small.tar.zst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 108,
+        "sha256": "0a74be96ef0705ad92392009ff248b475126018da8330620d0c75607d5e5c588",
+        "data": {
+          "b64": "KLUv/QRY/QIAYgQPFpC1LQYIkKyTswLY3ehuoS8ZVd3ZKDuCkTQFlimhI1PLTM8CAltt8O56QsoV5MoV3v+I5r92sMMhENINDADRBfAAOADotAAKgAhDcWCwbgcuWBQzDYBu5do2AS92xamc"
+        }
+      }
+    }
+  },
+  "tar-tzv-ustar": {
+    "stdout": "drwxr-xr-x root/root         0 2026-01-15 12:00 tree/\n-rw-r--r-- root/root        12 2026-01-15 12:00 tree/a.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/\n-rw-r--r-- root/root         5 2026-01-15 12:00 tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt\n-rwxr-xr-x root/root        18 2025-12-31 23:59 tree/exec.sh\nhrw-r--r-- root/root         0 2026-01-15 12:00 tree/hard link to tree/a.txt\nlrwxrwxrwx root/root         0 2026-01-15 12:00 tree/link -> a.txt\n-r--r--r-- root/root         3 2026-01-15 12:00 tree/ro.txt\n-rwsr-xr-x root/root         1 2026-01-15 12:00 tree/setuid\n-rw-r--r-- root/root         2 2026-01-15 12:00 tree/spaces and ünïcode.txt\ndrwxrwxrwt root/root         0 2026-01-15 12:00 tree/sticky/\ndrwxr-x--- root/root         0 2026-01-15 12:00 tree/sub/\n-rw------- root/root         5 2001-02-03 04:05 tree/sub/deep.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ustar.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 463,
+        "sha256": "a90757ec7a12f966ddb212051641468972c925fd4175bcd9ffb4c55e9198b55b",
+        "data": {
+          "b64": "H4sIAAAAAAACA+3aTW6DMBAFYNY5BVX3wb/xeQi4BQXhCoyanqoX6C4Xq027KVUhUWJXEe/bgJIsojzNjG1iO62zJCziKCnHqzO9jvdUUs6o5Ny/TokUIkllEsHQ27xzX6Uzxs59bun9O2V9/vnWHm3Y/Hcu0D/zp2KSP5WMJClB/sFVumlM+mq6ptwksDpj/ZdXyM6r/4v6PxOCcPT/GJ5uYn5+LPZ/In/mLzj1+d91/7+6sOLk35j2GY1/5f1fH3Wx7at/W/8z5uufueoXXCm3/mNEMKz/Ynh8yPZ1m/XVRheVSasazWB99V/lXchxszz/p/t/zqmrfxpjc4r9v86auj2EPv/xff3s/JkgLn8WOHrk/51/Z4L+0D5gMVv/fHr+o6jA/I+hMxj4q5//vbZDXYasfzF//kN/1f8O6/8ojigB1H//khe6T/O2TE8f7em9MKW+4Ypgef3PJvUvFcfznygGjH/Uf2/r4vAW7G8AfsBfuP8jUuH5T7z8h33I/4B8nf+SC/Kn3Pd/5B8x/1Lrl0CnAOP8J2T2+R9RjO+Um/xu4U8odzeY/zH42LEEAAAAAAAAAAAAAAAAAAAAAAAAAAC4H58r3L+xAFAAAA=="
+        }
+      }
+    }
+  },
+  "tar-x-gnu": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "big": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "big/longlink": {
+        "kind": "symlink",
+        "target": "targettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettarget"
+      },
+      "big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/file.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "39e57692761413fd49429d5e50a1dd708860c286f541b64805e84a070cb04d1e",
+        "data": "very long\n"
+      },
+      "gnu.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 645,
+        "sha256": "be3426b197c0d9dea471689236094e4beda1479dc3203e7d03b42d4b1a4aada0",
+        "data": {
+          "b64": "H4sIAAAAAAACA+1czXKbMBjknKdQp3frH6691y+BQTFMGMiA3DpP1RfoLS9WyZ3pTEiKQxrJcbV7MB5s4xkvu/tJ+mQ7GkOzsGAOhdano8P8eHrONZeCayn9ec40UxnRWQQcJluOhGTjMNil9517/UphPf/lxh5tWP5zpf7OP1cz/rnKWUYY+A+OxnTdQL4PY1ffZEByOOm//gfQ1+l/lf8LJZWE/8fAhm7ol+3Q77dtf3ch/3e8P7kXnP/njGdkC/6vQP+374KwFQhwSf7P1n9MP/V/KblWqP9ioHPWj8Ivcf2bo6k2U3Ox8b8QXv/CqV/JonD5L9w56D8GPn+iu7anU3NjqmYgTQszSE//TTnWAb/jfP7P5/+k0E7/PMbkFOp/Q7twY78//u99/dX8C6kc/6KMMCoA/4aOQ9Af2hOsFvUv5/O/Oer/OBgHBH7y+T8Ze2jrkPpXy/O/fK7/QqD+j4IjJAD9T/dlZSZS9jV5/Nk//qiG2rxjRXC+/hcz/eu8wPpvFBwQ/9D/ZNvq7iFYG5AP+JXjP/cBrP/G4/+wC9kD9nv+l63gnwvv/+A/Iv+1MfeBZgFO+c/Y4vofK4R0oe+SX3j9++EC8j8CPO0oAdLFrt2Hbv99S/+vZDn8PwY+Qv8XL/iL/V9fwX/4/C/HvbHxH+G8H8f/fQ9QyCXA1et/snAJkBER41ZMXP+e/2MwcPqm/JdaC+R/MvnvRnvP879A//f/oP9w1xY0A66C//X+n6sc/p+M/yvJsf8H/r/a/8NdW1L4P/wf/h/J/9UL/i/g//D/y/n/bduZFPakxvL/5f//EM/9n2P9Nwa+mfGBYBMoAAAAACSFX+Oyx48AUAAA"
+        }
+      },
+      "tree": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "tree/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "bbdbb75b415ee9a40f0b3796a8b41a0b7723afe5726b870474ad220a4886d06d",
+        "data": "long\n"
+      },
+      "tree/exec.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 18,
+        "sha256": "299001868fb8c02fd431c336c6d058f5558c5dff5b5af5e6fe04b870a6a9cbba",
+        "data": "#!/bin/sh\necho hi\n"
+      },
+      "tree/hard": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "tree/link": {
+        "kind": "symlink",
+        "target": "a.txt"
+      },
+      "tree/ro.txt": {
+        "kind": "file",
+        "mode": 292,
+        "size": 3,
+        "sha256": "ecd8a0e06e165df468fc47920cf65f056c5aa5a38e1aedb182e6ecdc8bb764fd",
+        "data": "ro\n"
+      },
+      "tree/setuid": {
+        "kind": "file",
+        "mode": 2541,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      },
+      "tree/spaces and ünïcode.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "ea46748e171abd2dd4dba5b86bb6589334d86bba2df8d50cbb16b36c83b0856a",
+        "data": "u\n"
+      },
+      "tree/sticky": {
+        "kind": "dir",
+        "mode": 1023
+      },
+      "tree/sub": {
+        "kind": "dir",
+        "mode": 488
+      },
+      "tree/sub/deep.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 5,
+        "sha256": "64896f89fd11190013b70103e603a1c5826e56b7fb7d2197ab279b0690043599",
+        "data": "deep\n"
+      }
+    }
+  },
+  "tar-x-pax": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "big": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "big/longlink": {
+        "kind": "symlink",
+        "target": "targettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettargettarget"
+      },
+      "big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "big/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3/file.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "39e57692761413fd49429d5e50a1dd708860c286f541b64805e84a070cb04d1e",
+        "data": "very long\n"
+      },
+      "pax.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 750,
+        "sha256": "e9732d11f8c5d66445f2ee5106839bd2fbddb941e8e72287f105418ecd866b3f",
+        "data": {
+          "b64": "H4sIAAAAAAACA+2bwXKbMBRFWecr6HQfpCcJkkX2XfYXsJENE8Z4ALfkq/oD3eXHKjlZuDiBkERybO5Z2EySsT253PuenuS21joK3MIMiVL7Z0P/eX/NFRfElRD255wpKYNQBR7YNW1am49SV1U79Hdjvz9TWqt/et12rVv9YyPoq/pz2dOfK2JByKC/c3JdllX4u6rL7CoAs2Pv/+wDRG/z/6T8JymZQP6fh/4/0+6HTjNdN9HqZcbynyj+X3/B9/p3PvWfqf+5YuE2bfO7j98Iq0/BtiKoRGfk/3FJR/s/pnr+N5cS/Z8Pymqzht1m7n/d6eV1k59s/U9k/U/G/VIkiVn/EZME//vg+7doUWyiJr/Sy7wK8wJhMD//52mdOXyP8frfn/8JwY3/uY/hFNZ/OiqLzb1j/ROb62/WnyQz+pNj6aH/s/515fQfbQWWg/4X/flvgv7fD3WFgj/7+t/odldkLv0vh+e//Mj/Mfp/L3SwAPx/MMJvtulSN2G6ycLHv5vHP8sq0x9tDkb7f9mb//OYYon5vw/EzcH4/zXx0SJceP13YPpJ63/q+V8lAuc/vLCDt+H/pi2W9w/OjgHaBn/i/IepBOc//Om/W7g8A/q0/8Mm6M+FzX/o71H/TOutoyngvv4zNrj/zxIScWIqv1n4My7MBeq/D6zsaAHmy6JYuz7+/57z/0LGyH9f+h+Mf+xxoE/fDRw9/8nio/0/W/8x/3EPFzK0gj8NgdJ6rVv/jyhAJ/W/E9P383/K+k8kXIogJB93H/I/6pzBo3fVf6FUjPp/Efrb3mKs/ot+/Tfdn0L991P/b583gFzfCO5emyL0D1/W//Zxev7HipD/F6X/UP5LSf36z7D+8wPdsvPPf3evLS69tiD/kf8nz3/1Qv5z5L+f/L9B/g/l/6ooL/kM3FfwP+N0nP8c+78++KXrhxBfAgcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4Cz4B2XnDVwAeAAA"
+        }
+      },
+      "tree": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "tree/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "tree/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "bbdbb75b415ee9a40f0b3796a8b41a0b7723afe5726b870474ad220a4886d06d",
+        "data": "long\n"
+      },
+      "tree/exec.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 18,
+        "sha256": "299001868fb8c02fd431c336c6d058f5558c5dff5b5af5e6fe04b870a6a9cbba",
+        "data": "#!/bin/sh\necho hi\n"
+      },
+      "tree/hard": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "tree/link": {
+        "kind": "symlink",
+        "target": "a.txt"
+      },
+      "tree/ro.txt": {
+        "kind": "file",
+        "mode": 292,
+        "size": 3,
+        "sha256": "ecd8a0e06e165df468fc47920cf65f056c5aa5a38e1aedb182e6ecdc8bb764fd",
+        "data": "ro\n"
+      },
+      "tree/setuid": {
+        "kind": "file",
+        "mode": 2541,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      },
+      "tree/spaces and ünïcode.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "ea46748e171abd2dd4dba5b86bb6589334d86bba2df8d50cbb16b36c83b0856a",
+        "data": "u\n"
+      },
+      "tree/sticky": {
+        "kind": "dir",
+        "mode": 1023
+      },
+      "tree/sub": {
+        "kind": "dir",
+        "mode": 488
+      },
+      "tree/sub/deep.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 5,
+        "sha256": "64896f89fd11190013b70103e603a1c5826e56b7fb7d2197ab279b0690043599",
+        "data": "deep\n"
+      }
+    }
+  },
+  "unzip-l": {
+    "stdout": "Archive:  tree.zip\n  Length      Date    Time    Name\n---------  ---------- -----   ----\n       12  2026-01-15 12:00   a.txt\n       18  2026-01-01 00:00   exec.sh\n        3  2026-01-15 12:00   ro.txt\n        0  2026-01-15 12:00   sub/\n        5  2001-02-03 04:05   sub/deep.txt\n        5  2026-01-15 12:00   link\n---------                     -------\n       43                     6 files\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "tree.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 597,
+        "sha256": "1d2604e27dc1972e33bf619d94c857581b9a8798b43eb73fd807f7b675b6f6a5",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFAAAAYS50eHRoZWxsbyB3b3JsZApQSwMECgAAAAAAAAAhXC862ukSAAAAEgAAAAcAAABleGVjLnNoIyEvYmluL3NoCmVjaG8gaGkKUEsDBAoAAAAAAABgL1xa+4SqAwAAAAMAAAAGAAAAcm8udHh0cm8KUEsDBAoAAAAAAABgL1wAAAAAAAAAAAAAAAAEAAAAc3ViL1BLAwQKAAAAAACjIEMqgrieJwUAAAAFAAAADAAAAHN1Yi9kZWVwLnR4dGRlZXAKUEsDBAoAAAAAAABgL1y69+vBBQAAAAUAAAAEAAAAbGlua2EudHh0UEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAAAAAAAAAAQAAAKSBAAAAAGEudHh0UEsBAh4DCgAAAAAAAAAhXC862ukSAAAAEgAAAAcAAAAAAAAAAQAAAO2BLwAAAGV4ZWMuc2hQSwECHgMKAAAAAAAAYC9cWvuEqgMAAAADAAAABgAAAAAAAAABAAEAJIFmAAAAcm8udHh0UEsBAh4DCgAAAAAAAGAvXAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAQAOhBjQAAAHN1Yi9QSwECHgMKAAAAAACjIEMqgrieJwUAAAAFAAAADAAAAAAAAAABAAAAgIGvAAAAc3ViL2RlZXAudHh0UEsBAh4DCgAAAAAAAGAvXLr368EFAAAABQAAAAQAAAAAAAAAAAAAAP+h3gAAAGxpbmtQSwUGAAAAAAYABgA6AQAABQEAAAAA"
+        }
+      }
+    }
+  },
+  "unzip-l-missing": {
+    "stdout": "",
+    "stderr": "unzip:  cannot find or open nope.zip, nope.zip.zip or nope.zip.ZIP.\n",
+    "exit": 9,
+    "files": {}
+  },
+  "unzip-l-stored": {
+    "stdout": "Archive:  stored.zip\n  Length      Date    Time    Name\n---------  ---------- -----   ----\n       12  2026-01-15 12:00   a.txt\n        0  2026-01-15 12:00   sub/\n        5  2001-02-03 04:05   sub/deep.txt\n---------                     -------\n       17                     3 files\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "stored.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 309,
+        "sha256": "2874c7ba0e518e1fefa08cc9450a20586304a92a690b3e332c0a7d3e12dd5b6f",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFAAAAYS50eHRoZWxsbyB3b3JsZApQSwMECgAAAAAAAGAvXAAAAAAAAAAAAAAAAAQAAABzdWIvUEsDBAoAAAAAAKMgQyqCuJ4nBQAAAAUAAAAMAAAAc3ViL2RlZXAudHh0ZGVlcApQSwECHgMKAAAAAAAAYC9cLTsIrwwAAAAMAAAABQAAAAAAAAAAAAAApIEAAAAAYS50eHRQSwECHgMKAAAAAAAAYC9cAAAAAAAAAAAAAAAABAAAAAAAAAAAABAA6EEvAAAAc3ViL1BLAQIeAwoAAAAAAKMgQyqCuJ4nBQAAAAUAAAAMAAAAAAAAAAAAAACAgVEAAABzdWIvZGVlcC50eHRQSwUGAAAAAAMAAwCfAAAAgAAAAAAA"
+        }
+      }
+    }
+  },
+  "unzip-p": {
+    "stdout": "hello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "tree.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 597,
+        "sha256": "1d2604e27dc1972e33bf619d94c857581b9a8798b43eb73fd807f7b675b6f6a5",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFAAAAYS50eHRoZWxsbyB3b3JsZApQSwMECgAAAAAAAAAhXC862ukSAAAAEgAAAAcAAABleGVjLnNoIyEvYmluL3NoCmVjaG8gaGkKUEsDBAoAAAAAAABgL1xa+4SqAwAAAAMAAAAGAAAAcm8udHh0cm8KUEsDBAoAAAAAAABgL1wAAAAAAAAAAAAAAAAEAAAAc3ViL1BLAwQKAAAAAACjIEMqgrieJwUAAAAFAAAADAAAAHN1Yi9kZWVwLnR4dGRlZXAKUEsDBAoAAAAAAABgL1y69+vBBQAAAAUAAAAEAAAAbGlua2EudHh0UEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAAAAAAAAAAQAAAKSBAAAAAGEudHh0UEsBAh4DCgAAAAAAAAAhXC862ukSAAAAEgAAAAcAAAAAAAAAAQAAAO2BLwAAAGV4ZWMuc2hQSwECHgMKAAAAAAAAYC9cWvuEqgMAAAADAAAABgAAAAAAAAABAAEAJIFmAAAAcm8udHh0UEsBAh4DCgAAAAAAAGAvXAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAQAOhBjQAAAHN1Yi9QSwECHgMKAAAAAACjIEMqgrieJwUAAAAFAAAADAAAAAAAAAABAAAAgIGvAAAAc3ViL2RlZXAudHh0UEsBAh4DCgAAAAAAAGAvXLr368EFAAAABQAAAAQAAAAAAAAAAAAAAP+h3gAAAGxpbmtQSwUGAAAAAAYABgA6AQAABQEAAAAA"
+        }
+      }
+    }
+  },
+  "unzip-x": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "exec.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 18,
+        "sha256": "299001868fb8c02fd431c336c6d058f5558c5dff5b5af5e6fe04b870a6a9cbba",
+        "data": "#!/bin/sh\necho hi\n"
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "a.txt"
+      },
+      "ro.txt": {
+        "kind": "file",
+        "mode": 292,
+        "size": 3,
+        "sha256": "ecd8a0e06e165df468fc47920cf65f056c5aa5a38e1aedb182e6ecdc8bb764fd",
+        "data": "ro\n"
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 488
+      },
+      "sub/deep.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 5,
+        "sha256": "64896f89fd11190013b70103e603a1c5826e56b7fb7d2197ab279b0690043599",
+        "data": "deep\n"
+      },
+      "tree.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 597,
+        "sha256": "1d2604e27dc1972e33bf619d94c857581b9a8798b43eb73fd807f7b675b6f6a5",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFAAAAYS50eHRoZWxsbyB3b3JsZApQSwMECgAAAAAAAAAhXC862ukSAAAAEgAAAAcAAABleGVjLnNoIyEvYmluL3NoCmVjaG8gaGkKUEsDBAoAAAAAAABgL1xa+4SqAwAAAAMAAAAGAAAAcm8udHh0cm8KUEsDBAoAAAAAAABgL1wAAAAAAAAAAAAAAAAEAAAAc3ViL1BLAwQKAAAAAACjIEMqgrieJwUAAAAFAAAADAAAAHN1Yi9kZWVwLnR4dGRlZXAKUEsDBAoAAAAAAABgL1y69+vBBQAAAAUAAAAEAAAAbGlua2EudHh0UEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAAAAAAAAAAQAAAKSBAAAAAGEudHh0UEsBAh4DCgAAAAAAAAAhXC862ukSAAAAEgAAAAcAAAAAAAAAAQAAAO2BLwAAAGV4ZWMuc2hQSwECHgMKAAAAAAAAYC9cWvuEqgMAAAADAAAABgAAAAAAAAABAAEAJIFmAAAAcm8udHh0UEsBAh4DCgAAAAAAAGAvXAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAQAOhBjQAAAHN1Yi9QSwECHgMKAAAAAACjIEMqgrieJwUAAAAFAAAADAAAAAAAAAABAAAAgIGvAAAAc3ViL2RlZXAudHh0UEsBAh4DCgAAAAAAAGAvXLr368EFAAAABQAAAAQAAAAAAAAAAAAAAP+h3gAAAGxpbmtQSwUGAAAAAAYABgA6AQAABQEAAAAA"
+        }
+      }
+    }
+  },
+  "unzip-z1": {
+    "stdout": "a.txt\nexec.sh\nro.txt\nsub/\nsub/deep.txt\nlink\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "tree.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 597,
+        "sha256": "1d2604e27dc1972e33bf619d94c857581b9a8798b43eb73fd807f7b675b6f6a5",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFAAAAYS50eHRoZWxsbyB3b3JsZApQSwMECgAAAAAAAAAhXC862ukSAAAAEgAAAAcAAABleGVjLnNoIyEvYmluL3NoCmVjaG8gaGkKUEsDBAoAAAAAAABgL1xa+4SqAwAAAAMAAAAGAAAAcm8udHh0cm8KUEsDBAoAAAAAAABgL1wAAAAAAAAAAAAAAAAEAAAAc3ViL1BLAwQKAAAAAACjIEMqgrieJwUAAAAFAAAADAAAAHN1Yi9kZWVwLnR4dGRlZXAKUEsDBAoAAAAAAABgL1y69+vBBQAAAAUAAAAEAAAAbGlua2EudHh0UEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAAAAAAAAAAQAAAKSBAAAAAGEudHh0UEsBAh4DCgAAAAAAAAAhXC862ukSAAAAEgAAAAcAAAAAAAAAAQAAAO2BLwAAAGV4ZWMuc2hQSwECHgMKAAAAAAAAYC9cWvuEqgMAAAADAAAABgAAAAAAAAABAAEAJIFmAAAAcm8udHh0UEsBAh4DCgAAAAAAAGAvXAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAQAOhBjQAAAHN1Yi9QSwECHgMKAAAAAACjIEMqgrieJwUAAAAFAAAADAAAAAAAAAABAAAAgIGvAAAAc3ViL2RlZXAudHh0UEsBAh4DCgAAAAAAAGAvXLr368EFAAAABQAAAAQAAAAAAAAAAAAAAP+h3gAAAGxpbmtQSwUGAAAAAAYABgA6AQAABQEAAAAA"
+        }
+      }
+    }
+  },
+  "xz-c-bytes": {
+    "stdout": {
+      "b64": "/Td6WFoAAATm1rRGBMAaISEBFgAAAAAAAAAAAGtBMQ7gACAAEl0AOBsIR4KynP44RynoUixsaIAAAAAASglFx1xghcAAATYhADTz5R+2830BAAAAAARZWg=="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "18cd93350f1f71c261fe09767fdf67abceaf81b766c5def4a0891e4625e1dd35",
+        "data": "plain text\nplain text\nplain text\n"
+      }
+    }
+  },
+  "xz-dc-lzma": {
+    "stdout": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "seq.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 205,
+        "sha256": "4401f45ebea177090e360676a70b36d8f27ea8499d2fb73c618086f3d94da61e",
+        "data": {
+          "b64": "XQAAgAD//////////wAYgoKPIk74plX38JmlJQ2QRZFaUbSbyqzcBTLshVKfsUht79zoS7lhuuCcU3+YyKlUDvw9KtMG12ZEPVZkps0918cfRPQY3wILP+LGxnvh5395RBx5t0KuZbgbtQ6E4ZqCBiM5Wn9yqkP6pZofksC+RXF5StWTxpAKOa2cZYcqtho4x+GTF8rQPgnqsFLwEGAmwF5fEJENuXl4fZdCYNCmOHfhI+i7KE+IUi11WCY/Zv3inOvTrIf4Pb//KFIAAA=="
+        }
+      }
+    }
+  },
+  "xz-t-truncated": {
+    "stdout": "",
+    "stderr": "xz: truncated.xz: Unexpected end of input\n",
+    "exit": 1,
+    "files": {
+      "truncated.xz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "58340fe92507f036d17a3638c6c56474ade7e75095b145e22aa45b56d2c372b9",
+        "data": {
+          "b64": "/Td6WFoAAATm1rRGBMDBAewDIQEWAAAAAAAAAJ3A6OfgAesAuV0AGA=="
+        }
+      }
+    }
+  },
+  "xzcat-seq": {
+    "stdout": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "seq.xz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 260,
+        "sha256": "374ee927378bb120e72794584f3ea570bf299de2b04b0abcecfc82bab7b07bc3",
+        "data": {
+          "b64": "/Td6WFoAAATm1rRGBMDBAewDIQEWAAAAAAAAAJ3A6OfgAesAuV0AGIKCjyJO+KZV9/CZpSUNkEWRWlG0m8qs3AUy7IVSn7FIbe/c6Eu5YbrgnFN/mMipVA78PSrTBtdmRD1WZKbNPdfHH0T0GN8CCz/ixsZ74ed/eUQcebdCrmW4G7UOhOGaggYjOVp/cqpD+qWaH5LAvkVxeUrVk8aQCjmtnGWHKrYaOMfhkxfK0D4J6rBS8BBgJsBeXxCRDbl5eH2XQmDQpjh34SPouyhPiFItdVgmP2b94pzr06qgxRQAAAAAb/V2wY7Xfc8AAd0B7AMAAEWyes6xxGf7AgAAAAAEWVo="
+        }
+      }
+    }
+  },
+  "zcat-hello": {
+    "stdout": "hello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "hello.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "691d5610f9f7c327facbf8856c5293c7a741b8ad2c4fa31775f3cca51c62e9dd",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "zstd-c-bytes": {
+    "stdout": {
+      "b64": "KLUv/SQhjQAAWHBsYWluIHRleHQKAQBWihfKfj33"
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "18cd93350f1f71c261fe09767fdf67abceaf81b766c5def4a0891e4625e1dd35",
+        "data": "plain text\nplain text\nplain text\n"
+      }
+    }
+  },
+  "zstd-dc-seq": {
+    "stdout": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "seq.zst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 239,
+        "sha256": "3964260835272647162006c23c231a6525829642f2d6b038d6f461c7f502400a",
+        "data": {
+          "b64": "KLUv/WTsAA0HAHacMQmw6yRJiHBSmHUsAC8ALgBTBvliiyumeGKJI27MGOLr1qtTny49ejs79OPGixMfLjx4OTnw267pWY47A19tddVUTy111K1ZQ3200UUTPbTQQZcmDfTNNtdM88wyx9yZM8wnm1wyySOLHHIlUH7kRE5+wA14ASfgA1yAB/ACJ3AAfrfdddM9t9xx9+YN99lml0322GKHXZs2WMPwE27CSzgJH+EivMIpHIRfcAtewSn4BJfgEbzBGRyCX7mVVzmVT7mUR3nLAwkQCFRtxLE4oQBBQT8BPgE9AXhiSNK5pp0qv/8="
+        }
+      }
+    }
+  },
+  "zstd-t-truncated": {
+    "stdout": "",
+    "stderr": "truncated.zst : Read error (39) : premature end \n",
+    "exit": 1,
+    "files": {
+      "truncated.zst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "44a6fe9f1048b543b77d5456a5c9533b205f5a88ec006381ac8731395de4276f",
+        "data": {
+          "b64": "KLUv/WTsAA0HAHacMQmw6yRJiHA="
+        }
+      }
+    }
+  }
+}

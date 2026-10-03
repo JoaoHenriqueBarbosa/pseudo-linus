@@ -1,0 +1,912 @@
+{
+  "misc-0range": {
+    "stdout": "yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "44bf3e787f791308c68bf80796e68607823b49b6d30c70fc21a111a2f715bc57",
+        "data": "1\n2\n3\n4\naaa\nyes\n"
+      }
+    }
+  },
+  "misc-allsub": {
+    "stdout": "bar bar fo oo f oo bar bar bar bar bar bar bar bar bar\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "6b4ce83a91e481f2891535ae8823f4dca9fdf23836ff4734f2967b23e4dfde81",
+        "data": "foo foo fo oo f oo foo foo foo foo foo foo foo foo foo\n"
+      }
+    }
+  },
+  "misc-amp-escape": {
+    "stdout": "yes&\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "5040625b1fb6fa4af07226683f6e6003b29e5e70b16f8cfb24be7a752393f0ee",
+        "data": "yes\n"
+      }
+    }
+  },
+  "misc-appquit": {
+    "stdout": "doh\nok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "748b69004fd9bebebcba4d4605bae6024fd43ed9658b68f8d57ffb846a4702f6",
+        "data": "a\\\nok\nq"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "78ac909e494ce4156b31073a5a177a52603b3327a342b1d34fccf709ea1be911",
+        "data": "doh\n"
+      }
+    }
+  },
+  "misc-bkslashes": {
+    "stdout": "a\\\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "9347fc40a5c32cb14129152c2628ee65cab3f23a7e54753aaae432125a6980f4",
+        "data": "s/$/\\\\\\\n/\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "misc-brackets": {
+    "stdout": "abcdefgh[\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 100,
+        "sha256": "d0c69c98cd92a276ff73e9c2f187fa48b085ad88586b92b8938515dadae1ce73",
+        "data": "s/[[]/a/\ns/[[[]/b/\ns/[[[[]/c/\ns/[[[[[]/d/\ns/[[[[[[]/e/\ns/[[[[[[[]/f/\ns/[[[[[[[[]/g/\ns/[[[[[[[[[]/h/\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2681b6a1d17e1a1e4a753a3eda063bef2917588297b6287c92aa2754e6b3ef13",
+        "data": "[[[[[[[[[\n"
+      }
+    }
+  },
+  "misc-bug30794_1": {
+    "stdout": "\\A",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "594e519ae499312b29433b7dd8a97ff068defcba9755b6d5d00e84c524d67b06",
+        "data": "z"
+      }
+    }
+  },
+  "misc-bug30794_2": {
+    "stdout": "\\",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "594e519ae499312b29433b7dd8a97ff068defcba9755b6d5d00e84c524d67b06",
+        "data": "z"
+      }
+    }
+  },
+  "misc-bug30794_3": {
+    "stdout": "\\1",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "594e519ae499312b29433b7dd8a97ff068defcba9755b6d5d00e84c524d67b06",
+        "data": "z"
+      }
+    }
+  },
+  "misc-bug40242": {
+    "stdout": "X",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "1b16b1df538ba12dc3f97edbb85caa7050d46c148134290feba80f8236c83db9",
+        "data": "n"
+      }
+    }
+  },
+  "misc-case-insensitive": {
+    "stdout": "1.2.3\n1.2.3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "5862485dee91f5f7f9bb684e3af24db5959c1aea216fe160e6fcc29cc9399da8",
+        "data": "Version: 1.2.3\n"
+      }
+    }
+  },
+  "misc-classes": {
+    "stdout": ": ${_cv_='emptyvar'}\n: ${ac_cv_prog/RANLIB='/usr/bin/ranlib'}\n: ${ac_cv_prog/CC='/usr/unsupported/\\ \\ /lib/_cv_/cc'}\n: ${a/c_cv_prog/CPP='/usr/bin/cpp'}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 84,
+        "sha256": "4f4863f940e2b75cb03b6282e875731d0f67a599adf28e4a7f64584c06c85bc5",
+        "data": "s/^\\([/[:lower:]A-Z0-9]*_cv_[[:lower:][:upper:]/[:digit:]]*\\)=\\(.*\\)/: \\${\\1='\\2'}/p"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 149,
+        "sha256": "25cdfa06fd94b72d56d1438ae72d43e3533c73bae5fb4c00fbe787f6e2d450f5",
+        "data": "_cv_=emptyvar\nac_cv_prog/RANLIB=/usr/bin/ranlib\nac_cv_prog/CC=/usr/unsupported/\\ \\ /lib/_cv_/cc\na/c_cv_prog/CPP=/usr/bin/cpp\nSHELL=bash\nGNU=GNU!UNIX\n"
+      }
+    }
+  },
+  "misc-cv-vars": {
+    "stdout": ": ${_cv_='emptyvar'}\n: ${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\n: ${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\n: ${ac_cv_prog_CPP='/usr/bin/cpp'}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 60,
+        "sha256": "d8f4ed581b42beb83680b4456214f0382dae2a2fb5d96140e086ce9b84d1bcff",
+        "data": "s/^\\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\\)=\\(.*\\)/: \\${\\1='\\2'}/p"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 146,
+        "sha256": "b3a5030b6d2ffa6f6507c8cdd3f3ea35304094dce2bcb2c4d5e6c3f7e578ad0c",
+        "data": "_cv_=emptyvar\nac_cv_prog_RANLIB=/usr/bin/ranlib\nac_cv_prog_CC=/usr/unsupported/  /lib/_cv_/cc\nac_cv_prog_CPP=/usr/bin/cpp\nSHELL=bash\nGNU=GNU!UNIX\n"
+      }
+    }
+  },
+  "misc-dollar": {
+    "stdout": "I can't quite remember where I heard it,\nbut I can't seem to get out of my head\nthe phrase\nspace the final frontier\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 110,
+        "sha256": "91250997a1a9e8c4a55a402f8679f45d9106711324e16ed5405f40e35bf99a12",
+        "data": "I can't quite remember where I heard it,\nbut I can't seem to get out of my head\nthe phrase\nthe final frontier\n"
+      }
+    }
+  },
+  "misc-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "misc-empty2": {
+    "stdout": "x\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "d1329c6d1284e888680db5b03619fc08bdf1ee0b172c946ca6d1f18f5ea40d61",
+        "data": "x\n\n"
+      }
+    }
+  },
+  "misc-enable": {
+    "stdout": "targets\nx11-testing\nwollybears-in-minnesota\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 117,
+        "sha256": "4bd9885c8bbf15e2348f2535b253bec28590ad95057578adb87dd29f5de61222",
+        "data": "--enable-targets=sparc-sun-sunos4.1.3,srec\n--enable-x11-testing=on\n--enable-wollybears-in-minnesota=yes-id-like-that\n"
+      }
+    }
+  },
+  "misc-factor": {
+    "stdout": "2\n3\n2\n2\n5\n2\n2\n2\n11\n2\n2\n2\n2\n13\n11\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 854,
+        "sha256": "2abd4104e243bff16f5e36f1eef9c6b6a1541b7aa6b8cb4be503d19768865690",
+        "data": "\ns/.*/&;9aaaaaaaaa8aaaaaaaa7aaaaaaa6aaaaaa5aaaaa4aaaa3aaa2aa1a0/\n:encode\ns/\\(a*\\)\\([0-9]\\)\\([0-9]*;.*\\2\\(a*\\)\\)/\\1\\1\\1\\1\\1\\1\\1\\1\\1\\1\\4\\3/\ntencode\ns/;.*//\n\nt7a\n\n:2\na\\\n2\nb2a\n:3\na\\\n3\nb3a\n:5\na\\\n5\nb5a\n:7\na\\\n7\n\n:7a\ns/^\\(aa*\\)\\1\\{6\\}$/\\1/\nt7\n:5a\ns/^\\(aa*\\)\\1\\{4\\}$/\\1/\nt5\n:3a\ns/^\\(aa*\\)\\1\\1$/\\1/\nt3\n:2a\ns/^\\(aa*\\)\\1$/\\1/\nt2\n\n/^a$/b\n\ns/^\\(aa*\\)\\1\\{10\\}/\\1=&/\n\n:factor\n/^\\(a\\{7,\\}\\)=\\1\\1*$/! {\n  # Decrement CANDIDATE, and search again if it is still >1\n  s/^a//\n  /^aa/b factor\n\n  # Print the last remaining factor: since it is stored in the NUMBER\n  # rather than in the CANDIDATE, swap 'em: now NUMBER=1\n  s/\\(.*\\)=\\(.*\\)/\\2=\\1/\n}\n\nh\ns/=.*/;;0a1aa2aaa3aaaa4aaaaa5aaaaaa6aaaaaaa7aaaaaaaa8aaaaaaaaa9/\n\n:decode\ns/^\\(a*\\)\\1\\{9\\}\\(a\\{0,9\\}\\)\\([0-9]*;.*[^a]\\2\\([0-9]\\)\\)/\\1\\4\\3/\n/^a/tdecode\ns/;.*//p\n\ng\n:divide\ns/^\\(a*\\)\\(=b*\\)\\1/\\1\\2b/\ntdivide\ny/b/a/\n\n/aa$/bfactor\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "a6d8aaecb03dab6d4b4cce253ca125c3abb0a3ecbf3b446e8c6fa6fbae67be05",
+        "data": "2\n3\n4\n5\n8\n11\n16\n143\n"
+      }
+    }
+  },
+  "misc-fasts": {
+    "stdout": "aaaaaabbbbbbaaaaaaa\nbbbbbb\naaaaaabbbbbbaaaaaaa\naaaaaabbbbbbaaaaaaa\naaaaaaabbbbbbaaaaaaa\naaaaaabbbbbbaaaaaaa\naaaaaaabbbbbbaaaaaa\nbbbbbbbbbbbbbbbbbbb\n\nbbbbbbbbbbbbbbbbbbb\nbbbbbbbbbbbbbbbbbbb\nbbbbbbbbbbbbbbbbbbb\nbbbbbbbbbbbbbbbbbbb\nbbbbbbbbbbbbbbbbbbbb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 174,
+        "sha256": "22c05cf3b009d766ed7f5ebfbff15e84499d2b1688c38bbf499f913c9fd15a48",
+        "data": "\nh\ns/a//\np\ng\ns/a//g\np\ng\ns/^a//p\ng\ns/^a//g\np\ng\ns/not present//g\np\ng\ns/^[a-z]//g\np\ng\ns/a$//\np\ng\n\ny/a/b/\nh\ns/b//\np\ng\ns/b//g\np\ng\ns/^b//p\ng\ns/^b//g\np\ng\ns/^[a-z]//g\np\ng\ns/b$//\np\ng\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "7527ca041e8607fed7cead4815e0ea3abe3b81957d1bf0df36c7907d8b2e5136",
+        "data": "aaaaaaabbbbbbaaaaaaa\n"
+      }
+    }
+  },
+  "misc-file": {
+    "stdout": ": ${_cv_='emptyvar'}\n: ${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\n: ${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\n: ${ac_cv_prog_CPP='/usr/bin/cpp'}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 60,
+        "sha256": "d8f4ed581b42beb83680b4456214f0382dae2a2fb5d96140e086ce9b84d1bcff",
+        "data": "s/^\\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\\)=\\(.*\\)/: \\${\\1='\\2'}/p"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 146,
+        "sha256": "b3a5030b6d2ffa6f6507c8cdd3f3ea35304094dce2bcb2c4d5e6c3f7e578ad0c",
+        "data": "_cv_=emptyvar\nac_cv_prog_RANLIB=/usr/bin/ranlib\nac_cv_prog_CC=/usr/unsupported/  /lib/_cv_/cc\nac_cv_prog_CPP=/usr/bin/cpp\nSHELL=bash\nGNU=GNU!UNIX\n"
+      }
+    }
+  },
+  "misc-flipcase": {
+    "stdout": "09 - 02 - 2002 00.00 Tg La7 La7 -\n09 - 02 - 2002 00.00 Brand New Tmc 2 -\n09 - 02 - 2002 00.10 Tg1 Notte Rai Uno -\n09 - 02 - 2002 00.15 Tg Parlamento Rai Due -\n09 - 02 - 2002 00.15 Kung Fu - La Leggenda Continua La7 -\n09 - 02 - 2002 00.20 Berserk - La Confessione Di Gatz Italia 1 Cartoon\n09 - 02 - 2002 00.20 Tg3 - Tg3 Meteo Rai Tre -\n09 - 02 - 2002 00.25 Meteo 2 Rai Due -\n09 - 02 - 2002 00.30 Appuntamento Al Cinema Rai Due -\n09 - 02 - 2002 00.30 Rai Educational - Mediamente Rai Tre -\n09 - 02 - 2002 00.35 Profiler Rai Due -\n09 - 02 - 2002 00.35 Stampa Oggi - Che Tempo Fa Rai Uno -\n09 - 02 - 2002 00.45 Rai Educational - Babele: Euro Rai Uno -\n09 - 02 - 2002 00.45 Bollettino Della Neve Rete 4 News\n09 - 02 - 2002 00.50 Studio Aperto - La Giornata Italia 1 News\n09 - 02 - 2002 00.50 Bocca A Bocca - 2 Tempo Rete 4 Film\n09 - 02 - 2002 01.00 Appuntamento Al Cinema Rai Tre -\n09 - 02 - 2002 01.00 Music Non Stop Tmc 2 -\n09 - 02 - 2002 01.00 Studio Sport Italia 1 Sport\n09 - 02 - 2002 01.00 Tg 5 - Notte Canale 5 News\n09 - 02 - 2002 01.05 Fuori Orario. Cose (Mai) Viste Rai Tre -\n09 - 02 - 2002 01.15 Rainotte Rai Due -\n09 - 02 - 2002 01.15 Sottovoce Rai Uno -\n09 - 02 - 2002 01.15 Giochi Olimpici Invernali - Cerimonia Di Apertura Rai Tre -\n09 - 02 - 2002 01.17 Italia Interroga Rai Due -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "d35c7a612bae775a0aedb760bcabe4e3e552b206486a78799157a64d60dd77c8",
+        "data": "s,\\([^A-Za-z]*\\)\\([A-Za-z]*\\),\\1\\L\\u\\2,g"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1290,
+        "sha256": "ea35cea6882ca9ea8075cdc40c97bcd10a36614e3d45d4306b02569775cedb0a",
+        "data": "09 - 02 - 2002 00.00 Tg La7 La7 -\n09 - 02 - 2002 00.00 Brand New Tmc 2 -\n09 - 02 - 2002 00.10 Tg1 Notte Rai Uno -\n09 - 02 - 2002 00.15 Tg Parlamento Rai Due -\n09 - 02 - 2002 00.15 Kung Fu - La Leggenda Continua La7 -\n09 - 02 - 2002 00.20 Berserk - La CoNFESSIONE Di Gatz Italia 1 Cartoon\n09 - 02 - 2002 00.20 Tg3 - Tg3 Meteo Rai TrE -\n09 - 02 - 2002 00.25 Meteo 2 Rai Due -\n09 - 02 - 2002 00.30 Appuntamento Al CinEMA RaI Due -\n09 - 02 - 2002 00.30 Rai Educational - Mediamente Rai Tre -\n09 - 02 - 2002 00.35 Profiler Rai Due -\n09 - 02 - 2002 00.35 Stampa OggI - Che Tempo Fa Rai Uno -\n09 - 02 - 2002 00.45 Rai Educational - Babele: Euro Rai Uno -\n09 - 02 - 2002 00.45 BollettINO Della NEVE RETE 4 News\n09 - 02 - 2002 00.50 STUDIO Aperto - La Giornata Italia 1 News\n09 - 02 - 2002 00.50 BOCCA A Bocca - 2 Tempo Rete 4 Film\n09 - 02 - 2002 01.00 AppuntAMENTO Al Cinema Rai Tre -\n09 - 02 - 2002 01.00 Music NoN Stop Tmc 2 -\n09 - 02 - 2002 01.00 Studio SpORT Italia 1 SporT\n09 - 02 - 2002 01.00 Tg 5 - Notte Canale 5 News\n09 - 02 - 2002 01.05 Fuori Orario. CosE (Mai) Viste Rai Tre -\n09 - 02 - 2002 01.15 RAINOTTE Rai Due -\n09 - 02 - 2002 01.15 Sottovoce Rai Uno -\n09 - 02 - 2002 01.15 GiOCHI Olimpici InVERNALI - CERIMONIA Di Apertura Rai Tre -\n09 - 02 - 2002 01.17 Italia Interroga Rai Due -\n"
+      }
+    }
+  },
+  "misc-head": {
+    "stdout": "1\n2\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "16fbd7d1f18d2fedb247d73edc3bc6aa040f5ab99bd3b48c35b79e543d22179b",
+        "data": "1\n2\n3\n4\n"
+      }
+    }
+  },
+  "misc-inclib": {
+    "stdout": "\t/usr/X11R6/include\n\t/usr/X11R5/include\n\t/usr/X11R4/include\n\n\t/usr/include/X11R6\n\t/usr/include/X11R5\n\t/usr/include/X11R4\n\n\t/usr/local/X11R6/include\n\t/usr/local/X11R5/include\n\t/usr/local/X11R4/include\n\n\t/usr/local/include/X11R6\n\t/usr/local/include/X11R5\n\t/usr/local/include/X11R4\n\n\t/usr/X11/include\n\t/usr/include/X11\n\t/usr/local/X11/include\n\t/usr/local/include/X11\n\n\t/usr/X386/include\n\t/usr/x386/include\n\t/usr/XFree86/include/X11\n\n\t/usr/include\n\t/usr/local/include\n\t/usr/unsupported/include\n\t/usr/athena/include\n\t/usr/local/x11r5/include\n\t/usr/lpp/Xamples/include\n\n\t/usr/openwin/include\n\t/usr/openwin/share/include\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 506,
+        "sha256": "e965dfd1473555599c95e22d68a9457868598cef600e35b50db76fdb12bd6369",
+        "data": "\t/usr/X11R6/lib\n\t/usr/X11R5/lib\n\t/usr/X11R4/lib\n\n\t/usr/lib/X11R6\n\t/usr/lib/X11R5\n\t/usr/lib/X11R4\n\n\t/usr/local/X11R6/lib\n\t/usr/local/X11R5/lib\n\t/usr/local/X11R4/lib\n\n\t/usr/local/lib/X11R6\n\t/usr/local/lib/X11R5\n\t/usr/local/lib/X11R4\n\n\t/usr/X11/lib\n\t/usr/lib/X11\n\t/usr/local/X11/lib\n\t/usr/local/lib/X11\n\n\t/usr/X386/lib\n\t/usr/x386/lib\n\t/usr/XFree86/lib/X11\n\n\t/usr/lib\n\t/usr/local/lib\n\t/usr/unsupported/lib\n\t/usr/athena/lib\n\t/usr/local/x11r5/lib\n\t/usr/lpp/Xamples/lib\n\n\t/usr/openwin/lib\n\t/usr/openwin/share/lib\n"
+      }
+    }
+  },
+  "misc-insert-nl": {
+    "stdout": "bar\n\nfoo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "c5228b88f0d192bc0cc3dc1dfd7a501c4e1493b65b5fda403c62fc3b8f1beb4c",
+        "data": "/foo/i\\\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "150ebdbb4d4fecacbe39f43b4d15212942b1b12dc367338a21d0bc1421c04b40",
+        "data": "bar\nfoo\n"
+      }
+    }
+  },
+  "misc-khadafy": {
+    "stdout": "1)  Muammar Qaddafi\n2)  Mo'ammar Gadhafi\n3)  Muammar Kaddafi\n4)  Muammar Qadhafi\n5)  Moammar El Kadhafi\n6)  Muammar Gadafi\n7)  Mu'ammar al-Qadafi\n8)  Moamer El Kazzafi\n9)  Moamar al-Gaddafi\n10) Mu'ammar Al Qathafi\n11) Muammar Al Qathafi\n12) Mo'ammar el-Gadhafi\n13) Moamar El Kadhafi\n14) Muammar al-Qadhafi\n15) Mu'ammar al-Qadhdhafi\n16) Mu'ammar Qadafi\n17) Moamar Gaddafi\n18) Mu'ammar Qadhdhafi\n19) Muammar Khaddafi\n20) Muammar al-Khaddafi\n21) Mu'amar al-Kadafi\n22) Muammar Ghaddafy\n23) Muammar Ghadafi\n24) Muammar Ghaddafi\n25) Muamar Kaddafi\n26) Muammar Quathafi\n27) Muammar Gheddafi\n28) Muamar Al-Kaddafi\n29) Moammar Khadafy\n30) Moammar Qudhafi\n31) Mu'ammar al-Qaddafi\n32) Mulazim Awwal Mu'ammar Muhammad Abu Minyar al-Qadhafi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 113,
+        "sha256": "78e45987d70fd4eadbfbd1dcfe01dbd24275ce56e77e62429740e9048b84c907",
+        "data": "/M[ou]'\\{0,1\\}am\\{1,2\\}[ae]r .*\\([AEae]l[- ]\\)\\{0,1\\}[GKQ]h\\{0,1\\}[aeu]\\{1,\\}\\([dtz][dhz]\\{0,1\\}\\)\\{1,\\}af[iy]/!d"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 728,
+        "sha256": "52b4c4fa787ae8259c3bc0ed45cf879862ed332c84be86fd19b236c5181e6012",
+        "data": "1)  Muammar Qaddafi\n2)  Mo'ammar Gadhafi\n3)  Muammar Kaddafi\n4)  Muammar Qadhafi\n5)  Moammar El Kadhafi\n6)  Muammar Gadafi\n7)  Mu'ammar al-Qadafi\n8)  Moamer El Kazzafi\n9)  Moamar al-Gaddafi\n10) Mu'ammar Al Qathafi\n11) Muammar Al Qathafi\n12) Mo'ammar el-Gadhafi\n13) Moamar El Kadhafi\n14) Muammar al-Qadhafi\n15) Mu'ammar al-Qadhdhafi\n16) Mu'ammar Qadafi\n17) Moamar Gaddafi\n18) Mu'ammar Qadhdhafi\n19) Muammar Khaddafi\n20) Muammar al-Khaddafi\n21) Mu'amar al-Kadafi\n22) Muammar Ghaddafy\n23) Muammar Ghadafi\n24) Muammar Ghaddafi\n25) Muamar Kaddafi\n26) Muammar Quathafi\n27) Muammar Gheddafi\n28) Muamar Al-Kaddafi\n29) Moammar Khadafy\n30) Moammar Qudhafi\n31) Mu'ammar al-Qaddafi\n32) Mulazim Awwal Mu'ammar Muhammad Abu Minyar al-Qadhafi\n"
+      }
+    }
+  },
+  "misc-linecnt": {
+    "stdout": "1\nA dialogue on poverty\n2\n\n3\n\tOn the night when the rain beats,\n4\n\tDriven by the wind,\n5\n\tOn the night when the snowflakes mingle\n6\n\tWith a sleety rain,\n7\n\tI feel so helplessly cold.\n8\n\tI nibble at a lump of salt,\n9\n\tSip the hot, oft-diluted dregs of _sake_;\n10\n\tAnd coughing, snuffling,\n11\n\tAnd stroking my scanty beard,\n12\n\tI say in my pride,\n13\n\t\"There's none worthy, save I!\"\n14\n\tBut I shiver still with cold.\n15\n\tI pull up my hempen bedclothes,\n16\n\tWear what few sleeveless clothes I have,\n17\n\tBut cold and bitter is the night!\n18\n\tAs for those poorer than myself,\n19\n\tTheir parents must be cold and hungry,\n20\n\tTheir wives and children beg and cry.\n21\n\tThen, how do you struggle through life?\n22\n\n23\n\tWide as they call the heaven and earth,\n24\n\tFor me they have shrunk quite small;\n25\n\tBright though they call the sun and moon,\n26\n\tThey never shine for me.\n27\n\tIs it the same with all men,\n28\n\tOr for me alone?\n29\n\tBy rare chance I was born a man\n30\n\tAnd no meaner than my fellows,\n31\n\tBut, wearing unwadded sleeveless clothes\n32\n\tIn tatters, like weeds waving in the sea,\n33\n\tHanging from my shoulders,\n34\n\tAnd under the sunken roof,\n35\n\tWithin the leaning walls,\n36\n\tHere I lie on straw\n37\n\tSpread on bare earth,\n38\n\tWith my parents at my pillow,\n39\n\tAnd my wife and children at my feet,\n40\n\tAll huddled in grief and tears.\n41\n\tNo fire sends up smoke\n42\n\tAt the cooking-place,\n43\n\tAnd in the cauldron\n44\n\tA spider spins its web.\n45\n\tWith not a grain to cook,\n46\n\tWe moan like the night thrush.\n47\n\tThen, \"to cut,\" as the saying is,\n48\n\t\"The ends of what is already too short,\"\n49\n\tThe village headman comes,\n50\n\tWith rod in hand, to our sleeping place,\n51\n\tGrowling for his dues.\n52\n\tMust it be so hopeless --\n53\n\tThe way of this world?\n54\n\n55\n\t-- Yamanoue Okura\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1615,
+        "sha256": "d8545427f9ca0f58eb8e137365b260b46a8c1b1d5d5135da61673b0b90b0aa4d",
+        "data": "A dialogue on poverty\n\n\tOn the night when the rain beats,\n\tDriven by the wind,\n\tOn the night when the snowflakes mingle\n\tWith a sleety rain,\n\tI feel so helplessly cold.\n\tI nibble at a lump of salt,\n\tSip the hot, oft-diluted dregs of _sake_;\n\tAnd coughing, snuffling,\n\tAnd stroking my scanty beard,\n\tI say in my pride,\n\t\"There's none worthy, save I!\"\n\tBut I shiver still with cold.\n\tI pull up my hempen bedclothes,\n\tWear what few sleeveless clothes I have,\n\tBut cold and bitter is the night!\n\tAs for those poorer than myself,\n\tTheir parents must be cold and hungry,\n\tTheir wives and children beg and cry.\n\tThen, how do you struggle through life?\n\n\tWide as they call the heaven and earth,\n\tFor me they have shrunk quite small;\n\tBright though they call the sun and moon,\n\tThey never shine for me.\n\tIs it the same with all men,\n\tOr for me alone?\n\tBy rare chance I was born a man\n\tAnd no meaner than my fellows,\n\tBut, wearing unwadded sleeveless clothes\n\tIn tatters, like weeds waving in the sea,\n\tHanging from my shoulders,\n\tAnd under the sunken roof,\n\tWithin the leaning walls,\n\tHere I lie on straw\n\tSpread on bare earth,\n\tWith my parents at my pillow,\n\tAnd my wife and children at my feet,\n\tAll huddled in grief and tears.\n\tNo fire sends up smoke\n\tAt the cooking-place,\n\tAnd in the cauldron\n\tA spider spins its web.\n\tWith not a grain to cook,\n\tWe moan like the night thrush.\n\tThen, \"to cut,\" as the saying is,\n\t\"The ends of what is already too short,\"\n\tThe village headman comes,\n\tWith rod in hand, to our sleeping place,\n\tGrowling for his dues.\n\tMust it be so hopeless --\n\tThe way of this world?\n\n\t-- Yamanoue Okura\n"
+      }
+    }
+  },
+  "misc-manis": {
+    "stdout": "s%@CFLAGS@%%g\ns%@CPPFLAGS@%-I/%g\ns%@CXXFLAGS@%-x c++%g\ns%@DEFS@%$DEFS%g\ns%@LDFLAGS@%-L/usr/lib%g\ns%@LIBS@%-lgnu -lbfd%g\ns%@exec_prefix@%%g\ns%@prefix@%$prefix%g\ns%@RANLIB@%$RANLIB%g\ns%@CC@%/usr/local/bin/gcc%g\ns%@CPP@%$CPP%g\ns%@XCFLAGS@%$XCFLAGS%g\ns%@XINCLUDES@%$XINCLUDES%g\ns%@XLIBS@%$XLIBS%g\ns%@XPROGS@%$XPROGS%g\ns%@TCLHDIR@%$TCLHDIR%g\ns%@TCLLIB@%$TCLLIB%g\ns%@TKHDIR@%$TKHDIR%g\ns%@TKLIB@%$TKLIB%g\ns%@PTY_TYPE@%$PTY_TYPE%g\ns%@EVENT_TYPE@%$EVENT_TYPE%g\ns%@SETUID@%$SETUID%g\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 82,
+        "sha256": "5aa1174fea918e7795c981099a5cabf59df7be1048904ee041295e79794b2425",
+        "data": "s/%@/@@/; s/@%/@@/; s/%g$/@g/; /@g$/s/[\\\\&%]/\\\\&/g;\ns/@@/%@/; s/@@/@%/; s/@g$/%g/\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 473,
+        "sha256": "6a4ca155cf3eb9f8d2106bbb8b9c9c380660c6ed197a972e3495c87392ae7bae",
+        "data": "s%@CFLAGS@%%g\ns%@CPPFLAGS@%-I/%g\ns%@CXXFLAGS@%-x c++%g\ns%@DEFS@%$DEFS%g\ns%@LDFLAGS@%-L/usr/lib%g\ns%@LIBS@%-lgnu -lbfd%g\ns%@exec_prefix@%%g\ns%@prefix@%$prefix%g\ns%@RANLIB@%$RANLIB%g\ns%@CC@%/usr/local/bin/gcc%g\ns%@CPP@%$CPP%g\ns%@XCFLAGS@%$XCFLAGS%g\ns%@XINCLUDES@%$XINCLUDES%g\ns%@XLIBS@%$XLIBS%g\ns%@XPROGS@%$XPROGS%g\ns%@TCLHDIR@%$TCLHDIR%g\ns%@TCLLIB@%$TCLLIB%g\ns%@TKHDIR@%$TKHDIR%g\ns%@TKLIB@%$TKLIB%g\ns%@PTY_TYPE@%$PTY_TYPE%g\ns%@EVENT_TYPE@%$EVENT_TYPE%g\ns%@SETUID@%$SETUID%g\n"
+      }
+    }
+  },
+  "misc-middle": {
+    "stdout": "   universe.  You will never succeed.  Everything will fail and come\n   to an end finally.  But you have a chance to carve a little bit\n   of order and maybe even beauty out of the raw materials that\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 466,
+        "sha256": "489a2ee47e29af059c9524d3ef0faf0ccd02b7042f81708a599b048eeb86bc30",
+        "data": "   \"...by imposing a tiny bit of order in a communication you are\n   translating, you are carving out a little bit of order in the\n   universe.  You will never succeed.  Everything will fail and come\n   to an end finally.  But you have a chance to carve a little bit\n   of order and maybe even beauty out of the raw materials that\n   surround you everywhere, and I think there is no greater meaning\n   in life.\"\n\n             Donald L. Philippi, Oct 1930 - Jan 1993\n"
+      }
+    }
+  },
+  "misc-modulo": {
+    "stdout": "1\ns%@CFLAGS@%%g\n3\ns%@CXXFLAGS@%-x c++%g\n5\ns%@LDFLAGS@%-L/usr/lib%g\n7\ns%@exec_prefix@%%g\n9\ns%@RANLIB@%$RANLIB%g\n11\ns%@CPP@%$CPP%g\n13\ns%@XINCLUDES@%$XINCLUDES%g\n15\ns%@XPROGS@%$XPROGS%g\n17\ns%@TCLLIB@%$TCLLIB%g\n19\ns%@TKLIB@%$TKLIB%g\n21\ns%@EVENT_TYPE@%$EVENT_TYPE%g\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 473,
+        "sha256": "6a4ca155cf3eb9f8d2106bbb8b9c9c380660c6ed197a972e3495c87392ae7bae",
+        "data": "s%@CFLAGS@%%g\ns%@CPPFLAGS@%-I/%g\ns%@CXXFLAGS@%-x c++%g\ns%@DEFS@%$DEFS%g\ns%@LDFLAGS@%-L/usr/lib%g\ns%@LIBS@%-lgnu -lbfd%g\ns%@exec_prefix@%%g\ns%@prefix@%$prefix%g\ns%@RANLIB@%$RANLIB%g\ns%@CC@%/usr/local/bin/gcc%g\ns%@CPP@%$CPP%g\ns%@XCFLAGS@%$XCFLAGS%g\ns%@XINCLUDES@%$XINCLUDES%g\ns%@XLIBS@%$XLIBS%g\ns%@XPROGS@%$XPROGS%g\ns%@TCLHDIR@%$TCLHDIR%g\ns%@TCLLIB@%$TCLLIB%g\ns%@TKHDIR@%$TKHDIR%g\ns%@TKLIB@%$TKLIB%g\ns%@PTY_TYPE@%$PTY_TYPE%g\ns%@EVENT_TYPE@%$EVENT_TYPE%g\ns%@SETUID@%$SETUID%g\n"
+      }
+    }
+  },
+  "misc-newline-anchor": {
+    "stdout": "XXaY\nXbY\nXcYY\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "3a12033da7d2e8df0f07c4b78f701bb1fa6a5ae72c4ab94eb4e60f14504d8cf2",
+        "data": "N\nN\ns/^/X/g\ns/^/X/mg\ns/$/Y/g\ns/$/Y/mg\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "misc-noeolw": {
+    "stdout": "This file is unique\nThis file is unique\nin that it does\nin that it does\nend in a newline.\nend in a newline.\nThis file is unique\nThis file is unique\nin that it does\nin that it does\nend in a newline.\nend in a newline.",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "45aec09a9be2b9778eae7577d989124f8202669d8d597d94cc2aac832a49d125",
+        "data": "w noeolw.1out\n$ {\n\tx\n\tw noeolw.1out\n\tx\n}\nh\n1,3w noeolw.2out\np\np\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 53,
+        "sha256": "4ad75f2ef3a5b7a57ee04064b6451e3224b025356af467dfd8729ada323aba9c",
+        "data": "This file is unique\nin that it does\nend in a newline."
+      },
+      "in3": {
+        "kind": "file",
+        "mode": 420,
+        "size": 53,
+        "sha256": "4ad75f2ef3a5b7a57ee04064b6451e3224b025356af467dfd8729ada323aba9c",
+        "data": "This file is unique\nin that it does\nend in a newline."
+      },
+      "noeolw.1out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 124,
+        "sha256": "926b884eded1467e1ecacaa0f00faf2ac9d97d136151890dfcb1c79e829de001",
+        "data": "This file is unique\nin that it does\nend in a newline.\nThis file is unique\nin that it does\nend in a newline.\nin that it does\n"
+      },
+      "noeolw.2out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 53,
+        "sha256": "4ad75f2ef3a5b7a57ee04064b6451e3224b025356af467dfd8729ada323aba9c",
+        "data": "This file is unique\nin that it does\nend in a newline."
+      }
+    }
+  },
+  "misc-numsub": {
+    "stdout": "foo foo fo oo f oo foo foo foo foo foo foo foo bar foo foo foo foo foo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 139,
+        "sha256": "cfd9aff677a6e3984364ac2cb553373bd5283f8f5e8f92582202de3db03bdc90",
+        "data": "\n# the first one matches, the second doesn't\n1s/foo/bar/10\n2s/foo/bar/20\n\n# The second line should be deleted.  ssed 3.55-3.58 do not.\nt\nd\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 142,
+        "sha256": "17c678180f61c0ecbf618cd8ed7dc7ad1f780903770934abe8f2b5cc64a5a21a",
+        "data": "foo foo fo oo f oo foo foo foo foo foo foo foo foo foo foo foo foo foo\nfoo foo fo oo f oo foo foo foo foo foo foo foo foo foo foo foo foo foo\n"
+      }
+    }
+  },
+  "misc-numsub2": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "data": "\n"
+      }
+    }
+  },
+  "misc-numsub3": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "data": "\n"
+      }
+    }
+  },
+  "misc-numsub4": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c865f6c5ab8d1b0bcd383a5e1e3879d22681c96bf462c269b7581d523fbe70ab",
+        "data": "z\n"
+      }
+    }
+  },
+  "misc-numsub5": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c865f6c5ab8d1b0bcd383a5e1e3879d22681c96bf462c269b7581d523fbe70ab",
+        "data": "z\n"
+      }
+    }
+  },
+  "misc-preserve-missing-EOL-at-EOF": {
+    "stdout": "ax\nbx",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "7e18f737311b2dc3b2f269dd78396b0351f14fb66efa879f768cb23181883c78",
+        "data": "a\nb"
+      }
+    }
+  },
+  "misc-quiet": {
+    "stdout": ": ${_cv_='emptyvar'}\n: ${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\n: ${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\n: ${ac_cv_prog_CPP='/usr/bin/cpp'}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 60,
+        "sha256": "d8f4ed581b42beb83680b4456214f0382dae2a2fb5d96140e086ce9b84d1bcff",
+        "data": "s/^\\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\\)=\\(.*\\)/: \\${\\1='\\2'}/p"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 146,
+        "sha256": "b3a5030b6d2ffa6f6507c8cdd3f3ea35304094dce2bcb2c4d5e6c3f7e578ad0c",
+        "data": "_cv_=emptyvar\nac_cv_prog_RANLIB=/usr/bin/ranlib\nac_cv_prog_CC=/usr/unsupported/  /lib/_cv_/cc\nac_cv_prog_CPP=/usr/bin/cpp\nSHELL=bash\nGNU=GNU!UNIX\n"
+      }
+    }
+  },
+  "misc-readin": {
+    "stdout": "``Democracy will not come today, this year,\n  nor ever through compromise and fear.\nMOO\n  I have as much right as the other fellow has\n  to stand on my two feet and own the land.\nMOO\n  I tire so of hearing people say\n  let things take their course,\n  tomorrow is another day.\nMOO\n  I do not need my freedom when I'm dead.\nMOO\n  I cannot live on tomorrow's bread.\nMOO\n  Freedom is a strong seed\n  planted in a great need.\nMOO\n  I live here, too.\nMOO\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "81b5f330d6c4f4bf336ef53a49f8c584378521990ad25c5ef54af93c3a43b7d1",
+        "data": "/\\.$/r readin.in2\n/too\\.$/q\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 494,
+        "sha256": "e26d783179c81fd3f6ea382ec73d1ae23742d6b04890064b643d1ee9a0bf658e",
+        "data": "``Democracy will not come today, this year,\n  nor ever through compromise and fear.\n  I have as much right as the other fellow has\n  to stand on my two feet and own the land.\n  I tire so of hearing people say\n  let things take their course,\n  tomorrow is another day.\n  I do not need my freedom when I'm dead.\n  I cannot live on tomorrow's bread.\n  Freedom is a strong seed\n  planted in a great need.\n  I live here, too.\n  I want freedom just as you.''\n    ``The Weary Blues'', Langston Hughes\n"
+      },
+      "readin.in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "ac78a06317cece1baae302d43142eaa04836ba56e6dc7eeb497fdb49c451b581",
+        "data": "MOO\n"
+      }
+    }
+  },
+  "misc-recall": {
+    "stdout": "eeefff\nXeefff\nXYefff\nXYeYff\nXYeYYf\nXYeYYY\nXYeYYY\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "81213405fb8053b527b73877f860d3799ff99e045a9a02c7aa30ef4f0eb30f31",
+        "data": "p;s/e/X/p;:x;s//Y/p;/f/bx"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "fc2a6a9f92e490b6093998b0eebcbec410b200574b7725651e513d4223aa6f69",
+        "data": "eeefff\n"
+      }
+    }
+  },
+  "misc-recall2": {
+    "stdout": ">abb<||>abbbb<\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "687c4ecd2a57ca9bcbafff81b690872c0581603802d844b2407574b23c8d1049",
+        "data": "/\\(ab*\\)\\+/ s//>\\1</g"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "f27fef5fb81d6708c5ce06655010c45f054e7cb396efad4aa7bc03f4d6492a1a",
+        "data": "ababb||abbbabbbb\n"
+      }
+    }
+  },
+  "misc-sep": {
+    "stdout": "\n///\n//\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 49,
+        "sha256": "12ae6cebeee381fad52f07a3a84c96e5ef3fa55241d1b2d2a39c92db4680599b",
+        "data": "s%/[^/][^/]*$%%\ns%[\\/][^\\/][^\\/]*$%%\ns,.*[^\\/],,\n"
+      },
+      "in2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 185,
+        "sha256": "87c6209f6bd65f756c4e7465c44e41986e732d53ecbfa36b31bcc2bce6cacda1",
+        "data": "miss mary mack mack//mack/ran down/the track  track  track\nslashes\u0007ren't%used enough/in/casual-conversation///\npossibly sentences would be more attractive if they endedin two slashes//\n"
+      }
+    }
+  },
+  "misc-space": {
+    "stdout": "Hello_World_!\nSecondXXine__of_tests\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "fcb2da588ceed4a92f4fa98726dc03bf346d040c2168c24efd80a6aeee38bc72",
+        "data": "Hello World\t!\nSecond_line_ of tests\n"
+      }
+    }
+  },
+  "misc-subwrite": {
+    "stdout": "Not some church, and not the state,\nNot some dark capricious fate.\nWho YoU are, and when you lose,\nComes only from the things YoU choose.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 138,
+        "sha256": "7d44aea671fd05f10a958575cc692ba35461c978a8b44d613cedb60e4b578136",
+        "data": "Not some church, and not the state,\nNot some dark capricious fate.\nWho you are, and when you lose,\nComes only from the things you choose.\n"
+      },
+      "subwrite.wout": {
+        "kind": "file",
+        "mode": 420,
+        "size": 71,
+        "sha256": "8349f48efade1b5699216322690ec94f450e119eb956f6befaef487ed2a6e733",
+        "data": "Who YoU are, and when you lose,\nComes only from the things YoU choose.\n"
+      }
+    }
+  },
+  "misc-writeout": {
+    "stdout": "Facts are simple and facts are straight\nFacts are lazy and facts are late\nFacts all come with points of view\nFacts don't do what I want them to\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 144,
+        "sha256": "d62b1768752b45f0d411adf61bfde328bb17f580f53e6d5b156c8e2bb9cef273",
+        "data": "Facts are simple and facts are straight\nFacts are lazy and facts are late\nFacts all come with points of view\nFacts don't do what I want them to\n"
+      },
+      "writeout.wout": {
+        "kind": "file",
+        "mode": 420,
+        "size": 74,
+        "sha256": "1ce38920d272fe2a9ffac2226adb9d8a08ba6a0aee4622284dc2a59afae3556c",
+        "data": "Facts are simple and facts are straight\nFacts are lazy and facts are late\n"
+      }
+    }
+  },
+  "misc-xabcx": {
+    "stdout": "roses are red\nviolets are blue\nmy feet are cold\nyour feet are too\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 67,
+        "sha256": "cf19f312933ff785f7ba37a887628edcf07999750003c1b4cbf3ba163aa9f9d0",
+        "data": "roses are red\nviolets are blue\nmy feet are cold\nyour feet are blue\n"
+      }
+    }
+  },
+  "misc-xbxcx": {
+    "stdout": "x\nxbx\nxbxcx\nxbxcx\nxbxcx\nxbxcx\nxbxcx\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "c777fa773dea562deaaa3cb56eaad997929cbeab9fd8112b5118219a8589b52f",
+        "data": "\nb\nbc\nbac\nbaac\nbaaac\nbaaaac\n"
+      }
+    }
+  },
+  "misc-xbxcx3": {
+    "stdout": "\nb\nbcx\nbacx\nbaacx\nbaaacx\nbaaaacx\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "c777fa773dea562deaaa3cb56eaad997929cbeab9fd8112b5118219a8589b52f",
+        "data": "\nb\nbc\nbac\nbaac\nbaaac\nbaaaac\n"
+      }
+    }
+  },
+  "misc-y-bracket": {
+    "stdout": "Are you sure (y/n)?  y]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "b86e5167c846f581db0f8f0bbc9466ccdb72a61b61d3ec20ab0df651ffc3568b",
+        "data": "Are you sure (y/n)? [y]\n"
+      }
+    }
+  },
+  "misc-y-newline": {
+    "stdout": "Are Sou Yure (S/n)? [S]$$Are Sou Yure (S/n)? [S]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "b86e5167c846f581db0f8f0bbc9466ccdb72a61b61d3ec20ab0df651ffc3568b",
+        "data": "Are you sure (y/n)? [y]\n"
+      }
+    }
+  },
+  "misc-y-zero": {
+    "stdout": "a\u0000c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "misc-zero-anchor": {
+    "stdout": "XXaY\u0000XbY\u0000XcYY\u0000",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "13e228567e8249fce53337f25d7970de3bd68ab2653424c7b8f9fd05e33caedf",
+        "data": "a\u0000b\u0000c\u0000"
+      }
+    }
+  }
+}

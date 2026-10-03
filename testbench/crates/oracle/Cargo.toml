@@ -1,0 +1,17 @@
+[package]
+name = "oracle"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "CLI do oráculo: monta a imagem Debian, compila o agente e gera o golden"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+harness.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

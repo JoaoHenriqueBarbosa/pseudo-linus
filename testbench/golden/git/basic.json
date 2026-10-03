@@ -1,0 +1,334 @@
+{
+  "git-add-write-tree": {
+    "stdout": "4d2155c735e5d0d1a1e4b4aa0cf250ea2f71a56d\n100644 ce013625030ba8dba906f756967f9e9ca394464a 0\ta.txt\n120000 8d14cbf983b3fad683171c9418998d9f68340823 0\tlink\n100755 4163036efa65bd4a469e752267498f01ea36a55c 0\trun.sh\n100644 7a788f2457bfeefa9ed2754cb8f08f7bc761ae34 0\tsrc/lib/mod.rs\n100644 f328e4d9d04c31d0d70d16d21a07d1613be9d577 0\tsrc/main.rs\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "a.txt"
+      },
+      "run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 18,
+        "sha256": "299001868fb8c02fd431c336c6d058f5558c5dff5b5af5e6fe04b870a6a9cbba",
+        "data": "#!/bin/sh\necho hi\n"
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/lib": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/lib/mod.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "1497ba2ae9c58431b70c98c925ac011cdfc28b8b74ce9e0e5ae54c0261ec5fb9",
+        "data": "pub mod x;\n"
+      },
+      "src/main.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "536e506bb90914c243a12b397b9a998f85ae2cbd9ba02dfd03a9e155ca5ca0f4",
+        "data": "fn main() {}\n"
+      }
+    }
+  },
+  "git-branch-ref": {
+    "stdout": "1efe037\n3b3211e\n3b3211e one\n100644 blob d00491fd7e5bb6fa28c517a0bb32b8b506539d4d\ta.txt\n",
+    "stderr": "fatal: Needed a single revision\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+        "data": "2\n"
+      }
+    }
+  },
+  "git-commit-and-log": {
+    "stdout": "[master 6e3c138] update a\n 1 file changed, 1 insertion(+), 1 deletion(-)\n6e3c13861fb96fcc47a7ea5f18fd9b8e00a69d75|Agent <agent@example.com>|Thu Jan 15 12:00:00 2026 +0000|update a\n21688f56243973579386623fb0cdb140afb2a51d|Agent <agent@example.com>|Thu Jan 15 12:00:00 2026 +0000|initial import\n6e3c138 update a\n21688f5 initial import\n6e3c13861fb96fcc47a7ea5f18fd9b8e00a69d75\n21688f56243973579386623fb0cdb140afb2a51d\nff7b2a1f75b92b5c57916702bd4296a271889cd5\n21688f5 initial import\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "81db67b6a5702b9b68f0016f061c409bf3fb16d062fc854d1b424bb4e9c28c56",
+        "data": "v2\n"
+      },
+      "docs": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "docs/readme.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "084f3b92a9d44cc3e35e8bfbe8d09ba1a737baab9cf163c3ca74b76b2e3424e6",
+        "data": "# doc\n"
+      }
+    }
+  },
+  "git-commit-summary-output": {
+    "stdout": "[master (root-commit) 7a08811] first\n 3 files changed, 3 insertions(+)\n create mode 100644 a.txt\n create mode 100644 b.txt\n create mode 100644 c.txt\n[master 86a0d2d] second\n 3 files changed, 3 insertions(+), 1 deletion(-)\n delete mode 100644 c.txt\n create mode 100644 d.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "b6285c57e8797db5d4c51c80d6f11938afda9b11c6a003549709189e9b4b92a2",
+        "data": "one\ntwo\nthree\n"
+      },
+      "d.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c",
+        "data": "new\n"
+      }
+    }
+  },
+  "git-commit-tree-update-ref": {
+    "stdout": "4eb9ae846384ee411bd7767691f7dad56bc681e4\ndac732127dfaa4375d3d8d9371904ae1a0423464 4eb9ae846384ee411bd7767691f7dad56bc681e4 second\n4eb9ae846384ee411bd7767691f7dad56bc681e4  root commit\ntree e95bc8444bcd06692c882451e807e45dfe27b5ba\nparent 4eb9ae846384ee411bd7767691f7dad56bc681e4\nauthor Agent <agent@example.com> 1768478400 +0000\ncommitter Agent <agent@example.com> 1768478400 +0000\n\nsecond\ntree\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "6052eef1a76d3ff777269e8a1720524953b74c4d96e4689679c8982699a32beb",
+        "data": "hello\nmore\n"
+      }
+    }
+  },
+  "git-diff-no-newline-and-context": {
+    "stdout": "diff --git a/long.txt b/long.txt\nindex d7bd2bc..4f7cbe7 100644\n--- a/long.txt\n+++ b/long.txt\n@@ -11,4 +11,4 @@ j\n k\n l\n m\n-N\n+n\ndiff --git a/nonl.txt b/nonl.txt\nindex 7bcfef5..f909bdb 100644\n--- a/nonl.txt\n+++ b/nonl.txt\n@@ -1 +1 @@\n-no newline\n+no newline now\n\\ No newline at end of file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "9d64bde71a3bc28e538a307d2a668b9ac822ff3b3b50c56ad14b30177dd4301b",
+        "data": "a\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\n"
+      },
+      "nonl.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "34686c76d61f8001fa003d25f17dbb8890a3a19373e1a9b19e2d86f818138f98",
+        "data": "no newline now"
+      }
+    }
+  },
+  "git-diff-worktree-and-cached": {
+    "stdout": "diff --git a/a.txt b/a.txt\nindex 84275f9..a16f0f7 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1,4 +1,4 @@\n line1\n-line2\n+line2 changed\n line3\n line4\n---\ndiff --git a/b.txt b/b.txt\nindex 3367afd..587be6b 100644\n--- a/b.txt\n+++ b/b.txt\n@@ -1 +1 @@\n-old\n+x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "c3153153b39fbd11f8f3de15f1c938730e0ec737fa993e2745f64d45ff6d0ae8",
+        "data": "line1\nline2 changed\nline3\nline4\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "git-hash-object": {
+    "stdout": "ce013625030ba8dba906f756967f9e9ca394464a\ne69de29bb2d1d6434b8b29ae775ad8c2e48c5391\ne2613b3caa99ff78f481d27639d5500710722310\nc1b0730e0133447badcfd47fd144e254807b06e1\n4b825dc642cb6eb9a060e54bf8d69288fbee4904\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "bin.dat": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "ff5d8507b6a72bee2debce2c0054798deaccdc5d8a1b945b6280ce8aa9cba52e",
+        "data": {
+          "b64": "AAECA/8="
+        }
+      },
+      "empty.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "git-init-plain": {
+    "stdout": "Initialized empty Git repository in /work/case/.git/\nexit=0\nref: refs/heads/master\n[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n\tlogallrefupdates = true\nHEAD\nbranches\nconfig\ndescription\nhooks\ninfo\nobjects\nrefs\n",
+    "stderr": "hint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-init-quiet-branch": {
+    "stdout": "exit=0\nref: refs/heads/main\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-not-a-repository": {
+    "stdout": "exit=128\nexit=128\n",
+    "stderr": "fatal: not a git repository (or any of the parent directories): .git\nfatal: not a git repository (or any of the parent directories): .git\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-nothing-to-commit": {
+    "stdout": "On branch master\nnothing to commit, working tree clean\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      }
+    }
+  },
+  "git-status-long": {
+    "stdout": "On branch master\n\nNo commits yet\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\ta.txt\n\nnothing added to commit but untracked files present (use \"git add\" to track)\nOn branch master\n\nNo commits yet\n\nChanges to be committed:\n  (use \"git rm --cached <file>...\" to unstage)\n\tnew file:   a.txt\n\nOn branch master\nnothing to commit, working tree clean\nOn branch master\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   a.txt\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\tu.txt\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "7f8b1dfc466b6249f06cbe55c9174df2578e7754da793fded244ef5cba2a38f1",
+        "data": "changed\n"
+      },
+      "u.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "ea46748e171abd2dd4dba5b86bb6589334d86bba2df8d50cbb16b36c83b0856a",
+        "data": "u\n"
+      }
+    }
+  },
+  "git-status-porcelain": {
+    "stdout": " M a.txt\n D b.txt\nA  staged.txt\n?? new.txt\n M a.txt\n D b.txt\nA  staged.txt\n?? new.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "7f8b1dfc466b6249f06cbe55c9174df2578e7754da793fded244ef5cba2a38f1",
+        "data": "changed\n"
+      },
+      "keep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "19732980d68fbd00358a0a4d98246c960400b87e4fa2a2e155db98be2b42ed6c",
+        "data": "k\n"
+      },
+      "new.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a4fb621495a0122493b2203591c448903c472e306a1ede54fabad829e01075c0",
+        "data": "n\n"
+      },
+      "staged.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "cbc80bb5c0c0f8944bf73b3a429505ac5cde16644978bc9a1e74c5755f8ca556",
+        "data": "s\n"
+      }
+    }
+  },
+  "git-tree-modes-and-ls-tree": {
+    "stdout": "100644 blob ce013625030ba8dba906f756967f9e9ca394464a\ta.txt\n040000 tree 4d30b2ddd4dbd82d6ad7ee4d2a4ea360f5d65b61\tbin\n120000 blob 8d14cbf983b3fad683171c9418998d9f68340823\tlink\n040000 tree 996fa7f5bd446c5a51285e801d7fb7e61a17673f\tz\n100644 blob ce013625030ba8dba906f756967f9e9ca394464a\ta.txt\n100755 blob 1a2485251c33a70432394c93fb89330ef214bfc9\tbin/run.sh\n120000 blob 8d14cbf983b3fad683171c9418998d9f68340823\tlink\n100644 blob 4cdb2265d30204be5463b38174b2e8e717982405\tz/y/x.txt\n100644 blob ce013625030ba8dba906f756967f9e9ca394464a\ta.txt\n040000 tree 4d30b2ddd4dbd82d6ad7ee4d2a4ea360f5d65b61\tbin\n120000 blob 8d14cbf983b3fad683171c9418998d9f68340823\tlink\n040000 tree 996fa7f5bd446c5a51285e801d7fb7e61a17673f\tz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "a.txt"
+      },
+      "z": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "z/y": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "z/y/x.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "64896f89fd11190013b70103e603a1c5826e56b7fb7d2197ab279b0690043599",
+        "data": "deep\n"
+      }
+    }
+  }
+}

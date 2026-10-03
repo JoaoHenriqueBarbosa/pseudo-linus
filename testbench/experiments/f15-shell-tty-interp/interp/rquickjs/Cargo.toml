@@ -1,0 +1,16 @@
+[package]
+name = "f15-interp-rquickjs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F17: rquickjs (QuickJS em C) sem quickjs-libc, com console e leitura de arquivo nossos"
+
+[dependencies]
+f15-interp-common = { path = "../common" }
+# Sem "full" nem "loader": nenhum carregador de módulo que leia o FS do host.
+rquickjs = { version = "=0.14.0", default-features = false, features = ["std"] }
+
+[lints.rust]
+unsafe_code = "forbid"

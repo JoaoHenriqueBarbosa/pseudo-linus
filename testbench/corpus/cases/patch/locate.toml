@@ -1,0 +1,317 @@
+tool = "patch"
+source = "agent-style"
+
+# Localização de hunks: deslocamento (offset), fuzz, empate entre posições, rejeição, patch já aplicado,
+# CRLF. É aqui que um patch "estrito" diverge do GNU.
+
+[[case]]
+id = "patch-offset-positive"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["offset"]
+[case.files]
+"a.txt" = "extra 1\nextra 2\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -2,7 +2,7 @@
+ line 2
+ line 3
+ line 4
+-line 5
++line five
+ line 6
+ line 7
+ line 8
+'''
+
+[[case]]
+id = "patch-offset-negative"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["offset"]
+[case.files]
+"a.txt" = "line 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -2,7 +2,7 @@
+ line 2
+ line 3
+ line 4
+-line 5
++line five
+ line 6
+ line 7
+ line 8
+'''
+
+[[case]]
+id = "patch-offset-two-hunks"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["offset", "multi-hunk"]
+[case.files]
+"a.txt" = "new top\nl01\nl02\nl03\nl04\nl05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\nl13\nl14\nl15\nl16\nl17\nl18\nl19\nl20\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,4 +1,4 @@
+ l01
+-l02
++L02
+ l03
+ l04
+@@ -14,7 +14,7 @@
+ l14
+ l15
+ l16
+-l17
++L17
+ l18
+ l19
+ l20
+'''
+
+[[case]]
+id = "patch-offset-no-backup"
+argv = ["patch", "--no-backup-if-mismatch", "-p0", "-i", "fix.patch"]
+tags = ["offset", "backup"]
+[case.files]
+"a.txt" = "extra\nalpha\nbeta\ngamma\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-ambiguous-offset"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["offset", "ties"]
+[case.files]
+"a.txt" = "x\ny\nz\nm\nx\ny\nz\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -3,3 +3,3 @@
+ x
+-y
++Y
+ z
+'''
+
+[[case]]
+id = "patch-fuzz-1"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["fuzz"]
+[case.files]
+"a.txt" = "line 1\nLINE 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -2,7 +2,7 @@
+ line 2
+ line 3
+ line 4
+-line 5
++line five
+ line 6
+ line 7
+ line 8
+'''
+
+[[case]]
+id = "patch-fuzz-2"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["fuzz"]
+[case.files]
+"a.txt" = "line 1\nLINE 2\nLINE 3\nline 4\nline 5\nline 6\nline 7\nLINE 8\nline 9\nline 10\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -2,7 +2,7 @@
+ line 2
+ line 3
+ line 4
+-line 5
++line five
+ line 6
+ line 7
+ line 8
+'''
+
+[[case]]
+id = "patch-fuzz-with-offset"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["fuzz", "offset"]
+[case.files]
+"a.txt" = "top\nline 1\nLINE 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -2,7 +2,7 @@
+ line 2
+ line 3
+ line 4
+-line 5
++line five
+ line 6
+ line 7
+ line 8
+'''
+
+[[case]]
+id = "patch-fuzz-0-refused"
+argv = ["patch", "-F0", "-p0", "-i", "fix.patch"]
+tags = ["fuzz", "reject"]
+[case.files]
+"a.txt" = "line 1\nLINE 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -2,7 +2,7 @@
+ line 2
+ line 3
+ line 4
+-line 5
++line five
+ line 6
+ line 7
+ line 8
+'''
+
+[[case]]
+id = "patch-reject-single"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["reject"]
+[case.files]
+"a.txt" = "line 1\nline 2\nline 3\nline 4\nline 5 changed locally\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -2,7 +2,7 @@
+ line 2
+ line 3
+ line 4
+-line 5
++line five
+ line 6
+ line 7
+ line 8
+'''
+
+[[case]]
+id = "patch-reject-partial"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["reject", "multi-hunk"]
+[case.files]
+"a.txt" = "l01\nl02\nl03\nl04\nl05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\nl13\nl14\nl15\nl16\nlocal edit\nl18\nl19\nl20\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,4 +1,4 @@
+ l01
+-l02
++L02
+ l03
+ l04
+@@ -14,7 +14,7 @@
+ l14
+ l15
+ l16
+-l17
++L17
+ l18
+ l19
+ l20
+'''
+
+[[case]]
+id = "patch-already-applied-forward"
+argv = ["patch", "-N", "-p0", "-i", "fix.patch"]
+tags = ["reverse", "reject"]
+[case.files]
+"a.txt" = "alpha\nBETA\ngamma\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-already-applied-batch"
+argv = ["patch", "-t", "-p0", "-i", "fix.patch"]
+tags = ["reverse"]
+[case.files]
+"a.txt" = "alpha\nBETA\ngamma\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-already-applied-default"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["reverse"]
+[case.files]
+"a.txt" = "alpha\nBETA\ngamma\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-crlf-target-lf-patch"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["crlf", "reject"]
+[case.files]
+"a.txt" = "alpha\r\nbeta\r\ngamma\r\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-crlf-both"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["crlf"]
+[case.files]
+"a.txt" = "alpha\r\nbeta\r\ngamma\r\n"
+"fix.patch" = { content_b64 = "LS0tIGEudHh0DQorKysgYS50eHQNCkBAIC0xLDMgKzEsMyBAQA0KIGFscGhhDQotYmV0YQ0KK0JFVEENCiBnYW1tYQ0K" }
+
+[[case]]
+id = "patch-unified-zero-context"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["clean", "offset"]
+[case.files]
+"a.txt" = "a\nb\nc\nd\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -2 +2 @@
+-b
++B
+@@ -4,0 +5 @@
++e
+'''

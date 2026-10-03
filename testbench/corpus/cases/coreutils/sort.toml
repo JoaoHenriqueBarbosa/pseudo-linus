@@ -1,0 +1,184 @@
+tool = "sort"
+source = "agent-style"
+
+# sort com as flags que agente mais usa: -n -r -k -t -u -h -V, saída em arquivo, checagem.
+
+[[case]]
+id = "sort-basic"
+argv = ["sort", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "pera\nBanana\nabacate\nZebra\nbanana\n_x\n10\n9\n"
+
+[[case]]
+id = "sort-n"
+argv = ["sort", "-n", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "10\n9\n-3\n2.5\n0\nabc\n+4\n1e3\n 7\n"
+
+[[case]]
+id = "sort-r"
+argv = ["sort", "-r", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "b\nc\na\n"
+
+[[case]]
+id = "sort-nr"
+argv = ["sort", "-nr", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "3 três\n10 dez\n1 um\n10 dez outra\n"
+
+[[case]]
+id = "sort-k2"
+argv = ["sort", "-k2", "in.txt"]
+tags = ["sort", "ported", "keys"]
+[case.files]
+"in.txt" = "x banana 3\ny abacate 1\nz cereja 2\n"
+
+[[case]]
+id = "sort-k2n"
+argv = ["sort", "-k2n", "in.txt"]
+tags = ["sort", "ported", "keys"]
+[case.files]
+"in.txt" = "a 10\nb 2\nc 33\nd 2\n"
+
+[[case]]
+id = "sort-t-k-csv"
+argv = ["sort", "-t,", "-k3", "-n", "data.csv"]
+tags = ["sort", "ported", "keys"]
+[case.files]
+"data.csv" = "ana,dev,5000\nbia,ops,3200\ncaio,dev,4100\ndani,qa,3200\n"
+
+[[case]]
+id = "sort-multi-key"
+argv = ["sort", "-t:", "-k2,2", "-k3,3nr", "in.txt"]
+tags = ["sort", "ported", "keys"]
+[case.files]
+"in.txt" = "a:x:1\nb:y:5\nc:x:9\nd:y:2\ne:x:3\n"
+
+[[case]]
+id = "sort-u"
+argv = ["sort", "-u", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "b\na\nb\nc\na\n"
+
+[[case]]
+id = "sort-u-key"
+argv = ["sort", "-u", "-k1,1", "in.txt"]
+tags = ["sort", "ported", "keys"]
+[case.files]
+"in.txt" = "a 1\nb 2\na 3\nc 4\nb 5\n"
+
+[[case]]
+id = "sort-h"
+argv = ["sort", "-h", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "1G\n512\n2M\n1K\n10K\n1.5M\n0\n"
+
+[[case]]
+id = "sort-rh-du-style"
+argv = ["sort", "-rh", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "4.0K\t./a\n120M\t./node_modules\n12K\t./src\n1.1G\t.\n"
+
+[[case]]
+id = "sort-V"
+argv = ["sort", "-V", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "v1.10.0\nv1.2.0\nv1.9.3\nv1.2.10\nv0.9\nv1.2.0-rc1\n"
+
+[[case]]
+id = "sort-f"
+argv = ["sort", "-f", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "b\nA\na\nB\n"
+
+[[case]]
+id = "sort-stable-key"
+argv = ["sort", "-s", "-k1,1", "in.txt"]
+tags = ["sort", "ported", "keys"]
+[case.files]
+"in.txt" = "b 1\na 2\nb 0\na 1\n"
+
+[[case]]
+id = "sort-stdin"
+argv = ["sort"]
+stdin = "c\na\nb\n"
+tags = ["sort", "ported", "stdin"]
+
+[[case]]
+id = "sort-o-file"
+argv = ["sort", "-o", "out.txt", "in.txt"]
+tags = ["sort", "ported", "fs"]
+[case.files]
+"in.txt" = "2\n1\n"
+
+[[case]]
+id = "sort-o-inplace"
+argv = ["sort", "-n", "-o", "in.txt", "in.txt"]
+tags = ["sort", "ported", "fs"]
+[case.files]
+"in.txt" = "10\n2\n1\n"
+
+[[case]]
+id = "sort-check-disorder"
+argv = ["sort", "-c", "in.txt"]
+tags = ["sort", "ported", "errno"]
+[case.files]
+"in.txt" = "a\nc\nb\n"
+
+[[case]]
+id = "sort-check-ok"
+argv = ["sort", "-c", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "sort-missing"
+argv = ["sort", "nope.txt"]
+tags = ["sort", "ported", "errno"]
+
+[[case]]
+id = "sort-multi-files"
+argv = ["sort", "a.txt", "b.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"a.txt" = "z\nb\n"
+"b.txt" = "a\ny\n"
+
+[[case]]
+id = "sort-no-trailing-newline"
+argv = ["sort", "in.txt"]
+tags = ["sort", "ported"]
+[case.files]
+"in.txt" = "b\na"
+
+[[case]]
+id = "sort-utf8"
+argv = ["sort", "in.txt"]
+tags = ["sort", "ported", "utf8"]
+[case.files]
+"in.txt" = "éclair\nzebra\nárvore\nabacate\nÁgua\n"
+
+[[case]]
+id = "sort-bad-key"
+argv = ["sort", "-k", "0", "in.txt"]
+tags = ["sort", "ported", "usage"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "sort-uniq-c-rank"
+script = "sort words.txt | uniq -c | sort -rn | head -3"
+tags = ["sort", "uniq", "pipeline"]
+[case.files]
+"words.txt" = "erro\naviso\nerro\ninfo\nerro\naviso\ndebug\n"

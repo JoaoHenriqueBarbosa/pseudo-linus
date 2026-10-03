@@ -1,0 +1,257 @@
+tool = "yq"
+source = "manual"
+
+# Resolução de escalares: é aqui que YAML 1.1 (PyYAML, com os ajustes do yq 3.4.3) e YAML 1.2 (core
+# schema, o que as crates Rust implementam) divergem. Um grupo por caso, pra que o placar por tag
+# mostre exatamente quais formas mudam.
+
+[[case]]
+id = "yq-scalar-bool-words"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "yaml11"]
+[case.files]
+"s.yaml" = '''
+a: yes
+b: no
+c: on
+d: off
+e: Y
+f: n
+'''
+
+[[case]]
+id = "yq-scalar-bool-canonical"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar"]
+[case.files]
+"s.yaml" = '''
+a: true
+b: false
+c: True
+d: FALSE
+'''
+
+[[case]]
+id = "yq-scalar-null-forms"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar"]
+[case.files]
+"s.yaml" = '''
+a: ~
+b: null
+c: Null
+d:
+e: NULL
+'''
+
+[[case]]
+id = "yq-scalar-int-decimal"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "number"]
+[case.files]
+"s.yaml" = '''
+a: 0
+b: -5
+c: +7
+d: 42
+e: 9007199254740993
+'''
+
+[[case]]
+id = "yq-scalar-int-big"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "number"]
+[case.files]
+"s.yaml" = '''
+a: 100000000000000000000
+b: -99999999999999999999999
+'''
+
+[[case]]
+id = "yq-scalar-int-legacy-octal"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "yaml11", "number"]
+[case.files]
+"s.yaml" = '''
+a: 012
+b: 0755
+'''
+
+[[case]]
+id = "yq-scalar-int-08"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "python-quirk"]
+[case.files]
+"s.yaml" = '''
+a: 08
+'''
+
+[[case]]
+id = "yq-scalar-int-octal-12"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "number"]
+[case.files]
+"s.yaml" = '''
+a: 0o12
+b: 0o755
+'''
+
+[[case]]
+id = "yq-scalar-int-hex"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "number"]
+[case.files]
+"s.yaml" = '''
+a: 0x1F
+b: 0xff
+c: -0x10
+'''
+
+[[case]]
+id = "yq-scalar-int-binary"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "yaml11", "number"]
+[case.files]
+"s.yaml" = '''
+a: 0b101
+'''
+
+[[case]]
+id = "yq-scalar-int-underscore"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "yaml11"]
+[case.files]
+"s.yaml" = '''
+a: 1_000
+b: 1_000.5
+'''
+
+[[case]]
+id = "yq-scalar-sexagesimal"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "yaml11"]
+[case.files]
+"s.yaml" = '''
+a: 1:20
+b: 190:20:30
+c: 22:00
+'''
+
+[[case]]
+id = "yq-scalar-float-forms"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "number"]
+[case.files]
+"s.yaml" = '''
+a: 1.0
+b: 1.5
+c: -0.5
+d: 0.1
+e: 3.14159265358979
+f: 2.50
+'''
+
+[[case]]
+id = "yq-scalar-float-dotless"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "number"]
+[case.files]
+"s.yaml" = '''
+a: 1e3
+b: 1E-2
+c: .5
+d: 1.
+e: 6.02e23
+'''
+
+[[case]]
+id = "yq-scalar-float-extreme"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "number"]
+[case.files]
+"s.yaml" = '''
+a: 1e16
+b: 1.0e+20
+c: 0.00001
+d: 1.5e-7
+e: 123456789.123456789
+'''
+
+[[case]]
+id = "yq-scalar-inf-nan"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "number"]
+[case.files]
+"s.yaml" = '''
+a: .inf
+b: -.inf
+c: .nan
+d: .Inf
+'''
+
+[[case]]
+id = "yq-scalar-dates"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "yaml11"]
+[case.files]
+"s.yaml" = '''
+a: 2026-01-15
+b: 2026-01-15T10:00:00Z
+c: 2026-01-15 10:00:00
+d: 2026-01-15t10:00:00.5+03:00
+'''
+
+[[case]]
+id = "yq-scalar-quoted"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "string"]
+[case.files]
+"s.yaml" = '''
+a: "yes"
+b: '012'
+c: "1.0"
+d: "null"
+e: ''
+f: "true"
+'''
+
+[[case]]
+id = "yq-scalar-explicit-tags"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "tag"]
+[case.files]
+"s.yaml" = '''
+a: !!str 123
+b: !!float 1
+c: !!int "5"
+d: !!bool "true"
+e: !!null ""
+'''
+
+[[case]]
+id = "yq-scalar-plain-strings"
+argv = ["yq", "-c", ".", "s.yaml"]
+tags = ["scalar", "string"]
+[case.files]
+"s.yaml" = '''
+a: hello world
+b: 1.2.3
+c: 0x
+d: 12abc
+e: a-b
+f: a:b
+g: http://example.com/x?y=1#z
+h: v1.27
+'''
+
+[[case]]
+id = "yq-scalar-number-arith"
+argv = ["yq", "-c", "[.a + 1, .b * 2, .c / 4, .d - 0.5]", "s.yaml"]
+tags = ["scalar", "number"]
+[case.files]
+"s.yaml" = '''
+a: 1.0
+b: 1e3
+c: 10
+d: 0.1
+'''

@@ -1,0 +1,41 @@
+tool = "sqlite"
+source = "agent-style"
+
+# Várias invocações do `sqlite3` no mesmo banco, do jeito que um agente encadeia comandos. É aqui que
+# o caminho serialize/deserialize na fronteira de cada comando é exercitado: o estado só sobrevive
+# entre um comando e outro pelos bytes do arquivo.
+
+[[case]]
+id = "sqlite-multi-persist-between-commands"
+script = '''sqlite3 db.sqlite 'CREATE TABLE t(x)'; sqlite3 db.sqlite 'INSERT INTO t VALUES (1), (2), (3)'; sqlite3 db.sqlite 'SELECT sum(x), count(*) FROM t' '''
+tags = ["multi", "persist", "script"]
+
+[[case]]
+id = "sqlite-multi-schema-file-redirect"
+script = '''sqlite3 db.sqlite < schema.sql && sqlite3 db.sqlite 'SELECT name, qty FROM items ORDER BY name' '''
+tags = ["multi", "redirect", "script"]
+[case.files]
+"schema.sql" = '''
+CREATE TABLE items(name TEXT PRIMARY KEY, qty INTEGER);
+INSERT INTO items VALUES ('pen', 3), ('book', 10), ('cup', 0);
+'''
+
+[[case]]
+id = "sqlite-multi-pipe-into-cli"
+script = '''printf 'CREATE TABLE t(a);\nINSERT INTO t VALUES (42);\n' | sqlite3 db.sqlite; echo 'SELECT a * 2 FROM t;' | sqlite3 db.sqlite'''
+tags = ["multi", "pipe", "script"]
+
+[[case]]
+id = "sqlite-multi-output-redirect"
+script = '''sqlite3 db.sqlite 'CREATE TABLE t(a); INSERT INTO t VALUES (1), (2)' && sqlite3 db.sqlite 'SELECT a FROM t' > out.txt; cat out.txt'''
+tags = ["multi", "redirect", "script"]
+
+[[case]]
+id = "sqlite-multi-exit-status"
+script = '''sqlite3 db.sqlite 'SELECT * FROM nope'; echo "exit=$?"; sqlite3 db.sqlite 'CREATE TABLE t(x UNIQUE); INSERT INTO t VALUES (1); INSERT INTO t VALUES (1)'; echo "exit=$?"; sqlite3 db.sqlite 'SELECT count(*) FROM t'; echo "exit=$?"'''
+tags = ["multi", "error", "script"]
+
+[[case]]
+id = "sqlite-multi-transaction-across-statements"
+script = '''sqlite3 db.sqlite 'CREATE TABLE acc(id INTEGER PRIMARY KEY, bal INTEGER); INSERT INTO acc VALUES (1, 100), (2, 50)'; sqlite3 db.sqlite 'BEGIN; UPDATE acc SET bal = bal - 30 WHERE id = 1; UPDATE acc SET bal = bal + 30 WHERE id = 2; COMMIT'; sqlite3 db.sqlite 'BEGIN; UPDATE acc SET bal = 0'; sqlite3 db.sqlite 'SELECT id, bal FROM acc ORDER BY id' '''
+tags = ["multi", "transaction", "script"]

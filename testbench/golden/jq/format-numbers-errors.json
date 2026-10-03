@@ -1,0 +1,364 @@
+{
+  "jq-abs-builtin": {
+    "stdout": "[1,2]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-debug-and-stderr": {
+    "stdout": "{\"a\":1}\n{\"a\":1}\n{\"a\":1}\n",
+    "stderr": "[\"DEBUG:\",{\"a\":1}]\n[\"DEBUG:\",\"msg\"]\n{\"a\":1}",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-duplicate-keys-input": {
+    "stdout": "{\"a\":3,\"b\":2}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-error-add-types": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): object ({\"a\":[1,2]}) and number (1) cannot be added\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-error-continues-next-input": {
+    "stdout": "0.5\n0.25\n",
+    "stderr": "jq: error (at <stdin>:0): number (1) and number (0) cannot be divided because the divisor is zero\n",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-error-custom-object": {
+    "stdout": "",
+    "stderr": "jq: error (at <unknown>) (not a string): {\"code\":42}\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-error-custom-string": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): boom: 7\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-error-implode-invalid": {
+    "stdout": "\"�\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-error-index-number": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): Cannot index number with string \"b\"\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-error-index-string-with-number": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): Cannot index string with number\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-error-iterate-null": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): Cannot iterate over null (null)\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-error-line-number-file": {
+    "stdout": "\"a\"\n",
+    "stderr": "jq: error (at data.json:4): explode input must be a string\n",
+    "exit": 5,
+    "files": {
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "5c7cf4eed117dcd4e8c3428b654dc4e082ac50110fc290507619c35e4d579142",
+        "data": "[\n  {\"name\": \"A\"},\n  {\"name\": 5}\n]\n"
+      }
+    }
+  },
+  "jq-error-long-value-truncated": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): object ({\"a_very_lo...) and number (1) cannot be added\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-error-null": {
+    "stdout": "",
+    "stderr": "jq: error (at <unknown>) (not a string): null\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-error-object-key-not-string": {
+    "stdout": "",
+    "stderr": "jq: error: Cannot use number (1) as object key at <top-level>, line 1:\n{(1): 2} \njq: 1 compile error\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-error-recovery-alternative": {
+    "stdout": "[1,\"default\",\"default\",\"default\"]\n7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-error-subtract-strings": {
+    "stdout": "",
+    "stderr": "jq: error (at <unknown>): string (\"a\") and string (\"b\") cannot be subtracted\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-format-base32": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): base32 is not a valid format\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-format-base32d": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): base32d is not a valid format\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-format-base64": {
+    "stdout": "b2zDoSBtdW5kbyE=\nolá mundo!\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-format-base64d-invalid": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): string (\"***\") is not valid base64 data\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-format-csv": {
+    "stdout": "1,\"Alice \"\"A\"\"\",,1.5\n2,\"Bob, Jr.\",\"b@x\",true\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-format-csv-invalid": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:0): object ({\"a\":1}) is not valid in a csv row\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-format-html-json-text": {
+    "stdout": "&lt;a href=&apos;x&apos;&gt;&amp;&quot;&lt;/a&gt;\n\"<a href='x'>&\\\"</a>\"\n<a href='x'>&\"</a>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-format-interpolation": {
+    "stdout": "row: \"a b\",2\nhttps://x/?q=a%20b\nplain 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-format-sh": {
+    "stdout": "echo 'a b' 'c'\\''d' 3 null\n'a b'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-format-tsv": {
+    "stdout": "a\\tb\tc\\nd\te\\\\f\t\t1.25\tfalse\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-format-uri": {
+    "stdout": "a%20b%26c%3Dd%2F%C3%A9%3F~_.-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-halt": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-halt-error-object-code": {
+    "stdout": "",
+    "stderr": "{\"a\":1}\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-halt-error-string": {
+    "stdout": "",
+    "stderr": "fatal: bye\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-input-line-number": {
+    "stdout": "1\n2\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-integer-ops": {
+    "stdout": "[2,-2,2,2,0,-2,2,3,-3,3]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-invalid-json-input": {
+    "stdout": "{\"a\":1}\n",
+    "stderr": "jq: parse error: Invalid numeric literal at line 2, column 5\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-invalid-json-trailing-comma": {
+    "stdout": "",
+    "stderr": "jq: parse error: Expected another array element at line 1, column 7\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-invalid-json-truncated": {
+    "stdout": "",
+    "stderr": "jq: parse error: Unfinished JSON term at EOF at line 1, column 5\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-invalid-utf16-surrogate": {
+    "stdout": "",
+    "stderr": "jq: parse error: Invalid \\uXXXX\\uXXXX surrogate pair escape at line 1, column 9\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-math-functions": {
+    "stdout": "[1024,3,4,2,100,2,3.141592653589793]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-nan-infinite": {
+    "stdout": "\"[null]\"\ntrue\n[1.7976931348623157e+308,-1.7976931348623157e+308]\ntrue\n[null,1]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-nan-literal-input": {
+    "stdout": "[null,null]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-numbers-arith-precision": {
+    "stdout": "[0.30000000000000004,0.6000000000000001,4.5]\n0.30000000000000004\n0.3333333333333333\n2.5\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-numbers-big-int-literal": {
+    "stdout": "100000000000000000001\n1e+20\n12345678901234567890123\n12345678901234568000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-numbers-huge-exponent": {
+    "stdout": "1E+1000\n-1E+1000\n1E-1000\n1.7976931348623157e+308\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-numbers-large-doubles": {
+    "stdout": "[1E+17,1.5E+300,9007199254740993,1E-7,123456789.123456789,3.0,1e+19]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-numbers-literal-preservation": {
+    "stdout": "[1.0,1.50,100,1E+2,0.01,0.1,-0,1.0,3.000]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-numbers-negative-zero": {
+    "stdout": "[-0,-0,-0]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-object-key-order": {
+    "stdout": "{\"b\":1,\"a\":0,\"c\":3,\"z\":9}\n[\"a\",\"b\",\"c\"]\n[\"b\",\"a\",\"c\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-optional-operator": {
+    "stdout": "[1]\n[1,5]\n\"x\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-pick-builtin": {
+    "stdout": "{\"a\":{\"b\":1},\"c\":3}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-syntax-error": {
+    "stdout": "",
+    "stderr": "jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:\n.a |   \njq: 1 compile error\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-syntax-error-unbalanced": {
+    "stdout": "",
+    "stderr": "jq: error: syntax error, unexpected end of file, expecting '}' (Unix shell quoting issues?) at <top-level>, line 1:\n.[] | {a: .b          \njq: 1 compile error\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-toarray-have-builtins": {
+    "stdout": "",
+    "stderr": "jq: error: toarray/0 is not defined at <top-level>, line 1:\n[1 | toarray], have_decnum, have_literal_numbers     \njq: error: have_decnum/0 is not defined at <top-level>, line 1:\n[1 | toarray], have_decnum, have_literal_numbers               \njq: error: have_literal_numbers/0 is not defined at <top-level>, line 1:\n[1 | toarray], have_decnum, have_literal_numbers                            \njq: 3 compile errors\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-tostring-tonumber": {
+    "stdout": "[\"1.0\",\"1.5\",\"100\",\"1E+1000\",\"s\",\"null\",\"[1]\"]\n12.50\n1E+3\n\"err\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-trim-builtins": {
+    "stdout": "",
+    "stderr": "jq: error: trim/0 is not defined at <top-level>, line 1:\n\"  x  \" | [trim, ltrimstr(\" \"), rtrim]           \njq: error: rtrim/0 is not defined at <top-level>, line 1:\n\"  x  \" | [trim, ltrimstr(\" \"), rtrim]                                \njq: 2 compile errors\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-try-catch-message": {
+    "stdout": "[2,\"string (\\\"a\\\") and number (1) cannot be added\",1,\"object ({\\\"x\\\":1}) and number (1) cannot be added\",\"array ([2]) and number (1) cannot be added\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-try-without-catch": {
+    "stdout": "[]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-undefined-function": {
+    "stdout": "",
+    "stderr": "jq: error: foo/1 is not defined at <top-level>, line 1:\nfoo(1)\njq: 1 compile error\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-unicode-escapes-output": {
+    "stdout": "[\"\\u0001\",\"\\u007f\",\"é\",\"😀\",\"\\t\\r\\n\\b\\f/\\\\\\\"\",\" \"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-wrong-arity": {
+    "stdout": "",
+    "stderr": "jq: error: map/0 is not defined at <top-level>, line 1:\nmap\njq: 1 compile error\n",
+    "exit": 3,
+    "files": {}
+  }
+}

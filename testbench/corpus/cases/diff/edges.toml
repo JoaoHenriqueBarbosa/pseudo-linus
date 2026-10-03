@@ -1,0 +1,263 @@
+tool = "diff"
+source = "agent-style"
+
+# Bordas: arquivos vazios, falta de newline final, binários, CRLF, arquivo inexistente, stdin e bytes
+# que não são UTF-8.
+
+[[case]]
+id = "diff-empty-vs-content-normal"
+argv = ["diff", "empty.txt", "b.txt"]
+tags = ["empty", "normal"]
+[case.files]
+"empty.txt" = ""
+"b.txt" = "first\nsecond\n"
+
+[[case]]
+id = "diff-empty-vs-content-u"
+argv = ["diff", "-u", "empty.txt", "b.txt"]
+tags = ["empty", "unified"]
+[case.files]
+"empty.txt" = ""
+"b.txt" = "first\nsecond\n"
+
+[[case]]
+id = "diff-content-vs-empty-u"
+argv = ["diff", "-u", "a.txt", "empty.txt"]
+tags = ["empty", "unified"]
+[case.files]
+"a.txt" = "first\nsecond\n"
+"empty.txt" = ""
+
+[[case]]
+id = "diff-content-vs-empty-c"
+argv = ["diff", "-c", "a.txt", "empty.txt"]
+tags = ["empty", "context"]
+[case.files]
+"a.txt" = "first\nsecond\n"
+"empty.txt" = ""
+
+[[case]]
+id = "diff-both-empty"
+argv = ["diff", "-u", "e1", "e2"]
+tags = ["empty", "exit"]
+[case.files]
+"e1" = ""
+"e2" = ""
+
+[[case]]
+id = "diff-nonl-old-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["nonl", "unified"]
+[case.files]
+"a.txt" = "a\nb"
+"b.txt" = "a\nb\n"
+
+[[case]]
+id = "diff-nonl-new-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["nonl", "unified"]
+[case.files]
+"a.txt" = "a\nb\n"
+"b.txt" = "a\nb"
+
+[[case]]
+id = "diff-nonl-both-differ-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["nonl", "unified"]
+[case.files]
+"a.txt" = "a\nb\nlast old"
+"b.txt" = "a\nb\nlast new"
+
+[[case]]
+id = "diff-nonl-both-same-tail-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["nonl", "unified"]
+[case.files]
+"a.txt" = "first\nl2\nl3\nl4\nl5\nl6\nl7\nend"
+"b.txt" = "FIRST\nl2\nl3\nl4\nl5\nl6\nl7\nend"
+
+[[case]]
+id = "diff-nonl-near-change-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["nonl", "unified"]
+[case.files]
+"a.txt" = "l1\nl2\nold\nend"
+"b.txt" = "l1\nl2\nnew\nend"
+
+[[case]]
+id = "diff-nonl-normal"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["nonl", "normal"]
+[case.files]
+"a.txt" = "a\nb"
+"b.txt" = "a\nc"
+
+[[case]]
+id = "diff-nonl-only-newline-normal"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["nonl", "normal"]
+[case.files]
+"a.txt" = "a\nb"
+"b.txt" = "a\nb\n"
+
+[[case]]
+id = "diff-nonl-c"
+argv = ["diff", "-c", "a.txt", "b.txt"]
+tags = ["nonl", "context"]
+[case.files]
+"a.txt" = "a\nb"
+"b.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "diff-nonl-append-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["nonl", "unified"]
+[case.files]
+"a.txt" = "a\nb"
+"b.txt" = "a\nb\nc"
+
+[[case]]
+id = "diff-single-line-nonl"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["nonl", "unified"]
+[case.files]
+"a.txt" = "x"
+"b.txt" = "y"
+
+[[case]]
+id = "diff-binary-differ"
+argv = ["diff", "bin1", "bin2"]
+tags = ["binary", "exit"]
+[case.files]
+"bin1" = { content_b64 = "AAECAwQFBgcICQ==" }
+"bin2" = { content_b64 = "AAECAwQFBgcICg==" }
+
+[[case]]
+id = "diff-binary-same"
+argv = ["diff", "bin1", "bin2"]
+tags = ["binary", "exit"]
+[case.files]
+"bin1" = { content_b64 = "AAECAwQFBgcICQ==" }
+"bin2" = { content_b64 = "AAECAwQFBgcICQ==" }
+
+[[case]]
+id = "diff-binary-u"
+argv = ["diff", "-u", "bin1", "bin2"]
+tags = ["binary", "unified"]
+[case.files]
+"bin1" = { content_b64 = "aGVsbG8Ad29ybGQK" }
+"bin2" = { content_b64 = "aGVsbG8AV09STEQK" }
+
+[[case]]
+id = "diff-binary-q"
+argv = ["diff", "-q", "bin1", "bin2"]
+tags = ["binary", "brief"]
+[case.files]
+"bin1" = { content_b64 = "aGVsbG8Ad29ybGQK" }
+"bin2" = { content_b64 = "aGVsbG8AV09STEQK" }
+
+[[case]]
+id = "diff-binary-vs-text"
+argv = ["diff", "bin1", "text.txt"]
+tags = ["binary"]
+[case.files]
+"bin1" = { content_b64 = "aGVsbG8Ad29ybGQK" }
+"text.txt" = "hello world\n"
+
+[[case]]
+id = "diff-binary-text-flag"
+argv = ["diff", "-a", "bin1", "bin2"]
+tags = ["binary", "normal"]
+[case.files]
+"bin1" = { content_b64 = "aGVsbG8Kd28Acmxk" }
+"bin2" = { content_b64 = "aGVsbG8KV08AUkxE" }
+
+[[case]]
+id = "diff-crlf-vs-lf-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["crlf", "unified"]
+[case.files]
+"a.txt" = "one\r\ntwo\r\nthree\r\n"
+"b.txt" = "one\ntwo\nthree\n"
+
+[[case]]
+id = "diff-crlf-change-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["crlf", "unified"]
+[case.files]
+"a.txt" = "one\r\ntwo\r\nthree\r\n"
+"b.txt" = "one\r\nTWO\r\nthree\r\n"
+
+[[case]]
+id = "diff-latin1-bytes"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["bytes", "normal"]
+[case.files]
+"a.txt" = { content_b64 = "Y2Fm6QpuYWl2ZQo=" }
+"b.txt" = { content_b64 = "Y2Fm6QpuYe92ZQo=" }
+
+[[case]]
+id = "diff-utf8-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["bytes", "unified"]
+[case.files]
+"a.txt" = "ação\nfunção\nmãe\n"
+"b.txt" = "ação\nfunções\nmãe\n"
+
+[[case]]
+id = "diff-missing-file"
+argv = ["diff", "a.txt", "nope.txt"]
+tags = ["error", "exit"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "diff-missing-both"
+argv = ["diff", "x", "y"]
+tags = ["error", "exit"]
+
+[[case]]
+id = "diff-missing-u"
+argv = ["diff", "-u", "nope.txt", "a.txt"]
+tags = ["error", "exit"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "diff-stdin-normal"
+argv = ["diff", "-", "b.txt"]
+stdin = "one\ntwo\nthree\n"
+tags = ["stdin", "normal"]
+[case.files]
+"b.txt" = "one\n2\nthree\n"
+
+[[case]]
+id = "diff-stdin-labels-u"
+argv = ["diff", "-u", "--label", "stdin", "--label", "b.txt", "-", "b.txt"]
+stdin = "one\ntwo\nthree\n"
+tags = ["stdin", "unified", "labels"]
+[case.files]
+"b.txt" = "one\n2\nthree\n"
+
+[[case]]
+id = "diff-file-vs-dir"
+argv = ["diff", "a.txt", "sub"]
+tags = ["dir"]
+[case.files]
+"a.txt" = "x\n"
+"sub/a.txt" = "y\n"
+
+[[case]]
+id = "diff-bad-option"
+argv = ["diff", "--no-such-option", "a.txt", "b.txt"]
+tags = ["error", "exit"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "diff-missing-operand"
+argv = ["diff", "a.txt"]
+tags = ["error", "exit"]
+[case.files]
+"a.txt" = "a\n"

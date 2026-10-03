@@ -1,0 +1,337 @@
+{
+  "date-opt-combined-short": {
+    "stdout": "2026-02-03 04:05:06 UTC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-date-attached": {
+    "stdout": "2026-02-03\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-date-epoch-out": {
+    "stdout": "1767604023\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-date-long": {
+    "stdout": "2026-02-03 04:05:06\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-date-long-separate": {
+    "stdout": "2026-02-03\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-default-output": {
+    "stdout": "Mon Jan  5 09:07:03 UTC 2026\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-default-output-sao-paulo": {
+    "stdout": "Mon Jan  5 09:07:03 -03 2026\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-err-date-and-file": {
+    "stdout": "",
+    "stderr": "date: the options to specify dates for printing are mutually exclusive\nTry 'date --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-err-extra-operand": {
+    "stdout": "",
+    "stderr": "date: extra operand ‘+%T’\nTry 'date --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-err-format-and-iso": {
+    "stdout": "",
+    "stderr": "date: multiple output formats specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-err-invalid-option": {
+    "stdout": "",
+    "stderr": "date: invalid option -- 'x'\nTry 'date --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-err-iso-bad": {
+    "stdout": "",
+    "stderr": "date: invalid argument ‘foo’ for ‘--iso-8601’\nValid arguments are:\n  - ‘hours’\n  - ‘minutes’\n  - ‘date’\n  - ‘seconds’\n  - ‘ns’\nTry 'date --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-err-missing-argument": {
+    "stdout": "",
+    "stderr": "date: option requires an argument -- 'd'\nTry 'date --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-err-multiple-formats": {
+    "stdout": "",
+    "stderr": "date: multiple output formats specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-err-rfc3339-bad": {
+    "stdout": "",
+    "stderr": "date: invalid argument ‘minutes’ for ‘--rfc-3339’\nValid arguments are:\n  - ‘date’\n  - ‘seconds’\n  - ‘ns’\nTry 'date --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-err-unrecognized-long": {
+    "stdout": "",
+    "stderr": "date: unrecognized option '--frobnicate'\nTry 'date --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-file": {
+    "stdout": "2026-01-01 00:00:00\n2026-02-03 04:05:06\n1970-01-01 00:00:00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dates.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "21f84ef3ab32bf0a58cf6fbf2312ba1e719c3c29ed344aa74a6f40cdd1a6cd90",
+        "data": "2026-01-01\n2026-02-03 04:05:06\n@0\n"
+      }
+    }
+  },
+  "date-opt-file-missing": {
+    "stdout": "",
+    "stderr": "date: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-file-stdin": {
+    "stdout": "100\n100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-file-with-invalid": {
+    "stdout": "2026-01-01\n2026-03-04\n",
+    "stderr": "date: invalid date ‘not a date’\n",
+    "exit": 1,
+    "files": {
+      "dates.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "3638e5088ea15a9e94ec88e3dc86ddecd8b254569e0798ce825ac4bd266578fe",
+        "data": "2026-01-01\nnot a date\n2026-03-04\n"
+      }
+    }
+  },
+  "date-opt-format-before-option": {
+    "stdout": "2026-02-03\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-iso-date": {
+    "stdout": "2026-01-05\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-iso-default": {
+    "stdout": "2026-01-05\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-iso-hours": {
+    "stdout": "2026-01-05T09+05:30\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-iso-long-bare": {
+    "stdout": "2026-01-05\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-iso-long-seconds": {
+    "stdout": "2026-01-05T09:07:03+01:00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-iso-minutes": {
+    "stdout": "2026-01-05T09:07-03:00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-iso-ns": {
+    "stdout": "2026-01-05T09:07:03,012345678+00:00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-iso-seconds": {
+    "stdout": "2026-01-05T09:07:03+00:00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-iso-utc": {
+    "stdout": "2026-01-15T12:00:00+00:00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "date-opt-reference": {
+    "stdout": "Thu Jan 15 12:00:00 UTC 2026\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "date-opt-reference-dir": {
+    "stdout": "1768478400\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "date-opt-reference-epoch": {
+    "stdout": "1768478400 2026-01-15 09:00:00 -03\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "date-opt-reference-missing": {
+    "stdout": "",
+    "stderr": "date: missing.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-opt-rfc-email": {
+    "stdout": "Mon, 05 Jan 2026 09:07:03 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-rfc-email-long-sao-paulo": {
+    "stdout": "Mon, 05 Jan 2026 09:07:03 -0300\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-rfc-email-utc": {
+    "stdout": "Thu, 15 Jan 2026 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "date-opt-rfc3339-date": {
+    "stdout": "2026-01-05\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-rfc3339-ns": {
+    "stdout": "2026-01-05 09:07:03.500000000+00:00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-rfc3339-seconds": {
+    "stdout": "2026-01-05 09:07:03+05:30\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-opt-universal": {
+    "stdout": "12:00:00 UTC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "date-opt-utc-long": {
+    "stdout": "2026-01-15 12:00:00 UTC +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "date-opt-utc-short": {
+    "stdout": "Thu Jan 15 12:00:00 UTC 2026\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  }
+}

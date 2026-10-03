@@ -1,0 +1,147 @@
+tool = "coreutils"
+source = "agent-style"
+
+# stat -c, basename, dirname, realpath, readlink.
+
+[[case]]
+id = "stat-c-basic"
+argv = ["stat", "-c", "%n %s %a %A %F", "a.txt", "d", "run.sh"]
+tags = ["stat"]
+[case.files]
+"a.txt" = "12345\n"
+"d" = { dir = true, mode = 0o750 }
+"run.sh" = { content = "x", mode = 0o755 }
+
+[[case]]
+id = "stat-c-size"
+argv = ["stat", "-c", "%s", "a.txt"]
+tags = ["stat"]
+[case.files]
+"a.txt" = "abc"
+
+[[case]]
+id = "stat-c-owner"
+argv = ["stat", "-c", "%U:%G %u:%g", "a.txt"]
+tags = ["stat"]
+[case.files]
+"a.txt" = ""
+
+[[case]]
+id = "stat-c-mtime"
+argv = ["stat", "-c", "%y %Y", "a.txt"]
+tags = ["stat", "time"]
+[case.files]
+"a.txt" = ""
+
+[[case]]
+id = "stat-c-symlink"
+argv = ["stat", "-c", "%N %F", "link"]
+tags = ["stat", "symlink"]
+[case.files]
+"t.txt" = ""
+"link" = { symlink = "t.txt" }
+
+[[case]]
+id = "stat-L"
+argv = ["stat", "-L", "-c", "%n %F %s", "link"]
+tags = ["stat", "symlink"]
+[case.files]
+"t.txt" = "abc\n"
+"link" = { symlink = "t.txt" }
+
+[[case]]
+id = "stat-missing"
+argv = ["stat", "nope"]
+tags = ["stat", "errno"]
+
+[[case]]
+id = "stat-printf"
+argv = ["stat", "--printf", "%n\\t%s\\n", "a.txt", "b.txt"]
+tags = ["stat"]
+[case.files]
+"a.txt" = "a"
+"b.txt" = "bb"
+
+[[case]]
+id = "basename-basic"
+argv = ["basename", "/home/user/src/main.rs"]
+tags = ["basename"]
+
+[[case]]
+id = "basename-suffix"
+argv = ["basename", "-s", ".rs", "src/main.rs"]
+tags = ["basename"]
+
+[[case]]
+id = "basename-trailing-slash"
+argv = ["basename", "a/b/"]
+tags = ["basename"]
+
+[[case]]
+id = "basename-multiple"
+argv = ["basename", "-a", "x/one.txt", "y/two.txt"]
+tags = ["basename"]
+
+[[case]]
+id = "basename-suffix-positional"
+argv = ["basename", "archive.tar.gz", ".gz"]
+tags = ["basename"]
+
+[[case]]
+id = "dirname-basic"
+argv = ["dirname", "/home/user/src/main.rs"]
+tags = ["dirname"]
+
+[[case]]
+id = "dirname-relative"
+argv = ["dirname", "file.txt", "a/b", "/", "a/b/"]
+tags = ["dirname"]
+
+[[case]]
+id = "realpath-file"
+argv = ["realpath", "sub/../a.txt"]
+tags = ["realpath"]
+[case.files]
+"a.txt" = ""
+"sub" = { dir = true }
+
+[[case]]
+id = "realpath-symlink"
+argv = ["realpath", "link"]
+tags = ["realpath", "symlink"]
+[case.files]
+"dir/target.txt" = ""
+"link" = { symlink = "dir/target.txt" }
+
+[[case]]
+id = "realpath-missing"
+argv = ["realpath", "nope/x"]
+tags = ["realpath", "errno"]
+
+[[case]]
+id = "realpath-m"
+argv = ["realpath", "-m", "nope/../x"]
+tags = ["realpath"]
+
+[[case]]
+id = "realpath-relative-to"
+argv = ["realpath", "--relative-to=src", "docs/a.md"]
+tags = ["realpath"]
+[case.files]
+"src" = { dir = true }
+"docs/a.md" = ""
+
+[[case]]
+id = "readlink-f"
+argv = ["readlink", "-f", "link"]
+tags = ["readlink", "symlink"]
+[case.files]
+"t.txt" = ""
+"link" = { symlink = "t.txt" }
+
+[[case]]
+id = "readlink-plain"
+argv = ["readlink", "link"]
+tags = ["readlink", "symlink"]
+[case.files]
+"link" = { symlink = "../somewhere/else" }

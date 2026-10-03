@@ -1,0 +1,274 @@
+{
+  "cat-A": {
+    "stdout": "tab^Ihere^M$\naM-CM-'M-CM-#o$\nsem fim",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "ad3890718df50fd74dd3a43248c472810bf3ce65d0a708287cc99d08bc8a969b",
+        "data": "tab\there\r\nação\nsem fim"
+      }
+    }
+  },
+  "cat-E-T": {
+    "stdout": "a^Ib$\nc$\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "546614062a18008e08b563073424c00f45c808b93228142eebd3dcf2ac9f63e2",
+        "data": "a\tb\nc\n"
+      }
+    }
+  },
+  "cat-b": {
+    "stdout": "     1\tum\n\n     2\tdois\n\n\n     3\ttrês\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "7fb722fb4a434693047026bcb257aa0d8e0ab30ec4a2d5342581794cd6694f10",
+        "data": "um\n\ndois\n\n\ntrês\n"
+      }
+    }
+  },
+  "cat-basic": {
+    "stdout": "linha 1\nlinha 2\nlinha 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "b3af6b870a12152e3508e4104a29cab94bed36d047aa5256fb0b3224863a72a7",
+        "data": "linha 1\nlinha 2\nlinha 3\n"
+      }
+    }
+  },
+  "cat-dangling-symlink": {
+    "stdout": "",
+    "stderr": "cat: link: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "nowhere.txt"
+      }
+    }
+  },
+  "cat-dir": {
+    "stdout": "",
+    "stderr": "cat: sub: Is a directory\n",
+    "exit": 1,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "cat-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "cat-heredoc-to-file": {
+    "stdout": "# Título\n- item $HOME\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "notes.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "3b870b479f82d0eeed437bf66a112e38534587a4e54c9a77d37a658bc788a382",
+        "data": "# Título\n- item $HOME\n"
+      }
+    }
+  },
+  "cat-missing": {
+    "stdout": "ok\nok\n",
+    "stderr": "cat: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+        "data": "ok\n"
+      }
+    }
+  },
+  "cat-multi": {
+    "stdout": "alfa\nbeta\ngama\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "bbbff613b27d7f717f8e7bfce522186e0e2539efd86520ceac00ce62dab458c2",
+        "data": "alfa\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "27980ea2c3386a6cf45eb1805657d5e74517410f20f5767d4ea568350f728761",
+        "data": "beta\ngama\n"
+      }
+    }
+  },
+  "cat-n": {
+    "stdout": "     1\tum\n     2\t\n     3\tdois\n     4\t\n     5\t\n     6\ttrês\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "7fb722fb4a434693047026bcb257aa0d8e0ab30ec4a2d5342581794cd6694f10",
+        "data": "um\n\ndois\n\n\ntrês\n"
+      }
+    }
+  },
+  "cat-n-no-trailing-newline": {
+    "stdout": "     1\tx\n     2\tyz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "9ab9de25768ac172235e119b76362ecddad33878fe9a7792cdddbe47236f9a87",
+        "data": "x\ny"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c865f6c5ab8d1b0bcd383a5e1e3879d22681c96bf462c269b7581d523fbe70ab",
+        "data": "z\n"
+      }
+    }
+  },
+  "cat-pipe-wc": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      }
+    }
+  },
+  "cat-s": {
+    "stdout": "um\n\ndois\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "7b2695afa4b6c854c2f024a65ecacabc50f1f9be6b964fdf6c4d99dd4cd4ce7d",
+        "data": "um\n\n\n\ndois\n\n"
+      }
+    }
+  },
+  "cat-stdin-dash": {
+    "stdout": "da entrada\ndo arquivo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "ec029196dbd3a9635f0723d7df71815d4efc9d8550c951559e291493ead23875",
+        "data": "do arquivo\n"
+      }
+    }
+  },
+  "cat-stdin-implicit": {
+    "stdout": "só stdin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cat-symlink": {
+    "stdout": "via link\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real.txt"
+      },
+      "real.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "1b77907d7d04a851750e7267cd600ceb0ffb6d3f6fca060253442ea32e3d446b",
+        "data": "via link\n"
+      }
+    }
+  },
+  "cat-unknown-flag": {
+    "stdout": "",
+    "stderr": "cat: invalid option -- 'Z'\nTry 'cat --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "cat-v-binary": {
+    "stdout": "^@^A^BM-^?M-^@M-^A^?A\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin.dat": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "825d1bab40e46ebd158d791be7d64b1ab78d7bf7440b4670ce44dc5386810a9f",
+        "data": {
+          "b64": "AAEC/4CBf0EK"
+        }
+      }
+    }
+  }
+}

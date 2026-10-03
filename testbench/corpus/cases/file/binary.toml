@@ -1,0 +1,224 @@
+tool = "file"
+source = "manual"
+
+# Fixtures binárias geradas de forma determinística (PIL pras imagens, gzip -n, tar e zip com mtime e
+# dono fixos, lzip no oráculo). O tar é um cabeçalho ustar de 512 bytes (symlink com nome no prefix),
+# escolhido pra não ter sequências longas de zeros no base64. Cada uma roda em `file x` e em
+# `file --mime-type x`.
+
+[[case]]
+id = "file-png"
+argv = ["file", "img.png"]
+tags = ["image", "describe"]
+[case.files]
+"img.png" = { content_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC" }
+
+[[case]]
+id = "file-png-mime"
+argv = ["file", "--mime-type", "img.png"]
+tags = ["image", "mime"]
+[case.files]
+"img.png" = { content_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC" }
+
+[[case]]
+id = "file-png-i"
+argv = ["file", "-i", "img.png"]
+tags = ["image", "mime-charset"]
+[case.files]
+"img.png" = { content_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC" }
+
+[[case]]
+id = "file-png-brief"
+argv = ["file", "-b", "img.png"]
+tags = ["image", "describe", "brief"]
+[case.files]
+"img.png" = { content_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC" }
+
+[[case]]
+id = "file-jpeg"
+argv = ["file", "photo.jpg"]
+tags = ["image", "describe"]
+[case.files]
+"photo.jpg" = { content_b64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCOiiivkD83P//Z" }
+
+[[case]]
+id = "file-jpeg-mime"
+argv = ["file", "--mime-type", "photo.jpg"]
+tags = ["image", "mime"]
+[case.files]
+"photo.jpg" = { content_b64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCOiiivkD83P//Z" }
+
+[[case]]
+id = "file-gif"
+argv = ["file", "anim.gif"]
+tags = ["image", "describe"]
+[case.files]
+"anim.gif" = { content_b64 = "R0lGODdhAgACAIAAAAAAAAAAACwAAAAAAgACAAAIBgABCAQQEAA7" }
+
+[[case]]
+id = "file-gif-mime"
+argv = ["file", "--mime-type", "anim.gif"]
+tags = ["image", "mime"]
+[case.files]
+"anim.gif" = { content_b64 = "R0lGODdhAgACAIAAAAAAAAAAACwAAAAAAgACAAAIBgABCAQQEAA7" }
+
+[[case]]
+id = "file-random"
+argv = ["file", "random.bin"]
+tags = ["binary", "describe"]
+[case.files]
+"random.bin" = { content_b64 = "3ARlqh+tHVra5awbHl8TcHls/RD/Ga9gHQSstB0CK0Z4czry31+utwhZ0e45EMtIlbXMiSkR/wa2Yi7fPPk1/UuUKMoJfESzAl6WX7PqbazULYFuaa/g5odMnATn0jZdLGDJ6vR59oag65Mm5GIS1Q3Ls3cVamo6aLqO23QIRp7zzrMK+NDdaLv4X/ok8tL8GIf7XIe6tDgypZsbPRB893jWf+Jt+BGRKX6TlcsSxVfOWvHUFhjXGbwEW36ZZfGilHHEKqxqqTjEdcetMjgCHwU7LJka/OsV3s9ouuB8vNYelxuaC52+l2PTkvyv36KMlyNFYuvdB2Vw/1iJas/3yg==" }
+
+[[case]]
+id = "file-random-mime"
+argv = ["file", "--mime-type", "random.bin"]
+tags = ["binary", "mime"]
+[case.files]
+"random.bin" = { content_b64 = "3ARlqh+tHVra5awbHl8TcHls/RD/Ga9gHQSstB0CK0Z4czry31+utwhZ0e45EMtIlbXMiSkR/wa2Yi7fPPk1/UuUKMoJfESzAl6WX7PqbazULYFuaa/g5odMnATn0jZdLGDJ6vR59oag65Mm5GIS1Q3Ls3cVamo6aLqO23QIRp7zzrMK+NDdaLv4X/ok8tL8GIf7XIe6tDgypZsbPRB893jWf+Jt+BGRKX6TlcsSxVfOWvHUFhjXGbwEW36ZZfGilHHEKqxqqTjEdcetMjgCHwU7LJka/OsV3s9ouuB8vNYelxuaC52+l2PTkvyv36KMlyNFYuvdB2Vw/1iJas/3yg==" }
+
+[[case]]
+id = "file-random-i"
+argv = ["file", "-i", "random.bin"]
+tags = ["binary", "mime-charset"]
+[case.files]
+"random.bin" = { content_b64 = "3ARlqh+tHVra5awbHl8TcHls/RD/Ga9gHQSstB0CK0Z4czry31+utwhZ0e45EMtIlbXMiSkR/wa2Yi7fPPk1/UuUKMoJfESzAl6WX7PqbazULYFuaa/g5odMnATn0jZdLGDJ6vR59oag65Mm5GIS1Q3Ls3cVamo6aLqO23QIRp7zzrMK+NDdaLv4X/ok8tL8GIf7XIe6tDgypZsbPRB893jWf+Jt+BGRKX6TlcsSxVfOWvHUFhjXGbwEW36ZZfGilHHEKqxqqTjEdcetMjgCHwU7LJka/OsV3s9ouuB8vNYelxuaC52+l2PTkvyv36KMlyNFYuvdB2Vw/1iJas/3yg==" }
+
+[[case]]
+id = "file-gzip"
+argv = ["file", "a.gz"]
+tags = ["compressed", "describe"]
+[case.files]
+"a.gz" = { content_b64 = "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4coYAWwAvJ6dLvAAAAA=" }
+
+[[case]]
+id = "file-gzip-mime"
+argv = ["file", "--mime-type", "a.gz"]
+tags = ["compressed", "mime"]
+[case.files]
+"a.gz" = { content_b64 = "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4coYAWwAvJ6dLvAAAAA=" }
+
+[[case]]
+id = "file-gzip-i"
+argv = ["file", "-i", "a.gz"]
+tags = ["compressed", "mime-charset"]
+[case.files]
+"a.gz" = { content_b64 = "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4coYAWwAvJ6dLvAAAAA=" }
+
+[[case]]
+id = "file-gzip-brief"
+argv = ["file", "-b", "a.gz"]
+tags = ["compressed", "describe", "brief"]
+[case.files]
+"a.gz" = { content_b64 = "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4coYAWwAvJ6dLvAAAAA=" }
+
+[[case]]
+id = "file-gzip-named"
+argv = ["file", "named.txt.gz"]
+tags = ["compressed", "describe"]
+[case.files]
+"named.txt.gz" = { content_b64 = "H4sICMDWaGkAA25hbWVkLnR4dADLSM3JyVcozy/KSeHKGAFsALyenS7wAAAA" }
+
+[[case]]
+id = "file-gzip-z"
+argv = ["file", "-z", "named.txt.gz"]
+tags = ["compressed", "describe", "flags"]
+[case.files]
+"named.txt.gz" = { content_b64 = "H4sICMDWaGkAA25hbWVkLnR4dADLSM3JyVcozy/KSeHKGAFsALyenS7wAAAA" }
+
+[[case]]
+id = "file-bzip2"
+argv = ["file", "a.bz2"]
+tags = ["compressed", "describe"]
+[case.files]
+"a.bz2" = { content_b64 = "QlpoOTFBWSZTWdt3RzcAADHRgAAQQAAGRJCAIABQgyYgKVQzRPSYTCYTROE4TQnSYTpPxdyRThQkNt3RzcA=" }
+
+[[case]]
+id = "file-bzip2-mime"
+argv = ["file", "--mime-type", "a.bz2"]
+tags = ["compressed", "mime"]
+[case.files]
+"a.bz2" = { content_b64 = "QlpoOTFBWSZTWdt3RzcAADHRgAAQQAAGRJCAIABQgyYgKVQzRPSYTCYTROE4TQnSYTpPxdyRThQkNt3RzcA=" }
+
+[[case]]
+id = "file-xz"
+argv = ["file", "a.xz"]
+tags = ["compressed", "describe"]
+[case.files]
+"a.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAb8AEhARYAAAAAAAAAALueTWPgAO8AE10ANBlJ7o3pF4k6M1/8s+zlayAAAAAA4U8ceXHM7C4AATfwAQAAAPDUoiqxxGf7AgAAAAAEWVo=" }
+
+[[case]]
+id = "file-xz-mime"
+argv = ["file", "--mime-type", "a.xz"]
+tags = ["compressed", "mime"]
+[case.files]
+"a.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAb8AEhARYAAAAAAAAAALueTWPgAO8AE10ANBlJ7o3pF4k6M1/8s+zlayAAAAAA4U8ceXHM7C4AATfwAQAAAPDUoiqxxGf7AgAAAAAEWVo=" }
+
+[[case]]
+id = "file-zstd"
+argv = ["file", "a.zst"]
+tags = ["compressed", "describe"]
+[case.files]
+"a.zst" = { content_b64 = "KLUv/STwnQAAYGhlbGxvIHdvcmxkCgEA4VMlCcomQzo=" }
+
+[[case]]
+id = "file-zstd-mime"
+argv = ["file", "--mime-type", "a.zst"]
+tags = ["compressed", "mime"]
+[case.files]
+"a.zst" = { content_b64 = "KLUv/STwnQAAYGhlbGxvIHdvcmxkCgEA4VMlCcomQzo=" }
+
+[[case]]
+id = "file-lzip"
+argv = ["file", "a.lz"]
+tags = ["compressed", "describe"]
+[case.files]
+"a.lz" = { content_b64 = "TFpJUAEMADQZSe6N6ReJOjNf/LPs5bDck///3zYAALyenS7wAAAAAAAAADMAAAAAAAAA" }
+
+[[case]]
+id = "file-lzip-mime"
+argv = ["file", "--mime-type", "a.lz"]
+tags = ["compressed", "mime"]
+[case.files]
+"a.lz" = { content_b64 = "TFpJUAEMADQZSe6N6ReJOjNf/LPs5bDck///3zYAALyenS7wAAAAAAAAADMAAAAAAAAA" }
+
+[[case]]
+id = "file-tgz"
+argv = ["file", "a.tgz"]
+tags = ["compressed", "describe"]
+[case.files]
+"a.tgz" = { content_b64 = "H4sIAAAAAAAAA+3QPQrDMAyGYc89hU9QpKjxfQwJZDC4uC5tb5+fKXRO0kDfZ/nEt0joHj8px+5a39XtRSYh3JacfKdYEKetWqOt2dyrqInzsttFK89HjcX7I1ad0dCnlP0rl9Rd/mH+9b8BAAAAAAAAAAAAAAAAYCsjpsYpMQAoAAA=" }
+
+[[case]]
+id = "file-tar"
+argv = ["file", "a.tar"]
+tags = ["archive", "describe"]
+[case.files]
+"a.tar" = { content_b64 = "cHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwADAwMDA3NzcAMDAwMDAwMAAwMDAwMDAwADAwMDAwMDAwMDAwADE1MTMyMTUzMzAwADEzNTM2NgAgMnR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dAB1c3RhcgAwMHV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXUAZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZwAAAAAAAAAAAAAAAAAAAAAAZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZAAAAAAAAAAAAAAAAAA=" }
+
+[[case]]
+id = "file-tar-mime"
+argv = ["file", "--mime-type", "a.tar"]
+tags = ["archive", "mime"]
+[case.files]
+"a.tar" = { content_b64 = "cHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwADAwMDA3NzcAMDAwMDAwMAAwMDAwMDAwADAwMDAwMDAwMDAwADE1MTMyMTUzMzAwADEzNTM2NgAgMnR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dHR0dAB1c3RhcgAwMHV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXUAZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZwAAAAAAAAAAAAAAAAAAAAAAZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZAAAAAAAAAAAAAAAAAA=" }
+
+[[case]]
+id = "file-zip"
+argv = ["file", "a.zip"]
+tags = ["archive", "describe"]
+[case.files]
+"a.zip" = { content_b64 = "UEsDBBQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAcGF5bG9hZC50eHTLSM3JyVcozy/KSeHKGAFsAFBLAQIeAxQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAAAAAAAEAAAC0gQAAAABwYXlsb2FkLnR4dFBLBQYAAAAAAQABADkAAAA6AAAAAAA=" }
+
+[[case]]
+id = "file-zip-mime"
+argv = ["file", "--mime-type", "a.zip"]
+tags = ["archive", "mime"]
+[case.files]
+"a.zip" = { content_b64 = "UEsDBBQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAcGF5bG9hZC50eHTLSM3JyVcozy/KSeHKGAFsAFBLAQIeAxQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAAAAAAAEAAAC0gQAAAABwYXlsb2FkLnR4dFBLBQYAAAAAAQABADkAAAA6AAAAAAA=" }
+
+[[case]]
+id = "file-zip-brief"
+argv = ["file", "-b", "a.zip"]
+tags = ["archive", "describe", "brief"]
+[case.files]
+"a.zip" = { content_b64 = "UEsDBBQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAcGF5bG9hZC50eHTLSM3JyVcozy/KSeHKGAFsAFBLAQIeAxQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAAAAAAAEAAAC0gQAAAABwYXlsb2FkLnR4dFBLBQYAAAAAAQABADkAAAA6AAAAAAA=" }

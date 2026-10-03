@@ -1,0 +1,388 @@
+tool = "date"
+source = "agent-style"
+
+# Diretivas do +FORMAT, uma por caso, sem -d: o instante vem do relógio congelado, então o caso mede só
+# a formatação (sem depender do parser de datas da biblioteca).
+#
+# Relógio: `FAKETIME` absoluto + `LD_PRELOAD` da libfaketime congela o relógio no instante dado,
+# interpretado no TZ do caso. O campo `faketime` do harness usa o wrapper `faketime`, que só fixa os
+# segundos e herda a fração de segundo real (medido no oráculo: 12:00:00.79, 12:00:00.92...), então %S
+# pode virar 12:00:01 de vez em quando; com o relógio congelado o golden é determinístico.
+#
+# Instante base: segunda-feira 2026-01-05 09:07:03 UTC.
+
+[[case]]
+id = "date-fmt-weekday-abbr"
+argv = ["date", "+%a"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-weekday-full"
+argv = ["date", "+%A"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-month-abbr"
+argv = ["date", "+%b"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-month-full"
+argv = ["date", "+%B"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-locale-datetime"
+argv = ["date", "+%c"]
+tags = ["format", "locale"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-century"
+argv = ["date", "+%C"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-day"
+argv = ["date", "+%d"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-us-date"
+argv = ["date", "+%D"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-day-space"
+argv = ["date", "+%e"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-iso-date"
+argv = ["date", "+%F"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-iso-year-short"
+argv = ["date", "+%g"]
+tags = ["format", "week"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-iso-year"
+argv = ["date", "+%G"]
+tags = ["format", "week"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-month-abbr-h"
+argv = ["date", "+%h"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-hour24"
+argv = ["date", "+%H"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-hour12"
+argv = ["date", "+%I"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-day-of-year"
+argv = ["date", "+%j"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-hour24-space"
+argv = ["date", "+%k"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-hour12-space"
+argv = ["date", "+%l"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-month"
+argv = ["date", "+%m"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-minute"
+argv = ["date", "+%M"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-newline"
+argv = ["date", "+a%nb"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-nanos-frozen"
+argv = ["date", "+%N"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-ampm-upper"
+argv = ["date", "+%p"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-ampm-lower"
+argv = ["date", "+%P"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-quarter"
+argv = ["date", "+%q"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-locale-time12"
+argv = ["date", "+%r"]
+tags = ["format", "locale"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-hour-minute"
+argv = ["date", "+%R"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-epoch"
+argv = ["date", "+%s"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-second"
+argv = ["date", "+%S"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-tab"
+argv = ["date", "+a%tb"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-time"
+argv = ["date", "+%T"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-weekday-monday1"
+argv = ["date", "+%u"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-week-sunday"
+argv = ["date", "+%U"]
+tags = ["format", "week"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-iso-week"
+argv = ["date", "+%V"]
+tags = ["format", "week"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-weekday-sunday0"
+argv = ["date", "+%w"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-week-monday"
+argv = ["date", "+%W"]
+tags = ["format", "week"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-locale-date"
+argv = ["date", "+%x"]
+tags = ["format", "locale"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-locale-time"
+argv = ["date", "+%X"]
+tags = ["format", "locale"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-year-short"
+argv = ["date", "+%y"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-year"
+argv = ["date", "+%Y"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-offset"
+argv = ["date", "+%z"]
+tags = ["format", "offset"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-offset-colon"
+argv = ["date", "+%:z"]
+tags = ["format", "offset"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-offset-colon2"
+argv = ["date", "+%::z"]
+tags = ["format", "offset"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-offset-colon3"
+argv = ["date", "+%:::z"]
+tags = ["format", "offset"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-zone-abbr"
+argv = ["date", "+%Z"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-percent"
+argv = ["date", "+100%%"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-literal-utf8"
+argv = ["date", "+Hoje é %A, %d de %B às %Hh"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-empty"
+argv = ["date", "+"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-unknown-directive"
+argv = ["date", "+[%J][%i][%L]"]
+tags = ["format", "edge"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-trailing-percent"
+argv = ["date", "+abc%"]
+tags = ["format", "edge"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-locale-modifiers"
+argv = ["date", "+%Ey %EY %Od %OH %Ec"]
+tags = ["format", "edge"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-combined-log"
+argv = ["date", "+%Y-%m-%dT%H:%M:%S%z"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-combined-backup-name"
+argv = ["date", "+backup-%Y%m%d-%H%M%S.tar.gz"]
+tags = ["format"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+# Tarde de domingo: 12 horas, AM/PM, dia da semana 0/7.
+
+[[case]]
+id = "date-fmt-afternoon-sunday"
+argv = ["date", "+%I|%l|%p|%P|%r|%u|%w|%U|%W|%V|%j|%e|%a"]
+tags = ["format", "week"]
+env = { FAKETIME = "2026-07-19 15:04:05", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-noon-12h"
+argv = ["date", "+%I %l %p %P %r"]
+tags = ["format"]
+env = { FAKETIME = "2026-07-19 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-midnight-12h"
+argv = ["date", "+%I %l %p %P %r %k"]
+tags = ["format"]
+env = { FAKETIME = "2026-07-19 00:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+# Bordas de semana e de ano ISO 8601 (%G/%g/%V), semanas %U/%W e dia do ano.
+
+[[case]]
+id = "date-fmt-week-2021-01-03"
+argv = ["date", "+%G-W%V-%u %g %U %W %j %a"]
+tags = ["format", "week"]
+env = { FAKETIME = "2021-01-03 10:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-week-2024-12-30"
+argv = ["date", "+%G-W%V-%u %g %U %W %j %a"]
+tags = ["format", "week"]
+env = { FAKETIME = "2024-12-30 10:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-week-2027-01-01"
+argv = ["date", "+%G-W%V-%u %g %U %W %j %a"]
+tags = ["format", "week"]
+env = { FAKETIME = "2027-01-01 10:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-week-2026-12-31"
+argv = ["date", "+%G-W%V-%u %g %U %W %j %a"]
+tags = ["format", "week"]
+env = { FAKETIME = "2026-12-31 23:59:59", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-leap-day-2028"
+argv = ["date", "+%F %j %U %W %V %a"]
+tags = ["format", "week"]
+env = { FAKETIME = "2028-02-29 06:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-fmt-year-1999"
+argv = ["date", "+%C %y %Y %g %G %D"]
+tags = ["format"]
+env = { FAKETIME = "1999-12-31 23:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }

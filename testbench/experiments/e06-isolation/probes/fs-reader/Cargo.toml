@@ -1,0 +1,14 @@
+[package]
+name = "fs-reader"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "Sonda do E06 (H19): faz o papel de uma dependência de terceiros que lê o FS do host"
+
+# Fora do workspace das sondas (exclude): compilada como dependência comum, sem clippy.
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,5775 @@
+{
+  "experiment": "f02-grep-sed",
+  "title": "F02: grep com as crates do ripgrep e sed em Rust contra o GNU",
+  "generated_at": "2026-10-02T23:49:25Z",
+  "host": {
+    "kernel": "6.12.101+deb13-amd64",
+    "cpus": 16,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+  },
+  "hypotheses": [
+    {
+      "id": "H24",
+      "verdict": "partial",
+      "summary": "grep-searcher e grep-matcher servem como camada de varredura: com o front-end de flags nosso, o motor do F01 e um printer nosso no formato do GNU, o grep montado iguala o GNU em 100.0% estrito (100.0% leniente) de 185 casos (agente, foad1 e yesno do GNU grep). Com o grep-printer do ripgrep cai pra 88.1% e com grep-regex + grep-printer (o ripgrep como é) pra 86.5%: o printer (contexto com -o, -m com contexto, separadores entre arquivos, -T, casadas vazias do -o) e o motor (leftmost-first, sem backref) não são do GNU. Referência: uu_grep 93.5%.",
+      "evidence": {
+        "cases": 185,
+        "rates_strict_lenient": {
+          "bashkit-grep": [
+            0.5351351351351351,
+            0.5405405405405406
+          ],
+          "f01+gnu-printer": [
+            1.0,
+            1.0
+          ],
+          "f01+rg-printer": [
+            0.8810810810810811,
+            0.8810810810810811
+          ],
+          "rg-regex+rg-printer": [
+            0.8648648648648649,
+            0.8648648648648649
+          ],
+          "uu_grep": [
+            0.9081081081081082,
+            0.9351351351351351
+          ]
+        },
+        "ripgrep_as_is_strict": 0.8648648648648649,
+        "ripgrep_printer_strict": 0.8810810810810811,
+        "uu_grep_strict": 0.9081081081081082
+      }
+    },
+    {
+      "id": "H25",
+      "verdict": "partial",
+      "summary": "Nenhum sed em Rust é adotável como está: o melhor (bashkit-sed) iguala o GNU sed 4.9 em 90.1% estrito (94.2% leniente) de 172 casos (agente e misc.pl do GNU sed); estrito/leniente por candidato: bashkit-sed 90.1%/94.2%, red 84.9%/89.0%, sed-rs 70.3%/70.3%, uutils-sed 79.7%/83.7%. O mais perto é o sed do bashkit, que já roda sobre VFS em memória; vira base de fork trocando o motor de regex pelo do F01 e corrigindo escapes, -z e mensagens. uutils/sed e red usam std::fs e stdout direto; sed-rs fica abaixo de 75%.",
+      "evidence": {
+        "best": "bashkit-sed",
+        "cases": 172,
+        "rates_strict_lenient": {
+          "bashkit-sed": "90.1%/94.2%",
+          "red": "84.9%/89.0%",
+          "sed-rs": "70.3%/70.3%",
+          "uutils-sed": "79.7%/83.7%"
+        }
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "name": "rg-regex+rg-printer",
+      "version": "grep-searcher 0.1.17, grep-regex 0.1.14, grep-printer 0.3.1",
+      "role": "grep",
+      "category": "b",
+      "conformance": {
+        "candidate": "rg-regex+rg-printer",
+        "total": 185,
+        "strict_pass": 160,
+        "lenient_pass": 160,
+        "unsupported": 1,
+        "by_tag": {
+          "backref": [
+            0,
+            0,
+            1
+          ],
+          "basic": [
+            6,
+            6,
+            6
+          ],
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "bre": [
+            2,
+            2,
+            3
+          ],
+          "context": [
+            6,
+            6,
+            7
+          ],
+          "error": [
+            10,
+            10,
+            10
+          ],
+          "exit": [
+            21,
+            21,
+            21
+          ],
+          "flag:--": [
+            1,
+            1,
+            1
+          ],
+          "flag:--binary-files": [
+            1,
+            1,
+            1
+          ],
+          "flag:--color": [
+            1,
+            1,
+            1
+          ],
+          "flag:--exclude": [
+            1,
+            1,
+            1
+          ],
+          "flag:--exclude-dir": [
+            1,
+            1,
+            1
+          ],
+          "flag:--include": [
+            1,
+            1,
+            1
+          ],
+          "flag:--label": [
+            1,
+            1,
+            1
+          ],
+          "flag:-A": [
+            1,
+            1,
+            1
+          ],
+          "flag:-B": [
+            1,
+            1,
+            1
+          ],
+          "flag:-C": [
+            1,
+            1,
+            1
+          ],
+          "flag:-E": [
+            5,
+            5,
+            5
+          ],
+          "flag:-F": [
+            4,
+            4,
+            4
+          ],
+          "flag:-G": [
+            1,
+            1,
+            1
+          ],
+          "flag:-H": [
+            2,
+            2,
+            2
+          ],
+          "flag:-L": [
+            3,
+            3,
+            3
+          ],
+          "flag:-NUM": [
+            1,
+            1,
+            1
+          ],
+          "flag:-P": [
+            1,
+            1,
+            1
+          ],
+          "flag:-R": [
+            1,
+            1,
+            1
+          ],
+          "flag:-T": [
+            0,
+            0,
+            1
+          ],
+          "flag:-Z": [
+            1,
+            1,
+            1
+          ],
+          "flag:-a": [
+            1,
+            1,
+            1
+          ],
+          "flag:-b": [
+            2,
+            2,
+            2
+          ],
+          "flag:-c": [
+            11,
+            11,
+            11
+          ],
+          "flag:-d": [
+            1,
+            1,
+            1
+          ],
+          "flag:-e": [
+            3,
+            3,
+            4
+          ],
+          "flag:-f": [
+            2,
+            2,
+            2
+          ],
+          "flag:-h": [
+            2,
+            2,
+            2
+          ],
+          "flag:-i": [
+            5,
+            5,
+            5
+          ],
+          "flag:-l": [
+            5,
+            5,
+            5
+          ],
+          "flag:-m": [
+            4,
+            4,
+            4
+          ],
+          "flag:-n": [
+            7,
+            7,
+            7
+          ],
+          "flag:-o": [
+            6,
+            6,
+            9
+          ],
+          "flag:-q": [
+            3,
+            3,
+            3
+          ],
+          "flag:-r": [
+            2,
+            2,
+            2
+          ],
+          "flag:-s": [
+            1,
+            1,
+            1
+          ],
+          "flag:-v": [
+            4,
+            4,
+            4
+          ],
+          "flag:-w": [
+            4,
+            4,
+            4
+          ],
+          "flag:-x": [
+            2,
+            2,
+            2
+          ],
+          "flag:long": [
+            2,
+            2,
+            2
+          ],
+          "leftmost-longest": [
+            0,
+            0,
+            2
+          ],
+          "multi-file": [
+            6,
+            6,
+            7
+          ],
+          "order-insensitive": [
+            12,
+            12,
+            12
+          ],
+          "recursive": [
+            12,
+            12,
+            12
+          ],
+          "src:upstream-foad1": [
+            38,
+            38,
+            39
+          ],
+          "src:upstream-yesno": [
+            23,
+            23,
+            41
+          ],
+          "stdin": [
+            5,
+            5,
+            5
+          ],
+          "symlink": [
+            2,
+            2,
+            2
+          ],
+          "upstream-todo": [
+            2,
+            2,
+            3
+          ],
+          "utf8": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "only-matching-empty-matches",
+            "tags": [
+              "flag:-o"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n22\\n\" obtido \"\\n1\\n22\\n\\n\\n\\n\\n\""
+            ]
+          },
+          {
+            "id": "only-matching-longest",
+            "tags": [
+              "flag:-o",
+              "leftmost-longest"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"abcd\\nab\\n\" obtido \"ab\\nab\\n\""
+            ]
+          },
+          {
+            "id": "context-multi-file",
+            "tags": [
+              "context",
+              "multi-file"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt:x1\\na.txt-2\\n--\\nb.txt:x1\\n\" obtido \"a.txt:x1\\na.txt-2\\nb.txt:x1\\n\""
+            ]
+          },
+          {
+            "id": "backref-bre",
+            "tags": [
+              "bre",
+              "backref"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "sem suporte a backref",
+            "detail": [
+              "unsupported: sem suporte a backref"
+            ]
+          },
+          {
+            "id": "only-matching-multiple-patterns",
+            "tags": [
+              "flag:-o",
+              "flag:-e",
+              "leftmost-longest"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"abc\\nab\\n\" obtido \"ab\\nab\\n\""
+            ]
+          },
+          {
+            "id": "initial-tab",
+            "tags": [
+              "flag:-T"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1:\\tax\\n\" obtido \"1:ax\\n\""
+            ]
+          },
+          {
+            "id": "foad1-109",
+            "tags": [
+              "src:upstream-foad1"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"y\\n\" obtido \"\\ny\\n\\n\""
+            ]
+          },
+          {
+            "id": "yesno-068",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n--\\n12-110-[L12\"... (148 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-069",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\nXYZ\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\nXYZ\\n12-110-[L1\"... (149 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-070",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n12-110-[L12 no\"... (145 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-076",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9-80-[I09 yes]\\n\" obtido \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\""
+            ]
+          },
+          {
+            "id": "yesno-077",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n\""
+            ]
+          },
+          {
+            "id": "yesno-080",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n\""
+            ]
+          },
+          {
+            "id": "yesno-083",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes) obtido \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-084",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n--\\n12-110-[L12\"... (148 bytes)"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "160/185 estrito, 160/185 leniente. O ripgrep como biblioteca (grep-regex + grep-printer) com o nosso front-end: motor leftmost-first sem backref e printer com formato próprio.",
+      "metrics": {
+        "by_source": {
+          "agent-style": {
+            "lenient": "94.3% (99/105)",
+            "strict": "94.3% (99/105)"
+          },
+          "upstream-foad1": {
+            "lenient": "97.4% (38/39)",
+            "strict": "97.4% (38/39)"
+          },
+          "upstream-yesno": {
+            "lenient": "56.1% (23/41)",
+            "strict": "56.1% (23/41)"
+          }
+        },
+        "depscan": {
+          "grep-matcher": {
+            "c_deps": [],
+            "depscan_own": "a",
+            "depscan_tree": "a",
+            "host_touching_deps": {},
+            "own": "a",
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree": "a",
+            "tree_deps": 1,
+            "tree_unsafe": 331,
+            "version": "0.1.9"
+          },
+          "grep-printer": {
+            "c_deps": [],
+            "depscan_own": "a",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "grep-searcher 0.1.17": 4,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "termcolor 1.4.1": 1
+            },
+            "own": "a",
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree": "b",
+            "tree_deps": 28,
+            "tree_unsafe": 1971,
+            "version": "0.3.1"
+          },
+          "grep-regex": {
+            "c_deps": [],
+            "depscan_own": "a",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "serde_core 1.0.229": 1
+            },
+            "own": "a",
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree": "b",
+            "tree_deps": 8,
+            "tree_unsafe": 569,
+            "version": "0.1.14"
+          },
+          "grep-searcher": {
+            "c_deps": [],
+            "depscan_own": "b",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "serde_core 1.0.229": 1
+            },
+            "own": "b",
+            "own_host_touch": 4,
+            "own_unsafe": 2,
+            "tree": "b",
+            "tree_deps": 17,
+            "tree_unsafe": 1788,
+            "version": "0.1.17"
+          }
+        },
+        "porting_effort": null,
+        "seconds": 0.019027154,
+        "weak_tags": {
+          "backref": "0.0% (0/1)",
+          "bre": "66.7% (2/3)",
+          "context": "85.7% (6/7)",
+          "flag:-T": "0.0% (0/1)",
+          "flag:-e": "75.0% (3/4)",
+          "flag:-o": "66.7% (6/9)",
+          "leftmost-longest": "0.0% (0/2)",
+          "multi-file": "85.7% (6/7)",
+          "upstream-todo": "66.7% (2/3)"
+        }
+      }
+    },
+    {
+      "name": "f01+rg-printer",
+      "version": "grep-searcher 0.1.17, grep-printer 0.3.1, motor F01",
+      "role": "grep",
+      "category": "b",
+      "conformance": {
+        "candidate": "f01+rg-printer",
+        "total": 185,
+        "strict_pass": 163,
+        "lenient_pass": 163,
+        "unsupported": 0,
+        "by_tag": {
+          "backref": [
+            1,
+            1,
+            1
+          ],
+          "basic": [
+            6,
+            6,
+            6
+          ],
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "bre": [
+            3,
+            3,
+            3
+          ],
+          "context": [
+            6,
+            6,
+            7
+          ],
+          "error": [
+            10,
+            10,
+            10
+          ],
+          "exit": [
+            21,
+            21,
+            21
+          ],
+          "flag:--": [
+            1,
+            1,
+            1
+          ],
+          "flag:--binary-files": [
+            1,
+            1,
+            1
+          ],
+          "flag:--color": [
+            1,
+            1,
+            1
+          ],
+          "flag:--exclude": [
+            1,
+            1,
+            1
+          ],
+          "flag:--exclude-dir": [
+            1,
+            1,
+            1
+          ],
+          "flag:--include": [
+            1,
+            1,
+            1
+          ],
+          "flag:--label": [
+            1,
+            1,
+            1
+          ],
+          "flag:-A": [
+            1,
+            1,
+            1
+          ],
+          "flag:-B": [
+            1,
+            1,
+            1
+          ],
+          "flag:-C": [
+            1,
+            1,
+            1
+          ],
+          "flag:-E": [
+            5,
+            5,
+            5
+          ],
+          "flag:-F": [
+            4,
+            4,
+            4
+          ],
+          "flag:-G": [
+            1,
+            1,
+            1
+          ],
+          "flag:-H": [
+            2,
+            2,
+            2
+          ],
+          "flag:-L": [
+            3,
+            3,
+            3
+          ],
+          "flag:-NUM": [
+            1,
+            1,
+            1
+          ],
+          "flag:-P": [
+            1,
+            1,
+            1
+          ],
+          "flag:-R": [
+            1,
+            1,
+            1
+          ],
+          "flag:-T": [
+            0,
+            0,
+            1
+          ],
+          "flag:-Z": [
+            1,
+            1,
+            1
+          ],
+          "flag:-a": [
+            1,
+            1,
+            1
+          ],
+          "flag:-b": [
+            2,
+            2,
+            2
+          ],
+          "flag:-c": [
+            11,
+            11,
+            11
+          ],
+          "flag:-d": [
+            1,
+            1,
+            1
+          ],
+          "flag:-e": [
+            4,
+            4,
+            4
+          ],
+          "flag:-f": [
+            2,
+            2,
+            2
+          ],
+          "flag:-h": [
+            2,
+            2,
+            2
+          ],
+          "flag:-i": [
+            5,
+            5,
+            5
+          ],
+          "flag:-l": [
+            5,
+            5,
+            5
+          ],
+          "flag:-m": [
+            4,
+            4,
+            4
+          ],
+          "flag:-n": [
+            7,
+            7,
+            7
+          ],
+          "flag:-o": [
+            8,
+            8,
+            9
+          ],
+          "flag:-q": [
+            3,
+            3,
+            3
+          ],
+          "flag:-r": [
+            2,
+            2,
+            2
+          ],
+          "flag:-s": [
+            1,
+            1,
+            1
+          ],
+          "flag:-v": [
+            4,
+            4,
+            4
+          ],
+          "flag:-w": [
+            4,
+            4,
+            4
+          ],
+          "flag:-x": [
+            2,
+            2,
+            2
+          ],
+          "flag:long": [
+            2,
+            2,
+            2
+          ],
+          "leftmost-longest": [
+            2,
+            2,
+            2
+          ],
+          "multi-file": [
+            6,
+            6,
+            7
+          ],
+          "order-insensitive": [
+            12,
+            12,
+            12
+          ],
+          "recursive": [
+            12,
+            12,
+            12
+          ],
+          "src:upstream-foad1": [
+            38,
+            38,
+            39
+          ],
+          "src:upstream-yesno": [
+            23,
+            23,
+            41
+          ],
+          "stdin": [
+            5,
+            5,
+            5
+          ],
+          "symlink": [
+            2,
+            2,
+            2
+          ],
+          "upstream-todo": [
+            2,
+            2,
+            3
+          ],
+          "utf8": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "only-matching-empty-matches",
+            "tags": [
+              "flag:-o"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n22\\n\" obtido \"\\n1\\n22\\n\\n\\n\\n\\n\""
+            ]
+          },
+          {
+            "id": "context-multi-file",
+            "tags": [
+              "context",
+              "multi-file"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt:x1\\na.txt-2\\n--\\nb.txt:x1\\n\" obtido \"a.txt:x1\\na.txt-2\\nb.txt:x1\\n\""
+            ]
+          },
+          {
+            "id": "initial-tab",
+            "tags": [
+              "flag:-T"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1:\\tax\\n\" obtido \"1:ax\\n\""
+            ]
+          },
+          {
+            "id": "foad1-109",
+            "tags": [
+              "src:upstream-foad1"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"y\\n\" obtido \"\\ny\\n\\n\""
+            ]
+          },
+          {
+            "id": "yesno-068",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n--\\n12-110-[L12\"... (148 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-069",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\nXYZ\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\nXYZ\\n12-110-[L1\"... (149 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-070",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n12-110-[L12 no\"... (145 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-076",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9-80-[I09 yes]\\n\" obtido \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\""
+            ]
+          },
+          {
+            "id": "yesno-077",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n\""
+            ]
+          },
+          {
+            "id": "yesno-080",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n\""
+            ]
+          },
+          {
+            "id": "yesno-083",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes) obtido \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-084",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n--\\n12-110-[L12\"... (148 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-086",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n10:90:[J10 no ]\\n11:100:[K11 no ]\\n12:110:[L12 no ]\\n\""
+            ]
+          },
+          {
+            "id": "yesno-088",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n8-75-yes\\n9-85-yes\\n13-125-yes\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-25-yes\\n--\\n5-45-yes\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-75-yes\\n9-85-yes\\n10:90:[J10 no ]\\n11:100\"... (159 bytes)"
+            ]
+          },
+          {
+            "id": "yesno-094",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "163/185 estrito, 163/185 leniente. grep-printer não reproduz o GNU: -o com contexto imprime as linhas de contexto, -o com -v imprime linhas, sem separador -- entre arquivos, -T ignorado, casadas vazias do -o viram linha vazia.",
+      "metrics": {
+        "by_source": {
+          "agent-style": {
+            "lenient": "97.1% (102/105)",
+            "strict": "97.1% (102/105)"
+          },
+          "upstream-foad1": {
+            "lenient": "97.4% (38/39)",
+            "strict": "97.4% (38/39)"
+          },
+          "upstream-yesno": {
+            "lenient": "56.1% (23/41)",
+            "strict": "56.1% (23/41)"
+          }
+        },
+        "depscan": {
+          "grep-matcher": {
+            "c_deps": [],
+            "depscan_own": "a",
+            "depscan_tree": "a",
+            "host_touching_deps": {},
+            "own": "a",
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree": "a",
+            "tree_deps": 1,
+            "tree_unsafe": 331,
+            "version": "0.1.9"
+          },
+          "grep-printer": {
+            "c_deps": [],
+            "depscan_own": "a",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "grep-searcher 0.1.17": 4,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "termcolor 1.4.1": 1
+            },
+            "own": "a",
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree": "b",
+            "tree_deps": 28,
+            "tree_unsafe": 1971,
+            "version": "0.3.1"
+          },
+          "grep-searcher": {
+            "c_deps": [],
+            "depscan_own": "b",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "serde_core 1.0.229": 1
+            },
+            "own": "b",
+            "own_host_touch": 4,
+            "own_unsafe": 2,
+            "tree": "b",
+            "tree_deps": 17,
+            "tree_unsafe": 1788,
+            "version": "0.1.17"
+          }
+        },
+        "porting_effort": null,
+        "seconds": 0.012985786,
+        "weak_tags": {
+          "context": "85.7% (6/7)",
+          "flag:-T": "0.0% (0/1)",
+          "flag:-o": "88.9% (8/9)",
+          "multi-file": "85.7% (6/7)",
+          "upstream-todo": "66.7% (2/3)"
+        }
+      }
+    },
+    {
+      "name": "f01+gnu-printer",
+      "version": "grep-searcher 0.1.17, grep-matcher 0.1.9, motor F01",
+      "role": "grep",
+      "category": "b",
+      "conformance": {
+        "candidate": "f01+gnu-printer",
+        "total": 185,
+        "strict_pass": 185,
+        "lenient_pass": 185,
+        "unsupported": 0,
+        "by_tag": {
+          "backref": [
+            1,
+            1,
+            1
+          ],
+          "basic": [
+            6,
+            6,
+            6
+          ],
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "bre": [
+            3,
+            3,
+            3
+          ],
+          "context": [
+            7,
+            7,
+            7
+          ],
+          "error": [
+            10,
+            10,
+            10
+          ],
+          "exit": [
+            21,
+            21,
+            21
+          ],
+          "flag:--": [
+            1,
+            1,
+            1
+          ],
+          "flag:--binary-files": [
+            1,
+            1,
+            1
+          ],
+          "flag:--color": [
+            1,
+            1,
+            1
+          ],
+          "flag:--exclude": [
+            1,
+            1,
+            1
+          ],
+          "flag:--exclude-dir": [
+            1,
+            1,
+            1
+          ],
+          "flag:--include": [
+            1,
+            1,
+            1
+          ],
+          "flag:--label": [
+            1,
+            1,
+            1
+          ],
+          "flag:-A": [
+            1,
+            1,
+            1
+          ],
+          "flag:-B": [
+            1,
+            1,
+            1
+          ],
+          "flag:-C": [
+            1,
+            1,
+            1
+          ],
+          "flag:-E": [
+            5,
+            5,
+            5
+          ],
+          "flag:-F": [
+            4,
+            4,
+            4
+          ],
+          "flag:-G": [
+            1,
+            1,
+            1
+          ],
+          "flag:-H": [
+            2,
+            2,
+            2
+          ],
+          "flag:-L": [
+            3,
+            3,
+            3
+          ],
+          "flag:-NUM": [
+            1,
+            1,
+            1
+          ],
+          "flag:-P": [
+            1,
+            1,
+            1
+          ],
+          "flag:-R": [
+            1,
+            1,
+            1
+          ],
+          "flag:-T": [
+            1,
+            1,
+            1
+          ],
+          "flag:-Z": [
+            1,
+            1,
+            1
+          ],
+          "flag:-a": [
+            1,
+            1,
+            1
+          ],
+          "flag:-b": [
+            2,
+            2,
+            2
+          ],
+          "flag:-c": [
+            11,
+            11,
+            11
+          ],
+          "flag:-d": [
+            1,
+            1,
+            1
+          ],
+          "flag:-e": [
+            4,
+            4,
+            4
+          ],
+          "flag:-f": [
+            2,
+            2,
+            2
+          ],
+          "flag:-h": [
+            2,
+            2,
+            2
+          ],
+          "flag:-i": [
+            5,
+            5,
+            5
+          ],
+          "flag:-l": [
+            5,
+            5,
+            5
+          ],
+          "flag:-m": [
+            4,
+            4,
+            4
+          ],
+          "flag:-n": [
+            7,
+            7,
+            7
+          ],
+          "flag:-o": [
+            9,
+            9,
+            9
+          ],
+          "flag:-q": [
+            3,
+            3,
+            3
+          ],
+          "flag:-r": [
+            2,
+            2,
+            2
+          ],
+          "flag:-s": [
+            1,
+            1,
+            1
+          ],
+          "flag:-v": [
+            4,
+            4,
+            4
+          ],
+          "flag:-w": [
+            4,
+            4,
+            4
+          ],
+          "flag:-x": [
+            2,
+            2,
+            2
+          ],
+          "flag:long": [
+            2,
+            2,
+            2
+          ],
+          "leftmost-longest": [
+            2,
+            2,
+            2
+          ],
+          "multi-file": [
+            7,
+            7,
+            7
+          ],
+          "order-insensitive": [
+            12,
+            12,
+            12
+          ],
+          "recursive": [
+            12,
+            12,
+            12
+          ],
+          "src:upstream-foad1": [
+            39,
+            39,
+            39
+          ],
+          "src:upstream-yesno": [
+            41,
+            41,
+            41
+          ],
+          "stdin": [
+            5,
+            5,
+            5
+          ],
+          "symlink": [
+            2,
+            2,
+            2
+          ],
+          "upstream-todo": [
+            3,
+            3,
+            3
+          ],
+          "utf8": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits_with_work",
+      "notes": "185/185 estrito, 185/185 leniente. grep-searcher (varredura, contexto, -v) e grep-matcher (trait do casador) servem; o resto é nosso: front-end de flags do getopt, casador sobre o motor do F01 com o -w do GNU, printer no formato do GNU (-m com contexto, -o com contexto e -v, separadores), binário, -r sobre o VFS e exit codes.",
+      "metrics": {
+        "by_source": {
+          "agent-style": {
+            "lenient": "100.0% (105/105)",
+            "strict": "100.0% (105/105)"
+          },
+          "upstream-foad1": {
+            "lenient": "100.0% (39/39)",
+            "strict": "100.0% (39/39)"
+          },
+          "upstream-yesno": {
+            "lenient": "100.0% (41/41)",
+            "strict": "100.0% (41/41)"
+          }
+        },
+        "depscan": {
+          "grep-matcher": {
+            "c_deps": [],
+            "depscan_own": "a",
+            "depscan_tree": "a",
+            "host_touching_deps": {},
+            "own": "a",
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree": "a",
+            "tree_deps": 1,
+            "tree_unsafe": 331,
+            "version": "0.1.9"
+          },
+          "grep-searcher": {
+            "c_deps": [],
+            "depscan_own": "b",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "serde_core 1.0.229": 1
+            },
+            "own": "b",
+            "own_host_touch": 4,
+            "own_unsafe": 2,
+            "tree": "b",
+            "tree_deps": 17,
+            "tree_unsafe": 1788,
+            "version": "0.1.17"
+          }
+        },
+        "porting_effort": null,
+        "seconds": 0.013840236,
+        "weak_tags": {}
+      }
+    },
+    {
+      "name": "uu_grep",
+      "version": "0.2.0",
+      "role": "grep",
+      "category": "c",
+      "conformance": {
+        "candidate": "uu_grep",
+        "total": 185,
+        "strict_pass": 168,
+        "lenient_pass": 173,
+        "unsupported": 0,
+        "by_tag": {
+          "backref": [
+            1,
+            1,
+            1
+          ],
+          "basic": [
+            6,
+            6,
+            6
+          ],
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "bre": [
+            3,
+            3,
+            3
+          ],
+          "context": [
+            6,
+            6,
+            7
+          ],
+          "error": [
+            5,
+            10,
+            10
+          ],
+          "exit": [
+            16,
+            21,
+            21
+          ],
+          "flag:--": [
+            1,
+            1,
+            1
+          ],
+          "flag:--binary-files": [
+            1,
+            1,
+            1
+          ],
+          "flag:--color": [
+            1,
+            1,
+            1
+          ],
+          "flag:--exclude": [
+            1,
+            1,
+            1
+          ],
+          "flag:--exclude-dir": [
+            1,
+            1,
+            1
+          ],
+          "flag:--include": [
+            1,
+            1,
+            1
+          ],
+          "flag:--label": [
+            1,
+            1,
+            1
+          ],
+          "flag:-A": [
+            1,
+            1,
+            1
+          ],
+          "flag:-B": [
+            1,
+            1,
+            1
+          ],
+          "flag:-C": [
+            1,
+            1,
+            1
+          ],
+          "flag:-E": [
+            5,
+            5,
+            5
+          ],
+          "flag:-F": [
+            4,
+            4,
+            4
+          ],
+          "flag:-G": [
+            1,
+            1,
+            1
+          ],
+          "flag:-H": [
+            2,
+            2,
+            2
+          ],
+          "flag:-L": [
+            3,
+            3,
+            3
+          ],
+          "flag:-NUM": [
+            1,
+            1,
+            1
+          ],
+          "flag:-P": [
+            1,
+            1,
+            1
+          ],
+          "flag:-R": [
+            1,
+            1,
+            1
+          ],
+          "flag:-T": [
+            1,
+            1,
+            1
+          ],
+          "flag:-Z": [
+            1,
+            1,
+            1
+          ],
+          "flag:-a": [
+            1,
+            1,
+            1
+          ],
+          "flag:-b": [
+            2,
+            2,
+            2
+          ],
+          "flag:-c": [
+            11,
+            11,
+            11
+          ],
+          "flag:-d": [
+            1,
+            1,
+            1
+          ],
+          "flag:-e": [
+            4,
+            4,
+            4
+          ],
+          "flag:-f": [
+            2,
+            2,
+            2
+          ],
+          "flag:-h": [
+            2,
+            2,
+            2
+          ],
+          "flag:-i": [
+            5,
+            5,
+            5
+          ],
+          "flag:-l": [
+            5,
+            5,
+            5
+          ],
+          "flag:-m": [
+            4,
+            4,
+            4
+          ],
+          "flag:-n": [
+            7,
+            7,
+            7
+          ],
+          "flag:-o": [
+            9,
+            9,
+            9
+          ],
+          "flag:-q": [
+            3,
+            3,
+            3
+          ],
+          "flag:-r": [
+            2,
+            2,
+            2
+          ],
+          "flag:-s": [
+            1,
+            1,
+            1
+          ],
+          "flag:-v": [
+            4,
+            4,
+            4
+          ],
+          "flag:-w": [
+            4,
+            4,
+            4
+          ],
+          "flag:-x": [
+            2,
+            2,
+            2
+          ],
+          "flag:long": [
+            2,
+            2,
+            2
+          ],
+          "leftmost-longest": [
+            2,
+            2,
+            2
+          ],
+          "multi-file": [
+            6,
+            6,
+            7
+          ],
+          "order-insensitive": [
+            12,
+            12,
+            12
+          ],
+          "recursive": [
+            12,
+            12,
+            12
+          ],
+          "src:upstream-foad1": [
+            39,
+            39,
+            39
+          ],
+          "src:upstream-yesno": [
+            30,
+            30,
+            41
+          ],
+          "stdin": [
+            5,
+            5,
+            5
+          ],
+          "symlink": [
+            2,
+            2,
+            2
+          ],
+          "upstream-todo": [
+            2,
+            2,
+            3
+          ],
+          "utf8": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "context-multi-file",
+            "tags": [
+              "context",
+              "multi-file"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt:x1\\na.txt-2\\n--\\nb.txt:x1\\n\" obtido \"a.txt:x1\\na.txt-2\\nb.txt:x1\\n\""
+            ]
+          },
+          {
+            "id": "invalid-regex-paren",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"grep: Unmatched ( or \\\\(\\n\" obtido \"grep: invalid pattern \\\"(\\\": end pattern with unmatched parenthesis\\n\""
+            ]
+          },
+          {
+            "id": "invalid-regex-bracket",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"grep: Unmatched [, [^, [:, [., or [=\\n\" obtido \"grep: invalid pattern \\\"[abc\\\": premature end of char-class\\n\""
+            ]
+          },
+          {
+            "id": "invalid-regex-backref",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"grep: Invalid back reference\\n\" obtido \"grep: invalid pattern \\\"\\\\(a\\\\)\\\\2\\\": invalid backref number/name\\n\""
+            ]
+          },
+          {
+            "id": "unknown-option",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"grep: unrecognized option '--frobnicate'\\nUsage: grep [OPTION]... PATTERNS [FILE]...\\nTry 'grep --help' for more informati\"... (124 bytes) obtido \"error: unexpected argument '--frobnicate' found\\n\\n  tip: to pass '--frobnicate' as a value, use '-- --frobnicate'\\n\\nUsage:\"... (169 bytes)"
+            ]
+          },
+          {
+            "id": "missing-pattern",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"Usage: grep [OPTION]... PATTERNS [FILE]...\\nTry 'grep --help' for more information.\\n\" obtido \"grep: no PATTERN specified. Try 'grep --help' for more information.\\n\""
+            ]
+          },
+          {
+            "id": "yesno-068",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n14:135:yes\\n\" obtido \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\""
+            ]
+          },
+          {
+            "id": "yesno-069",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\nXYZ\\n13:125:yes\\n14:135:yes\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"error: unexpected argument '--group' found\\n\\ntip: a similar argument exists: '--group-separator'\\n\\nUsage: grep-usage\\n\\nFor \"... (152 bytes)",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "yesno-070",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"error: unexpected argument '--no-gr' found\\n\\ntip: a similar argument exists: '--no-ignore-case'\\n\\nUsage: grep-usage\\n\\nFor m\"... (151 bytes)",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "yesno-072",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (191 bytes) obtido \"\"",
+              "stderr: esperado \"\" obtido \"error: unexpected argument '--group' found\\n\\ntip: a similar argument exists: '--group-separator'\\n\\nUsage: grep-usage\\n\\nFor \"... (152 bytes)",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "yesno-073",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (187 bytes) obtido \"\"",
+              "stderr: esperado \"\" obtido \"error: unexpected argument '--no-gr' found\\n\\ntip: a similar argument exists: '--no-ignore-case'\\n\\nUsage: grep-usage\\n\\nFor m\"... (151 bytes)",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "yesno-084",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n\" obtido \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n\""
+            ]
+          },
+          {
+            "id": "yesno-088",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n8-75-yes\\n9-85-yes\\n13-125-yes\\n\" obtido \"\""
+            ]
+          },
+          {
+            "id": "yesno-089",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\nXYZ\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-70-[H08 yes]\\n9-80-[I09 ye\"... (190 bytes) obtido \"\"",
+              "stderr: esperado \"\" obtido \"error: unexpected argument '--group' found\\n\\ntip: a similar argument exists: '--group-separator'\\n\\nUsage: grep-usage\\n\\nFor \"... (152 bytes)",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "yesno-090",
+            "tags": [
+              "src:upstream-yesno"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-70-[H08 yes]\\n9-80-[I09 yes]\\n1\"... (186 bytes) obtido \"\"",
+              "stderr: esperado \"\" obtido \"error: unexpected argument '--no-gr' found\\n\\ntip: a similar argument exists: '--no-ignore-case'\\n\\nUsage: grep-usage\\n\\nFor m\"... (151 bytes)",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          }
+        ]
+      },
+      "fit": "reference",
+      "notes": "168/185 estrito, 173/185 leniente. Referência: uutils/grep usa onig (C) e std::fs; erra o separador -- com -o e entre arquivos, --group-separator/--no-group-separator e -v -o com contexto (yesno).",
+      "metrics": {
+        "by_source": {
+          "agent-style": {
+            "lenient": "99.0% (104/105)",
+            "strict": "94.3% (99/105)"
+          },
+          "upstream-foad1": {
+            "lenient": "100.0% (39/39)",
+            "strict": "100.0% (39/39)"
+          },
+          "upstream-yesno": {
+            "lenient": "73.2% (30/41)",
+            "strict": "73.2% (30/41)"
+          }
+        },
+        "depscan": {
+          "uu_grep": {
+            "c_deps": [
+              "onig_sys 69.9.3"
+            ],
+            "depscan_own": "b",
+            "depscan_tree": "c",
+            "host_touching_deps": {
+              "anstream 1.0.0": 11,
+              "anstyle-query 1.1.5": 12,
+              "clap_builder 4.6.7": 8,
+              "clap_derive 4.6.7": 2,
+              "clap_lex 1.1.1": 1,
+              "errno 0.3.14": 12,
+              "fluent-syntax 0.12.0": 7,
+              "glob 0.3.4": 2,
+              "is_terminal_polyfill 1.70.2": 1,
+              "libc 0.2.190": 1,
+              "nix 0.31.3": 4743,
+              "rustix 1.1.5": 47,
+              "same-file 1.0.6": 13,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "terminal_size 0.4.4": 12,
+              "unic-langid-impl 0.9.6": 27,
+              "uucore 0.10.0": 442,
+              "walkdir 2.5.0": 15
+            },
+            "own": "b",
+            "own_host_touch": 11,
+            "own_unsafe": 13,
+            "tree": "c",
+            "tree_deps": 63,
+            "tree_unsafe": 11447,
+            "version": "0.2.0"
+          }
+        },
+        "porting_effort": {
+          "code_lines": 2407,
+          "host_io_files": [
+            "lib.rs (6)",
+            "line_buffer.rs (1)",
+            "output.rs (3)",
+            "searcher.rs (4)"
+          ],
+          "host_io_lines": 14,
+          "regex_files": [
+            "lib.rs (1)",
+            "matcher.rs (1)"
+          ],
+          "regex_lines": 2,
+          "rust_files": 7
+        },
+        "seconds": 0.82345638,
+        "weak_tags": {
+          "context": "85.7% (6/7)",
+          "multi-file": "85.7% (6/7)",
+          "upstream-todo": "66.7% (2/3)"
+        }
+      }
+    },
+    {
+      "name": "bashkit-grep",
+      "version": "0.18.2",
+      "role": "grep",
+      "category": "b",
+      "conformance": {
+        "candidate": "bashkit-grep",
+        "total": 185,
+        "strict_pass": 99,
+        "lenient_pass": 100,
+        "unsupported": 6,
+        "by_tag": {
+          "backref": [
+            0,
+            0,
+            1
+          ],
+          "basic": [
+            5,
+            5,
+            6
+          ],
+          "binary": [
+            2,
+            2,
+            7
+          ],
+          "bre": [
+            2,
+            2,
+            3
+          ],
+          "context": [
+            5,
+            5,
+            7
+          ],
+          "error": [
+            1,
+            2,
+            10
+          ],
+          "exit": [
+            9,
+            10,
+            21
+          ],
+          "flag:--": [
+            1,
+            1,
+            1
+          ],
+          "flag:--binary-files": [
+            0,
+            0,
+            1
+          ],
+          "flag:--color": [
+            1,
+            1,
+            1
+          ],
+          "flag:--exclude": [
+            0,
+            0,
+            1
+          ],
+          "flag:--exclude-dir": [
+            0,
+            0,
+            1
+          ],
+          "flag:--include": [
+            0,
+            0,
+            1
+          ],
+          "flag:--label": [
+            0,
+            0,
+            1
+          ],
+          "flag:-A": [
+            1,
+            1,
+            1
+          ],
+          "flag:-B": [
+            1,
+            1,
+            1
+          ],
+          "flag:-C": [
+            1,
+            1,
+            1
+          ],
+          "flag:-E": [
+            4,
+            4,
+            5
+          ],
+          "flag:-F": [
+            4,
+            4,
+            4
+          ],
+          "flag:-G": [
+            1,
+            1,
+            1
+          ],
+          "flag:-H": [
+            2,
+            2,
+            2
+          ],
+          "flag:-L": [
+            1,
+            1,
+            3
+          ],
+          "flag:-NUM": [
+            0,
+            0,
+            1
+          ],
+          "flag:-P": [
+            1,
+            1,
+            1
+          ],
+          "flag:-R": [
+            0,
+            0,
+            1
+          ],
+          "flag:-T": [
+            0,
+            0,
+            1
+          ],
+          "flag:-Z": [
+            1,
+            1,
+            1
+          ],
+          "flag:-a": [
+            0,
+            0,
+            1
+          ],
+          "flag:-b": [
+            1,
+            1,
+            2
+          ],
+          "flag:-c": [
+            10,
+            10,
+            11
+          ],
+          "flag:-d": [
+            0,
+            0,
+            1
+          ],
+          "flag:-e": [
+            3,
+            3,
+            4
+          ],
+          "flag:-f": [
+            1,
+            1,
+            2
+          ],
+          "flag:-h": [
+            2,
+            2,
+            2
+          ],
+          "flag:-i": [
+            5,
+            5,
+            5
+          ],
+          "flag:-l": [
+            4,
+            4,
+            5
+          ],
+          "flag:-m": [
+            4,
+            4,
+            4
+          ],
+          "flag:-n": [
+            5,
+            5,
+            7
+          ],
+          "flag:-o": [
+            5,
+            5,
+            9
+          ],
+          "flag:-q": [
+            3,
+            3,
+            3
+          ],
+          "flag:-r": [
+            0,
+            0,
+            2
+          ],
+          "flag:-s": [
+            0,
+            0,
+            1
+          ],
+          "flag:-v": [
+            4,
+            4,
+            4
+          ],
+          "flag:-w": [
+            4,
+            4,
+            4
+          ],
+          "flag:-x": [
+            2,
+            2,
+            2
+          ],
+          "flag:long": [
+            2,
+            2,
+            2
+          ],
+          "leftmost-longest": [
+            0,
+            0,
+            2
+          ],
+          "multi-file": [
+            5,
+            5,
+            7
+          ],
+          "order-insensitive": [
+            1,
+            1,
+            12
+          ],
+          "recursive": [
+            1,
+            1,
+            12
+          ],
+          "src:upstream-foad1": [
+            33,
+            33,
+            39
+          ],
+          "src:upstream-yesno": [
+            0,
+            0,
+            41
+          ],
+          "stdin": [
+            3,
+            3,
+            5
+          ],
+          "symlink": [
+            0,
+            0,
+            2
+          ],
+          "upstream-todo": [
+            0,
+            0,
+            3
+          ],
+          "utf8": [
+            2,
+            2,
+            3
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "missing-file-exit-2",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\" obtido \"grep: nope.txt: io error: file not found\\n\"",
+              "stderr: esperado \"grep: nope.txt: No such file or directory\\n\" obtido \"\"",
+              "exit: esperado Some(2)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "missing-file-suppressed",
+            "tags": [
+              "error",
+              "exit",
+              "flag:-s"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "exit: esperado Some(2)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "missing-and-match",
+            "tags": [
+              "error",
+              "exit",
+              "multi-file"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"app.log:ERROR db down\\n\" obtido \"grep: nope.txt: io error: file not found\\nERROR db down\\n\"",
+              "stderr: esperado \"grep: nope.txt: No such file or directory\\n\" obtido \"\"",
+              "exit: esperado Some(2)/None obtido Some(0)/None"
+            ]
+          },
+          {
+            "id": "stdin-dash",
+            "tags": [
+              "stdin",
+              "flag:-n"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2:b\\n3:ab\\n\" obtido \"grep: -: io error: file not found\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "stdin-label",
+            "tags": [
+              "stdin",
+              "flag:--label"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"input:b\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"grep: unrecognized option '--label=input'\\n\"",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "files-without-match-none",
+            "tags": [
+              "flag:-L",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "only-matching-empty-matches",
+            "tags": [
+              "flag:-o"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n22\\n\" obtido \"\\n1\\n22\\n\\n\\n\\n\\n\""
+            ]
+          },
+          {
+            "id": "only-matching-longest",
+            "tags": [
+              "flag:-o",
+              "leftmost-longest"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"abcd\\nab\\n\" obtido \"ab\\nab\\n\""
+            ]
+          },
+          {
+            "id": "only-matching-line-byte",
+            "tags": [
+              "flag:-o",
+              "flag:-n",
+              "flag:-b"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1:2:foo\\n1:6:foo\\n3:14:foo\\n\" obtido \"2:1:foo\\n6:1:foo\\n14:3:foo\\n\""
+            ]
+          },
+          {
+            "id": "pattern-file-empty",
+            "tags": [
+              "flag:-f",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "bashkit: execution error: grep: missing pattern",
+            "detail": [
+              "unsupported: bashkit: execution error: grep: missing pattern"
+            ]
+          },
+          {
+            "id": "context-numeric-shorthand",
+            "tags": [
+              "context",
+              "flag:-NUM"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2\\nx3\\n4\\n--\\n6\\nx7\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"grep: invalid option -- '1'\\n\"",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "context-multi-file",
+            "tags": [
+              "context",
+              "multi-file"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt:x1\\na.txt-2\\n--\\nb.txt:x1\\n\" obtido \"a.txt:x1\\na.txt-2\\nb.txt:x1\\n\""
+            ]
+          },
+          {
+            "id": "recursive-dir",
+            "tags": [
+              "recursive",
+              "flag:-r",
+              "order-insensitive"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"src/lib/mod.rs:// TODO: mod\\nsrc/main.rs:// TODO: main\\n\" obtido \"/work/case/src/lib/mod.rs:// TODO: mod\\n/work/case/src/main.rs:// TODO: main\\n\""
+            ]
+          },
+          {
+            "id": "recursive-default-dot",
+            "tags": [
+              "recursive",
+              "flag:-r",
+              "order-insensitive"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt:2:needle\\nsub/b.txt:1:needle here\\n\" obtido \"\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "recursive-list-files",
+            "tags": [
+              "recursive",
+              "flag:-l",
+              "order-insensitive"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"./docs/notes.md\\n./src/main.rs\\n\" obtido \"/work/case/./docs/notes.md\\n/work/case/./src/main.rs\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "reference",
+      "notes": "99/185 estrito, 100/185 leniente. Linha de base: grep do bashkit sobre VFS; caminhos absolutos no -r, erros no stdout, sem backref, -NUM e --label.",
+      "metrics": {
+        "by_source": {
+          "agent-style": {
+            "lenient": "63.8% (67/105)",
+            "strict": "62.9% (66/105)"
+          },
+          "upstream-foad1": {
+            "lenient": "84.6% (33/39)",
+            "strict": "84.6% (33/39)"
+          },
+          "upstream-yesno": {
+            "lenient": "0.0% (0/41)",
+            "strict": "0.0% (0/41)"
+          }
+        },
+        "depscan": {
+          "bashkit": {
+            "c_deps": [],
+            "depscan_own": "b",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "anstream 1.0.0": 11,
+              "anstyle-query 1.1.5": 12,
+              "bigdecimal 0.4.11": 4,
+              "bytes 1.12.1": 1,
+              "chrono 0.4.45": 6,
+              "clap_builder 4.6.7": 8,
+              "clap_derive 4.6.7": 2,
+              "clap_lex 1.1.1": 1,
+              "cpufeatures 0.3.1": 24,
+              "errno 0.3.14": 12,
+              "fancy-regex 0.19.2": 6,
+              "getrandom 0.4.3": 75,
+              "iana-time-zone 0.1.65": 9,
+              "is_terminal_polyfill 1.70.2": 1,
+              "libbz2-rs-sys 0.2.5": 18,
+              "libc 0.2.190": 1,
+              "rustix 1.1.5": 47,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "terminal_size 0.4.4": 12,
+              "tokio 1.53.1": 390,
+              "url 2.5.8": 1,
+              "zlib-rs 0.6.8": 3
+            },
+            "own": "b",
+            "own_host_touch": 40,
+            "own_unsafe": 74,
+            "tree": "b",
+            "tree_deps": 111,
+            "tree_unsafe": 13148,
+            "version": "0.18.2"
+          }
+        },
+        "porting_effort": {
+          "code_lines": 879,
+          "host_io_files": [
+            "grep.rs (1)"
+          ],
+          "host_io_lines": 1,
+          "regex_files": [
+            "grep.rs (1)"
+          ],
+          "regex_lines": 1,
+          "rust_files": 1
+        },
+        "seconds": 0.020262191,
+        "weak_tags": {
+          "backref": "0.0% (0/1)",
+          "basic": "83.3% (5/6)",
+          "binary": "28.6% (2/7)",
+          "bre": "66.7% (2/3)",
+          "context": "71.4% (5/7)",
+          "error": "20.0% (2/10)",
+          "exit": "47.6% (10/21)",
+          "flag:--binary-files": "0.0% (0/1)",
+          "flag:--exclude": "0.0% (0/1)",
+          "flag:--exclude-dir": "0.0% (0/1)",
+          "flag:--include": "0.0% (0/1)",
+          "flag:--label": "0.0% (0/1)",
+          "flag:-E": "80.0% (4/5)",
+          "flag:-L": "33.3% (1/3)",
+          "flag:-NUM": "0.0% (0/1)",
+          "flag:-R": "0.0% (0/1)",
+          "flag:-T": "0.0% (0/1)",
+          "flag:-a": "0.0% (0/1)",
+          "flag:-b": "50.0% (1/2)",
+          "flag:-c": "90.9% (10/11)",
+          "flag:-d": "0.0% (0/1)",
+          "flag:-e": "75.0% (3/4)",
+          "flag:-f": "50.0% (1/2)",
+          "flag:-l": "80.0% (4/5)",
+          "flag:-n": "71.4% (5/7)",
+          "flag:-o": "55.6% (5/9)",
+          "flag:-r": "0.0% (0/2)",
+          "flag:-s": "0.0% (0/1)",
+          "leftmost-longest": "0.0% (0/2)",
+          "multi-file": "71.4% (5/7)",
+          "order-insensitive": "8.3% (1/12)",
+          "recursive": "8.3% (1/12)",
+          "stdin": "60.0% (3/5)",
+          "symlink": "0.0% (0/2)",
+          "upstream-todo": "0.0% (0/3)",
+          "utf8": "66.7% (2/3)"
+        }
+      }
+    },
+    {
+      "name": "uutils-sed",
+      "version": "0.2.0",
+      "role": "sed",
+      "category": "b",
+      "conformance": {
+        "candidate": "uutils-sed",
+        "total": 172,
+        "strict_pass": 137,
+        "lenient_pass": 144,
+        "unsupported": 0,
+        "by_tag": {
+          "addr:!": [
+            1,
+            1,
+            1
+          ],
+          "addr:$": [
+            3,
+            3,
+            4
+          ],
+          "addr:N": [
+            2,
+            2,
+            2
+          ],
+          "addr:range": [
+            8,
+            8,
+            9
+          ],
+          "addr:re": [
+            6,
+            6,
+            6
+          ],
+          "addr:step": [
+            1,
+            1,
+            1
+          ],
+          "agent": [
+            13,
+            13,
+            14
+          ],
+          "backref": [
+            1,
+            1,
+            1
+          ],
+          "block": [
+            3,
+            3,
+            4
+          ],
+          "bre": [
+            5,
+            5,
+            5
+          ],
+          "cmd:=": [
+            4,
+            4,
+            4
+          ],
+          "cmd:D": [
+            1,
+            1,
+            1
+          ],
+          "cmd:F": [
+            0,
+            0,
+            1
+          ],
+          "cmd:G": [
+            1,
+            1,
+            2
+          ],
+          "cmd:H": [
+            1,
+            1,
+            1
+          ],
+          "cmd:N": [
+            4,
+            4,
+            4
+          ],
+          "cmd:P": [
+            2,
+            2,
+            2
+          ],
+          "cmd:Q": [
+            1,
+            1,
+            1
+          ],
+          "cmd:T": [
+            1,
+            1,
+            1
+          ],
+          "cmd:a": [
+            2,
+            2,
+            2
+          ],
+          "cmd:b": [
+            1,
+            1,
+            1
+          ],
+          "cmd:c": [
+            1,
+            1,
+            2
+          ],
+          "cmd:d": [
+            7,
+            7,
+            7
+          ],
+          "cmd:h": [
+            1,
+            1,
+            2
+          ],
+          "cmd:i": [
+            2,
+            2,
+            2
+          ],
+          "cmd:l": [
+            1,
+            1,
+            1
+          ],
+          "cmd:n": [
+            0,
+            0,
+            2
+          ],
+          "cmd:p": [
+            11,
+            11,
+            11
+          ],
+          "cmd:q": [
+            3,
+            3,
+            3
+          ],
+          "cmd:r": [
+            1,
+            1,
+            1
+          ],
+          "cmd:s": [
+            28,
+            28,
+            32
+          ],
+          "cmd:t": [
+            1,
+            1,
+            1
+          ],
+          "cmd:w": [
+            1,
+            1,
+            1
+          ],
+          "cmd:x": [
+            1,
+            1,
+            1
+          ],
+          "cmd:y": [
+            2,
+            2,
+            2
+          ],
+          "cmd:z": [
+            1,
+            1,
+            1
+          ],
+          "delimiter": [
+            3,
+            3,
+            3
+          ],
+          "empty-match": [
+            1,
+            1,
+            1
+          ],
+          "empty-regex": [
+            1,
+            1,
+            1
+          ],
+          "eol": [
+            2,
+            2,
+            2
+          ],
+          "error": [
+            0,
+            7,
+            12
+          ],
+          "escape": [
+            1,
+            1,
+            1
+          ],
+          "exit": [
+            1,
+            8,
+            12
+          ],
+          "files": [
+            5,
+            5,
+            9
+          ],
+          "flag:I": [
+            3,
+            3,
+            3
+          ],
+          "flag:N": [
+            1,
+            1,
+            2
+          ],
+          "flag:g": [
+            2,
+            2,
+            3
+          ],
+          "flag:p": [
+            1,
+            1,
+            1
+          ],
+          "flag:w": [
+            1,
+            1,
+            1
+          ],
+          "gnu": [
+            11,
+            11,
+            16
+          ],
+          "hold": [
+            3,
+            3,
+            4
+          ],
+          "label": [
+            4,
+            4,
+            5
+          ],
+          "multi-file": [
+            2,
+            2,
+            2
+          ],
+          "opt:-E": [
+            1,
+            1,
+            1
+          ],
+          "opt:-e": [
+            2,
+            2,
+            2
+          ],
+          "opt:-f": [
+            1,
+            1,
+            1
+          ],
+          "opt:-i": [
+            2,
+            2,
+            7
+          ],
+          "opt:-n": [
+            3,
+            3,
+            3
+          ],
+          "opt:-r": [
+            1,
+            1,
+            1
+          ],
+          "opt:-s": [
+            1,
+            1,
+            1
+          ],
+          "opt:-z": [
+            0,
+            0,
+            1
+          ],
+          "opt:long": [
+            1,
+            1,
+            1
+          ],
+          "parse": [
+            2,
+            2,
+            2
+          ],
+          "repl:&": [
+            2,
+            2,
+            2
+          ],
+          "repl:backref": [
+            2,
+            2,
+            2
+          ],
+          "repl:case": [
+            0,
+            0,
+            2
+          ],
+          "repl:newline": [
+            1,
+            1,
+            1
+          ],
+          "src:upstream-misc": [
+            43,
+            43,
+            52
+          ],
+          "src:upstream-scripts": [
+            3,
+            3,
+            3
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "utf8": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "subst-nth-global",
+            "tags": [
+              "cmd:s",
+              "flag:N",
+              "flag:g"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"aXXX\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: <script argument 1>:1:8: error: multiple 'g' or numeric flags in substitute command\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "subst-case-conversion",
+            "tags": [
+              "cmd:s",
+              "repl:case",
+              "gnu"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"HELLO World\\n\" obtido \"Uhello\\\\E uworld\\n\""
+            ]
+          },
+          {
+            "id": "subst-lowercase-all",
+            "tags": [
+              "cmd:s",
+              "repl:case",
+              "gnu"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"mixed case\\n\" obtido \"\\\\LMiXeD CaSe\\n\""
+            ]
+          },
+          {
+            "id": "inplace-basic",
+            "tags": [
+              "opt:-i",
+              "files"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"\" obtido \"sed: error Reading metadata of '-' for in-place edit: No such file or directory\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None",
+              "files: ~conf.txt: file 644 23B 60da0761a87d != file 644 23B 36d8df6a9b70"
+            ]
+          },
+          {
+            "id": "inplace-multiple-files",
+            "tags": [
+              "opt:-i",
+              "files"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~a.txt: file 644 2B 53c234e5e847 != file 644 4B a6e2b7a04068",
+              "files: ~b.txt: file 644 2B 3bb2abb69ebb != file 644 14B c2b80587b056",
+              "files: +b.txt1d"
+            ]
+          },
+          {
+            "id": "inplace-separate-last-line",
+            "tags": [
+              "opt:-i",
+              "files",
+              "addr:$"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"\" obtido \"sed: error backing up 'b.txt' to 'b.txt$s/$/ END/': No such file or directory\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None",
+              "files: ~a.txt: file 644 8B 82748f9d7b68 != file 644 4B a6e2b7a04068",
+              "files: ~b.txt: file 644 8B 77136008908a != file 644 4B 09834d488008"
+            ]
+          },
+          {
+            "id": "inplace-missing-file",
+            "tags": [
+              "opt:-i",
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"sed: can't read nope.txt: No such file or directory\\n\" obtido \"sed: <script argument 1>:1:2: error: extra characters at the end of the n command\\n\"",
+              "exit: esperado Some(2)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "change-range",
+            "tags": [
+              "cmd:c",
+              "addr:range"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\nX\\n4\\n\" obtido \"1\\n4\\n\""
+            ]
+          },
+          {
+            "id": "hold-exchange",
+            "tags": [
+              "cmd:h",
+              "cmd:G",
+              "cmd:n",
+              "hold"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2\\n1\\n4\\n3\\n\" obtido \"\""
+            ]
+          },
+          {
+            "id": "block-braces",
+            "tags": [
+              "block"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"y!\\nz\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: <script argument 1>:1:18: error: invalid substitute flag: '}'\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "file-name-cmd",
+            "tags": [
+              "cmd:F",
+              "gnu"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: <script argument 1>:1:2: error: invalid command code `F'\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "regex-word-boundary",
+            "tags": [
+              "cmd:s",
+              "gnu"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"dog concat dog.\\n\" obtido \"cat concat cat.\\n\""
+            ]
+          },
+          {
+            "id": "error-unterminated-s",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 5: unterminated `s' command\\n\" obtido \"sed: :0:6: error: unterminated substitute replacement\\n\""
+            ]
+          },
+          {
+            "id": "error-unknown-command",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 1: unknown command: `k'\\n\" obtido \"sed: <script argument 1>:1:1: error: invalid command code `k'\\n\""
+            ]
+          },
+          {
+            "id": "error-unknown-option-to-s",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 7: unknown option to `s'\\n\" obtido \"sed: <script argument 1>:1:7: error: invalid substitute flag: 'z'\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "137/172 estrito, 144/172 leniente. std::fs/stdout via uucore; -i consome o argumento seguinte como sufixo, sem \\U\\L\\u, sem F, -z e \\b; erros e exit codes diferentes.",
+      "metrics": {
+        "by_source": {
+          "agent-style": {
+            "lenient": "83.8% (98/117)",
+            "strict": "77.8% (91/117)"
+          },
+          "upstream-misc": {
+            "lenient": "82.7% (43/52)",
+            "strict": "82.7% (43/52)"
+          },
+          "upstream-scripts": {
+            "lenient": "100.0% (3/3)",
+            "strict": "100.0% (3/3)"
+          }
+        },
+        "depscan": {
+          "sed": {
+            "c_deps": [],
+            "depscan_own": "b",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "anstream 1.0.0": 11,
+              "anstyle-query 1.1.5": 12,
+              "clap_builder 4.6.7": 8,
+              "clap_complete 4.6.11": 20,
+              "clap_derive 4.6.7": 2,
+              "clap_lex 1.1.1": 1,
+              "clap_mangen 0.3.3": 1,
+              "errno 0.3.14": 12,
+              "fancy-regex 0.18.0": 6,
+              "fluent-syntax 0.12.0": 7,
+              "getrandom 0.4.3": 75,
+              "is_terminal_polyfill 1.70.2": 1,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "nix 0.31.3": 4743,
+              "predicates 3.1.4": 3,
+              "rustix 1.1.5": 47,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "tempfile 3.27.0": 56,
+              "terminal_size 0.4.4": 12,
+              "unic-langid-impl 0.9.6": 27,
+              "uucore 0.10.0": 442
+            },
+            "own": "b",
+            "own_host_touch": 39,
+            "own_unsafe": 17,
+            "tree": "b",
+            "tree_deps": 95,
+            "tree_unsafe": 11678,
+            "version": "0.2.0"
+          }
+        },
+        "porting_effort": {
+          "code_lines": 4066,
+          "host_io_files": [
+            "sed/fast_io.rs (4)",
+            "sed/in_place.rs (2)",
+            "sed/mod.rs (1)",
+            "sed/named_writer.rs (2)",
+            "sed/processor.rs (7)",
+            "sed/script_line_provider.rs (3)"
+          ],
+          "host_io_lines": 19,
+          "regex_files": [
+            "sed/command.rs (1)",
+            "sed/compiler.rs (2)",
+            "sed/fast_regex.rs (7)",
+            "sed/processor.rs (1)"
+          ],
+          "regex_lines": 11,
+          "rust_files": 14
+        },
+        "seconds": 0.81862477,
+        "weak_tags": {
+          "addr:$": "75.0% (3/4)",
+          "addr:range": "88.9% (8/9)",
+          "agent": "92.9% (13/14)",
+          "block": "75.0% (3/4)",
+          "cmd:F": "0.0% (0/1)",
+          "cmd:G": "50.0% (1/2)",
+          "cmd:c": "50.0% (1/2)",
+          "cmd:h": "50.0% (1/2)",
+          "cmd:n": "0.0% (0/2)",
+          "cmd:s": "87.5% (28/32)",
+          "error": "58.3% (7/12)",
+          "exit": "66.7% (8/12)",
+          "files": "55.6% (5/9)",
+          "flag:N": "50.0% (1/2)",
+          "flag:g": "66.7% (2/3)",
+          "gnu": "68.8% (11/16)",
+          "hold": "75.0% (3/4)",
+          "label": "80.0% (4/5)",
+          "opt:-i": "28.6% (2/7)",
+          "opt:-z": "0.0% (0/1)",
+          "repl:case": "0.0% (0/2)"
+        }
+      }
+    },
+    {
+      "name": "sed-rs",
+      "version": "2.0.0",
+      "role": "sed",
+      "category": "b",
+      "conformance": {
+        "candidate": "sed-rs",
+        "total": 172,
+        "strict_pass": 121,
+        "lenient_pass": 121,
+        "unsupported": 0,
+        "by_tag": {
+          "addr:!": [
+            1,
+            1,
+            1
+          ],
+          "addr:$": [
+            3,
+            3,
+            4
+          ],
+          "addr:N": [
+            2,
+            2,
+            2
+          ],
+          "addr:range": [
+            6,
+            6,
+            9
+          ],
+          "addr:re": [
+            5,
+            5,
+            6
+          ],
+          "addr:step": [
+            1,
+            1,
+            1
+          ],
+          "agent": [
+            14,
+            14,
+            14
+          ],
+          "backref": [
+            0,
+            0,
+            1
+          ],
+          "block": [
+            4,
+            4,
+            4
+          ],
+          "bre": [
+            5,
+            5,
+            5
+          ],
+          "cmd:=": [
+            3,
+            3,
+            4
+          ],
+          "cmd:D": [
+            0,
+            0,
+            1
+          ],
+          "cmd:F": [
+            1,
+            1,
+            1
+          ],
+          "cmd:G": [
+            2,
+            2,
+            2
+          ],
+          "cmd:H": [
+            1,
+            1,
+            1
+          ],
+          "cmd:N": [
+            3,
+            3,
+            4
+          ],
+          "cmd:P": [
+            1,
+            1,
+            2
+          ],
+          "cmd:Q": [
+            1,
+            1,
+            1
+          ],
+          "cmd:T": [
+            1,
+            1,
+            1
+          ],
+          "cmd:a": [
+            2,
+            2,
+            2
+          ],
+          "cmd:b": [
+            1,
+            1,
+            1
+          ],
+          "cmd:c": [
+            1,
+            1,
+            2
+          ],
+          "cmd:d": [
+            7,
+            7,
+            7
+          ],
+          "cmd:h": [
+            2,
+            2,
+            2
+          ],
+          "cmd:i": [
+            2,
+            2,
+            2
+          ],
+          "cmd:l": [
+            1,
+            1,
+            1
+          ],
+          "cmd:n": [
+            2,
+            2,
+            2
+          ],
+          "cmd:p": [
+            9,
+            9,
+            11
+          ],
+          "cmd:q": [
+            2,
+            2,
+            3
+          ],
+          "cmd:r": [
+            1,
+            1,
+            1
+          ],
+          "cmd:s": [
+            29,
+            29,
+            32
+          ],
+          "cmd:t": [
+            1,
+            1,
+            1
+          ],
+          "cmd:w": [
+            1,
+            1,
+            1
+          ],
+          "cmd:x": [
+            1,
+            1,
+            1
+          ],
+          "cmd:y": [
+            2,
+            2,
+            2
+          ],
+          "cmd:z": [
+            1,
+            1,
+            1
+          ],
+          "delimiter": [
+            3,
+            3,
+            3
+          ],
+          "empty-match": [
+            1,
+            1,
+            1
+          ],
+          "empty-regex": [
+            0,
+            0,
+            1
+          ],
+          "eol": [
+            0,
+            0,
+            2
+          ],
+          "error": [
+            0,
+            0,
+            12
+          ],
+          "escape": [
+            1,
+            1,
+            1
+          ],
+          "exit": [
+            0,
+            0,
+            12
+          ],
+          "files": [
+            9,
+            9,
+            9
+          ],
+          "flag:I": [
+            2,
+            2,
+            3
+          ],
+          "flag:N": [
+            2,
+            2,
+            2
+          ],
+          "flag:g": [
+            3,
+            3,
+            3
+          ],
+          "flag:p": [
+            1,
+            1,
+            1
+          ],
+          "flag:w": [
+            1,
+            1,
+            1
+          ],
+          "gnu": [
+            10,
+            10,
+            16
+          ],
+          "hold": [
+            4,
+            4,
+            4
+          ],
+          "label": [
+            4,
+            4,
+            5
+          ],
+          "multi-file": [
+            1,
+            1,
+            2
+          ],
+          "opt:-E": [
+            1,
+            1,
+            1
+          ],
+          "opt:-e": [
+            2,
+            2,
+            2
+          ],
+          "opt:-f": [
+            1,
+            1,
+            1
+          ],
+          "opt:-i": [
+            6,
+            6,
+            7
+          ],
+          "opt:-n": [
+            3,
+            3,
+            3
+          ],
+          "opt:-r": [
+            1,
+            1,
+            1
+          ],
+          "opt:-s": [
+            1,
+            1,
+            1
+          ],
+          "opt:-z": [
+            0,
+            0,
+            1
+          ],
+          "opt:long": [
+            1,
+            1,
+            1
+          ],
+          "parse": [
+            1,
+            1,
+            2
+          ],
+          "repl:&": [
+            2,
+            2,
+            2
+          ],
+          "repl:backref": [
+            2,
+            2,
+            2
+          ],
+          "repl:case": [
+            0,
+            0,
+            2
+          ],
+          "repl:newline": [
+            1,
+            1,
+            1
+          ],
+          "src:upstream-misc": [
+            30,
+            30,
+            52
+          ],
+          "src:upstream-scripts": [
+            1,
+            1,
+            3
+          ],
+          "stdin": [
+            1,
+            1,
+            2
+          ],
+          "utf8": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "subst-case-conversion",
+            "tags": [
+              "cmd:s",
+              "repl:case",
+              "gnu"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"HELLO World\\n\" obtido \"\\\\Uhello\\\\E \\\\uworld\\n\""
+            ]
+          },
+          {
+            "id": "subst-lowercase-all",
+            "tags": [
+              "cmd:s",
+              "repl:case",
+              "gnu"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"mixed case\\n\" obtido \"\\\\LMiXeD CaSe\\n\""
+            ]
+          },
+          {
+            "id": "subst-empty-regex-reuse",
+            "tags": [
+              "cmd:s",
+              "empty-regex"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"bar foo\\nbaz\\n\" obtido \"barfoo foo\\nbaz\\n\""
+            ]
+          },
+          {
+            "id": "inplace-missing-file",
+            "tags": [
+              "opt:-i",
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "exit: esperado Some(2)/None obtido Some(0)/None"
+            ]
+          },
+          {
+            "id": "print-range-plus",
+            "tags": [
+              "cmd:p",
+              "addr:range",
+              "gnu"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"start\\nb\\nc\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: parse error: expected address after ','\\n\"",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "print-regex-icase-address",
+            "tags": [
+              "cmd:p",
+              "addr:re",
+              "flag:I"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"Error 1\\nERROR 2\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: parse error: unknown command: 'I'\\n\"",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "quit-exit-code",
+            "tags": [
+              "cmd:q",
+              "exit",
+              "gnu"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a\\nstop\\n\" obtido \"\""
+            ]
+          },
+          {
+            "id": "change-range",
+            "tags": [
+              "cmd:c",
+              "addr:range"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\nX\\n4\\n\" obtido \"1\\nX\\nX\\n4\\n\""
+            ]
+          },
+          {
+            "id": "delete-dup-adjacent",
+            "tags": [
+              "cmd:N",
+              "cmd:P",
+              "cmd:D",
+              "backref"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a\\nb\\nc\\nd\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: invalid regex: regex parse error:\\n    ^(.*)\\\\n\\\\1$\\n           ^^\\nerror: backreferences are not supported\\n\"",
+              "exit: esperado Some(0)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "stdin-dash",
+            "tags": [
+              "stdin",
+              "cmd:="
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\nx\\n2\\ny\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: can't read -: No such file or directory\\n\""
+            ]
+          },
+          {
+            "id": "multiple-files-continuous",
+            "tags": [
+              "multi-file",
+              "addr:$"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"b2\\n\" obtido \"a2\\nb2\\n\""
+            ]
+          },
+          {
+            "id": "no-trailing-newline",
+            "tags": [
+              "eol"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"b\\nb\" obtido \"b\\nb\\n\""
+            ]
+          },
+          {
+            "id": "crlf-preserved",
+            "tags": [
+              "eol"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"y\\r\\ny\\n\" obtido \"y\\ny\\n\""
+            ]
+          },
+          {
+            "id": "error-unterminated-s",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 5: unterminated `s' command\\n\" obtido \"sed: parse error: unterminated replacement (expected closing '/')\\n\"",
+              "exit: esperado Some(1)/None obtido Some(2)/None"
+            ]
+          },
+          {
+            "id": "error-unknown-command",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 1: unknown command: `k'\\n\" obtido \"sed: parse error: unknown command: 'k'\\n\"",
+              "exit: esperado Some(1)/None obtido Some(2)/None"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "121/172 estrito, 121/172 leniente. Motor regex do Rust (sem backref), sem endereço I, addr,+N, 0,/re/, -, sem preservar a falta de \\n final e o \\r; exit codes errados.",
+      "metrics": {
+        "by_source": {
+          "agent-style": {
+            "lenient": "76.9% (90/117)",
+            "strict": "76.9% (90/117)"
+          },
+          "upstream-misc": {
+            "lenient": "57.7% (30/52)",
+            "strict": "57.7% (30/52)"
+          },
+          "upstream-scripts": {
+            "lenient": "33.3% (1/3)",
+            "strict": "33.3% (1/3)"
+          }
+        },
+        "depscan": {
+          "sed-rs": {
+            "c_deps": [],
+            "depscan_own": "b",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "anstream 1.0.0": 11,
+              "anstyle-query 1.1.5": 12,
+              "clap_builder 4.6.7": 8,
+              "clap_derive 4.6.7": 2,
+              "clap_lex 1.1.1": 1,
+              "errno 0.3.14": 12,
+              "getrandom 0.4.3": 75,
+              "is_terminal_polyfill 1.70.2": 1,
+              "libc 0.2.190": 1,
+              "rustix 1.1.5": 47,
+              "tempfile 3.27.0": 56,
+              "terminal_size 0.4.4": 12
+            },
+            "own": "b",
+            "own_host_touch": 12,
+            "own_unsafe": 0,
+            "tree": "b",
+            "tree_deps": 35,
+            "tree_unsafe": 10036,
+            "version": "2.0.0"
+          }
+        },
+        "porting_effort": {
+          "code_lines": 1832,
+          "host_io_files": [
+            "cli.rs (1)",
+            "engine.rs (14)",
+            "error.rs (1)",
+            "main.rs (1)"
+          ],
+          "host_io_lines": 17,
+          "regex_files": [
+            "engine.rs (4)",
+            "error.rs (1)"
+          ],
+          "regex_lines": 5,
+          "rust_files": 7
+        },
+        "seconds": 14.7467446,
+        "weak_tags": {
+          "addr:$": "75.0% (3/4)",
+          "addr:range": "66.7% (6/9)",
+          "addr:re": "83.3% (5/6)",
+          "backref": "0.0% (0/1)",
+          "cmd:=": "75.0% (3/4)",
+          "cmd:D": "0.0% (0/1)",
+          "cmd:N": "75.0% (3/4)",
+          "cmd:P": "50.0% (1/2)",
+          "cmd:c": "50.0% (1/2)",
+          "cmd:p": "81.8% (9/11)",
+          "cmd:q": "66.7% (2/3)",
+          "cmd:s": "90.6% (29/32)",
+          "empty-regex": "0.0% (0/1)",
+          "eol": "0.0% (0/2)",
+          "error": "0.0% (0/12)",
+          "exit": "0.0% (0/12)",
+          "flag:I": "66.7% (2/3)",
+          "gnu": "62.5% (10/16)",
+          "label": "80.0% (4/5)",
+          "multi-file": "50.0% (1/2)",
+          "opt:-i": "85.7% (6/7)",
+          "opt:-z": "0.0% (0/1)",
+          "parse": "50.0% (1/2)",
+          "repl:case": "0.0% (0/2)",
+          "stdin": "50.0% (1/2)"
+        }
+      }
+    },
+    {
+      "name": "red",
+      "version": "1.0.2",
+      "role": "sed",
+      "category": "b",
+      "conformance": {
+        "candidate": "red",
+        "total": 172,
+        "strict_pass": 146,
+        "lenient_pass": 153,
+        "unsupported": 0,
+        "by_tag": {
+          "addr:!": [
+            1,
+            1,
+            1
+          ],
+          "addr:$": [
+            4,
+            4,
+            4
+          ],
+          "addr:N": [
+            2,
+            2,
+            2
+          ],
+          "addr:range": [
+            9,
+            9,
+            9
+          ],
+          "addr:re": [
+            5,
+            5,
+            6
+          ],
+          "addr:step": [
+            1,
+            1,
+            1
+          ],
+          "agent": [
+            13,
+            13,
+            14
+          ],
+          "backref": [
+            1,
+            1,
+            1
+          ],
+          "block": [
+            3,
+            3,
+            4
+          ],
+          "bre": [
+            5,
+            5,
+            5
+          ],
+          "cmd:=": [
+            4,
+            4,
+            4
+          ],
+          "cmd:D": [
+            1,
+            1,
+            1
+          ],
+          "cmd:F": [
+            1,
+            1,
+            1
+          ],
+          "cmd:G": [
+            2,
+            2,
+            2
+          ],
+          "cmd:H": [
+            1,
+            1,
+            1
+          ],
+          "cmd:N": [
+            4,
+            4,
+            4
+          ],
+          "cmd:P": [
+            2,
+            2,
+            2
+          ],
+          "cmd:Q": [
+            1,
+            1,
+            1
+          ],
+          "cmd:T": [
+            1,
+            1,
+            1
+          ],
+          "cmd:a": [
+            2,
+            2,
+            2
+          ],
+          "cmd:b": [
+            1,
+            1,
+            1
+          ],
+          "cmd:c": [
+            2,
+            2,
+            2
+          ],
+          "cmd:d": [
+            7,
+            7,
+            7
+          ],
+          "cmd:h": [
+            2,
+            2,
+            2
+          ],
+          "cmd:i": [
+            1,
+            1,
+            2
+          ],
+          "cmd:l": [
+            1,
+            1,
+            1
+          ],
+          "cmd:n": [
+            2,
+            2,
+            2
+          ],
+          "cmd:p": [
+            10,
+            10,
+            11
+          ],
+          "cmd:q": [
+            3,
+            3,
+            3
+          ],
+          "cmd:r": [
+            1,
+            1,
+            1
+          ],
+          "cmd:s": [
+            32,
+            32,
+            32
+          ],
+          "cmd:t": [
+            1,
+            1,
+            1
+          ],
+          "cmd:w": [
+            1,
+            1,
+            1
+          ],
+          "cmd:x": [
+            1,
+            1,
+            1
+          ],
+          "cmd:y": [
+            2,
+            2,
+            2
+          ],
+          "cmd:z": [
+            1,
+            1,
+            1
+          ],
+          "delimiter": [
+            3,
+            3,
+            3
+          ],
+          "empty-match": [
+            1,
+            1,
+            1
+          ],
+          "empty-regex": [
+            1,
+            1,
+            1
+          ],
+          "eol": [
+            2,
+            2,
+            2
+          ],
+          "error": [
+            2,
+            9,
+            12
+          ],
+          "escape": [
+            1,
+            1,
+            1
+          ],
+          "exit": [
+            2,
+            9,
+            12
+          ],
+          "files": [
+            9,
+            9,
+            9
+          ],
+          "flag:I": [
+            1,
+            1,
+            3
+          ],
+          "flag:N": [
+            2,
+            2,
+            2
+          ],
+          "flag:g": [
+            3,
+            3,
+            3
+          ],
+          "flag:p": [
+            1,
+            1,
+            1
+          ],
+          "flag:w": [
+            1,
+            1,
+            1
+          ],
+          "gnu": [
+            16,
+            16,
+            16
+          ],
+          "hold": [
+            4,
+            4,
+            4
+          ],
+          "label": [
+            4,
+            4,
+            5
+          ],
+          "multi-file": [
+            2,
+            2,
+            2
+          ],
+          "opt:-E": [
+            1,
+            1,
+            1
+          ],
+          "opt:-e": [
+            1,
+            1,
+            2
+          ],
+          "opt:-f": [
+            1,
+            1,
+            1
+          ],
+          "opt:-i": [
+            7,
+            7,
+            7
+          ],
+          "opt:-n": [
+            3,
+            3,
+            3
+          ],
+          "opt:-r": [
+            1,
+            1,
+            1
+          ],
+          "opt:-s": [
+            1,
+            1,
+            1
+          ],
+          "opt:-z": [
+            1,
+            1,
+            1
+          ],
+          "opt:long": [
+            1,
+            1,
+            1
+          ],
+          "parse": [
+            2,
+            2,
+            2
+          ],
+          "repl:&": [
+            2,
+            2,
+            2
+          ],
+          "repl:backref": [
+            2,
+            2,
+            2
+          ],
+          "repl:case": [
+            2,
+            2,
+            2
+          ],
+          "repl:newline": [
+            1,
+            1,
+            1
+          ],
+          "src:upstream-misc": [
+            40,
+            40,
+            52
+          ],
+          "src:upstream-scripts": [
+            3,
+            3,
+            3
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "utf8": [
+            2,
+            2,
+            3
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "print-regex-icase-address",
+            "tags": [
+              "cmd:p",
+              "addr:re",
+              "flag:I"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"Error 1\\nERROR 2\\n\" obtido \"\""
+            ]
+          },
+          {
+            "id": "insert-before-match",
+            "tags": [
+              "cmd:i",
+              "agent"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"use x;\\n// entry point\\nfn main() {}\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: -e expression #1, char 11: unknown command: //\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "utf8-icase",
+            "tags": [
+              "utf8",
+              "flag:I"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"SCHOOL école\\n\" obtido \"ÉCOLE SCHOOL\\n\""
+            ]
+          },
+          {
+            "id": "error-unterminated-s",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 5: unterminated `s' command\\n\" obtido \"sed: -e expression #1, char 5: unterminated 's' command\\n\""
+            ]
+          },
+          {
+            "id": "error-unknown-command",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 1: unknown command: `k'\\n\" obtido \"sed: -e expression #1, char 1: unknown command: 'k'\\n\""
+            ]
+          },
+          {
+            "id": "error-unknown-option-to-s",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 7: unknown option to `s'\\n\" obtido \"sed: -e expression #1, char 7: unknown option to 's'\\n\""
+            ]
+          },
+          {
+            "id": "error-missing-file-continues",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"still\\n\" obtido \"\""
+            ]
+          },
+          {
+            "id": "error-bad-regex",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 8: Unmatched ( or \\\\(\\n\" obtido \"sed: -e expression #1: unclosed group: missing '\\\\)'\\n\""
+            ]
+          },
+          {
+            "id": "error-invalid-backref",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 7: invalid reference \\\\1 on `s' command's RHS\\n\" obtido \"sed: -e expression #1, char 7: invalid reference \\\\1 on 's' command's RHS\\n\""
+            ]
+          },
+          {
+            "id": "error-no-script",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\\n  -n, --quiet, --silent\\n                 suppre\"... (1796 bytes) obtido \"Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\"",
+              "exit: esperado Some(1)/None obtido Some(4)/None"
+            ]
+          },
+          {
+            "id": "error-unknown-option",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: unrecognized option '--frobnicate'\\nUsage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\\n  -n, -\"... (1836 bytes) obtido \"sed: invalid option -- --frobnicate\\n\""
+            ]
+          },
+          {
+            "id": "error-unmatched-brace",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 0: unmatched `{'\\n\" obtido \"sed: -e expression #1, char 0: unmatched '{'\\n\""
+            ]
+          },
+          {
+            "id": "error-undefined-label",
+            "tags": [
+              "error",
+              "exit",
+              "label"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"sed: can't find label for jump to `nowhere'\\n\" obtido \"sed: undefined label 'nowhere'\\n\"",
+              "exit: esperado Some(4)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "e-with-newline-script",
+            "tags": [
+              "opt:-e",
+              "block"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"b\\na\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: -e expression #1, char 0: unmatched '{'\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "misc-space",
+            "tags": [
+              "src:upstream-misc"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"Hello_World_!\\nSecondXXine__of_tests\\n\" obtido \"Hello World\\t!\\nSecond_line_ of te_t_\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "146/172 estrito, 153/172 leniente. Motor de regex próprio (o red-sed-regex do F01), mas std::fs e stdout direto; erra I em endereço, i/a com texto começando por //, bloco { } dividido em vários -e, \\s e \\S, -z, \\x00 em y, s///N e para de processar quando falta um arquivo.",
+      "metrics": {
+        "by_source": {
+          "agent-style": {
+            "lenient": "94.0% (110/117)",
+            "strict": "88.0% (103/117)"
+          },
+          "upstream-misc": {
+            "lenient": "76.9% (40/52)",
+            "strict": "76.9% (40/52)"
+          },
+          "upstream-scripts": {
+            "lenient": "100.0% (3/3)",
+            "strict": "100.0% (3/3)"
+          }
+        },
+        "depscan": {
+          "red-sed": {
+            "c_deps": [],
+            "depscan_own": "b",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "errno 0.3.14": 12,
+              "lexopt 0.3.2": 1,
+              "libc 0.2.190": 1,
+              "signal-hook 0.3.18": 100,
+              "signal-hook-registry 1.4.8": 27
+            },
+            "own": "b",
+            "own_host_touch": 65,
+            "own_unsafe": 20,
+            "tree": "b",
+            "tree_deps": 14,
+            "tree_unsafe": 1346,
+            "version": "1.0.2"
+          }
+        },
+        "porting_effort": {
+          "code_lines": 11845,
+          "host_io_files": [
+            "cli.rs (9)",
+            "engine/addr.rs (2)",
+            "engine/exec.rs (6)",
+            "fileio/encoding.rs (3)",
+            "fileio/lines.rs (3)",
+            "lib.rs (24)",
+            "main.rs (4)",
+            "mbcs.rs (4)",
+            "parser/lexer.rs (3)",
+            "signals.rs (2)",
+            "util/symlink.rs (2)"
+          ],
+          "host_io_lines": 62,
+          "regex_files": [
+            "engine/addr.rs (1)",
+            "engine/exec.rs (4)",
+            "engine/replacement.rs (1)",
+            "engine/types.rs (2)",
+            "lib.rs (10)",
+            "parser.rs (2)",
+            "regex/mod.rs (2)",
+            "regex/parser.rs (1)",
+            "util/regex.rs (2)"
+          ],
+          "regex_lines": 25,
+          "rust_files": 36
+        },
+        "seconds": 0.830153002,
+        "weak_tags": {
+          "addr:re": "83.3% (5/6)",
+          "agent": "92.9% (13/14)",
+          "block": "75.0% (3/4)",
+          "cmd:i": "50.0% (1/2)",
+          "cmd:p": "90.9% (10/11)",
+          "error": "75.0% (9/12)",
+          "exit": "75.0% (9/12)",
+          "flag:I": "33.3% (1/3)",
+          "label": "80.0% (4/5)",
+          "opt:-e": "50.0% (1/2)",
+          "utf8": "66.7% (2/3)"
+        }
+      }
+    },
+    {
+      "name": "bashkit-sed",
+      "version": "0.18.2",
+      "role": "sed",
+      "category": "b",
+      "conformance": {
+        "candidate": "bashkit-sed",
+        "total": 172,
+        "strict_pass": 155,
+        "lenient_pass": 162,
+        "unsupported": 0,
+        "by_tag": {
+          "addr:!": [
+            1,
+            1,
+            1
+          ],
+          "addr:$": [
+            4,
+            4,
+            4
+          ],
+          "addr:N": [
+            2,
+            2,
+            2
+          ],
+          "addr:range": [
+            9,
+            9,
+            9
+          ],
+          "addr:re": [
+            6,
+            6,
+            6
+          ],
+          "addr:step": [
+            1,
+            1,
+            1
+          ],
+          "agent": [
+            13,
+            13,
+            14
+          ],
+          "backref": [
+            1,
+            1,
+            1
+          ],
+          "block": [
+            4,
+            4,
+            4
+          ],
+          "bre": [
+            5,
+            5,
+            5
+          ],
+          "cmd:=": [
+            4,
+            4,
+            4
+          ],
+          "cmd:D": [
+            1,
+            1,
+            1
+          ],
+          "cmd:F": [
+            1,
+            1,
+            1
+          ],
+          "cmd:G": [
+            2,
+            2,
+            2
+          ],
+          "cmd:H": [
+            1,
+            1,
+            1
+          ],
+          "cmd:N": [
+            4,
+            4,
+            4
+          ],
+          "cmd:P": [
+            2,
+            2,
+            2
+          ],
+          "cmd:Q": [
+            1,
+            1,
+            1
+          ],
+          "cmd:T": [
+            1,
+            1,
+            1
+          ],
+          "cmd:a": [
+            2,
+            2,
+            2
+          ],
+          "cmd:b": [
+            1,
+            1,
+            1
+          ],
+          "cmd:c": [
+            2,
+            2,
+            2
+          ],
+          "cmd:d": [
+            7,
+            7,
+            7
+          ],
+          "cmd:h": [
+            2,
+            2,
+            2
+          ],
+          "cmd:i": [
+            2,
+            2,
+            2
+          ],
+          "cmd:l": [
+            1,
+            1,
+            1
+          ],
+          "cmd:n": [
+            2,
+            2,
+            2
+          ],
+          "cmd:p": [
+            11,
+            11,
+            11
+          ],
+          "cmd:q": [
+            3,
+            3,
+            3
+          ],
+          "cmd:r": [
+            1,
+            1,
+            1
+          ],
+          "cmd:s": [
+            31,
+            31,
+            32
+          ],
+          "cmd:t": [
+            1,
+            1,
+            1
+          ],
+          "cmd:w": [
+            1,
+            1,
+            1
+          ],
+          "cmd:x": [
+            1,
+            1,
+            1
+          ],
+          "cmd:y": [
+            2,
+            2,
+            2
+          ],
+          "cmd:z": [
+            1,
+            1,
+            1
+          ],
+          "delimiter": [
+            3,
+            3,
+            3
+          ],
+          "empty-match": [
+            1,
+            1,
+            1
+          ],
+          "empty-regex": [
+            1,
+            1,
+            1
+          ],
+          "eol": [
+            2,
+            2,
+            2
+          ],
+          "error": [
+            4,
+            11,
+            12
+          ],
+          "escape": [
+            1,
+            1,
+            1
+          ],
+          "exit": [
+            5,
+            11,
+            12
+          ],
+          "files": [
+            9,
+            9,
+            9
+          ],
+          "flag:I": [
+            3,
+            3,
+            3
+          ],
+          "flag:N": [
+            2,
+            2,
+            2
+          ],
+          "flag:g": [
+            3,
+            3,
+            3
+          ],
+          "flag:p": [
+            1,
+            1,
+            1
+          ],
+          "flag:w": [
+            1,
+            1,
+            1
+          ],
+          "gnu": [
+            16,
+            16,
+            16
+          ],
+          "hold": [
+            4,
+            4,
+            4
+          ],
+          "label": [
+            5,
+            5,
+            5
+          ],
+          "multi-file": [
+            2,
+            2,
+            2
+          ],
+          "opt:-E": [
+            1,
+            1,
+            1
+          ],
+          "opt:-e": [
+            2,
+            2,
+            2
+          ],
+          "opt:-f": [
+            1,
+            1,
+            1
+          ],
+          "opt:-i": [
+            6,
+            7,
+            7
+          ],
+          "opt:-n": [
+            3,
+            3,
+            3
+          ],
+          "opt:-r": [
+            1,
+            1,
+            1
+          ],
+          "opt:-s": [
+            1,
+            1,
+            1
+          ],
+          "opt:-z": [
+            1,
+            1,
+            1
+          ],
+          "opt:long": [
+            1,
+            1,
+            1
+          ],
+          "parse": [
+            2,
+            2,
+            2
+          ],
+          "repl:&": [
+            2,
+            2,
+            2
+          ],
+          "repl:backref": [
+            2,
+            2,
+            2
+          ],
+          "repl:case": [
+            2,
+            2,
+            2
+          ],
+          "repl:newline": [
+            1,
+            1,
+            1
+          ],
+          "src:upstream-misc": [
+            46,
+            46,
+            52
+          ],
+          "src:upstream-scripts": [
+            1,
+            1,
+            3
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "utf8": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "subst-trim-leading",
+            "tags": [
+              "cmd:s",
+              "agent"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a\\nb\\nc\\n\" obtido \"a\\n\\t\\tb\\nc\\n\""
+            ]
+          },
+          {
+            "id": "inplace-missing-file",
+            "tags": [
+              "opt:-i",
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: can't read nope.txt: No such file or directory\\n\" obtido \"sed: can't read nope.txt: io error: file not found\\n\""
+            ]
+          },
+          {
+            "id": "error-unknown-option-to-s",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 7: unknown option to `s'\\n\" obtido \"sed: -e expression #1, char 6: unknown option to `s': `z'\\n\""
+            ]
+          },
+          {
+            "id": "error-missing-file",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: can't read nope.txt: No such file or directory\\n\" obtido \"sed: can't read nope.txt: io error: file not found\\n\""
+            ]
+          },
+          {
+            "id": "error-missing-file-continues",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"still\\n\" obtido \"\"",
+              "stderr: esperado \"sed: can't read nope.txt: No such file or directory\\n\" obtido \"sed: can't read nope.txt: io error: file not found\\n\""
+            ]
+          },
+          {
+            "id": "error-bad-regex",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 8: Unmatched ( or \\\\(\\n\" obtido \"sed: -e expression #1, char 8: invalid pattern: regex parse error: (a error: unclosed group\\n\""
+            ]
+          },
+          {
+            "id": "error-no-script",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\\n  -n, --quiet, --silent\\n                 suppre\"... (1796 bytes) obtido \"Usage: sed [OPTION]... {script} [FILE]...\\nUsage: sed [OPTION]... {script} [FILE]...\\nStream editor for filtering and tran\"... (860 bytes)"
+            ]
+          },
+          {
+            "id": "error-unknown-option",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: unrecognized option '--frobnicate'\\nUsage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\\n  -n, -\"... (1836 bytes) obtido \"sed: unrecognized option '--frobnicate'\\n\""
+            ]
+          },
+          {
+            "id": "error-unmatched-brace",
+            "tags": [
+              "error",
+              "exit"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sed: -e expression #1, char 0: unmatched `{'\\n\" obtido \"sed: -e expression #1, char 5: unmatched `{'\\n\""
+            ]
+          },
+          {
+            "id": "misc-zero-anchor",
+            "tags": [
+              "src:upstream-misc"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"XXaY\\0XbY\\0XcYY\\0\" obtido \"XXaY\\nXbY\\nXcYY\\0\""
+            ]
+          },
+          {
+            "id": "misc-y-zero",
+            "tags": [
+              "src:upstream-misc"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a\\0c\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"sed: -e expression #1, char 9: strings for `y' command are different lengths\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "misc-amp-escape",
+            "tags": [
+              "src:upstream-misc"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"yes&\\n\" obtido \"yesx26\\n\""
+            ]
+          },
+          {
+            "id": "misc-bug30794_1",
+            "tags": [
+              "src:upstream-misc"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\\\\A\" obtido \"x5cA\""
+            ]
+          },
+          {
+            "id": "misc-bug30794_2",
+            "tags": [
+              "src:upstream-misc"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\\\\\" obtido \"x5c\""
+            ]
+          },
+          {
+            "id": "misc-bug30794_3",
+            "tags": [
+              "src:upstream-misc"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\\\\1\" obtido \"x5c1\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "155/172 estrito, 162/172 leniente. Sed do bashkit sobre VFS em memória: o mais perto do GNU; usa regex/fancy-regex (leftmost-first) e erra escapes \\t em colchete e \\xHH, -z e scripts longos. Base de fork, extraindo o módulo e trocando o motor pelo do F01.",
+      "metrics": {
+        "by_source": {
+          "agent-style": {
+            "lenient": "98.3% (115/117)",
+            "strict": "92.3% (108/117)"
+          },
+          "upstream-misc": {
+            "lenient": "88.5% (46/52)",
+            "strict": "88.5% (46/52)"
+          },
+          "upstream-scripts": {
+            "lenient": "33.3% (1/3)",
+            "strict": "33.3% (1/3)"
+          }
+        },
+        "depscan": {
+          "bashkit": {
+            "c_deps": [],
+            "depscan_own": "b",
+            "depscan_tree": "b",
+            "host_touching_deps": {
+              "anstream 1.0.0": 11,
+              "anstyle-query 1.1.5": 12,
+              "bigdecimal 0.4.11": 4,
+              "bytes 1.12.1": 1,
+              "chrono 0.4.45": 6,
+              "clap_builder 4.6.7": 8,
+              "clap_derive 4.6.7": 2,
+              "clap_lex 1.1.1": 1,
+              "cpufeatures 0.3.1": 24,
+              "errno 0.3.14": 12,
+              "fancy-regex 0.19.2": 6,
+              "getrandom 0.4.3": 75,
+              "iana-time-zone 0.1.65": 9,
+              "is_terminal_polyfill 1.70.2": 1,
+              "libbz2-rs-sys 0.2.5": 18,
+              "libc 0.2.190": 1,
+              "rustix 1.1.5": 47,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "terminal_size 0.4.4": 12,
+              "tokio 1.53.1": 390,
+              "url 2.5.8": 1,
+              "zlib-rs 0.6.8": 3
+            },
+            "own": "b",
+            "own_host_touch": 40,
+            "own_unsafe": 74,
+            "tree": "b",
+            "tree_deps": 111,
+            "tree_unsafe": 13148,
+            "version": "0.18.2"
+          }
+        },
+        "porting_effort": {
+          "code_lines": 1788,
+          "host_io_files": [],
+          "host_io_lines": 0,
+          "regex_files": [
+            "pattern.rs (4)",
+            "script.rs (1)"
+          ],
+          "regex_lines": 5,
+          "rust_files": 4
+        },
+        "seconds": 0.029315563,
+        "weak_tags": {
+          "agent": "92.9% (13/14)",
+          "cmd:s": "96.9% (31/32)",
+          "error": "91.7% (11/12)",
+          "exit": "91.7% (11/12)"
+        }
+      }
+    }
+  ],
+  "metrics": {
+    "grep_cases": 185,
+    "sed_cases": 172,
+    "summary": [
+      "rg-regex+rg-printer    grep estrito 86.5% (160/185) leniente 86.5% (160/185) sem suporte 1",
+      "f01+rg-printer         grep estrito 88.1% (163/185) leniente 88.1% (163/185) sem suporte 0",
+      "f01+gnu-printer        grep estrito 100.0% (185/185) leniente 100.0% (185/185) sem suporte 0",
+      "uu_grep                grep estrito 90.8% (168/185) leniente 93.5% (173/185) sem suporte 0",
+      "bashkit-grep           grep estrito 53.5% (99/185) leniente 54.1% (100/185) sem suporte 6",
+      "uutils-sed             sed  estrito 79.7% (137/172) leniente 83.7% (144/172) sem suporte 0",
+      "sed-rs                 sed  estrito 70.3% (121/172) leniente 70.3% (121/172) sem suporte 0",
+      "red                    sed  estrito 84.9% (146/172) leniente 89.0% (153/172) sem suporte 0",
+      "bashkit-sed            sed  estrito 90.1% (155/172) leniente 94.2% (162/172) sem suporte 0"
+    ],
+    "total_seconds": 28.977271978
+  },
+  "notes": [
+    "Oráculo: GNU grep 3.11 e GNU sed 4.9 do Debian 13 (LC_ALL=C.UTF-8, umask 022). Casos: corpus/cases/grep (agent-style à mão, foad1 e yesno importados do GNU grep) e corpus/cases/sed (agent-style à mão, misc.pl e testes de script do GNU sed 4.9).",
+    "Saída de -r: a ordem do GNU segue o readdir do sistema de arquivos do container (não ordenada); casos com a tag order-insensitive comparam as linhas ordenadas dos dois lados.",
+    "grep montado: o front-end de flags (getopt_long com permutação, -NUM, prefixo de opção longa, mensagens do getopt), a leitura da árvore do caso em memória (FsView), a detecção de binário (NUL ou UTF-8 inválido), -r/-R com --include/--exclude/--exclude-dir e os exit codes são nossos; grep-searcher varre, grep-matcher é a interface do casador, o motor é o regex-automata+ferroni do F01 com o nosso parser GNU.",
+    "Candidatos que usam std::fs (uu_grep, uutils/sed, sed-rs, red) rodam em subprocesso (o próprio binário com --exec, argv[0] igual ao da ferramenta) com cwd numa cópia da fixture em scratch/f02-grep-sed e o retrato do diretório comparado depois; o acoplamento ao host deles está no depscan e no porting_effort. O CLI do red é do binário dele (não da lib): o parser lexopt dele foi portado pra receber o argv. O bashkit roda o comando no bash virtual dele com a fixture num InMemoryFs.",
+    "porting_effort conta, no código-fonte do candidato, linhas com I/O do host (std::fs, File, stdout/stdin, std::process, std::env, libc, rustix, memmap2, tempfile) e linhas acopladas ao motor de regex; é o tamanho do trabalho de pôr a ferramenta sobre bytes em memória e trocar o motor pelo do F01.",
+    "Erros de execução do bashkit (padrão inválido, sem padrão) voltam como erro da API, não como exit 2; contam como falha sem suporte."
+  ]
+}

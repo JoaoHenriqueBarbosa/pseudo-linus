@@ -1,0 +1,482 @@
+{
+  "awk-ARGV-ARGC": {
+    "stdout": "0 awk\n1 x\n2 y=1\n3 z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-ARGV-modified-in-BEGIN": {
+    "stdout": "b.txt from b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "96357c8d502a3da7d30d5efea247d9ac00240731af893c5a7ad196dda8fd03ec",
+        "data": "from a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "f1f26c67579536f77eb88458667fcc2bfce43ae4ca0b7ef6421fa9db026ccb0e",
+        "data": "from b\n"
+      }
+    }
+  },
+  "awk-ENVIRON": {
+    "stdout": "/root from env 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-PROCINFO-version": {
+    "stdout": "5.2.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-assignment-operands": {
+    "stdout": "1 a\n2 b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "awk-close-and-reread": {
+    "stdout": "first first\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23",
+        "data": "first\nsecond\n"
+      }
+    }
+  },
+  "awk-command-substitution": {
+    "stdout": "total is 42\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "nums.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "db5e7f2dd797c6d3e641217d36c03b0d92ece9a680dca1a8b6bcdd4d4a748037",
+        "data": "10\n20\n12\n"
+      }
+    }
+  },
+  "awk-double-dash": {
+    "stdout": "x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "0f044da0abb8aabed6bbbe0fecae23e80af0c48e98f3755ce25f1f0dfab18283",
+        "data": "x y\n"
+      }
+    }
+  },
+  "awk-e-and-f-mix": {
+    "stdout": "8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lib.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "df81fd05098aae5b3fa31b00f6c0e5938bf4779fe62a58645e3615a813ebcdc3",
+        "data": "function double(x) { return 2 * x }\n"
+      }
+    }
+  },
+  "awk-exit-status-in-pipeline": {
+    "stdout": "status=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-f-multiple-progfiles": {
+    "stdout": "42\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lib.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "df81fd05098aae5b3fa31b00f6c0e5938bf4779fe62a58645e3615a813ebcdc3",
+        "data": "function double(x) { return 2 * x }\n"
+      },
+      "main.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "36dd15d60d40cda66a1215abdba7c50c40186a8e3a42247efccca4c853078d03",
+        "data": "BEGIN { print double(21) }\n"
+      }
+    }
+  },
+  "awk-f-progfile": {
+    "stdout": "total=42 linhas=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "59b371fd3d72c99c6d02834e7486453efb74022fd6743973bd8c1794a6a17f10",
+        "data": "a 1\nb 2\nc 39\n"
+      },
+      "prog.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 89,
+        "sha256": "31f7d52cd8ff77e28a9c701dc7c29760343c018a71b227a5b6ba2d75ba8d44d9",
+        "data": "# soma a segunda coluna\n{ total += $2 }\nEND { printf \"total=%d linhas=%d\\n\", total, NR }\n"
+      }
+    }
+  },
+  "awk-fflush": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-gawk-name": {
+    "stdout": "via gawk\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-getline-cmd-loop": {
+    "stdout": "15\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-getline-from-cmd": {
+    "stdout": "hello world\nb 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-getline-from-file": {
+    "stdout": "3 c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "awk-getline-missing-file": {
+    "stdout": "-1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-heredoc-program-file": {
+    "stdout": "north 5\nsouth 17\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "prog.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 92,
+        "sha256": "2866324253f199ae6d8c2a4fd5c931f349ffce863432fcd2a47cb9b31efe1257",
+        "data": "BEGIN { FS = \",\" }\nNR > 1 { sum[$1] += $2 }\nEND { for (k in sum) print k, sum[k] | \"sort\" }\n"
+      },
+      "sales.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "cc78f1b7c718413b3cc56503e8f50ea89014a7c0fa52bed48a8e2f7e7dc4363c",
+        "data": "region,amount\nsouth,10\nnorth,5\nsouth,7\n"
+      }
+    }
+  },
+  "awk-in-shell-loop": {
+    "stdout": "a.txt 2\nb.txt 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      }
+    }
+  },
+  "awk-missing-file-among-others": {
+    "stdout": "a.txt a\n",
+    "stderr": "awk: cmd. line:1: fatal: cannot open file `nope.txt' for reading: No such file or directory\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "awk-missing-input-file": {
+    "stdout": "",
+    "stderr": "awk: fatal: cannot open file `nope.txt' for reading: No such file or directory\n",
+    "exit": 2,
+    "files": {}
+  },
+  "awk-mktime": {
+    "stdout": "1768478400 1798761600 -1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-no-program": {
+    "stdout": "",
+    "stderr": "Usage: awk [POSIX or GNU style options] -f progfile [--] file ...\nUsage: awk [POSIX or GNU style options] [--] 'program' file ...\nPOSIX options:\t\tGNU long options: (standard)\n\t-f progfile\t\t--file=progfile\n\t-F fs\t\t\t--field-separator=fs\n\t-v var=val\t\t--assign=var=val\nShort options:\t\tGNU long options: (extensions)\n\t-b\t\t\t--characters-as-bytes\n\t-c\t\t\t--traditional\n\t-C\t\t\t--copyright\n\t-d[file]\t\t--dump-variables[=file]\n\t-D[file]\t\t--debug[=file]\n\t-e 'program-text'\t--source='program-text'\n\t-E file\t\t\t--exec=file\n\t-g\t\t\t--gen-pot\n\t-h\t\t\t--help\n\t-i includefile\t\t--include=includefile\n\t-I\t\t\t--trace\n\t-l library\t\t--load=library\n\t-L[fatal|invalid|no-ext]\t--lint[=fatal|invalid|no-ext]\n\t-M\t\t\t--bignum\n\t-N\t\t\t--use-lc-numeric\n\t-n\t\t\t--non-decimal-data\n\t-o[file]\t\t--pretty-print[=file]\n\t-O\t\t\t--optimize\n\t-p[file]\t\t--profile[=file]\n\t-P\t\t\t--posix\n\t-r\t\t\t--re-interval\n\t-s\t\t\t--no-optimize\n\t-S\t\t\t--sandbox\n\t-t\t\t\t--lint-old\n\t-V\t\t\t--version\n\nTo report bugs, use the `gawkbug' program.\nFor full instructions, see the node `Bugs' in `gawk.info'\nwhich is section `Reporting Problems and Bugs' in the\nprinted version.  This same information may be found at\nhttps://www.gnu.org/software/gawk/manual/html_node/Bugs.html.\nPLEASE do NOT try to report bugs by posting in comp.lang.awk,\nor by using a web forum such as Stack Overflow.\n\ngawk is a pattern scanning and processing language.\nBy default it reads standard input and writes standard output.\n\nExamples:\n\tawk '{ sum += $1 }; END { print sum }' file\n\tawk -F: '{ print $1 }' /etc/passwd\n",
+    "exit": 1,
+    "files": {}
+  },
+  "awk-pipe-to-sh": {
+    "stdout": "item-1\nitem-2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-pipe-to-sort": {
+    "stdout": "c\nb\na\ndone\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-pipe-to-sort-unclosed": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-pipeline-input": {
+    "stdout": "6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-pipeline-ps-style": {
+    "stdout": "42:cargo\n43:rustc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-print-append": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "f88df18c3c362f23323b60bef6514c78a6771b052c7cad1b02d9352b4a16e24c",
+        "data": "old\nnew 1\nnew 2\n"
+      }
+    }
+  },
+  "awk-print-to-file-per-key": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "x.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "b72cf6d7918130f75347ff0f8b6e9fde004ee6d7fc26af90a349707207f72750",
+        "data": "a\nc\n"
+      },
+      "y.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "awk-print-to-file-then-read": {
+    "stdout": "3 carol\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "names.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "54e7fd617a3c08ae396cadd191b9e16db655b8c9e0832d35902f7d351b8cd191",
+        "data": "alice\nbob\ncarol\n"
+      }
+    }
+  },
+  "awk-print-to-stderr": {
+    "stdout": "out line\n",
+    "stderr": "err line\ne2\n",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-to-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "022646c2864ab61938181ea5816aab7423ec173d29af6d632a29a18f8df7ad99",
+        "data": "1;2;\n"
+      }
+    }
+  },
+  "awk-stdin-dash-and-file": {
+    "stdout": "a.txt:from a\n-:from stdin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "96357c8d502a3da7d30d5efea247d9ac00240731af893c5a7ad196dda8fd03ec",
+        "data": "from a\n"
+      }
+    }
+  },
+  "awk-strftime-fixed-time": {
+    "stdout": "1970-01-01 00:00:00\n1971-01-01 Fri Jan\n1768478400\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-strftime-now-faketime": {
+    "stdout": "2026-01-15T12:00:00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-strftime-utc-flag": {
+    "stdout": "01:00 GMT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-syntax-error": {
+    "stdout": "",
+    "stderr": "awk: cmd. line:1: {print $1\nawk: cmd. line:1:          ^ unexpected newline or end of string\n",
+    "exit": 1,
+    "files": {}
+  },
+  "awk-syntax-error-unexpected-token": {
+    "stdout": "",
+    "stderr": "awk: cmd. line:1: BEGIN { x = = 1 }\nawk: cmd. line:1:             ^ syntax error\n",
+    "exit": 1,
+    "files": {}
+  },
+  "awk-system-exit-status": {
+    "stdout": "r=3\nr=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-system-output-order": {
+    "stdout": "before\ninside\nafter\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-systime-sanity": {
+    "stdout": "1 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-unknown-function": {
+    "stdout": "",
+    "stderr": "awk: cmd. line:1: fatal: function `nosuchfunc' not defined\n",
+    "exit": 2,
+    "files": {}
+  },
+  "awk-unknown-option": {
+    "stdout": "",
+    "stderr": "Usage: awk [POSIX or GNU style options] -f progfile [--] file ...\nUsage: awk [POSIX or GNU style options] [--] 'program' file ...\nPOSIX options:\t\tGNU long options: (standard)\n\t-f progfile\t\t--file=progfile\n\t-F fs\t\t\t--field-separator=fs\n\t-v var=val\t\t--assign=var=val\nShort options:\t\tGNU long options: (extensions)\n\t-b\t\t\t--characters-as-bytes\n\t-c\t\t\t--traditional\n\t-C\t\t\t--copyright\n\t-d[file]\t\t--dump-variables[=file]\n\t-D[file]\t\t--debug[=file]\n\t-e 'program-text'\t--source='program-text'\n\t-E file\t\t\t--exec=file\n\t-g\t\t\t--gen-pot\n\t-h\t\t\t--help\n\t-i includefile\t\t--include=includefile\n\t-I\t\t\t--trace\n\t-l library\t\t--load=library\n\t-L[fatal|invalid|no-ext]\t--lint[=fatal|invalid|no-ext]\n\t-M\t\t\t--bignum\n\t-N\t\t\t--use-lc-numeric\n\t-n\t\t\t--non-decimal-data\n\t-o[file]\t\t--pretty-print[=file]\n\t-O\t\t\t--optimize\n\t-p[file]\t\t--profile[=file]\n\t-P\t\t\t--posix\n\t-r\t\t\t--re-interval\n\t-s\t\t\t--no-optimize\n\t-S\t\t\t--sandbox\n\t-t\t\t\t--lint-old\n\t-V\t\t\t--version\n\nTo report bugs, use the `gawkbug' program.\nFor full instructions, see the node `Bugs' in `gawk.info'\nwhich is section `Reporting Problems and Bugs' in the\nprinted version.  This same information may be found at\nhttps://www.gnu.org/software/gawk/manual/html_node/Bugs.html.\nPLEASE do NOT try to report bugs by posting in comp.lang.awk,\nor by using a web forum such as Stack Overflow.\n\ngawk is a pattern scanning and processing language.\nBy default it reads standard input and writes standard output.\n\nExamples:\n\tawk '{ sum += $1 }; END { print sum }' file\n\tawk -F: '{ print $1 }' /etc/passwd\n",
+    "exit": 1,
+    "files": {}
+  },
+  "awk-v-escape-processing": {
+    "stdout": "a\tb\\n|5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-v-multiple": {
+    "stdout": "2 two\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-v-var": {
+    "stdout": "a\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

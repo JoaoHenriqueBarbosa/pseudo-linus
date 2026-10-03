@@ -1,0 +1,271 @@
+tool = "awk"
+source = "agent-style"
+
+# Padrões, faixas, controle de fluxo e códigos de saída.
+
+[[case]]
+id = "awk-regex-pattern-log"
+argv = ["awk", "/ERROR/ {print $4, $NF}", "app.log"]
+tags = ["patterns", "regex"]
+[case.files]
+"app.log" = """
+2026-01-15 10:00:01 INFO server started port=8080
+2026-01-15 10:00:05 WARN slow request path=/api/users ms=1200
+2026-01-15 10:01:00 ERROR db timeout path=/api/orders ms=5000
+2026-01-15 10:02:30 INFO request path=/api/users ms=35
+2026-01-15 10:03:00 ERROR db timeout path=/api/users ms=5001
+"""
+
+[[case]]
+id = "awk-negated-regex"
+argv = ["awk", "!/INFO/"]
+tags = ["patterns", "regex"]
+stdin = """
+10:00 INFO a
+10:01 WARN b
+10:02 INFO c
+10:03 ERROR d
+"""
+
+[[case]]
+id = "awk-field-match"
+argv = ["awk", '$3 ~ /^eng/ {print $1}']
+tags = ["patterns", "regex"]
+stdin = """
+alice 30 engineering 85000
+bob 25 marketing 52000
+carol 35 engineering 98000
+"""
+
+[[case]]
+id = "awk-field-nomatch"
+argv = ["awk", '$3 !~ /eng/ {print $1}']
+tags = ["patterns", "regex"]
+stdin = """
+alice 30 engineering 85000
+bob 25 marketing 52000
+"""
+
+[[case]]
+id = "awk-numeric-compare-pattern"
+argv = ["awk", '$2 > 28 {print $1}']
+tags = ["patterns", "numeric"]
+stdin = """
+alice 30 engineering
+bob 25 marketing
+carol 35 engineering
+dave 28 sales
+"""
+
+[[case]]
+id = "awk-compound-pattern"
+argv = ["awk", '$2 >= 28 && $3 == "engineering" || $1 == "bob"']
+tags = ["patterns"]
+stdin = """
+alice 30 engineering
+bob 25 marketing
+carol 35 engineering
+dave 28 sales
+"""
+
+[[case]]
+id = "awk-range-pattern-regex"
+argv = ["awk", "/BEGIN CERT/,/END CERT/"]
+tags = ["patterns", "range"]
+stdin = """
+header
+-----BEGIN CERT-----
+abc
+def
+-----END CERT-----
+footer
+-----BEGIN CERT-----
+ghi
+"""
+
+[[case]]
+id = "awk-range-pattern-NR"
+argv = ["awk", "NR==2,NR==4 {print NR \": \" $0}"]
+tags = ["patterns", "range"]
+stdin = "a\nb\nc\nd\ne\n"
+
+[[case]]
+id = "awk-range-same-line"
+argv = ["awk", "/x/,/x/ {print \"in:\", $0}"]
+tags = ["patterns", "range"]
+stdin = "a\nx\nb\nx y\n"
+
+[[case]]
+id = "awk-BEGIN-only-no-input-read"
+argv = ["awk", "BEGIN{print 1+1}"]
+tags = ["control"]
+stdin = "this is never read\n"
+
+[[case]]
+id = "awk-END-count-lines"
+argv = ["awk", "END{print NR}"]
+tags = ["control"]
+stdin = "a\nb\nc\n"
+
+[[case]]
+id = "awk-END-keeps-last-record"
+argv = ["awk", "END{print $0, NF}"]
+tags = ["control"]
+stdin = "a b\nlast line here\n"
+
+[[case]]
+id = "awk-next"
+argv = ["awk", "/skip/{next} {print}"]
+tags = ["control"]
+stdin = "keep 1\nskip 2\nkeep 3\n"
+
+[[case]]
+id = "awk-exit-code-begin"
+argv = ["awk", "BEGIN{exit 3}"]
+tags = ["control", "exit"]
+
+[[case]]
+id = "awk-exit-in-main-runs-END"
+argv = ["awk", "{print; exit} END{print \"end\"}"]
+tags = ["control", "exit"]
+stdin = "a\nb\n"
+
+[[case]]
+id = "awk-exit-in-END-overrides"
+argv = ["awk", "{exit 2} END{exit}"]
+tags = ["control", "exit"]
+stdin = "a\n"
+
+[[case]]
+id = "awk-if-else"
+argv = ["awk", '{if ($2 >= 30) print $1, "senior"; else if ($2 >= 26) print $1, "mid"; else print $1, "junior"}']
+tags = ["control"]
+stdin = "alice 30\nbob 25\ndave 28\n"
+
+[[case]]
+id = "awk-ternary"
+argv = ["awk", '{print $1, ($2 > 30 ? "old" : "young")}']
+tags = ["control"]
+stdin = "alice 30\ncarol 35\n"
+
+[[case]]
+id = "awk-while-loop"
+argv = ["awk", "BEGIN{i=1; while(i<=5){s+=i; i++} print s, i}"]
+tags = ["control"]
+
+[[case]]
+id = "awk-do-while"
+argv = ["awk", "BEGIN{i=10; do {print i; i++} while (i < 3)}"]
+tags = ["control"]
+
+[[case]]
+id = "awk-for-reverse-fields"
+argv = ["awk", '{for (i=NF; i>0; i--) printf "%s%s", $i, (i>1 ? OFS : ORS)}']
+tags = ["control", "fields"]
+stdin = "a b c\n1 2\n"
+
+[[case]]
+id = "awk-break-continue"
+argv = ["awk", "BEGIN{for (i=1; i<=10; i++) {if (i%2) continue; if (i>8) break; printf \"%d \", i} print \"\"}"]
+tags = ["control"]
+
+[[case]]
+id = "awk-dedupe-seen"
+argv = ["awk", "!seen[$0]++"]
+tags = ["patterns", "arrays"]
+stdin = "b\na\nb\nc\na\n"
+
+[[case]]
+id = "awk-dedupe-by-field"
+argv = ["awk", "!seen[$1]++ {print $2}"]
+tags = ["patterns", "arrays"]
+stdin = "x 1\ny 2\nx 3\n"
+
+[[case]]
+id = "awk-length-pattern"
+argv = ["awk", "length > 5"]
+tags = ["patterns", "strings"]
+stdin = "short\nlonger line\nabcdef\n"
+
+[[case]]
+id = "awk-regex-dynamic-var"
+argv = ["awk", "-v", "pat=^b", "$0 ~ pat"]
+tags = ["patterns", "regex", "cli"]
+stdin = "apple\nbanana\nblueberry\ncherry\n"
+
+[[case]]
+id = "awk-regex-string-match-op"
+argv = ["awk", 'BEGIN{if ("abc" ~ "b") print "yes"; if ("abc" ~ /^b/) print "no"; else print "anchored"}']
+tags = ["regex"]
+
+[[case]]
+id = "awk-getline-advances"
+argv = ["awk", 'NR==1{getline; print "after getline:", $0, NR}']
+tags = ["getline", "control"]
+stdin = "one\ntwo\nthree\n"
+
+[[case]]
+id = "awk-getline-var-pairs"
+argv = ["awk", '{getline nxt; print $0 "+" nxt}']
+tags = ["getline"]
+stdin = "a\nb\nc\nd\n"
+
+[[case]]
+id = "awk-switch"
+argv = ["awk", '{switch ($1) {case "a": print "is a"; break; case /^b/: print "starts b"; break; default: print "other"}}']
+tags = ["control", "gawk-ext"]
+stdin = "a\nbx\nz\n"
+
+[[case]]
+id = "awk-nextfile"
+argv = ["awk", 'FNR==2{nextfile} {print FILENAME, $0}', "a.txt", "b.txt"]
+tags = ["control", "files"]
+[case.files]
+"a.txt" = "a1\na2\na3\n"
+"b.txt" = "b1\nb2\n"
+
+[[case]]
+id = "awk-BEGINFILE-ENDFILE"
+argv = ["awk", 'BEGINFILE{print ">", FILENAME} ENDFILE{print "<", FILENAME, FNR}', "a.txt", "b.txt"]
+tags = ["control", "files", "gawk-ext"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\n"
+
+[[case]]
+id = "awk-IGNORECASE"
+argv = ["awk", "BEGIN{IGNORECASE=1} /error/"]
+tags = ["patterns", "gawk-ext"]
+stdin = "ERROR one\nwarn\nError two\n"
+
+[[case]]
+id = "awk-logical-ops"
+argv = ["awk", "BEGIN{print (1 && 0), (1 || 0), !0, !1, !\"\", !\"a\", (\"\" || 0)}"]
+tags = ["control", "numeric"]
+
+[[case]]
+id = "awk-in-operator-condition"
+argv = ["awk", 'BEGIN{a["k"]; if ("k" in a) print "has k"; if (!("z" in a)) print "no z"}']
+tags = ["arrays", "control"]
+
+[[case]]
+id = "awk-comments-and-newlines"
+argv = ["awk", '''
+# programa em várias linhas
+BEGIN {
+    total = 0   # acumulador
+}
+{
+    total += $1
+}
+END {
+    print "total:", total
+}
+''']
+tags = ["control"]
+stdin = "1\n2\n3\n"
+
+[[case]]
+id = "awk-semicolons-and-empty-statements"
+argv = ["awk", "BEGIN { ; x = 1 ;; print x ; }"]
+tags = ["control"]

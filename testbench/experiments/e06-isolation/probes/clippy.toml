@@ -1,0 +1,76 @@
+# Configuração de isolamento proposta pro crate `userland` no design v1: nada de I/O do host no
+# código de userland. O clippy não aceita curinga de módulo (`std::fs::*`), então cada função e tipo
+# é listado. Vale pra todo crate desta pasta que o `cargo clippy` lintar (os membros do workspace).
+
+disallowed-methods = [
+    # std::fs
+    { path = "std::fs::read", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::read_to_string", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::write", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::read_dir", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::metadata", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::symlink_metadata", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::read_link", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::canonicalize", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::create_dir", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::create_dir_all", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::remove_file", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::remove_dir", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::remove_dir_all", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::rename", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::copy", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::hard_link", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::set_permissions", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::exists", reason = "userland não acessa o FS do host" },
+    # std::process
+    { path = "std::process::exit", reason = "userland não encerra o processo host" },
+    { path = "std::process::abort", reason = "userland não encerra o processo host" },
+    { path = "std::process::id", reason = "userland não enxerga o pid do host" },
+    # std::net
+    { path = "std::net::TcpStream::connect", reason = "userland não abre socket no host" },
+    { path = "std::net::TcpStream::connect_timeout", reason = "userland não abre socket no host" },
+    { path = "std::net::TcpListener::bind", reason = "userland não abre socket no host" },
+    { path = "std::net::UdpSocket::bind", reason = "userland não abre socket no host" },
+    # std::env
+    { path = "std::env::var", reason = "userland usa o ambiente do pseudo-processo" },
+    { path = "std::env::var_os", reason = "userland usa o ambiente do pseudo-processo" },
+    { path = "std::env::vars", reason = "userland usa o ambiente do pseudo-processo" },
+    { path = "std::env::vars_os", reason = "userland usa o ambiente do pseudo-processo" },
+    { path = "std::env::set_var", reason = "userland usa o ambiente do pseudo-processo" },
+    { path = "std::env::remove_var", reason = "userland usa o ambiente do pseudo-processo" },
+    { path = "std::env::args", reason = "userland recebe argv do Ctx" },
+    { path = "std::env::args_os", reason = "userland recebe argv do Ctx" },
+    { path = "std::env::current_dir", reason = "userland usa o cwd do pseudo-processo" },
+    { path = "std::env::set_current_dir", reason = "userland usa o cwd do pseudo-processo" },
+    { path = "std::env::home_dir", reason = "userland usa o ambiente do pseudo-processo" },
+    { path = "std::env::temp_dir", reason = "userland usa o ambiente do pseudo-processo" },
+    { path = "std::env::current_exe", reason = "userland não enxerga o binário do host" },
+    # std::io (stdio do host)
+    { path = "std::io::stdout", reason = "userland escreve no fd 1 do pseudo-processo" },
+    { path = "std::io::stderr", reason = "userland escreve no fd 2 do pseudo-processo" },
+    { path = "std::io::stdin", reason = "userland lê o fd 0 do pseudo-processo" },
+]
+
+disallowed-types = [
+    { path = "std::fs::File", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::OpenOptions", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::DirBuilder", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::ReadDir", reason = "userland não acessa o FS do host" },
+    { path = "std::fs::DirEntry", reason = "userland não acessa o FS do host" },
+    { path = "std::process::Command", reason = "userland não cria processo no host" },
+    { path = "std::process::Child", reason = "userland não cria processo no host" },
+    { path = "std::net::TcpStream", reason = "userland não abre socket no host" },
+    { path = "std::net::TcpListener", reason = "userland não abre socket no host" },
+    { path = "std::net::UdpSocket", reason = "userland não abre socket no host" },
+    { path = "std::io::Stdout", reason = "userland escreve no fd 1 do pseudo-processo" },
+    { path = "std::io::Stderr", reason = "userland escreve no fd 2 do pseudo-processo" },
+    { path = "std::io::Stdin", reason = "userland lê o fd 0 do pseudo-processo" },
+]
+
+disallowed-macros = [
+    { path = "std::print", reason = "userland escreve no fd 1 do pseudo-processo" },
+    { path = "std::println", reason = "userland escreve no fd 1 do pseudo-processo" },
+    { path = "std::eprint", reason = "userland escreve no fd 2 do pseudo-processo" },
+    { path = "std::eprintln", reason = "userland escreve no fd 2 do pseudo-processo" },
+    { path = "std::dbg", reason = "userland escreve no fd 2 do pseudo-processo" },
+]

@@ -1,0 +1,140 @@
+tool = "wc"
+source = "agent-style"
+
+[[case]]
+id = "wc-default"
+argv = ["wc", "in.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"in.txt" = "uma linha\nduas palavras aqui\n\n"
+
+[[case]]
+id = "wc-l"
+argv = ["wc", "-l", "in.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "wc-l-no-trailing-newline"
+argv = ["wc", "-l", "in.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"in.txt" = "a\nb"
+
+[[case]]
+id = "wc-w"
+argv = ["wc", "-w", "in.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"in.txt" = "  um\tdois\n três  "
+
+[[case]]
+id = "wc-c"
+argv = ["wc", "-c", "in.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"in.txt" = "ação\n"
+
+[[case]]
+id = "wc-m"
+argv = ["wc", "-m", "in.txt"]
+tags = ["wc", "ported", "utf8"]
+[case.files]
+"in.txt" = "ação\n"
+
+[[case]]
+id = "wc-L"
+argv = ["wc", "-L", "in.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"in.txt" = "curta\numa linha bem mais longa\n\tx\n"
+
+[[case]]
+id = "wc-multi-total"
+argv = ["wc", "-l", "a.txt", "b.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"a.txt" = "1\n2\n"
+"b.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n"
+
+[[case]]
+id = "wc-multi-default"
+argv = ["wc", "a.txt", "b.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"a.txt" = "um dois\n"
+"b.txt" = "três\n"
+
+[[case]]
+id = "wc-stdin"
+argv = ["wc", "-l"]
+stdin = "a\nb\n"
+tags = ["wc", "ported", "stdin"]
+
+[[case]]
+id = "wc-stdin-default"
+argv = ["wc"]
+stdin = "a b\nc\n"
+tags = ["wc", "ported", "stdin"]
+
+[[case]]
+id = "wc-missing"
+argv = ["wc", "-l", "a.txt", "nope.txt"]
+tags = ["wc", "ported", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "wc-dir"
+argv = ["wc", "d"]
+tags = ["wc", "ported", "errno"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "wc-empty"
+argv = ["wc", "empty.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"empty.txt" = ""
+
+[[case]]
+id = "wc-lwc-order"
+argv = ["wc", "-c", "-l", "in.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"in.txt" = "a b\n"
+
+[[case]]
+id = "wc-total-never"
+argv = ["wc", "-l", "--total=never", "a.txt", "b.txt"]
+tags = ["wc", "ported"]
+[case.files]
+"a.txt" = "1\n"
+"b.txt" = "1\n2\n"
+
+[[case]]
+id = "wc-files0-from"
+argv = ["wc", "-l", "--files0-from=list"]
+tags = ["wc", "ported"]
+[case.files]
+"list" = { content_b64 = "YS50eHQAYi50eHQA" }
+"a.txt" = "1\n"
+"b.txt" = "1\n2\n"
+
+[[case]]
+id = "wc-binary"
+argv = ["wc", "bin.dat"]
+tags = ["wc", "ported", "binary"]
+[case.files]
+"bin.dat" = { content_b64 = "AAEC/4CBf0EKIAo=" }
+
+[[case]]
+id = "wc-pipeline-find"
+script = "find . -name '*.py' | wc -l"
+tags = ["wc", "pipeline"]
+[case.files]
+"a.py" = ""
+"b/c.py" = ""
+"b/d.txt" = ""

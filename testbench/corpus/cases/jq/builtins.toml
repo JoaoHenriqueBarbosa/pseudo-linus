@@ -1,0 +1,438 @@
+tool = "jq"
+source = "agent-style"
+
+# Builtins mais usados por agentes: strings, regex (Oniguruma), datas, caminhos, entradas, ordenação, geradores.
+
+[[case]]
+id = "jq-select-map"
+argv = ["jq", "-c", "map(select(.age > 26) | .name), [.[] | select(.tags | index(\"dev\"))] | length"]
+tags = ["basics"]
+stdin = '[{"name":"a","age":30,"tags":["dev"]},{"name":"b","age":25,"tags":[]},{"name":"c","age":35,"tags":["ops","dev"]}]'
+
+[[case]]
+id = "jq-object-construction"
+argv = ["jq", "-c", "{name, id: .id, (.k): .v, \"lit\": 1, $__loc__, \"x\\(.id)\": true}"]
+tags = ["basics"]
+stdin = '{"name":"n","id":7,"k":"dyn","v":[1]}'
+
+[[case]]
+id = "jq-object-construction-multi"
+argv = ["jq", "-c", "{a: (1,2), b: (3,4)}"]
+tags = ["basics", "generators"]
+stdin = "null"
+
+[[case]]
+id = "jq-update-assign-ops"
+argv = ["jq", "-c", ".a |= . + 1 | .b = 2 | .c += 3 | .d //= \"dflt\" | .e *= 2 | .list[] |= . * 10 | .missing.deep = 1"]
+tags = ["update"]
+stdin = '{"a":1,"c":1,"e":5,"list":[1,2]}'
+
+[[case]]
+id = "jq-update-with-empty"
+argv = ["jq", "-c", "(.[] | select(. > 2)) |= empty"]
+tags = ["update"]
+stdin = "[1, 5, 2, 7, 3]"
+
+[[case]]
+id = "jq-map-values-with-entries"
+argv = ["jq", "-c", "map_values(. + 1), with_entries(.key |= ascii_upcase), to_entries, (to_entries | from_entries)"]
+tags = ["entries"]
+stdin = '{"a":1,"b":2}'
+
+[[case]]
+id = "jq-from-entries-variants"
+argv = ["jq", "-c", "from_entries"]
+tags = ["entries"]
+stdin = '[{"key":"a","value":1},{"name":"c","value":3},{"Name":"N","value":4},{"key":"d"},{"key":"e","v":5},{"name":"f","Value":6}]'
+
+[[case]]
+id = "jq-from-entries-null-key"
+argv = ["jq", "-c", "from_entries"]
+tags = ["entries", "errors"]
+stdin = '[{"key":null,"value":4}]'
+
+[[case]]
+id = "jq-paths-getpath-setpath"
+argv = ["jq", "-c", "[paths], [paths(type == \"number\")], getpath([\"a\",\"b\"]), getpath([\"x\",\"y\"]), setpath([\"a\",\"c\"]; 9), delpaths([[\"a\",\"b\"]])"]
+tags = ["paths"]
+stdin = '{"a":{"b":1,"l":[2,"s"]}}'
+
+[[case]]
+id = "jq-leaf-paths-removed"
+argv = ["jq", "-c", "[leaf_paths]"]
+tags = ["paths", "builtins-set"]
+stdin = '{"a":{"b":1}}'
+
+[[case]]
+id = "jq-del-variants"
+argv = ["jq", "-c", "del(.users[0]), del(.users[] | select(.n == \"b\")), del(.meta, .users), del(.[\"meta\"].x)"]
+tags = ["paths"]
+stdin = '{"users":[{"n":"a"},{"n":"b"},{"n":"c"}],"meta":{"x":1,"y":2}}'
+
+[[case]]
+id = "jq-path-expression"
+argv = ["jq", "-c", "path(.a[0].b), [path(..)], (try path(1) catch .)"]
+tags = ["paths"]
+stdin = '{"a":[{"b":1}]}'
+
+[[case]]
+id = "jq-tostream-fromstream"
+argv = ["jq", "-c", "[tostream], fromstream(tostream), (. as $d | [1 | truncate_stream($d | tostream)])"]
+tags = ["paths"]
+stdin = '{"a":[1,{"b":2}]}'
+
+[[case]]
+id = "jq-recurse-variants"
+argv = ["jq", "-c", "[.. | numbers], [recurse(.children[]?) | .id], [recurse(if . < 3 then . + 1 else empty end; . < 10)]"]
+tags = ["paths", "generators"]
+stdin = '{"id":1,"children":[{"id":2,"children":[]},{"id":3}]}'
+
+[[case]]
+id = "jq-group-by"
+argv = ["jq", "-c", "group_by(.dept) | map({dept: .[0].dept, n: length, total: (map(.sal) | add)})"]
+tags = ["sort"]
+stdin = '[{"dept":"eng","sal":10},{"dept":"ops","sal":5},{"dept":"eng","sal":7},{"dept":null,"sal":1}]'
+
+[[case]]
+id = "jq-unique-by-sort-by"
+argv = ["jq", "-c", "unique_by(.k), sort_by(.v), sort_by(.k, -.v), (map(.k) | unique), min_by(.v), max_by(.v)"]
+tags = ["sort"]
+stdin = '[{"k":"b","v":2},{"k":"a","v":3},{"k":"b","v":1},{"k":"a","v":0}]'
+
+[[case]]
+id = "jq-sort-mixed-types"
+argv = ["jq", "-c", "sort, (map(type)), ([.[] | tostring] | sort)"]
+tags = ["sort"]
+stdin = '[{"b":1}, {"a":2}, [2], [1,3], "b", "B", "a", 10, 2, 1.5, true, false, null]'
+
+[[case]]
+id = "jq-sort-stability-and-strings"
+argv = ["jq", "-c", "sort_by(.n), (map(.s) | sort)"]
+tags = ["sort"]
+stdin = '[{"n":1,"s":"é"},{"n":0,"s":"z"},{"n":1,"s":"E"},{"n":0,"s":"ä"}]'
+
+[[case]]
+id = "jq-min-max-add-empty"
+argv = ["jq", "-c", "-n", "[] | [min, max, add, (.[0]), length]"]
+tags = ["sort", "basics"]
+
+[[case]]
+id = "jq-limit-first-last-nth"
+argv = ["jq", "-c", "-n", "[limit(3; range(10))], first(range(10)), last(range(10)), nth(2; range(10)), [limit(0; 1, 2)], ([range(5)] | first, last, nth(1))"]
+tags = ["generators"]
+
+[[case]]
+id = "jq-until-while-repeat"
+argv = ["jq", "-c", "-n", "[1 | while(. < 100; . * 2)], (1 | until(. > 100; . * 2)), [1 | limit(5; repeat(. * 2))]"]
+tags = ["generators"]
+
+[[case]]
+id = "jq-range-variants"
+argv = ["jq", "-c", "-n", "[range(5)], [range(2; 10; 3)], [range(5; 0; -2)], [range(0; 1; 0.25)], [range(3; 1)]"]
+tags = ["generators"]
+
+[[case]]
+id = "jq-reduce-foreach"
+argv = ["jq", "-c", "reduce .[] as $x (0; . + $x), [foreach .[] as $x (0; . + $x)], [foreach .[] as $x (0; . + $x; [$x, .])], reduce empty as $x (7; . + 1)"]
+tags = ["generators"]
+stdin = "[1, 2, 3, 4]"
+
+[[case]]
+id = "jq-label-break"
+argv = ["jq", "-c", "[label $out | foreach .[] as $x (0; . + $x; if . > 3 then ., break $out else . end)]"]
+tags = ["generators"]
+stdin = "[1, 2, 3, 4]"
+
+[[case]]
+id = "jq-def-functions"
+argv = ["jq", "-c", "def double(f): f * 2; def fac: if . <= 1 then 1 else . * (. - 1 | fac) end; def add3($a; $b; c): $a + $b + c; [double(.a), (10 | fac), add3(1; 2; 3), (20 | fac)]"]
+tags = ["defs"]
+stdin = '{"a": 21}'
+
+[[case]]
+id = "jq-destructuring"
+argv = ["jq", "-c", ". as [$a, {b: $c, $d}] | [$a, $c, $d], (.[] as [$x, $y] ?// $x | [$x, $y])"]
+tags = ["defs"]
+stdin = '[1, {"b": 2, "d": 3}, [4, 5]]'
+
+[[case]]
+id = "jq-string-ops"
+argv = ["jq", "-c", "[ltrimstr(\"foo\"), rtrimstr(\".txt\"), startswith(\"foo\"), endswith(\"txt\"), ascii_downcase, ascii_upcase, length, utf8bytelength, explode[0:3], (explode | implode), (. / \".\"), (\"ab\" * 3), (\"x\" * 0), split(\"o\")]"]
+tags = ["strings"]
+stdin = '"fooBár.txt"'
+
+[[case]]
+id = "jq-ltrimstr-nonstring"
+argv = ["jq", "-c", "[.[] | ltrimstr(\"a\")]"]
+tags = ["strings"]
+stdin = '["abc", 1, null, "bca"]'
+
+[[case]]
+id = "jq-join-variants"
+argv = ["jq", "-c", "join(\", \"), (map(tostring) | join(\"-\")), ([] | join(\",\"))"]
+tags = ["strings"]
+stdin = '["a", 1, null, true]'
+
+[[case]]
+id = "jq-string-slices-indices"
+argv = ["jq", "-c", ".[2:4], .[-3:], .[:2], indices(\"an\"), index(\"an\"), rindex(\"an\"), (explode | .[1:2] | implode)"]
+tags = ["strings"]
+stdin = '"bananas"'
+
+[[case]]
+id = "jq-array-ops"
+argv = ["jq", "-c", ".[2:4], .[-2:], (. - [2, 3]), (. | index(3)), indices(3), (. | contains([1, 4])), ([1] | inside([1, 2])), flatten, ([[1, [2]], 3] | flatten(1)), reverse, any, all, ([] | any, all)"]
+tags = ["arrays"]
+stdin = "[1, 2, 3, 4, 3]"
+
+[[case]]
+id = "jq-has-in-contains"
+argv = ["jq", "-c", "[has(\"a\"), has(\"z\"), (\"a\" | in({\"a\":1})), contains({\"b\": {\"c\": \"x\"}}), (\"foobar\" | contains(\"bar\")), ([.[]?] | length)]"]
+tags = ["basics"]
+stdin = '{"a":1,"b":{"c":"xyz"}}'
+
+[[case]]
+id = "jq-type-predicates"
+argv = ["jq", "-c", "map(type), [.[] | numbers], [.[] | strings], [.[] | iterables], [.[] | scalars], [.[] | booleans], [.[] | nulls], [.[] | objects], [.[] | arrays]"]
+tags = ["basics"]
+stdin = '[1, "a", null, true, [1], {"a":1}]'
+
+[[case]]
+id = "jq-tojson-fromjson"
+argv = ["jq", "-c", "tojson, (tojson | fromjson), (\"[1,\\\"x\\\"]\" | fromjson), ([1.10, 100000000000000000000] | tojson)"]
+tags = ["strings", "numbers"]
+stdin = '{"a":[1,"é",null]}'
+
+[[case]]
+id = "jq-fromjson-invalid"
+argv = ["jq", "-c", "fromjson"]
+tags = ["strings", "errors"]
+stdin = '"{bad"'
+
+[[case]]
+id = "jq-string-interpolation-types"
+argv = ["jq", "-r", "\"n=\\(.n) s=\\(.s) a=\\(.a) o=\\(.o) z=\\(.z) f=\\(.f)\""]
+tags = ["strings"]
+stdin = '{"n":1.0,"s":"x","a":[1,"b"],"o":{"k":null},"f":1.5}'
+
+[[case]]
+id = "jq-ascii-implode-explode"
+argv = ["jq", "-c", "-n", "[65, 66, 233, 128512] | implode, (implode | explode), (\"abc\" | ascii_downcase), ([97] | implode)"]
+tags = ["strings"]
+
+[[case]]
+id = "jq-test-regex"
+argv = ["jq", "-c", "[.[] | test(\"^a.c$\")], [.[] | test(\"ABC\"; \"i\")], [.[] | test(\"a b c\"; \"x\")]"]
+tags = ["regex"]
+stdin = '["abc", "aXc", "ABC", "abcd"]'
+
+[[case]]
+id = "jq-match-object"
+argv = ["jq", "-c", "match(\"(\\\\d+)-(\\\\d+)\"), [match(\"a\"; \"g\") | .offset], (match(\"(?<y>\\\\d{4})\") | .captures[0].name)"]
+tags = ["regex"]
+stdin = '"call 2026-01 and a 12-34 a"'
+
+[[case]]
+id = "jq-capture"
+argv = ["jq", "-c", "capture(\"(?<y>\\\\d{4})-(?<m>\\\\d{2})(-(?<d>\\\\d{2}))?\"), [capture(\"(?<n>[a-z]+)=(?<v>\\\\d+)\"; \"g\")]"]
+tags = ["regex"]
+stdin = '"date 2026-01 a=1 bb=22"'
+
+[[case]]
+id = "jq-sub-gsub"
+argv = ["jq", "-c", "sub(\"o\"; \"0\"), gsub(\"o\"; \"0\"), gsub(\"\\\\s+\"; \" \"), sub(\"(?<x>[a-z]+)\"; \"<\\(.x)>\"), gsub(\"(?<c>[aeiou])\"; \"\\(.c | ascii_upcase)\"), gsub(\"O\"; \"_\"; \"i\")"]
+tags = ["regex"]
+stdin = '"foo   boo  zoo"'
+
+[[case]]
+id = "jq-gsub-empty-match"
+argv = ["jq", "-c", "gsub(\"\"; \"-\"), gsub(\"x*\"; \"-\"), [splits(\"\")]"]
+tags = ["regex"]
+stdin = '"abc"'
+
+[[case]]
+id = "jq-splits-split-regex"
+argv = ["jq", "-c", "[splits(\", *\")], split(\", *\"; null), split(\",\"), [splits(\"A\"; \"i\")]"]
+tags = ["regex"]
+stdin = '"a, b,c,  d"'
+
+[[case]]
+id = "jq-scan"
+argv = ["jq", "-c", "[scan(\"\\\\d+\")], [scan(\"(\\\\w)(\\\\d)\")], [scan(\"C\"; \"gi\")]"]
+tags = ["regex"]
+stdin = '"a1 b22 c333"'
+
+[[case]]
+id = "jq-regex-lookaround-backref"
+argv = ["jq", "-c", "[test(\"foo(?=bar)\"), test(\"(?<!x)bar\"), test(\"(o)\\\\1\"), ([match(\"(?<=f)o+\") | .string])]"]
+tags = ["regex", "onig-only"]
+stdin = '"foobar"'
+
+[[case]]
+id = "jq-regex-unicode-classes"
+argv = ["jq", "-c", "[test(\"\\\\p{L}+\"), test(\"^\\\\w+$\"), ([match(\".\"; \"g\")] | length), (match(\"á\") | .offset)]"]
+tags = ["regex", "utf8"]
+stdin = '"çãoá"'
+
+[[case]]
+id = "jq-regex-invalid"
+argv = ["jq", "test(\"(\")"]
+tags = ["regex", "errors"]
+stdin = '"x"'
+
+[[case]]
+id = "jq-strftime-todate"
+argv = ["jq", "-c", "-n", "[0, 1768478400] | map(strftime(\"%Y-%m-%dT%H:%M:%SZ\")), (1768478400 | todate), (1768478400.75 | todate), (1768478400 | strftime(\"%A %B %d %j %U %e %I %p %Z\"))"]
+tags = ["dates"]
+
+[[case]]
+id = "jq-strptime-mktime"
+argv = ["jq", "-c", "-n", "\"2026-01-15T12:00:00Z\" | strptime(\"%Y-%m-%dT%H:%M:%SZ\") | ., mktime"]
+tags = ["dates"]
+
+[[case]]
+id = "jq-fromdate-variants"
+argv = ["jq", "-c", "-n", "\"2026-01-15T12:00:00Z\" | fromdate, fromdateiso8601, (try (\"2026-01-15\" | fromdate) catch .)"]
+tags = ["dates"]
+
+[[case]]
+id = "jq-gmtime-dateadd"
+argv = ["jq", "-c", "-n", "1768478400 | gmtime, (gmtime | mktime), (gmtime | todate), (1768478400.5 | gmtime)"]
+tags = ["dates"]
+
+[[case]]
+id = "jq-strptime-custom-format"
+argv = ["jq", "-c", "-n", "\"15/Jan/2026:12:30:45\" | strptime(\"%d/%b/%Y:%H:%M:%S\") | mktime"]
+tags = ["dates"]
+
+[[case]]
+id = "jq-now-type"
+argv = ["jq", "-c", "-n", "now | type, (. > 0)"]
+tags = ["dates"]
+
+[[case]]
+id = "jq-date-localtime-faketime"
+argv = ["jq", "-c", "-n", "now | floor | todate"]
+tags = ["dates"]
+faketime = "2026-01-15 12:00:00"
+
+[[case]]
+id = "jq-splits-on-csv-line"
+argv = ["jq", "-R", "-c", "split(\",\") | {name: .[0], qty: (.[1] | tonumber)}"]
+tags = ["strings", "cli"]
+stdin = "apple,3\npear,10\n"
+
+[[case]]
+id = "jq-getpath-paths-leaf-update"
+argv = ["jq", "-c", "reduce paths(numbers) as $p (.; setpath($p; getpath($p) * 10))"]
+tags = ["paths", "update"]
+stdin = '{"a":1,"b":{"c":2,"d":"x"},"e":[3]}'
+
+[[case]]
+id = "jq-env-in-filter"
+argv = ["jq", "-r", "-n", "env.MY_VAR // \"unset\""]
+tags = ["vars"]
+[case.env]
+MY_VAR = "set!"
+
+[[case]]
+id = "jq-splits-null-input"
+argv = ["jq", "-c", "try split(\",\") catch ."]
+tags = ["strings", "errors"]
+stdin = "null"
+
+[[case]]
+id = "jq-ascii-builtin"
+argv = ["jq", "-c", "-n", "[65, 97] | map(ascii)"]
+tags = ["strings", "builtins-set"]
+
+[[case]]
+id = "jq-getpath-invalid"
+argv = ["jq", "-c", "getpath([\"a\", 0])"]
+tags = ["paths", "errors"]
+stdin = '{"a":{"b":1}}'
+
+[[case]]
+id = "jq-significand-and-friends"
+argv = ["jq", "-c", "-n", "[8 | significand, logb, gamma, frexp, (ldexp(3; 2)), (10 | log10), (2 | exp2), (1.5 | trunc)]"]
+tags = ["math"]
+
+[[case]]
+id = "jq-splits-and-tostring-object"
+argv = ["jq", "-r", "tostring, (.a | tostring), ([.a] | tostring)"]
+tags = ["strings"]
+stdin = '{"a":"x","b":[1,2.0]}'
+
+[[case]]
+id = "jq-input-in-reduce-with-limit"
+argv = ["jq", "-nc", "[limit(2; inputs)], input"]
+tags = ["inputs", "generators"]
+stdin = "1 2 3 4"
+
+[[case]]
+id = "jq-getpath-on-arrays-negative"
+argv = ["jq", "-c", ".[-1], .[-10], .[1.7], (try .[\"a\"] catch .)"]
+tags = ["arrays", "errors"]
+stdin = "[1, 2, 3]"
+
+[[case]]
+id = "jq-implicit-object-merge"
+argv = ["jq", "-c", ". * {\"a\": {\"c\": 3}}, (. + {\"a\": 1}), ([.[]] | add)"]
+tags = ["basics"]
+stdin = '{"a":{"b":1},"z":{"y":2}}'
+
+[[case]]
+id = "jq-isvalid-and-error-fn"
+argv = ["jq", "-c", "[.[] | (try (if . > 1 then error(\"big\") else . end) catch \"caught: \\(.)\")]"]
+tags = ["errors"]
+stdin = "[1, 2]"
+
+[[case]]
+id = "jq-splits-tojson-precision"
+argv = ["jq", "-c", "map(tojson), map(tostring)"]
+tags = ["numbers"]
+stdin = "[3.0, 1.1, 0.30000000000000004, 1e-5, 12345678912345678]"
+
+[[case]]
+id = "jq-in-place-like-walk"
+argv = ["jq", "-c", "walk(if type == \"string\" then ascii_upcase else . end)"]
+tags = ["paths"]
+stdin = '{"a":["x",{"b":"y"}],"c":1}'
+
+[[case]]
+id = "jq-getpath-input-with-dash-keys"
+argv = ["jq", "-r", ".[\"my-key\"], .\"other-key\", .\"$weird\""]
+tags = ["basics"]
+stdin = '{"my-key":"v1","other-key":"v2","$weird":"v3"}'
+
+[[case]]
+id = "jq-optional-iteration-on-object-values"
+argv = ["jq", "-c", "[.[]], [to_entries[] | \"\\(.key)=\\(.value)\"], keys"]
+tags = ["entries"]
+stdin = '{"b":2,"a":1}'
+
+[[case]]
+id = "jq-splits-limit-negative"
+argv = ["jq", "-c", "-n", "[limit(-1; 1, 2)]"]
+tags = ["generators"]
+
+[[case]]
+id = "jq-getpath-objects-equality"
+argv = ["jq", "-c", "-n", "[{\"a\":1,\"b\":2} == {\"b\":2,\"a\":1}, 1 == 1.0, [1,[2]] < [1,[3]], {} < [], \"a\" < \"B\", null < false]"]
+tags = ["sort"]
+
+[[case]]
+id = "jq-tojson-ascii-control"
+argv = ["jq", "-r", "@json"]
+tags = ["format-strings"]
+stdin = '{"s":"\u0000\u001f\u007f\u00ff"}'
+
+[[case]]
+id = "jq-heavy-but-finite"
+argv = ["jq", "-n", "[range(200000)] | map(. * 2) | add"]
+tags = ["perf"]
+
+[[case]]
+id = "jq-deep-recursion"
+argv = ["jq", "-n", "def f: if . < 10000 then . + 1 | f else . end; 0 | f"]
+tags = ["perf", "defs"]

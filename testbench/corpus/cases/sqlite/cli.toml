@@ -1,0 +1,115 @@
+tool = "sqlite"
+source = "agent-style"
+
+# Comportamento que é do CLI `sqlite3`, não do motor: flags, comandos de ponto, modos de saída,
+# criação do arquivo, comentários, `-bail`. Os modos csv/json/column ficam aqui pra medir o que uma
+# camada mínima (só modo list) deixa de fora.
+
+[[case]]
+id = "sqlite-cli-header-flag"
+argv = ["sqlite3", "-header", "db.sqlite", '''CREATE TABLE t(a, b); INSERT INTO t VALUES (1, 'x'); SELECT * FROM t; SELECT 1 AS one, 2; SELECT * FROM t WHERE 0;''']
+tags = ["cli", "header", "argv"]
+
+[[case]]
+id = "sqlite-cli-separator-flag"
+argv = ["sqlite3", "-separator", ",", "db.sqlite", '''SELECT 1, 'a b', NULL, 2.5;''']
+tags = ["cli", "argv"]
+
+[[case]]
+id = "sqlite-cli-dot-tables-schema"
+stdin = '''
+CREATE TABLE zeta(x);
+CREATE TABLE alpha(id INTEGER PRIMARY KEY, name TEXT);
+CREATE INDEX alpha_name ON alpha(name);
+CREATE VIEW v AS SELECT name FROM alpha;
+.tables
+.schema alpha
+.schema
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "dot", "stdin"]
+
+[[case]]
+id = "sqlite-cli-dot-headers"
+stdin = '''
+.headers on
+SELECT 1 AS a, 'x' AS b;
+.headers off
+SELECT 2 AS a;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "dot", "header", "stdin"]
+
+[[case]]
+id = "sqlite-cli-select-does-not-write-file"
+argv = ["sqlite3", "db.sqlite", '''SELECT 1;''']
+tags = ["cli", "file", "argv"]
+
+[[case]]
+id = "sqlite-cli-memory-database"
+argv = ["sqlite3", ":memory:", '''CREATE TABLE t(x); INSERT INTO t VALUES (7); SELECT * FROM t;''']
+tags = ["cli", "memory", "argv"]
+
+[[case]]
+id = "sqlite-cli-no-database-arg"
+stdin = '''
+SELECT 6 * 7;
+'''
+argv = ["sqlite3"]
+tags = ["cli", "memory", "stdin"]
+
+[[case]]
+id = "sqlite-cli-multiple-sql-args"
+argv = ["sqlite3", "db.sqlite", "CREATE TABLE t(x)", "INSERT INTO t VALUES (1), (2)", "SELECT sum(x) FROM t"]
+tags = ["cli", "argv"]
+
+[[case]]
+id = "sqlite-cli-comments-empty-statements"
+stdin = '''
+-- comentário de linha
+SELECT 1; -- depois do comando
+/* bloco
+   de várias linhas */ SELECT 2;;
+;
+SELECT '-- não é comentário', '/* nem isto */';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "comments", "stdin"]
+
+[[case]]
+id = "sqlite-cli-newline-in-value"
+argv = ["sqlite3", "db.sqlite", '''SELECT 'a' || char(10) || 'b', 'c|d';''']
+tags = ["cli", "argv"]
+
+[[case]]
+id = "sqlite-cli-bail"
+stdin = '''
+SELECT 1;
+SELECT * FROM missing;
+SELECT 2;
+'''
+argv = ["sqlite3", "-bail", "db.sqlite"]
+tags = ["cli", "error", "stdin"]
+
+[[case]]
+id = "sqlite-cli-readonly"
+stdin = '''
+CREATE TABLE t(x);
+'''
+argv = ["sqlite3", "-readonly", "db.sqlite"]
+tags = ["cli", "error", "stdin"]
+
+[[case]]
+id = "sqlite-cli-mode-csv"
+argv = ["sqlite3", "-csv", "-header", "db.sqlite", '''SELECT 1 AS a, 'x,y' AS b, 'say "hi"' AS c, NULL AS d;''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-cli-mode-json"
+argv = ["sqlite3", "-json", "db.sqlite", '''SELECT 1 AS a, 'x' AS b, NULL AS c, 2.5 AS d;''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-cli-mode-column"
+argv = ["sqlite3", "-column", "-header", "db.sqlite", '''SELECT 1 AS id, 'alpha' AS name UNION ALL SELECT 22, 'b';''']
+tags = ["cli", "cli-mode", "argv"]

@@ -1,0 +1,114 @@
+{
+  "echo-flags": {
+    "stdout": "sem-nl\na\tb\nc\na\\tb\n-- -n\nx\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "here-string-forms": {
+    "stdout": "MINúSCULAS ASCII\nprimeiro|segundo terceiro\n1\n42\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "heredoc-expand": {
+    "stdout": "olá agente\nsoma 5\ncmd sub\nliteral $user e `crase`\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "heredoc-in-function-and-loop": {
+    "stdout": "item-1\nitem-2\nitem-3\n<x y>\n<z>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "heredoc-multiple-same-line": {
+    "stdout": "a1\ta2\ndepois\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "heredoc-python-style-agent": {
+    "stdout": "args: um dois\nargs: três\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "script.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 46,
+        "sha256": "ef8e8527c930cc2132740b9c3c9597f6534ef96a14fd4cdfee47f340b579aba0",
+        "data": "#!/bin/bash\nset -euo pipefail\necho \"args: $*\"\n"
+      }
+    }
+  },
+  "heredoc-quoted-delim": {
+    "stdout": "nada expande: $HOME $(whoami) `id` $((1+1))\nbarra \\n fica\ntambém $HOME\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "heredoc-strip-tabs": {
+    "stdout": "com tab\nsem tab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "heredoc-to-file-and-pipe": {
+    "stdout": "LINHA UM\nLINHA DOIS\n30\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "config.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "4e1349e68a08b752808a2e08a0b18ad0df1070d813e3ba484a1b544ead1f5adb",
+        "data": "{\"name\": \"app\", \"port\": 8080}\n"
+      }
+    }
+  },
+  "printf-errors": {
+    "stdout": "0\nrc=1\n12\nrc=1\n",
+    "stderr": "bash: line 1: printf: abc: invalid number\nbash: line 3: printf: 12abc: invalid number\n",
+    "exit": 0,
+    "files": {}
+  },
+  "printf-formats": {
+    "stdout": "   ab|cd   |00042|ff|10|1.234500e+03\n3.14 2 abc\na\tb\nc\nd\na,b,c,\n1 2\n3 0\nhw\n007\npadrão\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "printf-q-roundtrip": {
+    "stdout": "$'aspas \"duplas\" e \\'simples\\' e $cifrao e tab\\t e nl\\n'\nsimples\ncom\\ espaço\n''\na\\*b\n\\~home\nroundtrip-ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "quote-ansi-c": {
+    "stdout": "tab:\t|\nnl:\n|\nhex:A\noct:A\nuni:é\na'b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "quote-empty-args": {
+    "stdout": "0\n1\n2\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "quote-single-double-mix": {
+    "stdout": "literal $name \"aspas\" expande mundo 'simples'\nbarra \\ cifrão $ crase ` aspas \"\nit's\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "quote-word-splitting": {
+    "stdout": "[a]\n[b]\n[c]\n[a   b    c]\n1-2-3\n3: q\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

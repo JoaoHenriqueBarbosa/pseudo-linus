@@ -1,0 +1,295 @@
+tool = "diff"
+source = "agent-style"
+
+# Empates de alinhamento: o mesmo par de arquivos admite vários scripts de edição de custo mínimo, e o
+# GNU diff escolhe um (Myers com as heurísticas e o deslocamento de fronteiras dele). Aqui se mede se a
+# biblioteca escolhe o mesmo.
+
+[[case]]
+id = "diff-tie-repeated-pair-delete"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["ties", "normal"]
+[case.files]
+"a.txt" = "a\nb\na\nb\na\nb\n"
+"b.txt" = "a\nb\na\nb\n"
+
+[[case]]
+id = "diff-tie-repeated-pair-delete-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["ties", "unified"]
+[case.files]
+"a.txt" = "a\nb\na\nb\na\nb\n"
+"b.txt" = "a\nb\na\nb\n"
+
+[[case]]
+id = "diff-tie-insert-in-run"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["ties", "normal"]
+[case.files]
+"a.txt" = "x\nx\nx\n"
+"b.txt" = "x\nx\nx\nx\n"
+
+[[case]]
+id = "diff-tie-delete-from-run"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["ties", "normal"]
+[case.files]
+"a.txt" = "start\nx\nx\nx\nx\nend\n"
+"b.txt" = "start\nx\nx\nend\n"
+
+[[case]]
+id = "diff-tie-blank-lines-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["ties", "unified"]
+[case.files]
+"a.txt" = "para one\n\n\npara two\n\npara three\n"
+"b.txt" = "para one\n\npara two\n\n\n\npara three\n"
+
+[[case]]
+id = "diff-tie-braces-insert-function"
+argv = ["diff", "-u", "a.c", "b.c"]
+tags = ["ties", "unified", "code"]
+[case.files]
+"a.c" = '''
+int one(void)
+{
+    return 1;
+}
+
+int three(void)
+{
+    return 3;
+}
+'''
+"b.c" = '''
+int one(void)
+{
+    return 1;
+}
+
+int two(void)
+{
+    return 2;
+}
+
+int three(void)
+{
+    return 3;
+}
+'''
+
+[[case]]
+id = "diff-tie-braces-delete-function"
+argv = ["diff", "a.c", "b.c"]
+tags = ["ties", "normal", "code"]
+[case.files]
+"a.c" = '''
+int one(void)
+{
+    return 1;
+}
+
+int two(void)
+{
+    return 2;
+}
+
+int three(void)
+{
+    return 3;
+}
+'''
+"b.c" = '''
+int one(void)
+{
+    return 1;
+}
+
+int three(void)
+{
+    return 3;
+}
+'''
+
+[[case]]
+id = "diff-tie-moved-block"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["ties", "normal"]
+[case.files]
+"a.txt" = "m1\nm2\nm3\nk1\nk2\nk3\nk4\n"
+"b.txt" = "k1\nk2\nk3\nk4\nm1\nm2\nm3\n"
+
+[[case]]
+id = "diff-tie-moved-block-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["ties", "unified"]
+[case.files]
+"a.txt" = "m1\nm2\nk1\nk2\nk3\n"
+"b.txt" = "k1\nk2\nk3\nm1\nm2\n"
+
+[[case]]
+id = "diff-tie-swap-two"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["ties", "normal"]
+[case.files]
+"a.txt" = "first\nsecond\nthird\n"
+"b.txt" = "second\nfirst\nthird\n"
+
+[[case]]
+id = "diff-tie-reverse"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["ties", "normal"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n5\n"
+"b.txt" = "5\n4\n3\n2\n1\n"
+
+[[case]]
+id = "diff-tie-interleaved"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["ties", "normal"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n5\n6\n"
+"b.txt" = "1\n3\n2\n4\n6\n5\n"
+
+[[case]]
+id = "diff-tie-duplicate-anchor"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["ties", "normal"]
+[case.files]
+"a.txt" = "a\nX\nb\nX\nc\n"
+"b.txt" = "a\nb\nX\nc\n"
+
+[[case]]
+id = "diff-tie-abab-baba"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["ties", "normal"]
+[case.files]
+"a.txt" = "a\nb\na\nb\n"
+"b.txt" = "b\na\nb\na\n"
+
+[[case]]
+id = "diff-tie-abc-cab-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["ties", "unified"]
+[case.files]
+"a.txt" = "a\nb\nc\na\nb\nb\na\n"
+"b.txt" = "c\nb\na\nb\na\nc\n"
+
+[[case]]
+id = "diff-tie-python-return"
+argv = ["diff", "-u", "a.py", "b.py"]
+tags = ["ties", "unified", "code"]
+[case.files]
+"a.py" = '''
+def parse(value):
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    return int(value)
+
+
+def render(value):
+    if value is None:
+        return ""
+    return str(value)
+'''
+"b.py" = '''
+def parse(value):
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    if value.startswith("0x"):
+        return int(value, 16)
+    return int(value)
+
+
+def render(value):
+    if value is None:
+        return ""
+    return f"{value}"
+'''
+
+[[case]]
+id = "diff-tie-json-closing"
+argv = ["diff", "-u", "a.json", "b.json"]
+tags = ["ties", "unified", "code"]
+[case.files]
+"a.json" = '''
+{
+  "a": {
+    "x": 1
+  },
+  "b": {
+    "x": 2
+  },
+  "c": {
+    "x": 3
+  }
+}
+'''
+"b.json" = '''
+{
+  "a": {
+    "x": 1
+  },
+  "c": {
+    "x": 3
+  },
+  "d": {
+    "x": 4
+  }
+}
+'''
+
+[[case]]
+id = "diff-tie-markdown-list"
+argv = ["diff", "a.md", "b.md"]
+tags = ["ties", "normal"]
+[case.files]
+"a.md" = "# Lista\n\n- item\n- item\n- outro\n- item\n\nfim\n"
+"b.md" = "# Lista\n\n- item\n- outro\n- item\n- item\n- item\n\nfim\n"
+
+[[case]]
+id = "diff-tie-many-blank-insert-c"
+argv = ["diff", "-c", "a.txt", "b.txt"]
+tags = ["ties", "context"]
+[case.files]
+"a.txt" = "x\n\ny\n\nz\n"
+"b.txt" = "x\n\n\n\ny\n\nz\n\n"
+
+[[case]]
+id = "diff-tie-shell-script-u2"
+argv = ["diff", "-U2", "a.sh", "b.sh"]
+tags = ["ties", "unified", "code"]
+[case.files]
+"a.sh" = '''
+#!/bin/sh
+set -e
+echo start
+fi
+echo middle
+fi
+echo end
+'''
+"b.sh" = '''
+#!/bin/sh
+set -eu
+echo start
+fi
+fi
+echo middle
+echo end
+fi
+'''
+
+[[case]]
+id = "diff-tie-xml-u"
+argv = ["diff", "-u", "a.xml", "b.xml"]
+tags = ["ties", "unified", "code"]
+[case.files]
+"a.xml" = "<a>\n  <b>\n  </b>\n  <b>\n  </b>\n</a>\n"
+"b.xml" = "<a>\n  <b>\n  </b>\n  <c>\n  </c>\n  <b>\n  </b>\n</a>\n"

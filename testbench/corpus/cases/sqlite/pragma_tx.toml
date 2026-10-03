@@ -1,0 +1,166 @@
+tool = "sqlite"
+source = "agent-style"
+
+# PRAGMA comuns, índices e transações.
+
+[[case]]
+id = "sqlite-pragma-table-info"
+stdin = '''
+CREATE TABLE t(id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT 'x', score REAL, ref INTEGER REFERENCES other(id));
+PRAGMA table_info(t);
+PRAGMA table_xinfo(t);
+PRAGMA foreign_key_list(t);
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["pragma", "stdin"]
+
+[[case]]
+id = "sqlite-pragma-indexes"
+stdin = '''
+CREATE TABLE t(a, b, c UNIQUE);
+CREATE INDEX t_ab ON t(a, b DESC);
+CREATE UNIQUE INDEX t_b ON t(b) WHERE b IS NOT NULL;
+PRAGMA index_list(t);
+PRAGMA index_info(t_ab);
+PRAGMA index_xinfo(t_b);
+SELECT type, name, tbl_name FROM sqlite_schema ORDER BY name;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["pragma", "index", "stdin"]
+
+[[case]]
+id = "sqlite-pragma-settings"
+stdin = '''
+PRAGMA user_version;
+PRAGMA user_version = 7;
+PRAGMA user_version;
+PRAGMA application_id = 42;
+PRAGMA application_id;
+PRAGMA foreign_keys;
+PRAGMA encoding;
+PRAGMA page_size;
+CREATE TABLE t(x);
+PRAGMA page_count;
+PRAGMA freelist_count;
+PRAGMA schema_version;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["pragma", "stdin"]
+
+[[case]]
+id = "sqlite-pragma-journal-mode"
+argv = ["sqlite3", "db.sqlite", '''PRAGMA journal_mode; CREATE TABLE t(x); PRAGMA journal_mode = WAL; INSERT INTO t VALUES (1); PRAGMA journal_mode = DELETE; SELECT * FROM t;''']
+tags = ["pragma", "journal", "argv"]
+
+[[case]]
+id = "sqlite-pragma-integrity-check"
+argv = ["sqlite3", "db.sqlite", '''CREATE TABLE t(a PRIMARY KEY, b); INSERT INTO t VALUES (1, 2); CREATE INDEX tb ON t(b); PRAGMA integrity_check; PRAGMA quick_check; PRAGMA foreign_key_check;''']
+tags = ["pragma", "argv"]
+
+[[case]]
+id = "sqlite-foreign-keys-enforced"
+stdin = '''
+PRAGMA foreign_keys = ON;
+CREATE TABLE parent(id INTEGER PRIMARY KEY);
+CREATE TABLE child(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent(id) ON DELETE CASCADE);
+INSERT INTO parent VALUES (1), (2);
+INSERT INTO child VALUES (10, 1), (11, 2);
+INSERT INTO child VALUES (12, 99);
+DELETE FROM parent WHERE id = 1;
+SELECT * FROM child;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["pragma", "fk", "error", "stdin"]
+
+[[case]]
+id = "sqlite-index-usage-results"
+stdin = '''
+CREATE TABLE t(id INTEGER PRIMARY KEY, k TEXT, v INTEGER);
+WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x < 500) INSERT INTO t(k, v) SELECT 'k' || (x % 37), x FROM c;
+CREATE INDEX t_k ON t(k);
+SELECT count(*), sum(v) FROM t WHERE k = 'k5';
+SELECT k, max(v) FROM t WHERE k BETWEEN 'k1' AND 'k12' GROUP BY k ORDER BY k;
+DROP INDEX t_k;
+SELECT count(*), sum(v) FROM t WHERE k = 'k5';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["index", "stdin"]
+
+[[case]]
+id = "sqlite-explain-query-plan"
+stdin = '''
+CREATE TABLE t(a INTEGER PRIMARY KEY, b TEXT);
+CREATE INDEX tb ON t(b);
+EXPLAIN QUERY PLAN SELECT * FROM t WHERE b = 'x';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["index", "eqp", "cli", "stdin"]
+
+[[case]]
+id = "sqlite-transaction-rollback"
+stdin = '''
+CREATE TABLE t(x);
+BEGIN;
+INSERT INTO t VALUES (1);
+INSERT INTO t VALUES (2);
+ROLLBACK;
+SELECT count(*) FROM t;
+BEGIN TRANSACTION;
+INSERT INTO t VALUES (3);
+COMMIT;
+SELECT * FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["transaction", "stdin"]
+
+[[case]]
+id = "sqlite-savepoints"
+stdin = '''
+CREATE TABLE t(x);
+SAVEPOINT outer_sp;
+INSERT INTO t VALUES (1);
+SAVEPOINT inner_sp;
+INSERT INTO t VALUES (2);
+ROLLBACK TO inner_sp;
+INSERT INTO t VALUES (3);
+RELEASE outer_sp;
+SELECT group_concat(x) FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["transaction", "savepoint", "stdin"]
+
+[[case]]
+id = "sqlite-transaction-error-continues"
+stdin = '''
+CREATE TABLE t(x UNIQUE);
+BEGIN;
+INSERT INTO t VALUES (1);
+INSERT INTO t VALUES (1);
+INSERT INTO t VALUES (2);
+COMMIT;
+SELECT group_concat(x) FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["transaction", "error", "stdin"]
+
+# O segundo BEGIN falha antes de qualquer escrita dentro da transação: assim o sqlite3, que sai sem
+# fechar o banco quando um comando da linha de comando falha, não deixa journal quente (o cabeçalho do
+# journal tem um nonce aleatório e tornaria o golden não determinístico).
+[[case]]
+id = "sqlite-transaction-nested-error"
+argv = ["sqlite3", "db.sqlite", '''CREATE TABLE t(x); INSERT INTO t VALUES (1); BEGIN; SELECT count(*) FROM t; BEGIN; COMMIT; SELECT count(*) FROM t;''']
+tags = ["transaction", "error", "argv"]
+
+[[case]]
+id = "sqlite-vacuum-and-drop"
+stdin = '''
+CREATE TABLE big(x);
+WITH RECURSIVE c(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM c WHERE i < 2000) INSERT INTO big SELECT randomblob(0) || printf('%0100d', i) FROM c;
+DROP TABLE big;
+SELECT freelist_count > 0 FROM pragma_freelist_count;
+VACUUM;
+PRAGMA freelist_count;
+PRAGMA page_count;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["vacuum", "pragma", "stdin"]

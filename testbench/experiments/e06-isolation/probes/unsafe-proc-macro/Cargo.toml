@@ -1,0 +1,21 @@
+[package]
+name = "unsafe-proc-macro"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "Sonda do E06 (H20): proc macros que geram código unsafe com spans diferentes"
+
+# Fora do workspace das sondas (exclude): compilada como dependência comum.
+[workspace]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+quote = "1"
+
+[lints.rust]
+unsafe_code = "forbid"

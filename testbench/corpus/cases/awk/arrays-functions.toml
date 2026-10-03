@@ -1,0 +1,175 @@
+tool = "awk"
+source = "agent-style"
+
+# Arrays associativos, ordem de for-in, funções do usuário e recursão, gawk-ismos de array.
+
+[[case]]
+id = "awk-array-count-for-in-order"
+argv = ["awk", "{c[$3]++} END{for (k in c) print k, c[k]}"]
+tags = ["arrays", "for-in-order"]
+stdin = """
+alice 30 engineering
+bob 25 marketing
+carol 35 engineering
+dave 28 sales
+eve 41 marketing
+frank 33 support
+"""
+
+[[case]]
+id = "awk-array-count-sorted-pipeline"
+script = "awk '{c[$3]++} END{for (k in c) print c[k], k}' data.txt | sort -k1,1nr -k2"
+tags = ["arrays", "pipeline"]
+[case.files]
+"data.txt" = """
+alice 30 engineering
+bob 25 marketing
+carol 35 engineering
+dave 28 sales
+eve 41 marketing
+gina 29 engineering
+"""
+
+[[case]]
+id = "awk-array-group-sum-sorted"
+script = "awk '{s[$3] += $4} END{for (k in s) printf \"%s %d\\n\", k, s[k]}' data.txt | sort"
+tags = ["arrays", "pipeline"]
+[case.files]
+"data.txt" = """
+alice 30 engineering 85000
+bob 25 marketing 52000
+carol 35 engineering 98000
+dave 28 sales 47000
+"""
+
+[[case]]
+id = "awk-sorted-in-ind-str-asc"
+argv = ["awk", 'BEGIN{PROCINFO["sorted_in"]="@ind_str_asc"} {c[$1]++} END{for (k in c) print k, c[k]}']
+tags = ["arrays", "gawk-ext"]
+stdin = "pear\napple\nfig\napple\nbanana\n"
+
+[[case]]
+id = "awk-sorted-in-val-num-desc"
+argv = ["awk", 'BEGIN{PROCINFO["sorted_in"]="@val_num_desc"} {c[$1]+=$2} END{for (k in c) print k, c[k]}']
+tags = ["arrays", "gawk-ext"]
+stdin = "a 5\nb 20\nc 1\na 30\n"
+
+[[case]]
+id = "awk-array-in-delete-length"
+argv = ["awk", 'BEGIN{a["x"]=1; a["y"]=2; delete a["x"]; print ("x" in a), ("y" in a), length(a)}']
+tags = ["arrays"]
+
+[[case]]
+id = "awk-delete-whole-array"
+argv = ["awk", 'BEGIN{a[1]; a[2]; delete a; print length(a); a[3]=1; print length(a)}']
+tags = ["arrays"]
+
+[[case]]
+id = "awk-reference-creates-element"
+argv = ["awk", 'BEGIN{if (a["x"] == "") print "empty"; print length(a), ("x" in a)}']
+tags = ["arrays"]
+
+[[case]]
+id = "awk-multidim-subsep"
+argv = ["awk", 'BEGIN{a[1,2]=3; for (k in a) {split(k, p, SUBSEP); print p[1], p[2], a[k]}; print ((1,2) in a), ((2,1) in a)}']
+tags = ["arrays"]
+
+[[case]]
+id = "awk-numeric-string-subscripts"
+argv = ["awk", 'BEGIN{a[1]="int"; a["1"]="str"; a[01]="oct"; a[0.1+0.9]="sum"; n=0; for (k in a) n++; print n, a[1]}']
+tags = ["arrays", "numeric"]
+
+[[case]]
+id = "awk-asort"
+argv = ["awk", 'BEGIN{n=split("pear apple fig banana", a); asort(a); for (i=1; i<=n; i++) print i, a[i]}']
+tags = ["arrays", "gawk-ext"]
+
+[[case]]
+id = "awk-asort-numeric"
+argv = ["awk", 'BEGIN{a[1]=10; a[2]=9; a[3]=100; n=asort(a, b); print n, b[1], b[2], b[3]}']
+tags = ["arrays", "gawk-ext"]
+
+[[case]]
+id = "awk-asorti"
+argv = ["awk", 'BEGIN{a["pear"]=1; a["apple"]=2; a["fig"]=3; n=asorti(a, k); for (i=1; i<=n; i++) print k[i], a[k[i]]}']
+tags = ["arrays", "gawk-ext"]
+
+[[case]]
+id = "awk-length-array"
+argv = ["awk", '{w[$1]} END{print length(w)}']
+tags = ["arrays"]
+stdin = "a\nb\na\n"
+
+[[case]]
+id = "awk-array-param-by-reference"
+argv = ["awk", 'function fill(arr, n,   i) {for (i=1; i<=n; i++) arr[i]=i*i} BEGIN{fill(sq, 4); print sq[1], sq[4], length(sq)}']
+tags = ["arrays", "functions"]
+
+[[case]]
+id = "awk-user-function-max"
+argv = ["awk", 'function max(a, b) {return a > b ? a : b} {m = max(m, $2)} END{print m}']
+tags = ["functions"]
+stdin = "a 3\nb 17\nc 5\n"
+
+[[case]]
+id = "awk-recursion-factorial"
+argv = ["awk", 'function f(n) {return n <= 1 ? 1 : n * f(n-1)} BEGIN{print f(10), f(20), f(25)}']
+tags = ["functions", "numeric"]
+
+[[case]]
+id = "awk-recursion-fib"
+argv = ["awk", 'function fib(n) {return n < 2 ? n : fib(n-1) + fib(n-2)} BEGIN{for (i=0; i<=15; i++) printf "%d ", fib(i); print ""}']
+tags = ["functions"]
+
+[[case]]
+id = "awk-function-locals-convention"
+argv = ["awk", 'function join(a, n, sep,    i, s) {s = a[1]; for (i=2; i<=n; i++) s = s sep a[i]; return s} BEGIN{n = split("x y z", arr); print join(arr, n, ","); print "i=[" i "] s=[" s "]"}']
+tags = ["functions"]
+
+[[case]]
+id = "awk-function-no-return-value"
+argv = ["awk", 'function f() {x = 1} BEGIN{v = f(); print "[" v "]", x}']
+tags = ["functions"]
+
+[[case]]
+id = "awk-function-scalar-by-value"
+argv = ["awk", 'function inc(n) {n++; return n} BEGIN{x=1; y=inc(x); print x, y}']
+tags = ["functions"]
+
+[[case]]
+id = "awk-recursive-array-walk"
+argv = ["awk", 'function sum(a, n) {return n == 0 ? 0 : a[n] + sum(a, n-1)} BEGIN{split("1 2 3 4 5", v); print sum(v, 5)}']
+tags = ["functions", "arrays"]
+
+[[case]]
+id = "awk-typeof"
+argv = ["awk", 'BEGIN{a[1]; x = 1; s = "s"; print typeof(a), typeof(x), typeof(s), typeof(z), typeof(a[1])}']
+tags = ["gawk-ext"]
+
+[[case]]
+id = "awk-isarray"
+argv = ["awk", 'BEGIN{a[1]; print isarray(a), isarray(b)}']
+tags = ["gawk-ext"]
+
+[[case]]
+id = "awk-arrays-of-arrays"
+argv = ["awk", 'BEGIN{a["x"]["y"] = 1; a["x"]["z"] = 2; print length(a["x"]), a["x"]["z"]}']
+tags = ["arrays", "gawk-ext"]
+
+[[case]]
+id = "awk-transpose-matrix"
+argv = ["awk", '{for (i=1; i<=NF; i++) m[NR, i] = $i; if (NF > maxnf) maxnf = NF} END{for (i=1; i<=maxnf; i++) {row = ""; for (j=1; j<=NR; j++) row = row (j>1 ? " " : "") m[j, i]; print row}}']
+tags = ["arrays"]
+stdin = "1 2 3\n4 5 6\n"
+
+[[case]]
+id = "awk-word-frequency-top"
+script = "tr -s ' ' '\\n' < text.txt | awk 'NF {c[tolower($0)]++} END {for (w in c) print c[w], w}' | sort -k1,1nr -k2 | head -3"
+tags = ["arrays", "pipeline"]
+[case.files]
+"text.txt" = "the cat and the dog and the bird\nThe end\n"
+
+[[case]]
+id = "awk-indirect-function-call"
+argv = ["awk", 'function hi(n) {return "hi " n} BEGIN{f = "hi"; print @f("there")}']
+tags = ["functions", "gawk-ext"]

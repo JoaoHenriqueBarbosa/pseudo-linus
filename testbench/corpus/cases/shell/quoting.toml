@@ -1,0 +1,195 @@
+tool = "shell"
+source = "agent-style"
+
+# Aspas, escapes, here-docs e here-strings, do jeito que agentes escrevem.
+
+[[case]]
+id = "quote-single-double-mix"
+script = '''
+name="mundo"
+echo 'literal $name "aspas"' "expande $name 'simples'"
+echo "barra \\ cifrão \$ crase \` aspas \""
+echo 'it'"'"'s'
+'''
+tags = ["quoting"]
+
+[[case]]
+id = "quote-ansi-c"
+script = '''
+printf '%s\n' $'tab:\t|' $'nl:\n|' $'hex:\x41' $'oct:\101' $'uni:é'
+echo $'a\'b'
+'''
+tags = ["quoting", "ansi-c"]
+
+[[case]]
+id = "quote-word-splitting"
+script = '''
+v="a   b    c"
+printf '[%s]\n' $v
+printf '[%s]\n' "$v"
+IFS=: read -r x y z <<< "1:2:3"
+echo "$x-$y-$z"
+IFS=,; set -- $(echo "p,q,r"); echo "$#: $2"
+'''
+tags = ["quoting", "ifs", "here-string"]
+
+[[case]]
+id = "quote-empty-args"
+script = '''
+f() { echo "$#"; }
+e=""
+f $e
+f "$e"
+f "" ""
+f "${unset_var}"
+'''
+tags = ["quoting", "functions"]
+
+[[case]]
+id = "heredoc-expand"
+script = '''
+user=agente
+cat <<EOF
+olá $user
+soma $((2 + 3))
+cmd $(echo sub)
+literal \$user e \`crase\`
+EOF
+'''
+tags = ["heredoc"]
+
+[[case]]
+id = "heredoc-quoted-delim"
+script = '''
+cat <<'EOF'
+nada expande: $HOME $(whoami) `id` $((1+1))
+barra \n fica
+EOF
+cat <<"END"
+também $HOME
+END
+'''
+tags = ["heredoc"]
+
+[[case]]
+id = "heredoc-strip-tabs"
+script = "if true; then\n\tcat <<-EOF\n\t\tcom tab\n\tsem tab\n\tEOF\nfi\n"
+tags = ["heredoc", "heredoc-dash"]
+
+[[case]]
+id = "heredoc-to-file-and-pipe"
+script = '''
+cat > config.json <<'EOF'
+{"name": "app", "port": 8080}
+EOF
+cat <<EOF | tr a-z A-Z
+linha um
+linha dois
+EOF
+wc -c < config.json
+'''
+tags = ["heredoc", "redirect", "pipeline"]
+
+[[case]]
+id = "heredoc-multiple-same-line"
+script = '''
+paste - - <<A 3<<B
+a1
+a2
+A
+b1
+B
+cat /dev/null <<X; echo depois
+ignorado
+X
+'''
+tags = ["heredoc"]
+
+[[case]]
+id = "heredoc-in-function-and-loop"
+script = '''
+gen() {
+  local n=$1
+  cat <<EOF
+item-$n
+EOF
+}
+for i in 1 2 3; do gen "$i"; done
+while read -r line; do echo "<$line>"; done <<EOF
+x y
+  z
+EOF
+'''
+tags = ["heredoc", "functions", "read"]
+
+[[case]]
+id = "heredoc-python-style-agent"
+script = '''
+cat > script.sh <<'SCRIPT'
+#!/bin/bash
+set -euo pipefail
+echo "args: $*"
+SCRIPT
+chmod +x script.sh
+./script.sh um dois
+bash script.sh três
+'''
+tags = ["heredoc", "exec"]
+
+[[case]]
+id = "here-string-forms"
+script = '''
+tr a-z A-Z <<< "minúsculas ascii"
+read -r a b <<< "primeiro segundo terceiro"
+echo "$a|$b"
+wc -l <<< ""
+x=42; bc_like=$(cat <<< "$x")
+echo "$bc_like"
+'''
+tags = ["here-string"]
+
+[[case]]
+id = "printf-q-roundtrip"
+script = '''
+s=$'aspas "duplas" e \'simples\' e $cifrao e tab\t e nl\n'
+printf '%q\n' "$s"
+printf '%q\n' "simples" "com espaço" "" "a*b" "~home"
+eval "t=$(printf '%q' "$s")"
+[[ "$t" == "$s" ]] && echo roundtrip-ok
+'''
+tags = ["printf", "quoting", "eval"]
+
+[[case]]
+id = "printf-formats"
+script = '''
+printf '%5s|%-5s|%05d|%x|%o|%e\n' ab cd 42 255 8 1234.5
+printf '%.2f %.0f %.3s\n' 3.14159 2.5 abcdef
+printf '%b\n' 'a\tb' 'c\nd'
+printf '%s,' a b c; echo
+printf '%d %d\n' 1 2 3
+printf '%c%c\n' hello world
+printf -v out '%03d' 7; echo "$out"
+printf '%s\n' "${undefined:-padrão}"
+'''
+tags = ["printf"]
+
+[[case]]
+id = "printf-errors"
+script = '''
+printf '%d\n' abc
+echo "rc=$?"
+printf '%d\n' 12abc
+echo "rc=$?"
+'''
+tags = ["printf", "errors"]
+
+[[case]]
+id = "echo-flags"
+script = '''
+echo -n sem-nl; echo
+echo -e 'a\tb\nc'
+echo -E 'a\tb'
+echo -- -n
+echo -n -e 'x\n'
+'''
+tags = ["echo"]

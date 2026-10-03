@@ -1,0 +1,348 @@
+tool = "jq"
+source = "agent-style"
+
+# Formatação de saída, números, formatos @, mensagens de erro e códigos 2, 3 e 5.
+
+[[case]]
+id = "jq-numbers-literal-preservation"
+argv = ["jq", "-c", "."]
+tags = ["numbers", "format"]
+stdin = "[1.0, 1.50, 100, 1e2, 1E-2, 0.1, -0, 0.10e1, 3.000]"
+
+[[case]]
+id = "jq-numbers-big-int-literal"
+argv = ["jq", "-c", ".[0], (.[0] + 0), .[1], (.[1] * 1)"]
+tags = ["numbers"]
+stdin = "[100000000000000000001, 12345678901234567890123]"
+
+[[case]]
+id = "jq-numbers-huge-exponent"
+argv = ["jq", "-c", ".[], (.[0] * 1)"]
+tags = ["numbers"]
+stdin = "[1e1000, -1e1000, 1e-1000]"
+
+[[case]]
+id = "jq-numbers-arith-precision"
+argv = ["jq", "-c", "[.[] * 3], (.[0] + .[1]), (1 / 3), (10 / 4), (2 * 1.5)"]
+tags = ["numbers"]
+stdin = "[0.1, 0.2, 1.5]"
+
+[[case]]
+id = "jq-numbers-large-doubles"
+argv = ["jq", "-c", "-n", "[1e17, 1.5e300, 9007199254740993, 1e-7, 123456789.123456789, 3.0e0, 1e19 + 1]"]
+tags = ["numbers"]
+
+[[case]]
+id = "jq-numbers-negative-zero"
+argv = ["jq", "-c", "-n", "[-0, 0 * -1, -0.0]"]
+tags = ["numbers"]
+
+[[case]]
+id = "jq-nan-infinite"
+argv = ["jq", "-c", "-n", "[nan] | tostring, (nan | isnan), [infinite, -infinite], (nan < 1), ([nan, 1] | sort)"]
+tags = ["numbers"]
+
+[[case]]
+id = "jq-tostring-tonumber"
+argv = ["jq", "-c", "[.[] | tostring], (\"12.50\" | tonumber), (\"1e3\" | tonumber), (\"0x10\" | try tonumber catch \"err\")"]
+tags = ["numbers", "strings"]
+stdin = "[1.0, 1.5, 100, 1e1000, \"s\", null, [1]]"
+
+[[case]]
+id = "jq-integer-ops"
+argv = ["jq", "-c", "-n", "[5 % 3, -5 % 3, 5 % -3, (5.9 % 3), (1e20 % 7), (-1.5 | floor), (1.2 | ceil), (2.5 | round), (-2.5 | round), (17 / 5 | floor)]"]
+tags = ["numbers", "math"]
+
+[[case]]
+id = "jq-math-functions"
+argv = ["jq", "-c", "-n", "[pow(2;10), (8 | log2), (16 | sqrt), (-2 | fabs), (2 | exp10), (8 | cbrt), (1 | atan * 4)]"]
+tags = ["numbers", "math"]
+
+[[case]]
+id = "jq-abs-builtin"
+argv = ["jq", "-c", "-n", "[-1, 2] | map(abs)"]
+tags = ["math", "builtins-set"]
+
+[[case]]
+id = "jq-trim-builtins"
+argv = ["jq", "-c", "-n", "\"  x  \" | [trim, ltrimstr(\" \"), rtrim]"]
+tags = ["strings", "builtins-set"]
+
+[[case]]
+id = "jq-pick-builtin"
+argv = ["jq", "-c", "pick(.a.b, .c)"]
+tags = ["paths", "builtins-set"]
+stdin = '{"a":{"b":1,"x":2},"c":3,"d":4}'
+
+[[case]]
+id = "jq-toarray-have-builtins"
+argv = ["jq", "-c", "-n", "[1 | toarray], have_decnum, have_literal_numbers"]
+tags = ["builtins-set"]
+
+[[case]]
+id = "jq-format-csv"
+argv = ["jq", "-r", ".[] | [.id, .name, .email, .score] | @csv"]
+tags = ["format-strings"]
+stdin = '[{"id":1,"name":"Alice \"A\"","email":null,"score":1.5},{"id":2,"name":"Bob, Jr.","email":"b@x","score":true}]'
+
+[[case]]
+id = "jq-format-csv-invalid"
+argv = ["jq", "-r", "[{\"a\":1}] | @csv"]
+tags = ["format-strings", "errors"]
+stdin = "null"
+
+[[case]]
+id = "jq-format-tsv"
+argv = ["jq", "-r", ".[] | @tsv"]
+tags = ["format-strings"]
+stdin = '[["a\tb", "c\nd", "e\\f", null, 1.25, false]]'
+
+[[case]]
+id = "jq-format-sh"
+argv = ["jq", "-r", "@sh \"echo \\(.)\", (.[0] | @sh)"]
+tags = ["format-strings"]
+stdin = "[\"a b\", \"c'd\", 3, null]"
+
+[[case]]
+id = "jq-format-base64"
+argv = ["jq", "-r", "@base64, (@base64 | @base64d)"]
+tags = ["format-strings"]
+stdin = '"olá mundo!"'
+
+[[case]]
+id = "jq-format-base64d-invalid"
+argv = ["jq", "-r", "@base64d"]
+tags = ["format-strings", "errors"]
+stdin = '"***"'
+
+[[case]]
+id = "jq-format-base32"
+argv = ["jq", "-r", "@base32"]
+tags = ["format-strings"]
+stdin = '"hello"'
+
+[[case]]
+id = "jq-format-base32d"
+argv = ["jq", "-r", "@base32d"]
+tags = ["format-strings", "builtins-set"]
+stdin = '"NBSWY3DP"'
+
+[[case]]
+id = "jq-format-uri"
+argv = ["jq", "-r", "@uri"]
+tags = ["format-strings"]
+stdin = '"a b&c=d/é?~_.-"'
+
+[[case]]
+id = "jq-format-html-json-text"
+argv = ["jq", "-r", "@html, @json, @text"]
+tags = ["format-strings"]
+stdin = "\"<a href='x'>&\\\"</a>\""
+
+[[case]]
+id = "jq-format-interpolation"
+argv = ["jq", "-r", "@csv \"row: \\(.)\", @uri \"https://x/?q=\\(.[0])\", \"plain \\(.[1] + 1)\""]
+tags = ["format-strings"]
+stdin = '["a b", 2]'
+
+[[case]]
+id = "jq-unicode-escapes-output"
+argv = ["jq", "-c", "."]
+tags = ["format"]
+stdin = '["\u0001", "\u007f", "\u00e9", "\ud83d\ude00", "\t\r\n\b\f/\\\"", "\u2028"]'
+
+[[case]]
+id = "jq-invalid-utf16-surrogate"
+argv = ["jq", "-c", "."]
+tags = ["format"]
+stdin = '["\ud83d", "x\udc00y"]'
+
+[[case]]
+id = "jq-object-key-order"
+argv = ["jq", "-c", ". + {\"a\": 0, \"z\": 9}, keys, keys_unsorted"]
+tags = ["format", "sort"]
+stdin = '{"b":1,"a":2,"c":3}'
+
+[[case]]
+id = "jq-duplicate-keys-input"
+argv = ["jq", "-c", "."]
+tags = ["format"]
+stdin = '{"a":1,"b":2,"a":3}'
+
+[[case]]
+id = "jq-error-index-number"
+argv = ["jq", ".a.b"]
+tags = ["errors"]
+stdin = '{"a":5}'
+
+[[case]]
+id = "jq-error-index-string-with-number"
+argv = ["jq", ".[0]"]
+tags = ["errors"]
+stdin = '"abc"'
+
+[[case]]
+id = "jq-error-iterate-null"
+argv = ["jq", ".items[]"]
+tags = ["errors"]
+stdin = '{"other": 1}'
+
+[[case]]
+id = "jq-error-add-types"
+argv = ["jq", ". + 1"]
+tags = ["errors"]
+stdin = '{"a": [1, 2]}'
+
+[[case]]
+id = "jq-error-subtract-strings"
+argv = ["jq", "-n", "\"a\" - \"b\""]
+tags = ["errors"]
+
+[[case]]
+id = "jq-error-long-value-truncated"
+argv = ["jq", ".[] | . + 1"]
+tags = ["errors"]
+stdin = '[{"a_very_long_key_name_number_one":"a very long string value that goes on and on","b":[1,2,3,4,5,6,7,8,9,10]}]'
+
+[[case]]
+id = "jq-error-object-key-not-string"
+argv = ["jq", "-n", "{(1): 2}"]
+tags = ["errors"]
+
+[[case]]
+id = "jq-error-custom-string"
+argv = ["jq", "error(\"boom: \\(.a)\")"]
+tags = ["errors"]
+stdin = '{"a": 7}'
+
+[[case]]
+id = "jq-error-custom-object"
+argv = ["jq", "-n", "error({\"code\": 42})"]
+tags = ["errors"]
+
+[[case]]
+id = "jq-error-null"
+argv = ["jq", "-n", "error(null)"]
+tags = ["errors"]
+
+[[case]]
+id = "jq-error-continues-next-input"
+argv = ["jq", "-c", "1 / .x"]
+tags = ["errors"]
+stdin = '{"x": 2} {"x": 0} {"x": 4}'
+
+[[case]]
+id = "jq-error-line-number-file"
+argv = ["jq", ".[] | .name | ascii_downcase", "data.json"]
+tags = ["errors"]
+[case.files]
+"data.json" = """
+[
+  {"name": "A"},
+  {"name": 5}
+]
+"""
+
+[[case]]
+id = "jq-error-implode-invalid"
+argv = ["jq", "-n", "[-1] | implode"]
+tags = ["errors"]
+
+[[case]]
+id = "jq-try-catch-message"
+argv = ["jq", "-c", "[.[] | try (. + 1) catch .]"]
+tags = ["errors"]
+stdin = '[1, "a", null, {"x":1}, [2]]'
+
+[[case]]
+id = "jq-try-without-catch"
+argv = ["jq", "-c", "[.[] | try error(.)]"]
+tags = ["errors"]
+stdin = "[1, 2]"
+
+[[case]]
+id = "jq-optional-operator"
+argv = ["jq", "-c", "[.[] | .a?], [.[] | .[]?], (try (.[0] | .[0]) catch \"x\")"]
+tags = ["errors"]
+stdin = '[{"a":1}, "s", 3, [5]]'
+
+[[case]]
+id = "jq-error-recovery-alternative"
+argv = ["jq", "-c", "[.[] | (.a // \"default\")], (.[0].z // empty // 7)"]
+tags = ["errors"]
+stdin = '[{"a":1}, {"a":null}, {"a":false}, {}]'
+
+[[case]]
+id = "jq-halt-error-string"
+argv = ["jq", "-n", "\"fatal: bye\\n\" | halt_error"]
+tags = ["errors", "exit"]
+
+[[case]]
+id = "jq-halt-error-object-code"
+argv = ["jq", "-n", "{\"a\":1} | halt_error(3)"]
+tags = ["errors", "exit"]
+
+[[case]]
+id = "jq-halt"
+argv = ["jq", "-n", "1, halt, 2"]
+tags = ["exit"]
+
+[[case]]
+id = "jq-syntax-error"
+argv = ["jq", ".a |"]
+tags = ["errors", "compile"]
+stdin = "{}"
+
+[[case]]
+id = "jq-syntax-error-unbalanced"
+argv = ["jq", ".[] | {a: .b"]
+tags = ["errors", "compile"]
+stdin = "[]"
+
+[[case]]
+id = "jq-undefined-function"
+argv = ["jq", "foo(1)"]
+tags = ["errors", "compile"]
+stdin = "{}"
+
+[[case]]
+id = "jq-wrong-arity"
+argv = ["jq", "map"]
+tags = ["errors", "compile"]
+stdin = "[]"
+
+[[case]]
+id = "jq-invalid-json-input"
+argv = ["jq", "-c", "."]
+tags = ["errors", "input"]
+stdin = "{\"a\": 1}\n{bad json\n"
+
+[[case]]
+id = "jq-invalid-json-truncated"
+argv = ["jq", "."]
+tags = ["errors", "input"]
+stdin = "[1, 2"
+
+[[case]]
+id = "jq-invalid-json-trailing-comma"
+argv = ["jq", "."]
+tags = ["errors", "input"]
+stdin = "[1, 2,]"
+
+[[case]]
+id = "jq-nan-literal-input"
+argv = ["jq", "-c", "."]
+tags = ["input", "numbers"]
+stdin = "[NaN, nan]"
+
+[[case]]
+id = "jq-debug-and-stderr"
+argv = ["jq", "-c", "debug, debug(\"msg\"), stderr"]
+tags = ["errors", "io"]
+stdin = '{"a":1}'
+
+[[case]]
+id = "jq-input-line-number"
+argv = ["jq", "-c", "input_line_number"]
+tags = ["inputs"]
+stdin = "1\n2\n\n3"

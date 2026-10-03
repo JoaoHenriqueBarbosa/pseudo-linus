@@ -1,0 +1,144 @@
+tool = "cat"
+source = "agent-style"
+
+# cat do jeito que agente usa: ler arquivo, numerar linha, juntar arquivos, mostrar invisíveis.
+
+[[case]]
+id = "cat-basic"
+argv = ["cat", "a.txt"]
+tags = ["cat", "ported"]
+[case.files]
+"a.txt" = "linha 1\nlinha 2\nlinha 3\n"
+
+[[case]]
+id = "cat-multi"
+argv = ["cat", "a.txt", "b.txt"]
+tags = ["cat", "ported"]
+[case.files]
+"a.txt" = "alfa\n"
+"b.txt" = "beta\ngama\n"
+
+[[case]]
+id = "cat-n"
+argv = ["cat", "-n", "a.txt"]
+tags = ["cat", "ported"]
+[case.files]
+"a.txt" = "um\n\ndois\n\n\ntrês\n"
+
+[[case]]
+id = "cat-b"
+argv = ["cat", "-b", "a.txt"]
+tags = ["cat", "ported"]
+[case.files]
+"a.txt" = "um\n\ndois\n\n\ntrês\n"
+
+[[case]]
+id = "cat-s"
+argv = ["cat", "-s", "a.txt"]
+tags = ["cat", "ported"]
+[case.files]
+"a.txt" = "um\n\n\n\ndois\n\n"
+
+[[case]]
+id = "cat-A"
+argv = ["cat", "-A", "a.txt"]
+tags = ["cat", "ported"]
+[case.files]
+"a.txt" = "tab\there\r\nação\nsem fim"
+
+[[case]]
+id = "cat-v-binary"
+argv = ["cat", "-v", "bin.dat"]
+tags = ["cat", "ported", "binary"]
+[case.files]
+"bin.dat" = { content_b64 = "AAEC/4CBf0EK" }
+
+[[case]]
+id = "cat-E-T"
+argv = ["cat", "-ET", "a.txt"]
+tags = ["cat", "ported"]
+[case.files]
+"a.txt" = "a\tb\nc\n"
+
+[[case]]
+id = "cat-n-no-trailing-newline"
+argv = ["cat", "-n", "a.txt", "b.txt"]
+tags = ["cat", "ported"]
+[case.files]
+"a.txt" = "x\ny"
+"b.txt" = "z\n"
+
+[[case]]
+id = "cat-stdin-dash"
+argv = ["cat", "-", "b.txt"]
+stdin = "da entrada\n"
+tags = ["cat", "ported", "stdin"]
+[case.files]
+"b.txt" = "do arquivo\n"
+
+[[case]]
+id = "cat-stdin-implicit"
+argv = ["cat"]
+stdin = "só stdin\n"
+tags = ["cat", "ported", "stdin"]
+
+[[case]]
+id = "cat-missing"
+argv = ["cat", "a.txt", "nope.txt", "a.txt"]
+tags = ["cat", "ported", "errno"]
+[case.files]
+"a.txt" = "ok\n"
+
+[[case]]
+id = "cat-dir"
+argv = ["cat", "sub"]
+tags = ["cat", "ported", "errno"]
+[case.files]
+"sub" = { dir = true }
+
+[[case]]
+id = "cat-symlink"
+argv = ["cat", "link"]
+tags = ["cat", "ported", "symlink"]
+[case.files]
+"real.txt" = "via link\n"
+"link" = { symlink = "real.txt" }
+
+[[case]]
+id = "cat-dangling-symlink"
+argv = ["cat", "link"]
+tags = ["cat", "ported", "errno", "symlink"]
+[case.files]
+"link" = { symlink = "nowhere.txt" }
+
+[[case]]
+id = "cat-empty"
+argv = ["cat", "empty.txt"]
+tags = ["cat", "ported"]
+[case.files]
+"empty.txt" = ""
+
+[[case]]
+id = "cat-unknown-flag"
+argv = ["cat", "-Z", "a.txt"]
+tags = ["cat", "ported", "usage"]
+[case.files]
+"a.txt" = "x\n"
+
+[[case]]
+id = "cat-heredoc-to-file"
+script = """
+cat > notes.md <<'EOF'
+# Título
+- item $HOME
+EOF
+cat notes.md
+"""
+tags = ["cat", "shell"]
+
+[[case]]
+id = "cat-pipe-wc"
+script = "cat a.txt | wc -l"
+tags = ["cat", "wc", "pipeline"]
+[case.files]
+"a.txt" = "1\n2\n3\n"

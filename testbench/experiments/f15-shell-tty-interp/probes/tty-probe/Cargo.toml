@@ -1,0 +1,15 @@
+[package]
+name = "f15-tty-probe"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F16/H38: sonda dinâmica que chama reedline e rustyline sem tty do host, pra provar por teste o acoplamento"
+
+[dependencies]
+reedline = "=0.52.0"
+rustyline = "=18.0.1"
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,18 @@
+[package]
+name = "f15-baseline-rust-bash"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F15/H40: rust-bash (bash sandbox pra agentes, VFS) como linha de base"
+
+[dependencies]
+f15-baseline-common = { path = "../common" }
+harness = { path = "../../../../crates/harness" }
+anyhow = "1"
+# Sem cli (rustyline), sem network e sem native-fs: só o interpretador sobre o FS em memória.
+rust-bash = { version = "=0.3.0", default-features = false }
+
+[lints.rust]
+unsafe_code = "forbid"

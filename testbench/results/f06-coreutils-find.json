@@ -1,0 +1,5255 @@
+{
+  "experiment": "f06-coreutils-find",
+  "title": "uutils (cat, head, wc, sort, ls) e findutils (find, xargs) portados pro shim sysio",
+  "generated_at": "2026-10-02T23:51:04Z",
+  "host": {
+    "kernel": "6.12.101+deb13-amd64",
+    "cpus": 16,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+  },
+  "hypotheses": [
+    {
+      "id": "H28",
+      "verdict": "partial",
+      "summary": "O porte funciona e não custa conformidade: o portado faz exatamente o que o original faz no oráculo (cat 18/18, head 17/17, wc 19/19, sort 25/25, ls 24/24; portado >= original: true), e o código de cada utilitário muda pouco (736 linhas inseridas+removidas sobre 16312 compiladas). Mas não é 'só trocar std::fs': o uucore exigiu 1471 linhas (96% das 21418 linhas compiladas dele ficaram intactas), 15 statics de estado global viraram estado do pseudo-processo, 36 chamadas de métodos de Path (que não dá pra sombrear por import) foram reescritas, e uucore, uucore_procs e lscolors viraram fork; std não é patchável.",
+      "evidence": {
+        "conformance": {
+          "coreutils:cat": {
+            "approx_agent_minutes": 15,
+            "blockers": [
+              "splice(2) via uucore::pipes + rustix: fd do host dos dois lados; saiu (fica o read/write)",
+              "is_safe_overwrite: fstat/lseek/fcntl por AsFd + rustix; virou o trait Fstat do shim",
+              "RawWriter: write(2) direto no fd 1 (rustix); virou embrulho sobre Write",
+              "#[uucore::main] gerava static em .init_array (unsafe link_section) e mexia em SIGPIPE/SIGSEGV/SIGBUS do processo host"
+            ],
+            "cases": 18,
+            "compiled_files": 3,
+            "compiled_pristine_lines": 928,
+            "divergent_from_original": [],
+            "global_statics_removed": 0,
+            "host_touch_after": 1,
+            "host_touch_before": 10,
+            "lines_changed_rs": 33,
+            "manifest_lines_changed": 33,
+            "original": {
+              "lenient_pass": 18,
+              "lenient_rate": 1.0,
+              "strict_pass": 17,
+              "strict_rate": 0.944,
+              "total": 18,
+              "unsupported": 0
+            },
+            "path_method_calls_replaced": 0,
+            "ported": {
+              "lenient_pass": 18,
+              "lenient_rate": 1.0,
+              "strict_pass": 17,
+              "strict_rate": 0.944,
+              "total": 18,
+              "unsupported": 0
+            },
+            "ported_same_as_original": 18,
+            "rs_deleted": 21,
+            "rs_inserted": 12,
+            "unsafe_after": 0,
+            "unsafe_before": 0
+          },
+          "coreutils:head": {
+            "approx_agent_minutes": 10,
+            "blockers": [
+              "caminho zero-copy (uucore::pipes::send_n_bytes, splice) removido",
+              "stdin: dup(2) do fd 0 num std::fs::File pra poder dar seek; ficou o caminho genérico"
+            ],
+            "cases": 17,
+            "compiled_files": 4,
+            "compiled_pristine_lines": 1756,
+            "divergent_from_original": [],
+            "global_statics_removed": 0,
+            "host_touch_after": 0,
+            "host_touch_before": 1,
+            "lines_changed_rs": 35,
+            "manifest_lines_changed": 13,
+            "original": {
+              "lenient_pass": 17,
+              "lenient_rate": 1.0,
+              "strict_pass": 16,
+              "strict_rate": 0.941,
+              "total": 17,
+              "unsupported": 0
+            },
+            "path_method_calls_replaced": 0,
+            "ported": {
+              "lenient_pass": 17,
+              "lenient_rate": 1.0,
+              "strict_pass": 16,
+              "strict_rate": 0.941,
+              "total": 17,
+              "unsupported": 0
+            },
+            "ported_same_as_original": 17,
+            "rs_deleted": 30,
+            "rs_inserted": 5,
+            "unsafe_after": 0,
+            "unsafe_before": 0
+          },
+          "coreutils:ls": {
+            "approx_agent_minutes": 60,
+            "blockers": [
+              "uucore::entries: getpwuid/getgrgid da libc (unsafe, NSS do host); virou leitura do /etc/passwd e /etc/group do VFS",
+              "lscolors: a API pública (Colorable) é tipada com std::fs::{FileType, Metadata}, que só nascem de syscall do host; exigiu fork",
+              "clap .env(\"TABSIZE\"/\"TIME_STYLE\"): o clap lê o ambiente do processo host",
+              "terminal_size (ioctl no fd do host), hostname (gethostname do host), xattr (ACL), statfs (libc) removidos ou trocados",
+              "dired: std::env::args_os() lia o argv do processo host",
+              "fuso: SystemTime -> Zoned usava TimeZone::system() (TZ e /etc/localtime do host); virou TZ do pseudo-processo com tzdb embutida",
+              "métodos inerentes de Path (exists, metadata, symlink_metadata, read_link) tocam o host e não dá pra sombrear por import"
+            ],
+            "cases": 24,
+            "compiled_files": 6,
+            "compiled_pristine_lines": 5914,
+            "divergent_from_original": [],
+            "global_statics_removed": 2,
+            "host_touch_after": 1,
+            "host_touch_before": 33,
+            "lines_changed_rs": 122,
+            "manifest_lines_changed": 36,
+            "original": {
+              "lenient_pass": 24,
+              "lenient_rate": 1.0,
+              "strict_pass": 24,
+              "strict_rate": 1.0,
+              "total": 24,
+              "unsupported": 0
+            },
+            "path_method_calls_replaced": 13,
+            "ported": {
+              "lenient_pass": 24,
+              "lenient_rate": 1.0,
+              "strict_pass": 24,
+              "strict_rate": 1.0,
+              "total": 24,
+              "unsupported": 0
+            },
+            "ported_same_as_original": 24,
+            "rs_deleted": 53,
+            "rs_inserted": 69,
+            "unsafe_after": 0,
+            "unsafe_before": 0
+          },
+          "coreutils:sort": {
+            "approx_agent_minutes": 45,
+            "blockers": [
+              "rayon: par_sort no pool global do host (threads sem contexto do pseudo-processo); build_global do --parallel valia pro host inteiro",
+              "threads de leitura/merge (std::thread::spawn) nasciam sem processo corrente; viraram sysio::thread::spawn",
+              "tempfile (diretório temporário no FS do host) e ctrlc (handler de SIGINT do processo host + std::process::exit) trocados por diretório no VFS, sem limpeza por sinal",
+              "unsafe: transmute de lifetime em chunks.rs (coleta in-place segura no lugar), setlocale e fcntl da libc",
+              "getrlimit(NOFILE), /proc/self/fd, access(2), sysinfo(totalram): todos do host",
+              "--compress-program: filho com pipe concorrente (fork/exec); sem equivalente no shim, a compressão fica desligada",
+              "i18n: COLLATOR, separador decimal, meses (nl_langinfo, unsafe) e locale eram OnceLock globais com o ambiente do primeiro processo",
+              "rand::rng() (sort -R) semeava do getrandom(2) do host; virou sysio::random"
+            ],
+            "cases": 25,
+            "compiled_files": 11,
+            "compiled_pristine_lines": 6119,
+            "divergent_from_original": [],
+            "global_statics_removed": 2,
+            "host_touch_after": 7,
+            "host_touch_before": 45,
+            "lines_changed_rs": 455,
+            "manifest_lines_changed": 78,
+            "original": {
+              "lenient_pass": 25,
+              "lenient_rate": 1.0,
+              "strict_pass": 24,
+              "strict_rate": 0.96,
+              "total": 25,
+              "unsupported": 0
+            },
+            "path_method_calls_replaced": 2,
+            "ported": {
+              "lenient_pass": 25,
+              "lenient_rate": 1.0,
+              "strict_pass": 24,
+              "strict_rate": 0.96,
+              "total": 25,
+              "unsupported": 0
+            },
+            "ported_same_as_original": 25,
+            "rs_deleted": 323,
+            "rs_inserted": 132,
+            "unsafe_after": 2,
+            "unsafe_before": 8
+          },
+          "coreutils:wc": {
+            "approx_agent_minutes": 20,
+            "blockers": [
+              "count_bytes_using_splice: splice pra /dev/null (rustix) removido",
+              "fstat + page_size (rustix, libc::S_IFREG) trocados por Fstat do shim e página de 4 KiB",
+              "static LazyLock POSIXLY_CORRECT: lido uma vez do ambiente do primeiro wc do host",
+              "unsafe str::from_utf8_unchecked trocado pela versão checada",
+              "SimdPolicy::detect: OnceLock global com GLIBC_TUNABLES do host"
+            ],
+            "cases": 19,
+            "compiled_files": 6,
+            "compiled_pristine_lines": 1595,
+            "divergent_from_original": [],
+            "global_statics_removed": 1,
+            "host_touch_after": 1,
+            "host_touch_before": 15,
+            "lines_changed_rs": 91,
+            "manifest_lines_changed": 38,
+            "original": {
+              "lenient_pass": 19,
+              "lenient_rate": 1.0,
+              "strict_pass": 19,
+              "strict_rate": 1.0,
+              "total": 19,
+              "unsupported": 0
+            },
+            "path_method_calls_replaced": -1,
+            "ported": {
+              "lenient_pass": 19,
+              "lenient_rate": 1.0,
+              "strict_pass": 19,
+              "strict_rate": 1.0,
+              "total": 19,
+              "unsupported": 0
+            },
+            "ported_same_as_original": 19,
+            "rs_deleted": 56,
+            "rs_inserted": 35,
+            "unsafe_after": 0,
+            "unsafe_before": 1
+          },
+          "find": {
+            "approx_agent_minutes": 75,
+            "blockers": [
+              "walkdir: DirEntry/Metadata do std e same_file::Handle (fd do host); exigiu fork",
+              "onig: Oniguruma em C (FFI) pro glob do -name e pro -regex; trocado por tradutor POSIX -> crate regex (sem retrovisor)",
+              "nix (usuários e grupos), faccess (faccessat), argmax + std::process::Command (-exec)",
+              "chrono::Local e Utc::now: fuso e relógio do host",
+              "std::process::exit no Printer"
+            ],
+            "cases": 51,
+            "compiled_files": 30,
+            "compiled_pristine_lines": 11787,
+            "divergent_from_original": [
+              "find-xargs-grep: comando fora da tabela da bancada: grep"
+            ],
+            "global_statics_removed": 0,
+            "host_touch_after": 9,
+            "host_touch_before": 59,
+            "lines_changed_rs": 502,
+            "manifest_lines_changed": 133,
+            "original": {
+              "lenient_pass": 51,
+              "lenient_rate": 1.0,
+              "strict_pass": 48,
+              "strict_rate": 0.941,
+              "total": 51,
+              "unsupported": 0
+            },
+            "path_method_calls_replaced": 8,
+            "ported": {
+              "lenient_pass": 50,
+              "lenient_rate": 0.98,
+              "strict_pass": 47,
+              "strict_rate": 0.922,
+              "total": 51,
+              "unsupported": 1
+            },
+            "ported_same_as_original": 50,
+            "rs_deleted": 115,
+            "rs_inserted": 387,
+            "unsafe_after": 0,
+            "unsafe_before": 1
+          },
+          "xargs": {
+            "approx_agent_minutes": 75,
+            "blockers": [
+              "executor: std::process::Command (fork/exec do host) trocado pela tabela de programas do pseudo-kernel; o resto (leitores, limites, -I, -L, -n, -s) ficou",
+              "sysconf(_SC_ARG_MAX) unsafe da libc",
+              "std::env::vars_os do processo host",
+              "-P já era ignorado no original (roda em série)"
+            ],
+            "cases": 27,
+            "compiled_files": 30,
+            "compiled_pristine_lines": 11787,
+            "divergent_from_original": [
+              "xargs-rm: comando fora da tabela da bancada: rm"
+            ],
+            "global_statics_removed": 0,
+            "host_touch_after": 9,
+            "host_touch_before": 59,
+            "lines_changed_rs": 96,
+            "manifest_lines_changed": 133,
+            "original": {
+              "lenient_pass": 27,
+              "lenient_rate": 1.0,
+              "strict_pass": 24,
+              "strict_rate": 0.889,
+              "total": 27,
+              "unsupported": 0
+            },
+            "path_method_calls_replaced": 8,
+            "ported": {
+              "lenient_pass": 26,
+              "lenient_rate": 0.963,
+              "strict_pass": 23,
+              "strict_rate": 0.852,
+              "total": 27,
+              "unsupported": 1
+            },
+            "ported_same_as_original": 26,
+            "rs_deleted": 10,
+            "rs_inserted": 86,
+            "unsafe_after": 0,
+            "unsafe_before": 1
+          }
+        },
+        "global_statics_removed": 15,
+        "host_touch_after_in_compiled_ported_files": 37,
+        "path_method_calls_replaced": 36,
+        "unsafe_after_in_compiled_ported_files": 22,
+        "util_compiled_lines": 16312,
+        "util_lines_changed": 736,
+        "uucore_compiled_lines": 21418,
+        "uucore_lines_changed": 1471,
+        "uucore_survival_rate": 0.957
+      }
+    },
+    {
+      "id": "H29",
+      "verdict": "partial",
+      "summary": "find portado: 92% estrito contra o GNU (original no oráculo: 94%), igual ao original em 50/51 (fora: find-xargs-grep: comando fora da tabela da bancada: grep); xargs portado: 85% (original: 89%), igual ao original em 26/27 (fora: xargs-rm: comando fora da tabela da bancada: rm). O porte custou 598 linhas no findutils (11787 compiladas) e 31 no fork do walkdir, com um tradutor POSIX -> regex no lugar do onig (C). Serve de ponto de partida pro find; no xargs o executor é nosso e sobra a leitura de argumentos e os limites. O que falha contra o GNU é do próprio findutils (formato das mensagens de erro e do -t), não do porte.",
+      "evidence": {
+        "find": {
+          "approx_agent_minutes": 75,
+          "blockers": [
+            "walkdir: DirEntry/Metadata do std e same_file::Handle (fd do host); exigiu fork",
+            "onig: Oniguruma em C (FFI) pro glob do -name e pro -regex; trocado por tradutor POSIX -> crate regex (sem retrovisor)",
+            "nix (usuários e grupos), faccess (faccessat), argmax + std::process::Command (-exec)",
+            "chrono::Local e Utc::now: fuso e relógio do host",
+            "std::process::exit no Printer"
+          ],
+          "cases": 51,
+          "compiled_files": 30,
+          "compiled_pristine_lines": 11787,
+          "divergent_from_original": [
+            "find-xargs-grep: comando fora da tabela da bancada: grep"
+          ],
+          "global_statics_removed": 0,
+          "host_touch_after": 9,
+          "host_touch_before": 59,
+          "lines_changed_rs": 502,
+          "manifest_lines_changed": 133,
+          "original": {
+            "lenient_pass": 51,
+            "lenient_rate": 1.0,
+            "strict_pass": 48,
+            "strict_rate": 0.941,
+            "total": 51,
+            "unsupported": 0
+          },
+          "path_method_calls_replaced": 8,
+          "ported": {
+            "lenient_pass": 50,
+            "lenient_rate": 0.98,
+            "strict_pass": 47,
+            "strict_rate": 0.922,
+            "total": 51,
+            "unsupported": 1
+          },
+          "ported_same_as_original": 50,
+          "rs_deleted": 115,
+          "rs_inserted": 387,
+          "unsafe_after": 0,
+          "unsafe_before": 1
+        },
+        "findutils_compiled_lines": 11787,
+        "findutils_lines_changed": 598,
+        "walkdir_lines_changed": 31,
+        "xargs": {
+          "approx_agent_minutes": 75,
+          "blockers": [
+            "executor: std::process::Command (fork/exec do host) trocado pela tabela de programas do pseudo-kernel; o resto (leitores, limites, -I, -L, -n, -s) ficou",
+            "sysconf(_SC_ARG_MAX) unsafe da libc",
+            "std::env::vars_os do processo host",
+            "-P já era ignorado no original (roda em série)"
+          ],
+          "cases": 27,
+          "compiled_files": 30,
+          "compiled_pristine_lines": 11787,
+          "divergent_from_original": [
+            "xargs-rm: comando fora da tabela da bancada: rm"
+          ],
+          "global_statics_removed": 0,
+          "host_touch_after": 9,
+          "host_touch_before": 59,
+          "lines_changed_rs": 96,
+          "manifest_lines_changed": 133,
+          "original": {
+            "lenient_pass": 27,
+            "lenient_rate": 1.0,
+            "strict_pass": 24,
+            "strict_rate": 0.889,
+            "total": 27,
+            "unsupported": 0
+          },
+          "path_method_calls_replaced": 8,
+          "ported": {
+            "lenient_pass": 26,
+            "lenient_rate": 0.963,
+            "strict_pass": 23,
+            "strict_rate": 0.852,
+            "total": 27,
+            "unsupported": 1
+          },
+          "ported_same_as_original": 26,
+          "rs_deleted": 10,
+          "rs_inserted": 86,
+          "unsafe_after": 0,
+          "unsafe_before": 1
+        }
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "name": "uu_cat 0.12.0 (original, sem porte)",
+      "version": "0.12.0",
+      "role": "coreutils:cat",
+      "category": "c",
+      "conformance": {
+        "candidate": "uu_cat 0.12.0 original",
+        "total": 18,
+        "strict_pass": 17,
+        "lenient_pass": 18,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            1,
+            1,
+            1
+          ],
+          "cat": [
+            17,
+            18,
+            18
+          ],
+          "errno": [
+            3,
+            3,
+            3
+          ],
+          "pipeline": [
+            1,
+            1,
+            1
+          ],
+          "ported": [
+            16,
+            17,
+            17
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "symlink": [
+            2,
+            2,
+            2
+          ],
+          "usage": [
+            0,
+            1,
+            1
+          ],
+          "wc": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "cat-unknown-flag",
+            "tags": [
+              "cat",
+              "ported",
+              "usage"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"cat: invalid option -- 'Z'\\nTry 'cat --help' for more information.\\n\" obtido \"error: unexpected argument '-Z' found\\n\\n  tip: to pass '-Z' as a value, use '-- -Z'\\n\\nUsage: cat [OPTION]... [FILE]...\\n\\nFo\"... (154 bytes)"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Rodado no oráculo com o mesmo argv/script (17/18 estrito, 18/18 leniente). Não serve como dependência direta: faz I/O de host (std::fs, stdout, libc/rustix/nix), tem estado global no uucore e unsafe; os bloqueios estão no candidato portado.",
+      "metrics": {
+        "category_detail": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "host_touching_deps": {
+            "anstream 1.0.0": 11,
+            "anstyle-query 1.1.5": 12,
+            "bigdecimal 0.4.11": 4,
+            "chrono 0.4.45": 6,
+            "clap_builder 4.6.7": 8,
+            "clap_derive 4.6.7": 2,
+            "clap_lex 1.1.1": 1,
+            "defmt-macros 1.1.1": 2,
+            "dunce 1.0.5": 1,
+            "errno 0.3.14": 12,
+            "fluent-syntax 0.12.0": 7,
+            "glob 0.3.4": 2,
+            "iana-time-zone 0.1.65": 9,
+            "is_terminal_polyfill 1.70.2": 1,
+            "jiff 0.2.37": 19,
+            "jiff-static 0.2.37": 1,
+            "libc 0.2.190": 1,
+            "nix 0.31.3": 4743,
+            "procfs 0.18.0": 63,
+            "procfs-core 0.18.0": 3,
+            "rustix 1.1.5": 47,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1,
+            "terminal_size 0.4.4": 12,
+            "unic-langid-impl 0.9.6": 27,
+            "uucore 0.12.0": 460,
+            "xattr 1.6.1": 33,
+            "zlib-rs 0.6.8": 3
+          },
+          "own": "b",
+          "own_host_touch": 11,
+          "own_unsafe": 1,
+          "tree": "c",
+          "tree_deps": 128
+        }
+      }
+    },
+    {
+      "name": "uu_cat 0.12.0 + porte sysio",
+      "version": "0.12.0",
+      "role": "coreutils:cat",
+      "category": "b",
+      "conformance": {
+        "candidate": "uu_cat 0.12.0 + porte sysio",
+        "total": 18,
+        "strict_pass": 17,
+        "lenient_pass": 18,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            1,
+            1,
+            1
+          ],
+          "cat": [
+            17,
+            18,
+            18
+          ],
+          "errno": [
+            3,
+            3,
+            3
+          ],
+          "pipeline": [
+            1,
+            1,
+            1
+          ],
+          "ported": [
+            16,
+            17,
+            17
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "symlink": [
+            2,
+            2,
+            2
+          ],
+          "usage": [
+            0,
+            1,
+            1
+          ],
+          "wc": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "cat-unknown-flag",
+            "tags": [
+              "cat",
+              "ported",
+              "usage"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"cat: invalid option -- 'Z'\\nTry 'cat --help' for more information.\\n\" obtido \"error: unexpected argument '-Z' found\\n\\n  tip: to pass '-Z' as a value, use '-- -Z'\\n\\nUsage: cat [OPTION]... [FILE]...\\n\\nFo\"... (154 bytes)"
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "33 linhas alteradas no crate do utilitário (12 +, 21 -); uucore+uucore_procs (compartilhados): 1498 linhas. Toque no host nos arquivos compilados: 10 -> 1; unsafe: 0 -> 0. Igual ao original em 18/18 casos. Bloqueios: splice(2) via uucore::pipes + rustix: fd do host dos dois lados; saiu (fica o read/write); is_safe_overwrite: fstat/lseek/fcntl por AsFd + rustix; virou o trait Fstat do shim; RawWriter: write(2) direto no fd 1 (rustix); virou embrulho sobre Write; #[uucore::main] gerava static em .init_array (unsafe link_section) e mexia em SIGPIPE/SIGSEGV/SIGBUS do processo host.",
+      "metrics": {
+        "approx_agent_minutes": 15,
+        "blockers": [
+          "splice(2) via uucore::pipes + rustix: fd do host dos dois lados; saiu (fica o read/write)",
+          "is_safe_overwrite: fstat/lseek/fcntl por AsFd + rustix; virou o trait Fstat do shim",
+          "RawWriter: write(2) direto no fd 1 (rustix); virou embrulho sobre Write",
+          "#[uucore::main] gerava static em .init_array (unsafe link_section) e mexia em SIGPIPE/SIGSEGV/SIGBUS do processo host"
+        ],
+        "cases": 18,
+        "compiled_files": 3,
+        "compiled_pristine_lines": 928,
+        "divergent_from_original": [],
+        "global_statics_removed": 0,
+        "host_touch_after": 1,
+        "host_touch_before": 10,
+        "lines_changed_rs": 33,
+        "manifest_lines_changed": 33,
+        "original": {
+          "lenient_pass": 18,
+          "lenient_rate": 1.0,
+          "strict_pass": 17,
+          "strict_rate": 0.944,
+          "total": 18,
+          "unsupported": 0
+        },
+        "path_method_calls_replaced": 0,
+        "ported": {
+          "lenient_pass": 18,
+          "lenient_rate": 1.0,
+          "strict_pass": 17,
+          "strict_rate": 0.944,
+          "total": 18,
+          "unsupported": 0
+        },
+        "ported_same_as_original": 18,
+        "rs_deleted": 21,
+        "rs_inserted": 12,
+        "unsafe_after": 0,
+        "unsafe_before": 0
+      }
+    },
+    {
+      "name": "uu_head 0.12.0 (original, sem porte)",
+      "version": "0.12.0",
+      "role": "coreutils:head",
+      "category": "c",
+      "conformance": {
+        "candidate": "uu_head 0.12.0 original",
+        "total": 17,
+        "strict_pass": 16,
+        "lenient_pass": 17,
+        "unsupported": 0,
+        "by_tag": {
+          "errno": [
+            2,
+            2,
+            2
+          ],
+          "head": [
+            16,
+            17,
+            17
+          ],
+          "ported": [
+            16,
+            17,
+            17
+          ],
+          "stdin": [
+            1,
+            1,
+            1
+          ],
+          "usage": [
+            0,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "head-bad-count",
+            "tags": [
+              "head",
+              "ported",
+              "usage"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"head: invalid number of lines: ‘abc’\\n\" obtido \"head: invalid number of lines: 'abc'\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Rodado no oráculo com o mesmo argv/script (16/17 estrito, 17/17 leniente). Não serve como dependência direta: faz I/O de host (std::fs, stdout, libc/rustix/nix), tem estado global no uucore e unsafe; os bloqueios estão no candidato portado.",
+      "metrics": {
+        "category_detail": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "host_touching_deps": {
+            "anstream 1.0.0": 11,
+            "anstyle-query 1.1.5": 12,
+            "bigdecimal 0.4.11": 4,
+            "chrono 0.4.45": 6,
+            "clap_builder 4.6.7": 8,
+            "clap_derive 4.6.7": 2,
+            "clap_lex 1.1.1": 1,
+            "defmt-macros 1.1.1": 2,
+            "dunce 1.0.5": 1,
+            "errno 0.3.14": 12,
+            "fluent-syntax 0.12.0": 7,
+            "glob 0.3.4": 2,
+            "iana-time-zone 0.1.65": 9,
+            "is_terminal_polyfill 1.70.2": 1,
+            "jiff 0.2.37": 19,
+            "jiff-static 0.2.37": 1,
+            "libc 0.2.190": 1,
+            "nix 0.31.3": 4743,
+            "procfs 0.18.0": 63,
+            "procfs-core 0.18.0": 3,
+            "rustix 1.1.5": 47,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1,
+            "terminal_size 0.4.4": 12,
+            "unic-langid-impl 0.9.6": 27,
+            "uucore 0.12.0": 460,
+            "xattr 1.6.1": 33,
+            "zlib-rs 0.6.8": 3
+          },
+          "own": "b",
+          "own_host_touch": 1,
+          "own_unsafe": 0,
+          "tree": "c",
+          "tree_deps": 128
+        }
+      }
+    },
+    {
+      "name": "uu_head 0.12.0 + porte sysio",
+      "version": "0.12.0",
+      "role": "coreutils:head",
+      "category": "a",
+      "conformance": {
+        "candidate": "uu_head 0.12.0 + porte sysio",
+        "total": 17,
+        "strict_pass": 16,
+        "lenient_pass": 17,
+        "unsupported": 0,
+        "by_tag": {
+          "errno": [
+            2,
+            2,
+            2
+          ],
+          "head": [
+            16,
+            17,
+            17
+          ],
+          "ported": [
+            16,
+            17,
+            17
+          ],
+          "stdin": [
+            1,
+            1,
+            1
+          ],
+          "usage": [
+            0,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "head-bad-count",
+            "tags": [
+              "head",
+              "ported",
+              "usage"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"head: invalid number of lines: ‘abc’\\n\" obtido \"head: invalid number of lines: 'abc'\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "35 linhas alteradas no crate do utilitário (5 +, 30 -); uucore+uucore_procs (compartilhados): 1498 linhas. Toque no host nos arquivos compilados: 1 -> 0; unsafe: 0 -> 0. Igual ao original em 17/17 casos. Bloqueios: caminho zero-copy (uucore::pipes::send_n_bytes, splice) removido; stdin: dup(2) do fd 0 num std::fs::File pra poder dar seek; ficou o caminho genérico.",
+      "metrics": {
+        "approx_agent_minutes": 10,
+        "blockers": [
+          "caminho zero-copy (uucore::pipes::send_n_bytes, splice) removido",
+          "stdin: dup(2) do fd 0 num std::fs::File pra poder dar seek; ficou o caminho genérico"
+        ],
+        "cases": 17,
+        "compiled_files": 4,
+        "compiled_pristine_lines": 1756,
+        "divergent_from_original": [],
+        "global_statics_removed": 0,
+        "host_touch_after": 0,
+        "host_touch_before": 1,
+        "lines_changed_rs": 35,
+        "manifest_lines_changed": 13,
+        "original": {
+          "lenient_pass": 17,
+          "lenient_rate": 1.0,
+          "strict_pass": 16,
+          "strict_rate": 0.941,
+          "total": 17,
+          "unsupported": 0
+        },
+        "path_method_calls_replaced": 0,
+        "ported": {
+          "lenient_pass": 17,
+          "lenient_rate": 1.0,
+          "strict_pass": 16,
+          "strict_rate": 0.941,
+          "total": 17,
+          "unsupported": 0
+        },
+        "ported_same_as_original": 17,
+        "rs_deleted": 30,
+        "rs_inserted": 5,
+        "unsafe_after": 0,
+        "unsafe_before": 0
+      }
+    },
+    {
+      "name": "uu_wc 0.12.0 (original, sem porte)",
+      "version": "0.12.0",
+      "role": "coreutils:wc",
+      "category": "c",
+      "conformance": {
+        "candidate": "uu_wc 0.12.0 original",
+        "total": 19,
+        "strict_pass": 19,
+        "lenient_pass": 19,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            1,
+            1,
+            1
+          ],
+          "errno": [
+            2,
+            2,
+            2
+          ],
+          "pipeline": [
+            1,
+            1,
+            1
+          ],
+          "ported": [
+            18,
+            18,
+            18
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "utf8": [
+            1,
+            1,
+            1
+          ],
+          "wc": [
+            19,
+            19,
+            19
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "does_not_fit",
+      "notes": "Rodado no oráculo com o mesmo argv/script (19/19 estrito, 19/19 leniente). Não serve como dependência direta: faz I/O de host (std::fs, stdout, libc/rustix/nix), tem estado global no uucore e unsafe; os bloqueios estão no candidato portado.",
+      "metrics": {
+        "category_detail": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "host_touching_deps": {
+            "anstream 1.0.0": 11,
+            "anstyle-query 1.1.5": 12,
+            "bigdecimal 0.4.11": 4,
+            "chrono 0.4.45": 6,
+            "clap_builder 4.6.7": 8,
+            "clap_derive 4.6.7": 2,
+            "clap_lex 1.1.1": 1,
+            "defmt-macros 1.1.1": 2,
+            "dunce 1.0.5": 1,
+            "errno 0.3.14": 12,
+            "fluent-syntax 0.12.0": 7,
+            "glob 0.3.4": 2,
+            "iana-time-zone 0.1.65": 9,
+            "is_terminal_polyfill 1.70.2": 1,
+            "jiff 0.2.37": 19,
+            "jiff-static 0.2.37": 1,
+            "libc 0.2.190": 1,
+            "nix 0.31.3": 4743,
+            "procfs 0.18.0": 63,
+            "procfs-core 0.18.0": 3,
+            "rustix 1.1.5": 47,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1,
+            "terminal_size 0.4.4": 12,
+            "unic-langid-impl 0.9.6": 27,
+            "uucore 0.12.0": 460,
+            "xattr 1.6.1": 33,
+            "zlib-rs 0.6.8": 3
+          },
+          "own": "b",
+          "own_host_touch": 15,
+          "own_unsafe": 1,
+          "tree": "c",
+          "tree_deps": 129
+        }
+      }
+    },
+    {
+      "name": "uu_wc 0.12.0 + porte sysio",
+      "version": "0.12.0",
+      "role": "coreutils:wc",
+      "category": "b",
+      "conformance": {
+        "candidate": "uu_wc 0.12.0 + porte sysio",
+        "total": 19,
+        "strict_pass": 19,
+        "lenient_pass": 19,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            1,
+            1,
+            1
+          ],
+          "errno": [
+            2,
+            2,
+            2
+          ],
+          "pipeline": [
+            1,
+            1,
+            1
+          ],
+          "ported": [
+            18,
+            18,
+            18
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "utf8": [
+            1,
+            1,
+            1
+          ],
+          "wc": [
+            19,
+            19,
+            19
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits_with_work",
+      "notes": "91 linhas alteradas no crate do utilitário (35 +, 56 -); uucore+uucore_procs (compartilhados): 1498 linhas. Toque no host nos arquivos compilados: 15 -> 1; unsafe: 1 -> 0. Igual ao original em 19/19 casos. Bloqueios: count_bytes_using_splice: splice pra /dev/null (rustix) removido; fstat + page_size (rustix, libc::S_IFREG) trocados por Fstat do shim e página de 4 KiB; static LazyLock POSIXLY_CORRECT: lido uma vez do ambiente do primeiro wc do host; unsafe str::from_utf8_unchecked trocado pela versão checada; SimdPolicy::detect: OnceLock global com GLIBC_TUNABLES do host.",
+      "metrics": {
+        "approx_agent_minutes": 20,
+        "blockers": [
+          "count_bytes_using_splice: splice pra /dev/null (rustix) removido",
+          "fstat + page_size (rustix, libc::S_IFREG) trocados por Fstat do shim e página de 4 KiB",
+          "static LazyLock POSIXLY_CORRECT: lido uma vez do ambiente do primeiro wc do host",
+          "unsafe str::from_utf8_unchecked trocado pela versão checada",
+          "SimdPolicy::detect: OnceLock global com GLIBC_TUNABLES do host"
+        ],
+        "cases": 19,
+        "compiled_files": 6,
+        "compiled_pristine_lines": 1595,
+        "divergent_from_original": [],
+        "global_statics_removed": 1,
+        "host_touch_after": 1,
+        "host_touch_before": 15,
+        "lines_changed_rs": 91,
+        "manifest_lines_changed": 38,
+        "original": {
+          "lenient_pass": 19,
+          "lenient_rate": 1.0,
+          "strict_pass": 19,
+          "strict_rate": 1.0,
+          "total": 19,
+          "unsupported": 0
+        },
+        "path_method_calls_replaced": -1,
+        "ported": {
+          "lenient_pass": 19,
+          "lenient_rate": 1.0,
+          "strict_pass": 19,
+          "strict_rate": 1.0,
+          "total": 19,
+          "unsupported": 0
+        },
+        "ported_same_as_original": 19,
+        "rs_deleted": 56,
+        "rs_inserted": 35,
+        "unsafe_after": 0,
+        "unsafe_before": 1
+      }
+    },
+    {
+      "name": "uu_sort 0.12.0 (original, sem porte)",
+      "version": "0.12.0",
+      "role": "coreutils:sort",
+      "category": "c",
+      "conformance": {
+        "candidate": "uu_sort 0.12.0 original",
+        "total": 25,
+        "strict_pass": 24,
+        "lenient_pass": 25,
+        "unsupported": 0,
+        "by_tag": {
+          "errno": [
+            2,
+            2,
+            2
+          ],
+          "fs": [
+            2,
+            2,
+            2
+          ],
+          "keys": [
+            6,
+            6,
+            6
+          ],
+          "ported": [
+            24,
+            25,
+            25
+          ],
+          "sort": [
+            24,
+            25,
+            25
+          ],
+          "stdin": [
+            1,
+            1,
+            1
+          ],
+          "usage": [
+            0,
+            1,
+            1
+          ],
+          "utf8": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "sort-bad-key",
+            "tags": [
+              "sort",
+              "ported",
+              "usage"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sort: field number is zero: invalid field specification ‘0’\\n\" obtido \"sort: field number is zero: invalid field specification '0'\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Rodado no oráculo com o mesmo argv/script (24/25 estrito, 25/25 leniente). Não serve como dependência direta: faz I/O de host (std::fs, stdout, libc/rustix/nix), tem estado global no uucore e unsafe; os bloqueios estão no candidato portado.",
+      "metrics": {
+        "category_detail": {
+          "c_deps": [
+            "defmt 1.1.1",
+            "rayon-core 1.13.0"
+          ],
+          "host_touching_deps": {
+            "anstream 1.0.0": 11,
+            "anstyle-query 1.1.5": 12,
+            "bigdecimal 0.4.11": 4,
+            "chrono 0.4.45": 6,
+            "clap_builder 4.6.7": 8,
+            "clap_derive 4.6.7": 2,
+            "clap_lex 1.1.1": 1,
+            "cpufeatures 0.3.1": 24,
+            "crossbeam-utils 0.8.23": 4,
+            "ctrlc 3.5.2": 12,
+            "defmt-macros 1.1.1": 2,
+            "dunce 1.0.5": 1,
+            "errno 0.3.14": 12,
+            "fluent-syntax 0.12.0": 7,
+            "getrandom 0.4.3": 75,
+            "glob 0.3.4": 2,
+            "iana-time-zone 0.1.65": 9,
+            "is_terminal_polyfill 1.70.2": 1,
+            "jiff 0.2.37": 19,
+            "jiff-static 0.2.37": 1,
+            "libc 0.2.190": 1,
+            "nix 0.31.3": 4743,
+            "procfs 0.18.0": 63,
+            "procfs-core 0.18.0": 3,
+            "rayon-core 1.13.0": 3,
+            "rustix 1.1.5": 47,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1,
+            "tempfile 3.27.0": 56,
+            "terminal_size 0.4.4": 12,
+            "unic-langid-impl 0.9.6": 27,
+            "uucore 0.12.0": 460,
+            "xattr 1.6.1": 33,
+            "zlib-rs 0.6.8": 3
+          },
+          "own": "b",
+          "own_host_touch": 45,
+          "own_unsafe": 8,
+          "tree": "c",
+          "tree_deps": 143
+        }
+      }
+    },
+    {
+      "name": "uu_sort 0.12.0 + porte sysio",
+      "version": "0.12.0",
+      "role": "coreutils:sort",
+      "category": "b",
+      "conformance": {
+        "candidate": "uu_sort 0.12.0 + porte sysio",
+        "total": 25,
+        "strict_pass": 24,
+        "lenient_pass": 25,
+        "unsupported": 0,
+        "by_tag": {
+          "errno": [
+            2,
+            2,
+            2
+          ],
+          "fs": [
+            2,
+            2,
+            2
+          ],
+          "keys": [
+            6,
+            6,
+            6
+          ],
+          "ported": [
+            24,
+            25,
+            25
+          ],
+          "sort": [
+            24,
+            25,
+            25
+          ],
+          "stdin": [
+            1,
+            1,
+            1
+          ],
+          "usage": [
+            0,
+            1,
+            1
+          ],
+          "utf8": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "sort-bad-key",
+            "tags": [
+              "sort",
+              "ported",
+              "usage"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"sort: field number is zero: invalid field specification ‘0’\\n\" obtido \"sort: field number is zero: invalid field specification '0'\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "455 linhas alteradas no crate do utilitário (132 +, 323 -); uucore+uucore_procs (compartilhados): 1498 linhas. Toque no host nos arquivos compilados: 45 -> 7; unsafe: 8 -> 2. Igual ao original em 25/25 casos. Bloqueios: rayon: par_sort no pool global do host (threads sem contexto do pseudo-processo); build_global do --parallel valia pro host inteiro; threads de leitura/merge (std::thread::spawn) nasciam sem processo corrente; viraram sysio::thread::spawn; tempfile (diretório temporário no FS do host) e ctrlc (handler de SIGINT do processo host + std::process::exit) trocados por diretório no VFS, sem limpeza por sinal; unsafe: transmute de lifetime em chunks.rs (coleta in-place segura no lugar), setlocale e fcntl da libc; getrlimit(NOFILE), /proc/self/fd, access(2), sysinfo(totalram): todos do host; --compress-program: filho com pipe concorrente (fork/exec); sem equivalente no shim, a compressão fica desligada; i18n: COLLATOR, separador decimal, meses (nl_langinfo, unsafe) e locale eram OnceLock globais com o ambiente do primeiro processo; rand::rng() (sort -R) semeava do getrandom(2) do host; virou sysio::random.",
+      "metrics": {
+        "approx_agent_minutes": 45,
+        "blockers": [
+          "rayon: par_sort no pool global do host (threads sem contexto do pseudo-processo); build_global do --parallel valia pro host inteiro",
+          "threads de leitura/merge (std::thread::spawn) nasciam sem processo corrente; viraram sysio::thread::spawn",
+          "tempfile (diretório temporário no FS do host) e ctrlc (handler de SIGINT do processo host + std::process::exit) trocados por diretório no VFS, sem limpeza por sinal",
+          "unsafe: transmute de lifetime em chunks.rs (coleta in-place segura no lugar), setlocale e fcntl da libc",
+          "getrlimit(NOFILE), /proc/self/fd, access(2), sysinfo(totalram): todos do host",
+          "--compress-program: filho com pipe concorrente (fork/exec); sem equivalente no shim, a compressão fica desligada",
+          "i18n: COLLATOR, separador decimal, meses (nl_langinfo, unsafe) e locale eram OnceLock globais com o ambiente do primeiro processo",
+          "rand::rng() (sort -R) semeava do getrandom(2) do host; virou sysio::random"
+        ],
+        "cases": 25,
+        "compiled_files": 11,
+        "compiled_pristine_lines": 6119,
+        "divergent_from_original": [],
+        "global_statics_removed": 2,
+        "host_touch_after": 7,
+        "host_touch_before": 45,
+        "lines_changed_rs": 455,
+        "manifest_lines_changed": 78,
+        "original": {
+          "lenient_pass": 25,
+          "lenient_rate": 1.0,
+          "strict_pass": 24,
+          "strict_rate": 0.96,
+          "total": 25,
+          "unsupported": 0
+        },
+        "path_method_calls_replaced": 2,
+        "ported": {
+          "lenient_pass": 25,
+          "lenient_rate": 1.0,
+          "strict_pass": 24,
+          "strict_rate": 0.96,
+          "total": 25,
+          "unsupported": 0
+        },
+        "ported_same_as_original": 25,
+        "rs_deleted": 323,
+        "rs_inserted": 132,
+        "unsafe_after": 2,
+        "unsafe_before": 8
+      }
+    },
+    {
+      "name": "uu_ls 0.12.0 (original, sem porte)",
+      "version": "0.12.0",
+      "role": "coreutils:ls",
+      "category": "c",
+      "conformance": {
+        "candidate": "uu_ls 0.12.0 original",
+        "total": 24,
+        "strict_pass": 24,
+        "lenient_pass": 24,
+        "unsupported": 0,
+        "by_tag": {
+          "errno": [
+            1,
+            1,
+            1
+          ],
+          "long": [
+            10,
+            10,
+            10
+          ],
+          "ls": [
+            24,
+            24,
+            24
+          ],
+          "ported": [
+            24,
+            24,
+            24
+          ],
+          "quoting": [
+            1,
+            1,
+            1
+          ],
+          "symlink": [
+            1,
+            1,
+            1
+          ],
+          "time": [
+            5,
+            5,
+            5
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "does_not_fit",
+      "notes": "Rodado no oráculo com o mesmo argv/script (24/24 estrito, 24/24 leniente). Não serve como dependência direta: faz I/O de host (std::fs, stdout, libc/rustix/nix), tem estado global no uucore e unsafe; os bloqueios estão no candidato portado.",
+      "metrics": {
+        "category_detail": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "host_touching_deps": {
+            "anstream 1.0.0": 11,
+            "anstyle-query 1.1.5": 12,
+            "bigdecimal 0.4.11": 4,
+            "chrono 0.4.45": 6,
+            "clap_builder 4.6.7": 8,
+            "clap_derive 4.6.7": 2,
+            "clap_lex 1.1.1": 1,
+            "defmt-macros 1.1.1": 2,
+            "dunce 1.0.5": 1,
+            "errno 0.3.14": 12,
+            "fluent-syntax 0.12.0": 7,
+            "glob 0.3.4": 2,
+            "hostname 0.4.2": 10,
+            "iana-time-zone 0.1.65": 9,
+            "is_terminal_polyfill 1.70.2": 1,
+            "jiff 0.2.37": 19,
+            "jiff-static 0.2.37": 1,
+            "libc 0.2.190": 1,
+            "lscolors 0.21.0": 9,
+            "nix 0.31.3": 4743,
+            "procfs 0.18.0": 63,
+            "procfs-core 0.18.0": 3,
+            "rustix 1.1.5": 47,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1,
+            "terminal_size 0.4.4": 12,
+            "unic-langid-impl 0.9.6": 27,
+            "uucore 0.12.0": 460,
+            "xattr 1.6.1": 33,
+            "zlib-rs 0.6.8": 3
+          },
+          "own": "b",
+          "own_host_touch": 33,
+          "own_unsafe": 0,
+          "tree": "c",
+          "tree_deps": 134
+        }
+      }
+    },
+    {
+      "name": "uu_ls 0.12.0 + porte sysio",
+      "version": "0.12.0",
+      "role": "coreutils:ls",
+      "category": "b",
+      "conformance": {
+        "candidate": "uu_ls 0.12.0 + porte sysio",
+        "total": 24,
+        "strict_pass": 24,
+        "lenient_pass": 24,
+        "unsupported": 0,
+        "by_tag": {
+          "errno": [
+            1,
+            1,
+            1
+          ],
+          "long": [
+            10,
+            10,
+            10
+          ],
+          "ls": [
+            24,
+            24,
+            24
+          ],
+          "ported": [
+            24,
+            24,
+            24
+          ],
+          "quoting": [
+            1,
+            1,
+            1
+          ],
+          "symlink": [
+            1,
+            1,
+            1
+          ],
+          "time": [
+            5,
+            5,
+            5
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits_with_work",
+      "notes": "122 linhas alteradas no crate do utilitário (69 +, 53 -); uucore+uucore_procs (compartilhados): 1498 linhas; fork do lscolors: 18 linhas. Toque no host nos arquivos compilados: 33 -> 1; unsafe: 0 -> 0. Igual ao original em 24/24 casos. Bloqueios: uucore::entries: getpwuid/getgrgid da libc (unsafe, NSS do host); virou leitura do /etc/passwd e /etc/group do VFS; lscolors: a API pública (Colorable) é tipada com std::fs::{FileType, Metadata}, que só nascem de syscall do host; exigiu fork; clap .env(\"TABSIZE\"/\"TIME_STYLE\"): o clap lê o ambiente do processo host; terminal_size (ioctl no fd do host), hostname (gethostname do host), xattr (ACL), statfs (libc) removidos ou trocados; dired: std::env::args_os() lia o argv do processo host; fuso: SystemTime -> Zoned usava TimeZone::system() (TZ e /etc/localtime do host); virou TZ do pseudo-processo com tzdb embutida; métodos inerentes de Path (exists, metadata, symlink_metadata, read_link) tocam o host e não dá pra sombrear por import.",
+      "metrics": {
+        "approx_agent_minutes": 60,
+        "blockers": [
+          "uucore::entries: getpwuid/getgrgid da libc (unsafe, NSS do host); virou leitura do /etc/passwd e /etc/group do VFS",
+          "lscolors: a API pública (Colorable) é tipada com std::fs::{FileType, Metadata}, que só nascem de syscall do host; exigiu fork",
+          "clap .env(\"TABSIZE\"/\"TIME_STYLE\"): o clap lê o ambiente do processo host",
+          "terminal_size (ioctl no fd do host), hostname (gethostname do host), xattr (ACL), statfs (libc) removidos ou trocados",
+          "dired: std::env::args_os() lia o argv do processo host",
+          "fuso: SystemTime -> Zoned usava TimeZone::system() (TZ e /etc/localtime do host); virou TZ do pseudo-processo com tzdb embutida",
+          "métodos inerentes de Path (exists, metadata, symlink_metadata, read_link) tocam o host e não dá pra sombrear por import"
+        ],
+        "cases": 24,
+        "compiled_files": 6,
+        "compiled_pristine_lines": 5914,
+        "divergent_from_original": [],
+        "global_statics_removed": 2,
+        "host_touch_after": 1,
+        "host_touch_before": 33,
+        "lines_changed_rs": 122,
+        "manifest_lines_changed": 36,
+        "original": {
+          "lenient_pass": 24,
+          "lenient_rate": 1.0,
+          "strict_pass": 24,
+          "strict_rate": 1.0,
+          "total": 24,
+          "unsupported": 0
+        },
+        "path_method_calls_replaced": 13,
+        "ported": {
+          "lenient_pass": 24,
+          "lenient_rate": 1.0,
+          "strict_pass": 24,
+          "strict_rate": 1.0,
+          "total": 24,
+          "unsupported": 0
+        },
+        "ported_same_as_original": 24,
+        "rs_deleted": 53,
+        "rs_inserted": 69,
+        "unsafe_after": 0,
+        "unsafe_before": 0
+      }
+    },
+    {
+      "name": "findutils 0.10.0 (original, sem porte)",
+      "version": "0.10.0",
+      "role": "find",
+      "category": "c",
+      "conformance": {
+        "candidate": "findutils 0.10.0 original",
+        "total": 51,
+        "strict_pass": 48,
+        "lenient_pass": 51,
+        "unsupported": 0,
+        "by_tag": {
+          "delete": [
+            2,
+            2,
+            2
+          ],
+          "depth": [
+            5,
+            5,
+            5
+          ],
+          "errno": [
+            0,
+            2,
+            2
+          ],
+          "exec": [
+            4,
+            4,
+            4
+          ],
+          "find": [
+            48,
+            51,
+            51
+          ],
+          "fs": [
+            2,
+            2,
+            2
+          ],
+          "glob": [
+            4,
+            4,
+            4
+          ],
+          "logic": [
+            5,
+            5,
+            5
+          ],
+          "perm": [
+            2,
+            2,
+            2
+          ],
+          "pipeline": [
+            2,
+            2,
+            2
+          ],
+          "print0": [
+            1,
+            1,
+            1
+          ],
+          "printf": [
+            2,
+            2,
+            2
+          ],
+          "prune": [
+            2,
+            2,
+            2
+          ],
+          "regex": [
+            1,
+            1,
+            1
+          ],
+          "size": [
+            4,
+            4,
+            4
+          ],
+          "symlink": [
+            2,
+            2,
+            2
+          ],
+          "time": [
+            6,
+            6,
+            6
+          ],
+          "type": [
+            3,
+            3,
+            3
+          ],
+          "unordered": [
+            43,
+            44,
+            44
+          ],
+          "usage": [
+            1,
+            2,
+            2
+          ],
+          "xargs": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "find-missing-root",
+            "tags": [
+              "find",
+              "errno"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"find: ‘nope’: No such file or directory\\n\" obtido \"Error: nope: No such file or directory (os error 2)\\n\""
+            ]
+          },
+          {
+            "id": "find-missing-root-and-ok",
+            "tags": [
+              "find",
+              "unordered",
+              "errno"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"find: ‘nope’: No such file or directory\\n\" obtido \"Error: nope: No such file or directory (os error 2)\\n\""
+            ]
+          },
+          {
+            "id": "find-missing-arg",
+            "tags": [
+              "find",
+              "usage"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"find: missing argument to `-name'\\n\" obtido \"find: missing argument to -name\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Rodado no oráculo com o mesmo argv/script (48/51 estrito, 51/51 leniente). Não serve como dependência direta: faz I/O de host (std::fs, stdout, libc/rustix/nix), tem estado global no uucore e unsafe; os bloqueios estão no candidato portado.",
+      "metrics": {
+        "category_detail": {
+          "c_deps": [
+            "onig_sys 69.9.3"
+          ],
+          "host_touching_deps": {
+            "anstream 1.0.0": 11,
+            "anstyle-query 1.1.5": 12,
+            "argmax 0.4.0": 12,
+            "chrono 0.4.45": 6,
+            "clap_builder 4.6.7": 8,
+            "clap_derive 4.6.7": 2,
+            "clap_lex 1.1.1": 1,
+            "dunce 1.0.5": 1,
+            "errno 0.3.14": 12,
+            "faccess 0.2.4": 13,
+            "fluent-syntax 0.12.0": 7,
+            "iana-time-zone 0.1.65": 9,
+            "is_terminal_polyfill 1.70.2": 1,
+            "libc 0.2.190": 1,
+            "nix 0.30.1": 4740,
+            "nix 0.31.3": 4743,
+            "rustix 1.1.5": 47,
+            "same-file 1.0.6": 13,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1,
+            "terminal_size 0.4.4": 12,
+            "unic-langid-impl 0.9.6": 27,
+            "uucore 0.9.0": 414,
+            "walkdir 2.5.0": 15
+          },
+          "own": "b",
+          "own_host_touch": 85,
+          "own_unsafe": 2,
+          "tree": "c",
+          "tree_deps": 77
+        }
+      }
+    },
+    {
+      "name": "findutils 0.10.0 + porte sysio",
+      "version": "0.10.0",
+      "role": "find",
+      "category": "b",
+      "conformance": {
+        "candidate": "findutils 0.10.0 + porte sysio",
+        "total": 51,
+        "strict_pass": 47,
+        "lenient_pass": 50,
+        "unsupported": 1,
+        "by_tag": {
+          "delete": [
+            2,
+            2,
+            2
+          ],
+          "depth": [
+            5,
+            5,
+            5
+          ],
+          "errno": [
+            0,
+            2,
+            2
+          ],
+          "exec": [
+            4,
+            4,
+            4
+          ],
+          "find": [
+            47,
+            50,
+            51
+          ],
+          "fs": [
+            2,
+            2,
+            2
+          ],
+          "glob": [
+            4,
+            4,
+            4
+          ],
+          "logic": [
+            5,
+            5,
+            5
+          ],
+          "perm": [
+            2,
+            2,
+            2
+          ],
+          "pipeline": [
+            1,
+            1,
+            2
+          ],
+          "print0": [
+            1,
+            1,
+            1
+          ],
+          "printf": [
+            2,
+            2,
+            2
+          ],
+          "prune": [
+            2,
+            2,
+            2
+          ],
+          "regex": [
+            1,
+            1,
+            1
+          ],
+          "size": [
+            4,
+            4,
+            4
+          ],
+          "symlink": [
+            2,
+            2,
+            2
+          ],
+          "time": [
+            6,
+            6,
+            6
+          ],
+          "type": [
+            3,
+            3,
+            3
+          ],
+          "unordered": [
+            43,
+            44,
+            44
+          ],
+          "usage": [
+            1,
+            2,
+            2
+          ],
+          "xargs": [
+            0,
+            0,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "find-missing-root",
+            "tags": [
+              "find",
+              "errno"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"find: ‘nope’: No such file or directory\\n\" obtido \"Error: nope: No such file or directory (os error 2)\\n\""
+            ]
+          },
+          {
+            "id": "find-missing-root-and-ok",
+            "tags": [
+              "find",
+              "unordered",
+              "errno"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"find: ‘nope’: No such file or directory\\n\" obtido \"Error: nope: No such file or directory (os error 2)\\n\""
+            ]
+          },
+          {
+            "id": "find-missing-arg",
+            "tags": [
+              "find",
+              "usage"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"find: missing argument to `-name'\\n\" obtido \"find: missing argument to -name\\n\""
+            ]
+          },
+          {
+            "id": "find-xargs-grep",
+            "tags": [
+              "find",
+              "xargs",
+              "pipeline"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "comando fora da tabela da bancada: grep",
+            "detail": [
+              "unsupported: comando fora da tabela da bancada: grep"
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "502 linhas alteradas no crate do utilitário (387 +, 115 -); walkdir: 31 linhas; usa o uucore 0.12 portado (1471 linhas, compartilhadas). Toque no host nos arquivos compilados: 59 -> 9; unsafe: 1 -> 0. Igual ao original em 50/51 casos. Bloqueios: walkdir: DirEntry/Metadata do std e same_file::Handle (fd do host); exigiu fork; onig: Oniguruma em C (FFI) pro glob do -name e pro -regex; trocado por tradutor POSIX -> crate regex (sem retrovisor); nix (usuários e grupos), faccess (faccessat), argmax + std::process::Command (-exec); chrono::Local e Utc::now: fuso e relógio do host; std::process::exit no Printer.",
+      "metrics": {
+        "approx_agent_minutes": 75,
+        "blockers": [
+          "walkdir: DirEntry/Metadata do std e same_file::Handle (fd do host); exigiu fork",
+          "onig: Oniguruma em C (FFI) pro glob do -name e pro -regex; trocado por tradutor POSIX -> crate regex (sem retrovisor)",
+          "nix (usuários e grupos), faccess (faccessat), argmax + std::process::Command (-exec)",
+          "chrono::Local e Utc::now: fuso e relógio do host",
+          "std::process::exit no Printer"
+        ],
+        "cases": 51,
+        "compiled_files": 30,
+        "compiled_pristine_lines": 11787,
+        "divergent_from_original": [
+          "find-xargs-grep: comando fora da tabela da bancada: grep"
+        ],
+        "global_statics_removed": 0,
+        "host_touch_after": 9,
+        "host_touch_before": 59,
+        "lines_changed_rs": 502,
+        "manifest_lines_changed": 133,
+        "original": {
+          "lenient_pass": 51,
+          "lenient_rate": 1.0,
+          "strict_pass": 48,
+          "strict_rate": 0.941,
+          "total": 51,
+          "unsupported": 0
+        },
+        "path_method_calls_replaced": 8,
+        "ported": {
+          "lenient_pass": 50,
+          "lenient_rate": 0.98,
+          "strict_pass": 47,
+          "strict_rate": 0.922,
+          "total": 51,
+          "unsupported": 1
+        },
+        "ported_same_as_original": 50,
+        "rs_deleted": 115,
+        "rs_inserted": 387,
+        "unsafe_after": 0,
+        "unsafe_before": 1
+      }
+    },
+    {
+      "name": "findutils 0.10.0 (original, sem porte)",
+      "version": "0.10.0",
+      "role": "xargs",
+      "category": "c",
+      "conformance": {
+        "candidate": "findutils 0.10.0 original",
+        "total": 27,
+        "strict_pass": 24,
+        "lenient_pass": 27,
+        "unsupported": 0,
+        "by_tag": {
+          "errno": [
+            2,
+            4,
+            4
+          ],
+          "find": [
+            1,
+            1,
+            1
+          ],
+          "fs": [
+            1,
+            1,
+            1
+          ],
+          "limits": [
+            1,
+            1,
+            1
+          ],
+          "null": [
+            2,
+            2,
+            2
+          ],
+          "parallel": [
+            1,
+            1,
+            1
+          ],
+          "pipeline": [
+            1,
+            1,
+            1
+          ],
+          "quoting": [
+            1,
+            2,
+            2
+          ],
+          "replace": [
+            2,
+            2,
+            2
+          ],
+          "unordered": [
+            1,
+            1,
+            1
+          ],
+          "xargs": [
+            24,
+            27,
+            27
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "xargs-unmatched-quote",
+            "tags": [
+              "xargs",
+              "quoting",
+              "errno"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"xargs: unmatched single quote; by default quotes are special to xargs unless you use the -0 option\\n\" obtido \"Error: Unterminated quote: 39\\n\""
+            ]
+          },
+          {
+            "id": "xargs-t",
+            "tags": [
+              "xargs"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"echo a b\\necho c\\n\" obtido \"env -i HOME=\\\"/root\\\" LC_ALL=\\\"C.UTF-8\\\" LOGNAME=\\\"root\\\" PATH=\\\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\\\" \"... (344 bytes)"
+            ]
+          },
+          {
+            "id": "xargs-missing-command",
+            "tags": [
+              "xargs",
+              "errno"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"xargs: nope-cmd: No such file or directory\\n\" obtido \"Error: Command not found\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Rodado no oráculo com o mesmo argv/script (24/27 estrito, 27/27 leniente). Não serve como dependência direta: faz I/O de host (std::fs, stdout, libc/rustix/nix), tem estado global no uucore e unsafe; os bloqueios estão no candidato portado.",
+      "metrics": {
+        "category_detail": {
+          "c_deps": [
+            "onig_sys 69.9.3"
+          ],
+          "host_touching_deps": {
+            "anstream 1.0.0": 11,
+            "anstyle-query 1.1.5": 12,
+            "argmax 0.4.0": 12,
+            "chrono 0.4.45": 6,
+            "clap_builder 4.6.7": 8,
+            "clap_derive 4.6.7": 2,
+            "clap_lex 1.1.1": 1,
+            "dunce 1.0.5": 1,
+            "errno 0.3.14": 12,
+            "faccess 0.2.4": 13,
+            "fluent-syntax 0.12.0": 7,
+            "iana-time-zone 0.1.65": 9,
+            "is_terminal_polyfill 1.70.2": 1,
+            "libc 0.2.190": 1,
+            "nix 0.30.1": 4740,
+            "nix 0.31.3": 4743,
+            "rustix 1.1.5": 47,
+            "same-file 1.0.6": 13,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1,
+            "terminal_size 0.4.4": 12,
+            "unic-langid-impl 0.9.6": 27,
+            "uucore 0.9.0": 414,
+            "walkdir 2.5.0": 15
+          },
+          "own": "b",
+          "own_host_touch": 85,
+          "own_unsafe": 2,
+          "tree": "c",
+          "tree_deps": 77
+        }
+      }
+    },
+    {
+      "name": "findutils 0.10.0 + porte sysio",
+      "version": "0.10.0",
+      "role": "xargs",
+      "category": "b",
+      "conformance": {
+        "candidate": "findutils 0.10.0 + porte sysio",
+        "total": 27,
+        "strict_pass": 23,
+        "lenient_pass": 26,
+        "unsupported": 1,
+        "by_tag": {
+          "errno": [
+            2,
+            4,
+            4
+          ],
+          "find": [
+            1,
+            1,
+            1
+          ],
+          "fs": [
+            0,
+            0,
+            1
+          ],
+          "limits": [
+            1,
+            1,
+            1
+          ],
+          "null": [
+            2,
+            2,
+            2
+          ],
+          "parallel": [
+            1,
+            1,
+            1
+          ],
+          "pipeline": [
+            1,
+            1,
+            1
+          ],
+          "quoting": [
+            1,
+            2,
+            2
+          ],
+          "replace": [
+            2,
+            2,
+            2
+          ],
+          "unordered": [
+            1,
+            1,
+            1
+          ],
+          "xargs": [
+            23,
+            26,
+            27
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "xargs-unmatched-quote",
+            "tags": [
+              "xargs",
+              "quoting",
+              "errno"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"xargs: unmatched single quote; by default quotes are special to xargs unless you use the -0 option\\n\" obtido \"Error: Unterminated quote: 39\\n\""
+            ]
+          },
+          {
+            "id": "xargs-t",
+            "tags": [
+              "xargs"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"echo a b\\necho c\\n\" obtido \"env -i HOME=\\\"/root\\\" LC_ALL=\\\"C.UTF-8\\\" LOGNAME=\\\"root\\\" PATH=\\\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\\\" \"... (344 bytes)"
+            ]
+          },
+          {
+            "id": "xargs-missing-command",
+            "tags": [
+              "xargs",
+              "errno"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"xargs: nope-cmd: No such file or directory\\n\" obtido \"Error: Command not found\\n\""
+            ]
+          },
+          {
+            "id": "xargs-rm",
+            "tags": [
+              "xargs",
+              "fs"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "comando fora da tabela da bancada: rm",
+            "detail": [
+              "unsupported: comando fora da tabela da bancada: rm"
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "96 linhas alteradas no crate do utilitário (86 +, 10 -); walkdir: 31 linhas; usa o uucore 0.12 portado (1471 linhas, compartilhadas). Toque no host nos arquivos compilados: 59 -> 9; unsafe: 1 -> 0. Igual ao original em 26/27 casos. Bloqueios: executor: std::process::Command (fork/exec do host) trocado pela tabela de programas do pseudo-kernel; o resto (leitores, limites, -I, -L, -n, -s) ficou; sysconf(_SC_ARG_MAX) unsafe da libc; std::env::vars_os do processo host; -P já era ignorado no original (roda em série).",
+      "metrics": {
+        "approx_agent_minutes": 75,
+        "blockers": [
+          "executor: std::process::Command (fork/exec do host) trocado pela tabela de programas do pseudo-kernel; o resto (leitores, limites, -I, -L, -n, -s) ficou",
+          "sysconf(_SC_ARG_MAX) unsafe da libc",
+          "std::env::vars_os do processo host",
+          "-P já era ignorado no original (roda em série)"
+        ],
+        "cases": 27,
+        "compiled_files": 30,
+        "compiled_pristine_lines": 11787,
+        "divergent_from_original": [
+          "xargs-rm: comando fora da tabela da bancada: rm"
+        ],
+        "global_statics_removed": 0,
+        "host_touch_after": 9,
+        "host_touch_before": 59,
+        "lines_changed_rs": 96,
+        "manifest_lines_changed": 133,
+        "original": {
+          "lenient_pass": 27,
+          "lenient_rate": 1.0,
+          "strict_pass": 24,
+          "strict_rate": 0.889,
+          "total": 27,
+          "unsupported": 0
+        },
+        "path_method_calls_replaced": 8,
+        "ported": {
+          "lenient_pass": 26,
+          "lenient_rate": 0.963,
+          "strict_pass": 23,
+          "strict_rate": 0.852,
+          "total": 27,
+          "unsupported": 1
+        },
+        "ported_same_as_original": 26,
+        "rs_deleted": 10,
+        "rs_inserted": 86,
+        "unsafe_after": 0,
+        "unsafe_before": 1
+      }
+    }
+  ],
+  "metrics": {
+    "agent_minutes_note": "estimativa do tempo de agente gasto em cada porte, anotada durante o trabalho; não é medição",
+    "audits": {
+      "findutils": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 8,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 0,
+          "std_net": 0,
+          "std_os": 1,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 23,
+          "libc": 0,
+          "nix": 4,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 1,
+          "std_fs": 15,
+          "std_net": 0,
+          "std_os": 12,
+          "std_process": 4,
+          "std_thread": 0,
+          "unsafe_blocks": 1,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 11787,
+        "compiled_unchanged_lines": 11662,
+        "files": 30,
+        "global_statics_removed": 0,
+        "host_touch_after": 9,
+        "host_touch_before": 59,
+        "path_method_calls_replaced": 8,
+        "residual": {
+          "src/find/matchers/ls.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 1,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/find/matchers/mod.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 1,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/find/matchers/printf.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 1,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/find/mod.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 1,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/xargs/mod.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 5,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          }
+        },
+        "unsafe_after": 0,
+        "unsafe_before": 1
+      },
+      "lscolors": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 0,
+          "std_net": 0,
+          "std_os": 0,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 1,
+          "std_fs": 5,
+          "std_net": 0,
+          "std_os": 2,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 2070,
+        "compiled_unchanged_lines": 2062,
+        "files": 4,
+        "global_statics_removed": 0,
+        "host_touch_after": 0,
+        "host_touch_before": 8,
+        "path_method_calls_replaced": 2,
+        "residual": {},
+        "unsafe_after": 0,
+        "unsafe_before": 0
+      },
+      "uu_cat": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 1,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 0,
+          "std_net": 0,
+          "std_os": 0,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 1,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 5,
+          "std_env": 0,
+          "std_fs": 2,
+          "std_net": 0,
+          "std_os": 1,
+          "std_process": 1,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 928,
+        "compiled_unchanged_lines": 907,
+        "files": 3,
+        "global_statics_removed": 0,
+        "host_touch_after": 1,
+        "host_touch_before": 10,
+        "path_method_calls_replaced": 0,
+        "residual": {
+          "src/cat.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 1,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          }
+        },
+        "unsafe_after": 0,
+        "unsafe_before": 0
+      },
+      "uu_head": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 0,
+          "std_net": 0,
+          "std_os": 0,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 1,
+          "std_net": 0,
+          "std_os": 0,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 1756,
+        "compiled_unchanged_lines": 1726,
+        "files": 4,
+        "global_statics_removed": 0,
+        "host_touch_after": 0,
+        "host_touch_before": 1,
+        "path_method_calls_replaced": 0,
+        "residual": {},
+        "unsafe_after": 0,
+        "unsafe_before": 0
+      },
+      "uu_ls": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 0,
+          "std_net": 0,
+          "std_os": 1,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 2,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 11,
+          "std_fs": 13,
+          "std_net": 0,
+          "std_os": 7,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 5914,
+        "compiled_unchanged_lines": 5861,
+        "files": 6,
+        "global_statics_removed": 2,
+        "host_touch_after": 1,
+        "host_touch_before": 33,
+        "path_method_calls_replaced": 13,
+        "residual": {
+          "src/display.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 1,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          }
+        },
+        "unsafe_after": 0,
+        "unsafe_before": 0
+      },
+      "uu_sort": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 4,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 1,
+          "std_net": 0,
+          "std_os": 2,
+          "std_process": 0,
+          "std_thread": 1,
+          "unsafe_blocks": 2,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 3,
+          "libc": 8,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 5,
+          "std_env": 1,
+          "std_fs": 14,
+          "std_net": 0,
+          "std_os": 4,
+          "std_process": 10,
+          "std_thread": 5,
+          "unsafe_blocks": 8,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 6119,
+        "compiled_unchanged_lines": 5796,
+        "files": 11,
+        "global_statics_removed": 2,
+        "host_touch_after": 7,
+        "host_touch_before": 45,
+        "path_method_calls_replaced": 2,
+        "residual": {
+          "src/merge.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 1,
+            "std_process": 0,
+            "std_thread": 1,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/tmp_dir.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 4,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 1,
+            "std_net": 0,
+            "std_os": 1,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 2,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          }
+        },
+        "unsafe_after": 2,
+        "unsafe_before": 8
+      },
+      "uu_wc": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 0,
+          "std_net": 0,
+          "std_os": 1,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 1,
+          "libc": 5,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 4,
+          "std_env": 1,
+          "std_fs": 3,
+          "std_net": 0,
+          "std_os": 1,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 1,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 1595,
+        "compiled_unchanged_lines": 1539,
+        "files": 6,
+        "global_statics_removed": 1,
+        "host_touch_after": 1,
+        "host_touch_before": 15,
+        "path_method_calls_replaced": -1,
+        "residual": {
+          "src/count_fast.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 1,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          }
+        },
+        "unsafe_after": 0,
+        "unsafe_before": 1
+      },
+      "uucore": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 3,
+          "libc": 7,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 4,
+          "std_env": 0,
+          "std_fs": 1,
+          "std_net": 0,
+          "std_os": 3,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 19,
+          "unsafe_fns": 1,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 1,
+          "files": 0,
+          "host_stdio": 15,
+          "libc": 49,
+          "nix": 16,
+          "parse_errors": 0,
+          "rustix": 26,
+          "std_env": 21,
+          "std_fs": 24,
+          "std_net": 0,
+          "std_os": 11,
+          "std_process": 4,
+          "std_thread": 0,
+          "unsafe_blocks": 30,
+          "unsafe_fns": 3,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 21418,
+        "compiled_unchanged_lines": 20507,
+        "files": 52,
+        "global_statics_removed": 10,
+        "host_touch_after": 18,
+        "host_touch_before": 166,
+        "path_method_calls_replaced": 11,
+        "residual": {
+          "src/lib/features/entries.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 4,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/lib/features/fs.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 1,
+            "std_net": 0,
+            "std_os": 3,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 4,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/lib/features/fsext/mod.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 6,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 8,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/lib/features/i18n/mod.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 5,
+            "unsafe_fns": 1,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/lib/features/mode.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 0,
+            "libc": 1,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 2,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          },
+          "src/lib/mods/clap_localization.rs": {
+            "extern_blocks": 0,
+            "files": 0,
+            "host_stdio": 3,
+            "libc": 0,
+            "nix": 0,
+            "parse_errors": 0,
+            "rustix": 0,
+            "std_env": 0,
+            "std_fs": 0,
+            "std_net": 0,
+            "std_os": 0,
+            "std_process": 0,
+            "std_thread": 0,
+            "unsafe_blocks": 0,
+            "unsafe_fns": 0,
+            "unsafe_impls": 0,
+            "unsafe_traits": 0
+          }
+        },
+        "unsafe_after": 20,
+        "unsafe_before": 34
+      },
+      "uucore_procs": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 0,
+          "std_net": 0,
+          "std_os": 0,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 0,
+          "std_net": 0,
+          "std_os": 0,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 73,
+        "compiled_unchanged_lines": 51,
+        "files": 1,
+        "global_statics_removed": 0,
+        "host_touch_after": 0,
+        "host_touch_before": 0,
+        "path_method_calls_replaced": 0,
+        "residual": {},
+        "unsafe_after": 0,
+        "unsafe_before": 0
+      },
+      "walkdir": {
+        "after": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 0,
+          "std_net": 0,
+          "std_os": 0,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "before": {
+          "extern_blocks": 0,
+          "files": 0,
+          "host_stdio": 0,
+          "libc": 0,
+          "nix": 0,
+          "parse_errors": 0,
+          "rustix": 0,
+          "std_env": 0,
+          "std_fs": 4,
+          "std_net": 0,
+          "std_os": 3,
+          "std_process": 0,
+          "std_thread": 0,
+          "unsafe_blocks": 0,
+          "unsafe_fns": 0,
+          "unsafe_impls": 0,
+          "unsafe_traits": 0
+        },
+        "compiled_pristine_lines": 1833,
+        "compiled_unchanged_lines": 1825,
+        "files": 4,
+        "global_statics_removed": 0,
+        "host_touch_after": 0,
+        "host_touch_before": 7,
+        "path_method_calls_replaced": 1,
+        "residual": {},
+        "unsafe_after": 0,
+        "unsafe_before": 0
+      }
+    },
+    "corpus": {
+      "cases_selected": 181,
+      "cases_total": 306,
+      "cases_without_golden": 0
+    },
+    "depscan": {
+      "findutils": {
+        "c_deps": [
+          "onig_sys 69.9.3"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "argmax 0.4.0": 12,
+          "chrono 0.4.45": 6,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "dunce 1.0.5": 1,
+          "errno 0.3.14": 12,
+          "faccess 0.2.4": 13,
+          "fluent-syntax 0.12.0": 7,
+          "iana-time-zone 0.1.65": 9,
+          "is_terminal_polyfill 1.70.2": 1,
+          "libc 0.2.190": 1,
+          "nix 0.30.1": 4740,
+          "nix 0.31.3": 4743,
+          "rustix 1.1.5": 47,
+          "same-file 1.0.6": 13,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27,
+          "uucore 0.9.0": 414,
+          "walkdir 2.5.0": 15
+        },
+        "own": "b",
+        "own_host_touch": 85,
+        "own_unsafe": 2,
+        "tree": "c",
+        "tree_deps": 77
+      },
+      "port-findutils": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "chrono 0.4.45": 6,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "iana-time-zone 0.1.65": 9,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "port-uucore 0.12.0": 312,
+          "port-walkdir 2.5.0": 8,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "sysio 0.1.0": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27
+        },
+        "own": "b",
+        "own_host_touch": 35,
+        "own_unsafe": 1,
+        "tree": "c",
+        "tree_deps": 118
+      },
+      "port-uu-cat": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "port-uucore 0.12.0": 312,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "sysio 0.1.0": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27
+        },
+        "own": "b",
+        "own_host_touch": 2,
+        "own_unsafe": 1,
+        "tree": "c",
+        "tree_deps": 114
+      },
+      "port-uu-head": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "port-uucore 0.12.0": 312,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "sysio 0.1.0": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27
+        },
+        "own": "a",
+        "own_host_touch": 0,
+        "own_unsafe": 0,
+        "tree": "c",
+        "tree_deps": 114
+      },
+      "port-uu-ls": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "port-lscolors 0.21.0": 1,
+          "port-uucore 0.12.0": 312,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "sysio 0.1.0": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27
+        },
+        "own": "b",
+        "own_host_touch": 1,
+        "own_unsafe": 0,
+        "tree": "c",
+        "tree_deps": 119
+      },
+      "port-uu-sort": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "port-uucore 0.12.0": 312,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "sysio 0.1.0": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27
+        },
+        "own": "b",
+        "own_host_touch": 7,
+        "own_unsafe": 2,
+        "tree": "c",
+        "tree_deps": 115
+      },
+      "port-uu-wc": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "port-uucore 0.12.0": 312,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "sysio 0.1.0": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27
+        },
+        "own": "b",
+        "own_host_touch": 1,
+        "own_unsafe": 0,
+        "tree": "c",
+        "tree_deps": 115
+      },
+      "port-uucore": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "sysio 0.1.0": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27
+        },
+        "own": "b",
+        "own_host_touch": 312,
+        "own_unsafe": 122,
+        "tree": "c",
+        "tree_deps": 113
+      },
+      "sysio": {
+        "c_deps": [],
+        "host_touching_deps": {},
+        "own": "b",
+        "own_host_touch": 1,
+        "own_unsafe": 0,
+        "tree": "b",
+        "tree_deps": 0
+      },
+      "uu_cat": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "chrono 0.4.45": 6,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "dunce 1.0.5": 1,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "iana-time-zone 0.1.65": 9,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "nix 0.31.3": 4743,
+          "procfs 0.18.0": 63,
+          "procfs-core 0.18.0": 3,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27,
+          "uucore 0.12.0": 460,
+          "xattr 1.6.1": 33,
+          "zlib-rs 0.6.8": 3
+        },
+        "own": "b",
+        "own_host_touch": 11,
+        "own_unsafe": 1,
+        "tree": "c",
+        "tree_deps": 128
+      },
+      "uu_head": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "chrono 0.4.45": 6,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "dunce 1.0.5": 1,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "iana-time-zone 0.1.65": 9,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "nix 0.31.3": 4743,
+          "procfs 0.18.0": 63,
+          "procfs-core 0.18.0": 3,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27,
+          "uucore 0.12.0": 460,
+          "xattr 1.6.1": 33,
+          "zlib-rs 0.6.8": 3
+        },
+        "own": "b",
+        "own_host_touch": 1,
+        "own_unsafe": 0,
+        "tree": "c",
+        "tree_deps": 128
+      },
+      "uu_ls": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "chrono 0.4.45": 6,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "dunce 1.0.5": 1,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "hostname 0.4.2": 10,
+          "iana-time-zone 0.1.65": 9,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "lscolors 0.21.0": 9,
+          "nix 0.31.3": 4743,
+          "procfs 0.18.0": 63,
+          "procfs-core 0.18.0": 3,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27,
+          "uucore 0.12.0": 460,
+          "xattr 1.6.1": 33,
+          "zlib-rs 0.6.8": 3
+        },
+        "own": "b",
+        "own_host_touch": 33,
+        "own_unsafe": 0,
+        "tree": "c",
+        "tree_deps": 134
+      },
+      "uu_sort": {
+        "c_deps": [
+          "defmt 1.1.1",
+          "rayon-core 1.13.0"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "chrono 0.4.45": 6,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "cpufeatures 0.3.1": 24,
+          "crossbeam-utils 0.8.23": 4,
+          "ctrlc 3.5.2": 12,
+          "defmt-macros 1.1.1": 2,
+          "dunce 1.0.5": 1,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "getrandom 0.4.3": 75,
+          "glob 0.3.4": 2,
+          "iana-time-zone 0.1.65": 9,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "nix 0.31.3": 4743,
+          "procfs 0.18.0": 63,
+          "procfs-core 0.18.0": 3,
+          "rayon-core 1.13.0": 3,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "tempfile 3.27.0": 56,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27,
+          "uucore 0.12.0": 460,
+          "xattr 1.6.1": 33,
+          "zlib-rs 0.6.8": 3
+        },
+        "own": "b",
+        "own_host_touch": 45,
+        "own_unsafe": 8,
+        "tree": "c",
+        "tree_deps": 143
+      },
+      "uu_wc": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "chrono 0.4.45": 6,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "dunce 1.0.5": 1,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "iana-time-zone 0.1.65": 9,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "nix 0.31.3": 4743,
+          "procfs 0.18.0": 63,
+          "procfs-core 0.18.0": 3,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27,
+          "uucore 0.12.0": 460,
+          "xattr 1.6.1": 33,
+          "zlib-rs 0.6.8": 3
+        },
+        "own": "b",
+        "own_host_touch": 15,
+        "own_unsafe": 1,
+        "tree": "c",
+        "tree_deps": 129
+      },
+      "uucore": {
+        "c_deps": [
+          "defmt 1.1.1"
+        ],
+        "host_touching_deps": {
+          "anstream 1.0.0": 11,
+          "anstyle-query 1.1.5": 12,
+          "bigdecimal 0.4.11": 4,
+          "chrono 0.4.45": 6,
+          "clap_builder 4.6.7": 8,
+          "clap_derive 4.6.7": 2,
+          "clap_lex 1.1.1": 1,
+          "defmt-macros 1.1.1": 2,
+          "dunce 1.0.5": 1,
+          "errno 0.3.14": 12,
+          "fluent-syntax 0.12.0": 7,
+          "glob 0.3.4": 2,
+          "iana-time-zone 0.1.65": 9,
+          "is_terminal_polyfill 1.70.2": 1,
+          "jiff 0.2.37": 19,
+          "jiff-static 0.2.37": 1,
+          "libc 0.2.190": 1,
+          "nix 0.31.3": 4743,
+          "procfs 0.18.0": 63,
+          "procfs-core 0.18.0": 3,
+          "rustix 1.1.5": 47,
+          "serde 1.0.229": 1,
+          "serde_core 1.0.229": 1,
+          "terminal_size 0.4.4": 12,
+          "unic-langid-impl 0.9.6": 27,
+          "xattr 1.6.1": 33,
+          "zlib-rs 0.6.8": 3
+        },
+        "own": "b",
+        "own_host_touch": 460,
+        "own_unsafe": 136,
+        "tree": "c",
+        "tree_deps": 127
+      }
+    },
+    "diffs": {
+      "findutils": {
+        "files": [
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/find/main.rs",
+            "pristine_lines": 17,
+            "unchanged_lines": 17
+          },
+          {
+            "deleted": 2,
+            "inserted": 22,
+            "path": "src/find/matchers/access.rs",
+            "pristine_lines": 58,
+            "unchanged_lines": 56
+          },
+          {
+            "deleted": 2,
+            "inserted": 3,
+            "path": "src/find/matchers/delete.rs",
+            "pristine_lines": 97,
+            "unchanged_lines": 95
+          },
+          {
+            "deleted": 1,
+            "inserted": 2,
+            "path": "src/find/matchers/empty.rs",
+            "pristine_lines": 170,
+            "unchanged_lines": 169
+          },
+          {
+            "deleted": 7,
+            "inserted": 8,
+            "path": "src/find/matchers/entry.rs",
+            "pristine_lines": 340,
+            "unchanged_lines": 333
+          },
+          {
+            "deleted": 8,
+            "inserted": 63,
+            "path": "src/find/matchers/exec.rs",
+            "pristine_lines": 269,
+            "unchanged_lines": 261
+          },
+          {
+            "deleted": 8,
+            "inserted": 7,
+            "path": "src/find/matchers/fs.rs",
+            "pristine_lines": 210,
+            "unchanged_lines": 202
+          },
+          {
+            "deleted": 4,
+            "inserted": 12,
+            "path": "src/find/matchers/glob.rs",
+            "pristine_lines": 258,
+            "unchanged_lines": 254
+          },
+          {
+            "deleted": 16,
+            "inserted": 6,
+            "path": "src/find/matchers/group.rs",
+            "pristine_lines": 140,
+            "unchanged_lines": 124
+          },
+          {
+            "deleted": 2,
+            "inserted": 3,
+            "path": "src/find/matchers/lname.rs",
+            "pristine_lines": 107,
+            "unchanged_lines": 105
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/find/matchers/logical_matchers.rs",
+            "pristine_lines": 592,
+            "unchanged_lines": 592
+          },
+          {
+            "deleted": 2,
+            "inserted": 3,
+            "path": "src/find/matchers/ls.rs",
+            "pristine_lines": 309,
+            "unchanged_lines": 307
+          },
+          {
+            "deleted": 5,
+            "inserted": 10,
+            "path": "src/find/matchers/mod.rs",
+            "pristine_lines": 1962,
+            "unchanged_lines": 1957
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/find/matchers/name.rs",
+            "pristine_lines": 155,
+            "unchanged_lines": 155
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/find/matchers/path.rs",
+            "pristine_lines": 79,
+            "unchanged_lines": 79
+          },
+          {
+            "deleted": 2,
+            "inserted": 3,
+            "path": "src/find/matchers/perm.rs",
+            "pristine_lines": 330,
+            "unchanged_lines": 328
+          },
+          {
+            "deleted": 0,
+            "inserted": 187,
+            "path": "src/find/matchers/posix_re.rs",
+            "pristine_lines": 0,
+            "unchanged_lines": 0
+          },
+          {
+            "deleted": 3,
+            "inserted": 4,
+            "path": "src/find/matchers/printer.rs",
+            "pristine_lines": 137,
+            "unchanged_lines": 134
+          },
+          {
+            "deleted": 6,
+            "inserted": 16,
+            "path": "src/find/matchers/printf.rs",
+            "pristine_lines": 1177,
+            "unchanged_lines": 1171
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/find/matchers/prune.rs",
+            "pristine_lines": 57,
+            "unchanged_lines": 57
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/find/matchers/quit.rs",
+            "pristine_lines": 36,
+            "unchanged_lines": 36
+          },
+          {
+            "deleted": 14,
+            "inserted": 8,
+            "path": "src/find/matchers/regex.rs",
+            "pristine_lines": 225,
+            "unchanged_lines": 211
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/find/matchers/samefile.rs",
+            "pristine_lines": 107,
+            "unchanged_lines": 107
+          },
+          {
+            "deleted": 1,
+            "inserted": 2,
+            "path": "src/find/matchers/size.rs",
+            "pristine_lines": 247,
+            "unchanged_lines": 246
+          },
+          {
+            "deleted": 1,
+            "inserted": 2,
+            "path": "src/find/matchers/stat.rs",
+            "pristine_lines": 107,
+            "unchanged_lines": 106
+          },
+          {
+            "deleted": 5,
+            "inserted": 9,
+            "path": "src/find/matchers/time.rs",
+            "pristine_lines": 903,
+            "unchanged_lines": 898
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/find/matchers/type_matcher.rs",
+            "pristine_lines": 339,
+            "unchanged_lines": 339
+          },
+          {
+            "deleted": 16,
+            "inserted": 6,
+            "path": "src/find/matchers/user.rs",
+            "pristine_lines": 137,
+            "unchanged_lines": 121
+          },
+          {
+            "deleted": 8,
+            "inserted": 10,
+            "path": "src/find/mod.rs",
+            "pristine_lines": 1661,
+            "unchanged_lines": 1653
+          },
+          {
+            "deleted": 2,
+            "inserted": 1,
+            "path": "src/lib.rs",
+            "pristine_lines": 10,
+            "unchanged_lines": 8
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/locate/main.rs",
+            "pristine_lines": 9,
+            "unchanged_lines": 9
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/locate/mod.rs",
+            "pristine_lines": 814,
+            "unchanged_lines": 814
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/testing/commandline/main.rs",
+            "pristine_lines": 138,
+            "unchanged_lines": 138
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/updatedb/main.rs",
+            "pristine_lines": 9,
+            "unchanged_lines": 9
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/updatedb/mod.rs",
+            "pristine_lines": 378,
+            "unchanged_lines": 378
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/xargs/main.rs",
+            "pristine_lines": 15,
+            "unchanged_lines": 15
+          },
+          {
+            "deleted": 10,
+            "inserted": 86,
+            "path": "src/xargs/mod.rs",
+            "pristine_lines": 1568,
+            "unchanged_lines": 1558
+          }
+        ],
+        "files_added": [
+          "src/find/matchers/posix_re.rs"
+        ],
+        "files_changed": 23,
+        "krate": "findutils -> port-findutils",
+        "manifest_deleted": 116,
+        "manifest_inserted": 17,
+        "rs_deleted": 125,
+        "rs_inserted": 473
+      },
+      "lscolors": {
+        "files": [
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/bin.rs",
+            "pristine_lines": 88,
+            "unchanged_lines": 88
+          },
+          {
+            "deleted": 2,
+            "inserted": 2,
+            "path": "src/fs.rs",
+            "pristine_lines": 24,
+            "unchanged_lines": 22
+          },
+          {
+            "deleted": 6,
+            "inserted": 8,
+            "path": "src/lib.rs",
+            "pristine_lines": 966,
+            "unchanged_lines": 960
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/style.rs",
+            "pristine_lines": 874,
+            "unchanged_lines": 874
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/suffix.rs",
+            "pristine_lines": 206,
+            "unchanged_lines": 206
+          }
+        ],
+        "files_added": [],
+        "files_changed": 2,
+        "krate": "lscolors -> port-lscolors",
+        "manifest_deleted": 11,
+        "manifest_inserted": 5,
+        "rs_deleted": 8,
+        "rs_inserted": 10
+      },
+      "uu_cat": {
+        "files": [
+          {
+            "deleted": 15,
+            "inserted": 7,
+            "path": "src/cat.rs",
+            "pristine_lines": 790,
+            "unchanged_lines": 775
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/main.rs",
+            "pristine_lines": 6,
+            "unchanged_lines": 6
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/platform/mod.rs",
+            "pristine_lines": 26,
+            "unchanged_lines": 26
+          },
+          {
+            "deleted": 6,
+            "inserted": 5,
+            "path": "src/platform/unix.rs",
+            "pristine_lines": 112,
+            "unchanged_lines": 106
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/platform/windows.rs",
+            "pristine_lines": 51,
+            "unchanged_lines": 51
+          }
+        ],
+        "files_added": [],
+        "files_changed": 2,
+        "krate": "uu_cat -> port-uu-cat",
+        "manifest_deleted": 27,
+        "manifest_inserted": 6,
+        "rs_deleted": 21,
+        "rs_inserted": 12
+      },
+      "uu_head": {
+        "files": [
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/cli.rs",
+            "pristine_lines": 85,
+            "unchanged_lines": 85
+          },
+          {
+            "deleted": 30,
+            "inserted": 5,
+            "path": "src/head.rs",
+            "pristine_lines": 793,
+            "unchanged_lines": 763
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/main.rs",
+            "pristine_lines": 6,
+            "unchanged_lines": 6
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/parse.rs",
+            "pristine_lines": 204,
+            "unchanged_lines": 204
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/take.rs",
+            "pristine_lines": 674,
+            "unchanged_lines": 674
+          }
+        ],
+        "files_added": [],
+        "files_changed": 1,
+        "krate": "uu_head -> port-uu-head",
+        "manifest_deleted": 6,
+        "manifest_inserted": 7,
+        "rs_deleted": 30,
+        "rs_inserted": 5
+      },
+      "uu_ls": {
+        "files": [
+          {
+            "deleted": 7,
+            "inserted": 8,
+            "path": "src/colors.rs",
+            "pristine_lines": 860,
+            "unchanged_lines": 853
+          },
+          {
+            "deleted": 15,
+            "inserted": 19,
+            "path": "src/config.rs",
+            "pristine_lines": 1143,
+            "unchanged_lines": 1128
+          },
+          {
+            "deleted": 2,
+            "inserted": 3,
+            "path": "src/dired.rs",
+            "pristine_lines": 356,
+            "unchanged_lines": 354
+          },
+          {
+            "deleted": 12,
+            "inserted": 17,
+            "path": "src/display.rs",
+            "pristine_lines": 1457,
+            "unchanged_lines": 1445
+          },
+          {
+            "deleted": 16,
+            "inserted": 21,
+            "path": "src/ls.rs",
+            "pristine_lines": 1698,
+            "unchanged_lines": 1682
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/main.rs",
+            "pristine_lines": 6,
+            "unchanged_lines": 6
+          },
+          {
+            "deleted": 1,
+            "inserted": 1,
+            "path": "src/output.rs",
+            "pristine_lines": 400,
+            "unchanged_lines": 399
+          }
+        ],
+        "files_added": [],
+        "files_changed": 6,
+        "krate": "uu_ls -> port-uu-ls",
+        "manifest_deleted": 27,
+        "manifest_inserted": 9,
+        "rs_deleted": 53,
+        "rs_inserted": 69
+      },
+      "uu_sort": {
+        "files": [
+          {
+            "deleted": 11,
+            "inserted": 4,
+            "path": "src/buffer_hint.rs",
+            "pristine_lines": 123,
+            "unchanged_lines": 112
+          },
+          {
+            "deleted": 1,
+            "inserted": 2,
+            "path": "src/check.rs",
+            "pristine_lines": 141,
+            "unchanged_lines": 140
+          },
+          {
+            "deleted": 26,
+            "inserted": 14,
+            "path": "src/chunks.rs",
+            "pristine_lines": 463,
+            "unchanged_lines": 437
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/custom_str_cmp.rs",
+            "pristine_lines": 59,
+            "unchanged_lines": 59
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/diagnostics.rs",
+            "pristine_lines": 44,
+            "unchanged_lines": 44
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/ext_sort/mod.rs",
+            "pristine_lines": 20,
+            "unchanged_lines": 20
+          },
+          {
+            "deleted": 24,
+            "inserted": 14,
+            "path": "src/ext_sort/threaded.rs",
+            "pristine_lines": 305,
+            "unchanged_lines": 281
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/ext_sort/wasi.rs",
+            "pristine_lines": 59,
+            "unchanged_lines": 59
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/main.rs",
+            "pristine_lines": 6,
+            "unchanged_lines": 6
+          },
+          {
+            "deleted": 78,
+            "inserted": 33,
+            "path": "src/merge.rs",
+            "pristine_lines": 677,
+            "unchanged_lines": 599
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/numeric_str_cmp.rs",
+            "pristine_lines": 492,
+            "unchanged_lines": 492
+          },
+          {
+            "deleted": 72,
+            "inserted": 26,
+            "path": "src/sort.rs",
+            "pristine_lines": 3539,
+            "unchanged_lines": 3467
+          },
+          {
+            "deleted": 111,
+            "inserted": 39,
+            "path": "src/tmp_dir.rs",
+            "pristine_lines": 256,
+            "unchanged_lines": 145
+          }
+        ],
+        "files_added": [],
+        "files_changed": 7,
+        "krate": "uu_sort -> port-uu-sort",
+        "manifest_deleted": 72,
+        "manifest_inserted": 6,
+        "rs_deleted": 323,
+        "rs_inserted": 132
+      },
+      "uu_wc": {
+        "files": [
+          {
+            "deleted": 43,
+            "inserted": 13,
+            "path": "src/count_fast.rs",
+            "pristine_lines": 225,
+            "unchanged_lines": 182
+          },
+          {
+            "deleted": 3,
+            "inserted": 3,
+            "path": "src/countable.rs",
+            "pristine_lines": 78,
+            "unchanged_lines": 75
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/main.rs",
+            "pristine_lines": 6,
+            "unchanged_lines": 6
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/utf8/mod.rs",
+            "pristine_lines": 93,
+            "unchanged_lines": 93
+          },
+          {
+            "deleted": 1,
+            "inserted": 3,
+            "path": "src/utf8/read.rs",
+            "pristine_lines": 120,
+            "unchanged_lines": 119
+          },
+          {
+            "deleted": 9,
+            "inserted": 16,
+            "path": "src/wc.rs",
+            "pristine_lines": 1043,
+            "unchanged_lines": 1034
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/word_count.rs",
+            "pristine_lines": 36,
+            "unchanged_lines": 36
+          }
+        ],
+        "files_added": [],
+        "files_changed": 4,
+        "krate": "uu_wc -> port-uu-wc",
+        "manifest_deleted": 32,
+        "manifest_inserted": 6,
+        "rs_deleted": 56,
+        "rs_inserted": 35
+      },
+      "uucore": {
+        "files": [
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "build.rs",
+            "pristine_lines": 572,
+            "unchanged_lines": 572
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features.rs",
+            "pristine_lines": 140,
+            "unchanged_lines": 140
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/backup_control.rs",
+            "pristine_lines": 868,
+            "unchanged_lines": 868
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/benchmark.rs",
+            "pristine_lines": 465,
+            "unchanged_lines": 465
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/buf_copy.rs",
+            "pristine_lines": 78,
+            "unchanged_lines": 78
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/char_width.rs",
+            "pristine_lines": 78,
+            "unchanged_lines": 78
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/checksum/compute.rs",
+            "pristine_lines": 338,
+            "unchanged_lines": 338
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/checksum/mod.rs",
+            "pristine_lines": 738,
+            "unchanged_lines": 738
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/checksum/validate.rs",
+            "pristine_lines": 1307,
+            "unchanged_lines": 1307
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/colors.rs",
+            "pristine_lines": 271,
+            "unchanged_lines": 271
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/diagnostics.rs",
+            "pristine_lines": 1151,
+            "unchanged_lines": 1151
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/diagnostics_boundary.rs",
+            "pristine_lines": 218,
+            "unchanged_lines": 218
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/diagnostics_stub.rs",
+            "pristine_lines": 140,
+            "unchanged_lines": 140
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/encoding.rs",
+            "pristine_lines": 583,
+            "unchanged_lines": 583
+          },
+          {
+            "deleted": 157,
+            "inserted": 68,
+            "path": "src/lib/features/entries.rs",
+            "pristine_lines": 365,
+            "unchanged_lines": 208
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/extendedbigdecimal.rs",
+            "pristine_lines": 291,
+            "unchanged_lines": 291
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/fast_inc.rs",
+            "pristine_lines": 209,
+            "unchanged_lines": 209
+          },
+          {
+            "deleted": 1,
+            "inserted": 2,
+            "path": "src/lib/features/format/argument.rs",
+            "pristine_lines": 517,
+            "unchanged_lines": 516
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/format/escape.rs",
+            "pristine_lines": 259,
+            "unchanged_lines": 259
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/format/human.rs",
+            "pristine_lines": 83,
+            "unchanged_lines": 83
+          },
+          {
+            "deleted": 1,
+            "inserted": 3,
+            "path": "src/lib/features/format/mod.rs",
+            "pristine_lines": 504,
+            "unchanged_lines": 503
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/format/num_format.rs",
+            "pristine_lines": 1405,
+            "unchanged_lines": 1405
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/format/spec.rs",
+            "pristine_lines": 790,
+            "unchanged_lines": 790
+          },
+          {
+            "deleted": 183,
+            "inserted": 73,
+            "path": "src/lib/features/fs.rs",
+            "pristine_lines": 1621,
+            "unchanged_lines": 1438
+          },
+          {
+            "deleted": 28,
+            "inserted": 38,
+            "path": "src/lib/features/fsext/mod.rs",
+            "pristine_lines": 1086,
+            "unchanged_lines": 1058
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/fsext/windows.rs",
+            "pristine_lines": 316,
+            "unchanged_lines": 316
+          },
+          {
+            "deleted": 7,
+            "inserted": 56,
+            "path": "src/lib/features/fsxattr.rs",
+            "pristine_lines": 502,
+            "unchanged_lines": 495
+          },
+          {
+            "deleted": 3,
+            "inserted": 14,
+            "path": "src/lib/features/hardware.rs",
+            "pristine_lines": 453,
+            "unchanged_lines": 450
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/i18n/charmap.rs",
+            "pristine_lines": 267,
+            "unchanged_lines": 267
+          },
+          {
+            "deleted": 5,
+            "inserted": 17,
+            "path": "src/lib/features/i18n/collator.rs",
+            "pristine_lines": 100,
+            "unchanged_lines": 95
+          },
+          {
+            "deleted": 77,
+            "inserted": 19,
+            "path": "src/lib/features/i18n/datetime.rs",
+            "pristine_lines": 327,
+            "unchanged_lines": 250
+          },
+          {
+            "deleted": 8,
+            "inserted": 6,
+            "path": "src/lib/features/i18n/decimal.rs",
+            "pristine_lines": 91,
+            "unchanged_lines": 83
+          },
+          {
+            "deleted": 11,
+            "inserted": 31,
+            "path": "src/lib/features/i18n/mod.rs",
+            "pristine_lines": 207,
+            "unchanged_lines": 196
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/lines.rs",
+            "pristine_lines": 116,
+            "unchanged_lines": 116
+          },
+          {
+            "deleted": 6,
+            "inserted": 3,
+            "path": "src/lib/features/mode.rs",
+            "pristine_lines": 529,
+            "unchanged_lines": 523
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/parser/mod.rs",
+            "pristine_lines": 21,
+            "unchanged_lines": 21
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/parser/num_parser.rs",
+            "pristine_lines": 1189,
+            "unchanged_lines": 1189
+          },
+          {
+            "deleted": 2,
+            "inserted": 3,
+            "path": "src/lib/features/parser/parse_block_size.rs",
+            "pristine_lines": 377,
+            "unchanged_lines": 375
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/parser/parse_glob.rs",
+            "pristine_lines": 127,
+            "unchanged_lines": 127
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/parser/parse_signed_num.rs",
+            "pristine_lines": 380,
+            "unchanged_lines": 380
+          },
+          {
+            "deleted": 1,
+            "inserted": 30,
+            "path": "src/lib/features/parser/parse_size.rs",
+            "pristine_lines": 1042,
+            "unchanged_lines": 1041
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/parser/parse_time.rs",
+            "pristine_lines": 300,
+            "unchanged_lines": 300
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/parser/shortcut_value_parser.rs",
+            "pristine_lines": 234,
+            "unchanged_lines": 234
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/perms.rs",
+            "pristine_lines": 1091,
+            "unchanged_lines": 1091
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/pipes.rs",
+            "pristine_lines": 202,
+            "unchanged_lines": 202
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/proc_info.rs",
+            "pristine_lines": 528,
+            "unchanged_lines": 528
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/process/mod.rs",
+            "pristine_lines": 54,
+            "unchanged_lines": 54
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/process/unix.rs",
+            "pristine_lines": 321,
+            "unchanged_lines": 321
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/process/windows.rs",
+            "pristine_lines": 1046,
+            "unchanged_lines": 1046
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/quoting_style/c_quoter.rs",
+            "pristine_lines": 57,
+            "unchanged_lines": 57
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/quoting_style/escaped_char.rs",
+            "pristine_lines": 201,
+            "unchanged_lines": 201
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/quoting_style/literal_quoter.rs",
+            "pristine_lines": 31,
+            "unchanged_lines": 31
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/quoting_style/mod.rs",
+            "pristine_lines": 1096,
+            "unchanged_lines": 1096
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/quoting_style/shell_quoter.rs",
+            "pristine_lines": 317,
+            "unchanged_lines": 317
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/ranges.rs",
+            "pristine_lines": 419,
+            "unchanged_lines": 419
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/ringbuffer.rs",
+            "pristine_lines": 142,
+            "unchanged_lines": 142
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/safe_copy.rs",
+            "pristine_lines": 187,
+            "unchanged_lines": 187
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/safe_traversal.rs",
+            "pristine_lines": 1558,
+            "unchanged_lines": 1558
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/selinux.rs",
+            "pristine_lines": 944,
+            "unchanged_lines": 944
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/signals.rs",
+            "pristine_lines": 951,
+            "unchanged_lines": 951
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/smack.rs",
+            "pristine_lines": 122,
+            "unchanged_lines": 122
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/sum.rs",
+            "pristine_lines": 879,
+            "unchanged_lines": 879
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/systemd_logind.rs",
+            "pristine_lines": 769,
+            "unchanged_lines": 769
+          },
+          {
+            "deleted": 1,
+            "inserted": 31,
+            "path": "src/lib/features/time.rs",
+            "pristine_lines": 183,
+            "unchanged_lines": 182
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/tty.rs",
+            "pristine_lines": 127,
+            "unchanged_lines": 127
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/update_control.rs",
+            "pristine_lines": 145,
+            "unchanged_lines": 145
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/uptime/mod.rs",
+            "pristine_lines": 219,
+            "unchanged_lines": 219
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/uptime/unix.rs",
+            "pristine_lines": 319,
+            "unchanged_lines": 319
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/uptime/windows.rs",
+            "pristine_lines": 154,
+            "unchanged_lines": 154
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/utmpx.rs",
+            "pristine_lines": 591,
+            "unchanged_lines": 591
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/version_cmp.rs",
+            "pristine_lines": 371,
+            "unchanged_lines": 371
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/features/wide.rs",
+            "pristine_lines": 37,
+            "unchanged_lines": 37
+          },
+          {
+            "deleted": 117,
+            "inserted": 70,
+            "path": "src/lib/lib.rs",
+            "pristine_lines": 800,
+            "unchanged_lines": 683
+          },
+          {
+            "deleted": 4,
+            "inserted": 4,
+            "path": "src/lib/macros.rs",
+            "pristine_lines": 206,
+            "unchanged_lines": 202
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/mods.rs",
+            "pristine_lines": 17,
+            "unchanged_lines": 17
+          },
+          {
+            "deleted": 7,
+            "inserted": 9,
+            "path": "src/lib/mods/clap_localization.rs",
+            "pristine_lines": 739,
+            "unchanged_lines": 732
+          },
+          {
+            "deleted": 6,
+            "inserted": 8,
+            "path": "src/lib/mods/display.rs",
+            "pristine_lines": 132,
+            "unchanged_lines": 126
+          },
+          {
+            "deleted": 59,
+            "inserted": 14,
+            "path": "src/lib/mods/error.rs",
+            "pristine_lines": 894,
+            "unchanged_lines": 835
+          },
+          {
+            "deleted": 99,
+            "inserted": 11,
+            "path": "src/lib/mods/io.rs",
+            "pristine_lines": 172,
+            "unchanged_lines": 73
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/lib/mods/line_ending.rs",
+            "pristine_lines": 57,
+            "unchanged_lines": 57
+          },
+          {
+            "deleted": 88,
+            "inserted": 29,
+            "path": "src/lib/mods/locale.rs",
+            "pristine_lines": 1872,
+            "unchanged_lines": 1784
+          },
+          {
+            "deleted": 11,
+            "inserted": 7,
+            "path": "src/lib/mods/os.rs",
+            "pristine_lines": 35,
+            "unchanged_lines": 24
+          },
+          {
+            "deleted": 28,
+            "inserted": 12,
+            "path": "src/lib/mods/panic.rs",
+            "pristine_lines": 66,
+            "unchanged_lines": 38
+          },
+          {
+            "deleted": 1,
+            "inserted": 2,
+            "path": "src/lib/mods/posix.rs",
+            "pristine_lines": 58,
+            "unchanged_lines": 57
+          }
+        ],
+        "files_added": [],
+        "files_changed": 25,
+        "krate": "uucore -> port-uucore",
+        "manifest_deleted": 30,
+        "manifest_inserted": 16,
+        "rs_deleted": 911,
+        "rs_inserted": 560
+      },
+      "uucore_procs": {
+        "files": [
+          {
+            "deleted": 22,
+            "inserted": 5,
+            "path": "src/lib.rs",
+            "pristine_lines": 73,
+            "unchanged_lines": 51
+          }
+        ],
+        "files_added": [],
+        "files_changed": 1,
+        "krate": "uucore_procs -> port-uucore-procs",
+        "manifest_deleted": 1,
+        "manifest_inserted": 2,
+        "rs_deleted": 22,
+        "rs_inserted": 5
+      },
+      "walkdir": {
+        "files": [
+          {
+            "deleted": 4,
+            "inserted": 3,
+            "path": "src/dent.rs",
+            "pristine_lines": 352,
+            "unchanged_lines": 348
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/error.rs",
+            "pristine_lines": 262,
+            "unchanged_lines": 262
+          },
+          {
+            "deleted": 2,
+            "inserted": 17,
+            "path": "src/lib.rs",
+            "pristine_lines": 1194,
+            "unchanged_lines": 1192
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/tests/mod.rs",
+            "pristine_lines": 4,
+            "unchanged_lines": 4
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/tests/recursive.rs",
+            "pristine_lines": 1092,
+            "unchanged_lines": 1092
+          },
+          {
+            "deleted": 0,
+            "inserted": 0,
+            "path": "src/tests/util.rs",
+            "pristine_lines": 252,
+            "unchanged_lines": 252
+          },
+          {
+            "deleted": 2,
+            "inserted": 3,
+            "path": "src/util.rs",
+            "pristine_lines": 25,
+            "unchanged_lines": 23
+          }
+        ],
+        "files_added": [],
+        "files_changed": 3,
+        "krate": "walkdir -> port-walkdir",
+        "manifest_deleted": 5,
+        "manifest_inserted": 9,
+        "rs_deleted": 8,
+        "rs_inserted": 23
+      }
+    },
+    "global_state_demo": {
+      "original_same_host_process": {
+        "exit_codes": {
+          "cat_ok_exit": 1,
+          "wc_missing_exit": 1
+        },
+        "expected_exit_codes": {
+          "cat_ok_exit": 0,
+          "wc_missing_exit": 1
+        },
+        "expected_stderr": "wc: nope.txt: No such file or directory\n",
+        "sequence": [
+          "wc nope.txt",
+          "cat ok.txt"
+        ],
+        "stderr": "uu-original: nope.txt: No such file or directory\n"
+      },
+      "ported_pseudo_processes": {
+        "exit_codes": {
+          "cat_ok_exit": 0,
+          "wc_missing_exit": 1
+        },
+        "sequence": [
+          "wc nope.txt",
+          "cat ok.txt"
+        ],
+        "stderr": "wc: nope.txt: No such file or directory\n"
+      }
+    },
+    "host_dependency_changes": {
+      "coreutils:cat": {
+        "added": [
+          "port-uucore",
+          "sysio"
+        ],
+        "remaining": [
+          "anstream",
+          "anstyle-query",
+          "bigdecimal",
+          "clap_builder",
+          "clap_derive",
+          "clap_lex",
+          "defmt-macros",
+          "errno",
+          "fluent-syntax",
+          "glob",
+          "is_terminal_polyfill",
+          "jiff",
+          "jiff-static",
+          "libc",
+          "rustix",
+          "serde",
+          "serde_core",
+          "terminal_size",
+          "unic-langid-impl"
+        ],
+        "removed": [
+          "chrono",
+          "dunce",
+          "iana-time-zone",
+          "nix",
+          "procfs",
+          "procfs-core",
+          "uucore",
+          "xattr",
+          "zlib-rs"
+        ]
+      },
+      "coreutils:head": {
+        "added": [
+          "port-uucore",
+          "sysio"
+        ],
+        "remaining": [
+          "anstream",
+          "anstyle-query",
+          "bigdecimal",
+          "clap_builder",
+          "clap_derive",
+          "clap_lex",
+          "defmt-macros",
+          "errno",
+          "fluent-syntax",
+          "glob",
+          "is_terminal_polyfill",
+          "jiff",
+          "jiff-static",
+          "libc",
+          "rustix",
+          "serde",
+          "serde_core",
+          "terminal_size",
+          "unic-langid-impl"
+        ],
+        "removed": [
+          "chrono",
+          "dunce",
+          "iana-time-zone",
+          "nix",
+          "procfs",
+          "procfs-core",
+          "uucore",
+          "xattr",
+          "zlib-rs"
+        ]
+      },
+      "coreutils:ls": {
+        "added": [
+          "port-lscolors",
+          "port-uucore",
+          "sysio"
+        ],
+        "remaining": [
+          "anstream",
+          "anstyle-query",
+          "bigdecimal",
+          "clap_builder",
+          "clap_derive",
+          "clap_lex",
+          "defmt-macros",
+          "errno",
+          "fluent-syntax",
+          "glob",
+          "is_terminal_polyfill",
+          "jiff",
+          "jiff-static",
+          "libc",
+          "rustix",
+          "serde",
+          "serde_core",
+          "terminal_size",
+          "unic-langid-impl"
+        ],
+        "removed": [
+          "chrono",
+          "dunce",
+          "hostname",
+          "iana-time-zone",
+          "lscolors",
+          "nix",
+          "procfs",
+          "procfs-core",
+          "uucore",
+          "xattr",
+          "zlib-rs"
+        ]
+      },
+      "coreutils:sort": {
+        "added": [
+          "port-uucore",
+          "sysio"
+        ],
+        "remaining": [
+          "anstream",
+          "anstyle-query",
+          "bigdecimal",
+          "clap_builder",
+          "clap_derive",
+          "clap_lex",
+          "defmt-macros",
+          "errno",
+          "fluent-syntax",
+          "glob",
+          "is_terminal_polyfill",
+          "jiff",
+          "jiff-static",
+          "libc",
+          "rustix",
+          "serde",
+          "serde_core",
+          "terminal_size",
+          "unic-langid-impl"
+        ],
+        "removed": [
+          "chrono",
+          "cpufeatures",
+          "crossbeam-utils",
+          "ctrlc",
+          "dunce",
+          "getrandom",
+          "iana-time-zone",
+          "nix",
+          "procfs",
+          "procfs-core",
+          "rayon-core",
+          "tempfile",
+          "uucore",
+          "xattr",
+          "zlib-rs"
+        ]
+      },
+      "coreutils:wc": {
+        "added": [
+          "port-uucore",
+          "sysio"
+        ],
+        "remaining": [
+          "anstream",
+          "anstyle-query",
+          "bigdecimal",
+          "clap_builder",
+          "clap_derive",
+          "clap_lex",
+          "defmt-macros",
+          "errno",
+          "fluent-syntax",
+          "glob",
+          "is_terminal_polyfill",
+          "jiff",
+          "jiff-static",
+          "libc",
+          "rustix",
+          "serde",
+          "serde_core",
+          "terminal_size",
+          "unic-langid-impl"
+        ],
+        "removed": [
+          "chrono",
+          "dunce",
+          "iana-time-zone",
+          "nix",
+          "procfs",
+          "procfs-core",
+          "uucore",
+          "xattr",
+          "zlib-rs"
+        ]
+      },
+      "find": {
+        "added": [
+          "bigdecimal",
+          "defmt-macros",
+          "glob",
+          "jiff",
+          "jiff-static",
+          "port-uucore",
+          "port-walkdir",
+          "sysio"
+        ],
+        "remaining": [
+          "anstream",
+          "anstyle-query",
+          "chrono",
+          "clap_builder",
+          "clap_derive",
+          "clap_lex",
+          "errno",
+          "fluent-syntax",
+          "iana-time-zone",
+          "is_terminal_polyfill",
+          "libc",
+          "rustix",
+          "serde",
+          "serde_core",
+          "terminal_size",
+          "unic-langid-impl"
+        ],
+        "removed": [
+          "argmax",
+          "dunce",
+          "faccess",
+          "nix",
+          "same-file",
+          "uucore",
+          "walkdir"
+        ]
+      },
+      "xargs": {
+        "added": [
+          "bigdecimal",
+          "defmt-macros",
+          "glob",
+          "jiff",
+          "jiff-static",
+          "port-uucore",
+          "port-walkdir",
+          "sysio"
+        ],
+        "remaining": [
+          "anstream",
+          "anstyle-query",
+          "chrono",
+          "clap_builder",
+          "clap_derive",
+          "clap_lex",
+          "errno",
+          "fluent-syntax",
+          "iana-time-zone",
+          "is_terminal_polyfill",
+          "libc",
+          "rustix",
+          "serde",
+          "serde_core",
+          "terminal_size",
+          "unic-langid-impl"
+        ],
+        "removed": [
+          "argmax",
+          "dunce",
+          "faccess",
+          "nix",
+          "same-file",
+          "uucore",
+          "walkdir"
+        ]
+      }
+    },
+    "timing_ms": {
+      "original_in_container": 1058,
+      "ported_in_process": 23,
+      "total": 58662
+    }
+  },
+  "notes": [
+    "Casos 'unordered' (find e xargs -P) comparados como multiconjunto de registros: a ordem do readdir do oráculo (ext4 sob overlay) não é semântica e o VFS do shim lista em ordem de bytes.",
+    "Casos script só entram quando são pipelines de programas da tabela (cat, head, wc, sort, ls, find, xargs, echo); o resto do corpus de coreutils (cp, mv, stat, date...) fica pros experimentos que vão implementar esses comandos.",
+    "O echo usado como comando padrão do xargs e no find -exec é um builtin escrito à mão na bancada (src/builtins.rs), no oráculo é o echo do Debian."
+  ]
+}

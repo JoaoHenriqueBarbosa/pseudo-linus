@@ -1,0 +1,128 @@
+{
+  "date-flag-ampm-afternoon": {
+    "stdout": "PM|pm|pm|pm|3| 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-combined-dash-upper": {
+    "stdout": "JAN 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-composite-directives": {
+    "stdout": "01/05/26|2026-01-05|MON JAN  5 09:07:03 2026|09:07:03|09:07:03 AM\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-nanos-in-composite": {
+    "stdout": "09:07:03.500 1767604023.500000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-nanos-precision": {
+    "stdout": "012345678|012|012345|012345678|0|012345678\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-nanos-precision-zero": {
+    "stdout": "000|000000|000000000|000000000|0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-nanos-small": {
+    "stdout": "1767604023.000000042|000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-no-pad": {
+    "stdout": "5|1|9|9|5|7|3|5|26\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-pad-on-text": {
+    "stdout": "[Mon][Mon][Mon]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-plus-year": {
+    "stdout": "2026|+02026|20\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-space-pad": {
+    "stdout": " 5| 1| 9| 9|  5| 7| 3|26\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-swap-case": {
+    "stdout": "MON|MONDAY|JAN|JANUARY|am|am|utc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-upper": {
+    "stdout": "MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-width-epoch": {
+    "stdout": "000001767604023|     1767604023|1767604023\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-width-no-pad": {
+    "stdout": "5|9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-width-numeric": {
+    "stdout": "0000002026|00005|0009|000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-width-offset": {
+    "stdout": "+000000000|   +0|+0|+0000:00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-width-space-pad": {
+    "stdout": "         5| 2026|   1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-width-text": {
+    "stdout": "    Monday|       JAN|     January|   AM\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-width-zero-pad": {
+    "stdout": "0000000005|0005|009\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-flag-zero-pad": {
+    "stdout": "05|09|09\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

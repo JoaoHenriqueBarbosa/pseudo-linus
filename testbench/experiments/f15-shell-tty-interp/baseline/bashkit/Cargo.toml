@@ -1,0 +1,20 @@
+[package]
+name = "f15-baseline-bashkit"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F15/H40: bashkit (bash virtual sobre VFS) como linha de base"
+
+[dependencies]
+f15-baseline-common = { path = "../common" }
+harness = { path = "../../../../crates/harness" }
+anyhow = "1"
+# Defaults (bash_tool, ring, tzdata) + jq, git e sqlite (Turso), pra cobrir os diretórios de golden
+# dessas ferramentas. Sem python (o Monty do bashkit é 0.0.19 e o oráculo não tem python3), sem rede.
+bashkit = { version = "=0.18.2", features = ["jq", "git", "sqlite"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "time", "macros"] }
+
+[lints.rust]
+unsafe_code = "forbid"

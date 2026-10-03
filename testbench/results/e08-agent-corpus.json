@@ -1,0 +1,2632 @@
+{
+  "experiment": "e08-agent-corpus",
+  "title": "Corpus real de comandos de agente",
+  "generated_at": "2026-10-02T23:47:15Z",
+  "host": {
+    "kernel": "6.12.101+deb13-amd64",
+    "cpus": 16,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+  },
+  "hypotheses": [
+    {
+      "id": "H22",
+      "verdict": "confirmed",
+      "summary": "56687 chamadas Bash reais (49144 únicas) em 32 projetos. 23 nomes de comando cobrem 90% das ocorrências, 37 cobrem 95% e 98 cobrem 99% (de 592 distintos). O brush-parser aceita 99.97% das chamadas. Recursos: pipeline em 55.9%, && em 50.1%, $( ) em 6.6%, heredoc em 3.1%. 67.6% das chamadas usariam só ferramentas do plano v2.",
+      "evidence": {
+        "coverage_distinct_names": {
+          "p90": 23,
+          "p95": 37,
+          "p99": 98
+        },
+        "parse_rate_calls": 0.9997,
+        "runnable_under_plan_share": 0.6762,
+        "sophisticated_feature_share": {
+          "$( ) substitution": 0.0663,
+          "&&": 0.5014,
+          "[[ ]]": 0.0001,
+          "for": 0.0449,
+          "heredoc": 0.0306,
+          "if": 0.0032,
+          "pipeline": 0.5586,
+          "while": 0.0013,
+          "||": 0.0234
+        }
+      }
+    }
+  ],
+  "candidates": [],
+  "metrics": {
+    "absent_calls_by_group": {
+      "android": 7,
+      "bancos": 342,
+      "build C": 22,
+      "containers": 1959,
+      "desktop": 10,
+      "flutter": 46,
+      "forges": 1080,
+      "go": 8,
+      "impressão": 54,
+      "javascript": 1057,
+      "jvm": 37,
+      "mídia": 24,
+      "outros": 3060,
+      "pacotes": 6,
+      "python": 3883,
+      "rede": 5256,
+      "rust": 2682,
+      "systemd": 90
+    },
+    "absent_top": [
+      [
+        "ssh",
+        5051
+      ],
+      [
+        "python3",
+        3549
+      ],
+      [
+        "cargo",
+        2632
+      ],
+      [
+        "gh",
+        1080
+      ],
+      [
+        "kubectl",
+        1011
+      ],
+      [
+        "docker",
+        977
+      ],
+      [
+        "remote-cargo",
+        861
+      ],
+      [
+        "aws",
+        726
+      ],
+      [
+        "remote-cargo-check-all",
+        617
+      ],
+      [
+        "bun",
+        466
+      ],
+      [
+        "scp",
+        381
+      ],
+      [
+        "uv",
+        351
+      ],
+      [
+        "psql",
+        338
+      ],
+      [
+        "npx",
+        300
+      ],
+      [
+        "bunx",
+        157
+      ],
+      [
+        "node",
+        139
+      ],
+      [
+        "mutagen",
+        90
+      ],
+      [
+        "dig",
+        88
+      ],
+      [
+        "similarity-rs",
+        84
+      ],
+      [
+        "setsid",
+        81
+      ],
+      [
+        "rsync",
+        80
+      ],
+      [
+        "systemctl",
+        71
+      ],
+      [
+        "javap",
+        48
+      ],
+      [
+        "flutter",
+        46
+      ],
+      [
+        "scanimage",
+        44
+      ],
+      [
+        "ss",
+        40
+      ],
+      [
+        "pnpm",
+        39
+      ],
+      [
+        "npm",
+        38
+      ],
+      [
+        "q",
+        38
+      ],
+      [
+        "java",
+        36
+      ],
+      [
+        "openssl",
+        31
+      ],
+      [
+        "rustfmt",
+        31
+      ],
+      [
+        "wasmtime",
+        29
+      ],
+      [
+        "ip",
+        23
+      ],
+      [
+        "rustc",
+        23
+      ],
+      [
+        "rustup",
+        23
+      ],
+      [
+        "journalctl",
+        21
+      ],
+      [
+        "make",
+        21
+      ],
+      [
+        "sea-orm-cli",
+        21
+      ],
+      [
+        "k",
+        19
+      ]
+    ],
+    "bad_transcript_lines": 4,
+    "bash_calls": 56687,
+    "bash_calls_from_subagents": 41498,
+    "calls_with_more_than_one_command": 0.8481,
+    "coverage_distinct_names": {
+      "p50": 5,
+      "p90": 23,
+      "p95": 37,
+      "p99": 98
+    },
+    "distinct_command_names": 592,
+    "features": {
+      "! pipeline": {
+        "calls": 42,
+        "share": 0.0007
+      },
+      "$'' ansi-c quote": {
+        "calls": 149,
+        "share": 0.0026
+      },
+      "$( ) substitution": {
+        "calls": 3757,
+        "share": 0.0663
+      },
+      "$(( )) arithmetic": {
+        "calls": 194,
+        "share": 0.0034
+      },
+      "$var": {
+        "calls": 7629,
+        "share": 0.1346
+      },
+      "${} IndicateErrorIfNullOrUnset": {
+        "calls": 3,
+        "share": 0.0001
+      },
+      "${} MemberKeys": {
+        "calls": 2,
+        "share": 0.0
+      },
+      "${} ParameterLength": {
+        "calls": 40,
+        "share": 0.0007
+      },
+      "${} RemoveLargestPrefixPattern": {
+        "calls": 38,
+        "share": 0.0007
+      },
+      "${} RemoveLargestSuffixPattern": {
+        "calls": 63,
+        "share": 0.0011
+      },
+      "${} RemoveSmallestPrefixPattern": {
+        "calls": 62,
+        "share": 0.0011
+      },
+      "${} RemoveSmallestSuffixPattern": {
+        "calls": 36,
+        "share": 0.0006
+      },
+      "${} ReplaceSubstring": {
+        "calls": 5,
+        "share": 0.0001
+      },
+      "${} Substring": {
+        "calls": 32,
+        "share": 0.0006
+      },
+      "${} UseAlternativeValue": {
+        "calls": 7,
+        "share": 0.0001
+      },
+      "${} UseDefaultValues": {
+        "calls": 42,
+        "share": 0.0007
+      },
+      "& background": {
+        "calls": 187,
+        "share": 0.0033
+      },
+      "&&": {
+        "calls": 28423,
+        "share": 0.5014
+      },
+      "( subshell )": {
+        "calls": 204,
+        "share": 0.0036
+      },
+      "2> redirect": {
+        "calls": 7182,
+        "share": 0.1267
+      },
+      "2>&1 style": {
+        "calls": 13636,
+        "share": 0.2405
+      },
+      "< redirect": {
+        "calls": 305,
+        "share": 0.0054
+      },
+      "<() process substitution": {
+        "calls": 118,
+        "share": 0.0021
+      },
+      "<<< here-string": {
+        "calls": 6,
+        "share": 0.0001
+      },
+      "> redirect": {
+        "calls": 1744,
+        "share": 0.0308
+      },
+      ">> redirect": {
+        "calls": 86,
+        "share": 0.0015
+      },
+      "VAR=value prefix/assignment": {
+        "calls": 5832,
+        "share": 0.1029
+      },
+      "[[ ]]": {
+        "calls": 6,
+        "share": 0.0001
+      },
+      "array assignment": {
+        "calls": 24,
+        "share": 0.0004
+      },
+      "backtick substitution": {
+        "calls": 88,
+        "share": 0.0016
+      },
+      "bare assignment": {
+        "calls": 4477,
+        "share": 0.079
+      },
+      "brace expansion": {
+        "calls": 926,
+        "share": 0.0163
+      },
+      "case": {
+        "calls": 24,
+        "share": 0.0004
+      },
+      "for": {
+        "calls": 2548,
+        "share": 0.0449
+      },
+      "function": {
+        "calls": 153,
+        "share": 0.0027
+      },
+      "glob": {
+        "calls": 6846,
+        "share": 0.1208
+      },
+      "heredoc": {
+        "calls": 1736,
+        "share": 0.0306
+      },
+      "if": {
+        "calls": 183,
+        "share": 0.0032
+      },
+      "pipeline": {
+        "calls": 31668,
+        "share": 0.5586
+      },
+      "time": {
+        "calls": 118,
+        "share": 0.0021
+      },
+      "until": {
+        "calls": 335,
+        "share": 0.0059
+      },
+      "while": {
+        "calls": 72,
+        "share": 0.0013
+      },
+      "{ group }": {
+        "calls": 246,
+        "share": 0.0043
+      },
+      "||": {
+        "calls": 1327,
+        "share": 0.0234
+      },
+      "~ tilde": {
+        "calls": 4418,
+        "share": 0.0779
+      }
+    },
+    "max_pipeline_length_hist": {
+      "1": 25003,
+      "10": 7,
+      "2": 23423,
+      "3": 6625,
+      "4": 1164,
+      "5": 286,
+      "6": 110,
+      "7": 42,
+      "8": 6,
+      "9": 5
+    },
+    "occurrences_inside_substitution": 14893,
+    "parse": {
+      "errors_by_kind_unique": {
+        "ParsingNear": 1,
+        "Tokenizing": 15
+      },
+      "rate_calls": 0.9997,
+      "rate_unique": 0.9997
+    },
+    "patterns_by_tool": {
+      "awk": {
+        "occurrences": 1057,
+        "unique": 505
+      },
+      "grep": {
+        "occurrences": 32098,
+        "unique": 19191
+      },
+      "jq": {
+        "occurrences": 221,
+        "unique": 128
+      },
+      "rg": {
+        "occurrences": 10286,
+        "unique": 6531
+      },
+      "sed": {
+        "occurrences": 16553,
+        "unique": 6239
+      }
+    },
+    "projects": 32,
+    "runnable_under_plan_share": 0.6762,
+    "simple_command_occurrences": 232464,
+    "simple_commands_per_call_mean": 4.102,
+    "top_commands": [
+      {
+        "calls": 19879,
+        "name": "grep",
+        "occurrences": 32008,
+        "planned": true
+      },
+      {
+        "calls": 27103,
+        "name": "cd",
+        "occurrences": 27693,
+        "planned": true
+      },
+      {
+        "calls": 18327,
+        "name": "head",
+        "occurrences": 25287,
+        "planned": true
+      },
+      {
+        "calls": 12015,
+        "name": "echo",
+        "occurrences": 20335,
+        "planned": true
+      },
+      {
+        "calls": 8251,
+        "name": "git",
+        "occurrences": 18643,
+        "planned": true
+      },
+      {
+        "calls": 11620,
+        "name": "sed",
+        "occurrences": 16066,
+        "planned": true
+      },
+      {
+        "calls": 6265,
+        "name": "rg",
+        "occurrences": 10288,
+        "planned": true
+      },
+      {
+        "calls": 7798,
+        "name": "tail",
+        "occurrences": 8950,
+        "planned": true
+      },
+      {
+        "calls": 5763,
+        "name": "cat",
+        "occurrences": 7019,
+        "planned": true
+      },
+      {
+        "calls": 4703,
+        "name": "ls",
+        "occurrences": 6210,
+        "planned": true
+      },
+      {
+        "calls": 5051,
+        "name": "ssh",
+        "occurrences": 5596,
+        "planned": false
+      },
+      {
+        "calls": 3549,
+        "name": "python3",
+        "occurrences": 4493,
+        "planned": false
+      },
+      {
+        "calls": 2632,
+        "name": "cargo",
+        "occurrences": 3438,
+        "planned": false
+      },
+      {
+        "calls": 1976,
+        "name": "curl",
+        "occurrences": 3199,
+        "planned": true
+      },
+      {
+        "calls": 2202,
+        "name": "wc",
+        "occurrences": 2488,
+        "planned": true
+      },
+      {
+        "calls": 1977,
+        "name": "find",
+        "occurrences": 2434,
+        "planned": true
+      },
+      {
+        "calls": 1812,
+        "name": "sleep",
+        "occurrences": 2053,
+        "planned": true
+      },
+      {
+        "calls": 1011,
+        "name": "kubectl",
+        "occurrences": 2042,
+        "planned": false
+      },
+      {
+        "calls": 1506,
+        "name": "cut",
+        "occurrences": 1870,
+        "planned": true
+      },
+      {
+        "calls": 1504,
+        "name": "timeout",
+        "occurrences": 1853,
+        "planned": true
+      },
+      {
+        "calls": 1329,
+        "name": "sort",
+        "occurrences": 1747,
+        "planned": true
+      },
+      {
+        "calls": 1080,
+        "name": "gh",
+        "occurrences": 1743,
+        "planned": false
+      },
+      {
+        "calls": 977,
+        "name": "docker",
+        "occurrences": 1672,
+        "planned": false
+      },
+      {
+        "calls": 1345,
+        "name": "<path-script>",
+        "occurrences": 1669,
+        "planned": true
+      },
+      {
+        "calls": 726,
+        "name": "aws",
+        "occurrences": 1480,
+        "planned": false
+      },
+      {
+        "calls": 1051,
+        "name": "export",
+        "occurrences": 1223,
+        "planned": true
+      },
+      {
+        "calls": 811,
+        "name": "awk",
+        "occurrences": 1051,
+        "planned": true
+      },
+      {
+        "calls": 765,
+        "name": "tr",
+        "occurrences": 1015,
+        "planned": true
+      },
+      {
+        "calls": 939,
+        "name": "true",
+        "occurrences": 948,
+        "planned": true
+      },
+      {
+        "calls": 861,
+        "name": "remote-cargo",
+        "occurrences": 907,
+        "planned": false
+      },
+      {
+        "calls": 311,
+        "name": "<dynamic>",
+        "occurrences": 750,
+        "planned": true
+      },
+      {
+        "calls": 466,
+        "name": "bun",
+        "occurrences": 742,
+        "planned": false
+      },
+      {
+        "calls": 594,
+        "name": "xargs",
+        "occurrences": 650,
+        "planned": true
+      },
+      {
+        "calls": 474,
+        "name": "[",
+        "occurrences": 629,
+        "planned": true
+      },
+      {
+        "calls": 379,
+        "name": "date",
+        "occurrences": 621,
+        "planned": true
+      },
+      {
+        "calls": 617,
+        "name": "remote-cargo-check-all",
+        "occurrences": 617,
+        "planned": false
+      },
+      {
+        "calls": 436,
+        "name": "printf",
+        "occurrences": 601,
+        "planned": true
+      },
+      {
+        "calls": 231,
+        "name": "base64",
+        "occurrences": 559,
+        "planned": true
+      },
+      {
+        "calls": 497,
+        "name": "bash",
+        "occurrences": 540,
+        "planned": true
+      },
+      {
+        "calls": 484,
+        "name": "rm",
+        "occurrences": 510,
+        "planned": true
+      },
+      {
+        "calls": 338,
+        "name": "psql",
+        "occurrences": 472,
+        "planned": false
+      },
+      {
+        "calls": 445,
+        "name": "mkdir",
+        "occurrences": 467,
+        "planned": true
+      },
+      {
+        "calls": 351,
+        "name": "uv",
+        "occurrences": 464,
+        "planned": false
+      },
+      {
+        "calls": 384,
+        "name": "uniq",
+        "occurrences": 417,
+        "planned": true
+      },
+      {
+        "calls": 381,
+        "name": "scp",
+        "occurrences": 415,
+        "planned": false
+      },
+      {
+        "calls": 342,
+        "name": "which",
+        "occurrences": 394,
+        "planned": true
+      },
+      {
+        "calls": 226,
+        "name": "cp",
+        "occurrences": 345,
+        "planned": true
+      },
+      {
+        "calls": 300,
+        "name": "npx",
+        "occurrences": 345,
+        "planned": false
+      },
+      {
+        "calls": 269,
+        "name": "seq",
+        "occurrences": 276,
+        "planned": true
+      },
+      {
+        "calls": 259,
+        "name": "break",
+        "occurrences": 273,
+        "planned": true
+      },
+      {
+        "calls": 252,
+        "name": "df",
+        "occurrences": 252,
+        "planned": true
+      },
+      {
+        "calls": 219,
+        "name": "du",
+        "occurrences": 247,
+        "planned": true
+      },
+      {
+        "calls": 123,
+        "name": "jq",
+        "occurrences": 221,
+        "planned": true
+      },
+      {
+        "calls": 173,
+        "name": "diff",
+        "occurrences": 197,
+        "planned": true
+      },
+      {
+        "calls": 157,
+        "name": "bunx",
+        "occurrences": 196,
+        "planned": false
+      },
+      {
+        "calls": 139,
+        "name": "node",
+        "occurrences": 176,
+        "planned": false
+      },
+      {
+        "calls": 167,
+        "name": "chmod",
+        "occurrences": 170,
+        "planned": true
+      },
+      {
+        "calls": 110,
+        "name": "set",
+        "occurrences": 155,
+        "planned": true
+      },
+      {
+        "calls": 139,
+        "name": "pgrep",
+        "occurrences": 153,
+        "planned": true
+      },
+      {
+        "calls": 88,
+        "name": "dig",
+        "occurrences": 150,
+        "planned": false
+      },
+      {
+        "calls": 95,
+        "name": "tar",
+        "occurrences": 142,
+        "planned": true
+      },
+      {
+        "calls": 115,
+        "name": "ps",
+        "occurrences": 119,
+        "planned": true
+      },
+      {
+        "calls": 71,
+        "name": "systemctl",
+        "occurrences": 118,
+        "planned": false
+      },
+      {
+        "calls": 80,
+        "name": "rsync",
+        "occurrences": 102,
+        "planned": false
+      },
+      {
+        "calls": 90,
+        "name": "mutagen",
+        "occurrences": 101,
+        "planned": false
+      },
+      {
+        "calls": 86,
+        "name": "unzip",
+        "occurrences": 101,
+        "planned": true
+      },
+      {
+        "calls": 83,
+        "name": "pkill",
+        "occurrences": 98,
+        "planned": true
+      },
+      {
+        "calls": 84,
+        "name": "similarity-rs",
+        "occurrences": 91,
+        "planned": false
+      },
+      {
+        "calls": 81,
+        "name": "setsid",
+        "occurrences": 84,
+        "planned": false
+      },
+      {
+        "calls": 82,
+        "name": "sh",
+        "occurrences": 84,
+        "planned": true
+      },
+      {
+        "calls": 58,
+        "name": "basename",
+        "occurrences": 83,
+        "planned": true
+      },
+      {
+        "calls": 9,
+        "name": "a",
+        "occurrences": 81,
+        "planned": false
+      },
+      {
+        "calls": 50,
+        "name": "sudo",
+        "occurrences": 78,
+        "planned": true
+      },
+      {
+        "calls": 38,
+        "name": "q",
+        "occurrences": 76,
+        "planned": false
+      },
+      {
+        "calls": 46,
+        "name": "flutter",
+        "occurrences": 68,
+        "planned": false
+      },
+      {
+        "calls": 3,
+        "name": "count",
+        "occurrences": 66,
+        "planned": false
+      },
+      {
+        "calls": 48,
+        "name": "javap",
+        "occurrences": 66,
+        "planned": false
+      },
+      {
+        "calls": 19,
+        "name": "k",
+        "occurrences": 64,
+        "planned": false
+      },
+      {
+        "calls": 31,
+        "name": "openssl",
+        "occurrences": 63,
+        "planned": false
+      },
+      {
+        "calls": 59,
+        "name": "kill",
+        "occurrences": 62,
+        "planned": true
+      },
+      {
+        "calls": 59,
+        "name": "read",
+        "occurrences": 62,
+        "planned": true
+      },
+      {
+        "calls": 38,
+        "name": "npm",
+        "occurrences": 61,
+        "planned": false
+      },
+      {
+        "calls": 60,
+        "name": ":",
+        "occurrences": 60,
+        "planned": true
+      },
+      {
+        "calls": 7,
+        "name": "p",
+        "occurrences": 60,
+        "planned": false
+      },
+      {
+        "calls": 59,
+        "name": "disown",
+        "occurrences": 59,
+        "planned": true
+      },
+      {
+        "calls": 40,
+        "name": "continue",
+        "occurrences": 56,
+        "planned": true
+      },
+      {
+        "calls": 3,
+        "name": "c",
+        "occurrences": 55,
+        "planned": false
+      },
+      {
+        "calls": 5,
+        "name": "scan",
+        "occurrences": 55,
+        "planned": false
+      },
+      {
+        "calls": 51,
+        "name": "exit",
+        "occurrences": 54,
+        "planned": true
+      },
+      {
+        "calls": 39,
+        "name": "pnpm",
+        "occurrences": 53,
+        "planned": false
+      },
+      {
+        "calls": 44,
+        "name": "paste",
+        "occurrences": 48,
+        "planned": true
+      },
+      {
+        "calls": 32,
+        "name": "mv",
+        "occurrences": 47,
+        "planned": true
+      },
+      {
+        "calls": 46,
+        "name": ".",
+        "occurrences": 46,
+        "planned": true
+      },
+      {
+        "calls": 44,
+        "name": "scanimage",
+        "occurrences": 44,
+        "planned": false
+      },
+      {
+        "calls": 41,
+        "name": "type",
+        "occurrences": 44,
+        "planned": true
+      },
+      {
+        "calls": 35,
+        "name": "free",
+        "occurrences": 43,
+        "planned": true
+      },
+      {
+        "calls": 39,
+        "name": "file",
+        "occurrences": 42,
+        "planned": true
+      },
+      {
+        "calls": 40,
+        "name": "ss",
+        "occurrences": 42,
+        "planned": false
+      },
+      {
+        "calls": 19,
+        "name": "id",
+        "occurrences": 41,
+        "planned": true
+      },
+      {
+        "calls": 35,
+        "name": "command",
+        "occurrences": 39,
+        "planned": true
+      }
+    ],
+    "top_flags": {
+      "[": [
+        [
+          "-n",
+          100
+        ],
+        [
+          "-s",
+          62
+        ],
+        [
+          "-ge",
+          51
+        ],
+        [
+          "-d",
+          40
+        ],
+        [
+          "-f",
+          34
+        ],
+        [
+          "-z",
+          33
+        ],
+        [
+          "-gt",
+          15
+        ],
+        [
+          "-lt",
+          6
+        ],
+        [
+          "-ne",
+          6
+        ],
+        [
+          "-eq",
+          2
+        ],
+        [
+          "-le",
+          2
+        ],
+        [
+          "-o",
+          2
+        ],
+        [
+          "-x",
+          2
+        ],
+        [
+          "-L",
+          1
+        ],
+        [
+          "-e",
+          1
+        ]
+      ],
+      "awk": [
+        [
+          "-v",
+          31
+        ],
+        [
+          "-Ft",
+          7
+        ],
+        [
+          "-F",
+          2
+        ],
+        [
+          "-F.",
+          2
+        ],
+        [
+          "-f",
+          2
+        ],
+        [
+          "--version",
+          1
+        ],
+        [
+          "-Fcapture_legacy_change",
+          1
+        ]
+      ],
+      "aws": [
+        [
+          "--output",
+          1221
+        ],
+        [
+          "--query",
+          1133
+        ],
+        [
+          "--profile",
+          802
+        ],
+        [
+          "--region",
+          757
+        ],
+        [
+          "--secret-id",
+          144
+        ],
+        [
+          "--instance-id",
+          142
+        ],
+        [
+          "--command-id",
+          135
+        ],
+        [
+          "--instance-ids",
+          123
+        ],
+        [
+          "--document-name",
+          109
+        ],
+        [
+          "--parameters",
+          109
+        ],
+        [
+          "--filters",
+          92
+        ],
+        [
+          "--user-name",
+          57
+        ],
+        [
+          "--end-time",
+          52
+        ],
+        [
+          "--start-time",
+          52
+        ],
+        [
+          "--role-name",
+          48
+        ]
+      ],
+      "base64": [
+        [
+          "-d",
+          545
+        ],
+        [
+          "-w0",
+          10
+        ]
+      ],
+      "bash": [
+        [
+          "-c",
+          182
+        ],
+        [
+          "-n",
+          27
+        ],
+        [
+          "-f",
+          7
+        ],
+        [
+          "-s",
+          4
+        ],
+        [
+          "--accountemail",
+          2
+        ],
+        [
+          "--home",
+          2
+        ],
+        [
+          "--install",
+          2
+        ],
+        [
+          "--nocron",
+          2
+        ],
+        [
+          "-q",
+          1
+        ],
+        [
+          "-tA",
+          1
+        ],
+        [
+          "-x",
+          1
+        ]
+      ],
+      "bun": [
+        [
+          "-e",
+          70
+        ],
+        [
+          "--version",
+          15
+        ],
+        [
+          "-d",
+          12
+        ],
+        [
+          "--noEmit",
+          10
+        ],
+        [
+          "--check",
+          8
+        ],
+        [
+          "--timeout",
+          7
+        ],
+        [
+          "--target",
+          6
+        ],
+        [
+          "--outdir",
+          4
+        ],
+        [
+          "--outfile",
+          4
+        ],
+        [
+          "-t",
+          4
+        ],
+        [
+          "--compile",
+          3
+        ],
+        [
+          "--liberar",
+          3
+        ],
+        [
+          "--frozen-lockfile",
+          2
+        ],
+        [
+          "--silent",
+          2
+        ],
+        [
+          "--hot",
+          1
+        ]
+      ],
+      "cargo": [
+        [
+          "-p",
+          1467
+        ],
+        [
+          "--release",
+          672
+        ],
+        [
+          "--all-targets",
+          624
+        ],
+        [
+          "--all",
+          376
+        ],
+        [
+          "--workspace",
+          336
+        ],
+        [
+          "--test",
+          306
+        ],
+        [
+          "-D",
+          293
+        ],
+        [
+          "-q",
+          223
+        ],
+        [
+          "--all-features",
+          201
+        ],
+        [
+          "--lib",
+          148
+        ],
+        [
+          "--bin",
+          140
+        ],
+        [
+          "--check",
+          139
+        ],
+        [
+          "--locked",
+          131
+        ],
+        [
+          "--example",
+          113
+        ],
+        [
+          "--format-version",
+          74
+        ]
+      ],
+      "cat": [
+        [
+          "-n",
+          646
+        ],
+        [
+          "-A",
+          43
+        ],
+        [
+          "-v",
+          5
+        ]
+      ],
+      "cd": [],
+      "curl": [
+        [
+          "-s",
+          2569
+        ],
+        [
+          "-H",
+          1284
+        ],
+        [
+          "-o",
+          1138
+        ],
+        [
+          "--max-time",
+          1122
+        ],
+        [
+          "-w",
+          1038
+        ],
+        [
+          "-X",
+          426
+        ],
+        [
+          "-d",
+          410
+        ],
+        [
+          "-sL",
+          321
+        ],
+        [
+          "-m",
+          318
+        ],
+        [
+          "-u",
+          125
+        ],
+        [
+          "-A",
+          103
+        ],
+        [
+          "-i",
+          89
+        ],
+        [
+          "--resolve",
+          79
+        ],
+        [
+          "-sS",
+          65
+        ],
+        [
+          "-sk",
+          47
+        ]
+      ],
+      "cut": [
+        [
+          "-c1-200",
+          252
+        ],
+        [
+          "-f1",
+          186
+        ],
+        [
+          "-c1-70",
+          141
+        ],
+        [
+          "-d",
+          116
+        ],
+        [
+          "-c1-300",
+          107
+        ],
+        [
+          "-f2-",
+          103
+        ],
+        [
+          "-c1-160",
+          94
+        ],
+        [
+          "-c1-400",
+          93
+        ],
+        [
+          "-c1-220",
+          74
+        ],
+        [
+          "-c1-250",
+          66
+        ],
+        [
+          "-c1-120",
+          55
+        ],
+        [
+          "-c1-170",
+          53
+        ],
+        [
+          "-c1-60",
+          51
+        ],
+        [
+          "-c1-150",
+          44
+        ],
+        [
+          "-c1-260",
+          44
+        ]
+      ],
+      "date": [
+        [
+          "-u",
+          235
+        ],
+        [
+          "-d",
+          65
+        ],
+        [
+          "-Iseconds",
+          2
+        ]
+      ],
+      "docker": [
+        [
+          "-v",
+          446
+        ],
+        [
+          "-c",
+          393
+        ],
+        [
+          "--rm",
+          372
+        ],
+        [
+          "-e",
+          372
+        ],
+        [
+          "-d",
+          305
+        ],
+        [
+          "-f",
+          282
+        ],
+        [
+          "-U",
+          271
+        ],
+        [
+          "-q",
+          249
+        ],
+        [
+          "--format",
+          210
+        ],
+        [
+          "-w",
+          187
+        ],
+        [
+          "--filter",
+          98
+        ],
+        [
+          "--name",
+          82
+        ],
+        [
+          "-Atc",
+          81
+        ],
+        [
+          "--network",
+          68
+        ],
+        [
+          "-p",
+          63
+        ]
+      ],
+      "echo": [
+        [
+          "---",
+          1572
+        ],
+        [
+          "----",
+          189
+        ],
+        [
+          "-n",
+          85
+        ],
+        [
+          "---BRANCH---",
+          18
+        ],
+        [
+          "---log---",
+          18
+        ],
+        [
+          "-----",
+          17
+        ],
+        [
+          "---status---",
+          16
+        ],
+        [
+          "---LOG---",
+          13
+        ],
+        [
+          "---worktrees---",
+          13
+        ],
+        [
+          "---access---",
+          11
+        ],
+        [
+          "---size---",
+          11
+        ],
+        [
+          "---REMOTE---",
+          8
+        ],
+        [
+          "---branch---",
+          8
+        ],
+        [
+          "---smoke---",
+          8
+        ],
+        [
+          "---sweep---",
+          8
+        ]
+      ],
+      "export": [],
+      "find": [
+        [
+          "-name",
+          1434
+        ],
+        [
+          "-iname",
+          1365
+        ],
+        [
+          "-o",
+          1171
+        ],
+        [
+          "-path",
+          1011
+        ],
+        [
+          "-type",
+          543
+        ],
+        [
+          "-not",
+          425
+        ],
+        [
+          "-maxdepth",
+          338
+        ],
+        [
+          "-exec",
+          144
+        ],
+        [
+          "-print",
+          132
+        ],
+        [
+          "-prune",
+          127
+        ],
+        [
+          "-newer",
+          17
+        ],
+        [
+          "-size",
+          15
+        ],
+        [
+          "-print0",
+          14
+        ],
+        [
+          "-ipath",
+          11
+        ],
+        [
+          "-printf",
+          10
+        ]
+      ],
+      "gh": [
+        [
+          "--jq",
+          728
+        ],
+        [
+          "--json",
+          653
+        ],
+        [
+          "-R",
+          361
+        ],
+        [
+          "--repo",
+          278
+        ],
+        [
+          "-q",
+          233
+        ],
+        [
+          "--limit",
+          225
+        ],
+        [
+          "-L",
+          217
+        ],
+        [
+          "-H",
+          94
+        ],
+        [
+          "--workflow",
+          84
+        ],
+        [
+          "-X",
+          59
+        ],
+        [
+          "--title",
+          58
+        ],
+        [
+          "-f",
+          56
+        ],
+        [
+          "--body",
+          54
+        ],
+        [
+          "--exit-status",
+          51
+        ],
+        [
+          "--squash",
+          39
+        ]
+      ],
+      "git": [
+        [
+          "--oneline",
+          3034
+        ],
+        [
+          "-<N>",
+          2516
+        ],
+        [
+          "-q",
+          2042
+        ],
+        [
+          "--short",
+          1604
+        ],
+        [
+          "--stat",
+          1113
+        ],
+        [
+          "-m",
+          964
+        ],
+        [
+          "--format",
+          753
+        ],
+        [
+          "-A",
+          739
+        ],
+        [
+          "-C",
+          560
+        ],
+        [
+          "-n",
+          556
+        ],
+        [
+          "--name-only",
+          493
+        ],
+        [
+          "--continue",
+          300
+        ],
+        [
+          "--diff-filter",
+          223
+        ],
+        [
+          "-a",
+          201
+        ],
+        [
+          "-r",
+          198
+        ]
+      ],
+      "grep": [
+        [
+          "-n",
+          12308
+        ],
+        [
+          "-rn",
+          5255
+        ],
+        [
+          "-v",
+          3905
+        ],
+        [
+          "-E",
+          3354
+        ],
+        [
+          "--include",
+          3062
+        ],
+        [
+          "-i",
+          1834
+        ],
+        [
+          "-rln",
+          1343
+        ],
+        [
+          "-A",
+          1035
+        ],
+        [
+          "-rl",
+          615
+        ],
+        [
+          "-c",
+          598
+        ],
+        [
+          "--exclude-dir",
+          529
+        ],
+        [
+          "-A8",
+          479
+        ],
+        [
+          "-A3",
+          450
+        ],
+        [
+          "-A6",
+          418
+        ],
+        [
+          "-A12",
+          401
+        ]
+      ],
+      "head": [
+        [
+          "-<N>",
+          20036
+        ],
+        [
+          "-c",
+          313
+        ],
+        [
+          "-0",
+          17
+        ],
+        [
+          "-c8",
+          1
+        ],
+        [
+          "-n",
+          1
+        ]
+      ],
+      "kubectl": [
+        [
+          "--context",
+          1928
+        ],
+        [
+          "-n",
+          1746
+        ],
+        [
+          "-o",
+          1077
+        ],
+        [
+          "-c",
+          204
+        ],
+        [
+          "-l",
+          178
+        ],
+        [
+          "-A",
+          125
+        ],
+        [
+          "-h",
+          66
+        ],
+        [
+          "-i",
+          56
+        ],
+        [
+          "-U",
+          54
+        ],
+        [
+          "-d",
+          54
+        ],
+        [
+          "--tail",
+          46
+        ],
+        [
+          "--command",
+          43
+        ],
+        [
+          "--image",
+          43
+        ],
+        [
+          "--restart",
+          43
+        ],
+        [
+          "-e",
+          43
+        ]
+      ],
+      "ls": [
+        [
+          "-la",
+          833
+        ],
+        [
+          "-d",
+          804
+        ],
+        [
+          "-R",
+          124
+        ],
+        [
+          "-a",
+          72
+        ],
+        [
+          "-l",
+          63
+        ],
+        [
+          "-t",
+          43
+        ],
+        [
+          "--time-style",
+          35
+        ],
+        [
+          "-lh",
+          14
+        ],
+        [
+          "--time",
+          11
+        ],
+        [
+          "-<N>",
+          11
+        ],
+        [
+          "-lt",
+          10
+        ],
+        [
+          "-S",
+          7
+        ],
+        [
+          "-lat",
+          5
+        ],
+        [
+          "--ignore",
+          4
+        ],
+        [
+          "-L",
+          2
+        ]
+      ],
+      "mkdir": [
+        [
+          "-p",
+          443
+        ]
+      ],
+      "printf": [
+        [
+          "---",
+          2
+        ]
+      ],
+      "psql": [
+        [
+          "-c",
+          357
+        ],
+        [
+          "-U",
+          162
+        ],
+        [
+          "-h",
+          162
+        ],
+        [
+          "-d",
+          146
+        ],
+        [
+          "-tAc",
+          111
+        ],
+        [
+          "-p",
+          106
+        ],
+        [
+          "-At",
+          54
+        ],
+        [
+          "-Atc",
+          36
+        ],
+        [
+          "-f",
+          25
+        ],
+        [
+          "-v",
+          14
+        ],
+        [
+          "-qtA",
+          13
+        ],
+        [
+          "-X",
+          12
+        ],
+        [
+          "-q",
+          12
+        ],
+        [
+          "-F",
+          11
+        ],
+        [
+          "-t",
+          11
+        ]
+      ],
+      "python3": [
+        [
+          "-c",
+          2968
+        ],
+        [
+          "-m",
+          80
+        ],
+        [
+          "--kinds",
+          28
+        ],
+        [
+          "--roles",
+          28
+        ],
+        [
+          "--ctx",
+          26
+        ],
+        [
+          "--max",
+          25
+        ],
+        [
+          "--bind",
+          8
+        ],
+        [
+          "--dry-run",
+          7
+        ],
+        [
+          "--version",
+          7
+        ],
+        [
+          "-V",
+          3
+        ],
+        [
+          "--full",
+          2
+        ],
+        [
+          "--help",
+          2
+        ],
+        [
+          "--maxlen",
+          2
+        ],
+        [
+          "--drop",
+          1
+        ],
+        [
+          "--ignore",
+          1
+        ]
+      ],
+      "remote-cargo": [
+        [
+          "-p",
+          911
+        ],
+        [
+          "--test",
+          326
+        ],
+        [
+          "--all-features",
+          296
+        ],
+        [
+          "--all-targets",
+          243
+        ],
+        [
+          "--locked",
+          174
+        ],
+        [
+          "-D",
+          166
+        ],
+        [
+          "--workspace",
+          156
+        ],
+        [
+          "--all",
+          127
+        ],
+        [
+          "--nocapture",
+          89
+        ],
+        [
+          "--check",
+          87
+        ],
+        [
+          "--lib",
+          46
+        ],
+        [
+          "--tests",
+          20
+        ],
+        [
+          "--exclude",
+          10
+        ],
+        [
+          "--config",
+          9
+        ],
+        [
+          "--no-run",
+          8
+        ]
+      ],
+      "remote-cargo-check-all": [
+        [
+          "--help",
+          2
+        ]
+      ],
+      "rg": [
+        [
+          "-n",
+          5707
+        ],
+        [
+          "-A",
+          898
+        ],
+        [
+          "--glob",
+          850
+        ],
+        [
+          "-v",
+          823
+        ],
+        [
+          "-i",
+          729
+        ],
+        [
+          "-o",
+          480
+        ],
+        [
+          "-c",
+          408
+        ],
+        [
+          "-g",
+          332
+        ],
+        [
+          "-rn",
+          327
+        ],
+        [
+          "-l",
+          275
+        ],
+        [
+          "--type",
+          235
+        ],
+        [
+          "-ln",
+          120
+        ],
+        [
+          "--no-heading",
+          116
+        ],
+        [
+          "-q",
+          105
+        ],
+        [
+          "-N",
+          102
+        ]
+      ],
+      "rm": [
+        [
+          "-rf",
+          237
+        ],
+        [
+          "-f",
+          217
+        ],
+        [
+          "-r",
+          2
+        ]
+      ],
+      "sed": [
+        [
+          "-n",
+          14348
+        ],
+        [
+          "-i",
+          670
+        ],
+        [
+          "-e",
+          615
+        ],
+        [
+          "-E",
+          290
+        ],
+        [
+          "-f",
+          7
+        ],
+        [
+          "-i.bak",
+          1
+        ],
+        [
+          "-i.unused",
+          1
+        ],
+        [
+          "-i.x",
+          1
+        ]
+      ],
+      "sleep": [],
+      "sort": [
+        [
+          "-u",
+          487
+        ],
+        [
+          "-rn",
+          243
+        ],
+        [
+          "-n",
+          56
+        ],
+        [
+          "-k2",
+          41
+        ],
+        [
+          "-h",
+          14
+        ],
+        [
+          "-V",
+          8
+        ],
+        [
+          "-k3",
+          7
+        ],
+        [
+          "-k5",
+          5
+        ],
+        [
+          "-r",
+          4
+        ],
+        [
+          "-rh",
+          4
+        ],
+        [
+          "-k1",
+          3
+        ],
+        [
+          "-nr",
+          2
+        ],
+        [
+          "-t",
+          2
+        ],
+        [
+          "-o",
+          1
+        ],
+        [
+          "-t-",
+          1
+        ]
+      ],
+      "ssh": [
+        [
+          "-o",
+          1098
+        ],
+        [
+          "-s",
+          346
+        ],
+        [
+          "-p",
+          75
+        ],
+        [
+          "-i",
+          38
+        ],
+        [
+          "-N",
+          7
+        ],
+        [
+          "-f",
+          5
+        ],
+        [
+          "-L",
+          4
+        ],
+        [
+          "-R",
+          3
+        ],
+        [
+          "-vvv",
+          3
+        ],
+        [
+          "-q",
+          2
+        ],
+        [
+          "-V",
+          1
+        ],
+        [
+          "-tt",
+          1
+        ],
+        [
+          "-u",
+          1
+        ],
+        [
+          "-vv",
+          1
+        ]
+      ],
+      "tail": [
+        [
+          "-<N>",
+          8231
+        ],
+        [
+          "-c",
+          406
+        ],
+        [
+          "-n",
+          285
+        ],
+        [
+          "-f",
+          16
+        ],
+        [
+          "-n1",
+          2
+        ],
+        [
+          "-0",
+          1
+        ],
+        [
+          "-c1",
+          1
+        ],
+        [
+          "-n2",
+          1
+        ]
+      ],
+      "timeout": [],
+      "tr": [
+        [
+          "-d",
+          222
+        ],
+        [
+          "-s",
+          15
+        ],
+        [
+          "-c",
+          5
+        ],
+        [
+          "-_",
+          1
+        ]
+      ],
+      "true": [],
+      "wc": [
+        [
+          "-l",
+          2328
+        ],
+        [
+          "-c",
+          154
+        ],
+        [
+          "-w",
+          5
+        ],
+        [
+          "-lc",
+          4
+        ]
+      ],
+      "xargs": [
+        [
+          "-r",
+          36
+        ],
+        [
+          "-0",
+          26
+        ],
+        [
+          "-n1",
+          14
+        ],
+        [
+          "-a",
+          8
+        ],
+        [
+          "-P",
+          7
+        ],
+        [
+          "--no-run-if-empty",
+          4
+        ],
+        [
+          "-d",
+          4
+        ],
+        [
+          "-L1",
+          1
+        ]
+      ]
+    },
+    "transcript_files": 763,
+    "unique_commands": 49144,
+    "wrappers": {
+      "env": 7,
+      "exec": 18,
+      "nice": 1,
+      "nohup": 19,
+      "setsid": 84,
+      "sudo": 78,
+      "systemd-run": 11,
+      "taskset": 9,
+      "time": 14,
+      "timeout": 1853,
+      "xargs": 646
+    }
+  },
+  "notes": [
+    "Comandos e padrões completos ficam só em testbench/corpus/agent/ (gitignored) e nunca são executados; aqui só entram agregados, com nomes de script local normalizados pra <path-script>.",
+    "Critério: confirmada se até 60 nomes cobrem 95% das ocorrências e o brush-parser aceita pelo menos 95% das chamadas. Medido: 37 nomes e 100.0%."
+  ]
+}

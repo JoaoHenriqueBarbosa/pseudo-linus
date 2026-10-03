@@ -1,0 +1,52 @@
+[package]
+name = "f12-net-sqlite-git"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F12: rede (ureq com allowlist), sqlite (rusqlite serialize, sqlite-plugin, turso) e git (gix, gix-* baixo nível)"
+
+# Workspace próprio: cada experimento compila isolado (ver testbench/Cargo.toml).
+[workspace]
+
+[dependencies]
+anyhow = "1"
+harness = { path = "../../crates/harness" }
+depscan = { path = "../../crates/depscan" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+cargo_metadata = "0.23"
+
+# Rede.
+ureq = { version = "=3.4.2" }
+attohttpc = { version = "=0.31.0", default-features = false }
+minreq = { version = "=3.0.0" }
+
+# sqlite.
+rusqlite = { version = "=0.40.2", features = ["bundled", "serialize"] }
+sqlite-plugin = { version = "=0.11.0" }
+# Sem `simd` (simsimd é C) e sem `encryption` (aegis com C): só o que é Rust puro.
+turso_core = { version = "=0.8.1", default-features = false, features = ["fs", "json", "time", "series", "uuid", "percentile"] }
+
+# git: `gix` alto nível só pra registrar onde ele exige diretório real; o protótipo usa os `gix-*`.
+gix = { version = "=0.88.0", default-features = false, features = ["sha1"] }
+gix-object = { version = "=0.65.0", features = ["sha1"] }
+gix-hash = { version = "=0.27.0", features = ["sha1"] }
+gix-index = { version = "=0.56.0", features = ["sha1"] }
+gix-pack = { version = "=0.75.0", default-features = false, features = ["sha1"] }
+gix-diff = { version = "=0.68.0", default-features = false, features = ["blob", "sha1"] }
+gix-ref = { version = "=0.68.0", features = ["sha1"] }
+gix-zlib = "=0.2.0"
+gix-actor = "0.43"
+gix-date = "0.17"
+filetime = "0.2"
+
+# O sqlite-plugin roda bindgen no build.rs (precisa de libclang). Este host só tem a libclang
+# versionada (libclang-19.so.1, sem o pacote -dev), que o clang-sys só acha quando carrega em tempo de
+# execução; a feature `runtime` aqui se unifica com o bindgen do sqlite-plugin.
+[build-dependencies]
+bindgen = { version = "0.72", default-features = false, features = ["runtime"] }
+
+[lints.rust]
+unsafe_code = "forbid"

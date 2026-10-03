@@ -1,0 +1,570 @@
+{
+  "file-ascii": {
+    "stdout": "ascii.txt: ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ascii.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "file-ascii-brief": {
+    "stdout": "ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ascii.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "file-ascii-i": {
+    "stdout": "ascii.txt: text/plain; charset=us-ascii\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ascii.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "file-ascii-mime": {
+    "stdout": "ascii.txt: text/plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ascii.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "file-c-source": {
+    "stdout": "main.c: C source, ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "main.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 73,
+        "sha256": "34089283a56f70c23ee3c53d626ec2eddb7e58cacd73dd02b1cf66e350ba2f4b",
+        "data": "#include <stdio.h>\n\nint main(void)\n{\n    printf(\"hi\\n\");\n    return 0;\n}\n"
+      }
+    }
+  },
+  "file-c-source-mime": {
+    "stdout": "main.c: text/x-c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "main.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 73,
+        "sha256": "34089283a56f70c23ee3c53d626ec2eddb7e58cacd73dd02b1cf66e350ba2f4b",
+        "data": "#include <stdio.h>\n\nint main(void)\n{\n    printf(\"hi\\n\");\n    return 0;\n}\n"
+      }
+    }
+  },
+  "file-cr-only": {
+    "stdout": "cr.txt: ASCII text, with CR line terminators\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "cr.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "decfc5c46f333dc99737317edc1d99acb60d0c91c245bdcd30546c534718a1bb",
+        "data": "line one\rline two\r"
+      }
+    }
+  },
+  "file-crlf": {
+    "stdout": "crlf.txt: ASCII text, with CRLF line terminators\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "crlf.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "6612d9c94c2da8d2544e1188348fc7baf717ffff1bacde51929a166404a41ffc",
+        "data": "line one\r\nline two\r\n"
+      }
+    }
+  },
+  "file-crlf-mime": {
+    "stdout": "crlf.txt: text/plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "crlf.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "6612d9c94c2da8d2544e1188348fc7baf717ffff1bacde51929a166404a41ffc",
+        "data": "line one\r\nline two\r\n"
+      }
+    }
+  },
+  "file-csv": {
+    "stdout": "people.csv: ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "people.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "e63f73e8d9cf44e23552f1b56a531d698fec8f9657b4d943973e614bb1bf5102",
+        "data": "name,age\nana,30\nbia,25\n"
+      }
+    }
+  },
+  "file-csv-mime": {
+    "stdout": "people.csv: text/plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "people.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "e63f73e8d9cf44e23552f1b56a531d698fec8f9657b4d943973e614bb1bf5102",
+        "data": "name,age\nana,30\nbia,25\n"
+      }
+    }
+  },
+  "file-empty": {
+    "stdout": "empty: empty\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "file-empty-i": {
+    "stdout": "empty: inode/x-empty; charset=binary\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "file-empty-mime": {
+    "stdout": "empty: inode/x-empty\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "file-html": {
+    "stdout": "page.html: HTML document, ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "page.html": {
+        "kind": "file",
+        "mode": 420,
+        "size": 80,
+        "sha256": "ece0862a647eb85451ed27b71797671310bf1a3560f2dfd9971f64553615ce34",
+        "data": "<!DOCTYPE html>\n<html><head><title>t</title></head><body><p>x</p></body></html>\n"
+      }
+    }
+  },
+  "file-html-mime": {
+    "stdout": "page.html: text/html\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "page.html": {
+        "kind": "file",
+        "mode": 420,
+        "size": 80,
+        "sha256": "ece0862a647eb85451ed27b71797671310bf1a3560f2dfd9971f64553615ce34",
+        "data": "<!DOCTYPE html>\n<html><head><title>t</title></head><body><p>x</p></body></html>\n"
+      }
+    }
+  },
+  "file-json": {
+    "stdout": "data.json: JSON text data\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "0f958618c232e94bf38122735f956c28bc0b88d2f52e88445ee7ab5b3d993c29",
+        "data": "{\"a\": [1, 2, 3], \"b\": {\"c\": \"d\"}}\n"
+      }
+    }
+  },
+  "file-json-i": {
+    "stdout": "data.json: application/json; charset=us-ascii\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "0f958618c232e94bf38122735f956c28bc0b88d2f52e88445ee7ab5b3d993c29",
+        "data": "{\"a\": [1, 2, 3], \"b\": {\"c\": \"d\"}}\n"
+      }
+    }
+  },
+  "file-json-mime": {
+    "stdout": "data.json: application/json\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "0f958618c232e94bf38122735f956c28bc0b88d2f52e88445ee7ab5b3d993c29",
+        "data": "{\"a\": [1, 2, 3], \"b\": {\"c\": \"d\"}}\n"
+      }
+    }
+  },
+  "file-latin1": {
+    "stdout": "latin1.txt: ISO-8859 text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "latin1.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "9c0f4eb7e261b190c408e2c1d942eed522aced19cfbc7258a13a2c8ac5fe1837",
+        "data": {
+          "b64": "Y2Fm6SBjcuhtZQo="
+        }
+      }
+    }
+  },
+  "file-latin1-i": {
+    "stdout": "latin1.txt: text/plain; charset=iso-8859-1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "latin1.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "9c0f4eb7e261b190c408e2c1d942eed522aced19cfbc7258a13a2c8ac5fe1837",
+        "data": {
+          "b64": "Y2Fm6SBjcuhtZQo="
+        }
+      }
+    }
+  },
+  "file-long-lines": {
+    "stdout": "long.txt: ASCII text, with very long lines (361)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 362,
+        "sha256": "9e3a1ed402829363178a4d8038bd1c8048b1bf53e0ae6c95a39ddf213ad7dfea",
+        "data": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+      }
+    }
+  },
+  "file-no-newline": {
+    "stdout": "nonl.txt: ASCII text, with no line terminators\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "nonl.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "fb6a17a09578175d2f04634b6639304ab0efdaf4ff2f94078797653a61a1fd62",
+        "data": "no newline at end"
+      }
+    }
+  },
+  "file-pdf": {
+    "stdout": "doc.pdf: PDF document, version 1.4, 1 page(s)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "doc.pdf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 218,
+        "sha256": "fd4506dbd8970ba326560e90e1080adba2dae1f78cf1e3fd7255c2ad72b84dc5",
+        "data": "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"
+      }
+    }
+  },
+  "file-pdf-mime": {
+    "stdout": "doc.pdf: application/pdf\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "doc.pdf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 218,
+        "sha256": "fd4506dbd8970ba326560e90e1080adba2dae1f78cf1e3fd7255c2ad72b84dc5",
+        "data": "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"
+      }
+    }
+  },
+  "file-script-bash": {
+    "stdout": "run.sh: Bourne-Again shell script, ASCII text executable\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "e8fc5c680bb3d5d8960346207d709feee1d93251aff7795f27c18a40373d7f18",
+        "data": "#!/bin/bash\necho hi\n"
+      }
+    }
+  },
+  "file-script-bash-mime": {
+    "stdout": "run.sh: text/x-shellscript\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "e8fc5c680bb3d5d8960346207d709feee1d93251aff7795f27c18a40373d7f18",
+        "data": "#!/bin/bash\necho hi\n"
+      }
+    }
+  },
+  "file-script-python": {
+    "stdout": "tool.py: Python script, ASCII text executable\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "tool.py": {
+        "kind": "file",
+        "mode": 493,
+        "size": 35,
+        "sha256": "34d2351de9d02066419450721cd11a90c38be0720d5fca8543e3ed043f0ade50",
+        "data": "#!/usr/bin/env python3\nprint('hi')\n"
+      }
+    }
+  },
+  "file-script-python-mime": {
+    "stdout": "tool.py: text/x-script.python\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "tool.py": {
+        "kind": "file",
+        "mode": 493,
+        "size": 35,
+        "sha256": "34d2351de9d02066419450721cd11a90c38be0720d5fca8543e3ed043f0ade50",
+        "data": "#!/usr/bin/env python3\nprint('hi')\n"
+      }
+    }
+  },
+  "file-script-sh": {
+    "stdout": "posix: POSIX shell script, ASCII text executable\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "posix": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "306c6ca7407560340797866e077e053627ad409277d1b9da58106fce4cf717cb",
+        "data": "#!/bin/sh\nexit 0\n"
+      }
+    }
+  },
+  "file-script-sh-mime": {
+    "stdout": "posix: text/x-shellscript\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "posix": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "306c6ca7407560340797866e077e053627ad409277d1b9da58106fce4cf717cb",
+        "data": "#!/bin/sh\nexit 0\n"
+      }
+    }
+  },
+  "file-utf16le-bom": {
+    "stdout": "utf16.txt: Unicode text, UTF-16, little-endian text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf16.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "384d68dab0d184f1157e29fb659f3d5a8447744d49a5bd0e73da661447f6091c",
+        "data": {
+          "b64": "//5oAGkACgA="
+        }
+      }
+    }
+  },
+  "file-utf16le-bom-i": {
+    "stdout": "utf16.txt: text/plain; charset=utf-16le\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf16.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "384d68dab0d184f1157e29fb659f3d5a8447744d49a5bd0e73da661447f6091c",
+        "data": {
+          "b64": "//5oAGkACgA="
+        }
+      }
+    }
+  },
+  "file-utf8": {
+    "stdout": "utf8.txt: Unicode text, UTF-8 text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf8.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "8940f3e5062af17fcebcc529712539c83cb30fd8005de27e879b88b9006032eb",
+        "data": "olá, mundo: ação\n"
+      }
+    }
+  },
+  "file-utf8-bom": {
+    "stdout": "bom.txt: Unicode text, UTF-8 (with BOM) text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bom.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "42c1e65b2c948bb754efb6ac171319d6e97ecb3d9afd4f20bd91b3ded25183c0",
+        "data": "﻿hello\n"
+      }
+    }
+  },
+  "file-utf8-encoding": {
+    "stdout": "utf8.txt: utf-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf8.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "8940f3e5062af17fcebcc529712539c83cb30fd8005de27e879b88b9006032eb",
+        "data": "olá, mundo: ação\n"
+      }
+    }
+  },
+  "file-utf8-i": {
+    "stdout": "utf8.txt: text/plain; charset=utf-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf8.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "8940f3e5062af17fcebcc529712539c83cb30fd8005de27e879b88b9006032eb",
+        "data": "olá, mundo: ação\n"
+      }
+    }
+  },
+  "file-utf8-mime": {
+    "stdout": "utf8.txt: text/plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf8.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "8940f3e5062af17fcebcc529712539c83cb30fd8005de27e879b88b9006032eb",
+        "data": "olá, mundo: ação\n"
+      }
+    }
+  },
+  "file-xml": {
+    "stdout": "doc.xml: XML 1.0 document, ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "doc.xml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 61,
+        "sha256": "206c66d5c353091675b74b01dde697af5956720c5a704143ef6bba5d8a280678",
+        "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root><a>1</a></root>\n"
+      }
+    }
+  },
+  "file-xml-mime": {
+    "stdout": "doc.xml: text/xml\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "doc.xml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 61,
+        "sha256": "206c66d5c353091675b74b01dde697af5956720c5a704143ef6bba5d8a280678",
+        "data": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root><a>1</a></root>\n"
+      }
+    }
+  }
+}

@@ -1,0 +1,832 @@
+tool = "bc"
+source = "upstream:posixutils-rs calc/tests/bc (rev 4073af047104a44442f44047c76c1167f43a8c67)"
+
+# Os 50 programas .bc da suíte do posixutils-rs, copiados sem mudança. Os quatro do math library
+# (ln, atan, sin, cos) rodam com -l, como no driver deles (calc/tests/bc/mod.rs). O esperado aqui é o
+# do GNU bc do oráculo, não o .out deles.
+
+[[case]]
+id = "up-add"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+1 + 2
+1 + 2.00
+1.00 + 2
+45.89 + 2.3
+quit
+'''
+
+[[case]]
+id = "up-arrays-are-passed-to-function-by-value"
+argv = ["bc"]
+tags = ["upstream", "define"]
+stdin = '''
+define r(a[]) {
+	a[0]
+	a[1]
+	a[0] = 89.3
+	a[1] = 23.7
+}
+
+a[0] = 1
+a[1] = 2
+r(a[])
+a[0]
+a[1]
+quit
+'''
+
+[[case]]
+id = "up-assignment-of-a-single-value-to-base-register-is-hexadecimal"
+argv = ["bc"]
+tags = ["upstream", "base"]
+stdin = '''
+obase = F
+obase
+
+ibase = 2
+ibase = D
+ibase
+
+
+ibase = 13
+ibase = F
+ibase
+
+quit
+'''
+
+[[case]]
+id = "up-assign-to-array-item"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+a[0] = 10
+a[45] = 34
+a[0]
+a[45]
+quit
+'''
+
+[[case]]
+id = "up-assign-to-function-local-does-not-change-global"
+argv = ["bc"]
+tags = ["upstream", "define"]
+stdin = '''
+define t(a, b) {
+	auto c[], d, e
+	a = 1
+	b = 2
+	c[10] = 3
+	d = 4
+	e = 9
+}
+
+a = 10
+b = 20
+c[10] = 30
+d = 40
+e = 90
+t(1, 2)
+a
+b
+c[10]
+d
+e
+quit
+'''
+
+[[case]]
+id = "up-assign-to-variable"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+a = 2
+b = 3
+b
+a
+quit
+'''
+
+[[case]]
+id = "up-atan-to-scale-17"
+argv = ["bc", "-l"]
+tags = ["upstream", "mathlib"]
+stdin = '''
+a = a(0.2)
+b = a(0.6)
+c = a(1)
+d = a(1.4)
+e = a(1.8)
+
+scale = 17
+a/1
+b/1
+c/1
+d/1
+d/1
+e/1
+quit
+'''
+
+[[case]]
+id = "up-break-out-of-loop"
+argv = ["bc"]
+tags = ["upstream", "control"]
+stdin = '''
+while(1) break
+for (1; 1; 1) break
+quit
+'''
+
+[[case]]
+id = "up-comments"
+argv = ["bc"]
+tags = ["upstream"]
+stdin = '''
+/* this is a comment */
+
+/* this is a comment
+   that spans multiple lines */
+
+quit
+'''
+
+[[case]]
+id = "up-compound-assignment"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+a = 4
+a += 3.47
+a
+a -= 9.890
+a
+a *= 2
+a
+a /= 1
+a
+a %= 3
+a
+a ^= -2
+a
+quit
+'''
+
+[[case]]
+id = "up-cos-to-scale-18"
+argv = ["bc", "-l"]
+tags = ["upstream", "mathlib"]
+stdin = '''
+a = c(0.5)
+b = c(1)
+c = c(1.5)
+d = c(2)
+e = c(2.5)
+f = c(3)
+
+scale = 18
+a/1
+b/1
+c/1
+d/1
+e/1
+f/1
+quit
+'''
+
+[[case]]
+id = "up-define-empty-function"
+argv = ["bc"]
+tags = ["upstream", "define"]
+stdin = '''
+define f() {
+}
+quit
+'''
+
+[[case]]
+id = "up-define-function-with-locals"
+argv = ["bc"]
+tags = ["upstream", "define"]
+stdin = '''
+define h() {
+	auto a, b, c[]
+}
+quit
+'''
+
+[[case]]
+id = "up-define-function-with-parameters"
+argv = ["bc"]
+tags = ["upstream", "define"]
+stdin = '''
+define w(a, b, c) {
+}
+quit
+'''
+
+[[case]]
+id = "up-div"
+argv = ["bc"]
+tags = ["upstream", "arith", "scale"]
+stdin = '''
+scale = 1
+a = 1/2
+scale(a)
+a
+
+scale = 0
+a = 1/2
+scale(a)
+a
+
+scale = 10
+a = 1/2
+scale(a)
+a
+
+scale = 10
+4 / 2
+10 / 5
+3.4578 / 20
+1234 / 245.8909
+
+quit
+'''
+
+[[case]]
+id = "up-empty-return-returns-zero"
+argv = ["bc"]
+tags = ["upstream", "define"]
+stdin = '''
+define m() {
+	return
+}
+m()
+quit
+'''
+
+[[case]]
+id = "up-for-loop"
+argv = ["bc"]
+tags = ["upstream", "control"]
+stdin = '''
+for (i = 0; i < 10; i++) i
+quit
+'''
+
+[[case]]
+id = "up-function-returns-correct-value"
+argv = ["bc"]
+tags = ["upstream", "define"]
+stdin = '''
+define f() {
+	return(999)
+}
+
+f()
+quit
+'''
+
+[[case]]
+id = "up-function-with-no-return-returns-zero"
+argv = ["bc"]
+tags = ["upstream", "define"]
+stdin = '''
+define f() {
+}
+
+f()
+
+quit
+'''
+
+[[case]]
+id = "up-if"
+argv = ["bc"]
+tags = ["upstream", "control"]
+stdin = '''
+if (1) 2
+if (0) 3
+if (0 < 2) 4
+if (0 != 2) 5
+quit
+'''
+
+[[case]]
+id = "up-length"
+argv = ["bc"]
+tags = ["upstream", "scale"]
+stdin = '''
+length(0)
+length(1)
+length(12435)
+length(1234.567890)
+length(0.3457)
+quit
+'''
+
+[[case]]
+id = "up-ln-to-scale-17"
+argv = ["bc", "-l"]
+tags = ["upstream", "mathlib"]
+stdin = '''
+a = l(0.2)
+b = l(0.6)
+c = l(2)
+d = l(14.9867)
+e = l(130.230890)
+f = l(1302.9012834)
+
+scale = 17
+a/1
+b/1
+c/1
+d/1
+e/1
+f/1
+quit
+'''
+
+[[case]]
+id = "up-mod"
+argv = ["bc"]
+tags = ["upstream", "arith", "scale"]
+stdin = '''
+scale = 0
+a = 4 % 2
+scale(a)
+a
+
+scale = 1
+a = 4.000 % 2
+scale(a)
+a
+
+scale = 4
+a = 4 % 2
+scale(a)
+a
+
+scale = 2
+a = 4.000 % 2.00
+scale(a)
+a
+
+scale = 0
+23.234 % 7.8902
+
+quit
+'''
+
+[[case]]
+id = "up-mul"
+argv = ["bc"]
+tags = ["upstream", "arith", "scale"]
+stdin = '''
+a = 2 * 2
+scale(a)
+a
+
+scale = 2
+a = 2.000 * 2.000
+scale(a)
+a
+
+scale = 10
+a = 2.000 * 2.000
+scale(a)
+a
+
+scale = 10
+a = 2.000 * 2.0
+scale(a)
+a
+
+scale = 10
+a = 2.0 * 2.000
+scale(a)
+a
+
+scale = 100
+890901.1340 * 234.93124012384009
+
+quit
+'''
+
+[[case]]
+id = "up-multiline-numbers"
+argv = ["bc"]
+tags = ["upstream", "format"]
+stdin = '''
+1\
+2
+
+123\
+456
+
+0.\
+345
+
+0\
+.456
+
+quit
+'''
+
+[[case]]
+id = "up-operator-precedence"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+a = 3.5
+b = 9.78
+c = 4
+
+++c * d
+-a ^ 2
+a * b + c
+b - a / c
+a * b / c + a
+c ^ 2 * a
+(a + b) * c
+((a + b) * c - a) / b
+2 + a += b
+
+if (a + b == b + a) {
+	"if works"
+}
+
+quit
+'''
+
+[[case]]
+id = "up-output-base-1097"
+argv = ["bc"]
+tags = ["upstream", "base"]
+stdin = '''
+obase = 1097
+0
+1
+10783
+103072.2109348
+quit
+'''
+
+[[case]]
+id = "up-output-base-14"
+argv = ["bc"]
+tags = ["upstream", "base"]
+stdin = '''
+obase = 14
+0
+1
+123.790
+0.7893
+quit
+'''
+
+[[case]]
+id = "up-output-base-67"
+argv = ["bc"]
+tags = ["upstream", "base"]
+stdin = '''
+obase = 67
+0
+1
+1240
+128.906662
+quit
+'''
+
+[[case]]
+id = "up-output-base-6"
+argv = ["bc"]
+tags = ["upstream", "base"]
+stdin = '''
+obase = 6
+0
+1
+1034
+238.672
+quit
+'''
+
+[[case]]
+id = "up-parenthesized-assignment-prints"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+a = 5
+(a = 5)
+((a = 7))
+a = 1
+(a += 2)
+(a = 8) + 0
+-(a = 9)
+quit
+'''
+
+[[case]]
+id = "up-parenthesized-base-register-assignment"
+argv = ["bc"]
+tags = ["upstream", "base"]
+stdin = '''
+(obase = A)
+100
+obase = 10
+(scale = 3)
+scale = 0
+ibase = (A)
+10
+obase = (A)
+255
+quit
+'''
+
+[[case]]
+id = "up-postfix-decrement"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+o = 234.0
+--o
+quit
+'''
+
+[[case]]
+id = "up-postfix-increment"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+d = 10
+d++
+quit
+'''
+
+[[case]]
+id = "up-pow"
+argv = ["bc"]
+tags = ["upstream", "arith", "scale"]
+stdin = '''
+scale = 2
+a = 2.000 ^ 10
+scale(a)
+a
+
+scale = 4
+a = 2.000 ^ 10
+scale(a)
+a
+
+scale = 4
+a = 2.000 ^ 1
+scale(a)
+a
+
+scale = 0
+a = 2 ^ -1
+scale(a)
+a
+
+a = 2.00 ^ -1
+scale(a)
+a
+
+scale = 2
+a = 2.00 ^ -1
+scale(a)
+a
+
+scale = 10
+2 ^ -1
+2 ^ -2
+89.290 ^ -1
+
+scale = 0
+2 ^ 1
+2 ^ 2
+3.489 ^ 4
+10 ^ 10
+0 ^ 0
+0 ^ 38
+1 ^ 1
+1 ^ 30
+quit
+'''
+
+[[case]]
+id = "up-prefix-decrement"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+a = 340.12234
+--a
+quit
+'''
+
+[[case]]
+id = "up-prefix-increment"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+a = 3.8912
+++a
+quit
+'''
+
+[[case]]
+id = "up-quit"
+argv = ["bc"]
+tags = ["upstream", "quit"]
+stdin = '''
+quit
+'''
+
+[[case]]
+id = "up-quit-in-unexecuted-code"
+argv = ["bc"]
+tags = ["upstream", "quit"]
+stdin = '''
+define x() {
+	quit
+}
+if (0) quit
+while (0) quit
+for (0; 0; 0) quit
+1
+2
+3
+'''
+
+[[case]]
+id = "up-read-base-10"
+argv = ["bc"]
+tags = ["upstream", "base"]
+stdin = '''
+0
+1
+130
+0.234
+.388
+2011.0367
+-3478.89
+quit
+'''
+
+[[case]]
+id = "up-read-base-15"
+argv = ["bc"]
+tags = ["upstream", "base"]
+stdin = '''
+ibase = 15
+0
+1
+ACDC2
+123BAD.4DA
+quit
+'''
+
+[[case]]
+id = "up-read-base-2"
+argv = ["bc"]
+tags = ["upstream", "base"]
+stdin = '''
+ibase = 2
+0
+1
+0110110100001
+1011110.0001001
+quit
+'''
+
+[[case]]
+id = "up-scale"
+argv = ["bc"]
+tags = ["upstream", "scale"]
+stdin = '''
+scale(0)
+scale(1)
+scale(12430)
+scale(2.000)
+scale(234345.9032490)
+quit
+'''
+
+[[case]]
+id = "up-sin-to-scale-18"
+argv = ["bc", "-l"]
+tags = ["upstream", "mathlib"]
+stdin = '''
+a = s(0.5)
+b = s(1)
+c = s(1.5)
+d = s(2)
+e = s(2.5)
+f = s(3)
+
+scale = 18
+a/1
+b/1
+c/1
+d/1
+e/1
+f/1
+quit
+'''
+
+[[case]]
+id = "up-sqrt"
+argv = ["bc"]
+tags = ["upstream", "arith", "scale"]
+stdin = '''
+a = sqrt(0)
+scale(a)
+a
+
+a = sqrt(1)
+scale(a)
+a
+
+a = sqrt(2)
+scale(a)
+a
+
+scale = 10
+a = sqrt(2)
+scale(a)
+a
+
+scale = 0
+a = sqrt(2.00000)
+scale(a)
+a
+
+a = sqrt(4)
+scale(a)
+a
+
+a = sqrt(0.25)
+scale(a)
+a
+quit
+'''
+
+[[case]]
+id = "up-strings"
+argv = ["bc"]
+tags = ["upstream", "string"]
+stdin = '''
+"line string"
+"multiline\
+string"
+quit
+'''
+
+[[case]]
+id = "up-sub"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+1 - 2
+1 - 2.00
+1.00 - 2
+45.89 - 2.3
+quit
+'''
+
+[[case]]
+id = "up-unary-minus"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+-0
+-1
+a = 20
+-a
+a = -20
+-a
+- - 2.45
+quit
+'''
+
+[[case]]
+id = "up-uninitialized-variables-are-zero"
+argv = ["bc"]
+tags = ["upstream", "arith"]
+stdin = '''
+a
+quit
+'''
+
+[[case]]
+id = "up-while-loop"
+argv = ["bc"]
+tags = ["upstream", "control"]
+stdin = '''
+i = 0
+while(i < 10) ++i
+quit
+'''

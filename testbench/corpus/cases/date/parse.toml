@@ -1,0 +1,517 @@
+tool = "date"
+source = "agent-style"
+
+# Gramática do `date -d`. Saída sempre em "+%F %T %z" (diretivas que os dois lados suportam), pra que o
+# caso meça só o parsing. Relógio congelado (ver format.toml) em quinta-feira 2026-01-15 12:00:00 UTC,
+# salvo onde indicado.
+
+# Relativas ao "agora".
+
+[[case]]
+id = "date-parse-days-ago"
+argv = ["date", "-d", "2 days ago", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-next-friday"
+argv = ["date", "-d", "next friday", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-last-friday"
+argv = ["date", "-d", "last friday", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-friday"
+argv = ["date", "-d", "friday", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-this-thursday"
+argv = ["date", "-d", "this thursday", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-next-thursday"
+argv = ["date", "-d", "next thursday", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-monday"
+argv = ["date", "-d", "monday", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-sunday-abbr"
+argv = ["date", "-d", "sun", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-next-monday-9am"
+argv = ["date", "-d", "next monday 9am", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-last-friday-18h"
+argv = ["date", "-d", "last friday 18:00", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-last-month"
+argv = ["date", "-d", "last month", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-next-month"
+argv = ["date", "-d", "next month", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-next-month-overflow"
+argv = ["date", "-d", "next month", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-31 10:30:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-month-ago-overflow"
+argv = ["date", "-d", "1 month ago", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-03-31 10:30:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-tomorrow"
+argv = ["date", "-d", "tomorrow", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-yesterday"
+argv = ["date", "-d", "yesterday", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-today"
+argv = ["date", "-d", "today", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-now"
+argv = ["date", "-d", "now", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-tomorrow-10h"
+argv = ["date", "-d", "tomorrow 10:00", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-yesterday-noon"
+argv = ["date", "-d", "yesterday noon", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-noon"
+argv = ["date", "-d", "noon", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 08:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-midnight"
+argv = ["date", "-d", "midnight", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-plus-week"
+argv = ["date", "-d", "+1 week", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-minus-week"
+argv = ["date", "-d", "-1 week", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-year-ago"
+argv = ["date", "-d", "1 year ago", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-year-ago-leap"
+argv = ["date", "-d", "1 year ago", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2028-02-29 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-hours-ago"
+argv = ["date", "-d", "3 hours ago", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-minutes"
+argv = ["date", "-d", "90 minutes", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-seconds-plus"
+argv = ["date", "-d", "+45 seconds", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-compound-relative"
+argv = ["date", "-d", "1 day 2 hours ago", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-next-year"
+argv = ["date", "-d", "next year", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-last-week"
+argv = ["date", "-d", "last week", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-fortnight"
+argv = ["date", "-d", "fortnight", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-third-friday"
+argv = ["date", "-d", "third friday", "+%F %T %z"]
+tags = ["parse", "relative", "weekday"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-in-days"
+argv = ["date", "-d", "in 3 days", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-uppercase"
+argv = ["date", "-d", "2 DAYS AGO", "+%F %T %z"]
+tags = ["parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+# Horários sozinhos (data de hoje).
+
+[[case]]
+id = "date-parse-time-only"
+argv = ["date", "-d", "12:30", "+%F %T %z"]
+tags = ["parse", "time"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-time-pm"
+argv = ["date", "-d", "12:30pm", "+%F %T %z"]
+tags = ["parse", "time"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-time-9am"
+argv = ["date", "-d", "9am", "+%F %T %z"]
+tags = ["parse", "time"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-time-12am"
+argv = ["date", "-d", "12am", "+%F %T %z"]
+tags = ["parse", "time"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-time-12pm"
+argv = ["date", "-d", "12pm", "+%F %T %z"]
+tags = ["parse", "time"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-time-seconds"
+argv = ["date", "-d", "23:59:59", "+%F %T %z"]
+tags = ["parse", "time"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-empty-string"
+argv = ["date", "-d", "", "+%F %T %z"]
+tags = ["parse", "edge"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+# Datas absolutas: ISO 8601 e variantes.
+
+[[case]]
+id = "date-parse-iso-date"
+argv = ["date", "-d", "2026-03-01", "+%F %T %z"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-iso-date-time"
+argv = ["date", "-d", "2026-03-01 14:15", "+%F %T %z"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-iso-t-separator"
+argv = ["date", "-d", "2026-03-01T14:15:16", "+%F %T %z"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-iso-zulu"
+argv = ["date", "-d", "2026-03-01T14:15:16Z", "+%F %T %z"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-iso-offset"
+argv = ["date", "-d", "2026-03-01T14:15:16+05:30", "+%F %T %z"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-iso-offset-compact"
+argv = ["date", "-d", "2026-03-01 14:15:16 -0300", "+%F %T %z"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-iso-fraction"
+argv = ["date", "-d", "2026-03-01 14:15:16.25", "+%F %T.%N %z"]
+tags = ["parse", "iso", "nanos"]
+
+[[case]]
+id = "date-parse-iso-fraction-comma"
+argv = ["date", "-d", "2026-03-01T14:15:16,5Z", "+%F %T.%3N %z"]
+tags = ["parse", "iso", "nanos"]
+
+[[case]]
+id = "date-parse-iso-compact-number"
+argv = ["date", "-d", "20260301", "+%F %T %z"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-iso-utc-word"
+argv = ["date", "-d", "2026-03-01 14:15 UTC", "+%F %T %z"]
+tags = ["parse", "iso", "zone-name"]
+
+[[case]]
+id = "date-parse-zone-est"
+argv = ["date", "-d", "2026-03-01 14:15 EST", "+%F %T %z"]
+tags = ["parse", "zone-name"]
+
+[[case]]
+id = "date-parse-zone-pst"
+argv = ["date", "-d", "2026-03-01 14:15 PST", "+%F %T %z"]
+tags = ["parse", "zone-name"]
+
+[[case]]
+id = "date-parse-zone-utc-offset"
+argv = ["date", "-d", "2026-03-01 14:15 UTC+3", "+%F %T %z"]
+tags = ["parse", "zone-name"]
+
+[[case]]
+id = "date-parse-date-plus-day"
+argv = ["date", "-d", "2026-01-15 +1 day", "+%F %T %z"]
+tags = ["parse", "iso", "relative"]
+
+[[case]]
+id = "date-parse-date-plus-month-overflow"
+argv = ["date", "-d", "2026-01-31 +1 month", "+%F %T %z"]
+tags = ["parse", "iso", "relative"]
+
+[[case]]
+id = "date-parse-datetime-plus-hours"
+argv = ["date", "-d", "2026-01-15 12:00 +3 hours", "+%F %T %z"]
+tags = ["parse", "iso", "relative"]
+
+[[case]]
+id = "date-parse-year-1999"
+argv = ["date", "-d", "1999-12-31 23:59:59", "+%F %T %z %s"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-year-2038"
+argv = ["date", "-d", "2038-01-19 03:14:08", "+%F %T %z %s"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-year-1900"
+argv = ["date", "-d", "1900-01-01", "+%F %T %z %s %a"]
+tags = ["parse", "iso"]
+
+[[case]]
+id = "date-parse-year-9999"
+argv = ["date", "-d", "9999-12-31 23:59:59", "+%F %T %s"]
+tags = ["parse", "iso", "edge"]
+
+[[case]]
+id = "date-parse-iso-epoch-origin"
+argv = ["date", "-d", "1970-01-01 00:00:00", "+%s"]
+tags = ["parse", "iso"]
+
+# Datas por extenso e formatos de e-mail.
+
+[[case]]
+id = "date-parse-month-name-day-year"
+argv = ["date", "-d", "Mar 1 2026", "+%F %T %z"]
+tags = ["parse", "text"]
+
+[[case]]
+id = "date-parse-day-month-name-year"
+argv = ["date", "-d", "1 March 2026", "+%F %T %z"]
+tags = ["parse", "text"]
+
+[[case]]
+id = "date-parse-month-name-comma"
+argv = ["date", "-d", "March 1, 2026", "+%F %T %z"]
+tags = ["parse", "text"]
+
+[[case]]
+id = "date-parse-us-slash"
+argv = ["date", "-d", "3/1/2026", "+%F %T %z"]
+tags = ["parse", "text"]
+
+[[case]]
+id = "date-parse-us-slash-short-year"
+argv = ["date", "-d", "03/01/26", "+%F %T %z"]
+tags = ["parse", "text"]
+
+[[case]]
+id = "date-parse-month-name-only"
+argv = ["date", "-d", "march", "+%F %T %z"]
+tags = ["parse", "text"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-rfc2822"
+argv = ["date", "-d", "Sun, 01 Mar 2026 14:15:16 +0000", "+%F %T %z"]
+tags = ["parse", "rfc2822"]
+
+[[case]]
+id = "date-parse-rfc2822-offset"
+argv = ["date", "-d", "Thu, 15 Jan 2026 09:30:00 -0300", "+%F %T %z"]
+tags = ["parse", "rfc2822"]
+
+[[case]]
+id = "date-parse-gmt-word"
+argv = ["date", "-d", "1 Mar 2026 14:15:16 GMT", "+%F %T %z"]
+tags = ["parse", "rfc2822", "zone-name"]
+
+[[case]]
+id = "date-parse-default-output-roundtrip"
+argv = ["date", "-d", "Sun Mar  1 14:15:16 UTC 2026", "+%F %T %z"]
+tags = ["parse", "text"]
+
+# Timestamps.
+
+[[case]]
+id = "date-parse-epoch"
+argv = ["date", "-d", "@1700000000", "+%F %T %z"]
+tags = ["parse", "epoch"]
+
+[[case]]
+id = "date-parse-epoch-default-output"
+argv = ["date", "-d", "@1700000000"]
+tags = ["parse", "epoch"]
+
+[[case]]
+id = "date-parse-epoch-negative"
+argv = ["date", "-d", "@-1", "+%F %T %z %s"]
+tags = ["parse", "epoch"]
+
+[[case]]
+id = "date-parse-epoch-fraction"
+argv = ["date", "-d", "@1700000000.5", "+%F %T.%N %s"]
+tags = ["parse", "epoch", "nanos"]
+
+[[case]]
+id = "date-parse-epoch-negative-fraction"
+argv = ["date", "-d", "@-1.5", "+%s %N %T"]
+tags = ["parse", "epoch", "nanos"]
+
+[[case]]
+id = "date-parse-epoch-zero"
+argv = ["date", "-d", "@0", "+%F %T %z"]
+tags = ["parse", "epoch"]
+
+# Entradas inválidas: mensagem e exit 1. Relógio congelado pra que a saída de um candidato que aceite a
+# entrada também seja determinística.
+
+[[case]]
+id = "date-parse-invalid-word"
+argv = ["date", "-d", "foo"]
+tags = ["parse", "error"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-invalid-month"
+argv = ["date", "-d", "2026-13-01"]
+tags = ["parse", "error"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-invalid-day"
+argv = ["date", "-d", "2026-02-30"]
+tags = ["parse", "error"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-invalid-hour"
+argv = ["date", "-d", "25:00"]
+tags = ["parse", "error"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-invalid-weekday"
+argv = ["date", "-d", "next blursday"]
+tags = ["parse", "error"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-invalid-trailing"
+argv = ["date", "-d", "2 days agoo"]
+tags = ["parse", "error"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-invalid-epoch-combined"
+argv = ["date", "-d", "@1700000000 +1 day"]
+tags = ["parse", "error", "epoch"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-invalid-military-zone-letter"
+argv = ["date", "-d", "2026-01-15 12:00 j"]
+tags = ["parse", "error", "zone-name"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-parse-military-zone-letter"
+argv = ["date", "-d", "2026-01-15 12:00 Z", "+%F %T %z"]
+tags = ["parse", "zone-name"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }

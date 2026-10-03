@@ -1,0 +1,312 @@
+tool = "date"
+source = "agent-style"
+
+# Fusos: TZ do ambiente (IANA e POSIX), abreviações, offsets não inteiros, horário de verão, horários
+# inexistentes e ambíguos, e TZ="..." dentro da string do -d.
+#
+# Todo caso tem relógio congelado (ver format.toml), inclusive os de data absoluta: pra hora local
+# ambígua o GNU herda o isdst do "agora" (medido no oráculo: Europe/Berlin "2026-10-25 02:30" sai CET
+# com agora em janeiro e CEST com agora em julho), então sem relógio fixo o golden mudaria com a data
+# real. O FAKETIME é interpretado no TZ do caso.
+
+[[case]]
+id = "date-tz-utc-now"
+argv = ["date", "+%a %F %T %Z %z %:z %s"]
+tags = ["tz"]
+env = { TZ = "UTC", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-sao-paulo-now"
+argv = ["date", "+%a %F %T %Z %z %:z %s"]
+tags = ["tz"]
+env = { TZ = "America/Sao_Paulo", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-new-york-winter"
+argv = ["date", "+%a %F %T %Z %z %:z %s"]
+tags = ["tz", "dst"]
+env = { TZ = "America/New_York", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-new-york-summer"
+argv = ["date", "+%a %F %T %Z %z %:z %s"]
+tags = ["tz", "dst"]
+env = { TZ = "America/New_York", FAKETIME = "2026-07-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-berlin-winter"
+argv = ["date", "+%a %F %T %Z %z %:z %s"]
+tags = ["tz", "dst"]
+env = { TZ = "Europe/Berlin", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-berlin-summer"
+argv = ["date", "+%a %F %T %Z %z %:z %s"]
+tags = ["tz", "dst"]
+env = { TZ = "Europe/Berlin", FAKETIME = "2026-07-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-kolkata"
+argv = ["date", "+%a %F %T %Z %z %:z %::z %:::z %s"]
+tags = ["tz", "offset"]
+env = { TZ = "Asia/Kolkata", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-lord-howe-summer"
+argv = ["date", "+%a %F %T %Z %z %:z %:::z %s"]
+tags = ["tz", "dst", "offset"]
+env = { TZ = "Australia/Lord_Howe", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-lord-howe-winter"
+argv = ["date", "+%a %F %T %Z %z %:z %:::z %s"]
+tags = ["tz", "dst", "offset"]
+env = { TZ = "Australia/Lord_Howe", FAKETIME = "2026-07-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-kathmandu"
+argv = ["date", "+%F %T %Z %z %:::z"]
+tags = ["tz", "offset"]
+env = { TZ = "Asia/Kathmandu", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-chatham"
+argv = ["date", "+%F %T %Z %z %:::z"]
+tags = ["tz", "offset", "dst"]
+env = { TZ = "Pacific/Chatham", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-st-johns"
+argv = ["date", "+%F %T %Z %z %:::z"]
+tags = ["tz", "offset"]
+env = { TZ = "America/St_Johns", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-tokyo-default-output"
+argv = ["date"]
+tags = ["tz"]
+env = { TZ = "Asia/Tokyo", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-epoch-in-zones-sao-paulo"
+argv = ["date", "-d", "@1768478400"]
+tags = ["tz", "epoch", "parse"]
+env = { TZ = "America/Sao_Paulo", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-epoch-in-zones-kolkata"
+argv = ["date", "-d", "@1768478400", "+%F %T %Z %z"]
+tags = ["tz", "epoch", "parse"]
+env = { TZ = "Asia/Kolkata", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-epoch-in-zones-lord-howe"
+argv = ["date", "-d", "@1768478400", "+%F %T %Z %z"]
+tags = ["tz", "epoch", "parse"]
+env = { TZ = "Australia/Lord_Howe", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+# Horário de verão: dias de troca, horários inexistentes e ambíguos.
+
+[[case]]
+id = "date-tz-ny-spring-gap"
+argv = ["date", "-d", "2026-03-08 02:30", "+%F %T %Z"]
+tags = ["tz", "dst", "error", "parse"]
+env = { TZ = "America/New_York", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-ny-spring-after-gap"
+argv = ["date", "-d", "2026-03-08 03:30", "+%F %T %Z %s"]
+tags = ["tz", "dst", "parse"]
+env = { TZ = "America/New_York", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-ny-fall-ambiguous-now-winter"
+argv = ["date", "-d", "2026-11-01 01:30", "+%F %T %Z %s"]
+tags = ["tz", "dst", "ambiguous", "parse"]
+env = { TZ = "America/New_York", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-ny-fall-ambiguous-now-summer"
+argv = ["date", "-d", "2026-11-01 01:30", "+%F %T %Z %s"]
+tags = ["tz", "dst", "ambiguous", "parse"]
+env = { TZ = "America/New_York", FAKETIME = "2026-07-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-ny-plus-day-across-dst"
+argv = ["date", "-d", "2026-03-07 12:00 +1 day", "+%F %T %Z"]
+tags = ["tz", "dst", "parse", "relative"]
+env = { TZ = "America/New_York", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-ny-plus-24h-across-dst"
+argv = ["date", "-d", "2026-03-07 12:00 +24 hours", "+%F %T %Z"]
+tags = ["tz", "dst", "parse", "relative"]
+env = { TZ = "America/New_York", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-ny-date-plus-day-across-dst"
+argv = ["date", "-d", "2026-03-07 +1 day", "+%F %T %Z"]
+tags = ["tz", "dst", "parse", "relative"]
+env = { TZ = "America/New_York", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-ny-tomorrow-across-dst"
+argv = ["date", "-d", "tomorrow", "+%F %T %Z"]
+tags = ["tz", "dst", "parse", "relative"]
+env = { TZ = "America/New_York", FAKETIME = "2026-03-07 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-ny-hours-across-dst"
+argv = ["date", "-d", "24 hours", "+%F %T %Z"]
+tags = ["tz", "dst", "parse", "relative"]
+env = { TZ = "America/New_York", FAKETIME = "2026-03-07 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-ny-summer-date-from-winter"
+argv = ["date", "-d", "2026-07-01 12:00", "+%F %T %Z %z"]
+tags = ["tz", "dst", "parse"]
+env = { TZ = "America/New_York", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-berlin-spring-gap"
+argv = ["date", "-d", "2026-03-29 02:30", "+%F %T %Z"]
+tags = ["tz", "dst", "error", "parse"]
+env = { TZ = "Europe/Berlin", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-berlin-fall-ambiguous-now-winter"
+argv = ["date", "-d", "2026-10-25 02:30", "+%F %T %Z %s"]
+tags = ["tz", "dst", "ambiguous", "parse"]
+env = { TZ = "Europe/Berlin", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-berlin-fall-ambiguous-now-summer"
+argv = ["date", "-d", "2026-10-25 02:30", "+%F %T %Z %s"]
+tags = ["tz", "dst", "ambiguous", "parse"]
+env = { TZ = "Europe/Berlin", FAKETIME = "2026-07-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-sao-paulo-historic-dst"
+argv = ["date", "-d", "2016-01-15 12:00", "+%F %T %Z %z"]
+tags = ["tz", "dst", "parse"]
+env = { TZ = "America/Sao_Paulo", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-sao-paulo-historic-gap"
+argv = ["date", "-d", "2018-11-04 00:30", "+%F %T %Z"]
+tags = ["tz", "dst", "error", "parse"]
+env = { TZ = "America/Sao_Paulo", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-lord-howe-half-hour-dst"
+argv = ["date", "-d", "2026-07-15 12:00", "+%F %T %Z %z"]
+tags = ["tz", "dst", "parse"]
+env = { TZ = "Australia/Lord_Howe", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+# TZ POSIX e valores incomuns.
+
+[[case]]
+id = "date-tz-posix-est5edt-summer"
+argv = ["date", "-d", "2026-07-01 12:00", "+%F %T %Z %z"]
+tags = ["tz", "posix", "parse"]
+env = { TZ = "EST5EDT", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-posix-est5edt-winter"
+argv = ["date", "-d", "2026-01-15 12:00", "+%F %T %Z %z"]
+tags = ["tz", "posix", "parse"]
+env = { TZ = "EST5EDT", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-posix-utc0"
+argv = ["date", "+%F %T %Z %z"]
+tags = ["tz", "posix"]
+env = { TZ = "UTC0", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-posix-jst"
+argv = ["date", "+%F %T %Z %z"]
+tags = ["tz", "posix"]
+env = { TZ = "JST-9", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-posix-angle-brackets"
+argv = ["date", "+%F %T %Z %z"]
+tags = ["tz", "posix"]
+env = { TZ = "<-03>3", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-posix-half-hour"
+argv = ["date", "+%F %T %Z %z"]
+tags = ["tz", "posix"]
+env = { TZ = "<+0530>-5:30", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-posix-explicit-rules"
+argv = ["date", "-d", "2026-07-01 12:00", "+%F %T %Z %z"]
+tags = ["tz", "posix", "parse"]
+env = { TZ = "CET-1CEST,M3.5.0,M10.5.0/3", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-colon-prefix"
+argv = ["date", "+%F %T %Z %z"]
+tags = ["tz"]
+env = { TZ = ":America/Sao_Paulo", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-unknown-name"
+argv = ["date", "-d", "2026-07-01 12:00", "+%F %T %Z %z"]
+tags = ["tz", "edge", "parse"]
+env = { TZ = "Foo/Bar", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-empty"
+argv = ["date", "-d", "2026-07-01 12:00", "+%F %T %Z %z"]
+tags = ["tz", "edge", "parse"]
+env = { TZ = "", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-backward-link"
+argv = ["date", "-d", "2026-07-01 12:00", "+%F %T %Z %z"]
+tags = ["tz", "edge", "tzdb-content", "parse"]
+env = { TZ = "US/Eastern", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+# TZ="..." dentro da string do -d e offsets explícitos convertidos pro TZ do ambiente.
+
+[[case]]
+id = "date-tz-in-string-tokyo"
+argv = ["date", "-d", 'TZ="Asia/Tokyo" 2026-01-15 09:00', "+%F %T %Z %z"]
+tags = ["tz", "tz-in-string", "parse"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-in-string-berlin-to-sao-paulo"
+argv = ["date", "-d", 'TZ="Europe/Berlin" 2026-07-01 12:00', "+%F %T %Z %z"]
+tags = ["tz", "tz-in-string", "parse"]
+env = { TZ = "America/Sao_Paulo", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-in-string-relative"
+argv = ["date", "-d", 'TZ="America/New_York" tomorrow 09:00', "+%F %T %Z"]
+tags = ["tz", "tz-in-string", "parse", "relative"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-in-string-posix"
+argv = ["date", "-d", 'TZ="JST-9" 2026-01-15 09:00', "+%F %T %Z"]
+tags = ["tz", "tz-in-string", "parse"]
+env = { FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-tz-offset-converted"
+argv = ["date", "-d", "2026-01-15T12:00:00+05:30", "+%F %T %Z %z"]
+tags = ["tz", "parse", "iso"]
+env = { TZ = "America/New_York", FAKETIME = "2026-01-15 12:00:00", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+# Sem relógio congelado de propósito: com -u a libfaketime reinterpretaria o FAKETIME (ver options.toml);
+# aqui a data é absoluta com offset e o fuso de saída é UTC, sem horário de verão.
+[[case]]
+id = "date-tz-utc-flag-with-offset-input"
+argv = ["date", "-u", "-d", "2026-01-15T12:00:00-03:00", "+%F %T %Z"]
+tags = ["tz", "parse", "iso"]
+env = { TZ = "Asia/Kolkata" }

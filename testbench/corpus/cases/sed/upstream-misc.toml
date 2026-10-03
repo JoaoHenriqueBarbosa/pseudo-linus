@@ -1,0 +1,1036 @@
+# Gerado por testbench/experiments/f02-grep-sed (binário f02-gen-cases) a partir das suítes
+# upstream em corpus/upstream. Não edite à mão.
+
+tool = "sed"
+source = "upstream:sed-4.9/testsuite/misc.pl"
+
+[[case]]
+id = "misc-empty"
+argv = ["sed", "-e", "", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = ""
+
+[[case]]
+id = "misc-empty2"
+argv = ["sed", "s/^ *//", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+x
+
+"""
+
+[[case]]
+id = "misc-head"
+argv = ["sed", "3q", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+1
+2
+3
+4
+"""
+
+[[case]]
+id = "misc-space"
+argv = ["sed", 's/_\S/XX/g;s/\s/_/g', "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+Hello World\t!
+Second_line_ of tests
+"""
+
+[[case]]
+id = "misc-zero-anchor"
+argv = ["sed", "-z", "N;N;s/^/X/g;s/^/X/mg;s/$/Y/g;s/$/Y/mg", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = "a\u0000b\u0000c\u0000"
+
+[[case]]
+id = "misc-case-insensitive"
+argv = ["sed", "-n", "h;s/Version: *//p;g;s/version: *//Ip", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+Version: 1.2.3
+"""
+
+[[case]]
+id = "misc-preserve-missing-EOL-at-EOF"
+argv = ["sed", "s/$/x/", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+a
+b"""
+
+[[case]]
+id = "misc-y-bracket"
+argv = ["sed", "y/[/ /", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+Are you sure (y/n)? [y]
+"""
+
+[[case]]
+id = "misc-y-zero"
+argv = ["sed", 'y/b/\x00/', "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+abc
+"""
+
+[[case]]
+id = "misc-y-newline"
+argv = ["sed", '''
+H
+G
+y/Ss\nYy/yY$sS/''', "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+Are you sure (y/n)? [y]
+"""
+
+[[case]]
+id = "misc-allsub"
+argv = ["sed", "s/foo/bar/g", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+foo foo fo oo f oo foo foo foo foo foo foo foo foo foo
+"""
+
+[[case]]
+id = "misc-insert-nl"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''
+/foo/i\
+'''
+in2 = """
+bar
+foo
+"""
+
+[[case]]
+id = "misc-recall"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = "p;s/e/X/p;:x;s//Y/p;/f/bx"
+in2 = """
+eeefff
+"""
+
+[[case]]
+id = "misc-recall2"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '/\(ab*\)\+/ s//>\1</g'
+in2 = """
+ababb||abbbabbbb
+"""
+
+[[case]]
+id = "misc-0range"
+argv = ["sed", "-e", "0,/aaa/d", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+1
+2
+3
+4
+aaa
+yes
+"""
+
+[[case]]
+id = "misc-amp-escape"
+argv = ["sed", "-e", 's/yes/yes\x26/', "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+yes
+"""
+
+[[case]]
+id = "misc-appquit"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''
+a\
+ok
+q'''
+in2 = """
+doh
+"""
+
+[[case]]
+id = "misc-brackets"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+s/[[]/a/
+s/[[[]/b/
+s/[[[[]/c/
+s/[[[[[]/d/
+s/[[[[[[]/e/
+s/[[[[[[[]/f/
+s/[[[[[[[[]/g/
+s/[[[[[[[[[]/h/
+"""
+in2 = """
+[[[[[[[[[
+"""
+
+[[case]]
+id = "misc-bkslashes"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''
+s/$/\\\
+/
+'''
+in2 = """
+a
+"""
+
+[[case]]
+id = "misc-classes"
+argv = ["sed", "-n", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''s/^\([/[:lower:]A-Z0-9]*_cv_[[:lower:][:upper:]/[:digit:]]*\)=\(.*\)/: \${\1='\2'}/p'''
+in2 = '''
+_cv_=emptyvar
+ac_cv_prog/RANLIB=/usr/bin/ranlib
+ac_cv_prog/CC=/usr/unsupported/\ \ /lib/_cv_/cc
+a/c_cv_prog/CPP=/usr/bin/cpp
+SHELL=bash
+GNU=GNU!UNIX
+'''
+
+[[case]]
+id = "misc-cv-vars"
+argv = ["sed", "-n", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''s/^\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\)=\(.*\)/: \${\1='\2'}/p'''
+in2 = """
+_cv_=emptyvar
+ac_cv_prog_RANLIB=/usr/bin/ranlib
+ac_cv_prog_CC=/usr/unsupported/  /lib/_cv_/cc
+ac_cv_prog_CPP=/usr/bin/cpp
+SHELL=bash
+GNU=GNU!UNIX
+"""
+
+[[case]]
+id = "misc-quiet"
+argv = ["sed", "--quiet", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''s/^\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\)=\(.*\)/: \${\1='\2'}/p'''
+in2 = """
+_cv_=emptyvar
+ac_cv_prog_RANLIB=/usr/bin/ranlib
+ac_cv_prog_CC=/usr/unsupported/  /lib/_cv_/cc
+ac_cv_prog_CPP=/usr/bin/cpp
+SHELL=bash
+GNU=GNU!UNIX
+"""
+
+[[case]]
+id = "misc-file"
+argv = ["sed", "-n", "--file", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''s/^\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\)=\(.*\)/: \${\1='\2'}/p'''
+in2 = """
+_cv_=emptyvar
+ac_cv_prog_RANLIB=/usr/bin/ranlib
+ac_cv_prog_CC=/usr/unsupported/  /lib/_cv_/cc
+ac_cv_prog_CPP=/usr/bin/cpp
+SHELL=bash
+GNU=GNU!UNIX
+"""
+
+[[case]]
+id = "misc-dollar"
+argv = ["sed", "-e", "$s/^/space /", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+I can't quite remember where I heard it,
+but I can't seem to get out of my head
+the phrase
+the final frontier
+"""
+
+[[case]]
+id = "misc-enable"
+argv = ["sed", "-e", "s/-*enable-//;s/=.*//", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+--enable-targets=sparc-sun-sunos4.1.3,srec
+--enable-x11-testing=on
+--enable-wollybears-in-minnesota=yes-id-like-that
+"""
+
+[[case]]
+id = "misc-fasts"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+
+h
+s/a//
+p
+g
+s/a//g
+p
+g
+s/^a//p
+g
+s/^a//g
+p
+g
+s/not present//g
+p
+g
+s/^[a-z]//g
+p
+g
+s/a$//
+p
+g
+
+y/a/b/
+h
+s/b//
+p
+g
+s/b//g
+p
+g
+s/^b//p
+g
+s/^b//g
+p
+g
+s/^[a-z]//g
+p
+g
+s/b$//
+p
+g
+"""
+in2 = """
+aaaaaaabbbbbbaaaaaaa
+"""
+
+[[case]]
+id = "misc-factor"
+argv = ["sed", "-n", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''
+
+s/.*/&;9aaaaaaaaa8aaaaaaaa7aaaaaaa6aaaaaa5aaaaa4aaaa3aaa2aa1a0/
+:encode
+s/\(a*\)\([0-9]\)\([0-9]*;.*\2\(a*\)\)/\1\1\1\1\1\1\1\1\1\1\4\3/
+tencode
+s/;.*//
+
+t7a
+
+:2
+a\
+2
+b2a
+:3
+a\
+3
+b3a
+:5
+a\
+5
+b5a
+:7
+a\
+7
+
+:7a
+s/^\(aa*\)\1\{6\}$/\1/
+t7
+:5a
+s/^\(aa*\)\1\{4\}$/\1/
+t5
+:3a
+s/^\(aa*\)\1\1$/\1/
+t3
+:2a
+s/^\(aa*\)\1$/\1/
+t2
+
+/^a$/b
+
+s/^\(aa*\)\1\{10\}/\1=&/
+
+:factor
+/^\(a\{7,\}\)=\1\1*$/! {
+  # Decrement CANDIDATE, and search again if it is still >1
+  s/^a//
+  /^aa/b factor
+
+  # Print the last remaining factor: since it is stored in the NUMBER
+  # rather than in the CANDIDATE, swap 'em: now NUMBER=1
+  s/\(.*\)=\(.*\)/\2=\1/
+}
+
+h
+s/=.*/;;0a1aa2aaa3aaaa4aaaaa5aaaaaa6aaaaaaa7aaaaaaaa8aaaaaaaaa9/
+
+:decode
+s/^\(a*\)\1\{9\}\(a\{0,9\}\)\([0-9]*;.*[^a]\2\([0-9]\)\)/\1\4\3/
+/^a/tdecode
+s/;.*//p
+
+g
+:divide
+s/^\(a*\)\(=b*\)\1/\1\2b/
+tdivide
+y/b/a/
+
+/aa$/bfactor
+'''
+in2 = """
+2
+3
+4
+5
+8
+11
+16
+143
+"""
+
+[[case]]
+id = "misc-flipcase"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = 's,\([^A-Za-z]*\)\([A-Za-z]*\),\1\L\u\2,g'
+in2 = """
+09 - 02 - 2002 00.00 Tg La7 La7 -
+09 - 02 - 2002 00.00 Brand New Tmc 2 -
+09 - 02 - 2002 00.10 Tg1 Notte Rai Uno -
+09 - 02 - 2002 00.15 Tg Parlamento Rai Due -
+09 - 02 - 2002 00.15 Kung Fu - La Leggenda Continua La7 -
+09 - 02 - 2002 00.20 Berserk - La CoNFESSIONE Di Gatz Italia 1 Cartoon
+09 - 02 - 2002 00.20 Tg3 - Tg3 Meteo Rai TrE -
+09 - 02 - 2002 00.25 Meteo 2 Rai Due -
+09 - 02 - 2002 00.30 Appuntamento Al CinEMA RaI Due -
+09 - 02 - 2002 00.30 Rai Educational - Mediamente Rai Tre -
+09 - 02 - 2002 00.35 Profiler Rai Due -
+09 - 02 - 2002 00.35 Stampa OggI - Che Tempo Fa Rai Uno -
+09 - 02 - 2002 00.45 Rai Educational - Babele: Euro Rai Uno -
+09 - 02 - 2002 00.45 BollettINO Della NEVE RETE 4 News
+09 - 02 - 2002 00.50 STUDIO Aperto - La Giornata Italia 1 News
+09 - 02 - 2002 00.50 BOCCA A Bocca - 2 Tempo Rete 4 Film
+09 - 02 - 2002 01.00 AppuntAMENTO Al Cinema Rai Tre -
+09 - 02 - 2002 01.00 Music NoN Stop Tmc 2 -
+09 - 02 - 2002 01.00 Studio SpORT Italia 1 SporT
+09 - 02 - 2002 01.00 Tg 5 - Notte Canale 5 News
+09 - 02 - 2002 01.05 Fuori Orario. CosE (Mai) Viste Rai Tre -
+09 - 02 - 2002 01.15 RAINOTTE Rai Due -
+09 - 02 - 2002 01.15 Sottovoce Rai Uno -
+09 - 02 - 2002 01.15 GiOCHI Olimpici InVERNALI - CERIMONIA Di Apertura Rai Tre -
+09 - 02 - 2002 01.17 Italia Interroga Rai Due -
+"""
+
+[[case]]
+id = "misc-inclib"
+argv = ["sed", "-e", "s;lib;include;", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+\t/usr/X11R6/lib
+\t/usr/X11R5/lib
+\t/usr/X11R4/lib
+
+\t/usr/lib/X11R6
+\t/usr/lib/X11R5
+\t/usr/lib/X11R4
+
+\t/usr/local/X11R6/lib
+\t/usr/local/X11R5/lib
+\t/usr/local/X11R4/lib
+
+\t/usr/local/lib/X11R6
+\t/usr/local/lib/X11R5
+\t/usr/local/lib/X11R4
+
+\t/usr/X11/lib
+\t/usr/lib/X11
+\t/usr/local/X11/lib
+\t/usr/local/lib/X11
+
+\t/usr/X386/lib
+\t/usr/x386/lib
+\t/usr/XFree86/lib/X11
+
+\t/usr/lib
+\t/usr/local/lib
+\t/usr/unsupported/lib
+\t/usr/athena/lib
+\t/usr/local/x11r5/lib
+\t/usr/lpp/Xamples/lib
+
+\t/usr/openwin/lib
+\t/usr/openwin/share/lib
+"""
+
+[[case]]
+id = "misc-khadafy"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''/M[ou]'\{0,1\}am\{1,2\}[ae]r .*\([AEae]l[- ]\)\{0,1\}[GKQ]h\{0,1\}[aeu]\{1,\}\([dtz][dhz]\{0,1\}\)\{1,\}af[iy]/!d'''
+in2 = """
+1)  Muammar Qaddafi
+2)  Mo'ammar Gadhafi
+3)  Muammar Kaddafi
+4)  Muammar Qadhafi
+5)  Moammar El Kadhafi
+6)  Muammar Gadafi
+7)  Mu'ammar al-Qadafi
+8)  Moamer El Kazzafi
+9)  Moamar al-Gaddafi
+10) Mu'ammar Al Qathafi
+11) Muammar Al Qathafi
+12) Mo'ammar el-Gadhafi
+13) Moamar El Kadhafi
+14) Muammar al-Qadhafi
+15) Mu'ammar al-Qadhdhafi
+16) Mu'ammar Qadafi
+17) Moamar Gaddafi
+18) Mu'ammar Qadhdhafi
+19) Muammar Khaddafi
+20) Muammar al-Khaddafi
+21) Mu'amar al-Kadafi
+22) Muammar Ghaddafy
+23) Muammar Ghadafi
+24) Muammar Ghaddafi
+25) Muamar Kaddafi
+26) Muammar Quathafi
+27) Muammar Gheddafi
+28) Muamar Al-Kaddafi
+29) Moammar Khadafy
+30) Moammar Qudhafi
+31) Mu'ammar al-Qaddafi
+32) Mulazim Awwal Mu'ammar Muhammad Abu Minyar al-Qadhafi
+"""
+
+[[case]]
+id = "misc-linecnt"
+argv = ["sed", "-e", "=", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+A dialogue on poverty
+
+\tOn the night when the rain beats,
+\tDriven by the wind,
+\tOn the night when the snowflakes mingle
+\tWith a sleety rain,
+\tI feel so helplessly cold.
+\tI nibble at a lump of salt,
+\tSip the hot, oft-diluted dregs of _sake_;
+\tAnd coughing, snuffling,
+\tAnd stroking my scanty beard,
+\tI say in my pride,
+\t"There's none worthy, save I!"
+\tBut I shiver still with cold.
+\tI pull up my hempen bedclothes,
+\tWear what few sleeveless clothes I have,
+\tBut cold and bitter is the night!
+\tAs for those poorer than myself,
+\tTheir parents must be cold and hungry,
+\tTheir wives and children beg and cry.
+\tThen, how do you struggle through life?
+
+\tWide as they call the heaven and earth,
+\tFor me they have shrunk quite small;
+\tBright though they call the sun and moon,
+\tThey never shine for me.
+\tIs it the same with all men,
+\tOr for me alone?
+\tBy rare chance I was born a man
+\tAnd no meaner than my fellows,
+\tBut, wearing unwadded sleeveless clothes
+\tIn tatters, like weeds waving in the sea,
+\tHanging from my shoulders,
+\tAnd under the sunken roof,
+\tWithin the leaning walls,
+\tHere I lie on straw
+\tSpread on bare earth,
+\tWith my parents at my pillow,
+\tAnd my wife and children at my feet,
+\tAll huddled in grief and tears.
+\tNo fire sends up smoke
+\tAt the cooking-place,
+\tAnd in the cauldron
+\tA spider spins its web.
+\tWith not a grain to cook,
+\tWe moan like the night thrush.
+\tThen, "to cut," as the saying is,
+\t"The ends of what is already too short,"
+\tThe village headman comes,
+\tWith rod in hand, to our sleeping place,
+\tGrowling for his dues.
+\tMust it be so hopeless --
+\tThe way of this world?
+
+\t-- Yamanoue Okura
+"""
+
+[[case]]
+id = "misc-manis"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''
+s/%@/@@/; s/@%/@@/; s/%g$/@g/; /@g$/s/[\\&%]/\\&/g;
+s/@@/%@/; s/@@/@%/; s/@g$/%g/
+'''
+in2 = """
+s%@CFLAGS@%%g
+s%@CPPFLAGS@%-I/%g
+s%@CXXFLAGS@%-x c++%g
+s%@DEFS@%$DEFS%g
+s%@LDFLAGS@%-L/usr/lib%g
+s%@LIBS@%-lgnu -lbfd%g
+s%@exec_prefix@%%g
+s%@prefix@%$prefix%g
+s%@RANLIB@%$RANLIB%g
+s%@CC@%/usr/local/bin/gcc%g
+s%@CPP@%$CPP%g
+s%@XCFLAGS@%$XCFLAGS%g
+s%@XINCLUDES@%$XINCLUDES%g
+s%@XLIBS@%$XLIBS%g
+s%@XPROGS@%$XPROGS%g
+s%@TCLHDIR@%$TCLHDIR%g
+s%@TCLLIB@%$TCLLIB%g
+s%@TKHDIR@%$TKHDIR%g
+s%@TKLIB@%$TKLIB%g
+s%@PTY_TYPE@%$PTY_TYPE%g
+s%@EVENT_TYPE@%$EVENT_TYPE%g
+s%@SETUID@%$SETUID%g
+"""
+
+[[case]]
+id = "misc-modulo"
+argv = ["sed", "-e", "0~2d;=", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+s%@CFLAGS@%%g
+s%@CPPFLAGS@%-I/%g
+s%@CXXFLAGS@%-x c++%g
+s%@DEFS@%$DEFS%g
+s%@LDFLAGS@%-L/usr/lib%g
+s%@LIBS@%-lgnu -lbfd%g
+s%@exec_prefix@%%g
+s%@prefix@%$prefix%g
+s%@RANLIB@%$RANLIB%g
+s%@CC@%/usr/local/bin/gcc%g
+s%@CPP@%$CPP%g
+s%@XCFLAGS@%$XCFLAGS%g
+s%@XINCLUDES@%$XINCLUDES%g
+s%@XLIBS@%$XLIBS%g
+s%@XPROGS@%$XPROGS%g
+s%@TCLHDIR@%$TCLHDIR%g
+s%@TCLLIB@%$TCLLIB%g
+s%@TKHDIR@%$TKHDIR%g
+s%@TKLIB@%$TKLIB%g
+s%@PTY_TYPE@%$PTY_TYPE%g
+s%@EVENT_TYPE@%$EVENT_TYPE%g
+s%@SETUID@%$SETUID%g
+"""
+
+[[case]]
+id = "misc-middle"
+argv = ["sed", "-n", "-e", "3,5p", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+   "...by imposing a tiny bit of order in a communication you are
+   translating, you are carving out a little bit of order in the
+   universe.  You will never succeed.  Everything will fail and come
+   to an end finally.  But you have a chance to carve a little bit
+   of order and maybe even beauty out of the raw materials that
+   surround you everywhere, and I think there is no greater meaning
+   in life."
+
+             Donald L. Philippi, Oct 1930 - Jan 1993
+"""
+
+[[case]]
+id = "misc-newline-anchor"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+N
+N
+s/^/X/g
+s/^/X/mg
+s/$/Y/g
+s/$/Y/mg
+"""
+in2 = """
+a
+b
+c
+"""
+
+[[case]]
+id = "misc-noeolw"
+argv = ["sed", "-n", "-f", "in1", "in2", "in3"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+w noeolw.1out
+$ {
+\tx
+\tw noeolw.1out
+\tx
+}
+h
+1,3w noeolw.2out
+p
+p
+"""
+in2 = """
+This file is unique
+in that it does
+end in a newline."""
+in3 = """
+This file is unique
+in that it does
+end in a newline."""
+
+[[case]]
+id = "misc-numsub"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+
+# the first one matches, the second doesn't
+1s/foo/bar/10
+2s/foo/bar/20
+
+# The second line should be deleted.  ssed 3.55-3.58 do not.
+t
+d
+"""
+in2 = """
+foo foo fo oo f oo foo foo foo foo foo foo foo foo foo foo foo foo foo
+foo foo fo oo f oo foo foo foo foo foo foo foo foo foo foo foo foo foo
+"""
+
+[[case]]
+id = "misc-numsub2"
+argv = ["sed", "-n", "-e", "s/a*/b/2", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+
+"""
+
+[[case]]
+id = "misc-numsub3"
+argv = ["sed", "-n", "-e", "s/^a*/b/2", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+
+"""
+
+[[case]]
+id = "misc-numsub4"
+argv = ["sed", "-n", "-e", "s/^a*/b/2p", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+z
+"""
+
+[[case]]
+id = "misc-numsub5"
+argv = ["sed", "-n", "-e", "s/a*/b/3p", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+z
+"""
+
+[[case]]
+id = "misc-readin"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''
+/\.$/r readin.in2
+/too\.$/q
+'''
+in2 = """
+``Democracy will not come today, this year,
+  nor ever through compromise and fear.
+  I have as much right as the other fellow has
+  to stand on my two feet and own the land.
+  I tire so of hearing people say
+  let things take their course,
+  tomorrow is another day.
+  I do not need my freedom when I'm dead.
+  I cannot live on tomorrow's bread.
+  Freedom is a strong seed
+  planted in a great need.
+  I live here, too.
+  I want freedom just as you.''
+    ``The Weary Blues'', Langston Hughes
+"""
+"readin.in2" = """
+MOO
+"""
+
+[[case]]
+id = "misc-sep"
+argv = ["sed", "-f", "in1", "in2"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = '''
+s%/[^/][^/]*$%%
+s%[\/][^\/][^\/]*$%%
+s,.*[^\/],,
+'''
+in2 = """
+miss mary mack mack//mack/ran down/the track  track  track
+slashes\u0007ren't%used enough/in/casual-conversation///
+possibly sentences would be more attractive if they endedin two slashes//
+"""
+
+[[case]]
+id = "misc-subwrite"
+argv = ["sed", "-e", "s/you/YoU/w subwrite.wout", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+Not some church, and not the state,
+Not some dark capricious fate.
+Who you are, and when you lose,
+Comes only from the things you choose.
+"""
+
+[[case]]
+id = "misc-writeout"
+argv = ["sed", "-e", "/^Facts ar/w writeout.wout", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+Facts are simple and facts are straight
+Facts are lazy and facts are late
+Facts all come with points of view
+Facts don't do what I want them to
+"""
+
+[[case]]
+id = "misc-xabcx"
+argv = ["sed", "-e", '\xfeetxs/blue/too/', "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+roses are red
+violets are blue
+my feet are cold
+your feet are blue
+"""
+
+[[case]]
+id = "misc-xbxcx"
+argv = ["sed", "-e", "s/a*/x/g", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+
+b
+bc
+bac
+baac
+baaac
+baaaac
+"""
+
+[[case]]
+id = "misc-xbxcx3"
+argv = ["sed", "-e", "s/a*/x/3", "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = """
+
+b
+bc
+bac
+baac
+baaac
+baaaac
+"""
+
+[[case]]
+id = "misc-bug30794_1"
+argv = ["sed", 's/z/\x5cA/', "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = "z"
+
+[[case]]
+id = "misc-bug30794_2"
+argv = ["sed", 's/z/\x5c/', "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = "z"
+
+[[case]]
+id = "misc-bug30794_3"
+argv = ["sed", 's/z/\x5c1/', "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = "z"
+
+[[case]]
+id = "misc-bug40242"
+argv = ["sed", 'sn\nnXn', "in1"]
+tags = ["src:upstream-misc"]
+timeout_ms = 10000
+
+[case.files]
+in1 = "n"

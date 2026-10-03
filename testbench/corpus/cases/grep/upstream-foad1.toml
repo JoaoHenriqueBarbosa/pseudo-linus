@@ -1,0 +1,384 @@
+# Gerado por testbench/experiments/f02-grep-sed (binário f02-gen-cases) a partir das suítes
+# upstream em corpus/upstream. Não edite à mão.
+
+tool = "grep"
+source = "upstream:grep-3.11/tests/foad1"
+
+[[case]]
+id = "foad1-043"
+argv = ["grep", "word", "-o", "-i"]
+stdin = """
+WordA
+wordB
+WORDC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-044"
+argv = ["grep", "Word", "-o", "-i"]
+stdin = """
+WordA
+wordB
+WORDC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-045"
+argv = ["grep", "WORD", "-o", "-i"]
+stdin = """
+WordA
+wordB
+WORDC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-051"
+argv = ["grep", "w.", "-o", "-n"]
+stdin = """
+wA wB
+wC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-052"
+argv = ["grep", "w.", "-o", "-n", "-i"]
+stdin = """
+wA wB
+wC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-053"
+argv = ["grep", "w.", "-o", "-n", "-3"]
+stdin = """
+wA wB
+wC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-054"
+argv = ["grep", "w.", "-o", "-b"]
+stdin = """
+XwA YwB
+ZwC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-055"
+argv = ["grep", "w.", "-o", "-b", "-i"]
+stdin = """
+XwA YwB
+ZwC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-056"
+argv = ["grep", "w.", "-o", "-b", "-3"]
+stdin = """
+XwA YwB
+ZwC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-057"
+argv = ["grep", "w", "-F", "-o", "-b"]
+stdin = """
+XwA YwB
+ZwC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-058"
+argv = ["grep", "w", "-F", "-o", "-b", "-i"]
+stdin = """
+XwA YwB
+ZwC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-059"
+argv = ["grep", "w", "-F", "-o", "-b", "-3"]
+stdin = """
+XwA YwB
+ZwC
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-060"
+argv = ["grep", "w.", "-o", "-H"]
+stdin = """
+wA wB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-061"
+argv = ["grep", "w.", "-o", "-H", "-i"]
+stdin = """
+wA wB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-062"
+argv = ["grep", "w.", "-o", "-H", "-3"]
+stdin = """
+wA wB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-065"
+argv = ["grep", "w."]
+stdin = """
+wA wB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-066"
+argv = ["grep", "w.", "-h"]
+stdin = """
+wA wB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-067"
+argv = ["grep", "w.", "-H", "-h"]
+stdin = """
+wA wB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-068"
+argv = ["grep", "w.", "-H"]
+stdin = """
+wA wB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-069"
+argv = ["grep", "w.", "-h", "-H"]
+stdin = """
+wA wB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-072"
+argv = ["grep", "^word_*", "-o"]
+stdin = """
+word_word
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-073"
+argv = ["grep", '\<word', "-o"]
+stdin = """
+wordword
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-096"
+argv = ["grep", "^4", "-m1", "-A99"]
+stdin = """
+4
+40
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-097"
+argv = ["grep", "^4", "-m1", "-A99"]
+stdin = """
+4
+04
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-098"
+argv = ["grep", "^4", "-m1", "-A99"]
+stdin = """
+4
+444
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-105"
+argv = ["grep", "-wF", "-e", "A", "-e", "B", "-e", "C"]
+stdin = """
+A
+CX
+B
+C
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-106"
+argv = ["grep", "-wF", "-e", "5327", "-e", "5532"]
+stdin = """
+LIN7C 55327
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-109"
+argv = ["grep", "-o", "y*"]
+stdin = """
+xyz
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-141"
+argv = ["grep", "-e", '\.tar', "-e", '\.tbz']
+stdin = """
+.tar
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-142"
+argv = ["grep", "-o", "-e", '\.tar', "-e", "tar"]
+stdin = """
+.tar
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-143"
+argv = ["grep", "-o", "-e", '\$\*\.\[\^\\', "-e", "abc"]
+stdin = '''
+$*.[^\
+'''
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-144"
+argv = ["grep", "-o", "-E", "-e", '\$\*\.\[\^\\', "-e", '\(\+\?\{\|']
+stdin = '''
+$*.[^\
+(+?{|
+'''
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-155"
+argv = ["grep", "[[:alpha:]]", "-E"]
+stdin = """
+[
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-162-f"
+argv = ["grep", "ñÿ", "-o", "-i", "-F"]
+stdin = """
+añÿb
+AÑŸB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-162-g"
+argv = ["grep", "ñÿ", "-o", "-i", "-G"]
+stdin = """
+añÿb
+AÑŸB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-162-e"
+argv = ["grep", "ñÿ", "-o", "-i", "-E"]
+stdin = """
+añÿb
+AÑŸB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-163-f"
+argv = ["grep", "ÑŸ", "-o", "-i", "-F"]
+stdin = """
+añÿb
+AÑŸB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-163-g"
+argv = ["grep", "ÑŸ", "-o", "-i", "-G"]
+stdin = """
+añÿb
+AÑŸB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000
+
+[[case]]
+id = "foad1-163-e"
+argv = ["grep", "ÑŸ", "-o", "-i", "-E"]
+stdin = """
+añÿb
+AÑŸB
+"""
+tags = ["src:upstream-foad1"]
+timeout_ms = 10000

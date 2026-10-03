@@ -1,0 +1,135 @@
+tool = "file"
+source = "manual"
+
+# Comportamento do front-end: symlinks (com e sem -L), diretório, arquivo inexistente, vários arquivos
+# numa chamada (alinhamento dos nomes), stdin, -b com vários arquivos.
+
+[[case]]
+id = "file-symlink"
+argv = ["file", "link"]
+tags = ["special", "describe"]
+[case.files]
+"ascii.txt" = "hello world\n"
+"link" = { symlink = "ascii.txt" }
+
+[[case]]
+id = "file-symlink-follow"
+argv = ["file", "-L", "link"]
+tags = ["special", "describe", "flags"]
+[case.files]
+"ascii.txt" = "hello world\n"
+"link" = { symlink = "ascii.txt" }
+
+[[case]]
+id = "file-symlink-mime"
+argv = ["file", "--mime-type", "link"]
+tags = ["special", "mime"]
+[case.files]
+"ascii.txt" = "hello world\n"
+"link" = { symlink = "ascii.txt" }
+
+[[case]]
+id = "file-broken-symlink"
+argv = ["file", "dangling"]
+tags = ["special", "describe"]
+[case.files]
+"dangling" = { symlink = "nowhere.txt" }
+
+[[case]]
+id = "file-broken-symlink-follow"
+argv = ["file", "-L", "dangling"]
+tags = ["special", "describe", "flags"]
+[case.files]
+"dangling" = { symlink = "nowhere.txt" }
+
+[[case]]
+id = "file-directory"
+argv = ["file", "sub"]
+tags = ["special", "describe"]
+[case.files]
+"sub" = { dir = true }
+
+[[case]]
+id = "file-directory-mime"
+argv = ["file", "--mime-type", "sub"]
+tags = ["special", "mime"]
+[case.files]
+"sub" = { dir = true }
+
+[[case]]
+id = "file-directory-brief"
+argv = ["file", "-b", "sub"]
+tags = ["special", "describe", "brief"]
+[case.files]
+"sub" = { dir = true }
+
+[[case]]
+id = "file-missing"
+argv = ["file", "missing.txt"]
+tags = ["special", "error"]
+
+[[case]]
+id = "file-missing-mime"
+argv = ["file", "--mime-type", "missing.txt"]
+tags = ["special", "error", "mime"]
+
+[[case]]
+id = "file-multi"
+argv = ["file", "a.txt", "image.png", "data.json", "sub"]
+tags = ["special", "describe", "multi"]
+[case.files]
+"a.txt" = "hello world\n"
+"image.png" = { content_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC" }
+"data.json" = "{\"a\": 1}\n"
+"sub" = { dir = true }
+
+[[case]]
+id = "file-multi-mime"
+argv = ["file", "--mime-type", "a.txt", "image.png", "data.json", "sub"]
+tags = ["special", "mime", "multi"]
+[case.files]
+"a.txt" = "hello world\n"
+"image.png" = { content_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC" }
+"data.json" = "{\"a\": 1}\n"
+"sub" = { dir = true }
+
+[[case]]
+id = "file-multi-brief"
+argv = ["file", "-b", "a.txt", "image.png"]
+tags = ["special", "describe", "multi", "brief"]
+[case.files]
+"a.txt" = "hello world\n"
+"image.png" = { content_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC" }
+
+[[case]]
+id = "file-multi-with-missing"
+argv = ["file", "a.txt", "nope"]
+tags = ["special", "error", "multi"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "file-stdin"
+argv = ["file", "-"]
+stdin = "hello from stdin\n"
+tags = ["special", "describe", "stdin"]
+
+[[case]]
+id = "file-stdin-mime"
+argv = ["file", "--mime-type", "-"]
+stdin = "{\"k\": true}\n"
+tags = ["special", "mime", "stdin"]
+
+[[case]]
+id = "file-subdir-path"
+argv = ["file", "docs/readme.md"]
+tags = ["special", "describe"]
+[case.files]
+"docs/readme.md" = "# Title\n\nSome *markdown* text.\n"
+
+[[case]]
+id = "file-separator"
+argv = ["file", "-F", " =>", "a.txt"]
+tags = ["special", "describe", "flags"]
+[case.files]
+"a.txt" = "hello world\n"

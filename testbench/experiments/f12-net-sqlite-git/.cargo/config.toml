@@ -1,0 +1,5 @@
+# SQLite empacotado pelo libsqlite3-sys alinhado ao sqlite3 do Debian 13: o build padrão do crate liga
+# SQLITE_DEFAULT_FOREIGN_KEYS=1 e não liga as funções matemáticas (sqrt, pow, ln...), e as duas coisas
+# aparecem como divergência no corpus. É configuração de build, não código.
+[env]
+LIBSQLITE3_FLAGS = "-USQLITE_DEFAULT_FOREIGN_KEYS -DSQLITE_ENABLE_MATH_FUNCTIONS"

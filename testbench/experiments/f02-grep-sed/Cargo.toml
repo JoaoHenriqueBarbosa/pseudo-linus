@@ -1,0 +1,62 @@
+[package]
+name = "f02-grep-sed"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+default-run = "f02-grep-sed"
+description = "F02: grep montado com as crates do ripgrep e sed em Rust, contra o GNU grep 3.11 e o GNU sed 4.9"
+
+# Workspace próprio: cada experimento compila isolado (ver testbench/Cargo.toml).
+[workspace]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "f02-grep-sed"
+path = "src/main.rs"
+
+[[bin]]
+name = "f02-gen-cases"
+path = "src/bin/gen_cases.rs"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+harness = { path = "../../crates/harness" }
+depscan = { path = "../../crates/depscan" }
+f01-regex = { path = "../f01-regex" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"
+
+# grep: crates do ripgrep.
+grep-searcher = "=0.1.17"
+grep-matcher = "=0.1.9"
+grep-printer = "=0.3.1"
+grep-regex = "=0.1.14"
+fancy-regex = "=0.19.2"
+
+# grep de referência: uutils/grep (usa onig, em C).
+uu_grep = "=0.2.0"
+
+# sed.
+sed = "=0.2.0"
+sed-rs = "=2.0.0"
+red-sed = { version = "=1.0.2", default-features = false }
+clap = "4"
+lexopt = "0.3"
+uucore = "=0.10.0"
+# Linha de base: bashkit (bash virtual com grep e sed próprios sobre VFS em memória).
+bashkit = { version = "=0.18.2", default-features = false }
+tokio = { version = "1", features = ["rt"] }
+# umask 022 no subprocesso dos candidatos (o oráculo roda com 022).
+rustix = { version = "1", features = ["process", "fs"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+debug = "line-tables-only"

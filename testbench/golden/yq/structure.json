@@ -1,0 +1,394 @@
+{
+  "yq-anchor-alias": {
+    "stdout": "{\"defaults\":{\"timeout\":30,\"retries\":3},\"copy\":{\"timeout\":30,\"retries\":3},\"list\":[\"one\",\"one\"]}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 95,
+        "sha256": "594def48305a21d5bb9d7782f83a90674b30857078c41a6ae381ce1214a7c1fe",
+        "data": "defaults: &defaults\n  timeout: 30\n  retries: 3\ncopy: *defaults\nlist:\n  - &first one\n  - *first\n"
+      }
+    }
+  },
+  "yq-block-chomping": {
+    "stdout": "{\"strip\":\"x\",\"clip\":\"y\\n\",\"keep\":\"z\\n\\n\",\"end\":1}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "2406c4dc6e64dfdb3b1897472dd1b10ae2d287d3f8512ab97db36a89cb89fc6c",
+        "data": "strip: |-\n  x\nclip: |\n  y\nkeep: |+\n  z\n\nend: 1\n"
+      }
+    }
+  },
+  "yq-block-folded": {
+    "stdout": "{\n  \"text\": \"first line same paragraph\\nnew paragraph\\n  indented kept\\n\"\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 73,
+        "sha256": "76cc765c8fc333f51b721fdde5f9e70e434e3df4881dd31e85e46f5049b651b7",
+        "data": "text: >\n  first line\n  same paragraph\n\n  new paragraph\n    indented kept\n"
+      }
+    }
+  },
+  "yq-block-literal": {
+    "stdout": "{\n  \"script\": \"set -e\\necho \\\"hi\\\"\\n\\nexit 0\\n\"\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "44a19a8a2969e3b6df6ef550da3bc5858f72c07fa69aa12abc2427ebb207eafd",
+        "data": "script: |\n  set -e\n  echo \"hi\"\n\n  exit 0\n"
+      }
+    }
+  },
+  "yq-block-raw-output": {
+    "stdout": "line 1\nline 2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "5b90b1672c43294a3c167a3dce11a504600e2409a9536d463a2eed7de884c732",
+        "data": "script: |\n  line 1\n  line 2\n"
+      }
+    }
+  },
+  "yq-bom": {
+    "stdout": "{\"a\":1}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "a2251b91194014d42d50b16b68de4f25014caa6d9f3c6c3c5a0f3c240080cf6a",
+        "data": "﻿a: 1\n"
+      }
+    }
+  },
+  "yq-comments": {
+    "stdout": "{\"a\":1,\"b\":\"x # não é comentário\",\"c\":\"y#z\",\"d\":[1]}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "c.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 108,
+        "sha256": "f11b6ac5a9a265524b0b659f3cc74c32fef794366dafd05a854159c3e20a91e6",
+        "data": "# comentário no topo\na: 1 # comentário inline\nb: \"x # não é comentário\"\nc: y#z\n# outro\nd:\n  - 1 # item\n"
+      }
+    }
+  },
+  "yq-complex-key": {
+    "stdout": "",
+    "stderr": "yq: Error running jq: TypeError: unhashable type: 'list'.\n",
+    "exit": 1,
+    "files": {
+      "k.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "e0be8043615dcb509222c94188047c5c73a890175c3190c49a9a3a9bc3136539",
+        "data": "? [1, 2]\n: x\n"
+      }
+    }
+  },
+  "yq-crlf": {
+    "stdout": "{\"a\":1,\"b\":[\"x\",\"y\"],\"text\":\"l1\\nl2\\n\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "w.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "6ee0442294e6729c3c5c774da46fc0ac8b60e82935f16670d288d5bd0d8935a5",
+        "data": "a: 1\r\nb:\r\n  - x\r\n  - y\r\ntext: |\r\n  l1\r\n  l2\r\n"
+      }
+    }
+  },
+  "yq-duplicate-keys": {
+    "stdout": "{\"a\":3,\"b\":2}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "418e45e04396c5a0652fd0e11d7c4189e37bc41b1cae2a27cef38c37ea57a28c",
+        "data": "a: 1\nb: 2\na: 3\n"
+      }
+    }
+  },
+  "yq-empty-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "e.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "yq-explicit-null-doc": {
+    "stdout": "null\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "e.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "f52d711103d50a437830c6fbcd04fb4bab49a0f82f6d26d1c791c6e8488dd090",
+        "data": "---\n"
+      }
+    }
+  },
+  "yq-flow-style": {
+    "stdout": "{\"name\":\"x\",\"tags\":[\"a\",\"b\",\"c d\"],\"nested\":{\"k\":[1,{\"z\":null}]},\"empty\":[],\"obj\":{}}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 80,
+        "sha256": "1093883920bb472007d8e072c575d609a080bc6e69b37ed9702ea2a23d6f280d",
+        "data": "{name: x, tags: [a, b, \"c d\"], nested: {k: [1, {z: null}]}, empty: [], obj: {}}\n"
+      }
+    }
+  },
+  "yq-indentless-sequence": {
+    "stdout": "{\"list\":[\"a\",\"b\"],\"map\":{\"inner\":[1]}}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "i.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "f403a7afacfcfe6c2824f2604a468fd65a2f0a7afcdfc71fc5def03ab9f7ae44",
+        "data": "list:\n- a\n- b\nmap:\n  inner:\n  - 1\n"
+      }
+    }
+  },
+  "yq-keys-bool-null-float": {
+    "stdout": "{\"false\":\"f\",\"null\":\"n\",\"1.5\":\"x\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "k.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "8782030d8a1e1be358f71504892aca6762bf1699f2a30e02ac783afa3f8634ed",
+        "data": "false: f\n~: n\n1.5: x\n"
+      }
+    }
+  },
+  "yq-keys-date": {
+    "stdout": "{\"2026-01-15\":\"deploy\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "k.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "113328cd8936fc613f51137d3a4dc8b3822c3afc5749875a35c2bd094a02ba42",
+        "data": "2026-01-15: deploy\n"
+      }
+    }
+  },
+  "yq-keys-int": {
+    "stdout": "{\"1\":\"one\",\"2\":\"two\",\"10\":\"ten\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "k.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "6dd51cf0df2dd492e30c186898daddc1be556c4b5a072d5b272d85abbc7c8d76",
+        "data": "1: one\n2: two\n10: ten\n"
+      }
+    }
+  },
+  "yq-keys-python-collision": {
+    "stdout": "{\"1\":\"yes\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "k.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "5f8e967df2c87cbe13de67ec2ede9e1b7e39473f3e6b941c8e61d3cd5cc5769a",
+        "data": "1: one\ntrue: yes\n"
+      }
+    }
+  },
+  "yq-merge-key": {
+    "stdout": "{\"image\":\"app:1\",\"replicas\":5,\"debug\":false}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 88,
+        "sha256": "d8dcb9818037b292ac4302633ef07a7cf7e6f3a37a41f087de8893289bc5548a",
+        "data": "base: &base\n  image: app:1\n  replicas: 1\n  debug: false\nprod:\n  <<: *base\n  replicas: 5\n"
+      }
+    }
+  },
+  "yq-merge-key-list": {
+    "stdout": "{\"y\":1,\"z\":2,\"x\":1,\"w\":0}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 63,
+        "sha256": "abf4e4662376845dd104e2f26c27b310af9d3b954fae000941b07e9d6ff0bd91",
+        "data": "a: &a {x: 1, y: 1}\nb: &b {y: 2, z: 2}\nc:\n  <<: [*a, *b]\n  w: 0\n"
+      }
+    }
+  },
+  "yq-multidoc": {
+    "stdout": "{\"kind\":\"A\",\"n\":1}\n{\"kind\":\"B\",\"n\":2}\n[\"x\",\"y\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "320480bade26c611f0003f29e4606f0c7a047396b5483d2f1126bc2bc8a073c0",
+        "data": "kind: A\nn: 1\n---\nkind: B\nn: 2\n...\n---\n- x\n- y\n"
+      }
+    }
+  },
+  "yq-multidoc-leading-separator": {
+    "stdout": "{\"a\":1}\nnull\n{\"b\":2}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "d604c5f5a865a18476eafbe85439efa3bd33589a04292503988892a02bec6380",
+        "data": "---\na: 1\n---\n---\nb: 2\n"
+      }
+    }
+  },
+  "yq-multidoc-select": {
+    "stdout": "web-svc\ndb-svc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "all.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 126,
+        "sha256": "3dbb29ab5818f7a3021362ebba7dba275678b3bce5839d5997bfd8499507085e",
+        "data": "kind: Deployment\nmetadata:\n  name: web\n---\nkind: Service\nmetadata:\n  name: web-svc\n---\nkind: Service\nmetadata:\n  name: db-svc\n"
+      }
+    }
+  },
+  "yq-nested-sequences": {
+    "stdout": "[[\"a\",\"b\"],[\"c\"],[\"d\"],[]]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "3b1d809a3e5306aeb1836363e7fcec4e448f0f2ee5bf207990776d0bfb33e7b6",
+        "data": "- - a\n  - b\n- - c\n-\n  - d\n- []\n"
+      }
+    }
+  },
+  "yq-no-final-newline": {
+    "stdout": "{\"a\":1,\"b\":\"last\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "w.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "87f35497fa2bef5b506a5994365503621ee7032a8ed57902720231be96965754",
+        "data": "a: 1\nb: last"
+      }
+    }
+  },
+  "yq-quoted-escapes": {
+    "stdout": "{\"single\":\"it's\",\"double\":\"tab\\there\\nnewline \\\"q\\\" \\\\ é A\",\"multi\":\"a b\",\"plain\":\"one two\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "q.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 94,
+        "sha256": "2c972ddefe0f8b38fe256871654a584207fb92288cdb3e401cdf14f06f2e27ca",
+        "data": "single: 'it''s'\ndouble: \"tab\\there\\nnewline \\\"q\\\" \\\\ é \\x41\"\nmulti: \"a\n  b\"\nplain: one\n  two\n"
+      }
+    }
+  },
+  "yq-tabs-in-value": {
+    "stdout": "{\"a\":\"x\\ty\",\"b\":\"\\tz\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "t.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "559ef79c63931d5b284d5343ededa45ad5148695ac4ef23d15070d8b118e1e60",
+        "data": "a: x\ty\nb: \"\tz\"\n"
+      }
+    }
+  },
+  "yq-unicode": {
+    "stdout": "{\n  \"nome\": \"olá ✓\",\n  \"emoji\": \"😀\",\n  \"ctrl\": \"\\t\\u0001\\u007f\",\n  \"chave_ç\": \"valor\"\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "u.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 76,
+        "sha256": "e65c71be6b7ca867e60635c1715acc8a047c853b521308a100d98a478dd7d52c",
+        "data": "nome: \"olá ✓\"\nemoji: \"\\U0001F600\"\nctrl: \"\\t\\u0001\\u007f\"\nchave_ç: valor\n"
+      }
+    }
+  }
+}

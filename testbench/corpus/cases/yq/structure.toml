@@ -1,0 +1,333 @@
+tool = "yq"
+source = "manual"
+
+# Estrutura do YAML: multi-documento, âncoras, merge key, block scalars, flow style, comentários,
+# chaves não string, unicode e quebras de linha.
+
+[[case]]
+id = "yq-multidoc"
+argv = ["yq", "-c", ".", "m.yaml"]
+tags = ["multidoc"]
+[case.files]
+"m.yaml" = '''
+kind: A
+n: 1
+---
+kind: B
+n: 2
+...
+---
+- x
+- y
+'''
+
+[[case]]
+id = "yq-multidoc-select"
+argv = ["yq", "-r", "select(.kind == \"Service\") | .metadata.name", "all.yaml"]
+tags = ["multidoc", "raw"]
+[case.files]
+"all.yaml" = '''
+kind: Deployment
+metadata:
+  name: web
+---
+kind: Service
+metadata:
+  name: web-svc
+---
+kind: Service
+metadata:
+  name: db-svc
+'''
+
+[[case]]
+id = "yq-multidoc-leading-separator"
+argv = ["yq", "-c", ".", "m.yaml"]
+tags = ["multidoc"]
+[case.files]
+"m.yaml" = '''
+---
+a: 1
+---
+---
+b: 2
+'''
+
+[[case]]
+id = "yq-anchor-alias"
+argv = ["yq", "-c", ".", "a.yaml"]
+tags = ["anchor"]
+[case.files]
+"a.yaml" = '''
+defaults: &defaults
+  timeout: 30
+  retries: 3
+copy: *defaults
+list:
+  - &first one
+  - *first
+'''
+
+[[case]]
+id = "yq-merge-key"
+argv = ["yq", "-c", ".prod", "a.yaml"]
+tags = ["merge"]
+[case.files]
+"a.yaml" = '''
+base: &base
+  image: app:1
+  replicas: 1
+  debug: false
+prod:
+  <<: *base
+  replicas: 5
+'''
+
+[[case]]
+id = "yq-merge-key-list"
+argv = ["yq", "-c", ".c", "a.yaml"]
+tags = ["merge"]
+[case.files]
+"a.yaml" = '''
+a: &a {x: 1, y: 1}
+b: &b {y: 2, z: 2}
+c:
+  <<: [*a, *b]
+  w: 0
+'''
+
+[[case]]
+id = "yq-block-literal"
+argv = ["yq", ".", "b.yaml"]
+tags = ["block"]
+[case.files]
+"b.yaml" = '''
+script: |
+  set -e
+  echo "hi"
+
+  exit 0
+'''
+
+[[case]]
+id = "yq-block-folded"
+argv = ["yq", ".", "b.yaml"]
+tags = ["block"]
+[case.files]
+"b.yaml" = '''
+text: >
+  first line
+  same paragraph
+
+  new paragraph
+    indented kept
+'''
+
+[[case]]
+id = "yq-block-chomping"
+argv = ["yq", "-c", ".", "b.yaml"]
+tags = ["block"]
+[case.files]
+"b.yaml" = '''
+strip: |-
+  x
+clip: |
+  y
+keep: |+
+  z
+
+end: 1
+'''
+
+[[case]]
+id = "yq-block-raw-output"
+argv = ["yq", "-r", ".script", "b.yaml"]
+tags = ["block", "raw"]
+[case.files]
+"b.yaml" = '''
+script: |
+  line 1
+  line 2
+'''
+
+[[case]]
+id = "yq-flow-style"
+argv = ["yq", "-c", ".", "f.yaml"]
+tags = ["flow"]
+[case.files]
+"f.yaml" = '''
+{name: x, tags: [a, b, "c d"], nested: {k: [1, {z: null}]}, empty: [], obj: {}}
+'''
+
+[[case]]
+id = "yq-comments"
+argv = ["yq", "-c", ".", "c.yaml"]
+tags = ["comment"]
+[case.files]
+"c.yaml" = '''
+# comentário no topo
+a: 1 # comentário inline
+b: "x # não é comentário"
+c: y#z
+# outro
+d:
+  - 1 # item
+'''
+
+[[case]]
+id = "yq-quoted-escapes"
+argv = ["yq", "-c", ".", "q.yaml"]
+tags = ["string"]
+[case.files]
+"q.yaml" = '''
+single: 'it''s'
+double: "tab\there\nnewline \"q\" \\ é \x41"
+multi: "a
+  b"
+plain: one
+  two
+'''
+
+[[case]]
+id = "yq-unicode"
+argv = ["yq", ".", "u.yaml"]
+tags = ["unicode"]
+[case.files]
+"u.yaml" = '''
+nome: "olá ✓"
+emoji: "\U0001F600"
+ctrl: "\t\u0001\u007f"
+chave_ç: valor
+'''
+
+[[case]]
+id = "yq-keys-int"
+argv = ["yq", "-c", ".", "k.yaml"]
+tags = ["keys"]
+[case.files]
+"k.yaml" = '''
+1: one
+2: two
+10: ten
+'''
+
+[[case]]
+id = "yq-keys-bool-null-float"
+argv = ["yq", "-c", ".", "k.yaml"]
+tags = ["keys"]
+[case.files]
+"k.yaml" = '''
+false: f
+~: n
+1.5: x
+'''
+
+[[case]]
+id = "yq-keys-date"
+argv = ["yq", "-c", ".", "k.yaml"]
+tags = ["keys", "yaml11"]
+[case.files]
+"k.yaml" = '''
+2026-01-15: deploy
+'''
+
+[[case]]
+id = "yq-keys-python-collision"
+argv = ["yq", "-c", ".", "k.yaml"]
+tags = ["keys", "python-quirk"]
+[case.files]
+"k.yaml" = '''
+1: one
+true: yes
+'''
+
+[[case]]
+id = "yq-empty-file"
+argv = ["yq", ".", "e.yaml"]
+tags = ["multidoc"]
+[case.files]
+"e.yaml" = ""
+
+[[case]]
+id = "yq-explicit-null-doc"
+argv = ["yq", "-c", ".", "e.yaml"]
+tags = ["multidoc"]
+[case.files]
+"e.yaml" = "---\n"
+
+[[case]]
+id = "yq-nested-sequences"
+argv = ["yq", "-c", ".", "n.yaml"]
+tags = ["structure"]
+[case.files]
+"n.yaml" = '''
+- - a
+  - b
+- - c
+-
+  - d
+- []
+'''
+
+[[case]]
+id = "yq-crlf"
+argv = ["yq", "-c", ".", "w.yaml"]
+tags = ["structure", "crlf"]
+[case.files]
+"w.yaml" = "a: 1\r\nb:\r\n  - x\r\n  - y\r\ntext: |\r\n  l1\r\n  l2\r\n"
+
+[[case]]
+id = "yq-no-final-newline"
+argv = ["yq", "-c", ".", "w.yaml"]
+tags = ["structure"]
+[case.files]
+"w.yaml" = "a: 1\nb: last"
+
+[[case]]
+id = "yq-duplicate-keys"
+argv = ["yq", "-c", ".", "d.yaml"]
+tags = ["keys"]
+[case.files]
+"d.yaml" = '''
+a: 1
+b: 2
+a: 3
+'''
+
+[[case]]
+id = "yq-complex-key"
+argv = ["yq", "-c", ".", "k.yaml"]
+tags = ["keys", "error"]
+[case.files]
+"k.yaml" = '''
+? [1, 2]
+: x
+'''
+
+[[case]]
+id = "yq-indentless-sequence"
+argv = ["yq", "-c", ".", "i.yaml"]
+tags = ["structure"]
+[case.files]
+"i.yaml" = '''
+list:
+- a
+- b
+map:
+  inner:
+  - 1
+'''
+
+[[case]]
+id = "yq-tabs-in-value"
+argv = ["yq", "-c", ".", "t.yaml"]
+tags = ["structure"]
+[case.files]
+"t.yaml" = "a: x\ty\nb: \"\tz\"\n"
+
+[[case]]
+id = "yq-bom"
+argv = ["yq", "-c", ".", "b.yaml"]
+tags = ["structure", "bom"]
+[case.files]
+"b.yaml" = "﻿a: 1\n"

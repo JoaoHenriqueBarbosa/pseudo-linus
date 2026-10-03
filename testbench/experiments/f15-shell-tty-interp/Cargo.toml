@@ -1,0 +1,40 @@
+[package]
+name = "f15-shell-tty-interp"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F15/F16/F17: parser de shell (brush), edição de linha sobre pty em memória, interpretadores embutidos e linhas de base (bashkit e afins)"
+
+# Workspace próprio (ver testbench/Cargo.toml). Os interpretadores e as linhas de base são binários
+# separados, um crate cada, pra medir tamanho de binário isolado e pra que as dependências pesadas
+# (RustPython, boa, tokio do bashkit) não entrem no binário principal.
+[workspace]
+members = [".", "refs", "interp/*", "baseline/*", "probes/*"]
+default-members = ["."]
+
+[dependencies]
+anyhow = "1"
+harness = { path = "../../crates/harness" }
+depscan = { path = "../../crates/depscan" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"
+# Sem a feature winnow-parser: na 0.4.0 ela é um `unimplemented!` (src/parser/winnow_str.rs, o
+# experimento registra a linha), então só a implementação PEG é medida.
+brush-parser = "=0.4.0"
+termwiz = "=0.23.3"
+# Mesma versão que o termwiz usa: o banco terminfo entra por buffer embutido, sem ler o FS do host.
+terminfo = "=0.9.0"
+noline = { version = "=0.5.1", features = ["std"] }
+embedded-io = { version = "0.6", features = ["std"] }
+syn = { version = "2", features = ["full", "visit"] }
+cargo_metadata = "0.23"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+debug = false
+strip = true

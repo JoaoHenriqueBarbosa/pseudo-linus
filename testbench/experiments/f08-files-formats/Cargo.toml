@@ -1,0 +1,80 @@
+[package]
+name = "f08-files-formats"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F08 a F11: diff/patch, compressão e arquivos, date, bc/file/yq/csv contra o oráculo GNU"
+# O binário principal orquestra os part-*; o runner chama `cargo run` sem `--bin`.
+default-run = "f08-files-formats"
+
+# Workspace próprio: cada experimento compila isolado (ver testbench/Cargo.toml).
+[workspace]
+
+[dependencies]
+harness = { path = "../../crates/harness" }
+depscan = { path = "../../crates/depscan" }
+anyhow = "1"
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+# H30: diff e patch.
+similar = { version = "3.2", features = ["bytes"] }
+imara-diff = "0.2"
+diffutils = "0.5"
+# Motor de alinhamento que o diffutils 0.5 usa por dentro (LCS), medido isolado.
+diff = "0.1"
+diffy = { version = "0.5", features = ["std"] }
+flickzeug = { version = "0.6", default-features = false }
+
+# H31: compressão e arquivos (todos com backend Rust puro).
+flate2 = "1.1"
+zlib-rs = "0.6"
+bzip2 = "0.6"
+lzma-rust2 = "0.21"
+xz4rust = "0.2"
+lzma-rs = { version = "0.3", features = ["stream"] }
+ruzstd = "0.9"
+structured-zstd = "0.0.58"
+tar = { version = "0.4", default-features = false }
+zip = { version = "8", default-features = false, features = ["deflate-flate2", "bzip2", "xz"] }
+
+# H32: date.
+parse_datetime = "0.16"
+jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }
+chrono = { version = "0.4", default-features = false, features = ["std", "clock", "alloc"] }
+chrono-tz = "0.10"
+interim = { version = "0.2", features = ["chrono_0_4"] }
+jiff-tzdb = "0.1"
+# Última versão do parse_datetime ainda sobre chrono (a 0.12 migrou pro jiff): alternativa pro lado chrono.
+parse_datetime_chrono = { package = "parse_datetime", version = "=0.11.0" }
+
+# H33: bc, file, yq, csv.
+pure-magic = "0.4"
+magic-db = "0.6"
+libmagic-rs = "0.12"
+# file (fork H33 bc/file): detectores só de MIME, pra comparar no `--mime-type`.
+infer = "0.22"
+file-format = { version = "0.29", features = ["reader"] }
+jaq-core = "3"
+jaq-std = "3"
+jaq-json = "2"
+jaq-fmts = { version = "0.1", default-features = false, features = ["yaml"] }
+saphyr = "0.1"
+serde-saphyr = "1.3"
+yaml-rust2 = "0.13"
+csv = "1.4"
+# yq (fork H33 yq/csv): yqr traz motor jq próprio sobre o noyalib; o noyalib entra direto como camada YAML.
+yqr = "0.8"
+noyalib = "0.0.51"
+indexmap = "2"
+# Parser de eventos do saphyr, base do resolvedor yq nosso (mesma versão que o saphyr 0.1 usa).
+saphyr-parser = "0.1"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+debug = "line-tables-only"

@@ -1,0 +1,15 @@
+[package]
+name = "unsafe-macros"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "Sonda do E06 (H20): macros macro_rules! exportadas que expandem pra código unsafe em quem chama"
+
+# Fora do workspace das sondas (exclude): compilada como dependência comum.
+[workspace]
+
+# O forbid vale aqui também: o corpo de uma macro exportada só vira código na crate que a expande.
+[lints.rust]
+unsafe_code = "forbid"

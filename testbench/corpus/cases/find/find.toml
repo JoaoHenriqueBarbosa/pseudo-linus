@@ -1,0 +1,457 @@
+tool = "find"
+source = "agent-style"
+
+# find como agente usa pra explorar repositório. A ordem de saída do find é a ordem do readdir do
+# sistema de arquivos (no oráculo, a do ext4 por baixo do overlay), que não é propriedade semântica:
+# casos com a tag "unordered" são comparados pela bancada f06 como multiconjunto de registros.
+
+[[case]]
+id = "find-all"
+argv = ["find", "."]
+tags = ["find", "unordered"]
+[case.files]
+"README.md" = "# proj\n"
+"src/main.rs" = "fn main() {}\n"
+"src/util/mod.rs" = ""
+"empty" = { dir = true }
+
+[[case]]
+id = "find-name"
+argv = ["find", ".", "-name", "*.rs"]
+tags = ["find", "unordered", "glob"]
+[case.files]
+"README.md" = ""
+"src/main.rs" = ""
+"src/lib.rs" = ""
+"src/util/mod.rs" = ""
+"notes.rs.txt" = ""
+
+[[case]]
+id = "find-iname"
+argv = ["find", ".", "-iname", "*.rs"]
+tags = ["find", "unordered", "glob"]
+[case.files]
+"a.rs" = ""
+"B.RS" = ""
+"c.Rs" = ""
+"d.txt" = ""
+
+[[case]]
+id = "find-name-exact"
+argv = ["find", ".", "-name", "Cargo.toml"]
+tags = ["find", "unordered"]
+[case.files]
+"Cargo.toml" = ""
+"crates/a/Cargo.toml" = ""
+"crates/a/src/lib.rs" = ""
+
+[[case]]
+id = "find-path"
+argv = ["find", ".", "-path", "./src/*"]
+tags = ["find", "unordered", "glob"]
+[case.files]
+"src/a.rs" = ""
+"src/sub/b.rs" = ""
+"other/src/c.rs" = ""
+
+[[case]]
+id = "find-type-f"
+argv = ["find", ".", "-type", "f"]
+tags = ["find", "unordered", "type"]
+[case.files]
+"a.txt" = ""
+"d/b.txt" = ""
+"d/e" = { dir = true }
+"link" = { symlink = "a.txt" }
+
+[[case]]
+id = "find-type-d"
+argv = ["find", ".", "-type", "d"]
+tags = ["find", "unordered", "type"]
+[case.files]
+"a.txt" = ""
+"d/b.txt" = ""
+"d/e" = { dir = true }
+
+[[case]]
+id = "find-type-l"
+argv = ["find", ".", "-type", "l"]
+tags = ["find", "unordered", "type", "symlink"]
+[case.files]
+"a.txt" = ""
+"link" = { symlink = "a.txt" }
+"dangling" = { symlink = "nowhere" }
+
+[[case]]
+id = "find-size-plus-k"
+argv = ["find", ".", "-type", "f", "-size", "+1k"]
+tags = ["find", "unordered", "size"]
+[case.files]
+"small.txt" = "abc"
+"big.txt" = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+
+[[case]]
+id = "find-size-zero"
+argv = ["find", ".", "-type", "f", "-size", "0"]
+tags = ["find", "unordered", "size"]
+[case.files]
+"empty.txt" = ""
+"full.txt" = "x"
+
+[[case]]
+id = "find-size-minus-blocks"
+argv = ["find", ".", "-type", "f", "-size", "-2"]
+tags = ["find", "unordered", "size"]
+[case.files]
+"a.txt" = "x"
+"b.txt" = ""
+
+[[case]]
+id = "find-size-c"
+argv = ["find", ".", "-size", "3c"]
+tags = ["find", "unordered", "size"]
+[case.files]
+"three" = "abc"
+"four" = "abcd"
+
+[[case]]
+id = "find-empty"
+argv = ["find", ".", "-empty"]
+tags = ["find", "unordered"]
+[case.files]
+"empty.txt" = ""
+"full.txt" = "x"
+"emptydir" = { dir = true }
+"fulldir/x" = "x"
+
+# NO_FAKE_STAT: sem ele o libfaketime desloca os tempos devolvidos por stat pela diferença entre a
+# data falsa e a real, e o golden passaria a depender do dia em que foi gerado.
+[[case]]
+id = "find-mtime-plus"
+argv = ["find", ".", "-type", "f", "-mtime", "+3"]
+faketime = "2026-01-25 12:00:00"
+tags = ["find", "unordered", "time"]
+[case.env]
+NO_FAKE_STAT = "1"
+[case.files]
+"old.txt" = ""
+"d/new.txt" = ""
+
+[[case]]
+id = "find-mtime-minus"
+argv = ["find", ".", "-type", "f", "-mtime", "-1"]
+faketime = "2026-01-15 18:00:00"
+tags = ["find", "unordered", "time"]
+[case.env]
+NO_FAKE_STAT = "1"
+[case.files]
+"today.txt" = ""
+
+[[case]]
+id = "find-mtime-exact"
+argv = ["find", ".", "-type", "f", "-mtime", "2"]
+faketime = "2026-01-17 13:00:00"
+tags = ["find", "unordered", "time"]
+[case.env]
+NO_FAKE_STAT = "1"
+[case.files]
+"f.txt" = ""
+
+[[case]]
+id = "find-mtime-none"
+argv = ["find", ".", "-type", "f", "-mtime", "-2"]
+faketime = "2026-01-20 12:00:00"
+tags = ["find", "unordered", "time"]
+[case.env]
+NO_FAKE_STAT = "1"
+[case.files]
+"f.txt" = ""
+
+[[case]]
+id = "find-mmin"
+argv = ["find", ".", "-type", "f", "-mmin", "-90"]
+faketime = "2026-01-15 13:00:00"
+tags = ["find", "unordered", "time"]
+[case.env]
+NO_FAKE_STAT = "1"
+[case.files]
+"f.txt" = ""
+
+[[case]]
+id = "find-newer"
+script = "echo novo > fresh.txt && find . -type f -newer old.txt"
+tags = ["find", "unordered", "time", "shell"]
+[case.files]
+"old.txt" = ""
+
+[[case]]
+id = "find-maxdepth"
+argv = ["find", ".", "-maxdepth", "1"]
+tags = ["find", "unordered", "depth"]
+[case.files]
+"a.txt" = ""
+"d/b.txt" = ""
+"d/e/c.txt" = ""
+
+[[case]]
+id = "find-mindepth"
+argv = ["find", ".", "-mindepth", "2"]
+tags = ["find", "unordered", "depth"]
+[case.files]
+"a.txt" = ""
+"d/b.txt" = ""
+"d/e/c.txt" = ""
+
+[[case]]
+id = "find-maxdepth-type-d"
+argv = ["find", ".", "-maxdepth", "1", "-type", "d"]
+tags = ["find", "unordered", "depth"]
+[case.files]
+"x/y" = { dir = true }
+"z" = { dir = true }
+"f" = ""
+
+[[case]]
+id = "find-mindepth-maxdepth-name"
+argv = ["find", ".", "-mindepth", "1", "-maxdepth", "1", "-name", "*.md"]
+tags = ["find", "unordered", "depth", "glob"]
+[case.files]
+"a.md" = ""
+"docs/b.md" = ""
+
+[[case]]
+id = "find-exec-semicolon"
+argv = ["find", ".", "-name", "*.txt", "-exec", "cat", "{}", ";"]
+tags = ["find", "unordered", "exec"]
+[case.files]
+"a.txt" = "conteúdo a\n"
+"d/b.txt" = "conteúdo b\n"
+"c.md" = "não\n"
+
+[[case]]
+id = "find-exec-plus"
+argv = ["find", ".", "-name", "*.txt", "-exec", "wc", "-l", "{}", "+"]
+tags = ["find", "unordered", "exec"]
+[case.files]
+"a.txt" = "1\n2\n"
+"d/b.txt" = "1\n"
+
+[[case]]
+id = "find-exec-echo-embedded"
+argv = ["find", ".", "-type", "f", "-exec", "echo", "arquivo:{}", ";"]
+tags = ["find", "unordered", "exec"]
+[case.files]
+"x" = ""
+
+[[case]]
+id = "find-exec-failing"
+argv = ["find", ".", "-type", "f", "-exec", "false", ";"]
+tags = ["find", "unordered", "exec"]
+[case.files]
+"x" = ""
+
+[[case]]
+id = "find-print0"
+argv = ["find", ".", "-name", "*.txt", "-print0"]
+tags = ["find", "unordered", "print0"]
+[case.files]
+"a.txt" = ""
+"com espaço.txt" = ""
+"d/b.txt" = ""
+
+[[case]]
+id = "find-delete"
+argv = ["find", ".", "-name", "*.log", "-delete"]
+tags = ["find", "unordered", "delete", "fs"]
+[case.files]
+"keep.txt" = ""
+"a.log" = ""
+"d/b.log" = ""
+"d/c.txt" = ""
+
+[[case]]
+id = "find-delete-dirs-depth"
+argv = ["find", "build", "-delete"]
+tags = ["find", "unordered", "delete", "fs"]
+[case.files]
+"build/a/b.o" = ""
+"build/c.o" = ""
+"src/main.c" = ""
+
+[[case]]
+id = "find-prune"
+argv = ["find", ".", "-path", "./node_modules", "-prune", "-o", "-name", "*.js", "-print"]
+tags = ["find", "unordered", "prune"]
+[case.files]
+"index.js" = ""
+"lib/util.js" = ""
+"node_modules/pkg/index.js" = ""
+"node_modules/pkg/deep/x.js" = ""
+
+[[case]]
+id = "find-prune-name-git"
+argv = ["find", ".", "-name", ".git", "-prune", "-o", "-type", "f", "-print"]
+tags = ["find", "unordered", "prune"]
+[case.files]
+".git/HEAD" = "ref: refs/heads/main\n"
+".git/objects/ab" = ""
+"src/a.rs" = ""
+"README.md" = ""
+
+[[case]]
+id = "find-not"
+argv = ["find", ".", "-type", "f", "!", "-name", "*.txt"]
+tags = ["find", "unordered", "logic"]
+[case.files]
+"a.txt" = ""
+"b.md" = ""
+"c.rs" = ""
+
+[[case]]
+id = "find-not-word"
+argv = ["find", ".", "-type", "f", "-not", "-name", "*.md"]
+tags = ["find", "unordered", "logic"]
+[case.files]
+"a.txt" = ""
+"b.md" = ""
+
+[[case]]
+id = "find-parens-or"
+argv = ["find", ".", "(", "-name", "*.c", "-o", "-name", "*.h", ")", "-type", "f"]
+tags = ["find", "unordered", "logic"]
+[case.files]
+"a.c" = ""
+"a.h" = ""
+"a.o" = ""
+"inc/b.h" = ""
+
+[[case]]
+id = "find-or-without-parens"
+argv = ["find", ".", "-name", "*.c", "-o", "-name", "*.h"]
+tags = ["find", "unordered", "logic"]
+[case.files]
+"a.c" = ""
+"b.h" = ""
+"c.o" = ""
+
+[[case]]
+id = "find-and-explicit"
+argv = ["find", ".", "-type", "f", "-a", "-name", "a*"]
+tags = ["find", "unordered", "logic"]
+[case.files]
+"abc" = ""
+"bcd" = ""
+"adir" = { dir = true }
+
+[[case]]
+id = "find-multiple-roots"
+argv = ["find", "src", "docs", "-type", "f"]
+tags = ["find", "unordered"]
+[case.files]
+"src/a.rs" = ""
+"docs/b.md" = ""
+"other/c" = ""
+
+[[case]]
+id = "find-missing-root"
+argv = ["find", "nope", "-name", "x"]
+tags = ["find", "errno"]
+
+[[case]]
+id = "find-missing-root-and-ok"
+argv = ["find", "nope", "ok"]
+tags = ["find", "unordered", "errno"]
+[case.files]
+"ok/x" = ""
+
+[[case]]
+id = "find-bad-predicate"
+argv = ["find", ".", "-nome", "x"]
+tags = ["find", "usage"]
+
+[[case]]
+id = "find-missing-arg"
+argv = ["find", ".", "-name"]
+tags = ["find", "usage"]
+
+[[case]]
+id = "find-perm"
+argv = ["find", ".", "-type", "f", "-perm", "-u+x"]
+tags = ["find", "unordered", "perm"]
+[case.files]
+"run.sh" = { content = "", mode = 0o755 }
+"data.txt" = ""
+"tool" = { content = "", mode = 0o700 }
+
+[[case]]
+id = "find-perm-exact"
+argv = ["find", ".", "-type", "f", "-perm", "644"]
+tags = ["find", "unordered", "perm"]
+[case.files]
+"a" = ""
+"b" = { content = "", mode = 0o600 }
+
+[[case]]
+id = "find-printf"
+argv = ["find", ".", "-type", "f", "-printf", "%p %s %f %h %d\\n"]
+tags = ["find", "unordered", "printf"]
+[case.files]
+"a.txt" = "abc"
+"d/b.txt" = "12345"
+
+[[case]]
+id = "find-printf-mode-time"
+argv = ["find", ".", "-name", "*.sh", "-printf", "%m %M %TY-%Tm-%Td %u\\n"]
+tags = ["find", "unordered", "printf", "time"]
+[case.files]
+"run.sh" = { content = "", mode = 0o755 }
+
+[[case]]
+id = "find-regex"
+argv = ["find", ".", "-regex", ".*/[a-c]\\.rs"]
+tags = ["find", "unordered", "regex"]
+[case.files]
+"a.rs" = ""
+"b.rs" = ""
+"z.rs" = ""
+"d/c.rs" = ""
+
+[[case]]
+id = "find-depth-order"
+argv = ["find", "d", "-depth"]
+tags = ["find", "depth"]
+[case.files]
+"d/e/f" = ""
+
+[[case]]
+id = "find-follow-symlink"
+argv = ["find", "-L", ".", "-type", "f", "-name", "*.rs"]
+tags = ["find", "unordered", "symlink"]
+[case.files]
+"real/a.rs" = ""
+"link" = { symlink = "real" }
+
+[[case]]
+id = "find-quit"
+argv = ["find", "d", "-name", "x", "-print", "-quit"]
+tags = ["find"]
+[case.files]
+"d/x" = ""
+
+[[case]]
+id = "find-pipe-sort"
+script = "find . -type f -name '*.py' | sort"
+tags = ["find", "pipeline"]
+[case.files]
+"b.py" = ""
+"a/c.py" = ""
+"a/b/d.py" = ""
+
+[[case]]
+id = "find-xargs-grep"
+script = "find . -name '*.rs' -print0 | xargs -0 grep -l TODO | sort"
+tags = ["find", "xargs", "pipeline"]
+[case.files]
+"a.rs" = "// TODO: refatorar\n"
+"b.rs" = "fn ok() {}\n"
+"sub/c.rs" = "// TODO\n"

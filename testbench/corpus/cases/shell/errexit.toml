@@ -1,0 +1,194 @@
+tool = "shell"
+source = "agent-style"
+
+# set -e, -u, -o pipefail (e as exceções do -e), traps EXIT/ERR/INT, e o típico script de agente.
+
+[[case]]
+id = "errexit-basic-stop"
+script = '''
+set -e
+echo um
+false
+echo nunca
+'''
+tags = ["errexit"]
+
+[[case]]
+id = "errexit-exceptions"
+script = '''
+set -e
+if false; then :; fi; echo "if ok"
+false || echo "|| ok"
+false && echo nunca; echo "&& não sai"
+! true; echo "! não sai"
+while false; do :; done; echo "while ok"
+f() { false; echo "dentro da função após false (contexto de if)"; }
+if f; then echo "f ok"; fi
+f || echo "não chega aqui porque f retorna 0"
+false | true; echo "pipe sem pipefail ok"
+echo fim
+'''
+tags = ["errexit"]
+
+[[case]]
+id = "errexit-subshell-and-cmdsub"
+script = '''
+set -e
+( false; echo nunca-sub ) || echo "subshell falhou com $?"
+x=$(false; echo "cmdsub continua sem inherit_errexit")
+echo "x=$x"
+shopt -s inherit_errexit
+y=$(false; echo nunca) || echo "agora herdou: rc=$?"
+echo "y=[$y]"
+v=$(exit 3)
+echo nunca-atribuicao
+'''
+tags = ["errexit", "command-substitution"]
+
+[[case]]
+id = "errexit-local-masks-status"
+script = '''
+set -e
+f() { local x=$(false); echo "local mascarou: x=[$x]"; local y; y=$(false); echo nunca; }
+f
+echo "rc fora=$?"
+'''
+tags = ["errexit", "local"]
+
+[[case]]
+id = "nounset"
+script = '''
+set -u
+echo "${definida:-padrão}"
+arr=(); echo "vazio: ${#arr[@]}"
+echo "$naodefinida"
+echo nunca
+'''
+tags = ["nounset"]
+
+[[case]]
+id = "nounset-array-and-positional"
+script = '''
+set -u
+set -- a
+echo "$1"
+echo "${2:-sem segundo}"
+echo "$2"
+'''
+tags = ["nounset", "positional"]
+
+[[case]]
+id = "pipefail"
+script = '''
+false | true; echo "sem pipefail: $?"
+set -o pipefail
+false | true; echo "com pipefail: $?"
+(exit 3) | (exit 4) | true; echo "último não-zero: $?"
+yes | head -n 1; echo "sigpipe com pipefail: $? ${PIPESTATUS[*]}"
+set +o pipefail
+shopt -o pipefail
+'''
+tags = ["pipefail", "pipestatus", "sigpipe"]
+
+[[case]]
+id = "euo-pipefail-agent-script"
+script = '''
+set -euo pipefail
+IFS=$'\n\t'
+SCRIPT_NAME=deploy
+log() { printf '[%s] %s\n' "$SCRIPT_NAME" "$*" >&2; }
+cleanup() { log "limpando"; rm -f tmp.*; }
+trap cleanup EXIT
+log "início"
+touch tmp.a tmp.b
+count=$(ls tmp.* | wc -l)
+log "temporários: $count"
+grep -q "porta" config.ini && log "tem porta"
+porta=$(grep -E '^porta=' config.ini | cut -d= -f2)
+echo "porta=$porta"
+grep -q inexistente config.ini
+echo nunca
+'''
+tags = ["errexit", "pipefail", "nounset", "trap"]
+[case.files]
+"config.ini" = "nome=app\nporta=8080\n"
+
+[[case]]
+id = "trap-exit-order-and-status"
+script = '''
+trap 'echo "EXIT com rc=$?"' EXIT
+echo corpo
+exit 5
+'''
+tags = ["trap"]
+
+[[case]]
+id = "trap-err"
+script = '''
+trap 'echo "ERR na linha $LINENO: $BASH_COMMAND rc=$?"' ERR
+false
+echo depois
+f() { return 2; }
+f
+true
+'''
+tags = ["trap"]
+
+[[case]]
+id = "trap-err-errtrace"
+script = '''
+set -E
+trap 'echo "ERR em ${FUNCNAME[0]:-main}"' ERR
+g() { false; }
+g
+set +E
+trap - ERR
+trap -p
+echo fim
+'''
+tags = ["trap", "functions"]
+
+[[case]]
+id = "trap-exit-in-subshell-and-reset"
+script = '''
+trap 'echo pai-sai' EXIT
+( trap 'echo filho-sai' EXIT; echo no-filho )
+( echo "subshell herda? $(trap -p EXIT | wc -l)" )
+trap - EXIT
+echo fim
+'''
+tags = ["trap", "subshell"]
+
+[[case]]
+id = "trap-signal-self"
+script = '''
+trap 'echo pegou-USR1' USR1
+kill -USR1 $$
+trap 'echo pegou-TERM; exit 143' TERM
+kill -TERM $$
+echo nunca
+'''
+tags = ["trap", "signals"]
+
+[[case]]
+id = "exit-codes-signals"
+script = '''
+{ bash -c 'kill -9 $$'; } 2>/dev/null; echo "kill9=$?"
+{ bash -c 'kill -TERM $$'; } 2>/dev/null; echo "term=$?"
+bash -c 'exit 256'; echo "256=$?"
+timeout 0.1 sleep 5; echo "timeout=$?"
+'''
+tags = ["exit-status", "signals"]
+
+[[case]]
+id = "errexit-in-function-called-from-and"
+script = '''
+set -e
+check() { echo "check $1"; [ "$1" = ok ]; echo "check passou $1"; }
+check ok
+check ruim && echo "não imprime"
+echo "continua: -e ignorado dentro de && "
+check ruim
+echo nunca
+'''
+tags = ["errexit", "functions"]

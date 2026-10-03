@@ -1,0 +1,386 @@
+{
+  "yq-arg": {
+    "stdout": "{\"a\":\"3\",\"b\":2}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "d4eed209fa44e2eb45f5dbe26726d1985cef0bc7b9a2c923a8d7e8003662234e",
+        "data": "b: 2\n"
+      }
+    }
+  },
+  "yq-argjson": {
+    "stdout": "{\"b\":{\"x\":[1,2]}}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "d4eed209fa44e2eb45f5dbe26726d1985cef0bc7b9a2c923a8d7e8003662234e",
+        "data": "b: 2\n"
+      }
+    }
+  },
+  "yq-error-after-output": {
+    "stdout": "1\n0.5\n",
+    "stderr": "jq: error (at <stdin>:1): number (1) and number (0) cannot be divided because the divisor is zero\n",
+    "exit": 5,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "9ade5680590ccc50119c9f931ff00f5af9a45a9fca60e77122e4d5225d7127c9",
+        "data": "[1, 2, 0]\n"
+      }
+    }
+  },
+  "yq-error-filter-syntax": {
+    "stdout": "",
+    "stderr": "jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:\n.a |   \njq: 1 compile error\n",
+    "exit": 3,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "37b128c59f1f5097f73f82691cb519f1f568667faab5ced1b4ab979d36837eae",
+        "data": "a: 1\n"
+      }
+    }
+  },
+  "yq-error-index-string": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:1): Cannot index string with string \"b\"\n",
+    "exit": 5,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "2d26cff69edacd10dcdfe67dd74de54c475ba98ad4626cbf383609ecdfbf9821",
+        "data": "a: text\n"
+      }
+    }
+  },
+  "yq-error-invalid-yaml-flow": {
+    "stdout": "",
+    "stderr": "yq: Error running jq: ParserError: while parsing a flow sequence\n  in \"bad.yaml\", line 1, column 4\ndid not find expected ',' or ']'\n  in \"bad.yaml\", line 2, column 1.\n",
+    "exit": 1,
+    "files": {
+      "bad.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "7349a648899146e1e8814d176f5b5b0941d66306bd139f64e087f2504c18276b",
+        "data": "a: [1, 2\n"
+      }
+    }
+  },
+  "yq-error-invalid-yaml-indent": {
+    "stdout": "",
+    "stderr": "yq: Error running jq: ParserError: while parsing a block mapping\n  in \"bad.yaml\", line 1, column 1\ndid not find expected key\n  in \"bad.yaml\", line 3, column 2.\n",
+    "exit": 1,
+    "files": {
+      "bad.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "d8dab2a5934da10ab8c224541b48236b66f19aff8b1b874b407e7394796a9007",
+        "data": "a:\n  b: 1\n c: 2\n"
+      }
+    }
+  },
+  "yq-error-invalid-yaml-mapping": {
+    "stdout": "",
+    "stderr": "yq: Error running jq: ScannerError: mapping values are not allowed in this context\n  in \"bad.yaml\", line 1, column 5.\n",
+    "exit": 1,
+    "files": {
+      "bad.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "63a73fc2775b0c54f8de33e6b5f2137c5cd51a2d700969c2f206c7ad43c0c57c",
+        "data": "a: b: c\n"
+      }
+    }
+  },
+  "yq-error-missing-file": {
+    "stdout": "",
+    "stderr": "usage: yq [-h] [--yaml-output] [--yaml-roundtrip]\n          [--yaml-output-grammar-version {1.1,1.2}] [--width WIDTH]\n          [--indentless-lists] [--explicit-start] [--explicit-end]\n          [--in-place] [--version]\n          [jq_filter] [files ...]\nyq: error: argument files: can't open 'nope.yaml': [Errno 2] No such file or directory: 'nope.yaml'\n",
+    "exit": 2,
+    "files": {}
+  },
+  "yq-error-runtime": {
+    "stdout": "",
+    "stderr": "jq: error (at <stdin>:1): boom\n",
+    "exit": 5,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "37b128c59f1f5097f73f82691cb519f1f568667faab5ced1b4ab979d36837eae",
+        "data": "a: 1\n"
+      }
+    }
+  },
+  "yq-error-unknown-alias": {
+    "stdout": "",
+    "stderr": "yq: Error running jq: ComposerError: found undefined alias\n  in \"bad.yaml\", line 1, column 4.\n",
+    "exit": 1,
+    "files": {
+      "bad.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "73b8818b257ee5a4e24778c902ccae500295d05784626bca73cdb8d6a5b27500",
+        "data": "a: *nope\n"
+      }
+    }
+  },
+  "yq-exit-status-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 4,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "37b128c59f1f5097f73f82691cb519f1f568667faab5ced1b4ab979d36837eae",
+        "data": "a: 1\n"
+      }
+    }
+  },
+  "yq-exit-status-false": {
+    "stdout": "false\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "3222990cfc79b5d8dc65bc8ccf11a6aea7fe877c1b8611634f4bc7c162740302",
+        "data": "a: false\n"
+      }
+    }
+  },
+  "yq-exit-status-null": {
+    "stdout": "null\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "37b128c59f1f5097f73f82691cb519f1f568667faab5ced1b4ab979d36837eae",
+        "data": "a: 1\n"
+      }
+    }
+  },
+  "yq-exit-status-true": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "37b128c59f1f5097f73f82691cb519f1f568667faab5ced1b4ab979d36837eae",
+        "data": "a: 1\n"
+      }
+    }
+  },
+  "yq-optional-iterate": {
+    "stdout": "[1,3]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "a4ae7260a19cab2caf88ff7ed161bdb0d885415ac53ceafa4674e0fbebbbca82",
+        "data": "[{x: 1}, 2, {x: 3}]\n"
+      }
+    }
+  },
+  "yq-yaml-out-filter": {
+    "stdout": "replicas: 2\nselector:\n  matchLabels:\n    app: web\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "2e3833637bd5e14f58c278e51639b35238c87e4c1341e7b116818f9d4b47a2c6",
+        "data": "spec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: web\n"
+      }
+    }
+  },
+  "yq-yaml-out-identity": {
+    "stdout": "name: web\nreplicas: 3\nratio: 0.5\nenabled: true\nnothing: null\nlabels:\n  app: web\nports:\n  - 80\n  - 443\ncontainers:\n  - name: nginx\n    image: nginx:1.27\nempty_list: []\nempty_map: {}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 181,
+        "sha256": "9d87eb82ab0c34f892f64924424c6b2247bb0f5912dead50f046731dfe912485",
+        "data": "name: web\nreplicas: 3\nratio: 0.5\nenabled: true\nnothing: null\nlabels:\n  app: web\nports:\n  - 80\n  - 443\ncontainers:\n  - name: nginx\n    image: nginx:1.27\nempty_list: []\nempty_map: {}\n"
+      }
+    }
+  },
+  "yq-yaml-out-long-line": {
+    "stdout": "desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor\n  incididunt ut labore\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "l.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 104,
+        "sha256": "b57f3dbd1d6c301a181e4860f5d323407db74fa1c61dcce342f8abf03a008404",
+        "data": "desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore\n"
+      }
+    }
+  },
+  "yq-yaml-out-multi": {
+    "stdout": "a: 1\n---\nb: 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "edcafd205d660811f1020303d0acc5a0968a696b1d7e3e7bb90db44a8f7ccf64",
+        "data": "items:\n  - {a: 1}\n  - {b: 2}\n"
+      }
+    }
+  },
+  "yq-yaml-out-nested-lists": {
+    "stdout": "matrix:\n  - - 1\n    - 2\n  - - 3\n    - 4\ndeep:\n  - name: a\n    deps:\n      - b\n      - c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "143130ca42ffbedbce5e922b106e9feafee31f0ddbc80d847b789cfcf131b8a6",
+        "data": "matrix:\n  - [1, 2]\n  - [3, 4]\ndeep:\n  - name: a\n    deps:\n      - b\n      - c\n"
+      }
+    }
+  },
+  "yq-yaml-out-quoting": {
+    "stdout": "a: 'yes'\nb: '012'\nc: ''\nd: ' leading space'\ne: 'key: value'\nf: '#hash'\ng: 'line1\n\n  line2'\nh: '1.0'\ni: 'null'\nj: '-'\nk: '@at'\nl: it's\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "q.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 134,
+        "sha256": "c9cee9cc1893f62f565fb98e2d55649b4812f0bd094c730036ec717eb85a8fdb",
+        "data": "a: \"yes\"\nb: \"012\"\nc: \"\"\nd: \" leading space\"\ne: \"key: value\"\nf: \"#hash\"\ng: \"line1\\nline2\"\nh: \"1.0\"\ni: \"null\"\nj: \"-\"\nk: \"@at\"\nl: \"it's\"\n"
+      }
+    }
+  },
+  "yq-yaml-out-scalar": {
+    "stdout": "5\n...\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "e1ab6ae64feeaf6dedf6b07b5bdcec27f53e42262f7e7f9e3404cc61d8581fa6",
+        "data": "n: 5\n"
+      }
+    }
+  },
+  "yq-yaml-out-string-scalar": {
+    "stdout": "hello\n...\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "218698c01990c43f3150fca5b90f150c8d89eabcff0e550255dda9593fa72515",
+        "data": "s: hello\n"
+      }
+    }
+  },
+  "yq-yaml-out-unicode": {
+    "stdout": "nome: olá ✓\nctrl: \"a\\tb\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "u.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "e4edacb8862d7cc3383f6dfad89ee62c2ecc660123ac367debad1f46721d47a7",
+        "data": "nome: \"olá ✓\"\nctrl: \"a\\tb\"\n"
+      }
+    }
+  },
+  "yq-yaml-out-update": {
+    "stdout": "kind: Deployment\nspec:\n  replicas: 5\n  image: x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 48,
+        "sha256": "a5a50633549f89d60025a50caf21651cc88adea67d20f93d1ffb4a0867b3fba8",
+        "data": "kind: Deployment\nspec:\n  replicas: 3\n  image: x\n"
+      }
+    }
+  },
+  "yq-yaml-roundtrip": {
+    "stdout": "a: [1, 2]\nb: \"quoted\"\nc: 'single'\nd: plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "r.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 43,
+        "sha256": "2ff66e20a12de5a65d6ccd75f7973973011aed45283605b9c8dd0b1fb1bbcd70",
+        "data": "a: [1, 2]\nb: \"quoted\"\nc: 'single'\nd: plain\n"
+      }
+    }
+  },
+  "yq-yaml-roundtrip-update": {
+    "stdout": "a: 3\nb:\n  - x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "r.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "7cd3ddad0c24841faa301ad894f53d7235041145cfc826395bdff134d7d7a029",
+        "data": "a: 1\nb:\n  - x\n"
+      }
+    }
+  }
+}

@@ -1,0 +1,265 @@
+tool = "date"
+source = "agent-style"
+
+# Opções da CLI: saída padrão, -u, -R, -I, --rfc-3339, -r, -f, -d com +%s e erros de linha de comando.
+# Relógio congelado (ver format.toml). Instante base: segunda-feira 2026-01-05 09:07:03 no TZ do caso.
+
+[[case]]
+id = "date-opt-default-output"
+argv = ["date"]
+tags = ["options"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-default-output-sao-paulo"
+argv = ["date"]
+tags = ["options", "tz"]
+env = { TZ = "America/Sao_Paulo", FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+# Casos com -u usam o mtime da fixture (-r) em vez do relógio congelado: o -u troca o TZ pra UTC0 antes
+# de ler o relógio, e a libfaketime reinterpreta o FAKETIME absoluto no TZ novo (medido no oráculo:
+# `date -u` com TZ=America/Sao_Paulo saiu "09:07:03 -03" em vez de "12:07:03 UTC").
+
+[[case]]
+id = "date-opt-utc-short"
+argv = ["date", "-u", "-r", "in.txt"]
+tags = ["options", "tz"]
+env = { TZ = "America/Sao_Paulo" }
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "date-opt-utc-long"
+argv = ["date", "--utc", "-r", "in.txt", "+%F %T %Z %z"]
+tags = ["options", "tz"]
+env = { TZ = "Asia/Kolkata" }
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "date-opt-universal"
+argv = ["date", "--universal", "--reference", "in.txt", "+%T %Z"]
+tags = ["options", "tz"]
+env = { TZ = "Europe/Berlin" }
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "date-opt-rfc-email"
+argv = ["date", "-R"]
+tags = ["options"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-rfc-email-long-sao-paulo"
+argv = ["date", "--rfc-email"]
+tags = ["options", "tz"]
+env = { TZ = "America/Sao_Paulo", FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-rfc-email-utc"
+argv = ["date", "-R", "-u", "-r", "in.txt"]
+tags = ["options", "tz"]
+env = { TZ = "Asia/Kolkata" }
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "date-opt-iso-default"
+argv = ["date", "-I"]
+tags = ["options"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-iso-date"
+argv = ["date", "-Idate"]
+tags = ["options"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-iso-hours"
+argv = ["date", "-Ihours"]
+tags = ["options"]
+env = { TZ = "Asia/Kolkata", FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-iso-minutes"
+argv = ["date", "-Iminutes"]
+tags = ["options"]
+env = { TZ = "America/Sao_Paulo", FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-iso-seconds"
+argv = ["date", "-Iseconds"]
+tags = ["options"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-iso-ns"
+argv = ["date", "-d", "@1767604023.012345678", "-Ins"]
+tags = ["options", "nanos", "parse"]
+
+[[case]]
+id = "date-opt-iso-long-seconds"
+argv = ["date", "--iso-8601=seconds"]
+tags = ["options"]
+env = { TZ = "Europe/Berlin", FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-iso-long-bare"
+argv = ["date", "--iso-8601"]
+tags = ["options"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-iso-utc"
+argv = ["date", "-u", "-Iseconds", "-r", "in.txt"]
+tags = ["options", "tz"]
+env = { TZ = "America/New_York" }
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "date-opt-rfc3339-date"
+argv = ["date", "--rfc-3339=date"]
+tags = ["options"]
+env = { FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-rfc3339-seconds"
+argv = ["date", "--rfc-3339=seconds"]
+tags = ["options"]
+env = { TZ = "Asia/Kolkata", FAKETIME = "2026-01-05 09:07:03", LD_PRELOAD = "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" }
+
+[[case]]
+id = "date-opt-rfc3339-ns"
+argv = ["date", "-d", "@1767604023.5", "--rfc-3339=ns"]
+tags = ["options", "nanos", "parse"]
+
+[[case]]
+id = "date-opt-date-epoch-out"
+argv = ["date", "-d", "2026-01-05 09:07:03", "+%s"]
+tags = ["options", "parse"]
+
+[[case]]
+id = "date-opt-date-long"
+argv = ["date", "--date=2026-02-03 04:05:06", "+%F %T"]
+tags = ["options", "parse"]
+
+[[case]]
+id = "date-opt-date-long-separate"
+argv = ["date", "--date", "2026-02-03", "+%F"]
+tags = ["options", "parse"]
+
+[[case]]
+id = "date-opt-date-attached"
+argv = ["date", "-d2026-02-03", "+%F"]
+tags = ["options", "parse"]
+
+[[case]]
+id = "date-opt-combined-short"
+argv = ["date", "-ud", "2026-02-03 04:05:06", "+%F %T %Z"]
+tags = ["options", "parse", "tz"]
+env = { TZ = "America/Sao_Paulo" }
+
+[[case]]
+id = "date-opt-format-before-option"
+argv = ["date", "+%F", "-d", "2026-02-03"]
+tags = ["options", "parse"]
+
+[[case]]
+id = "date-opt-reference"
+argv = ["date", "-r", "in.txt"]
+tags = ["options"]
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "date-opt-reference-epoch"
+argv = ["date", "--reference=in.txt", "+%s %F %T %Z"]
+tags = ["options", "tz"]
+env = { TZ = "America/Sao_Paulo" }
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "date-opt-reference-dir"
+argv = ["date", "-r", "sub", "+%s"]
+tags = ["options"]
+[case.files]
+"sub" = { dir = true }
+
+[[case]]
+id = "date-opt-reference-missing"
+argv = ["date", "-r", "missing.txt"]
+tags = ["options", "error"]
+
+[[case]]
+id = "date-opt-file"
+argv = ["date", "-f", "dates.txt", "+%F %T"]
+tags = ["options", "parse"]
+[case.files]
+"dates.txt" = "2026-01-01\n2026-02-03 04:05:06\n@0\n"
+
+[[case]]
+id = "date-opt-file-with-invalid"
+argv = ["date", "--file=dates.txt", "+%F"]
+tags = ["options", "parse", "error"]
+[case.files]
+"dates.txt" = "2026-01-01\nnot a date\n2026-03-04\n"
+
+[[case]]
+id = "date-opt-file-stdin"
+argv = ["date", "-f", "-", "+%s"]
+tags = ["options", "parse"]
+stdin = "@100\n1970-01-01 00:01:40 UTC\n"
+
+[[case]]
+id = "date-opt-file-missing"
+argv = ["date", "-f", "nope.txt"]
+tags = ["options", "error"]
+
+[[case]]
+id = "date-opt-err-multiple-formats"
+argv = ["date", "-I", "-R"]
+tags = ["options", "error", "cli"]
+
+[[case]]
+id = "date-opt-err-format-and-iso"
+argv = ["date", "-I", "+%F"]
+tags = ["options", "error", "cli"]
+
+[[case]]
+id = "date-opt-err-extra-operand"
+argv = ["date", "+%F", "+%T"]
+tags = ["options", "error", "cli"]
+
+[[case]]
+id = "date-opt-err-invalid-option"
+argv = ["date", "-x"]
+tags = ["options", "error", "cli"]
+
+[[case]]
+id = "date-opt-err-unrecognized-long"
+argv = ["date", "--frobnicate"]
+tags = ["options", "error", "cli"]
+
+[[case]]
+id = "date-opt-err-missing-argument"
+argv = ["date", "-d"]
+tags = ["options", "error", "cli"]
+
+[[case]]
+id = "date-opt-err-rfc3339-bad"
+argv = ["date", "--rfc-3339=minutes"]
+tags = ["options", "error", "cli"]
+
+[[case]]
+id = "date-opt-err-iso-bad"
+argv = ["date", "-Ifoo"]
+tags = ["options", "error", "cli"]
+
+[[case]]
+id = "date-opt-err-date-and-file"
+argv = ["date", "-d", "now", "-f", "x"]
+tags = ["options", "error", "cli"]

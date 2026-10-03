@@ -1,0 +1,15 @@
+[package]
+name = "userland"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Sonda do E06 (H19): userland que só chama dependências, sem tocar std::fs diretamente"
+
+[dependencies]
+fs-reader = { path = "../fs-reader" }
+walkdir = "2"
+
+[lints.rust]
+unsafe_code = "forbid"

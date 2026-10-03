@@ -1,0 +1,1206 @@
+{
+  "bre-001-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "bre-001-sed-sub": {
+    "stdout": "\u0002abc\u0003b\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "bre-002-grep-o": {
+    "stdout": "0:a(\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "3b6444ea13629f062f2fd17d0cfb1d481f87a42455b232943b6f4df3e7b2fd98",
+        "data": "a(\n"
+      }
+    }
+  },
+  "bre-003-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched ( or \\(\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "5a4d92cf51cd81b2a3fe5a50c497b94cb75280ba5b3aa845280b089bd9ac31f0",
+        "data": "EPAREN\n"
+      }
+    }
+  },
+  "bre-004-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched ( or \\(\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "5a4d92cf51cd81b2a3fe5a50c497b94cb75280ba5b3aa845280b089bd9ac31f0",
+        "data": "EPAREN\n"
+      }
+    }
+  },
+  "bre-005-grep-o": {
+    "stdout": "0:a(b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "f135c9dd9d01e8bd3855fef25c1968ac6a5cfd171de1b18e452eae511b2f5721",
+        "data": "a(b\n"
+      }
+    }
+  },
+  "bre-006-grep-o": {
+    "stdout": "0:a)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "fac6b79b4c5a84f756e8bc95e670f8b424fab95ad71f98a3f3b6e64fbacb8b61",
+        "data": "a)\n"
+      }
+    }
+  },
+  "bre-007-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched ) or \\)\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "5a4d92cf51cd81b2a3fe5a50c497b94cb75280ba5b3aa845280b089bd9ac31f0",
+        "data": "EPAREN\n"
+      }
+    }
+  },
+  "bre-008-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched ) or \\)\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "5a4d92cf51cd81b2a3fe5a50c497b94cb75280ba5b3aa845280b089bd9ac31f0",
+        "data": "EPAREN\n"
+      }
+    }
+  },
+  "bre-009-grep-o": {
+    "stdout": "0:ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "bre-009-sed-sub": {
+    "stdout": "\u0002ab\u0003\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "bre-010-grep-o": {
+    "stdout": "0:a^b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "d60c51197507f1abc8f568859eebc61f89314bec20eddbbd4268d4f3bb2713b1",
+        "data": "a^b\n"
+      }
+    }
+  },
+  "bre-011-grep-o": {
+    "stdout": "0:a$b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "975a2301e68b0481f66b8c705cc596c50d93eb2de26ce47f628c0c327a8dbd43",
+        "data": "a$b\n"
+      }
+    }
+  },
+  "bre-012-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "data": "\n"
+      }
+    }
+  },
+  "bre-012-sed-sub": {
+    "stdout": "\u0002\u0003\u0003\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "data": "\n"
+      }
+    }
+  },
+  "bre-013-grep-o": {
+    "stdout": "0:b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "bre-013-sed-sub": {
+    "stdout": "\u0002b\u0003b\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "bre-014-grep-o": {
+    "stdout": "0:|\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "9d5244c50ced231a7bb23d76593f0bce8f8d3ff803dfe514176002739b6f75c1",
+        "data": "|\n"
+      }
+    }
+  },
+  "bre-015-grep-o": {
+    "stdout": "0:*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "cdbcae15105d6b781e620813c79c7e868740d4e9cc53ce6f5fcbbc12387adf4b",
+        "data": "*\n"
+      }
+    }
+  },
+  "bre-016-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "bre-016-sed-sub": {
+    "stdout": "\u0002\u0003\u0004abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "bre-017-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e21f23115950413e807f6b59ecb7b2d41f96bb1ee900c3f872a92b4341cd9887",
+        "data": "BADRPT\n"
+      }
+    }
+  },
+  "bre-017-sed-sub": {
+    "stdout": "",
+    "stderr": "sed: -e expression #1, char 21: Invalid preceding regular expression\n",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e21f23115950413e807f6b59ecb7b2d41f96bb1ee900c3f872a92b4341cd9887",
+        "data": "BADRPT\n"
+      }
+    }
+  },
+  "bre-018-grep-o": {
+    "stdout": "0:*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "cdbcae15105d6b781e620813c79c7e868740d4e9cc53ce6f5fcbbc12387adf4b",
+        "data": "*\n"
+      }
+    }
+  },
+  "bre-019-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e21f23115950413e807f6b59ecb7b2d41f96bb1ee900c3f872a92b4341cd9887",
+        "data": "BADRPT\n"
+      }
+    }
+  },
+  "bre-020-grep-o": {
+    "stdout": "0:{\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a6fb08fda1acb957b6116bd37811a1fe41a01611c0631edbf786d6889a27a55c",
+        "data": "{\n"
+      }
+    }
+  },
+  "bre-021-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "8164c6e7b7d69783440faf55199ebbdc6c8348545d203e5725a0a8795a0af496",
+        "data": "abbcbd\n"
+      }
+    }
+  },
+  "bre-021-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "8164c6e7b7d69783440faf55199ebbdc6c8348545d203e5725a0a8795a0af496",
+        "data": "abbcbd\n"
+      }
+    }
+  },
+  "bre-022-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "bdcac1fa189f80ec537a2ae3c7807da77cf594aaa92ffde2faea71e626ce8766",
+        "data": "abbcbbbd\n"
+      }
+    }
+  },
+  "bre-022-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "bdcac1fa189f80ec537a2ae3c7807da77cf594aaa92ffde2faea71e626ce8766",
+        "data": "abbcbbbd\n"
+      }
+    }
+  },
+  "bre-023-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "bre-023-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "bre-024-grep-o": {
+    "stdout": "0:abbccd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "8fabcf2c88c76a539172a4ca0f248a5f564eba6f9ccf51627ad2fc4aa987ae23",
+        "data": "abbccd\n"
+      }
+    }
+  },
+  "bre-024-sed-sub": {
+    "stdout": "\u0002abbccd\u0003cc\u0003c\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "8fabcf2c88c76a539172a4ca0f248a5f564eba6f9ccf51627ad2fc4aa987ae23",
+        "data": "abbccd\n"
+      }
+    }
+  },
+  "bre-025-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "8164c6e7b7d69783440faf55199ebbdc6c8348545d203e5725a0a8795a0af496",
+        "data": "abbcbd\n"
+      }
+    }
+  },
+  "bre-025-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "8164c6e7b7d69783440faf55199ebbdc6c8348545d203e5725a0a8795a0af496",
+        "data": "abbcbd\n"
+      }
+    }
+  },
+  "bre-026-grep-o": {
+    "stdout": "0:abbbd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "9a5a45c64004362e77dc8da4ec9a19499a79ba2d3fe5defcc728c6bb666d4a60",
+        "data": "abbbd\n"
+      }
+    }
+  },
+  "bre-026-sed-sub": {
+    "stdout": "\u0002abbbd\u0003bbb\u0003b\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "9a5a45c64004362e77dc8da4ec9a19499a79ba2d3fe5defcc728c6bb666d4a60",
+        "data": "abbbd\n"
+      }
+    }
+  },
+  "bre-027-grep-o": {
+    "stdout": "0:aabcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "4fde6b01406005da6f0880145b4961bf7c80c18a7d68be9bbc380f4425268344",
+        "data": "aabcd\n"
+      }
+    }
+  },
+  "bre-027-sed-sub": {
+    "stdout": "\u0002aabcd\u0003a\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "4fde6b01406005da6f0880145b4961bf7c80c18a7d68be9bbc380f4425268344",
+        "data": "aabcd\n"
+      }
+    }
+  },
+  "bre-028-grep-o": {
+    "stdout": "0:aabcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "4fde6b01406005da6f0880145b4961bf7c80c18a7d68be9bbc380f4425268344",
+        "data": "aabcd\n"
+      }
+    }
+  },
+  "bre-028-sed-sub": {
+    "stdout": "\u0002aabcd\u0003a\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "4fde6b01406005da6f0880145b4961bf7c80c18a7d68be9bbc380f4425268344",
+        "data": "aabcd\n"
+      }
+    }
+  },
+  "bre-029-grep-o": {
+    "stdout": "0:aabd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "c15cab9684d8322321b3244793bb00f8e72943ca3014ccb535f6461ddc38d661",
+        "data": "aabd\n"
+      }
+    }
+  },
+  "bre-029-sed-sub": {
+    "stdout": "\u0002aabd\u0003a\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "c15cab9684d8322321b3244793bb00f8e72943ca3014ccb535f6461ddc38d661",
+        "data": "aabd\n"
+      }
+    }
+  },
+  "bre-030-grep-o": {
+    "stdout": "0:aabcccd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "198a051bd4385387826095c852d4d59819cf9a4f7e6269868ebb92a629b691fa",
+        "data": "aabcccd\n"
+      }
+    }
+  },
+  "bre-030-sed-sub": {
+    "stdout": "\u0002aabcccd\u0003a\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "198a051bd4385387826095c852d4d59819cf9a4f7e6269868ebb92a629b691fa",
+        "data": "aabcccd\n"
+      }
+    }
+  },
+  "bre-031-grep-o": {
+    "stdout": "0:aabcccd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "198a051bd4385387826095c852d4d59819cf9a4f7e6269868ebb92a629b691fa",
+        "data": "aabcccd\n"
+      }
+    }
+  },
+  "bre-031-sed-sub": {
+    "stdout": "\u0002aabcccd\u0003a\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "198a051bd4385387826095c852d4d59819cf9a4f7e6269868ebb92a629b691fa",
+        "data": "aabcccd\n"
+      }
+    }
+  },
+  "bre-032-grep-o": {
+    "stdout": "0:aabcccd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "198a051bd4385387826095c852d4d59819cf9a4f7e6269868ebb92a629b691fa",
+        "data": "aabcccd\n"
+      }
+    }
+  },
+  "bre-032-sed-sub": {
+    "stdout": "\u0002aabcccd\u0003a\u0003c\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "198a051bd4385387826095c852d4d59819cf9a4f7e6269868ebb92a629b691fa",
+        "data": "aabcccd\n"
+      }
+    }
+  },
+  "bre-033-grep-o": {
+    "stdout": "0:a*b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c867cc7ee2bc02ce6b1c69d8ab0b8931a857dfe1fb6950eb042519c808599c6c",
+        "data": "a*b\n"
+      }
+    }
+  },
+  "bre-033-sed-sub": {
+    "stdout": "\u0002a*b\u0003*\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c867cc7ee2bc02ce6b1c69d8ab0b8931a857dfe1fb6950eb042519c808599c6c",
+        "data": "a*b\n"
+      }
+    }
+  },
+  "bre-034-grep-o": {
+    "stdout": "0:ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "bre-034-sed-sub": {
+    "stdout": "\u0002ab\u0003\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "bre-035-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e21f23115950413e807f6b59ecb7b2d41f96bb1ee900c3f872a92b4341cd9887",
+        "data": "BADRPT\n"
+      }
+    }
+  },
+  "bre-035-sed-sub": {
+    "stdout": "",
+    "stderr": "sed: -e expression #1, char 20: Invalid preceding regular expression\n",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e21f23115950413e807f6b59ecb7b2d41f96bb1ee900c3f872a92b4341cd9887",
+        "data": "BADRPT\n"
+      }
+    }
+  },
+  "bre-036-grep-o": {
+    "stdout": "0:*a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ec00da45e047215e1882345a746b1a7ebf6118db225ca7194a0ee53425281389",
+        "data": "*a\n"
+      }
+    }
+  },
+  "bre-037-grep-o": {
+    "stdout": "0:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "bre-038-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e21f23115950413e807f6b59ecb7b2d41f96bb1ee900c3f872a92b4341cd9887",
+        "data": "BADRPT\n"
+      }
+    }
+  },
+  "bre-039-grep-o": {
+    "stdout": "0:ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "bre-040-grep-o": {
+    "stdout": "0:ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "bre-041-grep-o": {
+    "stdout": "0:aab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "72be0aa10eb226762322b185b3dbceb6c21baec9e58d528c8a07b16f9e4c7e1d",
+        "data": "aab\n"
+      }
+    }
+  },
+  "bre-042-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched \\{\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "1f0d11f3d2c98737b37ce673aa8487db8771a999ab9dc20c50acd08e531a49e1",
+        "data": "EBRACE\n"
+      }
+    }
+  },
+  "bre-043-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched \\{\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "1f0d11f3d2c98737b37ce673aa8487db8771a999ab9dc20c50acd08e531a49e1",
+        "data": "EBRACE\n"
+      }
+    }
+  },
+  "bre-044-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Invalid content of \\{\\}\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "424fe78e46a7deb6ab2c01ffc7b7d2730e32542b4ca322577fef77b2ca59f813",
+        "data": "BADBR\n"
+      }
+    }
+  },
+  "bre-045-grep-o": {
+    "stdout": "0:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "d7baf4df7b20c1440c8786358f6a35e6b1a04a869dfb0b34fac47e5b4a5580f9",
+        "data": "a\\{,2\\}\n"
+      }
+    }
+  },
+  "bre-046-grep-o": {
+    "stdout": "0:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "c5af8645c626a5c9762d593b5048f3cce0ba08e446ce729b0891cad0ef782b2f",
+        "data": "a\\{,\\}\n"
+      }
+    }
+  },
+  "bre-047-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Invalid content of \\{\\}\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "424fe78e46a7deb6ab2c01ffc7b7d2730e32542b4ca322577fef77b2ca59f813",
+        "data": "BADBR\n"
+      }
+    }
+  },
+  "bre-048-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Invalid content of \\{\\}\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "424fe78e46a7deb6ab2c01ffc7b7d2730e32542b4ca322577fef77b2ca59f813",
+        "data": "BADBR\n"
+      }
+    }
+  },
+  "bre-049-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched \\{\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "1f0d11f3d2c98737b37ce673aa8487db8771a999ab9dc20c50acd08e531a49e1",
+        "data": "EBRACE\n"
+      }
+    }
+  },
+  "bre-050-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Regular expression too big\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "424fe78e46a7deb6ab2c01ffc7b7d2730e32542b4ca322577fef77b2ca59f813",
+        "data": "BADBR\n"
+      }
+    }
+  },
+  "bre-051-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Invalid content of \\{\\}\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "424fe78e46a7deb6ab2c01ffc7b7d2730e32542b4ca322577fef77b2ca59f813",
+        "data": "BADBR\n"
+      }
+    }
+  },
+  "bre-052-grep-o": {
+    "stdout": "3:ac\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "c430d8106d242c3f5187212c9bb12ac7f1ef931beeca834c4b616e49d99fe647",
+        "data": "abcac\n"
+      }
+    }
+  },
+  "bre-053-grep-o": {
+    "stdout": "0:abc\n3:ac\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "c430d8106d242c3f5187212c9bb12ac7f1ef931beeca834c4b616e49d99fe647",
+        "data": "abcac\n"
+      }
+    }
+  },
+  "bre-054-grep-o": {
+    "stdout": "0:abbc\n4:ac\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "1ca2268856a26bcd3846c5369c8741783eb34e138be974ed081f74b55f92b7be",
+        "data": "abbcac\n"
+      }
+    }
+  },
+  "bre-055-grep-o": {
+    "stdout": "2:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "dbcaaa69088efcfa0431f57f13eb0138b3cdf30400ce293920d8888a13d3a1e4",
+        "data": "acabc\n"
+      }
+    }
+  },
+  "bre-056-grep-o": {
+    "stdout": "2:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "dbcaaa69088efcfa0431f57f13eb0138b3cdf30400ce293920d8888a13d3a1e4",
+        "data": "acabc\n"
+      }
+    }
+  },
+  "bre-057-grep-o": {
+    "stdout": "3:abbc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "e9deee3f9fad2abab696806cf024e36d88bf5f5c6dd1e93d0c6a558ba8981c01",
+        "data": "abcabbc\n"
+      }
+    }
+  },
+  "bre-058-grep-o": {
+    "stdout": "3:abbc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "e9deee3f9fad2abab696806cf024e36d88bf5f5c6dd1e93d0c6a558ba8981c01",
+        "data": "abcabbc\n"
+      }
+    }
+  },
+  "bre-059-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e21f23115950413e807f6b59ecb7b2d41f96bb1ee900c3f872a92b4341cd9887",
+        "data": "BADRPT\n"
+      }
+    }
+  },
+  "bre-060-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e21f23115950413e807f6b59ecb7b2d41f96bb1ee900c3f872a92b4341cd9887",
+        "data": "BADRPT\n"
+      }
+    }
+  },
+  "bre-061-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e21f23115950413e807f6b59ecb7b2d41f96bb1ee900c3f872a92b4341cd9887",
+        "data": "BADRPT\n"
+      }
+    }
+  },
+  "bre-062-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c7c993024ca06f9efd186b0628ba21db1542e917df46ec1052b06d34f93b917d",
+        "data": "acd\n"
+      }
+    }
+  },
+  "bre-062-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c7c993024ca06f9efd186b0628ba21db1542e917df46ec1052b06d34f93b917d",
+        "data": "acd\n"
+      }
+    }
+  },
+  "bre-063-grep-o": {
+    "stdout": "0:-5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "0b2f06dddfa807ee574a78468d3a05904873b97f44377eb93481e091c257b800",
+        "data": "-5\n"
+      }
+    }
+  },
+  "bre-064-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Regular expression too big\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "231b04a8d7aa4dec308b4d8cf77829754dbc34aee5be1bf4f9a46d7c6a33a6dd",
+        "data": "ESIZE\n"
+      }
+    }
+  }
+}

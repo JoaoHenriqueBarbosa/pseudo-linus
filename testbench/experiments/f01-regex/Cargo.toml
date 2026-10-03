@@ -1,0 +1,54 @@
+[package]
+name = "f01-regex"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+default-run = "f01-regex"
+description = "F01: existe motor de regex em Rust puro com a semântica POSIX do GNU (BRE/ERE, leftmost-longest, backrefs)?"
+
+# Workspace próprio: cada experimento compila isolado (ver testbench/Cargo.toml).
+[workspace]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "f01-regex"
+path = "src/main.rs"
+
+[[bin]]
+name = "f01-gen-cases"
+path = "src/bin/gen_cases.rs"
+
+[dependencies]
+anyhow = "1"
+harness = { path = "../../crates/harness" }
+depscan = { path = "../../crates/depscan" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"
+sha2 = "0.10"
+base64 = "0.22"
+
+# Candidatas.
+regex = "=1.13.1"
+regex-automata = "=0.4.18"
+regex-syntax = "0.8"
+fancy-regex = "=0.19.2"
+revera = "=0.2.1"
+posix-regex = "=0.1.4"
+regast = "=0.1.0"
+rusty_expressions = "=0.2.2"
+ferroni = "=1.8.1"
+resharp = { version = "=0.7.5", features = ["experimental_capture_groups"] }
+resharp-parser = "=0.7.5"
+# Motor próprio do red (sed em Rust que se diz compatível com o GNU): BRE/ERE com backref.
+red-sed = { version = "=1.0.2", default-features = false }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+debug = "line-tables-only"

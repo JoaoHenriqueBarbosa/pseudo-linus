@@ -1,0 +1,17 @@
+# Crates-sonda do E06. Não são compiladas pelo `cargo build` do experimento: o próprio binário do E06
+# chama `cargo clippy` e `cargo build` aqui (com target próprio) e lê o resultado em JSON.
+#
+# Membros são as crates "nossas", que o clippy linta com o `clippy.toml` desta pasta. As sondas que
+# fazem papel de dependência de terceiros ficam em `exclude`, pra serem compiladas como dependência
+# comum (sem clippy, do mesmo jeito que uma crate do crates.io).
+[workspace]
+resolver = "3"
+members = ["userland", "userland-direct", "forbid-consumer"]
+exclude = ["fs-reader", "unsafe-macros", "unsafe-proc-macro"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false

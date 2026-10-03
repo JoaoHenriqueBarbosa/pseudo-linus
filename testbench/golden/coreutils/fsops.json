@@ -1,0 +1,535 @@
+{
+  "cp-dir-without-r": {
+    "stdout": "",
+    "stderr": "cp: -r not specified; omitting directory 'src'\n",
+    "exit": 1,
+    "files": {
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "cp-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "47df473b600ab787db630671efea6d975d19c419522fd72a9fe7cb86684aa9fe",
+        "data": "conteúdo\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "47df473b600ab787db630671efea6d975d19c419522fd72a9fe7cb86684aa9fe",
+        "data": "conteúdo\n"
+      }
+    }
+  },
+  "cp-into-dir": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "dest": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dest/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "dest/b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "cp-missing-dest-dir": {
+    "stdout": "",
+    "stderr": "cp: cannot create regular file 'nodir/b.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "cp-overwrite": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "new.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "2a0adcefafd1685dd4df079b4aa5e9f3acec449cd144bbe68f748fe12a8cd2f7",
+        "data": "novo\n"
+      },
+      "old.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "2a0adcefafd1685dd4df079b4aa5e9f3acec449cd144bbe68f748fe12a8cd2f7",
+        "data": "novo\n"
+      }
+    }
+  },
+  "cp-preserve-mode": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "copy.sh": {
+        "kind": "file",
+        "mode": 488,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "run.sh": {
+        "kind": "file",
+        "mode": 488,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "cp-r": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "backup": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "backup/a.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "backup/mod": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "backup/mod/b.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "backup/run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/a.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "src/mod": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/mod/b.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "src/run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "cp-then-cat": {
+    "stdout": "copiado\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "9d2aab63f58308ba15752b63918120bb35d2ecd013597a681ab75b5c4a2b29b2",
+        "data": "copiado\n"
+      },
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "9d2aab63f58308ba15752b63918120bb35d2ecd013597a681ab75b5c4a2b29b2",
+        "data": "copiado\n"
+      }
+    }
+  },
+  "ln-s": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "target.txt"
+      },
+      "target.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      }
+    }
+  },
+  "ln-s-exists": {
+    "stdout": "",
+    "stderr": "ln: failed to create symbolic link 'link': File exists\n",
+    "exit": 1,
+    "files": {
+      "link": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "target.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      }
+    }
+  },
+  "ln-sf": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "new.txt"
+      },
+      "new.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a4fb621495a0122493b2203591c448903c472e306a1ede54fabad829e01075c0",
+        "data": "n\n"
+      },
+      "old.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "7427d152005f9ed0fa31c76ef9963cf4bb47dce6e2768111d9eb0edbfe59c704",
+        "data": "o\n"
+      }
+    }
+  },
+  "mkdir-exists": {
+    "stdout": "",
+    "stderr": "mkdir: cannot create directory ‘d’: File exists\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "mkdir-m": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "private": {
+        "kind": "dir",
+        "mode": 448
+      }
+    }
+  },
+  "mkdir-missing-parent": {
+    "stdout": "",
+    "stderr": "mkdir: cannot create directory ‘a/b’: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mkdir-p": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/c": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/y": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "mkdir-p-exists": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "mv-dir": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lib": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "lib/x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "lib/x/y.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "mv-into-dir": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "mv-missing": {
+    "stdout": "",
+    "stderr": "mv: cannot stat 'nope': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mv-overwrite": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "old.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "2a0adcefafd1685dd4df079b4aa5e9f3acec449cd144bbe68f748fe12a8cd2f7",
+        "data": "novo\n"
+      }
+    }
+  },
+  "mv-rename": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "rm-dir-without-r": {
+    "stdout": "",
+    "stderr": "rm: cannot remove 'd': Is a directory\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rm-f-missing": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rm-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "rm-missing": {
+    "stdout": "",
+    "stderr": "rm: cannot remove 'nope.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rm-r-verbose": {
+    "stdout": "removed 'd/f'\nremoved directory 'd'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rm-rf": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "keep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "19732980d68fbd00358a0a4d98246c960400b87e4fa2a2e155db98be2b42ed6c",
+        "data": "k\n"
+      }
+    }
+  },
+  "touch-existing-keeps-content": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "38b50213a068d6d9d17b2882e12776bec6678464fba08cff77995964e950109b",
+        "data": "não muda\n"
+      }
+    }
+  },
+  "touch-missing-dir": {
+    "stdout": "",
+    "stderr": "touch: cannot touch 'nodir/x': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "touch-new": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "new.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "other.log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  }
+}

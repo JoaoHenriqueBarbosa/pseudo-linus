@@ -1,0 +1,426 @@
+{
+  "bc-arrays": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-big-mul": {
+    "stdout": "121932631137021795226185032733622923332237463801111263526900\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-comments": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-compare": {
+    "stdout": "1\n1\n0\n1\n0\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-continue": {
+    "stdout": "0\n2\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-crlf-input": {
+    "stdout": "",
+    "stderr": "(standard_in) 1: illegal character: ^M\n(standard_in) 2: illegal character: ^M\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-define-auto": {
+    "stdout": "5050\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-define-recursive-factorial": {
+    "stdout": "3628800\n93326215443944152681699238856266700490715968264381621468592963895217\\\n59999322991560894146397615651828625369792082722375825118521091686400\\\n0000000000000000000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-div-zero": {
+    "stdout": "4\n",
+    "stderr": "Runtime error (func=(main), adr=3): Divide by zero\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-empty-input": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-file-q": {
+    "stdout": "144\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "prog.bc": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "1a4d04c0e4574482e627547cf87e5afa609e84d6528ede772e99a3a15254a780",
+        "data": "define sq(x) { return (x*x) }\nsq(12)\nquit\n"
+      }
+    }
+  },
+  "bc-file-then-stdin": {
+    "stdout": "42\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lib.bc": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "3e7d792c75dc1d2a7378bf6906fe91d13673787369343a354df7bf3ba888a80e",
+        "data": "define d(x) { return (2*x) }\n"
+      }
+    }
+  },
+  "bc-for-break": {
+    "stdout": "0\n1\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-halt": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-ibase-fraction": {
+    "stdout": "10.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-ibase-then-obase": {
+    "stdout": "1111\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-ibase16": {
+    "stdout": "255\n26\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-ibase2-obase10-trap": {
+    "stdout": "101\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-if-else": {
+    "stdout": "big\nnot huge\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-incdec": {
+    "stdout": "5\n6\n7\n7\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-int-div": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-l-bessel": {
+    "stdout": ".76519768655796655144\n.49709410246427403801\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-l-div": {
+    "stdout": "3.33333333333333333333\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-l-log-exp": {
+    "stdout": "2.30258509299404568401\n2.71828182845904523536\n1.99999999999999999998\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-l-pi": {
+    "stdout": "3.14159265358979323846264338327950288419716939937508\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-l-scale-reset": {
+    "stdout": "20\n.33\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-l-sin-pi": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-l-trig": {
+    "stdout": ".84147098480789650665\n1.00000000000000000000\n.78539816339744830961\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-last-dot": {
+    "stdout": "10\n20\n21\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-leading-zero": {
+    "stdout": ".33\n.75\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-length-scale": {
+    "stdout": "5\n4\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-line-length-20": {
+    "stdout": "126765060022822940\\\n1496703205376\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-line-length-zero": {
+    "stdout": "2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-missing-file": {
+    "stdout": "",
+    "stderr": "File nope.bc is unavailable.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "bc-mod": {
+    "stdout": "1\n-1\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-mod-zero": {
+    "stdout": "7\n",
+    "stderr": "Runtime error (func=(main), adr=5): Modulo by zero\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-multiline-expression": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-negative-base-pow": {
+    "stdout": "-8\n-.5000000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-negative-frac": {
+    "stdout": "-.33\n-.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-negative-trunc": {
+    "stdout": "-3\n-3.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-obase-100": {
+    "stdout": " 01 23 45 67 89\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-obase-1000": {
+    "stdout": " 001 099 511 627 776\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-obase-fraction": {
+    "stdout": ".555555553\n-A.8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-obase-then-ibase": {
+    "stdout": "FF\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-obase16": {
+    "stdout": "FF\n1000\n-1F\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-obase2": {
+    "stdout": "1010\n11111111\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-pow": {
+    "stdout": "1024\n0\n.12500\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-pow-big": {
+    "stdout": "10715086071862673209484250490600018105614048117055336074437503883703\\\n51051124936122493198378815695858127594672917553146825187145285692314\\\n04359845775746985748039345677748242309854210746050623711418779541821\\\n53046474983581941267398767559165543946077062914571196477686542167660\\\n429831652624386837205668069376\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-pow-frac-exponent": {
+    "stdout": "1\n3\n",
+    "stderr": "Runtime warning (func=(main), adr=8): non-zero scale in exponent\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-precedence": {
+    "stdout": "14\n20\n512\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-print": {
+    "stdout": "x=3\na\tb\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-quit": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-quit-in-if": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-relational-assign": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-scale-100-wrap": {
+    "stdout": ".1428571428571428571428571428571428571428571428571428571428571428571\\\n428571428571428571428571428571428\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-scale-60": {
+    "stdout": ".142857142857142857142857142857142857142857142857142857142857\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-scale-div": {
+    "stdout": "3.33\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-semicolons": {
+    "stdout": "3\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-sqrt": {
+    "stdout": "1.4142135623\n4.0000000000\n3.8729833462\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-sqrt-negative": {
+    "stdout": "1\n",
+    "stderr": "Runtime error (func=(main), adr=6): Square root of a negative number\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-standard-mode": {
+    "stdout": "",
+    "stderr": "(standard_in) 2: Error: print statement\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-string-statement": {
+    "stdout": "helloworld\\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-syntax-error": {
+    "stdout": "3\n",
+    "stderr": "(standard_in) 1: syntax error\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-uppercase-digit": {
+    "stdout": "10\n16\n35\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-uppercase-variable": {
+    "stdout": "10\n",
+    "stderr": "(standard_in) 1: syntax error\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-void-function": {
+    "stdout": "v\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-warn-mode": {
+    "stdout": "y\n",
+    "stderr": "(standard_in) 1: (Warning) print statement\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bc-while": {
+    "stdout": "0\n1\n2\n3\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

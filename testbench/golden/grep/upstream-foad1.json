@@ -1,0 +1,236 @@
+{
+  "foad1-043": {
+    "stdout": "Word\nword\nWORD\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-044": {
+    "stdout": "Word\nword\nWORD\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-045": {
+    "stdout": "Word\nword\nWORD\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-051": {
+    "stdout": "1:wA\n1:wB\n2:wC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-052": {
+    "stdout": "1:wA\n1:wB\n2:wC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-053": {
+    "stdout": "1:wA\n1:wB\n2:wC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-054": {
+    "stdout": "1:wA\n5:wB\n9:wC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-055": {
+    "stdout": "1:wA\n5:wB\n9:wC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-056": {
+    "stdout": "1:wA\n5:wB\n9:wC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-057": {
+    "stdout": "1:w\n5:w\n9:w\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-058": {
+    "stdout": "1:w\n5:w\n9:w\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-059": {
+    "stdout": "1:w\n5:w\n9:w\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-060": {
+    "stdout": "(standard input):wA\n(standard input):wB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-061": {
+    "stdout": "(standard input):wA\n(standard input):wB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-062": {
+    "stdout": "(standard input):wA\n(standard input):wB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-065": {
+    "stdout": "wA wB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-066": {
+    "stdout": "wA wB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-067": {
+    "stdout": "wA wB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-068": {
+    "stdout": "(standard input):wA wB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-069": {
+    "stdout": "(standard input):wA wB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-072": {
+    "stdout": "word_\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-073": {
+    "stdout": "word\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-096": {
+    "stdout": "4\n40\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-097": {
+    "stdout": "4\n04\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-098": {
+    "stdout": "4\n444\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-105": {
+    "stdout": "A\nB\nC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-106": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "foad1-109": {
+    "stdout": "y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-141": {
+    "stdout": ".tar\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-142": {
+    "stdout": ".tar\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-143": {
+    "stdout": "$*.[^\\\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-144": {
+    "stdout": "$*.[^\\\n(+?{|\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-155": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "foad1-162-e": {
+    "stdout": "ñÿ\nÑŸ\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-162-f": {
+    "stdout": "ñÿ\nÑŸ\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-162-g": {
+    "stdout": "ñÿ\nÑŸ\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-163-e": {
+    "stdout": "ñÿ\nÑŸ\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-163-f": {
+    "stdout": "ñÿ\nÑŸ\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "foad1-163-g": {
+    "stdout": "ñÿ\nÑŸ\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

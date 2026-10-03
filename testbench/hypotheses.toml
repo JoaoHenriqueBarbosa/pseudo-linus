@@ -1,0 +1,300 @@
+# Registro de hipóteses da bancada. Fonte da verdade da tabela no fim de docs/design.md.
+#
+# Cada hipótese tem: a frase (do v1 ou nova no v2), o experimento que responde, e o critério que decide
+# o veredito. O runner falha se alguma hipótese ficar sem veredito em results/.
+#
+# Vereditos possíveis: confirmed, refuted, partial, inconclusive.
+
+[[hypothesis]]
+id = "H01"
+source = "v1"
+experiment = "e01-exec-models"
+statement = "Corrotinas stackful permitem M:N com migração entre workers em Rust seguro"
+criterion = "Confirmada se alguma crate de corrotina stackful permite mover corrotina suspensa entre threads sem unsafe nosso; refutada se todas exigem unsafe impl Send ou API unsafe (provado por teste compile_fail)."
+
+[[hypothesis]]
+id = "H02"
+source = "v1"
+experiment = "e01-exec-models"
+statement = "Troca de contexto de corrotina é muito mais barata que handoff de thread, e isso pesa no throughput de pipelines"
+criterion = "Mede ns por troca (ping-pong) em A, B e C, e throughput de yes|head e de um pipeline de 4 estágios com buffer de 64 KiB. Confirmada se A perde mais de 20% de throughput de pipeline para B ou C; parcial se a troca é muito mais cara mas o pipeline não sente."
+
+[[hypothesis]]
+id = "H03"
+source = "v1"
+experiment = "e01-exec-models"
+statement = "Pilha virtual de 256 KiB por processo só ocupa memória física quando tocada; milhares de processos custam pouco"
+criterion = "RSS por processo ocioso em 1k, 10k e 30k processos em cada modelo. Confirmada se ficar abaixo de 64 KiB por processo."
+
+[[hypothesis]]
+id = "H04"
+source = "v1"
+experiment = "e01-exec-models"
+statement = "Criar pseudo-processo custa microssegundos e cabem dezenas de milhares num processo host"
+criterion = "Mediana de spawn+exit e máximo sustentado (até 30k, dentro de um scope com TasksMax). Confirmada se spawn < 50 µs e 30k processos simultâneos funcionam."
+
+[[hypothesis]]
+id = "H05"
+source = "v1"
+experiment = "e01-exec-models"
+statement = "Checkpoint com AtomicBool custa quase nada e dá preempção com granularidade fina"
+criterion = "Overhead do checkpoint num laço de interpretador (ns por chamada, % de slowdown) e distribuição da latência entre o timer marcar e o processo ceder. Confirmada se overhead < 2% e p99 de latência < 100 µs."
+
+[[hypothesis]]
+id = "H06"
+source = "v1"
+experiment = "e01-exec-models"
+statement = "SIGKILL via unwind libera fds e roda Drops, com o processo bloqueado ou em laço com checkpoint"
+criterion = "Processo bloqueado em read de pipe e processo em laço com checkpoint morrem, Drops rodam (contador), e o tempo até morrer é medido."
+
+[[hypothesis]]
+id = "H07"
+source = "v2"
+experiment = "e01-exec-models"
+statement = "Laço de CPU sem checkpoint não pode ser preemptado nem morto em Rust seguro; rebaixar a thread host mitiga"
+criterion = "Demonstra que o laço sem checkpoint não cede nem morre; mede, no modelo A, quanto CPU ele rouba de um vizinho com e sem a thread rebaixada pra nice 19."
+
+[[hypothesis]]
+id = "H08"
+source = "v2"
+experiment = "e01-exec-models"
+statement = "Stack overflow num pseudo-processo derruba o host; stacker mitiga nos interpretadores"
+criterion = "Em subprocesso: recursão infinita num pseudo-processo mata o processo host (sinal); com stacker::maybe_grow e limite de profundidade, o pseudo-processo termina com erro e o host sobrevive. Testado em cada modelo."
+
+[[hypothesis]]
+id = "H09"
+source = "v1"
+experiment = "e01-exec-models"
+statement = "Panic num builtin fica isolado no processo e não envenena o kernel"
+criterion = "Panic segurando lock do kernel e panic fora de lock: o pai vê término anormal e o kernel continua atendendo outros processos."
+
+[[hypothesis]]
+id = "H10"
+source = "v1"
+experiment = "e01-exec-models"
+statement = "Thread-local de processo corrente viabiliza o shim sysio e a contabilidade"
+criterion = "Em A, thread-local é por processo sem nada especial; em B, mostrar o que quebra (troca manual a cada resume) e se é seguro; em C, task-local."
+
+[[hypothesis]]
+id = "H11"
+source = "v1"
+experiment = "e02-sched-eevdf"
+statement = "Runqueue com trava global escala até uns 8 workers"
+criterion = "Operações de escalonamento por segundo (pick + put) com 1, 2, 4, 8 e 16 workers, trava global contra runqueue por worker. Confirmada se a trava global mantém >= 70% da vazão ideal até 8 workers."
+
+[[hypothesis]]
+id = "H12"
+source = "v1"
+experiment = "e02-sched-eevdf"
+statement = "Árvore rubro-negra em arena com índices u32 é correta e competitiva com BTreeMap"
+criterion = "proptest com 100k sequências sem falha (ordem, invariantes, augmentação); insert/remove/leftmost no máximo 2x mais lento que BTreeMap; pick_eevdf aumentado melhor que linear a partir de n=64."
+
+[[hypothesis]]
+id = "H13"
+source = "v2"
+experiment = "e02-sched-eevdf"
+statement = "O nosso EEVDF reproduz a divisão de CPU e a latência de wakeup do kernel 6.12 do host"
+criterion = "Mesmos cenários no host (threads fixadas numa CPU, nices diferentes, sleeper periódico) e no simulador. Confirmada se shares batem em até 5 pontos percentuais e p50/p99 de latência de wakeup na mesma ordem de grandeza."
+
+[[hypothesis]]
+id = "H14"
+source = "v1"
+experiment = "e05-linux-facts"
+statement = "As constantes do Linux usadas no design (pipe, PIPE_BUF, ELOOP, PATH_MAX, NAME_MAX, pid_max, fatia) batem com o sistema real"
+criterion = "Cada constante medida no host e/ou no container. Confirmada se todas batem; parcial se alguma diverge (listar)."
+
+[[hypothesis]]
+id = "H15"
+source = "v1"
+experiment = "e05-linux-facts"
+statement = "errno e strerror da glibc podem ser reproduzidos byte a byte"
+criterion = "Tabela errno -> nome -> strerror extraída do Linux real e conferida com mensagens reais de cat/ls/mkdir/rm no oráculo."
+
+[[hypothesis]]
+id = "H16"
+source = "v1"
+experiment = "e07-mem-accounting"
+statement = "Contabilidade de memória por processo é possível sem unsafe nosso, com overhead aceitável"
+criterion = "Allocator pronto com grupos por thread: overhead no sort de 1M linhas < 15%, atribuição correta quando A aloca e B libera, latência de detecção de limite estourado."
+
+[[hypothesis]]
+id = "H17"
+source = "v1"
+experiment = "e03-tmpfs-persistent"
+statement = "tmpfs persistente dá snapshot, restore e sandbox nova em O(1)"
+criterion = "Snapshot e restore com custo constante (não cresce de 1k pra 100k arquivos); custo de escrita pós-snapshot proporcional à profundidade, não ao tamanho; memória da imagem compartilhada entre sandboxes."
+
+[[hypothesis]]
+id = "H18"
+source = "v1"
+experiment = "e04-hostfs-escape"
+statement = "openat2 com RESOLVE_BENEATH ou cap-std impedem qualquer fuga do hostfs"
+criterion = "Zero fugas na suíte (inclusive corrida de troca de diretório por symlink com 1M tentativas) pra cada candidato; errno igual ao Linux."
+
+[[hypothesis]]
+id = "H19"
+source = "v1"
+experiment = "e06-isolation"
+statement = "disallowed_methods garante isolamento em tempo de compilação"
+criterion = "Refutada se uma dependência que chama std::fs passa pelo clippy do crate que a usa."
+
+[[hypothesis]]
+id = "H20"
+source = "v2"
+experiment = "e06-isolation"
+statement = "forbid(unsafe_code) pega todo unsafe nosso, inclusive gerado por macro"
+criterion = "Testa unsafe escrito à mão, gerado por macro_rules! de outro crate e gerado por proc macro de outro crate."
+
+[[hypothesis]]
+id = "H21"
+source = "v2"
+experiment = "e06-isolation"
+statement = "Landlock e seccomp por thread isolam o pseudo-processo sem afetar o resto do host"
+criterion = "Thread restrita leva EACCES/EPERM, thread vizinha não, thread filha herda, diretório montado continua acessível; overhead por syscall medido."
+
+[[hypothesis]]
+id = "H22"
+source = "v1"
+experiment = "e08-agent-corpus"
+statement = "Agentes escrevem bash sofisticado, mas o conjunto de comandos e recursos é concentrado o bastante pra priorizar"
+criterion = "Corpus real: quantos comandos distintos cobrem 90% e 99% das invocações; frequência de recursos de shell; fração que o brush-parser parseia."
+
+[[hypothesis]]
+id = "H23"
+source = "v2"
+experiment = "f01-regex"
+statement = "Existe motor de regex em Rust puro com semântica POSIX do GNU"
+criterion = "Concordância de match, span e submatch com o GNU nas suítes spencer/bre/ere e nas regexes do corpus de agente. Confirmada se algum candidato concorda em 100% (ou com divergências só em extensões raras e documentadas)."
+
+[[hypothesis]]
+id = "H24"
+source = "v1"
+experiment = "f02-grep-sed"
+statement = "As crates do ripgrep dão um grep GNU-compatível com um front-end de flags"
+criterion = "Conformidade do grep montado com grep-searcher/grep-matcher contra o golden de grep."
+
+[[hypothesis]]
+id = "H25"
+source = "v1"
+experiment = "f02-grep-sed"
+statement = "Existe sed em Rust adotável (uutils/sed, sed-rs)"
+criterion = "Conformidade de cada candidato no golden de sed e esforço pra rodar sobre bytes em memória."
+
+[[hypothesis]]
+id = "H26"
+source = "v1"
+experiment = "f04-awk-jq"
+statement = "Nenhum awk em Rust chega perto do gawk; precisa de interpretador próprio"
+criterion = "Conformidade de cada candidato no golden de awk (casos de agente + subconjunto da suíte do gawk). Confirmada se nenhum passa de 80% estrito."
+
+[[hypothesis]]
+id = "H27"
+source = "v1"
+experiment = "f04-awk-jq"
+statement = "jaq tem compatibilidade alta com o jq real"
+criterion = "jq.test do jq 1.7.1 e casos de agente: taxa de saída igual; listar divergências por classe (erros, números, regex)."
+
+[[hypothesis]]
+id = "H28"
+source = "v1"
+experiment = "f06-coreutils-find"
+statement = "uutils compila quase sem alteração trocando std::fs por um shim sysio"
+criterion = "Porte real de cat, sort, ls, head e wc: linhas alteradas, bloqueios (uucore global, libc), conformidade depois do porte."
+
+[[hypothesis]]
+id = "H29"
+source = "v1"
+experiment = "f06-coreutils-find"
+statement = "uutils/findutils serve de ponto de partida pra find e xargs"
+criterion = "Esforço pra rodar find sobre FS em memória e conformidade no golden de find."
+
+[[hypothesis]]
+id = "H30"
+source = "v1"
+experiment = "f08-files-formats"
+statement = "similar gera unified diff idêntico ao GNU"
+criterion = "Byte a byte contra diff -u num corpus com empates de alinhamento, arquivos sem newline final e binários."
+
+[[hypothesis]]
+id = "H31"
+source = "v1"
+experiment = "f08-files-formats"
+statement = "As crates de compressão e arquivo servem em Rust puro e interoperam com as ferramentas GNU"
+criterion = "Matriz de interoperabilidade nos dois sentidos com gzip, bzip2, xz, zstd, tar (ustar, gnu, pax) e zip do oráculo; depscan sem C."
+
+[[hypothesis]]
+id = "H32"
+source = "v1"
+experiment = "f08-files-formats"
+statement = "date com formatos e parsing do GNU sai de crates prontas"
+criterion = "Conformidade de +FORMAT e de date -d com faketime e TZ fixos."
+
+[[hypothesis]]
+id = "H33"
+source = "v1"
+experiment = "f08-files-formats"
+statement = "bc, file, yq e csv têm crate que encaixa"
+criterion = "Conformidade de cada candidato no golden correspondente."
+
+[[hypothesis]]
+id = "H34"
+source = "v1"
+experiment = "f12-net-sqlite-git"
+statement = "curl/wget sobre ureq aplicam a allowlist num ponto só, sem tokio"
+criterion = "Servidor local: permitido passa, negado não conecta, DNS pra IP privado bloqueado, redirect pra negado bloqueado; cargo tree sem tokio."
+
+[[hypothesis]]
+id = "H35"
+source = "v1"
+experiment = "f12-net-sqlite-git"
+statement = "rusqlite permite registrar VFS próprio e o banco mora no sandbox"
+criterion = "Compara rusqlite serialize, rusqlite + sqlite-plugin e turso: API segura, corpus SQL contra sqlite3, interoperabilidade de arquivo nos dois sentidos."
+
+[[hypothesis]]
+id = "H36"
+source = "v1"
+experiment = "f12-net-sqlite-git"
+statement = "gix aceita customizar o acesso ao repositório"
+criterion = "Tenta gix alto nível sobre FS em memória; protótipo com gix-* baixo nível validado por git fsck no oráculo."
+
+[[hypothesis]]
+id = "H37"
+source = "v1"
+experiment = "f15-shell-tty-interp"
+statement = "brush serve de base pro shell, adaptando a execução ao Ctx"
+criterion = "brush-parser contra bash -n (aceita/rejeita igual) no corpus; depscan e esforço de fork do brush-core."
+
+[[hypothesis]]
+id = "H38"
+source = "v1"
+experiment = "f15-shell-tty-interp"
+statement = "reedline serve pra histórico e edição no shell interativo"
+criterion = "Refutada se reedline não aceita I/O próprio; testa termwiz e noline sobre pty em memória com sequência de teclas."
+
+[[hypothesis]]
+id = "H39"
+source = "v1"
+experiment = "f15-shell-tty-interp"
+statement = "Python, Lua e JS embutíveis com todo I/O passando pelo kernel"
+criterion = "Pra Monty, RustPython, boa, rquickjs, piccolo e mlua: dá pra negar todo I/O de host e oferecer o nosso? startup, tamanho, corpus de one-liners."
+
+[[hypothesis]]
+id = "H41"
+source = "v2"
+experiment = "e02-sched-eevdf"
+statement = "EEVDF hierárquico (group scheduling) divide CPU entre usuários e sandboxes pelo peso do grupo, independente de quantos processos cada um roda"
+criterion = "Mesmos cenários no simulador e no kernel do host com cgroups v2 reais (systemd-run --user --scope -p CPUWeight): grupo com 1 laço contra grupo com 8 laços, pesos 100/100 e 100/300, hierarquia usuário > sandbox > processo, em 1 e 2 CPUs. Confirmada se as divisões batem em até 5 pontos percentuais."
+
+[[hypothesis]]
+id = "H42"
+source = "v2"
+experiment = "e02-sched-eevdf"
+statement = "Controle de banda (cpu.max: quota/período) limita um usuário guloso a uma fração fixa de CPU, com o mesmo padrão de throttling do Linux"
+criterion = "Grupo com quota de 20% e 50% (período de 100 ms), sozinho e competindo com outro grupo, no simulador e no kernel do host (-p CPUQuota). Confirmada se a fração de CPU bate em até 2 pontos percentuais e o padrão roda/estrangula por período é o mesmo."
+
+[[hypothesis]]
+id = "H40"
+source = "v2"
+experiment = "f15-shell-tty-interp"
+statement = "Projetos existentes (bashkit e afins) já cobrem parte relevante do plano"
+criterion = "bashkit e afins rodando os casos script do golden: taxa por área (shell, coreutils, grep/sed/awk, jq)."

@@ -1,0 +1,19 @@
+[package]
+name = "f15-baseline-wasmsh"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F15/H40: wasmsh-runtime (shell cooperativo com VFS, feito pra browser e Pyodide) como linha de base"
+
+[dependencies]
+f15-baseline-common = { path = "../common" }
+harness = { path = "../../../../crates/harness" }
+anyhow = "1"
+wasmsh-runtime = "=0.9.0"
+# Tipos do protocolo (HostCommand, WorkerEvent): a única API de embutir que o WorkerRuntime expõe.
+wasmsh-protocol = "=0.9.0"
+
+[lints.rust]
+unsafe_code = "forbid"

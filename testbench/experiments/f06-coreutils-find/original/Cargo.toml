@@ -1,0 +1,20 @@
+[package]
+name = "uu-original"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "Multicall com os utilitários originais (sem porte) do uutils 0.12.0 e do findutils 0.10.0, pra medir a fidelidade deles no oráculo"
+
+[dependencies]
+uu_cat = "=0.12.0"
+uu_sort = "=0.12.0"
+uu_ls = "=0.12.0"
+uu_head = "=0.12.0"
+uu_wc = "=0.12.0"
+uucore = "=0.12.0"
+findutils = "=0.10.0"
+
+[lints.rust]
+unsafe_code = "forbid"

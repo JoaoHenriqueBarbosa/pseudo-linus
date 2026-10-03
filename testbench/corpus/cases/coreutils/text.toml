@@ -1,0 +1,124 @@
+tool = "coreutils"
+source = "agent-style"
+
+# cut, tr e uniq: filtros de texto que aparecem em pipeline de agente.
+
+[[case]]
+id = "uniq-basic"
+argv = ["uniq", "in.txt"]
+tags = ["uniq"]
+[case.files]
+"in.txt" = "a\na\nb\na\n"
+
+[[case]]
+id = "uniq-c"
+argv = ["uniq", "-c", "in.txt"]
+tags = ["uniq"]
+[case.files]
+"in.txt" = "a\na\nb\nc\nc\nc\n"
+
+[[case]]
+id = "uniq-d"
+argv = ["uniq", "-d", "in.txt"]
+tags = ["uniq"]
+[case.files]
+"in.txt" = "a\na\nb\nc\nc\n"
+
+[[case]]
+id = "uniq-u"
+argv = ["uniq", "-u", "in.txt"]
+tags = ["uniq"]
+[case.files]
+"in.txt" = "a\na\nb\nc\nc\n"
+
+[[case]]
+id = "uniq-i"
+argv = ["uniq", "-ci", "in.txt"]
+tags = ["uniq"]
+[case.files]
+"in.txt" = "Erro\nerro\nERRO\nok\n"
+
+[[case]]
+id = "cut-d-f"
+argv = ["cut", "-d,", "-f2", "in.csv"]
+tags = ["cut"]
+[case.files]
+"in.csv" = "nome,idade,cidade\nana,30,Recife\nbia,25,Natal\n"
+
+[[case]]
+id = "cut-f-multi-tab"
+argv = ["cut", "-f1,3", "in.tsv"]
+tags = ["cut"]
+[case.files]
+"in.tsv" = "a\tb\tc\n1\t2\t3\nsó-um\n"
+
+[[case]]
+id = "cut-c-range"
+argv = ["cut", "-c1-3", "in.txt"]
+tags = ["cut"]
+[case.files]
+"in.txt" = "abcdef\nxy\n"
+
+[[case]]
+id = "cut-passwd"
+argv = ["cut", "-d:", "-f1,7", "passwd"]
+tags = ["cut"]
+[case.files]
+"passwd" = "root:x:0:0:root:/root:/bin/bash\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n"
+
+[[case]]
+id = "cut-complement"
+argv = ["cut", "-d,", "--complement", "-f2", "in.csv"]
+tags = ["cut"]
+[case.files]
+"in.csv" = "a,b,c\n1,2,3\n"
+
+[[case]]
+id = "cut-f-open-range"
+argv = ["cut", "-d", " ", "-f2-", "in.txt"]
+tags = ["cut"]
+[case.files]
+"in.txt" = "INFO servidor subiu na porta 8080\n"
+
+[[case]]
+id = "tr-upper"
+argv = ["tr", "a-z", "A-Z"]
+stdin = "olá mundo\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-d-cr"
+argv = ["tr", "-d", "\\r"]
+stdin = "linha\r\noutra\r\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-s-spaces"
+argv = ["tr", "-s", " "]
+stdin = "a    b  c\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-cd-alnum"
+argv = ["tr", "-cd", "[:alnum:]\\n"]
+stdin = "a-b_c!1 2\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-newline-to-comma"
+argv = ["tr", "\\n", ","]
+stdin = "a\nb\nc\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-class-upper"
+argv = ["tr", "[:lower:]", "[:upper:]"]
+stdin = "abc xyz\n"
+tags = ["tr"]
+
+[[case]]
+id = "cut-sort-uniq-pipeline"
+script = "cut -d' ' -f1 access.log | sort | uniq -c | sort -rn"
+tags = ["cut", "uniq", "pipeline"]
+[case.files]
+"access.log" = "10.0.0.1 GET /\n10.0.0.2 GET /a\n10.0.0.1 POST /b\n10.0.0.3 GET /\n10.0.0.1 GET /c\n"

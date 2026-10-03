@@ -1,0 +1,266 @@
+{
+  "awk-concat-precedence": {
+    "stdout": "1 5 0 a1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-concat-vs-comma": {
+    "stdout": "ab\na b\na b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-gensub": {
+    "stdout": "12:abc 34:def\nfo0 boo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-gsub-ampersand": {
+    "stdout": "a<1>b<22>c<333>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-gsub-anchor": {
+    "stdout": "Xaa\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-gsub-count": {
+    "stdout": "3 bAnAnA\n0 xyz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-gsub-double-backslash": {
+    "stdout": "a\\xb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-gsub-empty-regex-matches": {
+    "stdout": "-a-b-c-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-gsub-escaped-ampersand": {
+    "stdout": "salt & pepper\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-gsub-field-rebuild": {
+    "stdout": "f00 boo zoo\nboo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-index": {
+    "stdout": "4 0 0 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-index-substr-extract": {
+    "stdout": "PATH|/usr/bin:/bin\nEMPTY|\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-length-forms": {
+    "stdout": "11 11 5\n0 0 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-match-array-capture": {
+    "stdout": "/api/users 1200 3\n/b 3 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-match-rstart-rlength": {
+    "stdout": "30 7 1200\nno 0 -1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-backref-not-supported": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-bracket-specials": {
+    "stdout": "1:]\n2:bx\n1:ax\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-char-classes": {
+    "stdout": "Alice\nDAVE\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-dot-matches-newline-in-string": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-dynamic-string-escape": {
+    "stdout": "app.log\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-escaped-dot": {
+    "stdout": "a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-interval": {
+    "stdout": "555-1234\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-leftmost-longest-match": {
+    "stdout": "2 6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-leftmost-longest-split": {
+    "stdout": "3 b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-leftmost-longest-sub": {
+    "stdout": "Xa\nYar\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-plus-literal-start": {
+    "stdout": "1\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-slash-in-class": {
+    "stdout": "_usr_local_bin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-word-boundary-gnu": {
+    "stdout": "THE other then THE\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-split-char-sep": {
+    "stdout": "3 2026 1 15\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-split-default": {
+    "stdout": "3 [a] [c]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-split-dot-literal": {
+    "stdout": "4 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-split-empty-sep-chars": {
+    "stdout": "3 a c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-split-regex-sep": {
+    "stdout": "4\n1 [a]\n2 [b]\n3 [c]\n4 []\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-split-seps-array": {
+    "stdout": "3 b 1 22\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-sprintf-repeat-char": {
+    "stdout": "----------\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-string-concat-trim-comma": {
+    "stdout": "a,b,c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-strtonum": {
+    "stdout": "26 15 12\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-sub-first": {
+    "stdout": "info a INFO\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-sub-special-chars-replacement": {
+    "stdout": "key => value=x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-sub-var-target": {
+    "stdout": "[trailing]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-substr": {
+    "stdout": "hello|world|hel|hel||he\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-tolower-toupper": {
+    "stdout": "hello world 42\nHELLO\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-trim-both": {
+    "stdout": "[both sides]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-utf8-length-substr": {
+    "stdout": "9 olá OLÁ MUNDO 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

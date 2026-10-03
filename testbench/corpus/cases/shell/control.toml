@@ -1,0 +1,316 @@
+tool = "shell"
+source = "agent-style"
+
+# Controle de fluxo, funções, local, subshell e grupo, códigos de saída, PIPESTATUS.
+
+[[case]]
+id = "if-elif-else-test-forms"
+script = '''
+for v in 1 5 10; do
+  if [ "$v" -lt 3 ]; then echo "$v pequeno"
+  elif test "$v" -le 5; then echo "$v médio"
+  else echo "$v grande"; fi
+done
+[ -f arq.txt ] && echo existe
+[ ! -d arq.txt ] && echo "não é dir"
+[ -z "" ] && [ -n "x" ] && echo strings-ok
+[ "abc" = "abc" ] && [ "a" != "b" ] && echo eq-ok
+[ -s arq.txt ] && [ -r arq.txt ] && [ -e link ] && [ -L link ] && echo fs-ok
+'''
+tags = ["if", "test"]
+[case.files]
+"arq.txt" = "conteúdo\n"
+"link" = { symlink = "arq.txt" }
+
+[[case]]
+id = "dbracket-regex-and-patterns"
+script = '''
+s="version-1.2.3-beta"
+if [[ $s =~ ([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+  echo "match=${BASH_REMATCH[0]} major=${BASH_REMATCH[1]} n=${#BASH_REMATCH[@]}"
+fi
+re='^[a-z]+-[0-9]'
+[[ $s =~ $re ]] && echo "var-regex ok"
+[[ $s =~ "1.2" ]] && echo "quoted literal ok"
+[[ $s == version-* ]] && echo glob-ok
+[[ $s == "version-*" ]] || echo "quoted não é glob"
+[[ -n $s && ( $s == *beta || $s == *alpha ) ]] && echo grouping-ok
+[[ "b" > "a" ]] && echo lexico-ok
+[[ 10 -gt 9 ]] && echo num-ok
+x=""; [[ -z $x ]] && echo "sem aspas ok"
+'''
+tags = ["dbracket", "regex"]
+
+[[case]]
+id = "dbracket-regex-invalid"
+script = '''
+[[ abc =~ ( ]]
+echo "rc=$?"
+'''
+tags = ["dbracket", "regex", "errors"]
+
+[[case]]
+id = "case-patterns"
+script = '''
+for f in a.txt b.TXT img.png Makefile x "com espaço"; do
+  case "$f" in
+    *.txt|*.TXT) echo "$f: texto" ;;
+    *.png) echo "$f: imagem" ;;
+    [A-Z]*) echo "$f: maiúscula" ;;
+    *" "*) echo "$f: espaço" ;;
+    *) echo "$f: outro" ;;
+  esac
+done
+case x in x) echo um ;& y) echo fallthrough ;; z) echo nunca ;; esac
+case ab in a*) echo primeiro ;;& *b) echo segundo ;;& *) echo terceiro ;; esac
+'''
+tags = ["case"]
+
+[[case]]
+id = "loops-break-continue"
+script = '''
+for i in 1 2 3 4 5 6; do
+  (( i == 2 )) && continue
+  (( i == 5 )) && break
+  echo "for $i"
+done
+n=0
+while true; do n=$((n + 1)); [ $n -ge 3 ] && break; done; echo "while $n"
+until [ $n -le 0 ]; do n=$((n - 1)); done; echo "until $n"
+for i in 1 2; do for j in a b c; do [ $j = b ] && continue 2; echo "$i$j"; done; done
+for x; do echo "nunca"; done
+set -- p q; for x; do echo "pos $x"; done
+'''
+tags = ["loops"]
+
+[[case]]
+id = "while-read-file-and-ifs"
+script = '''
+while IFS=, read -r name age city; do
+  echo "$name tem $age anos ($city)"
+done < pessoas.csv
+while read -r line || [ -n "$line" ]; do echo "[$line]"; done < sem_nl_final.txt
+count=0
+while read -r _; do count=$((count + 1)); done < pessoas.csv
+echo "linhas: $count"
+'''
+tags = ["read", "loops", "ifs"]
+[case.files]
+"pessoas.csv" = "ana,30,Recife\nbeto,25,São Paulo\n"
+"sem_nl_final.txt" = "a\nb"
+
+[[case]]
+id = "read-options"
+script = '''
+read -r a <<< 'barra\invertida'; echo "$a"
+read a <<< 'barra\invertida'; echo "$a"
+read -ra arr <<< "um dois três"; echo "${#arr[@]} ${arr[1]}"
+read -d ';' x <<< "antes;depois"; echo "$x"
+read -n 3 y <<< "abcdef"; echo "$y"
+IFS= read -r z <<< "  espaços  "; echo "[$z]"
+read -r w <<< "  espaços  "; echo "[$w]"
+read nada < /dev/null; echo "rc=$? [$nada]"
+'''
+tags = ["read"]
+
+[[case]]
+id = "pipe-into-while-subshell"
+script = '''
+total=0
+printf '1\n2\n3\n' | while read -r n; do total=$((total + n)); done
+echo "fora do pipe: $total"
+shopt -s lastpipe
+set +m
+printf '1\n2\n3\n' | while read -r n; do total=$((total + n)); done
+echo "lastpipe: $total"
+'''
+tags = ["pipeline", "read", "subshell"]
+
+[[case]]
+id = "functions-local-return"
+script = '''
+contador=0
+inc() { local passo=${1:-1}; contador=$((contador + passo)); return 3; }
+inc 5; echo "rc=$? contador=$contador"
+outer() { local x=outer; inner; echo "outer vê $x"; }
+inner() { echo "inner vê $x"; x=mudado; }
+x=global; outer; echo "global $x"
+function com_keyword { echo "args=$# primeiro=$1"; }
+com_keyword a "b c"
+fat() { (( $1 <= 1 )) && { echo 1; return; }; echo $(( $1 * $(fat $(( $1 - 1 ))) )); }
+fat 10
+f() { local -a arr=(1 2 3); local -A m=([k]=v); echo "${#arr[@]} ${m[k]}"; }; f
+declare -f inc | head -2
+'''
+tags = ["functions", "local", "recursion"]
+
+[[case]]
+id = "functions-dynamic-scope-and-unset"
+script = '''
+f() { local v=f; g; }
+g() { echo "g vê ${v:-nada}"; unset v; echo "após unset ${v:-nada}"; }
+v=global; f; echo "global: $v"
+h() { echo "$FUNCNAME ${#FUNCNAME[@]}"; }; h
+type h | head -1
+unset -f h; type h 2>&1
+'''
+tags = ["functions", "local"]
+
+[[case]]
+id = "subshell-vs-group"
+script = '''
+x=1
+( x=2; echo "sub $x"; exit 7 ); echo "rc=$? x=$x"
+{ x=3; echo "grupo $x"; }; echo "x=$x"
+(cd /tmp && pwd); pwd
+{ echo a; echo b; } | wc -l
+( echo erro >&2 ) 2>&1 | tr a-z A-Z
+echo "$BASH_SUBSHELL $(echo $BASH_SUBSHELL) $( (echo $BASH_SUBSHELL) )"
+'''
+tags = ["subshell", "group"]
+
+[[case]]
+id = "exit-status-and-pipestatus"
+script = '''
+true; echo "true=$?"
+false; echo "false=$?"
+! false; echo "neg=$?"
+false | true; echo "pipe=$? ps=${PIPESTATUS[*]}"
+true | false | true; echo "ps=${PIPESTATUS[@]} n=${#PIPESTATUS[@]}"
+(exit 300); echo "300->$?"
+(exit -1); echo "-1->$?"
+naoexiste 2>/dev/null; echo "cnf=$?"
+./sem_permissao 2>/dev/null; echo "noexec=$?"
+'''
+tags = ["exit-status", "pipestatus"]
+[case.files]
+"sem_permissao" = { content = "#!/bin/sh\necho oi\n", mode = 0o644 }
+
+[[case]]
+id = "and-or-lists"
+script = '''
+true && echo a || echo b
+false && echo c || echo d
+false || false || echo e
+true && false && echo f; echo "rc=$?"
+[ 1 -eq 1 ] && { echo g; false; } || echo h
+'''
+tags = ["and-or"]
+
+[[case]]
+id = "command-not-found-message"
+script = '''
+comando_que_nao_existe --flag
+echo "rc=$?"
+/caminho/absoluto/inexistente
+echo "rc=$?"
+'''
+tags = ["errors", "exit-status"]
+
+[[case]]
+id = "syntax-error-message"
+script = '''
+echo antes
+eval 'if then fi'
+echo "rc=$?"
+bash -c 'for x in; do'
+echo "rc=$?"
+'''
+tags = ["errors", "syntax"]
+
+[[case]]
+id = "getopts-loop"
+script = '''
+parse() {
+  local OPTIND opt verbose=0 out=""
+  while getopts ":vo:h" opt; do
+    case $opt in
+      v) verbose=1 ;;
+      o) out=$OPTARG ;;
+      h) echo "uso"; return 0 ;;
+      :) echo "faltou arg pra -$OPTARG"; return 2 ;;
+      \?) echo "opção inválida -$OPTARG"; return 2 ;;
+    esac
+  done
+  shift $((OPTIND - 1))
+  echo "verbose=$verbose out=$out resto=$*"
+}
+parse -v -o saida.txt a b
+parse -vo x
+parse -x
+parse -o
+getopts "a" o -a; echo "sem silêncio: $o"
+'''
+tags = ["getopts", "functions"]
+
+[[case]]
+id = "shift-set-positional"
+script = '''
+set -- a b c d e
+echo "$# $1"
+shift; echo "$# $1"
+shift 2; echo "$# $*"
+shift 5; echo "rc=$? $#"
+set -- "x y" z
+for a in "$@"; do echo "[$a]"; done
+for a in $*; do echo "<$a>"; done
+IFS=-; echo "$*"; unset IFS
+set --; echo "vazio=$#"
+'''
+tags = ["positional"]
+
+[[case]]
+id = "eval-and-source"
+script = '''
+cmd='echo "eval: $((1 + 2))"'
+eval "$cmd"
+var=nome; eval "$var=valor"; echo "$nome"
+source ./lib.sh
+. ./lib.sh arg1
+echo "$LIB_LOADED $(helper)"
+'''
+tags = ["eval", "source"]
+[case.files]
+"lib.sh" = "LIB_LOADED=sim\nhelper() { echo \"helper com ${1:-sem arg}\"; }\n[ -n \"$1\" ] && echo \"source recebeu $1\"\n"
+
+[[case]]
+id = "type-command-v"
+script = '''
+command -v echo cd ls
+type -t echo ls if f 2>/dev/null; f() { :; }; type -t f
+command -v naoexiste; echo "rc=$?"
+hash -r; type -P sort
+'''
+tags = ["builtins"]
+
+[[case]]
+id = "cd-pwd-dirstack"
+script = '''
+mkdir -p a/b/c
+cd a/b && pwd && cd .. && pwd
+cd - >/dev/null && pwd
+cd /work/case
+cd naoexiste; echo "rc=$?"
+OLDPWD=/tmp; cd -; pwd
+cd /work/case; pushd a >/dev/null; pushd b >/dev/null; dirs; popd >/dev/null; pwd
+'''
+tags = ["cd", "builtins"]
+
+[[case]]
+id = "declare-p-and-attributes"
+script = '''
+declare -i n=10
+declare -r ro=fixo
+declare -x exp=sim
+declare -a idx=(a "b c" [5]=f)
+declare -A assoc=([chave]=valor)
+declare -l lower=MiXeD
+declare -u upper=MiXeD
+s="texto com 'aspas'"
+declare -p n ro exp idx assoc lower upper s
+ro=outro
+echo "rc=$?"
+declare -p naoexiste
+echo "rc=$?"
+'''
+tags = ["declare", "arrays", "assoc-arrays"]

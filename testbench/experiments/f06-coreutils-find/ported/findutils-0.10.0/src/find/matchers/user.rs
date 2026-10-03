@@ -1,0 +1,127 @@
+// This file is part of the uutils findutils package.
+//
+// For the full copyright and license information, please view the LICENSE
+// file that was distributed with this source code.
+
+use super::{ComparableValue, Matcher, MatcherIO, WalkEntry};
+
+// Porte pseudo-linus: usuários do /etc/passwd do VFS (uucore::entries portado), não `nix` (NSS do host).
+#[cfg(unix)]
+use sysio::os::unix::fs::MetadataExt;
+#[cfg(unix)]
+use uucore::entries::{uid2usr, usr2uid};
+
+pub struct UserMatcher {
+    // Only read on Unix; the non-Unix `matches` implementation is a stub.
+    #[cfg_attr(not(unix), allow(dead_code))]
+    uid: ComparableValue,
+}
+
+impl UserMatcher {
+    #[cfg(unix)]
+    pub fn from_user_name(user: &str) -> Option<Self> {
+        // get uid from user name
+        let uid = usr2uid(user).ok()?;
+        Some(Self::from_uid(uid))
+    }
+
+    pub fn from_uid(uid: u32) -> Self {
+        Self::from_comparable(ComparableValue::EqualTo(uid as u64))
+    }
+
+    pub fn from_comparable(uid: ComparableValue) -> Self {
+        Self { uid }
+    }
+
+    #[cfg(not(unix))]
+    pub fn from_user_name(_user: &str) -> Option<Self> {
+        None
+    }
+}
+
+impl Matcher for UserMatcher {
+    #[cfg(unix)]
+    fn matches(&self, file_info: &WalkEntry, _: &mut MatcherIO) -> bool {
+        match file_info.metadata() {
+            Ok(metadata) => self.uid.matches(metadata.uid().into()),
+            Err(_) => false,
+        }
+    }
+
+    #[cfg(not(unix))]
+    fn matches(&self, _file_info: &WalkEntry, _: &mut MatcherIO) -> bool {
+        false
+    }
+}
+
+pub struct NoUserMatcher {}
+
+impl Matcher for NoUserMatcher {
+    #[cfg(unix)]
+    fn matches(&self, file_info: &WalkEntry, _: &mut MatcherIO) -> bool {
+        if sysio::fs::is_symlink(file_info.path()) {
+            return false;
+        }
+
+        let Ok(metadata) = file_info.metadata() else {
+            return true;
+        };
+
+        uid2usr(metadata.uid()).is_err()
+    }
+
+    #[cfg(not(unix))]
+    fn matches(&self, _file_info: &WalkEntry, _: &mut MatcherIO) -> bool {
+        false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    #[cfg(unix)]
+    fn test_user_matcher() {
+        use crate::find::matchers::{tests::get_dir_entry_for, user::UserMatcher, Matcher};
+        use crate::find::tests::FakeDependencies;
+        use chrono::Local;
+        use nix::unistd::{Uid, User};
+        use std::fs::File;
+        use std::os::unix::fs::MetadataExt;
+        use tempfile::Builder;
+
+        let deps = FakeDependencies::new();
+        let mut matcher_io = deps.new_matcher_io();
+
+        let temp_dir = Builder::new().prefix("user_matcher").tempdir().unwrap();
+        let foo_path = temp_dir.path().join("foo");
+        let _ = File::create(foo_path).expect("create temp file");
+        let file_info = get_dir_entry_for(&temp_dir.path().to_string_lossy(), "foo");
+        let file_uid = file_info.metadata().unwrap().uid();
+        let file_user = User::from_uid(Uid::from_raw(file_uid))
+            .unwrap()
+            .unwrap()
+            .name;
+
+        let matcher = UserMatcher::from_user_name(file_user.as_str()).expect("user should exist");
+        assert!(
+            matcher.matches(&file_info, &mut matcher_io),
+            "user should be the same"
+        );
+
+        // Testing a non-existent group name
+        let time_string = Local::now().format("%Y%m%d%H%M%S").to_string();
+        let matcher = UserMatcher::from_user_name(time_string.as_str());
+        assert!(
+            matcher.is_none(),
+            "user {} should not be the same",
+            time_string
+        );
+
+        // Testing user id
+        let matcher = UserMatcher::from_uid(file_uid);
+        assert!(
+            matcher.matches(&file_info, &mut matcher_io),
+            "user id should match"
+        );
+    }
+}

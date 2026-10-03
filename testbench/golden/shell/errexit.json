@@ -1,0 +1,100 @@
+{
+  "errexit-basic-stop": {
+    "stdout": "um\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "errexit-exceptions": {
+    "stdout": "if ok\n|| ok\n&& não sai\n! não sai\nwhile ok\ndentro da função após false (contexto de if)\nf ok\ndentro da função após false (contexto de if)\npipe sem pipefail ok\nfim\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "errexit-in-function-called-from-and": {
+    "stdout": "check ok\ncheck passou ok\ncheck ruim\ncheck passou ruim\nnão imprime\ncontinua: -e ignorado dentro de && \ncheck ruim\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "errexit-local-masks-status": {
+    "stdout": "local mascarou: x=[]\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "errexit-subshell-and-cmdsub": {
+    "stdout": "nunca-sub\nx=cmdsub continua sem inherit_errexit\ny=[nunca]\n",
+    "stderr": "",
+    "exit": 3,
+    "files": {}
+  },
+  "euo-pipefail-agent-script": {
+    "stdout": "porta=8080\n",
+    "stderr": "[deploy] início\n[deploy] temporários: 2\n[deploy] tem porta\n[deploy] limpando\n",
+    "exit": 1,
+    "files": {
+      "config.ini": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "71036ae327c5b8eaaf10da95f44c34f51e332e7839e95a8f10acd895a4479a05",
+        "data": "nome=app\nporta=8080\n"
+      }
+    }
+  },
+  "exit-codes-signals": {
+    "stdout": "kill9=137\nterm=143\n256=0\ntimeout=124\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nounset": {
+    "stdout": "padrão\nvazio: 0\n",
+    "stderr": "bash: line 4: naodefinida: unbound variable\n",
+    "exit": 127,
+    "files": {}
+  },
+  "nounset-array-and-positional": {
+    "stdout": "a\nsem segundo\n",
+    "stderr": "bash: line 5: $2: unbound variable\n",
+    "exit": 127,
+    "files": {}
+  },
+  "pipefail": {
+    "stdout": "sem pipefail: 0\ncom pipefail: 1\núltimo não-zero: 4\ny\nsigpipe com pipefail: 141 141 0\npipefail       \toff\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "trap-err": {
+    "stdout": "ERR na linha 2: false rc=1\ndepois\nERR na linha 5: return 2 rc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "trap-err-errtrace": {
+    "stdout": "ERR em g\nERR em main\nfim\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "trap-exit-in-subshell-and-reset": {
+    "stdout": "no-filho\nfilho-sai\nsubshell herda? 1\nfim\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "trap-exit-order-and-status": {
+    "stdout": "corpo\nEXIT com rc=5\n",
+    "stderr": "",
+    "exit": 5,
+    "files": {}
+  },
+  "trap-signal-self": {
+    "stdout": "pegou-USR1\npegou-TERM\n",
+    "stderr": "",
+    "exit": 143,
+    "files": {}
+  }
+}

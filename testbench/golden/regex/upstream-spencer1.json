@@ -1,0 +1,3950 @@
+{
+  "spencer1-001-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-002-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "4db14750312ae6a208730dc39c551bc1103f9bcfa605b4132046d58bbc88677f",
+        "data": "xbc\n"
+      }
+    }
+  },
+  "spencer1-003-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "3e615ffffdf7b31e29b25855b5e1f9cf6167d6ecd11075d715c951181fa2eacc",
+        "data": "axc\n"
+      }
+    }
+  },
+  "spencer1-004-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "1aa82e97b5b1d1148f173433516e26a89a8b2cf9df8ece72664288c6d1553156",
+        "data": "abx\n"
+      }
+    }
+  },
+  "spencer1-005-grep-o": {
+    "stdout": "1:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "7687cc57fb036c150fd6ab067bdd21d540b6517d10380b2b9fb97b65a35dd1a8",
+        "data": "xabcy\n"
+      }
+    }
+  },
+  "spencer1-006-grep-o": {
+    "stdout": "2:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "cc9d5d850d6fc0be13d72156ff887d1299ad40462383cca324c1dd0ae4b11d56",
+        "data": "ababc\n"
+      }
+    }
+  },
+  "spencer1-007-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-008-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-009-grep-o": {
+    "stdout": "0:abbc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "57573d4e1c25490ebd294fcef9573c8d95dd6f632a363e440d59c43f92b67218",
+        "data": "abbc\n"
+      }
+    }
+  },
+  "spencer1-010-grep-o": {
+    "stdout": "0:abbbbc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "5e052cc8bdd3e7ef19831b9e56024e37d5188859d6e9aa608cf69e8aade5744a",
+        "data": "abbbbc\n"
+      }
+    }
+  },
+  "spencer1-011-grep-o": {
+    "stdout": "0:abbc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "57573d4e1c25490ebd294fcef9573c8d95dd6f632a363e440d59c43f92b67218",
+        "data": "abbc\n"
+      }
+    }
+  },
+  "spencer1-012-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-013-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "d8a71ae3782943dcc1716ce6e968acf18f20ba700ea47ef210860c1867f8659b",
+        "data": "abq\n"
+      }
+    }
+  },
+  "spencer1-014-grep-o": {
+    "stdout": "0:abbbbc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "5e052cc8bdd3e7ef19831b9e56024e37d5188859d6e9aa608cf69e8aade5744a",
+        "data": "abbbbc\n"
+      }
+    }
+  },
+  "spencer1-015-grep-o": {
+    "stdout": "0:abbc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "57573d4e1c25490ebd294fcef9573c8d95dd6f632a363e440d59c43f92b67218",
+        "data": "abbc\n"
+      }
+    }
+  },
+  "spencer1-016-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-017-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "5e052cc8bdd3e7ef19831b9e56024e37d5188859d6e9aa608cf69e8aade5744a",
+        "data": "abbbbc\n"
+      }
+    }
+  },
+  "spencer1-018-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-019-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-020-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "0d944361a3bb3c07e4cff7923fe039da1bc1317d4e8b5e937004ecb724b3efa4",
+        "data": "abcc\n"
+      }
+    }
+  },
+  "spencer1-021-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "0d944361a3bb3c07e4cff7923fe039da1bc1317d4e8b5e937004ecb724b3efa4",
+        "data": "abcc\n"
+      }
+    }
+  },
+  "spencer1-022-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "6a3bafe0ba9667407a35ba0d980c1a332b2db7415abd622ac3f3819022679aea",
+        "data": "aabc\n"
+      }
+    }
+  },
+  "spencer1-023-grep-o": {
+    "stdout": "1:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "6a3bafe0ba9667407a35ba0d980c1a332b2db7415abd622ac3f3819022679aea",
+        "data": "aabc\n"
+      }
+    }
+  },
+  "spencer1-024-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-025-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-026-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-027-grep-o": {
+    "stdout": "0:axc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "3e615ffffdf7b31e29b25855b5e1f9cf6167d6ecd11075d715c951181fa2eacc",
+        "data": "axc\n"
+      }
+    }
+  },
+  "spencer1-028-grep-o": {
+    "stdout": "0:axyzc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f6af13fae220dcf8cf39e9861e7fd3cc2a5ddb763b7323ada9b5f8b02c60e645",
+        "data": "axyzc\n"
+      }
+    }
+  },
+  "spencer1-029-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "19d290142026d54ad3fc103ccbc764cb8956d94a5f9807dfe2dc65267a6879e5",
+        "data": "axyzd\n"
+      }
+    }
+  },
+  "spencer1-030-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-031-grep-o": {
+    "stdout": "0:abd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "b10bd3130c1c0c13552e64356445290992346ad995cc5c1388a1e6150bc21c07",
+        "data": "abd\n"
+      }
+    }
+  },
+  "spencer1-032-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "b10bd3130c1c0c13552e64356445290992346ad995cc5c1388a1e6150bc21c07",
+        "data": "abd\n"
+      }
+    }
+  },
+  "spencer1-033-grep-o": {
+    "stdout": "0:ace\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "227b2b66d11d39b0cf37a103e266f088d7fd7edac0103367287139ca8e3b9218",
+        "data": "ace\n"
+      }
+    }
+  },
+  "spencer1-034-grep-o": {
+    "stdout": "1:ac\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c4e0ae1067d1ee736e051d7927d783bb70b032bf116f618454bf47122956d5ce",
+        "data": "aac\n"
+      }
+    }
+  },
+  "spencer1-035-grep-o": {
+    "stdout": "0:a-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "d03cab59223d9045b35f42b248e93139f5046b7fb5ceb6f6011e33da096b51b5",
+        "data": "a-\n"
+      }
+    }
+  },
+  "spencer1-036-grep-o": {
+    "stdout": "0:a-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "d03cab59223d9045b35f42b248e93139f5046b7fb5ceb6f6011e33da096b51b5",
+        "data": "a-\n"
+      }
+    }
+  },
+  "spencer1-037-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Invalid range end\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-038-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched [, [^, [:, [., or [=\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-039-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Invalid regular expression\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-040-grep-o": {
+    "stdout": "0:a]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "5a6a4b815ce1867d73d994550f3c40dd94a20d91859e357b85b4731b4c3edf8c",
+        "data": "a]\n"
+      }
+    }
+  },
+  "spencer1-041-grep-o": {
+    "stdout": "0:a]b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "4578f45e959826e13785dc09282a0d29aa6a8302c29410f7958e11d4d2fe0bd8",
+        "data": "a]b\n"
+      }
+    }
+  },
+  "spencer1-042-grep-o": {
+    "stdout": "0:aed\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a70381ccd8dd5a2f5ddadc220a0fb2c2f6ecb5b4cdaef9c49aa15ae60b11b333",
+        "data": "aed\n"
+      }
+    }
+  },
+  "spencer1-043-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "b10bd3130c1c0c13552e64356445290992346ad995cc5c1388a1e6150bc21c07",
+        "data": "abd\n"
+      }
+    }
+  },
+  "spencer1-044-grep-o": {
+    "stdout": "0:adc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "f2ab83ec5a29f56c2cbf98f9f70265d4db2e07f7462c44a9a82e1393b57641ec",
+        "data": "adc\n"
+      }
+    }
+  },
+  "spencer1-045-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "424b9a7b8b38124eb11e3fa0ae38d7302e3fd33108360c9bcc3c93c444dbb9ec",
+        "data": "a-c\n"
+      }
+    }
+  },
+  "spencer1-046-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7635208b0a14d1b0c66dfc021f325cbdc9ac283bdff4727a4af1d5d962106406",
+        "data": "a]c\n"
+      }
+    }
+  },
+  "spencer1-047-grep-o": {
+    "stdout": "0:adc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "f2ab83ec5a29f56c2cbf98f9f70265d4db2e07f7462c44a9a82e1393b57641ec",
+        "data": "adc\n"
+      }
+    }
+  },
+  "spencer1-048-grep-o": {
+    "stdout": "0:ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-049-grep-o": {
+    "stdout": "0:ab\n2:cd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-050-gawk": {
+    "stdout": "1 2 2 2:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "7fd8de623a20e2a936b92c16d13ca2e8715da351eab45f32eef1f0b120a9e7a4",
+        "data": "()ef\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "da1464fd7ceaf38ff56043bc1774af4fb5cb83ef5358981d78de0b8be5a6fbcb",
+        "data": "def\n"
+      }
+    }
+  },
+  "spencer1-050-grep-o": {
+    "stdout": "1:ef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "da1464fd7ceaf38ff56043bc1774af4fb5cb83ef5358981d78de0b8be5a6fbcb",
+        "data": "def\n"
+      }
+    }
+  },
+  "spencer1-050-sed-sub": {
+    "stdout": "d\u0002ef\u0003\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "da1464fd7ceaf38ff56043bc1774af4fb5cb83ef5358981d78de0b8be5a6fbcb",
+        "data": "def\n"
+      }
+    }
+  },
+  "spencer1-051-gawk": {
+    "stdout": "1 1 0 1:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a1caea61f92a18fe04ac9809e88b906d9d52dbd6029c44f2dc20246c3dbec620",
+        "data": "()*\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-051-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-051-sed-sub": {
+    "stdout": "\u0002\u0003\u0004-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-052-grep-o": {
+    "stdout": "",
+    "stderr": "grep: warning: * at start of expression\n",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-053-grep-o": {
+    "stdout": "",
+    "stderr": "grep: warning: * at start of expression\n",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-054-grep-o": {
+    "stdout": "",
+    "stderr": "grep: warning: * at start of expression\n",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-055-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched ( or \\(\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-056-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "spencer1-057-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Trailing backslash\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-058-grep-o": {
+    "stdout": "0:a(b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "f135c9dd9d01e8bd3855fef25c1968ac6a5cfd171de1b18e452eae511b2f5721",
+        "data": "a(b\n"
+      }
+    }
+  },
+  "spencer1-059-grep-o": {
+    "stdout": "0:ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-060-grep-o": {
+    "stdout": "0:a((b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "d81a7ad989dd344827cf37c6c28939f6177876415c9535329df81c9945d5aae3",
+        "data": "a((b\n"
+      }
+    }
+  },
+  "spencer1-061-grep-o": {
+    "stdout": "0:a\\x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "238b7ac049db5dbd4173004f7f27dcfa302678392539d53a8f5f1948214d64e4",
+        "data": "a\\x\n"
+      }
+    }
+  },
+  "spencer1-062-grep-o": {
+    "stdout": "0:a\\x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "238b7ac049db5dbd4173004f7f27dcfa302678392539d53a8f5f1948214d64e4",
+        "data": "a\\x\n"
+      }
+    }
+  },
+  "spencer1-063-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "238b7ac049db5dbd4173004f7f27dcfa302678392539d53a8f5f1948214d64e4",
+        "data": "a\\x\n"
+      }
+    }
+  },
+  "spencer1-064-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-065-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched ( or \\(\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-066-gawk": {
+    "stdout": "1 1 1 1:1 1:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0f4064849841576bee7e08530af3e7b29fcb28206f40c4c1371874b6e310de54",
+        "data": "((a))\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-066-grep-o": {
+    "stdout": "0:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-066-sed-sub": {
+    "stdout": "\u0002a\u0003a\u0003a\u0004bc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-067-gawk": {
+    "stdout": "1 1 3 1:1 3:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "4c802bb937cdcb59e0959a077d3ce6db00cbeecf241be8a8569521c1a6b86e35",
+        "data": "(a)b(c)\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-067-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-067-sed-sub": {
+    "stdout": "\u0002abc\u0003a\u0003c\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-068-grep-o": {
+    "stdout": "4:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "937bd30122db9fe1eeb3f09f1d950fd3df6c926bc383fc91d867a3a692ae9347",
+        "data": "aabbabc\n"
+      }
+    }
+  },
+  "spencer1-069-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-070-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-071-gawk": {
+    "stdout": "1 1 0 1:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0e0c062596c4ffd7c4f5ab2cc5bd08e1dbb96fc0ad951b4c34c9a23dbc6cc9ff",
+        "data": "(a*)*\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-071-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-071-sed-sub": {
+    "stdout": "\u0002\u0003\u0004-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-072-gawk": {
+    "stdout": "1 1 0 1:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "94a6ebb4f85c9e2cd264536236fe2c7931c30be14a15e0f3f444ed64dd52e57c",
+        "data": "(a*)+\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-072-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-072-sed-sub": {
+    "stdout": "\u0002\u0003\u0004-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-073-gawk": {
+    "stdout": "1 1 0 1:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "fe60fd73eceb4ee79240135420aa970bc53d72f421fdd581a63722efbbfd9deb",
+        "data": "(a|)*\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-073-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-073-sed-sub": {
+    "stdout": "\u0002\u0003\u0004-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-074-gawk": {
+    "stdout": "1 1 0 1:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "20214f20e4bf72514f0dc24620ce0884170cd46c8815ec58fd5fe1dd6c4b2ace",
+        "data": "(a*|b)*\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-074-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-074-sed-sub": {
+    "stdout": "\u0002\u0003\u0004-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-075-gawk": {
+    "stdout": "1 1 2 2:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "22c4d2fed9b756e6d743422cd4553f5267c9fd75bfd8494e45e8a27a7b0d7979",
+        "data": "(a+|b)*\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-075-grep-o": {
+    "stdout": "0:ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-075-sed-sub": {
+    "stdout": "\u0002ab\u0003b\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-076-gawk": {
+    "stdout": "1 1 2 2:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "f07edb9d310e41fbbf926d3c4ab9919e5749592eb2db4a19366176c54140e577",
+        "data": "(a+|b)+\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-076-grep-o": {
+    "stdout": "0:ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-076-sed-sub": {
+    "stdout": "\u0002ab\u0003b\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-077-gawk": {
+    "stdout": "1 1 1 1:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "fa844bc58d079880c7212081f645b4daed7770590b606fccdb45f0d42eb9ab3f",
+        "data": "(a+|b)?\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-077-grep-o": {
+    "stdout": "0:a\n1:b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-077-sed-sub": {
+    "stdout": "\u0002a\u0003a\u0004b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-078-grep-o": {
+    "stdout": "0:cde\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "d7a14743b30baa1f7efc43ed884206f5085ad37374d2e93358ee9dd26245003b",
+        "data": "cde\n"
+      }
+    }
+  },
+  "spencer1-079-gawk": {
+    "stdout": "1 1 0 -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "d9d56c40feb31ca331494e5554e52da2901eff0aff786d5ff5f9bb281a7d1413",
+        "data": "(^)*\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-079-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-079-sed-sub": {
+    "stdout": "\u0002\u0003\u0004-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-080-gawk": {
+    "stdout": "1 1 0 1:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "cf646cf22242ce9ee28bd9d9b0d4e77bbcc5e22f0cda88ef84a9edce23e607bd",
+        "data": "(ab|)*\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-080-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-080-sed-sub": {
+    "stdout": "\u0002\u0003\u0004-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-081-grep-o": {
+    "stdout": "",
+    "stderr": "grep: Unmatched ( or \\(\n",
+    "exit": 2,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-082-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "data": "\n"
+      }
+    }
+  },
+  "spencer1-083-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "data": "\n"
+      }
+    }
+  },
+  "spencer1-084-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "data": "\n"
+      }
+    }
+  },
+  "spencer1-085-gawk": {
+    "stdout": "1 1 6 5:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "da1089508123bef4fce6a3d0761489a3140342a2f6cfe15b62064d83f683f7e6",
+        "data": "([abc])*d\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "b276f34d9fadfec6cd75a39284b334ab28b1a583297a13b3837c04607b4d0688",
+        "data": "abbbcd\n"
+      }
+    }
+  },
+  "spencer1-085-grep-o": {
+    "stdout": "0:abbbcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "b276f34d9fadfec6cd75a39284b334ab28b1a583297a13b3837c04607b4d0688",
+        "data": "abbbcd\n"
+      }
+    }
+  },
+  "spencer1-085-sed-sub": {
+    "stdout": "\u0002abbbcd\u0003c\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "b276f34d9fadfec6cd75a39284b334ab28b1a583297a13b3837c04607b4d0688",
+        "data": "abbbcd\n"
+      }
+    }
+  },
+  "spencer1-086-gawk": {
+    "stdout": "1 1 4 1:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "c90eb4293e2ace89c16255f1acb7c5ccd66f18b8b8b45b93d82c08a52e5802dd",
+        "data": "([abc])*bcd\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-086-grep-o": {
+    "stdout": "0:abcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-086-sed-sub": {
+    "stdout": "\u0002abcd\u0003a\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-087-grep-o": {
+    "stdout": "0:e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a2bbdb2de53523b8099b37013f251546f3d65dbe7a0774fa41af0a4176992fd4",
+        "data": "e\n"
+      }
+    }
+  },
+  "spencer1-088-gawk": {
+    "stdout": "1 1 2 1:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "c633ff97699e5a82d21c44b083286a19680c3479753f1dc301e0fb12a1b0f95c",
+        "data": "(a|b|c|d|e)f\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "48181867e9da11c991a6a2d6820907791fe356f6082619010ae554851c81761a",
+        "data": "ef\n"
+      }
+    }
+  },
+  "spencer1-088-grep-o": {
+    "stdout": "0:ef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "48181867e9da11c991a6a2d6820907791fe356f6082619010ae554851c81761a",
+        "data": "ef\n"
+      }
+    }
+  },
+  "spencer1-088-sed-sub": {
+    "stdout": "\u0002ef\u0003e\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "48181867e9da11c991a6a2d6820907791fe356f6082619010ae554851c81761a",
+        "data": "ef\n"
+      }
+    }
+  },
+  "spencer1-089-gawk": {
+    "stdout": "1 1 0 1:0 1:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "8ddcab6c7a143edfcb6ea792d15407530fd257674f2a17eb9ae8bc45f586485a",
+        "data": "((a*|b))*\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-089-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-089-sed-sub": {
+    "stdout": "\u0002\u0003\u0003\u0004-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-090-grep-o": {
+    "stdout": "0:abcdefg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "06577bd4a35a3fb866f891567b5a9ff67223c2f4422fb7629836d0cadb603ed3",
+        "data": "abcdefg\n"
+      }
+    }
+  },
+  "spencer1-091-grep-o": {
+    "stdout": "1:ab\n4:abbb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "da93e13f1fee738dd7711fbeff8c07e45f267370f2fd89621ae544226c2321a1",
+        "data": "xabyabbbz\n"
+      }
+    }
+  },
+  "spencer1-092-grep-o": {
+    "stdout": "1:a\n3:abbb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "865e9fb939257c8af1d11a89f53030b936b99759658b9186e3487554dcb3cd3b",
+        "data": "xayabbbz\n"
+      }
+    }
+  },
+  "spencer1-093-gawk": {
+    "stdout": "1 3 3 3:2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "42bebf569a3ee2a5acb5741a28a02a4576884fa57ee2372c38e6769cfcb46725",
+        "data": "(ab|cd)e\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0283da60063abfb3a87f1aed845d17fe2d9ba8c780b478dc4ae048f5ee97a6d5",
+        "data": "abcde\n"
+      }
+    }
+  },
+  "spencer1-093-grep-o": {
+    "stdout": "2:cde\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0283da60063abfb3a87f1aed845d17fe2d9ba8c780b478dc4ae048f5ee97a6d5",
+        "data": "abcde\n"
+      }
+    }
+  },
+  "spencer1-093-sed-sub": {
+    "stdout": "ab\u0002cde\u0003cd\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0283da60063abfb3a87f1aed845d17fe2d9ba8c780b478dc4ae048f5ee97a6d5",
+        "data": "abcde\n"
+      }
+    }
+  },
+  "spencer1-094-grep-o": {
+    "stdout": "0:hij\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "546c6444a8ab575ad39cf4c93ec2fb4cb0a0cd78c4cf092bb934aaf9540382d3",
+        "data": "hij\n"
+      }
+    }
+  },
+  "spencer1-095-gawk": {
+    "stdout": "1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "ae9dce0588cedb244f92e4d207093a4657650b93bf6b179600155d1030d30a6a",
+        "data": "^(ab|cd)e\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0283da60063abfb3a87f1aed845d17fe2d9ba8c780b478dc4ae048f5ee97a6d5",
+        "data": "abcde\n"
+      }
+    }
+  },
+  "spencer1-095-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0283da60063abfb3a87f1aed845d17fe2d9ba8c780b478dc4ae048f5ee97a6d5",
+        "data": "abcde\n"
+      }
+    }
+  },
+  "spencer1-095-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0283da60063abfb3a87f1aed845d17fe2d9ba8c780b478dc4ae048f5ee97a6d5",
+        "data": "abcde\n"
+      }
+    }
+  },
+  "spencer1-096-gawk": {
+    "stdout": "1 5 2 5:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "76ba0df933d622430049411fbdc1a49722fe298fb0d6b133d71090e059e749b0",
+        "data": "(abc|)ef\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "ae0666f161fed1a5dde998bbd0e140550d2da0db27db1d0e31e370f2bd366a57",
+        "data": "abcdef\n"
+      }
+    }
+  },
+  "spencer1-096-grep-o": {
+    "stdout": "4:ef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "ae0666f161fed1a5dde998bbd0e140550d2da0db27db1d0e31e370f2bd366a57",
+        "data": "abcdef\n"
+      }
+    }
+  },
+  "spencer1-096-sed-sub": {
+    "stdout": "abcd\u0002ef\u0003\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "ae0666f161fed1a5dde998bbd0e140550d2da0db27db1d0e31e370f2bd366a57",
+        "data": "abcdef\n"
+      }
+    }
+  },
+  "spencer1-097-gawk": {
+    "stdout": "1 2 3 2:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "646358880a2502f0d26870540045c8bcc9eb3bbe54e2ade995b70588fdb99844",
+        "data": "(a|b)c*d\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-097-grep-o": {
+    "stdout": "1:bcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-097-sed-sub": {
+    "stdout": "a\u0002bcd\u0003b\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-098-gawk": {
+    "stdout": "1 1 3 1:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "ea3f10b6afb53ad4cdd854994d9601e185c62a61dcd6df1cc0f82073cc303fef",
+        "data": "(ab|ab*)bc\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-098-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-098-sed-sub": {
+    "stdout": "\u0002abc\u0003a\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-099-gawk": {
+    "stdout": "1 1 3 2:2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "1a4528c0cfc8022153fbb209f942f93ff1a896b17351a510eb914c3a958b801e",
+        "data": "a([bc]*)c*\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-099-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-099-sed-sub": {
+    "stdout": "\u0002abc\u0003bc\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-100-gawk": {
+    "stdout": "1 1 4 2:2 4:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "cf1b25be95c6e6f5542b27235c500ada3e61204e971f837f8b27cb22a251ab10",
+        "data": "a([bc]*)(c*d)\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-100-grep-o": {
+    "stdout": "0:abcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-100-sed-sub": {
+    "stdout": "\u0002abcd\u0003bc\u0003d\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-101-gawk": {
+    "stdout": "1 1 4 2:2 4:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "38bc9fd0f07c3fd496fbad7485b09bb33b2146f668004037eecf8461ffbb4674",
+        "data": "a([bc]+)(c*d)\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-101-grep-o": {
+    "stdout": "0:abcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-101-sed-sub": {
+    "stdout": "\u0002abcd\u0003bc\u0003d\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-102-gawk": {
+    "stdout": "1 1 4 2:1 3:2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "21dd3f11ed1f00225cb0e8daccaf3ec81809d3167046d8072d64671d0a7401da",
+        "data": "a([bc]*)(c+d)\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-102-grep-o": {
+    "stdout": "0:abcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-102-sed-sub": {
+    "stdout": "\u0002abcd\u0003b\u0003cd\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-103-grep-o": {
+    "stdout": "0:adcdcde\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "2e526cdee058af716c6faaa4729ae13add162b04d4f0f545d8391e070976d451",
+        "data": "adcdcde\n"
+      }
+    }
+  },
+  "spencer1-104-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "2e526cdee058af716c6faaa4729ae13add162b04d4f0f545d8391e070976d451",
+        "data": "adcdcde\n"
+      }
+    }
+  },
+  "spencer1-105-gawk": {
+    "stdout": "1 1 3 1:2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "ed1a9444df8dd77da36a05c8b9a08eacd97039a9e7fd49056e9d6a43bfe9c0d8",
+        "data": "(ab|a)b*c\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-105-grep-o": {
+    "stdout": "0:abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-105-sed-sub": {
+    "stdout": "\u0002abc\u0003ab\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-106-gawk": {
+    "stdout": "1 1 4 1:3 1:1 2:1 4:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "9cc475816e3b81273a4fdbb72e57e68a4c4554d067bf67e84cbe52ccf8856830",
+        "data": "((a)(b)c)(d)\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-106-grep-o": {
+    "stdout": "0:abcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-106-sed-sub": {
+    "stdout": "\u0002abcd\u0003abc\u0003a\u0003b\u0003d\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-107-grep-o": {
+    "stdout": "0:alpha\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "b6a98d9ce9a2d9149288fa3df42d377c3e42737afdcdaf714e33c0a100b51060",
+        "data": "alpha\n"
+      }
+    }
+  },
+  "spencer1-108-gawk": {
+    "stdout": "1 2 2 -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "56755f8ad29e5218203765b91b56d0b36ac0acc6513245801575934407c5423b",
+        "data": "^a(bc+|b[eh])g|.h$\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2b4e5b0158cac093da4bce9e1c7455189ea7607540eb61cdaecbbc52fbea3c74",
+        "data": "abh\n"
+      }
+    }
+  },
+  "spencer1-108-grep-o": {
+    "stdout": "1:bh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2b4e5b0158cac093da4bce9e1c7455189ea7607540eb61cdaecbbc52fbea3c74",
+        "data": "abh\n"
+      }
+    }
+  },
+  "spencer1-108-sed-sub": {
+    "stdout": "a\u0002bh\u0003\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2b4e5b0158cac093da4bce9e1c7455189ea7607540eb61cdaecbbc52fbea3c74",
+        "data": "abh\n"
+      }
+    }
+  },
+  "spencer1-109-gawk": {
+    "stdout": "1 1 5 1:5 -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "6898a4bda997577b293d64cbf79e62894a98793bae3d8a57e2af32fec2d47dc6",
+        "data": "(bc+d$|ef*g.|h?i(j|k))\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "a966ff52707bdb9ff9ec05e9f7471c9a2f0f1ebe9209dc07e4ab53004ea0a13c",
+        "data": "effgz\n"
+      }
+    }
+  },
+  "spencer1-109-grep-o": {
+    "stdout": "0:effgz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "a966ff52707bdb9ff9ec05e9f7471c9a2f0f1ebe9209dc07e4ab53004ea0a13c",
+        "data": "effgz\n"
+      }
+    }
+  },
+  "spencer1-109-sed-sub": {
+    "stdout": "\u0002effgz\u0003effgz\u0003\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "a966ff52707bdb9ff9ec05e9f7471c9a2f0f1ebe9209dc07e4ab53004ea0a13c",
+        "data": "effgz\n"
+      }
+    }
+  },
+  "spencer1-110-gawk": {
+    "stdout": "1 1 2 1:2 2:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "6898a4bda997577b293d64cbf79e62894a98793bae3d8a57e2af32fec2d47dc6",
+        "data": "(bc+d$|ef*g.|h?i(j|k))\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "3119395a634a5ed58d3ea4a609d9e29e3dff5224bf9d870b348c3d4b14f62ad8",
+        "data": "ij\n"
+      }
+    }
+  },
+  "spencer1-110-grep-o": {
+    "stdout": "0:ij\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "3119395a634a5ed58d3ea4a609d9e29e3dff5224bf9d870b348c3d4b14f62ad8",
+        "data": "ij\n"
+      }
+    }
+  },
+  "spencer1-110-sed-sub": {
+    "stdout": "\u0002ij\u0003ij\u0003j\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "3119395a634a5ed58d3ea4a609d9e29e3dff5224bf9d870b348c3d4b14f62ad8",
+        "data": "ij\n"
+      }
+    }
+  },
+  "spencer1-111-gawk": {
+    "stdout": "1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "6898a4bda997577b293d64cbf79e62894a98793bae3d8a57e2af32fec2d47dc6",
+        "data": "(bc+d$|ef*g.|h?i(j|k))\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "4c90eec547ee7f8d71a8ee70100e4f85ddc6bfd45d93db7ebdd56262ff135474",
+        "data": "effg\n"
+      }
+    }
+  },
+  "spencer1-111-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "4c90eec547ee7f8d71a8ee70100e4f85ddc6bfd45d93db7ebdd56262ff135474",
+        "data": "effg\n"
+      }
+    }
+  },
+  "spencer1-111-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "4c90eec547ee7f8d71a8ee70100e4f85ddc6bfd45d93db7ebdd56262ff135474",
+        "data": "effg\n"
+      }
+    }
+  },
+  "spencer1-112-gawk": {
+    "stdout": "1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "6898a4bda997577b293d64cbf79e62894a98793bae3d8a57e2af32fec2d47dc6",
+        "data": "(bc+d$|ef*g.|h?i(j|k))\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "ce89db79719c2e753b87b899622d2e0234fbbc2cea45551cac9af6a0bb9beaf3",
+        "data": "bcdd\n"
+      }
+    }
+  },
+  "spencer1-112-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "ce89db79719c2e753b87b899622d2e0234fbbc2cea45551cac9af6a0bb9beaf3",
+        "data": "bcdd\n"
+      }
+    }
+  },
+  "spencer1-112-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "ce89db79719c2e753b87b899622d2e0234fbbc2cea45551cac9af6a0bb9beaf3",
+        "data": "bcdd\n"
+      }
+    }
+  },
+  "spencer1-113-gawk": {
+    "stdout": "1 2 5 2:5 -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "6898a4bda997577b293d64cbf79e62894a98793bae3d8a57e2af32fec2d47dc6",
+        "data": "(bc+d$|ef*g.|h?i(j|k))\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "2ca938cfdecc7923239d6d83ccfda6d9ef9770aabaa79f87b2150f2b5dc685a5",
+        "data": "reffgz\n"
+      }
+    }
+  },
+  "spencer1-113-grep-o": {
+    "stdout": "1:effgz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "2ca938cfdecc7923239d6d83ccfda6d9ef9770aabaa79f87b2150f2b5dc685a5",
+        "data": "reffgz\n"
+      }
+    }
+  },
+  "spencer1-113-sed-sub": {
+    "stdout": "r\u0002effgz\u0003effgz\u0003\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "2ca938cfdecc7923239d6d83ccfda6d9ef9770aabaa79f87b2150f2b5dc685a5",
+        "data": "reffgz\n"
+      }
+    }
+  },
+  "spencer1-114-gawk": {
+    "stdout": "1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "e91f18dea041e0624e651f8053dc7191b74a829ff31244c1dbda2bc0ef95da7f",
+        "data": "((((((((((a))))))))))\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-114-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-114-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "61d1954b9aba0c9aedb8d1338804e817c7262cfc36da94161dab8e3ed7a3a43a",
+        "data": "-\n"
+      }
+    }
+  },
+  "spencer1-115-gawk": {
+    "stdout": "1 1 1 1:1 1:1 1:1 1:1 1:1 1:1 1:1 1:1 1:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "2e89281cba1d2a6fa7a257d863adbddc9eaeeeeb2c2e5329ff0923838356e8fb",
+        "data": "(((((((((a)))))))))\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "spencer1-115-grep-o": {
+    "stdout": "0:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "spencer1-115-sed-sub": {
+    "stdout": "\u0002a\u0003a\u0003a\u0003a\u0003a\u0003a\u0003a\u0003a\u0003a\u0003a\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "spencer1-116-grep-o": {
+    "stdout": "0:cb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ec5de7520092f64e32ef90677568ef090681fdda540e7f7a41a68af51a71a267",
+        "data": "cb\n"
+      }
+    }
+  },
+  "spencer1-117-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c25e0b7503e30357b1c71e999c76c401e30c2e699bfd003ce594250cb98bab59",
+        "data": "cab\n"
+      }
+    }
+  },
+  "spencer1-118-grep-o": {
+    "stdout": "0:cb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ec5de7520092f64e32ef90677568ef090681fdda540e7f7a41a68af51a71a267",
+        "data": "cb\n"
+      }
+    }
+  },
+  "spencer1-119-grep-o": {
+    "stdout": "0:cab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c25e0b7503e30357b1c71e999c76c401e30c2e699bfd003ce594250cb98bab59",
+        "data": "cab\n"
+      }
+    }
+  },
+  "spencer1-120-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "4124963194b9a186e9b7f090d760d911677bc9ecc191907df9e7c610c795bbcb",
+        "data": "caab\n"
+      }
+    }
+  },
+  "spencer1-121-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ec5de7520092f64e32ef90677568ef090681fdda540e7f7a41a68af51a71a267",
+        "data": "cb\n"
+      }
+    }
+  },
+  "spencer1-122-grep-o": {
+    "stdout": "0:cab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c25e0b7503e30357b1c71e999c76c401e30c2e699bfd003ce594250cb98bab59",
+        "data": "cab\n"
+      }
+    }
+  },
+  "spencer1-123-grep-o": {
+    "stdout": "0:caab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "4124963194b9a186e9b7f090d760d911677bc9ecc191907df9e7c610c795bbcb",
+        "data": "caab\n"
+      }
+    }
+  },
+  "spencer1-124-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "b31b34c5e07614e5de29c0e8eabe4888ab8f8f8a26ef8eb0604396b67290a6c8",
+        "data": "caaab\n"
+      }
+    }
+  },
+  "spencer1-125-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "bb4aa3d7bba5fd735c533e7b1545535869e2f277ee01f54773550517d4e5ce85",
+        "data": "uh-uh\n"
+      }
+    }
+  },
+  "spencer1-126-grep-o": {
+    "stdout": "0:multiple words\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "61f3bffdcd86515ad3d9f3896f25a79a7d9d7de8f9bcbaaa391fa2ee2a135ba4",
+        "data": "multiple words, yeah\n"
+      }
+    }
+  },
+  "spencer1-127-gawk": {
+    "stdout": "1 1 5 1:2 4:2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "5a077c30bfa576a4a879855216219a118e522118aa49e30eb540c03e87807e11",
+        "data": "(.*)c(.*)\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0283da60063abfb3a87f1aed845d17fe2d9ba8c780b478dc4ae048f5ee97a6d5",
+        "data": "abcde\n"
+      }
+    }
+  },
+  "spencer1-127-grep-o": {
+    "stdout": "0:abcde\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0283da60063abfb3a87f1aed845d17fe2d9ba8c780b478dc4ae048f5ee97a6d5",
+        "data": "abcde\n"
+      }
+    }
+  },
+  "spencer1-127-sed-sub": {
+    "stdout": "\u0002abcde\u0003ab\u0003de\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0283da60063abfb3a87f1aed845d17fe2d9ba8c780b478dc4ae048f5ee97a6d5",
+        "data": "abcde\n"
+      }
+    }
+  },
+  "spencer1-128-gawk": {
+    "stdout": "1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "0818a7e8aa98aa8d63fb62ce8ad2275e8ea301b0c6fe6d5148b173a00db3874a",
+        "data": "\\((.*),\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "a017ac54c0024e7c1001101c43f54a127bca15a5d03ba47d517e192545ae0ad1",
+        "data": "(.*)\\)\n"
+      }
+    }
+  },
+  "spencer1-128-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "a017ac54c0024e7c1001101c43f54a127bca15a5d03ba47d517e192545ae0ad1",
+        "data": "(.*)\\)\n"
+      }
+    }
+  },
+  "spencer1-128-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "a017ac54c0024e7c1001101c43f54a127bca15a5d03ba47d517e192545ae0ad1",
+        "data": "(.*)\\)\n"
+      }
+    }
+  },
+  "spencer1-129-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      }
+    }
+  },
+  "spencer1-130-grep-o": {
+    "stdout": "0:abcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-131-gawk": {
+    "stdout": "1 1 4 2:2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "80a49ed17ec5825f51ceb100d13d239dd63c06eb426d5b934f54f60636fbcfdf",
+        "data": "a(bc)d\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-131-grep-o": {
+    "stdout": "0:abcd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-131-sed-sub": {
+    "stdout": "\u0002abcd\u0003bc\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "fc4b5fd6816f75a7c81fc8eaa9499d6a299bd803397166e8c4cf9280b801d62c",
+        "data": "abcd\n"
+      }
+    }
+  },
+  "spencer1-132-grep-o": {
+    "stdout": "0:a\u0002c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "d5661395f7f6ae008a3019e346844992a274afe63ea319c23e4a602b5d116d20",
+        "data": "a\u0002c\n"
+      }
+    }
+  },
+  "spencer1-133-grep-o": {
+    "stdout": "0:a\u0002c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "d5661395f7f6ae008a3019e346844992a274afe63ea319c23e4a602b5d116d20",
+        "data": "a\u0002c\n"
+      }
+    }
+  },
+  "spencer1-134-grep-o": {
+    "stdout": "0:beriberi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "74b804ace2b5354dfe026e7221650fda44fb0b6113433ca0f43f8fc2bc16b431",
+        "data": "beriberi\n"
+      }
+    }
+  },
+  "spencer1-134-sed-sub": {
+    "stdout": "\u0002beriberi\u0003beri\u0004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "74b804ace2b5354dfe026e7221650fda44fb0b6113433ca0f43f8fc2bc16b431",
+        "data": "beriberi\n"
+      }
+    }
+  },
+  "spencer1-135-gawk": {
+    "stdout": "1 1 1 1:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "171c8e63c95fc238a3f07daa0e8292c91ab7cbced3b690f02d742ae7d99192aa",
+        "data": "(^|\\B)a\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-135-grep-o": {
+    "stdout": "0:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-135-sed-sub": {
+    "stdout": "\u0002a\u0003\u0004bc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-136-gawk": {
+    "stdout": "1 4 1 4:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "171c8e63c95fc238a3f07daa0e8292c91ab7cbced3b690f02d742ae7d99192aa",
+        "data": "(^|\\B)a\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "36ffbaedf72e79aaf04c4d07b1dcbee9fdd4bb77c6821e550a46c4db8d83b6c9",
+        "data": "xyzabc\n"
+      }
+    }
+  },
+  "spencer1-136-grep-o": {
+    "stdout": "3:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "36ffbaedf72e79aaf04c4d07b1dcbee9fdd4bb77c6821e550a46c4db8d83b6c9",
+        "data": "xyzabc\n"
+      }
+    }
+  },
+  "spencer1-136-sed-sub": {
+    "stdout": "xyz\u0002a\u0003\u0004bc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "36ffbaedf72e79aaf04c4d07b1dcbee9fdd4bb77c6821e550a46c4db8d83b6c9",
+        "data": "xyzabc\n"
+      }
+    }
+  },
+  "spencer1-137-gawk": {
+    "stdout": "1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "171c8e63c95fc238a3f07daa0e8292c91ab7cbced3b690f02d742ae7d99192aa",
+        "data": "(^|\\B)a\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "5da1647d0e5aa6f0393a8018a6004d14a9f33ae81ecacc574b1f3e47fd8f59c5",
+        "data": "xyz abc\n"
+      }
+    }
+  },
+  "spencer1-137-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "5da1647d0e5aa6f0393a8018a6004d14a9f33ae81ecacc574b1f3e47fd8f59c5",
+        "data": "xyz abc\n"
+      }
+    }
+  },
+  "spencer1-137-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "5da1647d0e5aa6f0393a8018a6004d14a9f33ae81ecacc574b1f3e47fd8f59c5",
+        "data": "xyz abc\n"
+      }
+    }
+  },
+  "spencer1-138-grep-o": {
+    "stdout": "0:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-139-grep-o": {
+    "stdout": "3:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "36ffbaedf72e79aaf04c4d07b1dcbee9fdd4bb77c6821e550a46c4db8d83b6c9",
+        "data": "xyzabc\n"
+      }
+    }
+  },
+  "spencer1-140-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "5da1647d0e5aa6f0393a8018a6004d14a9f33ae81ecacc574b1f3e47fd8f59c5",
+        "data": "xyz abc\n"
+      }
+    }
+  },
+  "spencer1-141-gawk": {
+    "stdout": "1 1 1 1:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "e4af5716053df249ee11fc0f3c2751ba60b37d5f1b677e010716d988f0c99798",
+        "data": "(^|\\>)a\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-141-grep-o": {
+    "stdout": "0:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-141-sed-sub": {
+    "stdout": "\u0002a\u0003\u0004bc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-142-gawk": {
+    "stdout": "1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "e4af5716053df249ee11fc0f3c2751ba60b37d5f1b677e010716d988f0c99798",
+        "data": "(^|\\>)a\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "36ffbaedf72e79aaf04c4d07b1dcbee9fdd4bb77c6821e550a46c4db8d83b6c9",
+        "data": "xyzabc\n"
+      }
+    }
+  },
+  "spencer1-142-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "36ffbaedf72e79aaf04c4d07b1dcbee9fdd4bb77c6821e550a46c4db8d83b6c9",
+        "data": "xyzabc\n"
+      }
+    }
+  },
+  "spencer1-142-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "36ffbaedf72e79aaf04c4d07b1dcbee9fdd4bb77c6821e550a46c4db8d83b6c9",
+        "data": "xyzabc\n"
+      }
+    }
+  },
+  "spencer1-143-gawk": {
+    "stdout": "1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 274,
+        "sha256": "ab655c732f1b7663e592fc7545073867f6d23b358903842076bb6520ecd5c446",
+        "data": "BEGIN { getline re < \"re.txt\" }\n{\n  if (match($0, re, a)) {\n    out = NR \" \" RSTART \" \" RLENGTH\n    for (k = 1; k <= N; k++) {\n      if ((k, \"start\") in a) out = out \" \" a[k, \"start\"] \":\" a[k, \"length\"]\n      else out = out \" -\"\n    }\n    print out\n  } else print NR \" 0\"\n}\n"
+      },
+      "re.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "e4af5716053df249ee11fc0f3c2751ba60b37d5f1b677e010716d988f0c99798",
+        "data": "(^|\\>)a\n"
+      },
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "5da1647d0e5aa6f0393a8018a6004d14a9f33ae81ecacc574b1f3e47fd8f59c5",
+        "data": "xyz abc\n"
+      }
+    }
+  },
+  "spencer1-143-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "5da1647d0e5aa6f0393a8018a6004d14a9f33ae81ecacc574b1f3e47fd8f59c5",
+        "data": "xyz abc\n"
+      }
+    }
+  },
+  "spencer1-143-sed-sub": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "5da1647d0e5aa6f0393a8018a6004d14a9f33ae81ecacc574b1f3e47fd8f59c5",
+        "data": "xyz abc\n"
+      }
+    }
+  },
+  "spencer1-144-grep-o": {
+    "stdout": "0:a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "spencer1-145-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "36ffbaedf72e79aaf04c4d07b1dcbee9fdd4bb77c6821e550a46c4db8d83b6c9",
+        "data": "xyzabc\n"
+      }
+    }
+  },
+  "spencer1-146-grep-o": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "s.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "5da1647d0e5aa6f0393a8018a6004d14a9f33ae81ecacc574b1f3e47fd8f59c5",
+        "data": "xyz abc\n"
+      }
+    }
+  }
+}

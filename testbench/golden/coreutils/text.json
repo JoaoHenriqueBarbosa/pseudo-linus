@@ -1,0 +1,206 @@
+{
+  "cut-c-range": {
+    "stdout": "abc\nxy\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "93f29143517aa4f4c74478f245bd05fa8192954de9befe8817fe2c84ef84688c",
+        "data": "abcdef\nxy\n"
+      }
+    }
+  },
+  "cut-complement": {
+    "stdout": "a,c\n1,3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "9284ed4fd7fe1346904656f329db6cc49c0e7ae5b8279bff37f96bc6eb59baad",
+        "data": "a,b,c\n1,2,3\n"
+      }
+    }
+  },
+  "cut-d-f": {
+    "stdout": "idade\n30\n25\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "0a31cc4bc2bc2b72482b7e3c2e4ba76fcedf00ae3d9753a7b57fc176c7af46af",
+        "data": "nome,idade,cidade\nana,30,Recife\nbia,25,Natal\n"
+      }
+    }
+  },
+  "cut-f-multi-tab": {
+    "stdout": "a\tc\n1\t3\nsó-um\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.tsv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "f43db5e5bf72b13cad8bc01697d83414de6fff626f31b2a222f78a6d59f194ab",
+        "data": "a\tb\tc\n1\t2\t3\nsó-um\n"
+      }
+    }
+  },
+  "cut-f-open-range": {
+    "stdout": "servidor subiu na porta 8080\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "95d5fa2e7b2e78b5332595a301acff110b291da235eb778ed108816bcb8f6a41",
+        "data": "INFO servidor subiu na porta 8080\n"
+      }
+    }
+  },
+  "cut-passwd": {
+    "stdout": "root:/bin/bash\nnobody:/usr/sbin/nologin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 91,
+        "sha256": "bda7268d5393a0ec6a4b0b101e86e9b187694e156aa31580b025c0a272a24dd2",
+        "data": "root:x:0:0:root:/root:/bin/bash\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n"
+      }
+    }
+  },
+  "cut-sort-uniq-pipeline": {
+    "stdout": "      3 10.0.0.1\n      1 10.0.0.3\n      1 10.0.0.2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "access.log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 79,
+        "sha256": "db96af2d8521ba7dbba9d0d3c64836efd1597ca3be6421f015a2d4ff9b861ca4",
+        "data": "10.0.0.1 GET /\n10.0.0.2 GET /a\n10.0.0.1 POST /b\n10.0.0.3 GET /\n10.0.0.1 GET /c\n"
+      }
+    }
+  },
+  "tr-cd-alnum": {
+    "stdout": "abc12\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tr-class-upper": {
+    "stdout": "ABC XYZ\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tr-d-cr": {
+    "stdout": "linha\noutra\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tr-newline-to-comma": {
+    "stdout": "a,b,c,",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tr-s-spaces": {
+    "stdout": "a b c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tr-upper": {
+    "stdout": "OLá MUNDO\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "uniq-basic": {
+    "stdout": "a\nb\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "c574c4fbaec8debabb1029a554159c1db923466726150ac0b1f352a43c3a918b",
+        "data": "a\na\nb\na\n"
+      }
+    }
+  },
+  "uniq-c": {
+    "stdout": "      2 a\n      1 b\n      3 c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "f39ee246abf7dbe6105e7d439a4059e73bfe267babe4484e5d95b5cfe408cdfb",
+        "data": "a\na\nb\nc\nc\nc\n"
+      }
+    }
+  },
+  "uniq-d": {
+    "stdout": "a\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "92bbcabfb5d89c56660a1234a4696bab37d60a75721fe8c42c97508ae19ba8ee",
+        "data": "a\na\nb\nc\nc\n"
+      }
+    }
+  },
+  "uniq-i": {
+    "stdout": "      3 Erro\n      1 ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "b4bcab8aae1770420f138491617d4b8449735d9f35c8e450d3f896abd1117236",
+        "data": "Erro\nerro\nERRO\nok\n"
+      }
+    }
+  },
+  "uniq-u": {
+    "stdout": "b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "92bbcabfb5d89c56660a1234a4696bab37d60a75721fe8c42c97508ae19ba8ee",
+        "data": "a\na\nb\nc\nc\n"
+      }
+    }
+  }
+}

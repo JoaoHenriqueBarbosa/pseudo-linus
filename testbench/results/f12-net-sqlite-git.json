@@ -1,0 +1,4742 @@
+{
+  "experiment": "f12-net-sqlite-git",
+  "title": "Rede com allowlist (ureq), sqlite no FS do sandbox (3 caminhos) e git sobre gix-*",
+  "generated_at": "2026-10-03T00:03:32Z",
+  "host": {
+    "kernel": "6.12.101+deb13-amd64",
+    "cpus": 16,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+  },
+  "hypotheses": [
+    {
+      "id": "H34",
+      "verdict": "confirmed",
+      "summary": "ureq 3.4.2 com Resolver e Connector nossos aplica a allowlist num ponto só (um objeto Policy): 12/12 cenários com servidor local, zero conexões e zero consultas DNS pra nome negado, redirect pra host ou IP negado barrado; árvore sem tokio; HTTPS real ok. attohttpc e minreq não têm gancho e vazaram no redirect.",
+      "evidence": {
+        "alternatives_leaking_on_redirect": [
+          "attohttpc",
+          "minreq"
+        ],
+        "https_status": 200,
+        "scenarios_passed": 12,
+        "scenarios_total": 12,
+        "ureq_has_tokio": false
+      }
+    },
+    {
+      "id": "H35",
+      "verdict": "partial",
+      "summary": "rusqlite sozinho não registra VFS (só aceita o nome de um VFS já registrado; registrar é FFI unsafe). Com sqlite-plugin dá, por trait segura: 82/86 no corpus com CLI nosso, 46/53 bancos idênticos ao do sqlite3 e interop nos dois sentidos, mas WAL compartilhado não (shm exige ponteiro cru) e o relógio é o do host. serialize/deserialize dá 82/86 sem VFS nenhum, com semântica de concorrência pior. turso tem IO plugável mas o motor fica em 27/86. Nenhum dos três faz datetime('now') seguir o relógio do sandbox.",
+      "evidence": {
+        "interop": {
+          "rusqlite-serialize": [
+            true,
+            true,
+            true
+          ],
+          "rusqlite-sqlite-plugin": [
+            true,
+            true,
+            true
+          ],
+          "turso-core": [
+            true,
+            true,
+            true
+          ]
+        },
+        "rusqlite_serialize": {
+          "strict": 82,
+          "total": 86
+        },
+        "rusqlite_sqlite_plugin": {
+          "db_byte_identical": 46,
+          "strict": 82,
+          "total": 86
+        },
+        "turso_core": {
+          "strict": 27,
+          "total": 86
+        }
+      }
+    },
+    {
+      "id": "H36",
+      "verdict": "partial",
+      "summary": "gix alto nível não aceita: exige diretório real (sem trait de FS). Os gix-* de baixo nível aceitam bytes e bastam: protótipo sobre MemTree com 15/15 no corpus, git fsck --strict limpo no repositório exportado, 32/32 objetos de um repositório empacotado pelo git real lidos certo, 1314 linhas no total.",
+      "evidence": {
+        "corpus_strict": 15,
+        "corpus_total": 15,
+        "fsck_strict_exit": 0,
+        "lines_total": 1314,
+        "packed_objects": 32,
+        "packed_objects_equal": 32
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "name": "ureq",
+      "version": "3.4.2",
+      "role": "net",
+      "category": "b",
+      "fit": "fits",
+      "notes": "Resolver + Connector próprios (módulo unversioned, versão fixada em =3.4.2) aplicam a mesma Policy: 12/12 cenários certos, nome negado nunca abre conexão nem consulta DNS, redirect pra host negado morre no resolvedor a cada salto. Sem tokio na árvore. TLS rustls+webpki-roots funcionou num GET real; o provedor de cripto padrão é ring (C/asm: [\"ring 0.17.14\"]). Atenção: Config::default lê HTTP_PROXY do ambiente do host, o agente do sandbox precisa de proxy(None).",
+      "metrics": {
+        "deny_cost": {
+          "denied": 1000,
+          "dns_lookups_on_host": 0,
+          "requests": 1000,
+          "us_per_denied_request": 1.145
+        },
+        "deps": {
+          "async_runtime_crates": [],
+          "c_deps": [
+            "ring 0.17.14"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": {
+            "bytes 1.12.1": 1,
+            "getrandom 0.2.17": 64,
+            "libc 0.2.190": 1,
+            "ring 0.17.14": 14,
+            "rustls 0.23.45": 11,
+            "rustls-pki-types 1.15.1": 1,
+            "zlib-rs 0.6.8": 3
+          },
+          "own_category": "b",
+          "own_unsafe": 0,
+          "transitive_deps": 27,
+          "tree_category": "c",
+          "version": "3.4.2"
+        },
+        "https_real": {
+          "body_has_example_domain": true,
+          "dns_lookups_on_host": 1,
+          "ms": 116,
+          "policy_log": [
+            "allow example.com -> [104.20.23.154:443, 172.66.147.243:443, [2606:4700:10::ac42:93f3]:443, [2606:4700:10::6814:179a]:443]"
+          ],
+          "ran": true,
+          "status": 200
+        },
+        "scenarios": {
+          "passed": 12,
+          "scenarios": {
+            "allowed_localhost_via_host_dns_blocked": {
+              "dns_lookups_on_host": 1,
+              "expect_success": false,
+              "passed": true,
+              "policy_log": [
+                "deny localhost: só endereços internos [\"::1\", \"127.0.0.1\"]"
+              ],
+              "result": {
+                "error": "io: bloqueado pela política do sandbox: localhost resolve só para endereços internos [\"::1\", \"127.0.0.1\"]"
+              },
+              "servers": [
+                {
+                  "connections": 0,
+                  "expected": 0,
+                  "server": "target"
+                }
+              ]
+            },
+            "allowed_name_passes": {
+              "dns_lookups_on_host": 0,
+              "expect_success": true,
+              "passed": true,
+              "policy_log": [
+                "allow allowed.test -> [127.0.0.1:36433]"
+              ],
+              "result": {
+                "body": "hello from 127.0.0.1:36433",
+                "status": 200
+              },
+              "servers": [
+                {
+                  "connections": 1,
+                  "expected": 1,
+                  "server": "target"
+                }
+              ]
+            },
+            "allowed_name_resolving_to_loopback_blocked": {
+              "dns_lookups_on_host": 0,
+              "expect_success": false,
+              "passed": true,
+              "policy_log": [
+                "deny rebind.test: só endereços internos [\"127.0.0.1\"]"
+              ],
+              "result": {
+                "error": "io: bloqueado pela política do sandbox: rebind.test resolve só para endereços internos [\"127.0.0.1\"]"
+              },
+              "servers": [
+                {
+                  "connections": 0,
+                  "expected": 0,
+                  "server": "target"
+                }
+              ]
+            },
+            "case_and_trailing_dot_normalized": {
+              "dns_lookups_on_host": 0,
+              "expect_success": true,
+              "passed": true,
+              "policy_log": [
+                "allow ALLOWED.Test. -> [127.0.0.1:40107]"
+              ],
+              "result": {
+                "body": "hello from 127.0.0.1:40107",
+                "status": 200
+              },
+              "servers": [
+                {
+                  "connections": 1,
+                  "expected": 1,
+                  "server": "target"
+                }
+              ]
+            },
+            "denied_name_never_connects": {
+              "dns_lookups_on_host": 0,
+              "expect_success": false,
+              "passed": true,
+              "policy_log": [
+                "deny host denied.test"
+              ],
+              "result": {
+                "error": "io: bloqueado pela política do sandbox: host denied.test fora da allowlist"
+              },
+              "servers": [
+                {
+                  "connections": 0,
+                  "expected": 0,
+                  "server": "target"
+                }
+              ]
+            },
+            "ip_literal_allowlisted_but_private_blocked": {
+              "dns_lookups_on_host": 0,
+              "expect_success": false,
+              "passed": true,
+              "policy_log": [
+                "deny 127.0.0.1: só endereços internos [\"127.0.0.1\"]"
+              ],
+              "result": {
+                "error": "io: bloqueado pela política do sandbox: 127.0.0.1 resolve só para endereços internos [\"127.0.0.1\"]"
+              },
+              "servers": [
+                {
+                  "connections": 0,
+                  "expected": 0,
+                  "server": "target"
+                }
+              ]
+            },
+            "ip_literal_not_in_allowlist_denied": {
+              "dns_lookups_on_host": 0,
+              "expect_success": false,
+              "passed": true,
+              "policy_log": [
+                "deny host 127.0.0.1"
+              ],
+              "result": {
+                "error": "io: bloqueado pela política do sandbox: host 127.0.0.1 fora da allowlist"
+              },
+              "servers": [
+                {
+                  "connections": 0,
+                  "expected": 0,
+                  "server": "target"
+                }
+              ]
+            },
+            "ipv6_literal_denied": {
+              "dns_lookups_on_host": 0,
+              "expect_success": false,
+              "passed": true,
+              "policy_log": [
+                "deny host [::1]"
+              ],
+              "result": {
+                "error": "io: bloqueado pela política do sandbox: host [::1] fora da allowlist"
+              },
+              "servers": [
+                {
+                  "connections": 0,
+                  "expected": 0,
+                  "server": "target"
+                }
+              ]
+            },
+            "redirect_to_allowed_host_followed": {
+              "dns_lookups_on_host": 0,
+              "expect_success": true,
+              "passed": true,
+              "policy_log": [
+                "allow allowed.test -> [127.0.0.1:42409]",
+                "allow other.test -> [127.0.0.2:40471]"
+              ],
+              "result": {
+                "body": "hello from 127.0.0.2:40471",
+                "status": 200
+              },
+              "servers": [
+                {
+                  "connections": 1,
+                  "expected": 1,
+                  "server": "front"
+                },
+                {
+                  "connections": 1,
+                  "expected": 1,
+                  "server": "redirect_target"
+                }
+              ]
+            },
+            "redirect_to_denied_host_blocked": {
+              "dns_lookups_on_host": 0,
+              "expect_success": false,
+              "passed": true,
+              "policy_log": [
+                "allow allowed.test -> [127.0.0.1:34839]",
+                "deny host denied.test"
+              ],
+              "result": {
+                "error": "io: bloqueado pela política do sandbox: host denied.test fora da allowlist"
+              },
+              "servers": [
+                {
+                  "connections": 1,
+                  "expected": 1,
+                  "server": "front"
+                },
+                {
+                  "connections": 0,
+                  "expected": 0,
+                  "server": "redirect_target"
+                }
+              ]
+            },
+            "redirect_to_denied_ip_literal_blocked": {
+              "dns_lookups_on_host": 0,
+              "expect_success": false,
+              "passed": true,
+              "policy_log": [
+                "allow allowed.test -> [127.0.0.1:44339]",
+                "deny host 127.0.0.2"
+              ],
+              "result": {
+                "error": "io: bloqueado pela política do sandbox: host 127.0.0.2 fora da allowlist"
+              },
+              "servers": [
+                {
+                  "connections": 1,
+                  "expected": 1,
+                  "server": "front"
+                },
+                {
+                  "connections": 0,
+                  "expected": 0,
+                  "server": "redirect_target"
+                }
+              ]
+            },
+            "userinfo_trick_denied": {
+              "dns_lookups_on_host": 0,
+              "expect_success": false,
+              "passed": true,
+              "policy_log": [
+                "deny host denied.test"
+              ],
+              "result": {
+                "error": "io: bloqueado pela política do sandbox: host denied.test fora da allowlist"
+              },
+              "servers": [
+                {
+                  "connections": 0,
+                  "expected": 0,
+                  "server": "target"
+                }
+              ]
+            }
+          },
+          "total": 12
+        }
+      }
+    },
+    {
+      "name": "attohttpc",
+      "version": "0.31.0",
+      "role": "net",
+      "category": "b",
+      "fit": "does_not_fit",
+      "notes": "Sem gancho de resolvedor nem de conexão: a allowlist só pode olhar a URL antes da chamada. Seguindo redirects (padrão), o servidor negado recebeu conexão: sim. Com redirects desligados o invólucro consegue checar o Location, mas o DNS continua dentro da crate (TOCTOU: o nome é resolvido de novo depois da checagem) e não há como barrar nome permitido que resolve pra IP interno.",
+      "metrics": {
+        "deps": {
+          "async_runtime_crates": [],
+          "c_deps": [],
+          "has_tokio": false,
+          "host_touching_deps": {
+            "bytes 1.12.1": 1,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1,
+            "url 2.5.8": 1
+          },
+          "own_category": "b",
+          "own_unsafe": 2,
+          "transitive_deps": 42,
+          "tree_category": "b",
+          "version": "0.31.0"
+        },
+        "redirect_test": {
+          "follow_redirects_automatically": {
+            "denied_target_connections": 1,
+            "initial_url_allowed_by_wrapper": true,
+            "policy_violated": true,
+            "result": {
+              "location": null,
+              "status": 200
+            },
+            "wrapper_can_block_location": false
+          },
+          "redirects_disabled_wrapper_checks_location": {
+            "denied_target_connections": 0,
+            "initial_url_allowed_by_wrapper": true,
+            "policy_violated": false,
+            "result": {
+              "location": "http://127.0.0.2:41293/ok",
+              "status": 302
+            },
+            "wrapper_can_block_location": true
+          }
+        }
+      }
+    },
+    {
+      "name": "minreq",
+      "version": "3.0.0",
+      "role": "net",
+      "category": "b",
+      "fit": "does_not_fit",
+      "notes": "Sem gancho de resolvedor nem de conexão: a allowlist só pode olhar a URL antes da chamada. Seguindo redirects (padrão), o servidor negado recebeu conexão: sim. Com redirects desligados o invólucro consegue checar o Location, mas o DNS continua dentro da crate (TOCTOU: o nome é resolvido de novo depois da checagem) e não há como barrar nome permitido que resolve pra IP interno.",
+      "metrics": {
+        "deps": {
+          "async_runtime_crates": [],
+          "c_deps": [],
+          "has_tokio": false,
+          "host_touching_deps": {},
+          "own_category": "b",
+          "own_unsafe": 0,
+          "transitive_deps": 0,
+          "tree_category": "b",
+          "version": "3.0.0"
+        },
+        "redirect_test": {
+          "follow_redirects_automatically": {
+            "denied_target_connections": 1,
+            "initial_url_allowed_by_wrapper": true,
+            "policy_violated": true,
+            "result": {
+              "location": null,
+              "status": 200
+            },
+            "wrapper_can_block_location": false
+          },
+          "redirects_disabled_wrapper_checks_location": {
+            "denied_target_connections": 0,
+            "initial_url_allowed_by_wrapper": true,
+            "policy_violated": false,
+            "result": {
+              "error": "too many redirections (over the max)"
+            },
+            "wrapper_can_block_location": false
+          }
+        }
+      }
+    },
+    {
+      "name": "rusqlite (serialize/deserialize)",
+      "version": "0.40.2 (SQLite 3.53.2 bundled)",
+      "role": "sqlite",
+      "category": "c",
+      "conformance": {
+        "candidate": "rusqlite-serialize",
+        "total": 86,
+        "strict_pass": 82,
+        "lenient_pass": 82,
+        "unsupported": 3,
+        "by_tag": {
+          "affinity": [
+            1,
+            1,
+            1
+          ],
+          "aggregate": [
+            1,
+            1,
+            1
+          ],
+          "alter": [
+            1,
+            1,
+            1
+          ],
+          "argv": [
+            32,
+            32,
+            36
+          ],
+          "arith": [
+            1,
+            1,
+            1
+          ],
+          "blob": [
+            1,
+            1,
+            1
+          ],
+          "cast": [
+            1,
+            1,
+            1
+          ],
+          "cli": [
+            15,
+            15,
+            18
+          ],
+          "cli-mode": [
+            0,
+            0,
+            3
+          ],
+          "collation": [
+            1,
+            1,
+            1
+          ],
+          "comments": [
+            1,
+            1,
+            1
+          ],
+          "compound": [
+            1,
+            1,
+            1
+          ],
+          "conflict": [
+            1,
+            1,
+            1
+          ],
+          "constraint": [
+            3,
+            3,
+            3
+          ],
+          "cte": [
+            4,
+            4,
+            4
+          ],
+          "date": [
+            1,
+            1,
+            1
+          ],
+          "ddl": [
+            9,
+            9,
+            9
+          ],
+          "dml": [
+            3,
+            3,
+            3
+          ],
+          "dot": [
+            2,
+            2,
+            2
+          ],
+          "eqp": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            18,
+            18,
+            18
+          ],
+          "file": [
+            1,
+            1,
+            1
+          ],
+          "fk": [
+            1,
+            1,
+            1
+          ],
+          "functions": [
+            6,
+            6,
+            6
+          ],
+          "generated": [
+            1,
+            1,
+            1
+          ],
+          "header": [
+            2,
+            2,
+            2
+          ],
+          "index": [
+            3,
+            3,
+            3
+          ],
+          "join": [
+            1,
+            1,
+            1
+          ],
+          "journal": [
+            0,
+            0,
+            1
+          ],
+          "json": [
+            3,
+            3,
+            3
+          ],
+          "math": [
+            1,
+            1,
+            1
+          ],
+          "memory": [
+            2,
+            2,
+            2
+          ],
+          "multi": [
+            6,
+            6,
+            6
+          ],
+          "order": [
+            1,
+            1,
+            1
+          ],
+          "pattern": [
+            1,
+            1,
+            1
+          ],
+          "persist": [
+            1,
+            1,
+            1
+          ],
+          "pipe": [
+            1,
+            1,
+            1
+          ],
+          "pragma": [
+            6,
+            6,
+            7
+          ],
+          "printf": [
+            1,
+            1,
+            1
+          ],
+          "query": [
+            5,
+            5,
+            5
+          ],
+          "quoting": [
+            1,
+            1,
+            1
+          ],
+          "real": [
+            2,
+            2,
+            2
+          ],
+          "recursive": [
+            4,
+            4,
+            4
+          ],
+          "redirect": [
+            2,
+            2,
+            2
+          ],
+          "returning": [
+            1,
+            1,
+            1
+          ],
+          "rowid": [
+            1,
+            1,
+            1
+          ],
+          "savepoint": [
+            1,
+            1,
+            1
+          ],
+          "script": [
+            6,
+            6,
+            6
+          ],
+          "stdin": [
+            44,
+            44,
+            44
+          ],
+          "strict": [
+            1,
+            1,
+            1
+          ],
+          "string": [
+            1,
+            1,
+            1
+          ],
+          "subquery": [
+            1,
+            1,
+            1
+          ],
+          "syntax": [
+            2,
+            2,
+            2
+          ],
+          "transaction": [
+            5,
+            5,
+            5
+          ],
+          "trigger": [
+            2,
+            2,
+            2
+          ],
+          "types": [
+            7,
+            7,
+            7
+          ],
+          "unicode": [
+            1,
+            1,
+            1
+          ],
+          "upsert": [
+            1,
+            1,
+            1
+          ],
+          "vacuum": [
+            1,
+            1,
+            1
+          ],
+          "view": [
+            1,
+            1,
+            1
+          ],
+          "window": [
+            2,
+            2,
+            2
+          ],
+          "without-rowid": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "sqlite-cli-mode-csv",
+            "tags": [
+              "cli",
+              "cli-mode",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "modo de saída -csv fora da camada mínima (só list)",
+            "detail": [
+              "unsupported: modo de saída -csv fora da camada mínima (só list)"
+            ]
+          },
+          {
+            "id": "sqlite-cli-mode-json",
+            "tags": [
+              "cli",
+              "cli-mode",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "modo de saída -json fora da camada mínima (só list)",
+            "detail": [
+              "unsupported: modo de saída -json fora da camada mínima (só list)"
+            ]
+          },
+          {
+            "id": "sqlite-cli-mode-column",
+            "tags": [
+              "cli",
+              "cli-mode",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "modo de saída -column fora da camada mínima (só list)",
+            "detail": [
+              "unsupported: modo de saída -column fora da camada mínima (só list)"
+            ]
+          },
+          {
+            "id": "sqlite-pragma-journal-mode",
+            "tags": [
+              "pragma",
+              "journal",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"delete\\nwal\\ndelete\\n1\\n\" obtido \"memory\\nmemory\\nmemory\\n1\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Sem VFS: cada comando sqlite3 carrega os bytes do arquivo num banco em memória e grava de volta no fim. Corpus 82/86 estrito (82 leniente); bancos finais com as mesmas tabelas e linhas do oráculo em 53/53 (bytes idênticos fora a versão em 0/53: o contador de mudanças, offset 27, diverge). Interop: daqui pro oráculo true, do oráculo (rollback) pra cá true, do oráculo (WAL) pra cá true (o banco em memória não abre WAL: o cabeçalho é trocado na carga e restaurado na gravação, e um -wal pendente é recusado). Limites medidos: PRAGMA journal_mode responde memory; sem trava de arquivo inteiro há atualização perdida (100 de 200); com a trava, commit só fica visível quando o processo termina e dois escritores se sobrescrevem; datetime('now') usa o relógio do host.",
+      "metrics": {
+        "api": {
+          "fn register_vfs": 0,
+          "pub fn deserialize": 3,
+          "pub fn open_with_flags_and_vfs": 1,
+          "pub fn serialize": 1,
+          "sqlite3_vfs_register": 0
+        },
+        "conformance": {
+          "db_diff_samples": [
+            [
+              "sqlite-with-recursive-tree",
+              12288,
+              12288,
+              [
+                27
+              ]
+            ],
+            [
+              "sqlite-window-ranking",
+              8192,
+              8192,
+              [
+                27
+              ]
+            ],
+            [
+              "sqlite-window-frames",
+              8192,
+              8192,
+              [
+                27
+              ]
+            ],
+            [
+              "sqlite-json-table-valued",
+              8192,
+              8192,
+              [
+                27
+              ]
+            ]
+          ],
+          "db_files_byte_identical_modulo_version": 0,
+          "db_files_compared": 53,
+          "db_files_same_tables_rows_pragmas": 53,
+          "failures": [
+            {
+              "detail": [
+                "unsupported: modo de saída -csv fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-csv",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -json fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-json",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -column fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-column",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"delete\\nwal\\ndelete\\n1\\n\" obtido \"memory\\nmemory\\nmemory\\n1\\n\""
+              ],
+              "id": "sqlite-pragma-journal-mode",
+              "lenient": false
+            }
+          ],
+          "lenient": 82,
+          "stdout_and_exit_ok": 82,
+          "strict": 82,
+          "total": 86,
+          "unsupported": 3
+        },
+        "deps": {
+          "c_deps": [
+            "libsqlite3-sys 0.38.2"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 1,
+          "own_category": "b",
+          "own_host_touch": 23,
+          "own_unsafe": 348,
+          "tree_category": "c",
+          "tree_deps": 10,
+          "version": "0.40.2"
+        }
+      }
+    },
+    {
+      "name": "rusqlite + sqlite-plugin (VFS com trait segura)",
+      "version": "rusqlite 0.40.2 + sqlite-plugin 0.11.0",
+      "role": "sqlite",
+      "category": "c",
+      "conformance": {
+        "candidate": "rusqlite-sqlite-plugin",
+        "total": 86,
+        "strict_pass": 82,
+        "lenient_pass": 82,
+        "unsupported": 3,
+        "by_tag": {
+          "affinity": [
+            1,
+            1,
+            1
+          ],
+          "aggregate": [
+            1,
+            1,
+            1
+          ],
+          "alter": [
+            1,
+            1,
+            1
+          ],
+          "argv": [
+            32,
+            32,
+            36
+          ],
+          "arith": [
+            1,
+            1,
+            1
+          ],
+          "blob": [
+            1,
+            1,
+            1
+          ],
+          "cast": [
+            1,
+            1,
+            1
+          ],
+          "cli": [
+            15,
+            15,
+            18
+          ],
+          "cli-mode": [
+            0,
+            0,
+            3
+          ],
+          "collation": [
+            1,
+            1,
+            1
+          ],
+          "comments": [
+            1,
+            1,
+            1
+          ],
+          "compound": [
+            1,
+            1,
+            1
+          ],
+          "conflict": [
+            1,
+            1,
+            1
+          ],
+          "constraint": [
+            3,
+            3,
+            3
+          ],
+          "cte": [
+            4,
+            4,
+            4
+          ],
+          "date": [
+            1,
+            1,
+            1
+          ],
+          "ddl": [
+            9,
+            9,
+            9
+          ],
+          "dml": [
+            3,
+            3,
+            3
+          ],
+          "dot": [
+            2,
+            2,
+            2
+          ],
+          "eqp": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            18,
+            18,
+            18
+          ],
+          "file": [
+            1,
+            1,
+            1
+          ],
+          "fk": [
+            1,
+            1,
+            1
+          ],
+          "functions": [
+            6,
+            6,
+            6
+          ],
+          "generated": [
+            1,
+            1,
+            1
+          ],
+          "header": [
+            2,
+            2,
+            2
+          ],
+          "index": [
+            3,
+            3,
+            3
+          ],
+          "join": [
+            1,
+            1,
+            1
+          ],
+          "journal": [
+            0,
+            0,
+            1
+          ],
+          "json": [
+            3,
+            3,
+            3
+          ],
+          "math": [
+            1,
+            1,
+            1
+          ],
+          "memory": [
+            2,
+            2,
+            2
+          ],
+          "multi": [
+            6,
+            6,
+            6
+          ],
+          "order": [
+            1,
+            1,
+            1
+          ],
+          "pattern": [
+            1,
+            1,
+            1
+          ],
+          "persist": [
+            1,
+            1,
+            1
+          ],
+          "pipe": [
+            1,
+            1,
+            1
+          ],
+          "pragma": [
+            6,
+            6,
+            7
+          ],
+          "printf": [
+            1,
+            1,
+            1
+          ],
+          "query": [
+            5,
+            5,
+            5
+          ],
+          "quoting": [
+            1,
+            1,
+            1
+          ],
+          "real": [
+            2,
+            2,
+            2
+          ],
+          "recursive": [
+            4,
+            4,
+            4
+          ],
+          "redirect": [
+            2,
+            2,
+            2
+          ],
+          "returning": [
+            1,
+            1,
+            1
+          ],
+          "rowid": [
+            1,
+            1,
+            1
+          ],
+          "savepoint": [
+            1,
+            1,
+            1
+          ],
+          "script": [
+            6,
+            6,
+            6
+          ],
+          "stdin": [
+            44,
+            44,
+            44
+          ],
+          "strict": [
+            1,
+            1,
+            1
+          ],
+          "string": [
+            1,
+            1,
+            1
+          ],
+          "subquery": [
+            1,
+            1,
+            1
+          ],
+          "syntax": [
+            2,
+            2,
+            2
+          ],
+          "transaction": [
+            5,
+            5,
+            5
+          ],
+          "trigger": [
+            2,
+            2,
+            2
+          ],
+          "types": [
+            7,
+            7,
+            7
+          ],
+          "unicode": [
+            1,
+            1,
+            1
+          ],
+          "upsert": [
+            1,
+            1,
+            1
+          ],
+          "vacuum": [
+            1,
+            1,
+            1
+          ],
+          "view": [
+            1,
+            1,
+            1
+          ],
+          "window": [
+            2,
+            2,
+            2
+          ],
+          "without-rowid": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "sqlite-cli-mode-csv",
+            "tags": [
+              "cli",
+              "cli-mode",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "modo de saída -csv fora da camada mínima (só list)",
+            "detail": [
+              "unsupported: modo de saída -csv fora da camada mínima (só list)"
+            ]
+          },
+          {
+            "id": "sqlite-cli-mode-json",
+            "tags": [
+              "cli",
+              "cli-mode",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "modo de saída -json fora da camada mínima (só list)",
+            "detail": [
+              "unsupported: modo de saída -json fora da camada mínima (só list)"
+            ]
+          },
+          {
+            "id": "sqlite-cli-mode-column",
+            "tags": [
+              "cli",
+              "cli-mode",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "modo de saída -column fora da camada mínima (só list)",
+            "detail": [
+              "unsupported: modo de saída -column fora da camada mínima (só list)"
+            ]
+          },
+          {
+            "id": "sqlite-pragma-journal-mode",
+            "tags": [
+              "pragma",
+              "journal",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"delete\\nwal\\ndelete\\n1\\n\" obtido \"delete\\nwal\\n\"",
+              "stderr: esperado \"\" obtido \"Error: stepping, disk I/O error (10)\\n\"",
+              "exit: esperado Some(0)/None obtido Some(10)/None",
+              "files: ~db.sqlite: file 644 94B d3315b18bde6 != file 644 90B 908f74451987",
+              "files: +db.sqlite-wal"
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "VFS nosso sobre o FS em memória via trait Vfs e register_static (seguros; nada de unsafe nosso). Corpus 82/86 estrito (82 leniente); bancos finais idênticos byte a byte ao do sqlite3 3.46 (fora os campos de versão) em 46/53, mesmas linhas em 52/53; o journal quente deixado pelo sqlite3 também aparece. Interop: daqui pro oráculo true, oráculo (rollback) pra cá true, oráculo (WAL) pra cá true. Travas reais do SQLite entre conexões (BUSY sem espera, contador com busy_timeout). Lacunas: WAL compartilhado precisa de shm_map, que devolve ponteiro cru (trait segura com contrato de unsafe); sem ele, PRAGMA journal_mode=WAL numa sessão normal dá disk I/O error, e arquivo que já está em WAL só abre com locking_mode=EXCLUSIVE ligado antes do primeiro acesso (o backend faz isso). xCurrentTime, xRandomness e xSleep não fazem parte da trait e caem no VFS unix do host: datetime('now') usa o relógio do host. O build exige bindgen + libclang.",
+      "metrics": {
+        "api": {
+          "NonNull<u8>": 2,
+          "fn shm_map": 1,
+          "fn x_current_time": 2,
+          "fn x_randomness": 1,
+          "fn x_sleep": 1,
+          "pub fn register_static": 1,
+          "pub unsafe fn register_dynamic": 1
+        },
+        "conformance": {
+          "db_diff_samples": [
+            [
+              "sqlite-returning",
+              8192,
+              8192,
+              [
+                8189,
+                8190,
+                8191
+              ]
+            ],
+            [
+              "sqlite-generated-columns",
+              8192,
+              8192,
+              [
+                8189,
+                8190,
+                8191
+              ]
+            ],
+            [
+              "sqlite-alter-table",
+              8192,
+              8192,
+              [
+                4019,
+                4020,
+                4021,
+                4022,
+                4023,
+                4024,
+                4025,
+                4026,
+                4027,
+                4028,
+                4029,
+                4030
+              ]
+            ],
+            [
+              "sqlite-update-delete-changes",
+              8192,
+              8192,
+              [
+                8167,
+                8168,
+                8179,
+                8180,
+                8191
+              ]
+            ]
+          ],
+          "db_files_byte_identical_modulo_version": 46,
+          "db_files_compared": 53,
+          "db_files_same_tables_rows_pragmas": 52,
+          "failures": [
+            {
+              "detail": [
+                "unsupported: modo de saída -csv fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-csv",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -json fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-json",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -column fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-column",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"delete\\nwal\\ndelete\\n1\\n\" obtido \"delete\\nwal\\n\"",
+                "stderr: esperado \"\" obtido \"Error: stepping, disk I/O error (10)\\n\"",
+                "exit: esperado Some(0)/None obtido Some(10)/None",
+                "files: ~db.sqlite: file 644 94B d3315b18bde6 != file 644 90B 908f74451987",
+                "files: +db.sqlite-wal"
+              ],
+              "id": "sqlite-pragma-journal-mode",
+              "lenient": false
+            }
+          ],
+          "lenient": 82,
+          "stdout_and_exit_ok": 82,
+          "strict": 82,
+          "total": 86,
+          "unsupported": 3
+        },
+        "deps": {
+          "c_deps": [],
+          "has_tokio": false,
+          "host_touching_deps": 0,
+          "own_category": "c",
+          "own_host_touch": 1,
+          "own_unsafe": 76,
+          "tree_category": "c",
+          "tree_deps": 0,
+          "version": "0.11.0"
+        }
+      }
+    },
+    {
+      "name": "turso_core (IO próprio)",
+      "version": "0.8.1",
+      "role": "sqlite",
+      "category": "b",
+      "conformance": {
+        "candidate": "turso-core",
+        "total": 86,
+        "strict_pass": 27,
+        "lenient_pass": 30,
+        "unsupported": 3,
+        "by_tag": {
+          "affinity": [
+            0,
+            0,
+            1
+          ],
+          "aggregate": [
+            0,
+            0,
+            1
+          ],
+          "alter": [
+            0,
+            0,
+            1
+          ],
+          "argv": [
+            21,
+            22,
+            36
+          ],
+          "arith": [
+            1,
+            1,
+            1
+          ],
+          "blob": [
+            1,
+            1,
+            1
+          ],
+          "cast": [
+            1,
+            1,
+            1
+          ],
+          "cli": [
+            9,
+            10,
+            18
+          ],
+          "cli-mode": [
+            0,
+            0,
+            3
+          ],
+          "collation": [
+            0,
+            0,
+            1
+          ],
+          "comments": [
+            1,
+            1,
+            1
+          ],
+          "compound": [
+            1,
+            1,
+            1
+          ],
+          "conflict": [
+            0,
+            0,
+            1
+          ],
+          "constraint": [
+            0,
+            0,
+            3
+          ],
+          "cte": [
+            3,
+            3,
+            4
+          ],
+          "date": [
+            1,
+            1,
+            1
+          ],
+          "ddl": [
+            0,
+            0,
+            9
+          ],
+          "dml": [
+            0,
+            0,
+            3
+          ],
+          "dot": [
+            1,
+            1,
+            2
+          ],
+          "eqp": [
+            0,
+            0,
+            1
+          ],
+          "error": [
+            3,
+            6,
+            18
+          ],
+          "file": [
+            1,
+            1,
+            1
+          ],
+          "fk": [
+            0,
+            0,
+            1
+          ],
+          "functions": [
+            6,
+            6,
+            6
+          ],
+          "generated": [
+            0,
+            0,
+            1
+          ],
+          "header": [
+            1,
+            1,
+            2
+          ],
+          "index": [
+            0,
+            0,
+            3
+          ],
+          "join": [
+            0,
+            0,
+            1
+          ],
+          "journal": [
+            0,
+            0,
+            1
+          ],
+          "json": [
+            2,
+            2,
+            3
+          ],
+          "math": [
+            1,
+            1,
+            1
+          ],
+          "memory": [
+            2,
+            2,
+            2
+          ],
+          "multi": [
+            0,
+            0,
+            6
+          ],
+          "order": [
+            0,
+            0,
+            1
+          ],
+          "pattern": [
+            1,
+            1,
+            1
+          ],
+          "persist": [
+            0,
+            0,
+            1
+          ],
+          "pipe": [
+            0,
+            0,
+            1
+          ],
+          "pragma": [
+            0,
+            0,
+            7
+          ],
+          "printf": [
+            1,
+            1,
+            1
+          ],
+          "query": [
+            1,
+            1,
+            5
+          ],
+          "quoting": [
+            0,
+            0,
+            1
+          ],
+          "real": [
+            2,
+            2,
+            2
+          ],
+          "recursive": [
+            3,
+            3,
+            4
+          ],
+          "redirect": [
+            0,
+            0,
+            2
+          ],
+          "returning": [
+            0,
+            0,
+            1
+          ],
+          "rowid": [
+            0,
+            0,
+            1
+          ],
+          "savepoint": [
+            0,
+            0,
+            1
+          ],
+          "script": [
+            0,
+            0,
+            6
+          ],
+          "stdin": [
+            6,
+            8,
+            44
+          ],
+          "strict": [
+            0,
+            0,
+            1
+          ],
+          "string": [
+            1,
+            1,
+            1
+          ],
+          "subquery": [
+            0,
+            0,
+            1
+          ],
+          "syntax": [
+            0,
+            2,
+            2
+          ],
+          "transaction": [
+            0,
+            0,
+            5
+          ],
+          "trigger": [
+            0,
+            0,
+            2
+          ],
+          "types": [
+            5,
+            5,
+            7
+          ],
+          "unicode": [
+            0,
+            0,
+            1
+          ],
+          "upsert": [
+            0,
+            0,
+            1
+          ],
+          "vacuum": [
+            0,
+            0,
+            1
+          ],
+          "view": [
+            0,
+            0,
+            1
+          ],
+          "window": [
+            0,
+            0,
+            2
+          ],
+          "without-rowid": [
+            0,
+            0,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "sqlite-with-recursive-tree",
+            "tags": [
+              "cte",
+              "recursive",
+              "stdin"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~db.sqlite: file 644 232B 1e1b0b448ad8 != file 644 233B 76cab2f89e38"
+            ]
+          },
+          {
+            "id": "sqlite-window-ranking",
+            "tags": [
+              "window",
+              "stdin"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~db.sqlite: file 644 200B da25e5abaed3 != file 644 201B b7b6f5073b78"
+            ]
+          },
+          {
+            "id": "sqlite-window-frames",
+            "tags": [
+              "window",
+              "stdin"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~db.sqlite: file 644 145B de8d4c699156 != file 644 146B c2d0c0edeb9f"
+            ]
+          },
+          {
+            "id": "sqlite-json-table-valued",
+            "tags": [
+              "json",
+              "stdin"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~db.sqlite: file 644 186B 939511343f16 != file 644 187B e03772bb62bc"
+            ]
+          },
+          {
+            "id": "sqlite-upsert",
+            "tags": [
+              "upsert",
+              "stdin"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~db.sqlite: file 644 198B 3132ffc8ca32 != file 644 199B 06bfcedde306"
+            ]
+          },
+          {
+            "id": "sqlite-returning",
+            "tags": [
+              "returning",
+              "stdin"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~db.sqlite: file 644 153B 5888e1d1d6ab != file 644 154B d2632c26b9ea"
+            ]
+          },
+          {
+            "id": "sqlite-generated-columns",
+            "tags": [
+              "ddl",
+              "generated",
+              "stdin"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1|2|v1\\n21|42|v21\\n5|10|v5\\n21|42|v21\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"Parse error near line 1: Generated columns require --experimental-generated-columns flag\\nParse error near line 2: no suc\"... (257 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None",
+              "files: ~db.sqlite: file 644 183B 84af12600dd9 != file 644 0B e3b0c44298fc"
+            ]
+          },
+          {
+            "id": "sqlite-strict-table",
+            "tags": [
+              "ddl",
+              "strict",
+              "error",
+              "stdin"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"Runtime error near line 4: cannot store TEXT value in INTEGER column t.a (19)\\n\" obtido \"Runtime error near line 4: cannot store TEXT value in INTEGER column t.a (19) (19)\\n\"",
+              "files: ~db.sqlite: file 644 144B 65770629c37b != file 644 145B c8b2ed8771b2"
+            ]
+          },
+          {
+            "id": "sqlite-case-insensitive-keywords",
+            "tags": [
+              "ddl",
+              "quoting",
+              "argv"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~db.sqlite: file 644 153B 705f2fffe0af != file 644 154B f19e236bfa13"
+            ]
+          },
+          {
+            "id": "sqlite-cli-header-flag",
+            "tags": [
+              "cli",
+              "header",
+              "argv"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~db.sqlite: file 644 101B eadb0e730837 != file 644 102B cde23a413e1d"
+            ]
+          },
+          {
+            "id": "sqlite-cli-dot-tables-schema",
+            "tags": [
+              "cli",
+              "dot",
+              "stdin"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"alpha  v      zeta \\nCREATE TABLE alpha(id INTEGER PRIMARY KEY, name TEXT);\\nCREATE INDEX alpha_name ON alpha(name);\\nCREAT\"... (287 bytes) obtido \"alpha  v      zeta \\nCREATE TABLE alpha (id INTEGER PRIMARY KEY, name TEXT);\\nCREATE INDEX alpha_name ON alpha (name);\\nCRE\"... (292 bytes)",
+              "files: ~db.sqlite: file 644 268B adc7e741bff8 != file 644 271B 57bbc6ed69d7"
+            ]
+          },
+          {
+            "id": "sqlite-cli-multiple-sql-args",
+            "tags": [
+              "cli",
+              "argv"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "files: ~db.sqlite: file 644 98B 898d3465fb40 != file 644 99B 362fb57f342e"
+            ]
+          },
+          {
+            "id": "sqlite-cli-mode-csv",
+            "tags": [
+              "cli",
+              "cli-mode",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "modo de saída -csv fora da camada mínima (só list)",
+            "detail": [
+              "unsupported: modo de saída -csv fora da camada mínima (só list)"
+            ]
+          },
+          {
+            "id": "sqlite-cli-mode-json",
+            "tags": [
+              "cli",
+              "cli-mode",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "modo de saída -json fora da camada mínima (só list)",
+            "detail": [
+              "unsupported: modo de saída -json fora da camada mínima (só list)"
+            ]
+          },
+          {
+            "id": "sqlite-cli-mode-column",
+            "tags": [
+              "cli",
+              "cli-mode",
+              "argv"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "modo de saída -column fora da camada mínima (só list)",
+            "detail": [
+              "unsupported: modo de saída -column fora da camada mínima (só list)"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Rust puro, IO plugável por traits seguras (IO, File, Clock), sem nada de unsafe nosso. Mas o Clock do IO não chega no SQL: datetime('now') chama SystemTime::now() direto (usa o relógio do host). E o motor diverge: corpus 27/86 estrito (30 leniente; stdout e exit iguais em 77/86), mesmas linhas no banco final em 49/53 (bytes idênticos em 0/53). Faltam WITHOUT ROWID, colunas geradas e VACUUM (atrás de flags experimentais), não informa deslocamento de erro (sem o ^--- do CLI), reescreve o SQL guardado em sqlite_schema (o .schema sai diferente), mensagens de erro diferentes, só WAL, e recusa ler TEXT com UTF-8 inválido que o SQLite aceita. Interop: daqui pro oráculo true, oráculo (rollback) pra cá true, oráculo (WAL) pra cá true. O crate turso (alto nível) também aceita IO próprio (with_io_impl), mas a API é async.",
+      "metrics": {
+        "conformance": {
+          "db_diff_samples": [
+            [
+              "sqlite-with-recursive-tree",
+              12288,
+              12288,
+              [
+                18,
+                19,
+                27,
+                48,
+                49,
+                50,
+                51,
+                101,
+                102,
+                106,
+                109,
+                111
+              ]
+            ],
+            [
+              "sqlite-window-ranking",
+              8192,
+              8192,
+              [
+                18,
+                19,
+                27,
+                48,
+                49,
+                50,
+                51,
+                106,
+                109,
+                4030,
+                4031,
+                4032
+              ]
+            ],
+            [
+              "sqlite-window-frames",
+              8192,
+              8192,
+              [
+                18,
+                19,
+                27,
+                48,
+                49,
+                50,
+                51,
+                106,
+                109,
+                4041,
+                4042,
+                4043
+              ]
+            ],
+            [
+              "sqlite-json-table-valued",
+              8192,
+              8192,
+              [
+                18,
+                19,
+                27,
+                48,
+                49,
+                50,
+                51,
+                106,
+                109,
+                4021,
+                4022,
+                4023
+              ]
+            ]
+          ],
+          "db_files_byte_identical_modulo_version": 0,
+          "db_files_compared": 53,
+          "db_files_same_tables_rows_pragmas": 49,
+          "failures": [
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 232B 1e1b0b448ad8 != file 644 233B 76cab2f89e38"
+              ],
+              "id": "sqlite-with-recursive-tree",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 200B da25e5abaed3 != file 644 201B b7b6f5073b78"
+              ],
+              "id": "sqlite-window-ranking",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 145B de8d4c699156 != file 644 146B c2d0c0edeb9f"
+              ],
+              "id": "sqlite-window-frames",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 186B 939511343f16 != file 644 187B e03772bb62bc"
+              ],
+              "id": "sqlite-json-table-valued",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 198B 3132ffc8ca32 != file 644 199B 06bfcedde306"
+              ],
+              "id": "sqlite-upsert",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 153B 5888e1d1d6ab != file 644 154B d2632c26b9ea"
+              ],
+              "id": "sqlite-returning",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"1|2|v1\\n21|42|v21\\n5|10|v5\\n21|42|v21\\n\" obtido \"\"",
+                "stderr: esperado \"\" obtido \"Parse error near line 1: Generated columns require --experimental-generated-columns flag\\nParse error near line 2: no suc\"... (257 bytes)",
+                "exit: esperado Some(0)/None obtido Some(1)/None",
+                "files: ~db.sqlite: file 644 183B 84af12600dd9 != file 644 0B e3b0c44298fc"
+              ],
+              "id": "sqlite-generated-columns",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Runtime error near line 4: cannot store TEXT value in INTEGER column t.a (19)\\n\" obtido \"Runtime error near line 4: cannot store TEXT value in INTEGER column t.a (19) (19)\\n\"",
+                "files: ~db.sqlite: file 644 144B 65770629c37b != file 644 145B c8b2ed8771b2"
+              ],
+              "id": "sqlite-strict-table",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 153B 705f2fffe0af != file 644 154B f19e236bfa13"
+              ],
+              "id": "sqlite-case-insensitive-keywords",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 101B eadb0e730837 != file 644 102B cde23a413e1d"
+              ],
+              "id": "sqlite-cli-header-flag",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"alpha  v      zeta \\nCREATE TABLE alpha(id INTEGER PRIMARY KEY, name TEXT);\\nCREATE INDEX alpha_name ON alpha(name);\\nCREAT\"... (287 bytes) obtido \"alpha  v      zeta \\nCREATE TABLE alpha (id INTEGER PRIMARY KEY, name TEXT);\\nCREATE INDEX alpha_name ON alpha (name);\\nCRE\"... (292 bytes)",
+                "files: ~db.sqlite: file 644 268B adc7e741bff8 != file 644 271B 57bbc6ed69d7"
+              ],
+              "id": "sqlite-cli-dot-tables-schema",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 98B 898d3465fb40 != file 644 99B 362fb57f342e"
+              ],
+              "id": "sqlite-cli-multiple-sql-args",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -csv fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-csv",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -json fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-json",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -column fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-column",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 131B 95aa3d96b791 != file 644 132B d05307687e23"
+              ],
+              "id": "sqlite-create-insert-select",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 195B abb34ec59a5d != file 644 196B a0f88800aec3"
+              ],
+              "id": "sqlite-type-affinity",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 200B 66f419326edb != file 644 201B 02b68adb071f"
+              ],
+              "id": "sqlite-aggregates-group-by",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 135B 0fb3d7c81fdb != file 644 136B f2040c2f3259"
+              ],
+              "id": "sqlite-order-limit-nulls",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 294B 8d463a51f088 != file 644 296B 542cb8bb63fb"
+              ],
+              "id": "sqlite-joins",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 146B e91678ff97fc != file 644 147B bf8eb927d1f0"
+              ],
+              "id": "sqlite-subqueries",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 576B 1f12fa8e3c3d != file 644 579B e01e322cd9d7"
+              ],
+              "id": "sqlite-views-and-triggers",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 291B 2a13a15e68a5 != file 644 566B 7d801b069ff1"
+              ],
+              "id": "sqlite-rowid-autoincrement",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 302B f76753ec2a6d != file 644 303B de6107822961"
+              ],
+              "id": "sqlite-defaults-and-check",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"one|z\\nCREATE TABLE \\\"t2\\\"(bee TEXT, c TEXT DEFAULT 'z')\\n\" obtido \"one|z\\nCREATE TABLE t2 (bee TEXT, c TEXT DEFAULT 'z')\\n\"",
+                "files: ~db.sqlite: file 644 133B 01c470a96dcf != file 644 132B e0c9f9e373d8"
+              ],
+              "id": "sqlite-alter-table",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 141B 1b131a2ca044 != file 644 142B 6e1b918d983f"
+              ],
+              "id": "sqlite-update-delete-changes",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 152B 421eb5a73d76 != file 644 153B 23288dc9e375"
+              ],
+              "id": "sqlite-collate-nocase",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 246B 53521d36b57b != file 644 247B cdbe33367ca4"
+              ],
+              "id": "sqlite-insert-variants",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"a|1\\nb|2\\nc|3\\nb\\nc\\n\" obtido \"\"",
+                "stderr: esperado \"\" obtido \"Parse error near line 1: WITHOUT ROWID tables are an experimental feature. Enable with --experimental-without-rowid flag\"... (250 bytes)",
+                "exit: esperado Some(0)/None obtido Some(1)/None",
+                "files: ~db.sqlite: file 644 155B 578d6401255d != file 644 0B e3b0c44298fc"
+              ],
+              "id": "sqlite-without-rowid",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 135B 90d902a2d306 != file 644 136B af98889558d7"
+              ],
+              "id": "sqlite-unicode-text",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Error: in prepare, near \\\"SELEC\\\": syntax error\\n  SELEC 1;\\n  ^--- error here\\n\" obtido \"Error: in prepare, near \\\"SELEC\\\": syntax error\\n\""
+              ],
+              "id": "sqlite-error-syntax-argv",
+              "lenient": true
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 2: near \\\";\\\": syntax error\\n  SELECT * FROM (SELECT 1) WHERE;\\n                  error here ---^\\n\" obtido \"Parse error near line 2: near \\\";\\\": syntax error\\n\""
+              ],
+              "id": "sqlite-error-syntax-stdin",
+              "lenient": true
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 2: no such column: b\\n  SELECT b FROM t;\\n         ^--- error here\\nParse error near line 3: no such \"... (205 bytes) obtido \"Parse error near line 2: no such column: b\\nParse error near line 3: no such column: zzz\\n\"",
+                "files: ~db.sqlite: file 644 90B 3fcef20bc27e != file 644 91B 0e189dc43fc1"
+              ],
+              "id": "sqlite-error-no-such-column",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 130B 5ad684c44784 != file 644 131B 9146b43b2e5a"
+              ],
+              "id": "sqlite-error-unique-argv",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 148B b9b7ec91a045 != file 644 149B 003798500ad1"
+              ],
+              "id": "sqlite-error-constraints-stdin",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 93B 2d94bc40a60b != file 644 94B 6215f200cdcb"
+              ],
+              "id": "sqlite-error-value-count",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 3: ambiguous column name: x\\n  SELECT x FROM a, b;\\n         ^--- error here\\nParse error near line 4\"... (546 bytes) obtido \"Parse error near line 3: ambiguous column name: x\\nParse error near line 4: misuse of aggregate function count(*)\\nParse e\"... (289 bytes)",
+                "files: ~db.sqlite: file 644 117B 1985dac85730 != file 644 119B 3c0b86f75799"
+              ],
+              "id": "sqlite-error-misc-prepare",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 2: unrecognized token: \\\"'unterminated\\\"\\n  SELECT 'unterminated\\n         ^--- error here\\n\" obtido \"Parse error near line 2: non-terminated literal ''unterminated' at offset 7\\n\""
+              ],
+              "id": "sqlite-error-incomplete-statement",
+              "lenient": true
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 2: no such column: b\\n  SELECT a,        b   FROM t;\\n                   ^--- error here\\n\" obtido \"Parse error near line 2: no such column: b\\n\"",
+                "files: ~db.sqlite: file 644 90B 3fcef20bc27e != file 644 91B 0e189dc43fc1"
+              ],
+              "id": "sqlite-error-multiline-position",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 177B a09a5f7b3f9a != file 644 179B 989933dd7f08"
+              ],
+              "id": "sqlite-error-raise-trigger",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 102B 8827bdd4da47 != file 644 103B 983b2a0292b3"
+              ],
+              "id": "sqlite-multi-persist-between-commands",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 196B 399dfc258c92 != file 644 197B 186254d23546"
+              ],
+              "id": "sqlite-multi-schema-file-redirect",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 95B 4eb58b8bdf27 != file 644 96B 03d5a0edb790"
+              ],
+              "id": "sqlite-multi-pipe-into-cli",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 98B b58d9c2a1a4e != file 644 99B 193e4f394dde"
+              ],
+              "id": "sqlite-multi-output-redirect",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 130B 0e172ececfa5 != file 644 131B ef43ab3be96a"
+              ],
+              "id": "sqlite-multi-exit-status",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 142B b957249bb1f6 != file 644 143B 1030812e3947"
+              ],
+              "id": "sqlite-multi-transaction-across-statements",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 189B 9d6bb9aad5b1 != file 644 191B 15a194c4d21e"
+              ],
+              "id": "sqlite-pragma-table-info",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 241B b958bcdc9fff != file 644 244B e3d1bdbfff20"
+              ],
+              "id": "sqlite-pragma-indexes",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 91B aadbe135de49 != file 644 92B f2ca68df1d3c"
+              ],
+              "id": "sqlite-pragma-settings",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"delete\\nwal\\ndelete\\n1\\n\" obtido \"wal\\nwal\\nwal\\n1\\n\"",
+                "files: ~db.sqlite: file 644 94B d3315b18bde6 != file 644 95B 69472e8dd275"
+              ],
+              "id": "sqlite-pragma-journal-mode",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 174B 16cbc09f6454 != file 644 176B d64244fb35db"
+              ],
+              "id": "sqlite-pragma-integrity-check",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 247B f4793e56072c != file 644 250B a144c1b21d50"
+              ],
+              "id": "sqlite-foreign-keys-enforced",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 7775B ace80d2cb1f9 != file 644 7776B 5b480b3be356"
+              ],
+              "id": "sqlite-index-usage-results",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 152B 63789f7d9d67 != file 644 154B 0dc36182fb2e"
+              ],
+              "id": "sqlite-explain-query-plan",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 94B 593f6eeb4656 != file 644 95B cc789a148160"
+              ],
+              "id": "sqlite-transaction-rollback",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 98B a09e9daa865a != file 644 99B 1ceffffd4ec8"
+              ],
+              "id": "sqlite-savepoints",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 134B f66844e607be != file 644 135B 291564d91ff3"
+              ],
+              "id": "sqlite-transaction-error-continues",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Error: stepping, cannot start a transaction within a transaction\\n\" obtido \"Error: stepping, Transaction error: cannot start a transaction within a transaction\\n\"",
+                "files: ~db.sqlite: file 644 94B d3315b18bde6 != file 644 95B 69472e8dd275"
+              ],
+              "id": "sqlite-transaction-nested-error",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"1\\n0\\n1\\n\" obtido \"1\\n56\\n57\\n\"",
+                "stderr: esperado \"\" obtido \"Parse error near line 5: VACUUM is an experimental feature. Enable with --experimental-vacuum flag\\n\"",
+                "exit: esperado Some(0)/None obtido Some(1)/None"
+              ],
+              "id": "sqlite-vacuum-and-drop",
+              "lenient": false
+            }
+          ],
+          "lenient": 30,
+          "stdout_and_exit_ok": 77,
+          "strict": 27,
+          "total": 86,
+          "unsupported": 3
+        },
+        "deps": {
+          "c_deps": [
+            "aegis 0.9.20"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 28,
+          "own_category": "b",
+          "own_host_touch": 55,
+          "own_unsafe": 0,
+          "tree_category": "c",
+          "tree_deps": 151,
+          "version": "0.8.1"
+        },
+        "turso_high_level_crate": {
+          "api": {
+            "pub async fn build": 2,
+            "pub async fn connect": 1,
+            "pub async fn execute": 3,
+            "pub fn with_io_impl": 1
+          },
+          "deps": {
+            "c_deps": [
+              "aegis 0.9.20",
+              "simsimd 6.5.16",
+              "turso_sdk_kit 0.8.1",
+              "turso_sync_sdk_kit 0.8.1"
+            ],
+            "has_tokio": false,
+            "host_touching_deps": 39,
+            "own_category": "a",
+            "own_host_touch": 0,
+            "own_unsafe": 1,
+            "tree_category": "c",
+            "tree_deps": 181,
+            "version": "0.8.1"
+          }
+        }
+      }
+    },
+    {
+      "name": "gix (alto nível)",
+      "version": "0.88.0",
+      "role": "git",
+      "category": "b",
+      "fit": "does_not_fit",
+      "notes": "Sem trait de FS: gix::open/init/discover recebem caminho, e o repositório é feito de gix_odb::Store::at (objetos lidos do disco com mmap), gix_ref::file::Store (refs como arquivos) e gix_index::File::at. O repositório que só existe no MemTree não abre (\"/pseudo-linus-memtree/work/case\" does not appear to be a git repository); o mesmo repositório materializado num diretório do host abre e lê o HEAD.",
+      "metrics": {
+        "deps": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 50,
+          "own_category": "b",
+          "own_host_touch": 33,
+          "own_unsafe": 3,
+          "tree_category": "c",
+          "tree_deps": 124,
+          "version": "0.88.0"
+        },
+        "probe": {
+          "entry_points": [
+            "gix::open(path)",
+            "gix::init(path)",
+            "gix::discover(path)",
+            "gix::ThreadSafeRepository::open_opts(path, opts)"
+          ],
+          "init_memtree_without_disk": "Could not create directory at '/pseudo-linus-memtree/work/case/.git'",
+          "open_after_materializing_to_host_dir": {
+            "head": "98eacdb9c8afe4ebcebd3cd9bd18f5ee3ca79ad7",
+            "message": "made by the prototype"
+          },
+          "open_memtree_without_disk": "\"/pseudo-linus-memtree/work/case\" does not appear to be a git repository",
+          "storage_types": [
+            "gix_odb::Store::at(objects_dir)",
+            "gix_ref::file::Store::at(git_dir)",
+            "gix_index::File::at(path)"
+          ]
+        }
+      }
+    },
+    {
+      "name": "gix-* baixo nível (object, hash, zlib, pack, index, ref, diff)",
+      "version": "gix-object 0.65 / gix-pack 0.75 / gix-index 0.56 / gix-ref 0.68 / gix-diff 0.68",
+      "role": "git",
+      "category": "b",
+      "conformance": {
+        "candidate": "gix-* 0.65 (object) / 0.75 (pack) / 0.56 (index) + CLI nosso",
+        "total": 15,
+        "strict_pass": 15,
+        "lenient_pass": 15,
+        "unsupported": 0,
+        "by_tag": {
+          "commit": [
+            3,
+            3,
+            3
+          ],
+          "commit-tree": [
+            1,
+            1,
+            1
+          ],
+          "diff": [
+            2,
+            2,
+            2
+          ],
+          "error": [
+            2,
+            2,
+            2
+          ],
+          "hash-object": [
+            1,
+            1,
+            1
+          ],
+          "index": [
+            1,
+            1,
+            1
+          ],
+          "init": [
+            2,
+            2,
+            2
+          ],
+          "log": [
+            2,
+            2,
+            2
+          ],
+          "plumbing": [
+            5,
+            5,
+            5
+          ],
+          "porcelain": [
+            8,
+            8,
+            8
+          ],
+          "ref": [
+            1,
+            1,
+            1
+          ],
+          "status": [
+            2,
+            2,
+            2
+          ],
+          "tree": [
+            1,
+            1,
+            1
+          ],
+          "update-ref": [
+            1,
+            1,
+            1
+          ],
+          "write-tree": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits_with_work",
+      "notes": "Tudo que o protótipo precisa aceita bytes: hash e codificação de objetos, zlib, pack e índice de pack (from_data com qualquer Deref<[u8]>), packed-refs (Buffer::from_bytes), índice (State::from_bytes/write_to, faltando só o checksum final, que é nosso). Corpus 15/15 estrito com CLI nosso; repositório feito aqui passa git fsck --strict: true; 8/8 comandos dão a mesma saída no git real; repositório do git real com gc (pack com 6 deltas, packed-refs, tag anotada): 32/32 objetos iguais ao cat-file -p. Custo: 1314 linhas de CLI e store (ver lines_per_command). O recurso blob do gix-diff puxa gix-worktree/gix-command (tocam o host), mas as funções usadas são puras.",
+      "metrics": {
+        "deps": {
+          "gix": {
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "has_tokio": false,
+            "host_touching_deps": 50,
+            "own_category": "b",
+            "own_host_touch": 33,
+            "own_unsafe": 3,
+            "tree_category": "c",
+            "tree_deps": 124,
+            "version": "0.88.0"
+          },
+          "gix-diff": {
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "has_tokio": false,
+            "host_touching_deps": 36,
+            "own_category": "b",
+            "own_host_touch": 13,
+            "own_unsafe": 0,
+            "tree_category": "c",
+            "tree_deps": 100,
+            "version": "0.68.0"
+          },
+          "gix-hash": {
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "has_tokio": false,
+            "host_touching_deps": 15,
+            "own_category": "b",
+            "own_host_touch": 1,
+            "own_unsafe": 3,
+            "tree_category": "c",
+            "tree_deps": 52,
+            "version": "0.27.0"
+          },
+          "gix-index": {
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "has_tokio": false,
+            "host_touching_deps": 30,
+            "own_category": "b",
+            "own_host_touch": 16,
+            "own_unsafe": 1,
+            "tree_category": "c",
+            "tree_deps": 85,
+            "version": "0.56.0"
+          },
+          "gix-object": {
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "has_tokio": false,
+            "host_touching_deps": 19,
+            "own_category": "b",
+            "own_host_touch": 11,
+            "own_unsafe": 0,
+            "tree_category": "c",
+            "tree_deps": 65,
+            "version": "0.65.0"
+          },
+          "gix-pack": {
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "has_tokio": false,
+            "host_touching_deps": 23,
+            "own_category": "b",
+            "own_host_touch": 6,
+            "own_unsafe": 11,
+            "tree_category": "c",
+            "tree_deps": 72,
+            "version": "0.75.0"
+          },
+          "gix-ref": {
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "has_tokio": false,
+            "host_touching_deps": 28,
+            "own_category": "b",
+            "own_host_touch": 17,
+            "own_unsafe": 3,
+            "tree_category": "c",
+            "tree_deps": 77,
+            "version": "0.68.0"
+          },
+          "gix-zlib": {
+            "c_deps": [],
+            "has_tokio": false,
+            "host_touching_deps": 2,
+            "own_category": "a",
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_category": "b",
+            "tree_deps": 8,
+            "version": "0.2.0"
+          }
+        },
+        "failures": [],
+        "fsck": {
+          "build_status": 0,
+          "build_stderr": "",
+          "checks": {
+            "git cat-file -p HEAD": {
+              "git": "tree 408d8fb79bf8c6be9dea0cb8837bf3dce196bca1\nparent bd5c661d0872aaaf960546f7cad55bf26de13c23\nauthor Agent <agent@example.com> 1768478400 +0000\ncommitter Agent <agent@example.com> 1768478400 +0000\n\nthird: delete b\n",
+              "ours": "tree 408d8fb79bf8c6be9dea0cb8837bf3dce196bca1\nparent bd5c661d0872aaaf960546f7cad55bf26de13c23\nauthor Agent <agent@example.com> 1768478400 +0000\ncommitter Agent <agent@example.com> 1768478400 +0000\n\nthird: delete b\n",
+              "same": true
+            },
+            "git diff": {
+              "git": "diff --git a/a.txt b/a.txt\nindex 9a7a4b5..492125a 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1,2 +1,3 @@\n hello\n changed\n+dirty\n",
+              "ours": "diff --git a/a.txt b/a.txt\nindex 9a7a4b5..492125a 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1,2 +1,3 @@\n hello\n changed\n+dirty\n",
+              "same": true
+            },
+            "git log --format='%H %P %T %an <%ae> %at %s'": {
+              "git": "d0dd45d3aa2dcb832ee2a0e2538bdb8ce970f0ec bd5c661d0872aaaf960546f7cad55bf26de13c23 408d8fb79bf8c6be9dea0cb8837bf3dce196bca1 Agent <agent@example.com> 1768478400 third: delete b\nbd5c661d0872aaaf960546f7cad55bf26de13c23 8bcb6bb90ab5d990a5d40959d2257da9bd434a24 1b1ad40df34e14db3100626d1e2a635da178ea1b Agent <agent@example.com> 1768478400 second commit\n8bcb6bb90ab5d990a5d40959d2257da9bd434a24  661e6b1c19c324658b75669424d2a9875fa7ea6c Agent <agent@example.com> 1768478400 first commit\n",
+              "ours": "d0dd45d3aa2dcb832ee2a0e2538bdb8ce970f0ec bd5c661d0872aaaf960546f7cad55bf26de13c23 408d8fb79bf8c6be9dea0cb8837bf3dce196bca1 Agent <agent@example.com> 1768478400 third: delete b\nbd5c661d0872aaaf960546f7cad55bf26de13c23 8bcb6bb90ab5d990a5d40959d2257da9bd434a24 1b1ad40df34e14db3100626d1e2a635da178ea1b Agent <agent@example.com> 1768478400 second commit\n8bcb6bb90ab5d990a5d40959d2257da9bd434a24  661e6b1c19c324658b75669424d2a9875fa7ea6c Agent <agent@example.com> 1768478400 first commit\n",
+              "same": true
+            },
+            "git log --format='%H %s' plumbing": {
+              "git": "e7f56a0cb3598de66082c671cb83d5ab6c3581d5 plumbing commit\nbd5c661d0872aaaf960546f7cad55bf26de13c23 second commit\n8bcb6bb90ab5d990a5d40959d2257da9bd434a24 first commit\n",
+              "ours": "e7f56a0cb3598de66082c671cb83d5ab6c3581d5 plumbing commit\nbd5c661d0872aaaf960546f7cad55bf26de13c23 second commit\n8bcb6bb90ab5d990a5d40959d2257da9bd434a24 first commit\n",
+              "same": true
+            },
+            "git ls-files -s": {
+              "git": "100644 9a7a4b59324c53ce0b36255fedc6bc3326591abd 0\ta.txt\n100644 3c2cf2659f667e1d8affdfc46baf4bf285c533ab 0\tbin.dat\n120000 8d14cbf983b3fad683171c9418998d9f68340823 0\tlink\n100755 4163036efa65bd4a469e752267498f01ea36a55c 0\trun.sh\n100644 f328e4d9d04c31d0d70d16d21a07d1613be9d577 0\tsrc/deep/main.rs\n",
+              "ours": "100644 9a7a4b59324c53ce0b36255fedc6bc3326591abd 0\ta.txt\n100644 3c2cf2659f667e1d8affdfc46baf4bf285c533ab 0\tbin.dat\n120000 8d14cbf983b3fad683171c9418998d9f68340823 0\tlink\n100755 4163036efa65bd4a469e752267498f01ea36a55c 0\trun.sh\n100644 f328e4d9d04c31d0d70d16d21a07d1613be9d577 0\tsrc/deep/main.rs\n",
+              "same": true
+            },
+            "git ls-tree -r HEAD": {
+              "git": "100644 blob 9a7a4b59324c53ce0b36255fedc6bc3326591abd\ta.txt\n100644 blob 3c2cf2659f667e1d8affdfc46baf4bf285c533ab\tbin.dat\n120000 blob 8d14cbf983b3fad683171c9418998d9f68340823\tlink\n100755 blob 4163036efa65bd4a469e752267498f01ea36a55c\trun.sh\n100644 blob f328e4d9d04c31d0d70d16d21a07d1613be9d577\tsrc/deep/main.rs\n",
+              "ours": "100644 blob 9a7a4b59324c53ce0b36255fedc6bc3326591abd\ta.txt\n100644 blob 3c2cf2659f667e1d8affdfc46baf4bf285c533ab\tbin.dat\n120000 blob 8d14cbf983b3fad683171c9418998d9f68340823\tlink\n100755 blob 4163036efa65bd4a469e752267498f01ea36a55c\trun.sh\n100644 blob f328e4d9d04c31d0d70d16d21a07d1613be9d577\tsrc/deep/main.rs\n",
+              "same": true
+            },
+            "git rev-parse HEAD feature plumbing": {
+              "git": "d0dd45d3aa2dcb832ee2a0e2538bdb8ce970f0ec\nbd5c661d0872aaaf960546f7cad55bf26de13c23\ne7f56a0cb3598de66082c671cb83d5ab6c3581d5\n",
+              "ours": "d0dd45d3aa2dcb832ee2a0e2538bdb8ce970f0ec\nbd5c661d0872aaaf960546f7cad55bf26de13c23\ne7f56a0cb3598de66082c671cb83d5ab6c3581d5\n",
+              "same": true
+            },
+            "git status --porcelain": {
+              "git": " M a.txt\n",
+              "ours": " M a.txt\n",
+              "same": true
+            }
+          },
+          "checks_equal": 8,
+          "checks_total": 8,
+          "fsck_and_count_objects": "fsck_exit=0\ncount: 16\nsize: 64\nin-pack: 0\npacks: 0\nsize-pack: 0\nprune-packable: 0\ngarbage: 0\nsize-garbage: 0\n",
+          "fsck_strict_exit": 0,
+          "oracle_stderr": ""
+        },
+        "lines_per_command": {
+          "(compartilhado: despacho e utilitários)": 39,
+          "(compartilhado: diff de blobs)": 64,
+          "(compartilhado: store sobre gix-*)": 334,
+          "add": 43,
+          "cat-file": 42,
+          "commit": 141,
+          "commit-tree": 38,
+          "diff": 73,
+          "hash-object": 57,
+          "init": 67,
+          "log": 130,
+          "ls-files": 12,
+          "ls-tree": 26,
+          "rev-parse": 36,
+          "status": 147,
+          "total": 1314,
+          "update-ref": 18,
+          "write-tree": 47
+        },
+        "packed_repo": {
+          "git_dir_files": [
+            ".git/COMMIT_EDITMSG",
+            ".git/HEAD",
+            ".git/config",
+            ".git/description",
+            ".git/hooks/applypatch-msg.sample",
+            ".git/hooks/commit-msg.sample",
+            ".git/hooks/fsmonitor-watchman.sample",
+            ".git/hooks/post-update.sample",
+            ".git/hooks/pre-applypatch.sample",
+            ".git/hooks/pre-commit.sample",
+            ".git/hooks/pre-merge-commit.sample",
+            ".git/hooks/pre-push.sample",
+            ".git/hooks/pre-rebase.sample",
+            ".git/hooks/pre-receive.sample",
+            ".git/hooks/prepare-commit-msg.sample",
+            ".git/hooks/push-to-checkout.sample",
+            ".git/hooks/sendemail-validate.sample",
+            ".git/hooks/update.sample",
+            ".git/index",
+            ".git/info/exclude",
+            ".git/info/refs",
+            ".git/logs/HEAD",
+            ".git/logs/refs/heads/master",
+            ".git/objects/info/commit-graph",
+            ".git/objects/info/packs",
+            ".git/objects/pack/pack-b26ddd78331ab96fa2e3142af45ff4d0a0e6ec49.idx",
+            ".git/objects/pack/pack-b26ddd78331ab96fa2e3142af45ff4d0a0e6ec49.pack",
+            ".git/objects/pack/pack-b26ddd78331ab96fa2e3142af45ff4d0a0e6ec49.rev",
+            ".git/packed-refs"
+          ],
+          "loose_object_files_left": 0,
+          "mismatches": [],
+          "objects_equal_type_size_and_cat_file_p": 32,
+          "objects_total": 32,
+          "pack_delta_entries_reported_by_git_verify_pack": 6,
+          "pack_delta_entries_seen_by_gix_pack": 6,
+          "porcelain_on_packed_repo": {
+            "git log --format='%H %P %s'": {
+              "git": "d3de3522d95496dcebf12699df7f7e814679d55c c8728052ef7cc600b0fa128893c949294c923c7c c7\nc8728052ef7cc600b0fa128893c949294c923c7c e8a4bb2ecc13cb4690445f31d31db06d19093dc0 c6\ne8a4bb2ecc13cb4690445f31d31db06d19093dc0 abc465c3c03fa380d9f205d48b76c3f89cf0e6dd c5\nabc465c3c03fa380d9f205d48b76c3f89cf0e6dd d83aeca7f967852d3e078f9e08408c06984198b1 c4\nd83aeca7f967852d3e078f9e08408c06984198b1 362a2e74ca6b628b0c87944607e9ad785431444d c3\n362a2e74ca6b628b0c87944607e9ad785431444d c4633b0bd0967e9c31b469f6c63f6a5a78091f42 c2\nc4633b0bd0967e9c31b469f6c63f6a5a78091f42  c1\n",
+              "ours": "d3de3522d95496dcebf12699df7f7e814679d55c c8728052ef7cc600b0fa128893c949294c923c7c c7\nc8728052ef7cc600b0fa128893c949294c923c7c e8a4bb2ecc13cb4690445f31d31db06d19093dc0 c6\ne8a4bb2ecc13cb4690445f31d31db06d19093dc0 abc465c3c03fa380d9f205d48b76c3f89cf0e6dd c5\nabc465c3c03fa380d9f205d48b76c3f89cf0e6dd d83aeca7f967852d3e078f9e08408c06984198b1 c4\nd83aeca7f967852d3e078f9e08408c06984198b1 362a2e74ca6b628b0c87944607e9ad785431444d c3\n362a2e74ca6b628b0c87944607e9ad785431444d c4633b0bd0967e9c31b469f6c63f6a5a78091f42 c2\nc4633b0bd0967e9c31b469f6c63f6a5a78091f42  c1\n",
+              "same": true,
+              "stderr": ""
+            },
+            "git ls-tree -r HEAD": {
+              "git": "100644 blob 9a6ff62f19f481646bcac616e666775ae6ee7b9b\tbig.txt\n100644 blob 4cdb2265d30204be5463b38174b2e8e717982405\td/e/f.txt\n100644 blob b64c6ede8b172cd7821e8b23f3731f8c54019e3a\tsmall.txt\n",
+              "ours": "100644 blob 9a6ff62f19f481646bcac616e666775ae6ee7b9b\tbig.txt\n100644 blob 4cdb2265d30204be5463b38174b2e8e717982405\td/e/f.txt\n100644 blob b64c6ede8b172cd7821e8b23f3731f8c54019e3a\tsmall.txt\n",
+              "same": true,
+              "stderr": ""
+            },
+            "git rev-parse v1 v2": {
+              "git": "e8a4bb2ecc13cb4690445f31d31db06d19093dc0\n1c1e29e7859875cd875350e747c3a609b4cfd833\n",
+              "ours": "e8a4bb2ecc13cb4690445f31d31db06d19093dc0\n1c1e29e7859875cd875350e747c3a609b4cfd833\n",
+              "same": true,
+              "stderr": ""
+            },
+            "git status --porcelain": {
+              "git": "?? expected/\n",
+              "ours": "?? expected/\n",
+              "same": true,
+              "stderr": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "git2 (libgit2)",
+      "version": "0.21.0",
+      "role": "git",
+      "category": "c",
+      "fit": "does_not_fit",
+      "notes": "Binding de C (libgit2-sys compila libgit2). Repository::open/init recebem caminho; o único backend que não é disco é o mempack (objetos em memória, sem leitura do nosso FS); backend de objetos ou de refs próprio só implementando git_odb_backend/git_refdb_backend pela FFI crua do libgit2-sys, o que é unsafe nosso. Descartado sem compilar (sonda só de metadados).",
+      "metrics": {
+        "api": {
+          "git_odb_backend": 4,
+          "git_refdb_backend": 0,
+          "pub fn add_new_mempack_backend": 1,
+          "pub fn from_odb": 1,
+          "pub fn init<P": 1,
+          "pub fn open<P": 1,
+          "unsafe": 988
+        },
+        "deps": {
+          "c_deps": [
+            "libgit2-sys 0.18.8+1.9.7",
+            "libz-sys 1.1.29"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 3,
+          "own_category": "b",
+          "own_host_touch": 168,
+          "own_unsafe": 959,
+          "tree_category": "c",
+          "tree_deps": 5,
+          "version": "0.21.0"
+        }
+      }
+    }
+  ],
+  "metrics": {
+    "elapsed_s": 40.467227575,
+    "git": {
+      "conformance_failures": [],
+      "deps": {
+        "gix": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 50,
+          "own_category": "b",
+          "own_host_touch": 33,
+          "own_unsafe": 3,
+          "tree_category": "c",
+          "tree_deps": 124,
+          "version": "0.88.0"
+        },
+        "gix-diff": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 36,
+          "own_category": "b",
+          "own_host_touch": 13,
+          "own_unsafe": 0,
+          "tree_category": "c",
+          "tree_deps": 100,
+          "version": "0.68.0"
+        },
+        "gix-hash": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 15,
+          "own_category": "b",
+          "own_host_touch": 1,
+          "own_unsafe": 3,
+          "tree_category": "c",
+          "tree_deps": 52,
+          "version": "0.27.0"
+        },
+        "gix-index": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 30,
+          "own_category": "b",
+          "own_host_touch": 16,
+          "own_unsafe": 1,
+          "tree_category": "c",
+          "tree_deps": 85,
+          "version": "0.56.0"
+        },
+        "gix-object": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 19,
+          "own_category": "b",
+          "own_host_touch": 11,
+          "own_unsafe": 0,
+          "tree_category": "c",
+          "tree_deps": 65,
+          "version": "0.65.0"
+        },
+        "gix-pack": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 23,
+          "own_category": "b",
+          "own_host_touch": 6,
+          "own_unsafe": 11,
+          "tree_category": "c",
+          "tree_deps": 72,
+          "version": "0.75.0"
+        },
+        "gix-ref": {
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 28,
+          "own_category": "b",
+          "own_host_touch": 17,
+          "own_unsafe": 3,
+          "tree_category": "c",
+          "tree_deps": 77,
+          "version": "0.68.0"
+        },
+        "gix-zlib": {
+          "c_deps": [],
+          "has_tokio": false,
+          "host_touching_deps": 2,
+          "own_category": "a",
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_category": "b",
+          "tree_deps": 8,
+          "version": "0.2.0"
+        }
+      },
+      "fsck": {
+        "build_status": 0,
+        "build_stderr": "",
+        "checks": {
+          "git cat-file -p HEAD": {
+            "git": "tree 408d8fb79bf8c6be9dea0cb8837bf3dce196bca1\nparent bd5c661d0872aaaf960546f7cad55bf26de13c23\nauthor Agent <agent@example.com> 1768478400 +0000\ncommitter Agent <agent@example.com> 1768478400 +0000\n\nthird: delete b\n",
+            "ours": "tree 408d8fb79bf8c6be9dea0cb8837bf3dce196bca1\nparent bd5c661d0872aaaf960546f7cad55bf26de13c23\nauthor Agent <agent@example.com> 1768478400 +0000\ncommitter Agent <agent@example.com> 1768478400 +0000\n\nthird: delete b\n",
+            "same": true
+          },
+          "git diff": {
+            "git": "diff --git a/a.txt b/a.txt\nindex 9a7a4b5..492125a 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1,2 +1,3 @@\n hello\n changed\n+dirty\n",
+            "ours": "diff --git a/a.txt b/a.txt\nindex 9a7a4b5..492125a 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1,2 +1,3 @@\n hello\n changed\n+dirty\n",
+            "same": true
+          },
+          "git log --format='%H %P %T %an <%ae> %at %s'": {
+            "git": "d0dd45d3aa2dcb832ee2a0e2538bdb8ce970f0ec bd5c661d0872aaaf960546f7cad55bf26de13c23 408d8fb79bf8c6be9dea0cb8837bf3dce196bca1 Agent <agent@example.com> 1768478400 third: delete b\nbd5c661d0872aaaf960546f7cad55bf26de13c23 8bcb6bb90ab5d990a5d40959d2257da9bd434a24 1b1ad40df34e14db3100626d1e2a635da178ea1b Agent <agent@example.com> 1768478400 second commit\n8bcb6bb90ab5d990a5d40959d2257da9bd434a24  661e6b1c19c324658b75669424d2a9875fa7ea6c Agent <agent@example.com> 1768478400 first commit\n",
+            "ours": "d0dd45d3aa2dcb832ee2a0e2538bdb8ce970f0ec bd5c661d0872aaaf960546f7cad55bf26de13c23 408d8fb79bf8c6be9dea0cb8837bf3dce196bca1 Agent <agent@example.com> 1768478400 third: delete b\nbd5c661d0872aaaf960546f7cad55bf26de13c23 8bcb6bb90ab5d990a5d40959d2257da9bd434a24 1b1ad40df34e14db3100626d1e2a635da178ea1b Agent <agent@example.com> 1768478400 second commit\n8bcb6bb90ab5d990a5d40959d2257da9bd434a24  661e6b1c19c324658b75669424d2a9875fa7ea6c Agent <agent@example.com> 1768478400 first commit\n",
+            "same": true
+          },
+          "git log --format='%H %s' plumbing": {
+            "git": "e7f56a0cb3598de66082c671cb83d5ab6c3581d5 plumbing commit\nbd5c661d0872aaaf960546f7cad55bf26de13c23 second commit\n8bcb6bb90ab5d990a5d40959d2257da9bd434a24 first commit\n",
+            "ours": "e7f56a0cb3598de66082c671cb83d5ab6c3581d5 plumbing commit\nbd5c661d0872aaaf960546f7cad55bf26de13c23 second commit\n8bcb6bb90ab5d990a5d40959d2257da9bd434a24 first commit\n",
+            "same": true
+          },
+          "git ls-files -s": {
+            "git": "100644 9a7a4b59324c53ce0b36255fedc6bc3326591abd 0\ta.txt\n100644 3c2cf2659f667e1d8affdfc46baf4bf285c533ab 0\tbin.dat\n120000 8d14cbf983b3fad683171c9418998d9f68340823 0\tlink\n100755 4163036efa65bd4a469e752267498f01ea36a55c 0\trun.sh\n100644 f328e4d9d04c31d0d70d16d21a07d1613be9d577 0\tsrc/deep/main.rs\n",
+            "ours": "100644 9a7a4b59324c53ce0b36255fedc6bc3326591abd 0\ta.txt\n100644 3c2cf2659f667e1d8affdfc46baf4bf285c533ab 0\tbin.dat\n120000 8d14cbf983b3fad683171c9418998d9f68340823 0\tlink\n100755 4163036efa65bd4a469e752267498f01ea36a55c 0\trun.sh\n100644 f328e4d9d04c31d0d70d16d21a07d1613be9d577 0\tsrc/deep/main.rs\n",
+            "same": true
+          },
+          "git ls-tree -r HEAD": {
+            "git": "100644 blob 9a7a4b59324c53ce0b36255fedc6bc3326591abd\ta.txt\n100644 blob 3c2cf2659f667e1d8affdfc46baf4bf285c533ab\tbin.dat\n120000 blob 8d14cbf983b3fad683171c9418998d9f68340823\tlink\n100755 blob 4163036efa65bd4a469e752267498f01ea36a55c\trun.sh\n100644 blob f328e4d9d04c31d0d70d16d21a07d1613be9d577\tsrc/deep/main.rs\n",
+            "ours": "100644 blob 9a7a4b59324c53ce0b36255fedc6bc3326591abd\ta.txt\n100644 blob 3c2cf2659f667e1d8affdfc46baf4bf285c533ab\tbin.dat\n120000 blob 8d14cbf983b3fad683171c9418998d9f68340823\tlink\n100755 blob 4163036efa65bd4a469e752267498f01ea36a55c\trun.sh\n100644 blob f328e4d9d04c31d0d70d16d21a07d1613be9d577\tsrc/deep/main.rs\n",
+            "same": true
+          },
+          "git rev-parse HEAD feature plumbing": {
+            "git": "d0dd45d3aa2dcb832ee2a0e2538bdb8ce970f0ec\nbd5c661d0872aaaf960546f7cad55bf26de13c23\ne7f56a0cb3598de66082c671cb83d5ab6c3581d5\n",
+            "ours": "d0dd45d3aa2dcb832ee2a0e2538bdb8ce970f0ec\nbd5c661d0872aaaf960546f7cad55bf26de13c23\ne7f56a0cb3598de66082c671cb83d5ab6c3581d5\n",
+            "same": true
+          },
+          "git status --porcelain": {
+            "git": " M a.txt\n",
+            "ours": " M a.txt\n",
+            "same": true
+          }
+        },
+        "checks_equal": 8,
+        "checks_total": 8,
+        "fsck_and_count_objects": "fsck_exit=0\ncount: 16\nsize: 64\nin-pack: 0\npacks: 0\nsize-pack: 0\nprune-packable: 0\ngarbage: 0\nsize-garbage: 0\n",
+        "fsck_strict_exit": 0,
+        "oracle_stderr": ""
+      },
+      "gix_high_level": {
+        "entry_points": [
+          "gix::open(path)",
+          "gix::init(path)",
+          "gix::discover(path)",
+          "gix::ThreadSafeRepository::open_opts(path, opts)"
+        ],
+        "init_memtree_without_disk": "Could not create directory at '/pseudo-linus-memtree/work/case/.git'",
+        "open_after_materializing_to_host_dir": {
+          "head": "98eacdb9c8afe4ebcebd3cd9bd18f5ee3ca79ad7",
+          "message": "made by the prototype"
+        },
+        "open_memtree_without_disk": "\"/pseudo-linus-memtree/work/case\" does not appear to be a git repository",
+        "storage_types": [
+          "gix_odb::Store::at(objects_dir)",
+          "gix_ref::file::Store::at(git_dir)",
+          "gix_index::File::at(path)"
+        ]
+      },
+      "lines_per_command": {
+        "(compartilhado: despacho e utilitários)": 39,
+        "(compartilhado: diff de blobs)": 64,
+        "(compartilhado: store sobre gix-*)": 334,
+        "add": 43,
+        "cat-file": 42,
+        "commit": 141,
+        "commit-tree": 38,
+        "diff": 73,
+        "hash-object": 57,
+        "init": 67,
+        "log": 130,
+        "ls-files": 12,
+        "ls-tree": 26,
+        "rev-parse": 36,
+        "status": 147,
+        "total": 1314,
+        "update-ref": 18,
+        "write-tree": 47
+      },
+      "packed_repo": {
+        "git_dir_files": [
+          ".git/COMMIT_EDITMSG",
+          ".git/HEAD",
+          ".git/config",
+          ".git/description",
+          ".git/hooks/applypatch-msg.sample",
+          ".git/hooks/commit-msg.sample",
+          ".git/hooks/fsmonitor-watchman.sample",
+          ".git/hooks/post-update.sample",
+          ".git/hooks/pre-applypatch.sample",
+          ".git/hooks/pre-commit.sample",
+          ".git/hooks/pre-merge-commit.sample",
+          ".git/hooks/pre-push.sample",
+          ".git/hooks/pre-rebase.sample",
+          ".git/hooks/pre-receive.sample",
+          ".git/hooks/prepare-commit-msg.sample",
+          ".git/hooks/push-to-checkout.sample",
+          ".git/hooks/sendemail-validate.sample",
+          ".git/hooks/update.sample",
+          ".git/index",
+          ".git/info/exclude",
+          ".git/info/refs",
+          ".git/logs/HEAD",
+          ".git/logs/refs/heads/master",
+          ".git/objects/info/commit-graph",
+          ".git/objects/info/packs",
+          ".git/objects/pack/pack-b26ddd78331ab96fa2e3142af45ff4d0a0e6ec49.idx",
+          ".git/objects/pack/pack-b26ddd78331ab96fa2e3142af45ff4d0a0e6ec49.pack",
+          ".git/objects/pack/pack-b26ddd78331ab96fa2e3142af45ff4d0a0e6ec49.rev",
+          ".git/packed-refs"
+        ],
+        "loose_object_files_left": 0,
+        "mismatches": [],
+        "objects_equal_type_size_and_cat_file_p": 32,
+        "objects_total": 32,
+        "pack_delta_entries_reported_by_git_verify_pack": 6,
+        "pack_delta_entries_seen_by_gix_pack": 6,
+        "porcelain_on_packed_repo": {
+          "git log --format='%H %P %s'": {
+            "git": "d3de3522d95496dcebf12699df7f7e814679d55c c8728052ef7cc600b0fa128893c949294c923c7c c7\nc8728052ef7cc600b0fa128893c949294c923c7c e8a4bb2ecc13cb4690445f31d31db06d19093dc0 c6\ne8a4bb2ecc13cb4690445f31d31db06d19093dc0 abc465c3c03fa380d9f205d48b76c3f89cf0e6dd c5\nabc465c3c03fa380d9f205d48b76c3f89cf0e6dd d83aeca7f967852d3e078f9e08408c06984198b1 c4\nd83aeca7f967852d3e078f9e08408c06984198b1 362a2e74ca6b628b0c87944607e9ad785431444d c3\n362a2e74ca6b628b0c87944607e9ad785431444d c4633b0bd0967e9c31b469f6c63f6a5a78091f42 c2\nc4633b0bd0967e9c31b469f6c63f6a5a78091f42  c1\n",
+            "ours": "d3de3522d95496dcebf12699df7f7e814679d55c c8728052ef7cc600b0fa128893c949294c923c7c c7\nc8728052ef7cc600b0fa128893c949294c923c7c e8a4bb2ecc13cb4690445f31d31db06d19093dc0 c6\ne8a4bb2ecc13cb4690445f31d31db06d19093dc0 abc465c3c03fa380d9f205d48b76c3f89cf0e6dd c5\nabc465c3c03fa380d9f205d48b76c3f89cf0e6dd d83aeca7f967852d3e078f9e08408c06984198b1 c4\nd83aeca7f967852d3e078f9e08408c06984198b1 362a2e74ca6b628b0c87944607e9ad785431444d c3\n362a2e74ca6b628b0c87944607e9ad785431444d c4633b0bd0967e9c31b469f6c63f6a5a78091f42 c2\nc4633b0bd0967e9c31b469f6c63f6a5a78091f42  c1\n",
+            "same": true,
+            "stderr": ""
+          },
+          "git ls-tree -r HEAD": {
+            "git": "100644 blob 9a6ff62f19f481646bcac616e666775ae6ee7b9b\tbig.txt\n100644 blob 4cdb2265d30204be5463b38174b2e8e717982405\td/e/f.txt\n100644 blob b64c6ede8b172cd7821e8b23f3731f8c54019e3a\tsmall.txt\n",
+            "ours": "100644 blob 9a6ff62f19f481646bcac616e666775ae6ee7b9b\tbig.txt\n100644 blob 4cdb2265d30204be5463b38174b2e8e717982405\td/e/f.txt\n100644 blob b64c6ede8b172cd7821e8b23f3731f8c54019e3a\tsmall.txt\n",
+            "same": true,
+            "stderr": ""
+          },
+          "git rev-parse v1 v2": {
+            "git": "e8a4bb2ecc13cb4690445f31d31db06d19093dc0\n1c1e29e7859875cd875350e747c3a609b4cfd833\n",
+            "ours": "e8a4bb2ecc13cb4690445f31d31db06d19093dc0\n1c1e29e7859875cd875350e747c3a609b4cfd833\n",
+            "same": true,
+            "stderr": ""
+          },
+          "git status --porcelain": {
+            "git": "?? expected/\n",
+            "ours": "?? expected/\n",
+            "same": true,
+            "stderr": ""
+          }
+        }
+      }
+    },
+    "net": {
+      "alternatives": {
+        "attohttpc": {
+          "follow_redirects_automatically": {
+            "denied_target_connections": 1,
+            "initial_url_allowed_by_wrapper": true,
+            "policy_violated": true,
+            "result": {
+              "location": null,
+              "status": 200
+            },
+            "wrapper_can_block_location": false
+          },
+          "redirects_disabled_wrapper_checks_location": {
+            "denied_target_connections": 0,
+            "initial_url_allowed_by_wrapper": true,
+            "policy_violated": false,
+            "result": {
+              "location": "http://127.0.0.2:41293/ok",
+              "status": 302
+            },
+            "wrapper_can_block_location": true
+          }
+        },
+        "minreq": {
+          "follow_redirects_automatically": {
+            "denied_target_connections": 1,
+            "initial_url_allowed_by_wrapper": true,
+            "policy_violated": true,
+            "result": {
+              "location": null,
+              "status": 200
+            },
+            "wrapper_can_block_location": false
+          },
+          "redirects_disabled_wrapper_checks_location": {
+            "denied_target_connections": 0,
+            "initial_url_allowed_by_wrapper": true,
+            "policy_violated": false,
+            "result": {
+              "error": "too many redirections (over the max)"
+            },
+            "wrapper_can_block_location": false
+          }
+        }
+      },
+      "deny_cost": {
+        "denied": 1000,
+        "dns_lookups_on_host": 0,
+        "requests": 1000,
+        "us_per_denied_request": 1.145
+      },
+      "dependency_trees": {
+        "attohttpc": {
+          "async_runtime_crates": [],
+          "c_deps": [],
+          "has_tokio": false,
+          "host_touching_deps": {
+            "bytes 1.12.1": 1,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1,
+            "url 2.5.8": 1
+          },
+          "own_category": "b",
+          "own_unsafe": 2,
+          "transitive_deps": 42,
+          "tree_category": "b",
+          "version": "0.31.0"
+        },
+        "minreq": {
+          "async_runtime_crates": [],
+          "c_deps": [],
+          "has_tokio": false,
+          "host_touching_deps": {},
+          "own_category": "b",
+          "own_unsafe": 0,
+          "transitive_deps": 0,
+          "tree_category": "b",
+          "version": "3.0.0"
+        },
+        "ureq": {
+          "async_runtime_crates": [],
+          "c_deps": [
+            "ring 0.17.14"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": {
+            "bytes 1.12.1": 1,
+            "getrandom 0.2.17": 64,
+            "libc 0.2.190": 1,
+            "ring 0.17.14": 14,
+            "rustls 0.23.45": 11,
+            "rustls-pki-types 1.15.1": 1,
+            "zlib-rs 0.6.8": 3
+          },
+          "own_category": "b",
+          "own_unsafe": 0,
+          "transitive_deps": 27,
+          "tree_category": "c",
+          "version": "3.4.2"
+        }
+      },
+      "https_real": {
+        "body_has_example_domain": true,
+        "dns_lookups_on_host": 1,
+        "ms": 116,
+        "policy_log": [
+          "allow example.com -> [104.20.23.154:443, 172.66.147.243:443, [2606:4700:10::ac42:93f3]:443, [2606:4700:10::6814:179a]:443]"
+        ],
+        "ran": true,
+        "status": 200
+      },
+      "scenarios": {
+        "passed": 12,
+        "scenarios": {
+          "allowed_localhost_via_host_dns_blocked": {
+            "dns_lookups_on_host": 1,
+            "expect_success": false,
+            "passed": true,
+            "policy_log": [
+              "deny localhost: só endereços internos [\"::1\", \"127.0.0.1\"]"
+            ],
+            "result": {
+              "error": "io: bloqueado pela política do sandbox: localhost resolve só para endereços internos [\"::1\", \"127.0.0.1\"]"
+            },
+            "servers": [
+              {
+                "connections": 0,
+                "expected": 0,
+                "server": "target"
+              }
+            ]
+          },
+          "allowed_name_passes": {
+            "dns_lookups_on_host": 0,
+            "expect_success": true,
+            "passed": true,
+            "policy_log": [
+              "allow allowed.test -> [127.0.0.1:36433]"
+            ],
+            "result": {
+              "body": "hello from 127.0.0.1:36433",
+              "status": 200
+            },
+            "servers": [
+              {
+                "connections": 1,
+                "expected": 1,
+                "server": "target"
+              }
+            ]
+          },
+          "allowed_name_resolving_to_loopback_blocked": {
+            "dns_lookups_on_host": 0,
+            "expect_success": false,
+            "passed": true,
+            "policy_log": [
+              "deny rebind.test: só endereços internos [\"127.0.0.1\"]"
+            ],
+            "result": {
+              "error": "io: bloqueado pela política do sandbox: rebind.test resolve só para endereços internos [\"127.0.0.1\"]"
+            },
+            "servers": [
+              {
+                "connections": 0,
+                "expected": 0,
+                "server": "target"
+              }
+            ]
+          },
+          "case_and_trailing_dot_normalized": {
+            "dns_lookups_on_host": 0,
+            "expect_success": true,
+            "passed": true,
+            "policy_log": [
+              "allow ALLOWED.Test. -> [127.0.0.1:40107]"
+            ],
+            "result": {
+              "body": "hello from 127.0.0.1:40107",
+              "status": 200
+            },
+            "servers": [
+              {
+                "connections": 1,
+                "expected": 1,
+                "server": "target"
+              }
+            ]
+          },
+          "denied_name_never_connects": {
+            "dns_lookups_on_host": 0,
+            "expect_success": false,
+            "passed": true,
+            "policy_log": [
+              "deny host denied.test"
+            ],
+            "result": {
+              "error": "io: bloqueado pela política do sandbox: host denied.test fora da allowlist"
+            },
+            "servers": [
+              {
+                "connections": 0,
+                "expected": 0,
+                "server": "target"
+              }
+            ]
+          },
+          "ip_literal_allowlisted_but_private_blocked": {
+            "dns_lookups_on_host": 0,
+            "expect_success": false,
+            "passed": true,
+            "policy_log": [
+              "deny 127.0.0.1: só endereços internos [\"127.0.0.1\"]"
+            ],
+            "result": {
+              "error": "io: bloqueado pela política do sandbox: 127.0.0.1 resolve só para endereços internos [\"127.0.0.1\"]"
+            },
+            "servers": [
+              {
+                "connections": 0,
+                "expected": 0,
+                "server": "target"
+              }
+            ]
+          },
+          "ip_literal_not_in_allowlist_denied": {
+            "dns_lookups_on_host": 0,
+            "expect_success": false,
+            "passed": true,
+            "policy_log": [
+              "deny host 127.0.0.1"
+            ],
+            "result": {
+              "error": "io: bloqueado pela política do sandbox: host 127.0.0.1 fora da allowlist"
+            },
+            "servers": [
+              {
+                "connections": 0,
+                "expected": 0,
+                "server": "target"
+              }
+            ]
+          },
+          "ipv6_literal_denied": {
+            "dns_lookups_on_host": 0,
+            "expect_success": false,
+            "passed": true,
+            "policy_log": [
+              "deny host [::1]"
+            ],
+            "result": {
+              "error": "io: bloqueado pela política do sandbox: host [::1] fora da allowlist"
+            },
+            "servers": [
+              {
+                "connections": 0,
+                "expected": 0,
+                "server": "target"
+              }
+            ]
+          },
+          "redirect_to_allowed_host_followed": {
+            "dns_lookups_on_host": 0,
+            "expect_success": true,
+            "passed": true,
+            "policy_log": [
+              "allow allowed.test -> [127.0.0.1:42409]",
+              "allow other.test -> [127.0.0.2:40471]"
+            ],
+            "result": {
+              "body": "hello from 127.0.0.2:40471",
+              "status": 200
+            },
+            "servers": [
+              {
+                "connections": 1,
+                "expected": 1,
+                "server": "front"
+              },
+              {
+                "connections": 1,
+                "expected": 1,
+                "server": "redirect_target"
+              }
+            ]
+          },
+          "redirect_to_denied_host_blocked": {
+            "dns_lookups_on_host": 0,
+            "expect_success": false,
+            "passed": true,
+            "policy_log": [
+              "allow allowed.test -> [127.0.0.1:34839]",
+              "deny host denied.test"
+            ],
+            "result": {
+              "error": "io: bloqueado pela política do sandbox: host denied.test fora da allowlist"
+            },
+            "servers": [
+              {
+                "connections": 1,
+                "expected": 1,
+                "server": "front"
+              },
+              {
+                "connections": 0,
+                "expected": 0,
+                "server": "redirect_target"
+              }
+            ]
+          },
+          "redirect_to_denied_ip_literal_blocked": {
+            "dns_lookups_on_host": 0,
+            "expect_success": false,
+            "passed": true,
+            "policy_log": [
+              "allow allowed.test -> [127.0.0.1:44339]",
+              "deny host 127.0.0.2"
+            ],
+            "result": {
+              "error": "io: bloqueado pela política do sandbox: host 127.0.0.2 fora da allowlist"
+            },
+            "servers": [
+              {
+                "connections": 1,
+                "expected": 1,
+                "server": "front"
+              },
+              {
+                "connections": 0,
+                "expected": 0,
+                "server": "redirect_target"
+              }
+            ]
+          },
+          "userinfo_trick_denied": {
+            "dns_lookups_on_host": 0,
+            "expect_success": false,
+            "passed": true,
+            "policy_log": [
+              "deny host denied.test"
+            ],
+            "result": {
+              "error": "io: bloqueado pela política do sandbox: host denied.test fora da allowlist"
+            },
+            "servers": [
+              {
+                "connections": 0,
+                "expected": 0,
+                "server": "target"
+              }
+            ]
+          }
+        },
+        "total": 12
+      }
+    },
+    "own_crate": {
+      "c_deps": [
+        "aegis 0.9.20",
+        "defmt 1.1.1",
+        "libsqlite3-sys 0.38.2",
+        "ring 0.17.14",
+        "sqlite-plugin 0.11.0"
+      ],
+      "has_tokio": false,
+      "host_touching_deps": 93,
+      "own_category": "c",
+      "own_host_touch": 24,
+      "own_unsafe": 0,
+      "tree_category": "c",
+      "tree_deps": 302,
+      "version": "0.1.0"
+    },
+    "sqlite": {
+      "api_surface": {
+        "rusqlite": {
+          "fn register_vfs": 0,
+          "pub fn deserialize": 3,
+          "pub fn open_with_flags_and_vfs": 1,
+          "pub fn serialize": 1,
+          "sqlite3_vfs_register": 0
+        },
+        "sqlite-plugin": {
+          "NonNull<u8>": 2,
+          "fn shm_map": 1,
+          "fn x_current_time": 2,
+          "fn x_randomness": 1,
+          "fn x_sleep": 1,
+          "pub fn register_static": 1,
+          "pub unsafe fn register_dynamic": 1
+        },
+        "turso": {
+          "pub async fn build": 2,
+          "pub async fn connect": 1,
+          "pub async fn execute": 3,
+          "pub fn with_io_impl": 1
+        }
+      },
+      "clock": {
+        "rusqlite-serialize": {
+          "datetime_now": "2026-10-03 00:03:35",
+          "follows_sandbox_clock": false
+        },
+        "rusqlite-sqlite-plugin": {
+          "datetime_now": "2026-10-03 00:03:35",
+          "follows_sandbox_clock": false
+        },
+        "turso-core": {
+          "datetime_now": "2026-10-03 00:03:35",
+          "follows_sandbox_clock": false
+        }
+      },
+      "concurrency": {
+        "rusqlite-serialize/counter/no-lock": {
+          "expected": 200,
+          "final": 100,
+          "lost_updates": 100,
+          "ms": 7
+        },
+        "rusqlite-serialize/counter/whole-file-lock": {
+          "expected": 200,
+          "final": 200,
+          "lost_updates": 0,
+          "ms": 7
+        },
+        "rusqlite-serialize/visibility": {
+          "note": "commit só fica visível quando o processo termina; escritas concorrentes se sobrescrevem (última a sair ganha)",
+          "reader_after_commit_before_writer_exit_sees": 0,
+          "reader_during_uncommitted_tx_sees": 0,
+          "rows_after_both_writers_exit": 1,
+          "rows_after_both_writers_exit_expected": 2
+        },
+        "rusqlite-sqlite-plugin/counter": {
+          "errors": 0,
+          "expected": 200,
+          "final": 200,
+          "lost_updates": 0,
+          "ms": 9,
+          "sample_errors": [],
+          "succeeded": 200
+        },
+        "rusqlite-sqlite-plugin/visibility": {
+          "concurrent_writer_without_wait": "database is locked",
+          "reader_after_commit_sees": {
+            "Ok": 1
+          },
+          "reader_during_uncommitted_tx_sees": {
+            "Ok": 0
+          },
+          "rows_final": {
+            "Ok": 2
+          },
+          "writer_after_commit": "ok"
+        },
+        "turso-core/counter": {
+          "busy_retries": 87,
+          "errors": 0,
+          "expected": 200,
+          "final": 200,
+          "lost_updates": 0,
+          "ms": 36,
+          "sample_errors": [],
+          "succeeded": 200
+        },
+        "turso-core/visibility": {
+          "concurrent_writer_without_wait": "Database is busy",
+          "reader_after_commit_sees": {
+            "Ok": 1
+          },
+          "reader_during_uncommitted_tx_sees": {
+            "Ok": 0
+          },
+          "rows_final": {
+            "Ok": 2
+          },
+          "second_open_reuses_database_instance": true,
+          "writer_after_commit": "ok"
+        }
+      },
+      "conformance": {
+        "rusqlite-serialize": {
+          "db_diff_samples": [
+            [
+              "sqlite-with-recursive-tree",
+              12288,
+              12288,
+              [
+                27
+              ]
+            ],
+            [
+              "sqlite-window-ranking",
+              8192,
+              8192,
+              [
+                27
+              ]
+            ],
+            [
+              "sqlite-window-frames",
+              8192,
+              8192,
+              [
+                27
+              ]
+            ],
+            [
+              "sqlite-json-table-valued",
+              8192,
+              8192,
+              [
+                27
+              ]
+            ]
+          ],
+          "db_files_byte_identical_modulo_version": 0,
+          "db_files_compared": 53,
+          "db_files_same_tables_rows_pragmas": 53,
+          "failures": [
+            {
+              "detail": [
+                "unsupported: modo de saída -csv fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-csv",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -json fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-json",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -column fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-column",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"delete\\nwal\\ndelete\\n1\\n\" obtido \"memory\\nmemory\\nmemory\\n1\\n\""
+              ],
+              "id": "sqlite-pragma-journal-mode",
+              "lenient": false
+            }
+          ],
+          "lenient": 82,
+          "stdout_and_exit_ok": 82,
+          "strict": 82,
+          "total": 86,
+          "unsupported": 3
+        },
+        "rusqlite-sqlite-plugin": {
+          "db_diff_samples": [
+            [
+              "sqlite-returning",
+              8192,
+              8192,
+              [
+                8189,
+                8190,
+                8191
+              ]
+            ],
+            [
+              "sqlite-generated-columns",
+              8192,
+              8192,
+              [
+                8189,
+                8190,
+                8191
+              ]
+            ],
+            [
+              "sqlite-alter-table",
+              8192,
+              8192,
+              [
+                4019,
+                4020,
+                4021,
+                4022,
+                4023,
+                4024,
+                4025,
+                4026,
+                4027,
+                4028,
+                4029,
+                4030
+              ]
+            ],
+            [
+              "sqlite-update-delete-changes",
+              8192,
+              8192,
+              [
+                8167,
+                8168,
+                8179,
+                8180,
+                8191
+              ]
+            ]
+          ],
+          "db_files_byte_identical_modulo_version": 46,
+          "db_files_compared": 53,
+          "db_files_same_tables_rows_pragmas": 52,
+          "failures": [
+            {
+              "detail": [
+                "unsupported: modo de saída -csv fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-csv",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -json fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-json",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -column fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-column",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"delete\\nwal\\ndelete\\n1\\n\" obtido \"delete\\nwal\\n\"",
+                "stderr: esperado \"\" obtido \"Error: stepping, disk I/O error (10)\\n\"",
+                "exit: esperado Some(0)/None obtido Some(10)/None",
+                "files: ~db.sqlite: file 644 94B d3315b18bde6 != file 644 90B 908f74451987",
+                "files: +db.sqlite-wal"
+              ],
+              "id": "sqlite-pragma-journal-mode",
+              "lenient": false
+            }
+          ],
+          "lenient": 82,
+          "stdout_and_exit_ok": 82,
+          "strict": 82,
+          "total": 86,
+          "unsupported": 3
+        },
+        "turso-core": {
+          "db_diff_samples": [
+            [
+              "sqlite-with-recursive-tree",
+              12288,
+              12288,
+              [
+                18,
+                19,
+                27,
+                48,
+                49,
+                50,
+                51,
+                101,
+                102,
+                106,
+                109,
+                111
+              ]
+            ],
+            [
+              "sqlite-window-ranking",
+              8192,
+              8192,
+              [
+                18,
+                19,
+                27,
+                48,
+                49,
+                50,
+                51,
+                106,
+                109,
+                4030,
+                4031,
+                4032
+              ]
+            ],
+            [
+              "sqlite-window-frames",
+              8192,
+              8192,
+              [
+                18,
+                19,
+                27,
+                48,
+                49,
+                50,
+                51,
+                106,
+                109,
+                4041,
+                4042,
+                4043
+              ]
+            ],
+            [
+              "sqlite-json-table-valued",
+              8192,
+              8192,
+              [
+                18,
+                19,
+                27,
+                48,
+                49,
+                50,
+                51,
+                106,
+                109,
+                4021,
+                4022,
+                4023
+              ]
+            ]
+          ],
+          "db_files_byte_identical_modulo_version": 0,
+          "db_files_compared": 53,
+          "db_files_same_tables_rows_pragmas": 49,
+          "failures": [
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 232B 1e1b0b448ad8 != file 644 233B 76cab2f89e38"
+              ],
+              "id": "sqlite-with-recursive-tree",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 200B da25e5abaed3 != file 644 201B b7b6f5073b78"
+              ],
+              "id": "sqlite-window-ranking",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 145B de8d4c699156 != file 644 146B c2d0c0edeb9f"
+              ],
+              "id": "sqlite-window-frames",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 186B 939511343f16 != file 644 187B e03772bb62bc"
+              ],
+              "id": "sqlite-json-table-valued",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 198B 3132ffc8ca32 != file 644 199B 06bfcedde306"
+              ],
+              "id": "sqlite-upsert",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 153B 5888e1d1d6ab != file 644 154B d2632c26b9ea"
+              ],
+              "id": "sqlite-returning",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"1|2|v1\\n21|42|v21\\n5|10|v5\\n21|42|v21\\n\" obtido \"\"",
+                "stderr: esperado \"\" obtido \"Parse error near line 1: Generated columns require --experimental-generated-columns flag\\nParse error near line 2: no suc\"... (257 bytes)",
+                "exit: esperado Some(0)/None obtido Some(1)/None",
+                "files: ~db.sqlite: file 644 183B 84af12600dd9 != file 644 0B e3b0c44298fc"
+              ],
+              "id": "sqlite-generated-columns",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Runtime error near line 4: cannot store TEXT value in INTEGER column t.a (19)\\n\" obtido \"Runtime error near line 4: cannot store TEXT value in INTEGER column t.a (19) (19)\\n\"",
+                "files: ~db.sqlite: file 644 144B 65770629c37b != file 644 145B c8b2ed8771b2"
+              ],
+              "id": "sqlite-strict-table",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 153B 705f2fffe0af != file 644 154B f19e236bfa13"
+              ],
+              "id": "sqlite-case-insensitive-keywords",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 101B eadb0e730837 != file 644 102B cde23a413e1d"
+              ],
+              "id": "sqlite-cli-header-flag",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"alpha  v      zeta \\nCREATE TABLE alpha(id INTEGER PRIMARY KEY, name TEXT);\\nCREATE INDEX alpha_name ON alpha(name);\\nCREAT\"... (287 bytes) obtido \"alpha  v      zeta \\nCREATE TABLE alpha (id INTEGER PRIMARY KEY, name TEXT);\\nCREATE INDEX alpha_name ON alpha (name);\\nCRE\"... (292 bytes)",
+                "files: ~db.sqlite: file 644 268B adc7e741bff8 != file 644 271B 57bbc6ed69d7"
+              ],
+              "id": "sqlite-cli-dot-tables-schema",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 98B 898d3465fb40 != file 644 99B 362fb57f342e"
+              ],
+              "id": "sqlite-cli-multiple-sql-args",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -csv fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-csv",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -json fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-json",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "unsupported: modo de saída -column fora da camada mínima (só list)"
+              ],
+              "id": "sqlite-cli-mode-column",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 131B 95aa3d96b791 != file 644 132B d05307687e23"
+              ],
+              "id": "sqlite-create-insert-select",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 195B abb34ec59a5d != file 644 196B a0f88800aec3"
+              ],
+              "id": "sqlite-type-affinity",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 200B 66f419326edb != file 644 201B 02b68adb071f"
+              ],
+              "id": "sqlite-aggregates-group-by",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 135B 0fb3d7c81fdb != file 644 136B f2040c2f3259"
+              ],
+              "id": "sqlite-order-limit-nulls",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 294B 8d463a51f088 != file 644 296B 542cb8bb63fb"
+              ],
+              "id": "sqlite-joins",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 146B e91678ff97fc != file 644 147B bf8eb927d1f0"
+              ],
+              "id": "sqlite-subqueries",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 576B 1f12fa8e3c3d != file 644 579B e01e322cd9d7"
+              ],
+              "id": "sqlite-views-and-triggers",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 291B 2a13a15e68a5 != file 644 566B 7d801b069ff1"
+              ],
+              "id": "sqlite-rowid-autoincrement",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 302B f76753ec2a6d != file 644 303B de6107822961"
+              ],
+              "id": "sqlite-defaults-and-check",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"one|z\\nCREATE TABLE \\\"t2\\\"(bee TEXT, c TEXT DEFAULT 'z')\\n\" obtido \"one|z\\nCREATE TABLE t2 (bee TEXT, c TEXT DEFAULT 'z')\\n\"",
+                "files: ~db.sqlite: file 644 133B 01c470a96dcf != file 644 132B e0c9f9e373d8"
+              ],
+              "id": "sqlite-alter-table",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 141B 1b131a2ca044 != file 644 142B 6e1b918d983f"
+              ],
+              "id": "sqlite-update-delete-changes",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 152B 421eb5a73d76 != file 644 153B 23288dc9e375"
+              ],
+              "id": "sqlite-collate-nocase",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 246B 53521d36b57b != file 644 247B cdbe33367ca4"
+              ],
+              "id": "sqlite-insert-variants",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"a|1\\nb|2\\nc|3\\nb\\nc\\n\" obtido \"\"",
+                "stderr: esperado \"\" obtido \"Parse error near line 1: WITHOUT ROWID tables are an experimental feature. Enable with --experimental-without-rowid flag\"... (250 bytes)",
+                "exit: esperado Some(0)/None obtido Some(1)/None",
+                "files: ~db.sqlite: file 644 155B 578d6401255d != file 644 0B e3b0c44298fc"
+              ],
+              "id": "sqlite-without-rowid",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 135B 90d902a2d306 != file 644 136B af98889558d7"
+              ],
+              "id": "sqlite-unicode-text",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Error: in prepare, near \\\"SELEC\\\": syntax error\\n  SELEC 1;\\n  ^--- error here\\n\" obtido \"Error: in prepare, near \\\"SELEC\\\": syntax error\\n\""
+              ],
+              "id": "sqlite-error-syntax-argv",
+              "lenient": true
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 2: near \\\";\\\": syntax error\\n  SELECT * FROM (SELECT 1) WHERE;\\n                  error here ---^\\n\" obtido \"Parse error near line 2: near \\\";\\\": syntax error\\n\""
+              ],
+              "id": "sqlite-error-syntax-stdin",
+              "lenient": true
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 2: no such column: b\\n  SELECT b FROM t;\\n         ^--- error here\\nParse error near line 3: no such \"... (205 bytes) obtido \"Parse error near line 2: no such column: b\\nParse error near line 3: no such column: zzz\\n\"",
+                "files: ~db.sqlite: file 644 90B 3fcef20bc27e != file 644 91B 0e189dc43fc1"
+              ],
+              "id": "sqlite-error-no-such-column",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 130B 5ad684c44784 != file 644 131B 9146b43b2e5a"
+              ],
+              "id": "sqlite-error-unique-argv",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 148B b9b7ec91a045 != file 644 149B 003798500ad1"
+              ],
+              "id": "sqlite-error-constraints-stdin",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 93B 2d94bc40a60b != file 644 94B 6215f200cdcb"
+              ],
+              "id": "sqlite-error-value-count",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 3: ambiguous column name: x\\n  SELECT x FROM a, b;\\n         ^--- error here\\nParse error near line 4\"... (546 bytes) obtido \"Parse error near line 3: ambiguous column name: x\\nParse error near line 4: misuse of aggregate function count(*)\\nParse e\"... (289 bytes)",
+                "files: ~db.sqlite: file 644 117B 1985dac85730 != file 644 119B 3c0b86f75799"
+              ],
+              "id": "sqlite-error-misc-prepare",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 2: unrecognized token: \\\"'unterminated\\\"\\n  SELECT 'unterminated\\n         ^--- error here\\n\" obtido \"Parse error near line 2: non-terminated literal ''unterminated' at offset 7\\n\""
+              ],
+              "id": "sqlite-error-incomplete-statement",
+              "lenient": true
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Parse error near line 2: no such column: b\\n  SELECT a,        b   FROM t;\\n                   ^--- error here\\n\" obtido \"Parse error near line 2: no such column: b\\n\"",
+                "files: ~db.sqlite: file 644 90B 3fcef20bc27e != file 644 91B 0e189dc43fc1"
+              ],
+              "id": "sqlite-error-multiline-position",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 177B a09a5f7b3f9a != file 644 179B 989933dd7f08"
+              ],
+              "id": "sqlite-error-raise-trigger",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 102B 8827bdd4da47 != file 644 103B 983b2a0292b3"
+              ],
+              "id": "sqlite-multi-persist-between-commands",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 196B 399dfc258c92 != file 644 197B 186254d23546"
+              ],
+              "id": "sqlite-multi-schema-file-redirect",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 95B 4eb58b8bdf27 != file 644 96B 03d5a0edb790"
+              ],
+              "id": "sqlite-multi-pipe-into-cli",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 98B b58d9c2a1a4e != file 644 99B 193e4f394dde"
+              ],
+              "id": "sqlite-multi-output-redirect",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 130B 0e172ececfa5 != file 644 131B ef43ab3be96a"
+              ],
+              "id": "sqlite-multi-exit-status",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 142B b957249bb1f6 != file 644 143B 1030812e3947"
+              ],
+              "id": "sqlite-multi-transaction-across-statements",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 189B 9d6bb9aad5b1 != file 644 191B 15a194c4d21e"
+              ],
+              "id": "sqlite-pragma-table-info",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 241B b958bcdc9fff != file 644 244B e3d1bdbfff20"
+              ],
+              "id": "sqlite-pragma-indexes",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 91B aadbe135de49 != file 644 92B f2ca68df1d3c"
+              ],
+              "id": "sqlite-pragma-settings",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"delete\\nwal\\ndelete\\n1\\n\" obtido \"wal\\nwal\\nwal\\n1\\n\"",
+                "files: ~db.sqlite: file 644 94B d3315b18bde6 != file 644 95B 69472e8dd275"
+              ],
+              "id": "sqlite-pragma-journal-mode",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 174B 16cbc09f6454 != file 644 176B d64244fb35db"
+              ],
+              "id": "sqlite-pragma-integrity-check",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 247B f4793e56072c != file 644 250B a144c1b21d50"
+              ],
+              "id": "sqlite-foreign-keys-enforced",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 7775B ace80d2cb1f9 != file 644 7776B 5b480b3be356"
+              ],
+              "id": "sqlite-index-usage-results",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 152B 63789f7d9d67 != file 644 154B 0dc36182fb2e"
+              ],
+              "id": "sqlite-explain-query-plan",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 94B 593f6eeb4656 != file 644 95B cc789a148160"
+              ],
+              "id": "sqlite-transaction-rollback",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 98B a09e9daa865a != file 644 99B 1ceffffd4ec8"
+              ],
+              "id": "sqlite-savepoints",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "files: ~db.sqlite: file 644 134B f66844e607be != file 644 135B 291564d91ff3"
+              ],
+              "id": "sqlite-transaction-error-continues",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stderr: esperado \"Error: stepping, cannot start a transaction within a transaction\\n\" obtido \"Error: stepping, Transaction error: cannot start a transaction within a transaction\\n\"",
+                "files: ~db.sqlite: file 644 94B d3315b18bde6 != file 644 95B 69472e8dd275"
+              ],
+              "id": "sqlite-transaction-nested-error",
+              "lenient": false
+            },
+            {
+              "detail": [
+                "stdout: esperado \"1\\n0\\n1\\n\" obtido \"1\\n56\\n57\\n\"",
+                "stderr: esperado \"\" obtido \"Parse error near line 5: VACUUM is an experimental feature. Enable with --experimental-vacuum flag\\n\"",
+                "exit: esperado Some(0)/None obtido Some(1)/None"
+              ],
+              "id": "sqlite-vacuum-and-drop",
+              "lenient": false
+            }
+          ],
+          "lenient": 30,
+          "stdout_and_exit_ok": 77,
+          "strict": 27,
+          "total": 86,
+          "unsupported": 3
+        }
+      },
+      "deps": {
+        "rusqlite": {
+          "c_deps": [
+            "libsqlite3-sys 0.38.2"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 1,
+          "own_category": "b",
+          "own_host_touch": 23,
+          "own_unsafe": 348,
+          "tree_category": "c",
+          "tree_deps": 10,
+          "version": "0.40.2"
+        },
+        "sqlite-plugin": {
+          "c_deps": [],
+          "has_tokio": false,
+          "host_touching_deps": 0,
+          "own_category": "c",
+          "own_host_touch": 1,
+          "own_unsafe": 76,
+          "tree_category": "c",
+          "tree_deps": 0,
+          "version": "0.11.0"
+        },
+        "turso": {
+          "c_deps": [
+            "aegis 0.9.20",
+            "simsimd 6.5.16",
+            "turso_sdk_kit 0.8.1",
+            "turso_sync_sdk_kit 0.8.1"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 39,
+          "own_category": "a",
+          "own_host_touch": 0,
+          "own_unsafe": 1,
+          "tree_category": "c",
+          "tree_deps": 181,
+          "version": "0.8.1"
+        },
+        "turso_core": {
+          "c_deps": [
+            "aegis 0.9.20"
+          ],
+          "has_tokio": false,
+          "host_touching_deps": 28,
+          "own_category": "b",
+          "own_host_touch": 55,
+          "own_unsafe": 0,
+          "tree_category": "c",
+          "tree_deps": 151,
+          "version": "0.8.1"
+        }
+      },
+      "engine_vs_cli": {
+        "rusqlite-serialize": {
+          "cases_with_stdout_different_from_real_sqlite_engine_same_cli": 0,
+          "ids": []
+        },
+        "rusqlite-sqlite-plugin": {
+          "cases_with_stdout_different_from_real_sqlite_engine_same_cli": 1,
+          "ids": [
+            "sqlite-pragma-journal-mode"
+          ]
+        },
+        "turso-core": {
+          "cases_with_stdout_different_from_real_sqlite_engine_same_cli": 6,
+          "ids": [
+            "sqlite-alter-table",
+            "sqlite-cli-dot-tables-schema",
+            "sqlite-generated-columns",
+            "sqlite-pragma-journal-mode",
+            "sqlite-vacuum-and-drop",
+            "sqlite-without-rowid"
+          ]
+        }
+      },
+      "interop": {
+        "created_by_oracle_opened_here": {
+          "rusqlite-serialize": {
+            "invalid_utf8_text.sqlite": {
+              "oracle": [
+                "3|41FF42",
+                "2|6F6B"
+              ],
+              "ours": {
+                "Ok": [
+                  "3|41FF42",
+                  "2|6F6B"
+                ]
+              },
+              "same_as_oracle": true
+            },
+            "ref.sqlite": {
+              "error": null,
+              "integrity_check": [
+                "ok"
+              ],
+              "query_same_as_oracle": true
+            },
+            "wal.sqlite": {
+              "error": null,
+              "integrity_check": [
+                "ok"
+              ],
+              "query_same_as_oracle": true
+            }
+          },
+          "rusqlite-sqlite-plugin": {
+            "invalid_utf8_text.sqlite": {
+              "oracle": [
+                "3|41FF42",
+                "2|6F6B"
+              ],
+              "ours": {
+                "Ok": [
+                  "3|41FF42",
+                  "2|6F6B"
+                ]
+              },
+              "same_as_oracle": true
+            },
+            "ref.sqlite": {
+              "error": null,
+              "integrity_check": [
+                "ok"
+              ],
+              "query_same_as_oracle": true
+            },
+            "wal.sqlite": {
+              "error": null,
+              "integrity_check": [
+                "ok"
+              ],
+              "query_same_as_oracle": true
+            }
+          },
+          "turso-core": {
+            "invalid_utf8_text.sqlite": {
+              "oracle": [
+                "3|41FF42",
+                "2|6F6B"
+              ],
+              "ours": {
+                "Err": "Corrupt database: TEXT value contains invalid UTF-8"
+              },
+              "same_as_oracle": false
+            },
+            "ref.sqlite": {
+              "error": null,
+              "integrity_check": [
+                "ok"
+              ],
+              "query_same_as_oracle": true
+            },
+            "wal.sqlite": {
+              "error": null,
+              "integrity_check": [
+                "ok"
+              ],
+              "query_same_as_oracle": true
+            }
+          }
+        },
+        "created_here_opened_by_oracle": {
+          "rusqlite-serialize": {
+            "integrity_check_ok": true,
+            "oracle_output": "db.sqlite\nok\nquery: SAME\n",
+            "query_same_as_native": true
+          },
+          "rusqlite-sqlite-plugin": {
+            "integrity_check_ok": true,
+            "oracle_output": "db.sqlite\nok\nquery: SAME\n",
+            "query_same_as_native": true
+          },
+          "turso-core": {
+            "integrity_check_ok": true,
+            "oracle_output": "db.sqlite\nok\nquery: SAME\n",
+            "query_same_as_native": true
+          }
+        },
+        "oracle_raw": "== rusqlite-serialize\ndb.sqlite\nok\nquery: SAME\n== rusqlite-sqlite-plugin\ndb.sqlite\nok\nquery: SAME\n== turso-core\ndb.sqlite\nok\nquery: SAME\n",
+        "oracle_reference_output": [
+          "270|283500|13500.000000|3681|990|210",
+          "a=1,b=2,c=4,日本=3",
+          "13",
+          "c",
+          "LINHA 7 AçãO",
+          "linha 71 ação",
+          "linha 72 ação",
+          "linha 73 ação",
+          "linha 74 ação",
+          "linha 75 ação",
+          "linha 76 ação",
+          "LINHA 77 AçãO",
+          "linha 78 ação",
+          "linha 79 ação",
+          "42"
+        ],
+        "ours_query_output": {
+          "rusqlite-serialize": {
+            "create": null,
+            "query": [
+              "270|283500|13500.000000|3681|990|210",
+              "a=1,b=2,c=4,日本=3",
+              "13",
+              "c",
+              "LINHA 7 AçãO",
+              "linha 71 ação",
+              "linha 72 ação",
+              "linha 73 ação",
+              "linha 74 ação",
+              "linha 75 ação",
+              "linha 76 ação",
+              "LINHA 77 AçãO",
+              "linha 78 ação",
+              "linha 79 ação",
+              "42"
+            ]
+          },
+          "rusqlite-sqlite-plugin": {
+            "create": null,
+            "query": [
+              "270|283500|13500.000000|3681|990|210",
+              "a=1,b=2,c=4,日本=3",
+              "13",
+              "c",
+              "LINHA 7 AçãO",
+              "linha 71 ação",
+              "linha 72 ação",
+              "linha 73 ação",
+              "linha 74 ação",
+              "linha 75 ação",
+              "linha 76 ação",
+              "LINHA 77 AçãO",
+              "linha 78 ação",
+              "linha 79 ação",
+              "42"
+            ]
+          },
+          "turso-core": {
+            "create": null,
+            "query": [
+              "270|283500|13500.000000|3681|990|210",
+              "a=1,b=2,c=4,日本=3",
+              "13",
+              "c",
+              "LINHA 7 AçãO",
+              "linha 71 ação",
+              "linha 72 ação",
+              "linha 73 ação",
+              "linha 74 ação",
+              "linha 75 ação",
+              "linha 76 ação",
+              "LINHA 77 AçãO",
+              "linha 78 ação",
+              "linha 79 ação",
+              "42"
+            ]
+          }
+        },
+        "wal_file_without_workarounds": {
+          "plugin_without_exclusive_locking": "erro: disk I/O error",
+          "serialize_without_header_patch": "erro: unable to open database file"
+        }
+      }
+    }
+  },
+  "notes": [
+    "SQLite empacotado com LIBSQLITE3_FLAGS='-USQLITE_DEFAULT_FOREIGN_KEYS -DSQLITE_ENABLE_MATH_FUNCTIONS' (.cargo/config.toml) pra alinhar ao sqlite3 do Debian.",
+    "Os casos de sqlite comparam o arquivo do banco pelo retrato lógico (esquema, linhas ordenadas, pragmas), porque o sqlite3 do oráculo é 3.46.1 e o empacotado é 3.53.2; a igualdade de bytes vai à parte."
+  ]
+}

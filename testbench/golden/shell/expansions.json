@@ -1,0 +1,300 @@
+{
+  "arith-command-and-let": {
+    "stdout": "maior\nnão é zero\nrc0=1\n10 6\n5\n0,1,2,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "arith-errors": {
+    "stdout": "rc=1\n",
+    "stderr": "bash: line 1: 1 / 0: division by 0 (error token is \"0\")\n",
+    "exit": 0,
+    "files": {}
+  },
+  "arith-expansion": {
+    "stdout": "10 4 21 2 1 343\n7 3 7 4 28 -8\n31 15 10 1295\n16 -7 1 0 1\n6 6 5\n4611686018427387904 -9223372036854775808 -9223372036854775808\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "brace-expansion": {
+    "stdout": "a.txt b.txt c.txt\npre1 pre2 pre3 pre4 pre5\n01 04 07 10\na b c d e e c a\n1x 1y 2x 2y 3x 3y\na bd cd\n{x} {a..} {1..3}\nproj\nproj/src\nproj/src/core\nproj/src/util\nproj/tests\nproj/tests/core\nproj/tests/util\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "proj": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "proj/src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "proj/src/core": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "proj/src/util": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "proj/tests": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "proj/tests/core": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "proj/tests/util": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "cmdsub-heredoc-inside": {
+    "stdout": "linha 1\nlinha 2\n16\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cmdsub-nested": {
+    "stdout": "abcd\ndeep\ncrase\ncasou\naspas \"dentro\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cmdsub-trailing-newlines": {
+    "stdout": "[a]\n[\n\nb]\n[0]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expansion-order": {
+    "stdout": "$HOME\n*\n{1,2}\n$(echo injetado)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "only.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "glob-basic-and-nullglob": {
+    "stdout": "a.txt b.txt\n*.nada\nnullglob:[ ]\n0\nrc=1\n",
+    "stderr": "bash: line 8: no match: *.nada\n",
+    "exit": 0,
+    "files": {
+      ".hidden.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "aaa9402664f1a41f40ebbc52c9993eb66aeb366602958fdfaa283b71e64db123",
+        "data": "h"
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+        "data": "a"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+        "data": "b"
+      },
+      "c.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6",
+        "data": "c"
+      }
+    }
+  },
+  "glob-char-classes": {
+    "stdout": "a1.txt b2.txt\nb2.txt c3.txt x.txt\n9lives\nx.txt\n*.txt *.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "9lives": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "a1.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "b2.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "c3.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "x.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "glob-dotglob-globstar-extglob": {
+    "stdout": "123.log a.txt b.txt src x\n.env 123.log a.txt b.txt src x\nsrc/main.rs src/sub/lib.rs\n123.log a.txt b.txt src x\na.txt b.txt\n123.log\nx\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      ".env": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "123.log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/main.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/sub/lib.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "param-case-modification": {
+    "stdout": "Hello World HELLO WORLD hello World hello world HELLO wORLD\nheLLO WOrLd\nAbc Def\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "param-default-assign-alt": {
+    "stdout": "1:def 2:def 3:def 4: 5:valor\n6: 7: 8:alt 9:alt\n10:atribuído depois:atribuído\n11:x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "param-error-default-message": {
+    "stdout": "",
+    "stderr": "bash: line 2: x: parameter null or not set\n",
+    "exit": 127,
+    "files": {}
+  },
+  "param-error-if-unset": {
+    "stdout": "antes\n",
+    "stderr": "bash: line 2: obrigatorio: precisa definir\n",
+    "exit": 127,
+    "files": {}
+  },
+  "param-indirect-and-names": {
+    "stdout": "localhost\ncfg_host=localhost\ncfg_port=80\n0 1 2\nk1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "param-length-substring": {
+    "stdout": "10 cdefghij cde hij gh |\n4 4 dois três\np2 p3 p4 | p2 p3 | 4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "param-prefix-suffix-removal": {
+    "stdout": "usr/local/lib/libfoo.so.1.2 libfoo.so.1.2 /usr/local/lib/libfoo.so.1 /usr/local/lib/libfoo\narquivo.tar arquivo tar.gz gz\nexample.com\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "param-replace": {
+    "stdout": "X bar foo baz foo|X bar X baz X|X bar foo baz foo|foo bar foo baz X|f bar f baz f|foo_bar_foo_baz_foo\na/b/c\n_amel_ase_ame\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "param-transform-ops": {
+    "stdout": "'it'\\''s a \"test\"'\n'x' 'y z'\nn='5'\ni\n\t|\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "process-substitution": {
+    "stdout": "2c2\n< b\n---\n> c\nrc=1\nlido:x\nlido:y\n1\t4\n2\t5\n3\t6\nfd: ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "process-substitution-dev-fd": {
+    "stdout": "/dev/fd/63\nstdin ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tilde-expansion": {
+    "stdout": "/root /root/x\n~ ~\n/root/sub\na:~/b\n/tmp\n/tmp\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,1243 @@
+# Corpus do H39: one-liners típicos de agente em Python, JS e Lua, mais sondas de negação de I/O de
+# host. Cada trecho roda num contexto novo, com `files` como FS em memória (o mesmo diretório de
+# trabalho, caminhos relativos).
+#
+# kind = "corpus": saída esperada em `expected` (e, quando há escrita, arquivos em `expected_files`).
+#   Python e JS: o orquestrador confirma o esperado rodando o mesmo trecho no python3/node do host,
+#   com os arquivos materializados num diretório de rascunho. Lua: esperado escrito à mão e conferido
+#   contra o Lua 5.4 de referência (o C do mlua vendored), já que o host não tem lua.
+# kind = "deny": sonda que tenta tocar o host. Imprime DENIED quando o acesso falha do jeito certo e
+#   LEAK quando vaza. Não roda no host (lá vazaria por definição).
+#
+# Convenção de saída: em JS só imprimimos strings e números (console.log de objeto/array usa o
+# util.inspect do node, que o prelúdio não imita); em Lua o print separa com TAB, como o original.
+
+# ------------------------------------------------------------------------------------------------
+# Python
+# ------------------------------------------------------------------------------------------------
+
+[[snippet]]
+id = "py-json-load-sum"
+lang = "python"
+kind = "corpus"
+category = "json"
+code = '''
+import json
+d = json.load(open('data.json'))
+print(sum(x['size'] for x in d))
+'''
+expected = "18\n"
+[snippet.files]
+"data.json" = '[{"name": "a", "size": 3}, {"name": "b", "size": 5}, {"name": "c", "size": 10}]'
+
+[[snippet]]
+id = "py-json-filter-dumps"
+lang = "python"
+kind = "corpus"
+category = "json"
+code = '''
+import json
+with open('data.json') as f:
+    d = json.load(f)
+print(json.dumps([x['name'] for x in d if x['size'] > 4]))
+'''
+expected = "[\"b\", \"c\"]\n"
+[snippet.files]
+"data.json" = '[{"name": "a", "size": 3}, {"name": "b", "size": 5}, {"name": "c", "size": 10}]'
+
+[[snippet]]
+id = "py-json-dumps-indent"
+lang = "python"
+kind = "corpus"
+category = "json"
+code = '''
+import json
+print(json.dumps({'b': 1, 'a': [1, 2]}, indent=2, sort_keys=True))
+'''
+expected = "{\n  \"a\": [\n    1,\n    2\n  ],\n  \"b\": 1\n}\n"
+
+[[snippet]]
+id = "py-json-loads-nested"
+lang = "python"
+kind = "corpus"
+category = "json"
+code = '''
+import json
+s = '{"user": {"tags": ["x", "y"], "age": 41}}'
+u = json.loads(s)['user']
+print(u['tags'][-1], u['age'] + 1)
+'''
+expected = "y 42\n"
+
+[[snippet]]
+id = "py-json-write-file"
+lang = "python"
+kind = "corpus"
+category = "json"
+code = '''
+import json
+with open('out.json', 'w') as f:
+    json.dump({'ok': True, 'n': None}, f)
+print(open('out.json').read())
+'''
+expected = "{\"ok\": true, \"n\": null}\n"
+[snippet.expected_files]
+"out.json" = '{"ok": true, "n": null}'
+
+[[snippet]]
+id = "py-json-counter"
+lang = "python"
+kind = "corpus"
+category = "json"
+code = '''
+import json
+from collections import Counter
+words = 'a b a c b a'.split()
+print(json.dumps(Counter(words).most_common(2)))
+'''
+expected = "[[\"a\", 3], [\"b\", 2]]\n"
+
+[[snippet]]
+id = "py-str-split-join"
+lang = "python"
+kind = "corpus"
+category = "strings"
+code = '''
+print('-'.join('a,b,,c'.split(',')))
+'''
+expected = "a-b--c\n"
+
+[[snippet]]
+id = "py-str-replace-upper"
+lang = "python"
+kind = "corpus"
+category = "strings"
+code = '''
+print('hello world'.replace('o', '0').upper())
+'''
+expected = "HELL0 W0RLD\n"
+
+[[snippet]]
+id = "py-str-fstring"
+lang = "python"
+kind = "corpus"
+category = "strings"
+code = '''
+name = 'x'
+n = 3.14159
+print(f'{name}={n:.2f} {n:>8.3f}|{42:05d}')
+'''
+expected = "x=3.14    3.142|00042\n"
+
+[[snippet]]
+id = "py-str-regex-findall"
+lang = "python"
+kind = "corpus"
+category = "strings"
+code = '''
+import re
+print(re.findall(r'\d+', 'a1b22c333'))
+'''
+expected = "['1', '22', '333']\n"
+
+[[snippet]]
+id = "py-str-regex-sub"
+lang = "python"
+kind = "corpus"
+category = "strings"
+code = '''
+import re
+print(re.sub(r'(\w+)@(\w+)', r'\2 at \1', 'joe@host and ann@box'))
+'''
+expected = "host at joe and box at ann\n"
+
+[[snippet]]
+id = "py-str-strip-lines"
+lang = "python"
+kind = "corpus"
+category = "strings"
+code = '''
+print([l.strip() for l in open('lines.txt').read().splitlines() if l.strip()])
+'''
+expected = "['a', 'b', 'c']\n"
+[snippet.files]
+"lines.txt" = "  a  \nb\n\n c\n"
+
+[[snippet]]
+id = "py-str-percent"
+lang = "python"
+kind = "corpus"
+category = "strings"
+code = '''
+print('%s has %d items (%.1f%%)' % ('box', 3, 42.5))
+'''
+expected = "box has 3 items (42.5%)\n"
+
+[[snippet]]
+id = "py-math-bigint"
+lang = "python"
+kind = "corpus"
+category = "math"
+code = '''
+print(2 ** 100, 3 ** 40 % 1000007)
+'''
+expected = "1267650600228229401496703205376 436843\n"
+
+[[snippet]]
+id = "py-math-floordiv"
+lang = "python"
+kind = "corpus"
+category = "math"
+code = '''
+print(-7 // 2, -7 % 2, 7 / 2, divmod(17, 5))
+'''
+expected = "-4 1 3.5 (3, 2)\n"
+
+[[snippet]]
+id = "py-math-round"
+lang = "python"
+kind = "corpus"
+category = "math"
+code = '''
+print(round(2.675, 2), round(0.5), round(1.5), f'{1/3:.4f}')
+'''
+expected = "2.67 0 2 0.3333\n"
+
+[[snippet]]
+id = "py-math-module"
+lang = "python"
+kind = "corpus"
+category = "math"
+code = '''
+import math
+print(math.sqrt(16), math.factorial(20), math.gcd(12, 18), math.pi)
+'''
+expected = "4.0 2432902008176640000 6 3.141592653589793\n"
+
+[[snippet]]
+id = "py-math-float-repr"
+lang = "python"
+kind = "corpus"
+category = "math"
+code = '''
+print(0.1 + 0.2, 1e21, 1e-7, float('inf'), int('ff', 16))
+'''
+expected = "0.30000000000000004 1e+21 1e-07 inf 255\n"
+
+[[snippet]]
+id = "py-list-sort-key"
+lang = "python"
+kind = "corpus"
+category = "lists"
+code = '''
+d = [('b', 2), ('a', 3), ('c', 1)]
+print(sorted(d, key=lambda t: t[1], reverse=True))
+'''
+expected = "[('a', 3), ('b', 2), ('c', 1)]\n"
+
+[[snippet]]
+id = "py-list-comprehension"
+lang = "python"
+kind = "corpus"
+category = "lists"
+code = '''
+print([x * x for x in range(10) if x % 3 == 0])
+'''
+expected = "[0, 9, 36, 81]\n"
+
+[[snippet]]
+id = "py-list-dedup"
+lang = "python"
+kind = "corpus"
+category = "lists"
+code = '''
+xs = [3, 1, 3, 2, 1]
+print(list(dict.fromkeys(xs)), sorted(set(xs)))
+'''
+expected = "[3, 1, 2] [1, 2, 3]\n"
+
+[[snippet]]
+id = "py-list-zip-enumerate"
+lang = "python"
+kind = "corpus"
+category = "lists"
+code = '''
+for i, (a, b) in enumerate(zip('xy', [1, 2])):
+    print(i, a, b)
+'''
+expected = "0 x 1\n1 y 2\n"
+
+[[snippet]]
+id = "py-list-dict-comp"
+lang = "python"
+kind = "corpus"
+category = "lists"
+code = '''
+print({k: len(k) for k in ['aa', 'b']})
+'''
+expected = "{'aa': 2, 'b': 1}\n"
+
+[[snippet]]
+id = "py-list-slicing"
+lang = "python"
+kind = "corpus"
+category = "lists"
+code = '''
+xs = list(range(10))
+print(xs[::-3], xs[2:5], xs[-2:])
+'''
+expected = "[9, 6, 3, 0] [2, 3, 4] [8, 9]\n"
+
+[[snippet]]
+id = "py-csv-sum"
+lang = "python"
+kind = "corpus"
+category = "lists"
+code = '''
+rows = [l.split(',') for l in open('data.csv').read().splitlines()[1:]]
+print(sum(int(r[1]) for r in rows), max(rows, key=lambda r: int(r[1]))[0])
+'''
+expected = "7 b\n"
+[snippet.files]
+"data.csv" = "name,qty\na,2\nb,5\n"
+
+[[snippet]]
+id = "py-def-recursion"
+lang = "python"
+kind = "corpus"
+category = "lists"
+code = '''
+def f(n):
+    return 1 if n < 2 else n * f(n - 1)
+print(f(10))
+'''
+expected = "3628800\n"
+
+[[snippet]]
+id = "py-try-keyerror"
+lang = "python"
+kind = "corpus"
+category = "lists"
+code = '''
+try:
+    {}['x']
+except KeyError as e:
+    print('missing', e)
+'''
+expected = "missing 'x'\n"
+
+[[snippet]]
+id = "py-append-file"
+lang = "python"
+kind = "corpus"
+category = "json"
+code = '''
+with open('log.txt', 'a') as f:
+    f.write('b\n')
+print(open('log.txt').read(), end='')
+'''
+expected = "a\nb\n"
+[snippet.files]
+"log.txt" = "a\n"
+[snippet.expected_files]
+"log.txt" = "a\nb\n"
+
+# Sondas de negação (Python)
+
+[[snippet]]
+id = "py-deny-open-etc-passwd"
+lang = "python"
+kind = "deny"
+category = "deny"
+code = '''
+try:
+    open('/etc/passwd').read()
+    print('LEAK')
+except FileNotFoundError as e:
+    print('DENIED', type(e).__name__)
+'''
+expected = "DENIED FileNotFoundError\n"
+
+[[snippet]]
+id = "py-deny-os-listdir"
+lang = "python"
+kind = "deny"
+category = "deny"
+code = '''
+try:
+    import os
+    print('LEAK', len(os.listdir('/')))
+except Exception:
+    print('DENIED')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "py-deny-os-environ"
+lang = "python"
+kind = "deny"
+category = "deny"
+code = '''
+try:
+    import os
+    v = os.environ.get('HOME')
+    print('DENIED' if v is None else 'LEAK ' + v)
+except Exception:
+    print('DENIED')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "py-deny-subprocess"
+lang = "python"
+kind = "deny"
+category = "deny"
+code = '''
+try:
+    import subprocess
+    subprocess.run(['id'])
+    print('LEAK')
+except Exception:
+    print('DENIED')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "py-deny-socket"
+lang = "python"
+kind = "deny"
+category = "deny"
+code = '''
+try:
+    import socket
+    socket.create_connection(('127.0.0.1', 22), timeout=1)
+    print('LEAK')
+except Exception:
+    print('DENIED')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "py-deny-pathlib"
+lang = "python"
+kind = "deny"
+category = "deny"
+code = '''
+try:
+    from pathlib import Path
+    Path('/etc/hostname').read_text()
+    print('LEAK')
+except Exception:
+    print('DENIED')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "py-deny-ctypes"
+lang = "python"
+kind = "deny"
+category = "deny"
+code = '''
+try:
+    import ctypes
+    ctypes.CDLL(None)
+    print('LEAK')
+except Exception:
+    print('DENIED')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "py-deny-shutil"
+lang = "python"
+kind = "deny"
+category = "deny"
+code = '''
+try:
+    import shutil
+    print('LEAK', shutil.disk_usage('/').total > 0)
+except Exception:
+    print('DENIED')
+'''
+expected = "DENIED\n"
+
+# ------------------------------------------------------------------------------------------------
+# JS
+# ------------------------------------------------------------------------------------------------
+
+[[snippet]]
+id = "js-json-read-sum"
+lang = "js"
+kind = "corpus"
+category = "json"
+code = '''
+const d = JSON.parse(require('fs').readFileSync('data.json', 'utf8'));
+console.log(d.reduce((s, x) => s + x.size, 0));
+'''
+expected = "18\n"
+[snippet.files]
+"data.json" = '[{"name": "a", "size": 3}, {"name": "b", "size": 5}, {"name": "c", "size": 10}]'
+
+[[snippet]]
+id = "js-json-filter-stringify"
+lang = "js"
+kind = "corpus"
+category = "json"
+code = '''
+const d = JSON.parse(require('fs').readFileSync('data.json', 'utf8'));
+console.log(JSON.stringify(d.filter((x) => x.size > 4).map((x) => x.name)));
+'''
+expected = "[\"b\",\"c\"]\n"
+[snippet.files]
+"data.json" = '[{"name": "a", "size": 3}, {"name": "b", "size": 5}, {"name": "c", "size": 10}]'
+
+[[snippet]]
+id = "js-json-stringify-indent"
+lang = "js"
+kind = "corpus"
+category = "json"
+code = '''
+console.log(JSON.stringify({ b: 1, a: [1, 2] }, null, 2));
+'''
+expected = "{\n  \"b\": 1,\n  \"a\": [\n    1,\n    2\n  ]\n}\n"
+
+[[snippet]]
+id = "js-json-nested"
+lang = "js"
+kind = "corpus"
+category = "json"
+code = '''
+const u = JSON.parse('{"user": {"tags": ["x", "y"], "age": 41}}').user;
+console.log(u.tags.at(-1), u.age + 1);
+'''
+expected = "y 42\n"
+
+[[snippet]]
+id = "js-json-write-file"
+lang = "js"
+kind = "corpus"
+category = "json"
+code = '''
+const fs = require('fs');
+fs.writeFileSync('out.json', JSON.stringify({ ok: true, n: null }));
+console.log(fs.readFileSync('out.json', 'utf8'));
+'''
+expected = "{\"ok\":true,\"n\":null}\n"
+[snippet.expected_files]
+"out.json" = '{"ok":true,"n":null}'
+
+[[snippet]]
+id = "js-json-group-count"
+lang = "js"
+kind = "corpus"
+category = "json"
+code = '''
+const c = {};
+for (const w of 'a b a c b a'.split(' ')) c[w] = (c[w] || 0) + 1;
+console.log(JSON.stringify(Object.entries(c).sort((x, y) => y[1] - x[1]).slice(0, 2)));
+'''
+expected = "[[\"a\",3],[\"b\",2]]\n"
+
+[[snippet]]
+id = "js-str-split-join"
+lang = "js"
+kind = "corpus"
+category = "strings"
+code = '''
+console.log('a,b,,c'.split(',').join('-'));
+'''
+expected = "a-b--c\n"
+
+[[snippet]]
+id = "js-str-replace-upper"
+lang = "js"
+kind = "corpus"
+category = "strings"
+code = '''
+console.log('hello world'.replaceAll('o', '0').toUpperCase());
+'''
+expected = "HELL0 W0RLD\n"
+
+[[snippet]]
+id = "js-str-template-pad"
+lang = "js"
+kind = "corpus"
+category = "strings"
+code = '''
+const n = 3.14159;
+console.log(`x=${n.toFixed(2)} ${n.toFixed(3).padStart(8)}|${String(42).padStart(5, '0')}`);
+'''
+expected = "x=3.14    3.142|00042\n"
+
+[[snippet]]
+id = "js-str-regex-match"
+lang = "js"
+kind = "corpus"
+category = "strings"
+code = '''
+console.log('a1b22c333'.match(/\d+/g).join(','));
+'''
+expected = "1,22,333\n"
+
+[[snippet]]
+id = "js-str-regex-replace"
+lang = "js"
+kind = "corpus"
+category = "strings"
+code = '''
+console.log('joe@host and ann@box'.replace(/(\w+)@(\w+)/g, '$2 at $1'));
+'''
+expected = "host at joe and box at ann\n"
+
+[[snippet]]
+id = "js-str-trim-lines"
+lang = "js"
+kind = "corpus"
+category = "strings"
+code = '''
+const t = require('fs').readFileSync('lines.txt', 'utf8');
+console.log(t.split('\n').map((s) => s.trim()).filter(Boolean).join('|'));
+'''
+expected = "a|b|c\n"
+[snippet.files]
+"lines.txt" = "  a  \nb\n\n c\n"
+
+[[snippet]]
+id = "js-str-named-groups"
+lang = "js"
+kind = "corpus"
+category = "strings"
+code = '''
+const m = '2026-01-15'.match(/(?<y>\d{4})-(?<m>\d{2})-(?<d>\d{2})/);
+console.log(`${m.groups.d}/${m.groups.m}/${m.groups.y}`);
+'''
+expected = "15/01/2026\n"
+
+[[snippet]]
+id = "js-math-bigint"
+lang = "js"
+kind = "corpus"
+category = "math"
+code = '''
+console.log((2n ** 100n).toString(), (3n ** 40n % 1000007n).toString());
+'''
+expected = "1267650600228229401496703205376 436843\n"
+
+[[snippet]]
+id = "js-math-div"
+lang = "js"
+kind = "corpus"
+category = "math"
+code = '''
+console.log(Math.floor(-7 / 2), -7 % 2, 7 / 2, Math.trunc(-3.5), parseInt('ff', 16));
+'''
+expected = "-4 -1 3.5 -3 255\n"
+
+[[snippet]]
+id = "js-math-tofixed"
+lang = "js"
+kind = "corpus"
+category = "math"
+code = '''
+console.log((2.675).toFixed(2), Math.round(0.5), Math.round(2.5), (1 / 3).toFixed(4));
+'''
+expected = "2.67 1 3 0.3333\n"
+
+[[snippet]]
+id = "js-math-funcs"
+lang = "js"
+kind = "corpus"
+category = "math"
+code = '''
+console.log(Math.sqrt(16), Math.max(...[3, 9, 2]), Math.hypot(3, 4), Math.PI);
+'''
+expected = "4 9 5 3.141592653589793\n"
+
+[[snippet]]
+id = "js-math-float-repr"
+lang = "js"
+kind = "corpus"
+category = "math"
+code = '''
+console.log(0.1 + 0.2, 1e21, 1e-7, 2 ** 53 + 1, Infinity);
+'''
+expected = "0.30000000000000004 1e+21 1e-7 9007199254740992 Infinity\n"
+
+[[snippet]]
+id = "js-list-sort"
+lang = "js"
+kind = "corpus"
+category = "lists"
+code = '''
+console.log([10, 9, 1, 100].sort().join(','), [10, 9, 1, 100].sort((a, b) => a - b).join(','));
+'''
+expected = "1,10,100,9 1,9,10,100\n"
+
+[[snippet]]
+id = "js-list-map-filter"
+lang = "js"
+kind = "corpus"
+category = "lists"
+code = '''
+console.log([...Array(10).keys()].filter((x) => x % 3 === 0).map((x) => x * x).join(' '));
+'''
+expected = "0 9 36 81\n"
+
+[[snippet]]
+id = "js-list-dedup"
+lang = "js"
+kind = "corpus"
+category = "lists"
+code = '''
+const xs = [3, 1, 3, 2, 1];
+console.log([...new Set(xs)].join(','), [...new Set(xs)].sort().join(','));
+'''
+expected = "3,1,2 1,2,3\n"
+
+[[snippet]]
+id = "js-list-zip"
+lang = "js"
+kind = "corpus"
+category = "lists"
+code = '''
+const a = ['x', 'y'], b = [1, 2];
+a.forEach((v, i) => console.log(i, v, b[i]));
+'''
+expected = "0 x 1\n1 y 2\n"
+
+[[snippet]]
+id = "js-object-entries"
+lang = "js"
+kind = "corpus"
+category = "lists"
+code = '''
+console.log(Object.entries({ aa: 2, b: 1 }).map(([k, v]) => k + '=' + v).join('&'));
+'''
+expected = "aa=2&b=1\n"
+
+[[snippet]]
+id = "js-list-destructuring"
+lang = "js"
+kind = "corpus"
+category = "lists"
+code = '''
+const [first, ...rest] = [5, 6, 7];
+console.log(first, rest.length, Math.min(...rest));
+'''
+expected = "5 2 6\n"
+
+[[snippet]]
+id = "js-list-groupby-reduce"
+lang = "js"
+kind = "corpus"
+category = "lists"
+code = '''
+const rows = [{ t: 'a', v: 1 }, { t: 'b', v: 2 }, { t: 'a', v: 3 }];
+const g = rows.reduce((m, r) => ((m[r.t] = (m[r.t] || 0) + r.v), m), {});
+console.log(JSON.stringify(g));
+'''
+expected = "{\"a\":4,\"b\":2}\n"
+
+[[snippet]]
+id = "js-try-catch"
+lang = "js"
+kind = "corpus"
+category = "lists"
+code = '''
+try { null.x; } catch (e) { console.log(e instanceof TypeError, e.name); }
+'''
+expected = "true TypeError\n"
+
+[[snippet]]
+id = "js-async-promise"
+lang = "js"
+kind = "corpus"
+category = "lists"
+code = '''
+Promise.resolve(41).then((v) => console.log(v + 1));
+(async () => { const v = await Promise.resolve('a'); console.log(v + 'b'); })();
+'''
+expected = "42\nab\n"
+
+[[snippet]]
+id = "js-date-utc"
+lang = "js"
+kind = "corpus"
+category = "math"
+code = '''
+console.log(new Date(Date.UTC(2026, 0, 15, 12)).toISOString());
+'''
+expected = "2026-01-15T12:00:00.000Z\n"
+
+[[snippet]]
+id = "js-append-file"
+lang = "js"
+kind = "corpus"
+category = "json"
+code = '''
+const fs = require('fs');
+fs.appendFileSync('log.txt', 'b\n');
+console.log(fs.readFileSync('log.txt', 'utf8').trim().split('\n').length, fs.existsSync('nope.txt'));
+'''
+expected = "2 false\n"
+[snippet.files]
+"log.txt" = "a\n"
+[snippet.expected_files]
+"log.txt" = "a\nb\n"
+
+# Sondas de negação (JS)
+
+[[snippet]]
+id = "js-deny-process"
+lang = "js"
+kind = "deny"
+category = "deny"
+code = '''
+console.log(typeof process === 'undefined' ? 'DENIED' : 'LEAK');
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "js-deny-child-process"
+lang = "js"
+kind = "deny"
+category = "deny"
+code = '''
+try { require('child_process').execSync('id'); console.log('LEAK'); }
+catch (e) { console.log('DENIED', e.code); }
+'''
+expected = "DENIED MODULE_NOT_FOUND\n"
+
+[[snippet]]
+id = "js-deny-fs-etc-passwd"
+lang = "js"
+kind = "deny"
+category = "deny"
+code = '''
+try { require('fs').readFileSync('/etc/passwd', 'utf8'); console.log('LEAK'); }
+catch (e) { console.log('DENIED', e.code); }
+'''
+expected = "DENIED ENOENT\n"
+
+[[snippet]]
+id = "js-deny-qjs-std-os"
+lang = "js"
+kind = "deny"
+category = "deny"
+code = '''
+const none = typeof std === 'undefined' && typeof os === 'undefined' && typeof scriptArgs === 'undefined';
+console.log(none ? 'DENIED' : 'LEAK');
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "js-deny-network"
+lang = "js"
+kind = "deny"
+category = "deny"
+code = '''
+const none = typeof fetch === 'undefined' && typeof XMLHttpRequest === 'undefined' && typeof WebSocket === 'undefined';
+console.log(none ? 'DENIED' : 'LEAK');
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "js-deny-dynamic-import"
+lang = "js"
+kind = "deny"
+category = "deny"
+code = '''
+import('os').then(() => console.log('LEAK'), () => console.log('DENIED'));
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "js-deny-deno-bun"
+lang = "js"
+kind = "deny"
+category = "deny"
+code = '''
+console.log(typeof Deno === 'undefined' && typeof Bun === 'undefined' ? 'DENIED' : 'LEAK');
+'''
+expected = "DENIED\n"
+
+# ------------------------------------------------------------------------------------------------
+# Lua (json e io são nossos; ver LUA_PRELUDE em interp/common)
+# ------------------------------------------------------------------------------------------------
+
+[[snippet]]
+id = "lua-json-read-sum"
+lang = "lua"
+kind = "corpus"
+category = "json"
+code = '''
+local d = json.decode(io.open('data.json'):read('a'))
+local s = 0
+for _, x in ipairs(d) do s = s + x.size end
+print(s)
+'''
+expected = "18\n"
+[snippet.files]
+"data.json" = '[{"name": "a", "size": 3}, {"name": "b", "size": 5}, {"name": "c", "size": 10}]'
+
+[[snippet]]
+id = "lua-json-filter-encode"
+lang = "lua"
+kind = "corpus"
+category = "json"
+code = '''
+local d = json.decode(io.open('data.json'):read('a'))
+local names = {}
+for _, x in ipairs(d) do if x.size > 4 then names[#names + 1] = x.name end end
+print(json.encode(names))
+'''
+expected = "[\"b\",\"c\"]\n"
+[snippet.files]
+"data.json" = '[{"name": "a", "size": 3}, {"name": "b", "size": 5}, {"name": "c", "size": 10}]'
+
+[[snippet]]
+id = "lua-json-encode-sorted"
+lang = "lua"
+kind = "corpus"
+category = "json"
+code = '''
+print(json.encode({ b = 1, a = { 1, 2 } }))
+'''
+expected = "{\"a\":[1,2],\"b\":1}\n"
+
+[[snippet]]
+id = "lua-json-nested"
+lang = "lua"
+kind = "corpus"
+category = "json"
+code = '''
+local u = json.decode('{"user": {"tags": ["x", "y"], "age": 41}}').user
+print(u.tags[#u.tags], u.age + 1)
+'''
+expected = "y\t42\n"
+
+[[snippet]]
+id = "lua-json-write-file"
+lang = "lua"
+kind = "corpus"
+category = "json"
+code = '''
+local f = io.open('out.json', 'w')
+f:write(json.encode({ ok = true }))
+f:close()
+print(io.open('out.json'):read('a'))
+'''
+expected = "{\"ok\":true}\n"
+[snippet.expected_files]
+"out.json" = '{"ok":true}'
+
+[[snippet]]
+id = "lua-str-format"
+lang = "lua"
+kind = "corpus"
+category = "strings"
+code = '''
+print(string.format('%s=%.2f %8.3f|%05d', 'x', 3.14159, 3.14159, 42))
+'''
+expected = "x=3.14    3.142|00042\n"
+
+[[snippet]]
+id = "lua-str-gsub-upper"
+lang = "lua"
+kind = "corpus"
+category = "strings"
+code = '''
+print((string.gsub('hello world', 'o', '0')):upper())
+'''
+expected = "HELL0 W0RLD\n"
+
+[[snippet]]
+id = "lua-str-gmatch"
+lang = "lua"
+kind = "corpus"
+category = "strings"
+code = '''
+local t = {}
+for n in string.gmatch('a1b22c333', '%d+') do t[#t + 1] = n end
+print(table.concat(t, ','))
+'''
+expected = "1,22,333\n"
+
+[[snippet]]
+id = "lua-str-split"
+lang = "lua"
+kind = "corpus"
+category = "strings"
+code = '''
+local parts = {}
+for p in ('a,b,,c' .. ','):gmatch('([^,]*),') do parts[#parts + 1] = p end
+print(table.concat(parts, '-'))
+'''
+expected = "a-b--c\n"
+
+[[snippet]]
+id = "lua-str-find-rep"
+lang = "lua"
+kind = "corpus"
+category = "strings"
+code = '''
+print(string.find('hello world', 'wor'), ('abc'):rep(3))
+'''
+expected = "7\tabcabcabc\n"
+
+[[snippet]]
+id = "lua-str-lines-file"
+lang = "lua"
+kind = "corpus"
+category = "strings"
+code = '''
+local out = {}
+for l in io.lines('lines.txt') do
+  local s = l:match('^%s*(.-)%s*$')
+  if s ~= '' then out[#out + 1] = s end
+end
+print(table.concat(out, '|'))
+'''
+expected = "a|b|c\n"
+[snippet.files]
+"lines.txt" = "  a  \nb\n\n c\n"
+
+[[snippet]]
+id = "lua-str-byte-char"
+lang = "lua"
+kind = "corpus"
+category = "strings"
+code = '''
+print(string.byte('A'), string.char(72, 105), #'héllo', utf8.len('héllo'))
+'''
+expected = "65\tHi\t6\t5\n"
+
+[[snippet]]
+id = "lua-math-intdiv"
+lang = "lua"
+kind = "corpus"
+category = "math"
+code = '''
+print(7 // 2, -7 // 2, 7 % 3, -7 % 3, 7 / 2)
+'''
+expected = "3\t-4\t1\t2\t3.5\n"
+
+[[snippet]]
+id = "lua-math-float"
+lang = "lua"
+kind = "corpus"
+category = "math"
+code = '''
+print(2 ^ 10, 10 / 2, 3 * 1.0, math.maxinteger)
+'''
+expected = "1024.0\t5.0\t3.0\t9223372036854775807\n"
+
+[[snippet]]
+id = "lua-math-funcs"
+lang = "lua"
+kind = "corpus"
+category = "math"
+code = '''
+print(math.sqrt(16), math.floor(3.7), math.max(3, 9, 2), math.huge)
+'''
+expected = "4.0\t3\t9\tinf\n"
+
+[[snippet]]
+id = "lua-math-tonumber"
+lang = "lua"
+kind = "corpus"
+category = "math"
+code = '''
+print(math.tointeger(3.0), tonumber('0x10'), tonumber('12.5'), math.type(1), math.type(1.0))
+'''
+expected = "3\t16\t12.5\tinteger\tfloat\n"
+
+[[snippet]]
+id = "lua-math-wrap"
+lang = "lua"
+kind = "corpus"
+category = "math"
+code = '''
+print(math.maxinteger + 1 == math.mininteger, 0.1 + 0.2 == 0.3)
+'''
+expected = "true\tfalse\n"
+
+[[snippet]]
+id = "lua-table-sort"
+lang = "lua"
+kind = "corpus"
+category = "lists"
+code = '''
+local t = { 5, 2, 9, 1 }
+table.sort(t)
+print(table.concat(t, ' '))
+'''
+expected = "1 2 5 9\n"
+
+[[snippet]]
+id = "lua-table-sort-desc"
+lang = "lua"
+kind = "corpus"
+category = "lists"
+code = '''
+local t = { { 'b', 2 }, { 'a', 3 }, { 'c', 1 } }
+table.sort(t, function(x, y) return x[2] > y[2] end)
+local o = {}
+for _, p in ipairs(t) do o[#o + 1] = p[1] end
+print(table.concat(o))
+'''
+expected = "abc\n"
+
+[[snippet]]
+id = "lua-table-insert-remove"
+lang = "lua"
+kind = "corpus"
+category = "lists"
+code = '''
+local t = {}
+table.insert(t, 'a')
+table.insert(t, 1, 'b')
+table.insert(t, 'c')
+print(table.remove(t), #t, t[1])
+'''
+expected = "c\t2\tb\n"
+
+[[snippet]]
+id = "lua-table-dedup"
+lang = "lua"
+kind = "corpus"
+category = "lists"
+code = '''
+local seen, out = {}, {}
+for _, v in ipairs({ 3, 1, 3, 2, 1 }) do
+  if not seen[v] then seen[v] = true; out[#out + 1] = v end
+end
+print(table.concat(out, ','))
+'''
+expected = "3,1,2\n"
+
+[[snippet]]
+id = "lua-closure-counter"
+lang = "lua"
+kind = "corpus"
+category = "lists"
+code = '''
+local function counter() local n = 0; return function() n = n + 1; return n end end
+local c = counter()
+c(); c()
+print(c())
+'''
+expected = "3\n"
+
+[[snippet]]
+id = "lua-pcall-error"
+lang = "lua"
+kind = "corpus"
+category = "lists"
+code = '''
+local ok, err = pcall(function() error({ code = 42 }) end)
+print(ok, type(err), err.code)
+'''
+expected = "false\ttable\t42\n"
+
+[[snippet]]
+id = "lua-varargs-select"
+lang = "lua"
+kind = "corpus"
+category = "lists"
+code = '''
+local function f(...) return select('#', ...), (select(2, ...)) end
+print(f(10, 20, 30))
+'''
+expected = "3\t20\n"
+
+[[snippet]]
+id = "lua-append-file"
+lang = "lua"
+kind = "corpus"
+category = "json"
+code = '''
+local f = io.open('log.txt', 'a')
+f:write('b\n')
+f:close()
+io.write(io.open('log.txt'):read('a'))
+'''
+expected = "a\nb\n"
+[snippet.files]
+"log.txt" = "a\n"
+[snippet.expected_files]
+"log.txt" = "a\nb\n"
+
+# Sondas de negação (Lua)
+
+[[snippet]]
+id = "lua-deny-io-open-passwd"
+lang = "lua"
+kind = "deny"
+category = "deny"
+code = '''
+local f = io.open('/etc/passwd')
+print(f == nil and 'DENIED' or 'LEAK')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "lua-deny-os"
+lang = "lua"
+kind = "deny"
+category = "deny"
+code = '''
+print(os == nil and 'DENIED' or 'LEAK')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "lua-deny-dofile-loadfile"
+lang = "lua"
+kind = "deny"
+category = "deny"
+code = '''
+print((dofile == nil and loadfile == nil) and 'DENIED' or 'LEAK')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "lua-deny-dofile-call"
+lang = "lua"
+kind = "deny"
+category = "deny"
+code = '''
+local ok = pcall(function() return dofile('/etc/passwd') end)
+print((not ok and dofile == nil) and 'DENIED' or 'LEAK')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "lua-deny-require-package"
+lang = "lua"
+kind = "deny"
+category = "deny"
+code = '''
+print((require == nil and package == nil) and 'DENIED' or 'LEAK')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "lua-deny-debug"
+lang = "lua"
+kind = "deny"
+category = "deny"
+code = '''
+print(debug == nil and 'DENIED' or 'LEAK')
+'''
+expected = "DENIED\n"
+
+[[snippet]]
+id = "lua-deny-popen-stdin"
+lang = "lua"
+kind = "deny"
+category = "deny"
+code = '''
+print((io.popen == nil and io.read == nil and io.stdin == nil) and 'DENIED' or 'LEAK')
+'''
+expected = "DENIED\n"

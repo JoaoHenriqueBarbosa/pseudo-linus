@@ -1,0 +1,4075 @@
+{
+  "experiment": "e01-exec-models",
+  "title": "Modelos de execução: thread por processo (A), corrotina presa ao worker (B), async (C)",
+  "generated_at": "2026-10-02T23:32:23Z",
+  "host": {
+    "kernel": "6.12.101+deb13-amd64",
+    "cpus": 16,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+  },
+  "hypotheses": [
+    {
+      "id": "H01",
+      "verdict": "refuted",
+      "summary": "Nenhuma crate dá migração sound sem unsafe nosso: corosensei falha com E0277 (Coroutine !Send) e com o lint unsafe_code no embrulho com unsafe impl Send; may::coroutine::spawn exige unsafe (E0133, e o bloco unsafe é barrado pelo forbid); o generator 0.8 compila a migração mas ela é unsound: depois de migrar, a corrotina roda na thread 2 usando o thread-local da thread 1 (0x7f8e98e8b150; o da thread 2 é 0x7f8e98e89690), e até um acesso novo ao thread-local, inlinado, devolve o endereço da thread 1 porque o compilador reaproveita o endereço calculado antes da troca.",
+      "evidence": {
+        "generator_inline_tls_access_stale": true,
+        "generator_migration": {
+          "coroutine_thread_after": "ThreadId(2)",
+          "coroutine_thread_before": "ThreadId(1)",
+          "held_on_thread1": 140250427470160,
+          "held_on_thread2": 140250427470160,
+          "inline_access_on_thread2": 140250427470160,
+          "noinline_access_on_thread2": 140250427463312,
+          "thread1": "ThreadId(1)",
+          "thread1_tls": 140250427470160,
+          "thread2": "ThreadId(2)",
+          "thread2_tls": 140250427463312
+        },
+        "generator_unsound": true,
+        "probes": [
+          {
+            "as_expected": true,
+            "compiled": true,
+            "description": "controle: corrotina usada só na thread de origem",
+            "error_codes": [],
+            "expected": "compila",
+            "probe": "corosensei_same_thread"
+          },
+          {
+            "as_expected": true,
+            "compiled": false,
+            "description": "mover Coroutine suspensa pra outra thread",
+            "error_codes": [
+              "E0277"
+            ],
+            "expected": "falha com E0277",
+            "probe": "corosensei_move_thread"
+          },
+          {
+            "as_expected": true,
+            "compiled": false,
+            "description": "Arc<Mutex<Coroutine>> compartilhado entre threads",
+            "error_codes": [
+              "E0277"
+            ],
+            "expected": "falha com E0277",
+            "probe": "corosensei_shared_mutex"
+          },
+          {
+            "as_expected": true,
+            "compiled": false,
+            "description": "embrulho com unsafe impl Send",
+            "error_codes": [
+              "unsafe_code"
+            ],
+            "expected": "falha com unsafe_code",
+            "probe": "corosensei_unsafe_send"
+          },
+          {
+            "as_expected": true,
+            "compiled": false,
+            "description": "may::coroutine::spawn sem unsafe",
+            "error_codes": [
+              "E0133"
+            ],
+            "expected": "falha com E0133",
+            "probe": "may_spawn_safe"
+          },
+          {
+            "as_expected": true,
+            "compiled": false,
+            "description": "may::coroutine::spawn em bloco unsafe",
+            "error_codes": [
+              "unsafe_code"
+            ],
+            "expected": "falha com unsafe_code",
+            "probe": "may_spawn_unsafe_block"
+          },
+          {
+            "as_expected": true,
+            "compiled": true,
+            "description": "generator 0.8 migrando entre threads",
+            "error_codes": [],
+            "expected": "compila",
+            "probe": "generator_migrate"
+          }
+        ]
+      }
+    },
+    {
+      "id": "H02",
+      "verdict": "confirmed",
+      "summary": "A perde 35% de throughput de pipeline em bloco pro melhor de B/C no pior caso (bulk4 com 1 CPU(s): A-spin 1682 MB/s contra B256 2588 MB/s). Troca por yield com 1 CPU virtual: A 2774 ns (park/unpark), A-spin 185 ns, B64 27 ns, C 32 ns; resume+suspend cru do corosensei 0.9 ns, handoff cru entre threads 2786 ns. Com registros de 64 bytes por chamada (estresse de trocas) A fica em 63% do melhor. Referência com processos reais do Linux: yes|head 1754 MB/s, 4 estágios 1517 MB/s.",
+      "evidence": {
+        "a_over_b_c_yield_cost": 6.758,
+        "a_vs_best_other": [
+          {
+            "a_over_best": 0.904,
+            "a_park_cores": 0.982,
+            "a_park_mb_s": 2379.265,
+            "a_park_over_best": 0.716,
+            "a_spin_cores": 1.955,
+            "a_spin_mb_s": 3003.599,
+            "best_a": "A-spin",
+            "best_a_mb_s": 3003.599,
+            "best_other": "B64",
+            "best_other_cores": 1.005,
+            "best_other_mb_s": 3321.088,
+            "ncpus": 1,
+            "workload": "yes_head"
+          },
+          {
+            "a_over_best": 1.005,
+            "a_park_cores": 1.48,
+            "a_park_mb_s": 3052.972,
+            "a_park_over_best": 0.988,
+            "a_spin_cores": 2.003,
+            "a_spin_mb_s": 3105.488,
+            "best_a": "A-spin",
+            "best_a_mb_s": 3105.488,
+            "best_other": "B256",
+            "best_other_cores": 1.502,
+            "best_other_mb_s": 3089.071,
+            "ncpus": 4,
+            "workload": "yes_head"
+          },
+          {
+            "a_over_best": 0.65,
+            "a_park_cores": 0.974,
+            "a_park_mb_s": 1608.092,
+            "a_park_over_best": 0.621,
+            "a_spin_cores": 3.047,
+            "a_spin_mb_s": 1681.919,
+            "best_a": "A-spin",
+            "best_a_mb_s": 1681.919,
+            "best_other": "B256",
+            "best_other_cores": 0.99,
+            "best_other_mb_s": 2588.226,
+            "ncpus": 1,
+            "workload": "bulk4"
+          },
+          {
+            "a_over_best": 1.109,
+            "a_park_cores": 2.665,
+            "a_park_mb_s": 2990.282,
+            "a_park_over_best": 0.993,
+            "a_spin_cores": 3.925,
+            "a_spin_mb_s": 3337.25,
+            "best_a": "A-spin",
+            "best_a_mb_s": 3337.25,
+            "best_other": "B256",
+            "best_other_cores": 2.689,
+            "best_other_mb_s": 3010.56,
+            "ncpus": 4,
+            "workload": "bulk4"
+          },
+          {
+            "a_over_best": 0.63,
+            "a_park_cores": 0.996,
+            "a_park_mb_s": 349.124,
+            "a_park_over_best": 0.621,
+            "a_spin_cores": 1.446,
+            "a_spin_mb_s": 354.355,
+            "best_a": "A-spin",
+            "best_a_mb_s": 354.355,
+            "best_other": "B256",
+            "best_other_cores": 0.533,
+            "best_other_mb_s": 562.623,
+            "ncpus": 1,
+            "workload": "records4"
+          },
+          {
+            "a_over_best": 0.735,
+            "a_park_cores": 3.514,
+            "a_park_mb_s": 293.644,
+            "a_park_over_best": 0.735,
+            "a_spin_cores": 3.961,
+            "a_spin_mb_s": 182.306,
+            "best_a": "A",
+            "best_a_mb_s": 293.644,
+            "best_other": "C",
+            "best_other_cores": 2.03,
+            "best_other_mb_s": 399.664,
+            "ncpus": 4,
+            "workload": "records4"
+          }
+        ],
+        "native_linux_pipelines": [
+          {
+            "command": "yes | head -n 67108864 > /dev/null",
+            "mb_per_s": 1754.365,
+            "samples": [
+              1754.365,
+              1754.298,
+              1768.979
+            ],
+            "workload": "yes_head"
+          },
+          {
+            "command": "head -c 134217728 /dev/zero | tr a-z A-Z | cat | wc -lc > /dev/null",
+            "mb_per_s": 1516.779,
+            "samples": [
+              1518.317,
+              1502.689,
+              1516.779
+            ],
+            "workload": "bulk4"
+          }
+        ],
+        "pipe_capacity_bytes": 65536,
+        "pipelines": [
+          {
+            "cores_used": 0.982,
+            "cpu_ms": 55.247,
+            "mb_per_s": 2379.265,
+            "model": "A",
+            "ncpus": 1,
+            "samples": [
+              2349.536,
+              2379.265,
+              2386.584
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 1.955,
+            "cpu_ms": 88.183,
+            "mb_per_s": 3003.599,
+            "model": "A-spin",
+            "ncpus": 1,
+            "samples": [
+              2731.249,
+              3003.599,
+              3040.384
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 1.005,
+            "cpu_ms": 40.615,
+            "mb_per_s": 3321.088,
+            "model": "B64",
+            "ncpus": 1,
+            "samples": [
+              3341.946,
+              3321.088,
+              3269.819
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 1.006,
+            "cpu_ms": 40.748,
+            "mb_per_s": 3312.345,
+            "model": "B256",
+            "ncpus": 1,
+            "samples": [
+              3300.384,
+              3315.569,
+              3312.345
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 1.006,
+            "cpu_ms": 40.793,
+            "mb_per_s": 3312.203,
+            "model": "C",
+            "ncpus": 1,
+            "samples": [
+              3292.659,
+              3312.203,
+              3318.561
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 1.48,
+            "cpu_ms": 64.91,
+            "mb_per_s": 3052.972,
+            "model": "A",
+            "ncpus": 4,
+            "samples": [
+              3062.341,
+              3052.972,
+              3044.464
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 2.003,
+            "cpu_ms": 86.514,
+            "mb_per_s": 3105.488,
+            "model": "A-spin",
+            "ncpus": 4,
+            "samples": [
+              3325.909,
+              2831.843,
+              3105.488
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 1.497,
+            "cpu_ms": 66.206,
+            "mb_per_s": 3035.693,
+            "model": "B64",
+            "ncpus": 4,
+            "samples": [
+              3025.615,
+              3035.693,
+              3055.548
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 1.502,
+            "cpu_ms": 65.52,
+            "mb_per_s": 3089.071,
+            "model": "B256",
+            "ncpus": 4,
+            "samples": [
+              3089.071,
+              3075.062,
+              3100.95
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 1.023,
+            "cpu_ms": 46.512,
+            "mb_per_s": 2950.237,
+            "model": "C",
+            "ncpus": 4,
+            "samples": [
+              2940.919,
+              2959.057,
+              2950.237
+            ],
+            "statuses": [
+              "signal 13",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "yes_head"
+          },
+          {
+            "cores_used": 0.974,
+            "cpu_ms": 82.163,
+            "mb_per_s": 1608.092,
+            "model": "A",
+            "ncpus": 1,
+            "samples": [
+              1649.226,
+              1608.092,
+              1570.836
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 3.047,
+            "cpu_ms": 243.159,
+            "mb_per_s": 1681.919,
+            "model": "A-spin",
+            "ncpus": 1,
+            "samples": [
+              1695.791,
+              1681.919,
+              1641.724
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 1.006,
+            "cpu_ms": 52.427,
+            "mb_per_s": 2575.826,
+            "model": "B64",
+            "ncpus": 1,
+            "samples": [
+              2573.416,
+              2575.826,
+              2581.031
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 0.99,
+            "cpu_ms": 51.35,
+            "mb_per_s": 2588.226,
+            "model": "B256",
+            "ncpus": 1,
+            "samples": [
+              2588.226,
+              2539.781,
+              2602.631
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 1.005,
+            "cpu_ms": 52.814,
+            "mb_per_s": 2554.942,
+            "model": "C",
+            "ncpus": 1,
+            "samples": [
+              2537.097,
+              2561.745,
+              2554.942
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 2.665,
+            "cpu_ms": 119.698,
+            "mb_per_s": 2990.282,
+            "model": "A",
+            "ncpus": 4,
+            "samples": [
+              2990.282,
+              3025.946,
+              2977.155
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 3.925,
+            "cpu_ms": 159.709,
+            "mb_per_s": 3337.25,
+            "model": "A-spin",
+            "ncpus": 4,
+            "samples": [
+              3337.25,
+              3339.44,
+              3298.666
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 2.717,
+            "cpu_ms": 123.563,
+            "mb_per_s": 2951.419,
+            "model": "B64",
+            "ncpus": 4,
+            "samples": [
+              2934.881,
+              2963.649,
+              2951.419
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 2.689,
+            "cpu_ms": 120.671,
+            "mb_per_s": 3010.56,
+            "model": "B256",
+            "ncpus": 4,
+            "samples": [
+              2947.071,
+              3055.178,
+              3010.56
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 1.3,
+            "cpu_ms": 63.894,
+            "mb_per_s": 2730.722,
+            "model": "C",
+            "ncpus": 4,
+            "samples": [
+              2731.284,
+              2730.722,
+              2720.028
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "bulk4"
+          },
+          {
+            "cores_used": 0.996,
+            "cpu_ms": 11.904,
+            "mb_per_s": 349.124,
+            "model": "A",
+            "ncpus": 1,
+            "samples": [
+              354.241,
+              341.841,
+              349.124
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          },
+          {
+            "cores_used": 1.446,
+            "cpu_ms": 17.136,
+            "mb_per_s": 354.355,
+            "model": "A-spin",
+            "ncpus": 1,
+            "samples": [
+              354.355,
+              342.691,
+              354.584
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          },
+          {
+            "cores_used": 1.005,
+            "cpu_ms": 7.44,
+            "mb_per_s": 553.119,
+            "model": "B64",
+            "ncpus": 1,
+            "samples": [
+              571.597,
+              553.119,
+              526.757
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          },
+          {
+            "cores_used": 0.533,
+            "cpu_ms": 3.97,
+            "mb_per_s": 562.623,
+            "model": "B256",
+            "ncpus": 1,
+            "samples": [
+              562.623,
+              585.523,
+              544.106
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          },
+          {
+            "cores_used": 1.013,
+            "cpu_ms": 10.082,
+            "mb_per_s": 421.771,
+            "model": "C",
+            "ncpus": 1,
+            "samples": [
+              421.771,
+              419.287,
+              439.11
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          },
+          {
+            "cores_used": 3.514,
+            "cpu_ms": 50.147,
+            "mb_per_s": 293.644,
+            "model": "A",
+            "ncpus": 4,
+            "samples": [
+              292.744,
+              299.627,
+              293.644
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          },
+          {
+            "cores_used": 3.961,
+            "cpu_ms": 91.365,
+            "mb_per_s": 182.306,
+            "model": "A-spin",
+            "ncpus": 4,
+            "samples": [
+              170.093,
+              196.727,
+              182.306
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          },
+          {
+            "cores_used": 3.501,
+            "cpu_ms": 47.963,
+            "mb_per_s": 308.916,
+            "model": "B64",
+            "ncpus": 4,
+            "samples": [
+              289.091,
+              314.682,
+              308.916
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          },
+          {
+            "cores_used": 3.484,
+            "cpu_ms": 46.378,
+            "mb_per_s": 315.055,
+            "model": "B256",
+            "ncpus": 4,
+            "samples": [
+              307.266,
+              315.055,
+              322.213
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          },
+          {
+            "cores_used": 2.03,
+            "cpu_ms": 21.452,
+            "mb_per_s": 399.664,
+            "model": "C",
+            "ncpus": 4,
+            "samples": [
+              332.791,
+              399.664,
+              415.727
+            ],
+            "statuses": [
+              "exit 0",
+              "exit 0",
+              "exit 0",
+              "exit 0"
+            ],
+            "verified": true,
+            "workload": "records4"
+          }
+        ],
+        "raw_coroutine_switch_ns": 0.869,
+        "raw_thread_handoff_ns": 2785.911,
+        "switch_ns": [
+          {
+            "model": "A",
+            "ncpus": 1,
+            "ns": 2774.015,
+            "samples": [
+              2671.845,
+              2833.844,
+              2774.015
+            ],
+            "test": "yield"
+          },
+          {
+            "model": "A",
+            "ncpus": 1,
+            "ns": 6042.816,
+            "samples": [
+              6042.816,
+              5813.912,
+              6191.652
+            ],
+            "test": "pipe_roundtrip"
+          },
+          {
+            "model": "A",
+            "ncpus": 2,
+            "ns": 5728.462,
+            "samples": [
+              5805.004,
+              5728.462,
+              5686.041
+            ],
+            "test": "pipe_roundtrip"
+          },
+          {
+            "model": "A-spin",
+            "ncpus": 1,
+            "ns": 185.471,
+            "samples": [
+              184.879,
+              195.089,
+              185.471
+            ],
+            "test": "yield"
+          },
+          {
+            "model": "A-spin",
+            "ncpus": 1,
+            "ns": 582.345,
+            "samples": [
+              566.137,
+              616.653,
+              582.345
+            ],
+            "test": "pipe_roundtrip"
+          },
+          {
+            "model": "A-spin",
+            "ncpus": 2,
+            "ns": 597.275,
+            "samples": [
+              597.275,
+              573.382,
+              609.756
+            ],
+            "test": "pipe_roundtrip"
+          },
+          {
+            "model": "B64",
+            "ncpus": 1,
+            "ns": 27.445,
+            "samples": [
+              27.085,
+              27.445,
+              27.975
+            ],
+            "test": "yield"
+          },
+          {
+            "model": "B64",
+            "ncpus": 1,
+            "ns": 168.51,
+            "samples": [
+              164.714,
+              168.51,
+              178.409
+            ],
+            "test": "pipe_roundtrip"
+          },
+          {
+            "model": "B64",
+            "ncpus": 2,
+            "ns": 6109.959,
+            "samples": [
+              6422.855,
+              5990.883,
+              6109.959
+            ],
+            "test": "pipe_roundtrip"
+          },
+          {
+            "model": "B256",
+            "ncpus": 1,
+            "ns": 27.519,
+            "samples": [
+              27.519,
+              27.343,
+              27.701
+            ],
+            "test": "yield"
+          },
+          {
+            "model": "B256",
+            "ncpus": 1,
+            "ns": 161.063,
+            "samples": [
+              161.063,
+              162.085,
+              159.751
+            ],
+            "test": "pipe_roundtrip"
+          },
+          {
+            "model": "B256",
+            "ncpus": 2,
+            "ns": 6096.539,
+            "samples": [
+              5821.464,
+              6170.997,
+              6096.539
+            ],
+            "test": "pipe_roundtrip"
+          },
+          {
+            "model": "C",
+            "ncpus": 1,
+            "ns": 31.913,
+            "samples": [
+              32.295,
+              31.88,
+              31.913
+            ],
+            "test": "yield"
+          },
+          {
+            "model": "C",
+            "ncpus": 1,
+            "ns": 158.555,
+            "samples": [
+              160.193,
+              157.997,
+              158.555
+            ],
+            "test": "pipe_roundtrip"
+          },
+          {
+            "model": "C",
+            "ncpus": 2,
+            "ns": 204.256,
+            "samples": [
+              204.256,
+              198.274,
+              208.63
+            ],
+            "test": "pipe_roundtrip"
+          }
+        ],
+        "worst_a_over_best_bulk": 0.65,
+        "worst_a_over_best_records": 0.63
+      }
+    },
+    {
+      "id": "H03",
+      "verdict": "confirmed",
+      "summary": "Com 30000 processos bloqueados, por processo: A 10.0 KiB de RSS (34.2 KiB no cgroup, 16.0 KiB de pilha de kernel); B64 4.5 KiB de RSS (5.3 KiB no cgroup, 0.0 KiB de pilha de kernel); B256 4.5 KiB de RSS (5.6 KiB no cgroup, 0.0 KiB de pilha de kernel); C 0.5 KiB de RSS (0.5 KiB no cgroup, 0.0 KiB de pilha de kernel).",
+      "evidence": {
+        "limit_bytes": 65536.0,
+        "per_model": [
+          {
+            "all_counts_ok": true,
+            "at_max_count": {
+              "cgroup_per_proc_bytes": 35003.324,
+              "count": 30000,
+              "kernel_stack_per_proc_bytes": 16384.0,
+              "pagetables_per_proc_bytes": 565.385,
+              "rss_per_proc_bytes": 10207.505
+            },
+            "max_rss_per_proc_bytes": 10948.608,
+            "model": "A",
+            "stack_kib": 256,
+            "under_64k": true
+          },
+          {
+            "all_counts_ok": true,
+            "at_max_count": {
+              "cgroup_per_proc_bytes": 34636.868,
+              "count": 30000,
+              "kernel_stack_per_proc_bytes": 16384.0,
+              "pagetables_per_proc_bytes": 182.135,
+              "rss_per_proc_bytes": 10209.963
+            },
+            "max_rss_per_proc_bytes": 10817.536,
+            "model": "A64",
+            "stack_kib": 64,
+            "under_64k": true
+          },
+          {
+            "all_counts_ok": true,
+            "at_max_count": {
+              "cgroup_per_proc_bytes": 5403.58,
+              "count": 30000,
+              "kernel_stack_per_proc_bytes": 2.185,
+              "pagetables_per_proc_bytes": 139.947,
+              "rss_per_proc_bytes": 4622.473
+            },
+            "max_rss_per_proc_bytes": 4751.36,
+            "model": "B64",
+            "stack_kib": 64,
+            "under_64k": true
+          },
+          {
+            "all_counts_ok": true,
+            "at_max_count": {
+              "cgroup_per_proc_bytes": 5778.637,
+              "count": 30000,
+              "kernel_stack_per_proc_bytes": 2.185,
+              "pagetables_per_proc_bytes": 524.561,
+              "rss_per_proc_bytes": 4624.384
+            },
+            "max_rss_per_proc_bytes": 4751.36,
+            "model": "B256",
+            "stack_kib": 256,
+            "under_64k": true
+          },
+          {
+            "all_counts_ok": true,
+            "at_max_count": {
+              "cgroup_per_proc_bytes": 538.761,
+              "count": 30000,
+              "kernel_stack_per_proc_bytes": 2.185,
+              "pagetables_per_proc_bytes": 4.096,
+              "rss_per_proc_bytes": 557.875
+            },
+            "max_rss_per_proc_bytes": 558.285,
+            "model": "C",
+            "stack_kib": 0,
+            "under_64k": true
+          }
+        ],
+        "scale_runs": [
+          {
+            "blocked": 1000,
+            "cgroup_after": {
+              "anon": 10924032,
+              "current": 37429248,
+              "kernel_stack": 16384000,
+              "pagetables": 1150976,
+              "slab": 7945136
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 479232,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 36950.016,
+            "count": 1000,
+            "error": null,
+            "exited_ok": 1000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 16384.0,
+            "model": "A",
+            "ok": true,
+            "pagetables_per_proc_bytes": 1150.976,
+            "rss_after_kib": 13424,
+            "rss_before_kib": 2732,
+            "rss_per_proc_bytes": 10948.608,
+            "spawn_total_ms": 20.767,
+            "spawn_us_per_proc": 20.767,
+            "teardown_ms": 3.713
+          },
+          {
+            "blocked": 1000,
+            "cgroup_after": {
+              "anon": 10928128,
+              "current": 37294080,
+              "kernel_stack": 16384000,
+              "pagetables": 761856,
+              "slab": 7946304
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 507904,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 36786.176,
+            "count": 1000,
+            "error": null,
+            "exited_ok": 1000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 16384.0,
+            "model": "A64",
+            "ok": true,
+            "pagetables_per_proc_bytes": 761.856,
+            "rss_after_kib": 13496,
+            "rss_before_kib": 2932,
+            "rss_per_proc_bytes": 10817.536,
+            "spawn_total_ms": 21.547,
+            "spawn_us_per_proc": 21.547,
+            "teardown_ms": 4.036
+          },
+          {
+            "blocked": 1000,
+            "cgroup_after": {
+              "anon": 4845568,
+              "current": 6156288,
+              "kernel_stack": 65536,
+              "pagetables": 221184,
+              "slab": 700872
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 1437696,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 4718.592,
+            "count": 1000,
+            "error": null,
+            "exited_ok": 1000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 65.536,
+            "model": "B64",
+            "ok": true,
+            "pagetables_per_proc_bytes": 221.184,
+            "rss_after_kib": 7544,
+            "rss_before_kib": 2904,
+            "rss_per_proc_bytes": 4751.36,
+            "spawn_total_ms": 0.463,
+            "spawn_us_per_proc": 0.463,
+            "teardown_ms": 5.17
+          },
+          {
+            "blocked": 1000,
+            "cgroup_after": {
+              "anon": 4849664,
+              "current": 6746112,
+              "kernel_stack": 65536,
+              "pagetables": 602112,
+              "slab": 698544
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 688128,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 6057.984,
+            "count": 1000,
+            "error": null,
+            "exited_ok": 1000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 65.536,
+            "model": "B256",
+            "ok": true,
+            "pagetables_per_proc_bytes": 602.112,
+            "rss_after_kib": 7556,
+            "rss_before_kib": 2916,
+            "rss_per_proc_bytes": 4751.36,
+            "spawn_total_ms": 0.418,
+            "spawn_us_per_proc": 0.418,
+            "teardown_ms": 5.65
+          },
+          {
+            "blocked": 1000,
+            "cgroup_after": {
+              "anon": 0,
+              "current": 1335296,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 1040384,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 294.912,
+            "count": 1000,
+            "error": null,
+            "exited_ok": 1000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 0.0,
+            "model": "C",
+            "ok": true,
+            "pagetables_per_proc_bytes": 0.0,
+            "rss_after_kib": 3616,
+            "rss_before_kib": 3076,
+            "rss_per_proc_bytes": 552.96,
+            "spawn_total_ms": 0.878,
+            "spawn_us_per_proc": 0.878,
+            "teardown_ms": 0.461
+          },
+          {
+            "blocked": 10000,
+            "cgroup_after": {
+              "anon": 102486016,
+              "current": 351522816,
+              "kernel_stack": 163840000,
+              "pagetables": 6078464,
+              "slab": 78579600
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 512000,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 35101.082,
+            "count": 10000,
+            "error": null,
+            "exited_ok": 10000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 16384.0,
+            "model": "A",
+            "ok": true,
+            "pagetables_per_proc_bytes": 607.846,
+            "rss_after_kib": 102932,
+            "rss_before_kib": 2892,
+            "rss_per_proc_bytes": 10244.096,
+            "spawn_total_ms": 204.884,
+            "spawn_us_per_proc": 20.488,
+            "teardown_ms": 48.281
+          },
+          {
+            "blocked": 10000,
+            "cgroup_after": {
+              "anon": 102510592,
+              "current": 347426816,
+              "kernel_stack": 163840000,
+              "pagetables": 2224128,
+              "slab": 78583008
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 512000,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 34691.482,
+            "count": 10000,
+            "error": null,
+            "exited_ok": 10000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 16384.0,
+            "model": "A64",
+            "ok": true,
+            "pagetables_per_proc_bytes": 222.413,
+            "rss_after_kib": 102852,
+            "rss_before_kib": 2788,
+            "rss_per_proc_bytes": 10246.554,
+            "spawn_total_ms": 202.996,
+            "spawn_us_per_proc": 20.3,
+            "teardown_ms": 45.366
+          },
+          {
+            "blocked": 10000,
+            "cgroup_after": {
+              "anon": 46686208,
+              "current": 55263232,
+              "kernel_stack": 65536,
+              "pagetables": 1458176,
+              "slab": 6528752
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 1437696,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 5382.554,
+            "count": 10000,
+            "error": null,
+            "exited_ok": 10000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 6.554,
+            "model": "B64",
+            "ok": true,
+            "pagetables_per_proc_bytes": 145.818,
+            "rss_after_kib": 48428,
+            "rss_before_kib": 3056,
+            "rss_per_proc_bytes": 4646.093,
+            "spawn_total_ms": 3.527,
+            "spawn_us_per_proc": 0.353,
+            "teardown_ms": 53.998
+          },
+          {
+            "blocked": 10000,
+            "cgroup_after": {
+              "anon": 46649344,
+              "current": 59228160,
+              "kernel_stack": 65536,
+              "pagetables": 5304320,
+              "slab": 6525880
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 1036288,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 5819.187,
+            "count": 10000,
+            "error": null,
+            "exited_ok": 10000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 6.554,
+            "model": "B256",
+            "ok": true,
+            "pagetables_per_proc_bytes": 530.432,
+            "rss_after_kib": 48268,
+            "rss_before_kib": 2932,
+            "rss_per_proc_bytes": 4642.406,
+            "spawn_total_ms": 3.814,
+            "spawn_us_per_proc": 0.381,
+            "teardown_ms": 57.759
+          },
+          {
+            "blocked": 10000,
+            "cgroup_after": {
+              "anon": 5742592,
+              "current": 6418432,
+              "kernel_stack": 65536,
+              "pagetables": 94208,
+              "slab": 51712
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 1191936,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 522.65,
+            "count": 10000,
+            "error": null,
+            "exited_ok": 10000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 6.554,
+            "model": "C",
+            "ok": true,
+            "pagetables_per_proc_bytes": 9.421,
+            "rss_after_kib": 8352,
+            "rss_before_kib": 2900,
+            "rss_per_proc_bytes": 558.285,
+            "spawn_total_ms": 9.702,
+            "spawn_us_per_proc": 0.97,
+            "teardown_ms": 3.977
+          },
+          {
+            "blocked": 30000,
+            "cgroup_after": {
+              "anon": 306274304,
+              "current": 1050611712,
+              "kernel_stack": 491520000,
+              "pagetables": 17010688,
+              "slab": 235543152
+            },
+            "cgroup_before": {
+              "anon": 176128,
+              "current": 512000,
+              "kernel_stack": 0,
+              "pagetables": 49152,
+              "slab": 13592
+            },
+            "cgroup_per_proc_bytes": 35003.324,
+            "count": 30000,
+            "error": null,
+            "exited_ok": 30000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 16384.0,
+            "model": "A",
+            "ok": true,
+            "pagetables_per_proc_bytes": 565.385,
+            "rss_after_kib": 301860,
+            "rss_before_kib": 2812,
+            "rss_per_proc_bytes": 10207.505,
+            "spawn_total_ms": 625.407,
+            "spawn_us_per_proc": 20.847,
+            "teardown_ms": 159.482
+          },
+          {
+            "blocked": 30000,
+            "cgroup_after": {
+              "anon": 306278400,
+              "current": 1039613952,
+              "kernel_stack": 491520000,
+              "pagetables": 5464064,
+              "slab": 235521624
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 507904,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 34636.868,
+            "count": 30000,
+            "error": null,
+            "exited_ok": 30000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 16384.0,
+            "model": "A64",
+            "ok": true,
+            "pagetables_per_proc_bytes": 182.135,
+            "rss_after_kib": 301748,
+            "rss_before_kib": 2628,
+            "rss_per_proc_bytes": 10209.963,
+            "spawn_total_ms": 600.608,
+            "spawn_us_per_proc": 20.02,
+            "teardown_ms": 160.51
+          },
+          {
+            "blocked": 30000,
+            "cgroup_after": {
+              "anon": 138768384,
+              "current": 162795520,
+              "kernel_stack": 65536,
+              "pagetables": 4198400,
+              "slab": 19490048
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 688128,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 5403.58,
+            "count": 30000,
+            "error": null,
+            "exited_ok": 30000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 2.185,
+            "model": "B64",
+            "ok": true,
+            "pagetables_per_proc_bytes": 139.947,
+            "rss_after_kib": 138324,
+            "rss_before_kib": 2900,
+            "rss_per_proc_bytes": 4622.473,
+            "spawn_total_ms": 10.531,
+            "spawn_us_per_proc": 0.351,
+            "teardown_ms": 171.446
+          },
+          {
+            "blocked": 30000,
+            "cgroup_after": {
+              "anon": 138821632,
+              "current": 174641152,
+              "kernel_stack": 65536,
+              "pagetables": 15736832,
+              "slab": 19490632
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 1282048,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 5778.637,
+            "count": 30000,
+            "error": null,
+            "exited_ok": 30000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 2.185,
+            "model": "B256",
+            "ok": true,
+            "pagetables_per_proc_bytes": 524.561,
+            "rss_after_kib": 138288,
+            "rss_before_kib": 2808,
+            "rss_per_proc_bytes": 4624.384,
+            "spawn_total_ms": 10.707,
+            "spawn_us_per_proc": 0.357,
+            "teardown_ms": 172.944
+          },
+          {
+            "blocked": 30000,
+            "cgroup_after": {
+              "anon": 16900096,
+              "current": 17559552,
+              "kernel_stack": 65536,
+              "pagetables": 122880,
+              "slab": 52440
+            },
+            "cgroup_before": {
+              "anon": 0,
+              "current": 1396736,
+              "kernel_stack": 0,
+              "pagetables": 0,
+              "slab": 0
+            },
+            "cgroup_per_proc_bytes": 538.761,
+            "count": 30000,
+            "error": null,
+            "exited_ok": 30000,
+            "failures": 0,
+            "kernel_stack_per_proc_bytes": 2.185,
+            "model": "C",
+            "ok": true,
+            "pagetables_per_proc_bytes": 4.096,
+            "rss_after_kib": 19332,
+            "rss_before_kib": 2988,
+            "rss_per_proc_bytes": 557.875,
+            "spawn_total_ms": 28.166,
+            "spawn_us_per_proc": 0.939,
+            "teardown_ms": 13.663
+          }
+        ]
+      }
+    },
+    {
+      "id": "H04",
+      "verdict": "confirmed",
+      "summary": "Mediana de spawn+exit+wait: A 20.2 µs, A-spin 16.4 µs, B64 7.5 µs, B256 7.7 µs, C 0.22 µs. 30000 processos simultâneos: A sim, A64 sim, B64 sim, B256 sim, C sim.",
+      "evidence": {
+        "limit_us": 50.0,
+        "per_model": [
+          {
+            "max_count": 30000,
+            "model": "A",
+            "pass": true,
+            "samples": 2000,
+            "spawn_exit_p50_us": 20.168,
+            "spawn_exit_p99_us": 54.312,
+            "sustained_max_count": true
+          },
+          {
+            "max_count": 30000,
+            "model": "A-spin",
+            "pass": true,
+            "samples": 2000,
+            "spawn_exit_p50_us": 16.411,
+            "spawn_exit_p99_us": 39.304,
+            "sustained_max_count": true
+          },
+          {
+            "max_count": 30000,
+            "model": "B64",
+            "pass": true,
+            "samples": 20000,
+            "spawn_exit_p50_us": 7.474,
+            "spawn_exit_p99_us": 10.35,
+            "sustained_max_count": true
+          },
+          {
+            "max_count": 30000,
+            "model": "B256",
+            "pass": true,
+            "samples": 20000,
+            "spawn_exit_p50_us": 7.675,
+            "spawn_exit_p99_us": 11.752,
+            "sustained_max_count": true
+          },
+          {
+            "max_count": 30000,
+            "model": "C",
+            "pass": true,
+            "samples": 20000,
+            "spawn_exit_p50_us": 0.22,
+            "spawn_exit_p99_us": 0.271,
+            "sustained_max_count": true
+          }
+        ],
+        "scale_cpus": 4
+      }
+    },
+    {
+      "id": "H05",
+      "verdict": "confirmed",
+      "summary": "Com o mesmo código de máquina nos três modos, checkpoint por salto pra trás custa no pior ambiente síncrono (fora do kernel, A, B) 0.82% (antes de cada instrução: 0.1%); no C, 0.53% (antes de cada instrução: 3.9%); o laço async sem checkpoint custa +17.2% em relação ao mesmo laço síncrono rodando na mesma thread. Compilando uma versão por modo, só o layout do código já move o resultado em até 21%. p99 do timer até o processo ceder: A 0.4 µs, B64 0.3 µs, B256 0.2 µs, C 0.2 µs. p99 até o próximo processo rodar: A 24.0 µs, A-spin 28.3 µs, B64 1.0 µs, B256 0.8 µs, C 0.7 µs.",
+      "evidence": {
+        "c_async_loop_vs_a_sync_loop_pct": 17.227,
+        "c_backedge_slowdown_pct": 0.527,
+        "c_every_instruction_slowdown_pct": 3.929,
+        "instructions_per_run": 6400006,
+        "interpreter_iterations_per_run": 400000,
+        "latency": [
+          {
+            "handoff_ns": {
+              "max": 47339,
+              "n": 453,
+              "p50": 4859,
+              "p90": 15409,
+              "p99": 24006
+            },
+            "handoff_p99_per_run": [
+              28624,
+              24006,
+              28393
+            ],
+            "model": "A",
+            "preempt_ns": {
+              "max": 731,
+              "n": 456,
+              "p50": 160,
+              "p90": 181,
+              "p99": 381
+            },
+            "preempt_p99_per_run": [
+              711,
+              381,
+              531
+            ]
+          },
+          {
+            "handoff_ns": {
+              "max": 392940,
+              "n": 437,
+              "p50": 15108,
+              "p90": 19367,
+              "p99": 28274
+            },
+            "handoff_p99_per_run": [
+              23855,
+              24035,
+              28274
+            ],
+            "model": "A-spin",
+            "preempt_ns": {
+              "max": 18625,
+              "n": 438,
+              "p50": 170,
+              "p90": 211,
+              "p99": 430
+            },
+            "preempt_p99_per_run": [
+              801,
+              1944,
+              430
+            ]
+          },
+          {
+            "handoff_ns": {
+              "max": 2575,
+              "n": 429,
+              "p50": 220,
+              "p90": 251,
+              "p99": 1042
+            },
+            "handoff_p99_per_run": [
+              1302,
+              1052,
+              1042
+            ],
+            "model": "B64",
+            "preempt_ns": {
+              "max": 631,
+              "n": 431,
+              "p50": 130,
+              "p90": 150,
+              "p99": 291
+            },
+            "preempt_p99_per_run": [
+              440,
+              360,
+              291
+            ]
+          },
+          {
+            "handoff_ns": {
+              "max": 1774,
+              "n": 407,
+              "p50": 210,
+              "p90": 240,
+              "p99": 841
+            },
+            "handoff_p99_per_run": [
+              1062,
+              841,
+              831
+            ],
+            "model": "B256",
+            "preempt_ns": {
+              "max": 881,
+              "n": 409,
+              "p50": 120,
+              "p90": 140,
+              "p99": 190
+            },
+            "preempt_p99_per_run": [
+              421,
+              190,
+              301
+            ]
+          },
+          {
+            "handoff_ns": {
+              "max": 3627,
+              "n": 421,
+              "p50": 211,
+              "p90": 250,
+              "p99": 691
+            },
+            "handoff_p99_per_run": [
+              1002,
+              912,
+              691
+            ],
+            "model": "C",
+            "preempt_ns": {
+              "max": 3506,
+              "n": 423,
+              "p50": 120,
+              "p90": 140,
+              "p99": 191
+            },
+            "preempt_p99_per_run": [
+              421,
+              240,
+              191
+            ]
+          }
+        ],
+        "limits": {
+          "overhead_pct": 2.0,
+          "preempt_p99_ns": 100000
+        },
+        "overhead": [
+          {
+            "env": "fora_do_kernel",
+            "median_ns_per_instr": 1.6,
+            "min_ns_per_instr": 1.585,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "same_code"
+          },
+          {
+            "env": "fora_do_kernel",
+            "median_ns_per_instr": 1.602,
+            "min_ns_per_instr": 1.588,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": -0.19,
+            "slowdown_p75_pct": 0.376,
+            "slowdown_pct": 0.089,
+            "variant": "same_code"
+          },
+          {
+            "env": "fora_do_kernel",
+            "median_ns_per_instr": 1.611,
+            "min_ns_per_instr": 1.588,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.181,
+            "slowdown_p75_pct": 0.967,
+            "slowdown_pct": 0.73,
+            "variant": "same_code"
+          },
+          {
+            "env": "fora_do_kernel",
+            "median_ns_per_instr": 1.464,
+            "min_ns_per_instr": 1.447,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "specialized"
+          },
+          {
+            "env": "fora_do_kernel",
+            "median_ns_per_instr": 1.765,
+            "min_ns_per_instr": 1.751,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": 19.564,
+            "slowdown_p75_pct": 20.955,
+            "slowdown_pct": 20.497,
+            "variant": "specialized"
+          },
+          {
+            "env": "fora_do_kernel",
+            "median_ns_per_instr": 1.735,
+            "min_ns_per_instr": 1.659,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": 15.883,
+            "slowdown_p75_pct": 19.005,
+            "slowdown_pct": 18.354,
+            "variant": "specialized"
+          },
+          {
+            "env": "A",
+            "median_ns_per_instr": 1.558,
+            "min_ns_per_instr": 1.549,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "same_code"
+          },
+          {
+            "env": "A",
+            "median_ns_per_instr": 1.561,
+            "min_ns_per_instr": 1.548,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": -0.243,
+            "slowdown_p75_pct": 0.435,
+            "slowdown_pct": 0.121,
+            "variant": "same_code"
+          },
+          {
+            "env": "A",
+            "median_ns_per_instr": 1.562,
+            "min_ns_per_instr": 1.549,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": -0.193,
+            "slowdown_p75_pct": 0.528,
+            "slowdown_pct": 0.162,
+            "variant": "same_code"
+          },
+          {
+            "env": "A",
+            "median_ns_per_instr": 1.468,
+            "min_ns_per_instr": 1.452,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "specialized"
+          },
+          {
+            "env": "A",
+            "median_ns_per_instr": 1.783,
+            "min_ns_per_instr": 1.768,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": 20.59,
+            "slowdown_p75_pct": 21.593,
+            "slowdown_pct": 21.13,
+            "variant": "specialized"
+          },
+          {
+            "env": "A",
+            "median_ns_per_instr": 1.736,
+            "min_ns_per_instr": 1.661,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": 17.241,
+            "slowdown_p75_pct": 18.549,
+            "slowdown_pct": 17.849,
+            "variant": "specialized"
+          },
+          {
+            "env": "B64",
+            "median_ns_per_instr": 1.529,
+            "min_ns_per_instr": 1.51,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "same_code"
+          },
+          {
+            "env": "B64",
+            "median_ns_per_instr": 1.528,
+            "min_ns_per_instr": 1.501,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": -0.019,
+            "slowdown_p75_pct": 0.2,
+            "slowdown_pct": 0.057,
+            "variant": "same_code"
+          },
+          {
+            "env": "B64",
+            "median_ns_per_instr": 1.542,
+            "min_ns_per_instr": 1.518,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.496,
+            "slowdown_p75_pct": 0.924,
+            "slowdown_pct": 0.818,
+            "variant": "same_code"
+          },
+          {
+            "env": "B64",
+            "median_ns_per_instr": 1.477,
+            "min_ns_per_instr": 1.453,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "specialized"
+          },
+          {
+            "env": "B64",
+            "median_ns_per_instr": 1.78,
+            "min_ns_per_instr": 1.753,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": 20.285,
+            "slowdown_p75_pct": 23.305,
+            "slowdown_pct": 20.697,
+            "variant": "specialized"
+          },
+          {
+            "env": "B64",
+            "median_ns_per_instr": 1.771,
+            "min_ns_per_instr": 1.677,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": 17.179,
+            "slowdown_p75_pct": 21.494,
+            "slowdown_pct": 21.088,
+            "variant": "specialized"
+          },
+          {
+            "env": "B256",
+            "median_ns_per_instr": 1.531,
+            "min_ns_per_instr": 1.511,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "same_code"
+          },
+          {
+            "env": "B256",
+            "median_ns_per_instr": 1.531,
+            "min_ns_per_instr": 1.511,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": -0.026,
+            "slowdown_p75_pct": 0.183,
+            "slowdown_pct": 0.033,
+            "variant": "same_code"
+          },
+          {
+            "env": "B256",
+            "median_ns_per_instr": 1.531,
+            "min_ns_per_instr": 1.516,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": -0.033,
+            "slowdown_p75_pct": 0.12,
+            "slowdown_pct": -0.008,
+            "variant": "same_code"
+          },
+          {
+            "env": "B256",
+            "median_ns_per_instr": 1.489,
+            "min_ns_per_instr": 1.441,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "specialized"
+          },
+          {
+            "env": "B256",
+            "median_ns_per_instr": 1.769,
+            "min_ns_per_instr": 1.718,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": 17.298,
+            "slowdown_p75_pct": 20.603,
+            "slowdown_pct": 18.957,
+            "variant": "specialized"
+          },
+          {
+            "env": "B256",
+            "median_ns_per_instr": 1.732,
+            "min_ns_per_instr": 1.659,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": 14.398,
+            "slowdown_p75_pct": 18.502,
+            "slowdown_pct": 16.326,
+            "variant": "specialized"
+          },
+          {
+            "env": "C",
+            "median_ns_per_instr": 1.837,
+            "min_ns_per_instr": 1.735,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "same_code"
+          },
+          {
+            "env": "C",
+            "median_ns_per_instr": 1.908,
+            "min_ns_per_instr": 1.804,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": 3.551,
+            "slowdown_p75_pct": 4.509,
+            "slowdown_pct": 3.929,
+            "variant": "same_code"
+          },
+          {
+            "env": "C",
+            "median_ns_per_instr": 1.844,
+            "min_ns_per_instr": 1.754,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.195,
+            "slowdown_p75_pct": 1.089,
+            "slowdown_pct": 0.527,
+            "variant": "same_code"
+          },
+          {
+            "env": "C",
+            "median_ns_per_instr": 1.727,
+            "min_ns_per_instr": 1.675,
+            "mode": "none",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.0,
+            "slowdown_p75_pct": 0.0,
+            "slowdown_pct": 0.0,
+            "variant": "specialized"
+          },
+          {
+            "env": "C",
+            "median_ns_per_instr": 1.984,
+            "min_ns_per_instr": 1.97,
+            "mode": "every_instruction",
+            "rounds": 40,
+            "slowdown_p25_pct": 14.657,
+            "slowdown_p75_pct": 15.15,
+            "slowdown_pct": 15.002,
+            "variant": "specialized"
+          },
+          {
+            "env": "C",
+            "median_ns_per_instr": 1.735,
+            "min_ns_per_instr": 1.718,
+            "mode": "backedge",
+            "rounds": 40,
+            "slowdown_p25_pct": 0.207,
+            "slowdown_p75_pct": 0.804,
+            "slowdown_pct": 0.481,
+            "variant": "specialized"
+          }
+        ],
+        "specialized_layout_swing_pct": 21.13,
+        "sync_backedge_slowdown_pct": 0.818,
+        "sync_every_instruction_slowdown_pct": 0.121,
+        "timing": "tempo de CPU da thread (CLOCK_THREAD_CPUTIME_ID); desaceleração = mediana das razões pareadas por rodada",
+        "worst_backedge_slowdown_pct": 0.818,
+        "worst_every_instruction_slowdown_pct": 3.929,
+        "worst_preempt_p99_ns": 381
+      }
+    },
+    {
+      "id": "H06",
+      "verdict": "confirmed",
+      "summary": "800 de 800 kills terminaram com sinal 9, Drops rodando e fd fechado (EPIPE pro escritor). Do kill até o wait colher: A bloqueado: p50 12.8 µs, p99 53.8 µs; A em laço: p50 13.5 µs, p99 18.3 µs; B64 bloqueado: p50 11.1 µs, p99 27.6 µs; B64 em laço: p50 8.7 µs, p99 13.8 µs; B256 bloqueado: p50 11.1 µs, p99 31.7 µs; B256 em laço: p50 8.0 µs, p99 21.1 µs; C bloqueado: p50 9.2 µs, p99 24.1 µs; C em laço: p50 7.8 µs, p99 19.9 µs.",
+      "evidence": {
+        "max_p99_us": 53.841,
+        "rows": [
+          {
+            "drops_ran": 100,
+            "fds_released": 100,
+            "kill_to_reaped_ns": {
+              "max": 58640,
+              "n": 100,
+              "p50": 12824,
+              "p90": 30787,
+              "p99": 53841
+            },
+            "model": "A",
+            "reps": 100,
+            "scenario": "blocked_in_read",
+            "signaled_9": 100
+          },
+          {
+            "drops_ran": 100,
+            "fds_released": 100,
+            "kill_to_reaped_ns": {
+              "max": 22812,
+              "n": 100,
+              "p50": 13536,
+              "p90": 15830,
+              "p99": 18275
+            },
+            "model": "A",
+            "reps": 100,
+            "scenario": "loop_with_checkpoint",
+            "signaled_9": 100
+          },
+          {
+            "drops_ran": 100,
+            "fds_released": 100,
+            "kill_to_reaped_ns": {
+              "max": 29966,
+              "n": 100,
+              "p50": 11091,
+              "p90": 13616,
+              "p99": 27562
+            },
+            "model": "B64",
+            "reps": 100,
+            "scenario": "blocked_in_read",
+            "signaled_9": 100
+          },
+          {
+            "drops_ran": 100,
+            "fds_released": 100,
+            "kill_to_reaped_ns": {
+              "max": 14478,
+              "n": 100,
+              "p50": 8717,
+              "p90": 13565,
+              "p99": 13846
+            },
+            "model": "B64",
+            "reps": 100,
+            "scenario": "loop_with_checkpoint",
+            "signaled_9": 100
+          },
+          {
+            "drops_ran": 100,
+            "fds_released": 100,
+            "kill_to_reaped_ns": {
+              "max": 32331,
+              "n": 100,
+              "p50": 11141,
+              "p90": 30568,
+              "p99": 31710
+            },
+            "model": "B256",
+            "reps": 100,
+            "scenario": "blocked_in_read",
+            "signaled_9": 100
+          },
+          {
+            "drops_ran": 100,
+            "fds_released": 100,
+            "kill_to_reaped_ns": {
+              "max": 42500,
+              "n": 100,
+              "p50": 7975,
+              "p90": 13425,
+              "p99": 21140
+            },
+            "model": "B256",
+            "reps": 100,
+            "scenario": "loop_with_checkpoint",
+            "signaled_9": 100
+          },
+          {
+            "drops_ran": 100,
+            "fds_released": 100,
+            "kill_to_reaped_ns": {
+              "max": 158538,
+              "n": 100,
+              "p50": 9168,
+              "p90": 16031,
+              "p99": 24096
+            },
+            "model": "C",
+            "reps": 100,
+            "scenario": "blocked_in_read",
+            "signaled_9": 100
+          },
+          {
+            "drops_ran": 100,
+            "fds_released": 100,
+            "kill_to_reaped_ns": {
+              "max": 20789,
+              "n": 100,
+              "p50": 7785,
+              "p90": 12614,
+              "p99": 19927
+            },
+            "model": "C",
+            "reps": 100,
+            "scenario": "loop_with_checkpoint",
+            "signaled_9": 100
+          }
+        ],
+        "unit": "ns"
+      }
+    },
+    {
+      "id": "H07",
+      "verdict": "confirmed",
+      "summary": "Nos 4 modelos o vizinho não andou nada (0 iterações) durante os 300 ms de laço sem checkpoint, e o SIGKILL só matou no fim do laço (A 250 ms, B64 250 ms, B256 250 ms, C 250 ms). No A, com as threads do vizinho e do laço fixadas no mesmo núcleo, o vizinho fica com 50% da CPU que os dois dividem; com o watchdog rebaixando o laço pra nice 19 (detectado em 10.8 ms) fica com 99% (taxa de iterações: 50% e 99% da taxa dele sozinho). Voltar pra nice 0 falha sem privilégio (EACCES), então o rebaixamento é de mão única.",
+      "evidence": {
+        "demos": [
+          {
+            "kill_to_death_ms": 249.943,
+            "killed_status": "signal 9",
+            "model": "A",
+            "neighbor_progress_after": 11952819,
+            "neighbor_progress_during_spin": 0,
+            "spin_ms": 300.0
+          },
+          {
+            "kill_to_death_ms": 249.984,
+            "killed_status": "signal 9",
+            "model": "B64",
+            "neighbor_progress_after": 12500331,
+            "neighbor_progress_during_spin": 0,
+            "spin_ms": 300.0
+          },
+          {
+            "kill_to_death_ms": 249.957,
+            "killed_status": "signal 9",
+            "model": "B256",
+            "neighbor_progress_after": 12577901,
+            "neighbor_progress_during_spin": 0,
+            "spin_ms": 300.0
+          },
+          {
+            "kill_to_death_ms": 249.716,
+            "killed_status": "signal 9",
+            "model": "C",
+            "neighbor_progress_after": 12976453,
+            "neighbor_progress_during_spin": 0,
+            "spin_ms": 300.0
+          }
+        ],
+        "kill_at_ms": 50,
+        "mitigation_model_a": [
+          {
+            "config": "neighbor_alone",
+            "neighbor_cpu_share_vs_spinner": null,
+            "neighbor_cpu_utilization": 1.0,
+            "neighbor_iters_per_s": 5694092.695,
+            "share_vs_alone": 1.0,
+            "spinner_nice_during_window": null,
+            "watchdog": {
+              "detect_ns": [],
+              "reniced": 0,
+              "restore_attempts": 0,
+              "restore_errors": [],
+              "restore_ok": 0
+            }
+          },
+          {
+            "config": "spinner_nice0",
+            "neighbor_cpu_share_vs_spinner": 0.498,
+            "neighbor_cpu_utilization": 0.497,
+            "neighbor_iters_per_s": 2840021.313,
+            "share_vs_alone": 0.499,
+            "spinner_nice_during_window": 0,
+            "watchdog": {
+              "detect_ns": [],
+              "reniced": 0,
+              "restore_attempts": 0,
+              "restore_errors": [],
+              "restore_ok": 0
+            }
+          },
+          {
+            "config": "spinner_watchdog_nice19",
+            "neighbor_cpu_share_vs_spinner": 0.99,
+            "neighbor_cpu_utilization": 0.99,
+            "neighbor_iters_per_s": 5625237.66,
+            "share_vs_alone": 0.988,
+            "spinner_nice_during_window": 19,
+            "watchdog": {
+              "detect_ns": [
+                10817251
+              ],
+              "reniced": 1,
+              "restore_attempts": 1,
+              "restore_errors": [
+                "EACCES"
+              ],
+              "restore_ok": 0
+            }
+          }
+        ],
+        "pinned_host_cpu": 15,
+        "spin_ms": 300
+      }
+    },
+    {
+      "id": "H08",
+      "verdict": "partial",
+      "summary": "Sem mitigação: A-plain morreu com sinal 6, B64-plain morreu com sinal 11, B256-plain morreu com sinal 11, C-plain morreu com sinal 6. Com stacker::maybe_grow e limite de 100000 quadros o pseudo-processo sai com erro e o host sobrevive em todas as execuções de: A-stacker, B256-stacker, C-stacker, A-stacker-interleaved; falha em: B64-stacker derrubou o host em 5 de 5 execuções (sinal 11); B256-stacker-interleaved derrubou o host em 3 de 5 execuções (sinal 11). Nas corrotinas o stacker calcula a pilha restante com os limites da thread do worker (thread-local STACK_LIMIT), não com os da corrotina: na entrada ele viu B64 4406976 bytes, B256 0 bytes, e o Y da variante intercalada (X suspenso num segmento do stacker) 0 ou 2375360 bytes; 0 faz ele crescer já na primeira chamada (funciona por acaso), um valor maior que a pilha real faz ele nunca crescer, e qual dos dois acontece depende de onde o mmap pôs cada pilha.",
+      "evidence": {
+        "child_timeout_s": 60,
+        "depth_limit": 100000,
+        "grow_bytes": 1048576,
+        "per_variant": [
+          {
+            "host_survived": 0,
+            "remaining_at_entry": [],
+            "remaining_at_entry_y": [],
+            "runs": 2,
+            "signals": [
+              6
+            ],
+            "variant": "A-plain"
+          },
+          {
+            "host_survived": 0,
+            "remaining_at_entry": [],
+            "remaining_at_entry_y": [],
+            "runs": 2,
+            "signals": [
+              11
+            ],
+            "variant": "B64-plain"
+          },
+          {
+            "host_survived": 0,
+            "remaining_at_entry": [],
+            "remaining_at_entry_y": [],
+            "runs": 2,
+            "signals": [
+              11
+            ],
+            "variant": "B256-plain"
+          },
+          {
+            "host_survived": 0,
+            "remaining_at_entry": [],
+            "remaining_at_entry_y": [],
+            "runs": 2,
+            "signals": [
+              6
+            ],
+            "variant": "C-plain"
+          },
+          {
+            "host_survived": 5,
+            "remaining_at_entry": [
+              256848
+            ],
+            "remaining_at_entry_y": [],
+            "runs": 5,
+            "signals": [],
+            "variant": "A-stacker"
+          },
+          {
+            "host_survived": 0,
+            "remaining_at_entry": [
+              4406976
+            ],
+            "remaining_at_entry_y": [],
+            "runs": 5,
+            "signals": [
+              11
+            ],
+            "variant": "B64-stacker"
+          },
+          {
+            "host_survived": 5,
+            "remaining_at_entry": [
+              0
+            ],
+            "remaining_at_entry_y": [],
+            "runs": 5,
+            "signals": [],
+            "variant": "B256-stacker"
+          },
+          {
+            "host_survived": 5,
+            "remaining_at_entry": [
+              2091824
+            ],
+            "remaining_at_entry_y": [],
+            "runs": 5,
+            "signals": [],
+            "variant": "C-stacker"
+          },
+          {
+            "host_survived": 5,
+            "remaining_at_entry": [
+              256832
+            ],
+            "remaining_at_entry_y": [
+              256848
+            ],
+            "runs": 5,
+            "signals": [],
+            "variant": "A-stacker-interleaved"
+          },
+          {
+            "host_survived": 2,
+            "remaining_at_entry": [
+              0
+            ],
+            "remaining_at_entry_y": [
+              0,
+              2375360
+            ],
+            "runs": 5,
+            "signals": [
+              11
+            ],
+            "variant": "B256-stacker-interleaved"
+          }
+        ],
+        "red_zone_bytes": 32768,
+        "rows": [
+          {
+            "child": null,
+            "elapsed_ms": 10.774,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": null,
+            "remaining_at_entry_y": null,
+            "signal": 6,
+            "stderr_head": "thread '<unknown>' (2284414) has overflowed its stack | fatal runtime error: stack overflow, aborting",
+            "variant": "A-plain"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.415,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": null,
+            "remaining_at_entry_y": null,
+            "signal": 6,
+            "stderr_head": "thread '<unknown>' (2284416) has overflowed its stack | fatal runtime error: stack overflow, aborting",
+            "variant": "A-plain"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.654,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": null,
+            "remaining_at_entry_y": null,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B64-plain"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.636,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": null,
+            "remaining_at_entry_y": null,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B64-plain"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.455,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": null,
+            "remaining_at_entry_y": null,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B256-plain"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.399,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": null,
+            "remaining_at_entry_y": null,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B256-plain"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.43,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": null,
+            "remaining_at_entry_y": null,
+            "signal": 6,
+            "stderr_head": "thread 'e01-c-worker-0' (2284428) has overflowed its stack | fatal runtime error: stack overflow, aborting",
+            "variant": "C-plain"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.407,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": null,
+            "remaining_at_entry_y": null,
+            "signal": 6,
+            "stderr_head": "thread 'e01-c-worker-0' (2284430) has overflowed its stack | fatal runtime error: stack overflow, aborting",
+            "variant": "C-plain"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256848,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "A-stacker"
+            },
+            "elapsed_ms": 40.693,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256848,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256848,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "A-stacker"
+            },
+            "elapsed_ms": 40.925,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256848,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256848,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "A-stacker"
+            },
+            "elapsed_ms": 40.939,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256848,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256848,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "A-stacker"
+            },
+            "elapsed_ms": 41.01,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256848,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256848,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "A-stacker"
+            },
+            "elapsed_ms": 40.705,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256848,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.615,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": 4406976,
+            "remaining_at_entry_y": null,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B64-stacker"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.778,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": 4406976,
+            "remaining_at_entry_y": null,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B64-stacker"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.458,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": 4406976,
+            "remaining_at_entry_y": null,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B64-stacker"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.244,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": 4406976,
+            "remaining_at_entry_y": null,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B64-stacker"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.23,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": 4406976,
+            "remaining_at_entry_y": null,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B64-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 0,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "B256-stacker"
+            },
+            "elapsed_ms": 40.491,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "B256-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 0,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "B256-stacker"
+            },
+            "elapsed_ms": 40.885,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "B256-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 0,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "B256-stacker"
+            },
+            "elapsed_ms": 40.709,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "B256-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 0,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "B256-stacker"
+            },
+            "elapsed_ms": 41.067,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "B256-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 0,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "B256-stacker"
+            },
+            "elapsed_ms": 40.804,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "B256-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 0,
+              "remaining_stack_at_entry": 2091824,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "C-stacker"
+            },
+            "elapsed_ms": 40.689,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 2091824,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "C-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 0,
+              "remaining_stack_at_entry": 2091824,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "C-stacker"
+            },
+            "elapsed_ms": 40.682,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 2091824,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "C-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 0,
+              "remaining_stack_at_entry": 2091824,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "C-stacker"
+            },
+            "elapsed_ms": 41.008,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 2091824,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "C-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 0,
+              "remaining_stack_at_entry": 2091824,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "C-stacker"
+            },
+            "elapsed_ms": 40.731,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 2091824,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "C-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 0,
+              "remaining_stack_at_entry": 2091824,
+              "remaining_stack_at_entry_y": null,
+              "statuses": [
+                "exit 3"
+              ],
+              "variant": "C-stacker"
+            },
+            "elapsed_ms": 40.699,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 2091824,
+            "remaining_at_entry_y": null,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "C-stacker"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256832,
+              "remaining_stack_at_entry_y": 256848,
+              "statuses": [
+                "exit 3",
+                "exit 3"
+              ],
+              "variant": "A-stacker-interleaved"
+            },
+            "elapsed_ms": 40.944,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256832,
+            "remaining_at_entry_y": 256848,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker-interleaved"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256832,
+              "remaining_stack_at_entry_y": 256848,
+              "statuses": [
+                "exit 3",
+                "exit 3"
+              ],
+              "variant": "A-stacker-interleaved"
+            },
+            "elapsed_ms": 41.04,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256832,
+            "remaining_at_entry_y": 256848,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker-interleaved"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256832,
+              "remaining_stack_at_entry_y": 256848,
+              "statuses": [
+                "exit 3",
+                "exit 3"
+              ],
+              "variant": "A-stacker-interleaved"
+            },
+            "elapsed_ms": 40.97,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256832,
+            "remaining_at_entry_y": 256848,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker-interleaved"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256832,
+              "remaining_stack_at_entry_y": 256848,
+              "statuses": [
+                "exit 3",
+                "exit 3"
+              ],
+              "variant": "A-stacker-interleaved"
+            },
+            "elapsed_ms": 40.636,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256832,
+            "remaining_at_entry_y": 256848,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker-interleaved"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 256832,
+              "remaining_stack_at_entry_y": 256848,
+              "statuses": [
+                "exit 3",
+                "exit 3"
+              ],
+              "variant": "A-stacker-interleaved"
+            },
+            "elapsed_ms": 40.516,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 256832,
+            "remaining_at_entry_y": 256848,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "A-stacker-interleaved"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.541,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": 2375360,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B256-stacker-interleaved"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 0,
+              "remaining_stack_at_entry_y": 0,
+              "statuses": [
+                "exit 3",
+                "exit 3"
+              ],
+              "variant": "B256-stacker-interleaved"
+            },
+            "elapsed_ms": 40.805,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": 0,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "B256-stacker-interleaved"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.714,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": 2375360,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B256-stacker-interleaved"
+          },
+          {
+            "child": null,
+            "elapsed_ms": 10.478,
+            "exit_code": null,
+            "host_survived": false,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": 2375360,
+            "signal": 11,
+            "stderr_head": "",
+            "variant": "B256-stacker-interleaved"
+          },
+          {
+            "child": {
+              "depth_reached": 99999,
+              "real_stack_bytes": 262144,
+              "remaining_stack_at_entry": 0,
+              "remaining_stack_at_entry_y": 0,
+              "statuses": [
+                "exit 3",
+                "exit 3"
+              ],
+              "variant": "B256-stacker-interleaved"
+            },
+            "elapsed_ms": 40.64,
+            "exit_code": 0,
+            "host_survived": true,
+            "remaining_at_entry": 0,
+            "remaining_at_entry_y": 0,
+            "signal": null,
+            "stderr_head": "",
+            "variant": "B256-stacker-interleaved"
+          }
+        ]
+      }
+    },
+    {
+      "id": "H09",
+      "verdict": "confirmed",
+      "summary": "Nos 4 modelos o panic (dentro e fora de lock) vira término anormal pro pai e o kernel continua atendendo (pipeline de verificação passou em 16/16 casos). Com parking_lot, com std::Mutex tratando o poison (into_inner) e com panic fora de lock, 240/240 processos seguintes terminaram normalmente. Com o idioma lock().unwrap() num std::Mutex envenenado, só 0/80: é o envenenamento que o kernel precisa evitar (usar parking_lot ou tratar PoisonError).",
+      "evidence": {
+        "rows": [
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com std::sync::Mutex travado",
+            "kernel_alive": true,
+            "model": "A",
+            "others": 20,
+            "others_ok": 0,
+            "std_mutex_poisoned": true,
+            "variant": "std_unwrap"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com std::sync::Mutex travado",
+            "kernel_alive": true,
+            "model": "A",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": true,
+            "variant": "std_into_inner"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com parking_lot::Mutex travado",
+            "kernel_alive": true,
+            "model": "A",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": false,
+            "variant": "parking_lot"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado num builtin, fora de lock",
+            "kernel_alive": true,
+            "model": "A",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": false,
+            "variant": "outside_lock"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com std::sync::Mutex travado",
+            "kernel_alive": true,
+            "model": "B64",
+            "others": 20,
+            "others_ok": 0,
+            "std_mutex_poisoned": true,
+            "variant": "std_unwrap"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com std::sync::Mutex travado",
+            "kernel_alive": true,
+            "model": "B64",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": true,
+            "variant": "std_into_inner"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com parking_lot::Mutex travado",
+            "kernel_alive": true,
+            "model": "B64",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": false,
+            "variant": "parking_lot"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado num builtin, fora de lock",
+            "kernel_alive": true,
+            "model": "B64",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": false,
+            "variant": "outside_lock"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com std::sync::Mutex travado",
+            "kernel_alive": true,
+            "model": "B256",
+            "others": 20,
+            "others_ok": 0,
+            "std_mutex_poisoned": true,
+            "variant": "std_unwrap"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com std::sync::Mutex travado",
+            "kernel_alive": true,
+            "model": "B256",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": true,
+            "variant": "std_into_inner"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com parking_lot::Mutex travado",
+            "kernel_alive": true,
+            "model": "B256",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": false,
+            "variant": "parking_lot"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado num builtin, fora de lock",
+            "kernel_alive": true,
+            "model": "B256",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": false,
+            "variant": "outside_lock"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com std::sync::Mutex travado",
+            "kernel_alive": true,
+            "model": "C",
+            "others": 20,
+            "others_ok": 0,
+            "std_mutex_poisoned": true,
+            "variant": "std_unwrap"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com std::sync::Mutex travado",
+            "kernel_alive": true,
+            "model": "C",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": true,
+            "variant": "std_into_inner"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado no kernel com parking_lot::Mutex travado",
+            "kernel_alive": true,
+            "model": "C",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": false,
+            "variant": "parking_lot"
+          },
+          {
+            "faulty_abnormal": true,
+            "faulty_status": "panic: bug simulado num builtin, fora de lock",
+            "kernel_alive": true,
+            "model": "C",
+            "others": 20,
+            "others_ok": 20,
+            "std_mutex_poisoned": false,
+            "variant": "outside_lock"
+          }
+        ]
+      }
+    },
+    {
+      "id": "H10",
+      "verdict": "partial",
+      "summary": "Natural só no A: 0 erros em 10000 conferências. No B ingênuo 9800 de 10000 conferências viram o pid de outra corrotina; com o worker trocando o valor a cada resume, 0 erros (yield no B custa 27.7 ns com a troca e 27.9 ns sem), mas um RefCell thread-local emprestado através de um yield deu 10 conflitos no B contra 0 no A, e thread-locals de terceiros (como o STACK_LIMIT do stacker, ver H08) não são trocados. No C o task-local mantido pelo executor deu 0 erros com 7571 migrações entre workers.",
+      "evidence": {
+        "b_yield_ns_with_swap": 27.687,
+        "b_yield_ns_without_swap": 27.946,
+        "refcell_borrow_across_yield_conflicts": {
+          "A": 0,
+          "B": 10
+        },
+        "rows": [
+          {
+            "case": "A",
+            "checks": 10000,
+            "migrations": 0,
+            "mismatches": 0,
+            "processes": 200
+          },
+          {
+            "case": "B_naive",
+            "checks": 10000,
+            "migrations": 0,
+            "mismatches": 9800,
+            "processes": 200
+          },
+          {
+            "case": "B_worker_swap",
+            "checks": 10000,
+            "migrations": 0,
+            "mismatches": 0,
+            "processes": 200
+          },
+          {
+            "case": "C_task_local",
+            "checks": 10000,
+            "migrations": 7571,
+            "mismatches": 0,
+            "processes": 200
+          }
+        ]
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "name": "modelo A (thread do SO por processo, tokens de CPU)",
+      "version": "e01",
+      "role": "exec-model",
+      "fit": "fits",
+      "notes": "std::thread + park/unpark; variante A-spin com 20 µs de espera ativa antes do park.",
+      "metrics": {
+        "a_cgroup_per_idle_proc_bytes": 35003.324,
+        "a_handoff_p99_ns": 24006.0,
+        "a_rss_per_idle_proc_bytes": 10207.505,
+        "a_spawn_exit_p50_us": 20.168,
+        "a_sustains_max_count": true,
+        "a_worst_bulk_pipeline_ratio": 0.65,
+        "a_worst_pipeline_vs_native_linux": 1.0602019147153277,
+        "a_worst_records_pipeline_ratio": 0.63,
+        "b_stacker_in_coroutine_crashed": true,
+        "b_tls_naive_mismatches": 9800,
+        "c_async_interpreter_slowdown_pct": 17.227,
+        "h07_neighbor_share_nice0": 0.498,
+        "h07_neighbor_share_watchdog": 0.99
+      }
+    },
+    {
+      "name": "modelo B (corrotina corosensei presa ao worker)",
+      "version": "corosensei 0.3.4",
+      "role": "exec-model",
+      "fit": "does_not_fit",
+      "notes": "Sem migração; thread-local compartilhado entre corrotinas do worker; stacker usa os limites da thread.",
+      "metrics": {
+        "b_stacker_in_coroutine_crashed": true
+      }
+    },
+    {
+      "name": "modelo C (future com executor próprio)",
+      "version": "e01",
+      "role": "exec-model",
+      "fit": "does_not_fit",
+      "notes": "Fila global com slot LIFO por worker; exige builtins async.",
+      "metrics": null
+    },
+    {
+      "name": "corosensei",
+      "version": "0.3.4",
+      "role": "stackful-coroutine",
+      "fit": "does_not_fit",
+      "notes": "API segura, mas Coroutine é !Send (E0277 ao migrar); só serve presa ao worker.",
+      "metrics": [
+        {
+          "as_expected": true,
+          "compiled": true,
+          "description": "controle: corrotina usada só na thread de origem",
+          "error_codes": [],
+          "expected": "compila",
+          "probe": "corosensei_same_thread"
+        },
+        {
+          "as_expected": true,
+          "compiled": false,
+          "description": "mover Coroutine suspensa pra outra thread",
+          "error_codes": [
+            "E0277"
+          ],
+          "expected": "falha com E0277",
+          "probe": "corosensei_move_thread"
+        },
+        {
+          "as_expected": true,
+          "compiled": false,
+          "description": "Arc<Mutex<Coroutine>> compartilhado entre threads",
+          "error_codes": [
+            "E0277"
+          ],
+          "expected": "falha com E0277",
+          "probe": "corosensei_shared_mutex"
+        },
+        {
+          "as_expected": true,
+          "compiled": false,
+          "description": "embrulho com unsafe impl Send",
+          "error_codes": [
+            "unsafe_code"
+          ],
+          "expected": "falha com unsafe_code",
+          "probe": "corosensei_unsafe_send"
+        },
+        {
+          "as_expected": true,
+          "compiled": false,
+          "description": "may::coroutine::spawn sem unsafe",
+          "error_codes": [
+            "E0133"
+          ],
+          "expected": "falha com E0133",
+          "probe": "may_spawn_safe"
+        },
+        {
+          "as_expected": true,
+          "compiled": false,
+          "description": "may::coroutine::spawn em bloco unsafe",
+          "error_codes": [
+            "unsafe_code"
+          ],
+          "expected": "falha com unsafe_code",
+          "probe": "may_spawn_unsafe_block"
+        },
+        {
+          "as_expected": true,
+          "compiled": true,
+          "description": "generator 0.8 migrando entre threads",
+          "error_codes": [],
+          "expected": "compila",
+          "probe": "generator_migrate"
+        }
+      ]
+    },
+    {
+      "name": "may",
+      "version": "0.3.51",
+      "role": "stackful-coroutine",
+      "fit": "does_not_fit",
+      "notes": "coroutine::spawn é unsafe fn (E0133); barrado pelo forbid(unsafe_code).",
+      "metrics": null
+    },
+    {
+      "name": "generator",
+      "version": "0.8",
+      "role": "stackful-coroutine",
+      "fit": "does_not_fit",
+      "notes": "Migração compila graças a um unsafe impl Send próprio, unsound (thread-local da thread 1 usado na 2).",
+      "metrics": {
+        "coroutine_thread_after": "ThreadId(2)",
+        "coroutine_thread_before": "ThreadId(1)",
+        "held_on_thread1": 140250427470160,
+        "held_on_thread2": 140250427470160,
+        "inline_access_on_thread2": 140250427470160,
+        "noinline_access_on_thread2": 140250427463312,
+        "thread1": "ThreadId(1)",
+        "thread1_tls": 140250427470160,
+        "thread2": "ThreadId(2)",
+        "thread2_tls": 140250427463312
+      }
+    },
+    {
+      "name": "stacker",
+      "version": "0.1.25",
+      "role": "stack-growth",
+      "fit": "fits",
+      "notes": "maybe_grow + limite de profundidade evita derrubar o host em thread do SO (A) e em worker (C).",
+      "metrics": [
+        {
+          "child": null,
+          "elapsed_ms": 10.774,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": null,
+          "remaining_at_entry_y": null,
+          "signal": 6,
+          "stderr_head": "thread '<unknown>' (2284414) has overflowed its stack | fatal runtime error: stack overflow, aborting",
+          "variant": "A-plain"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.415,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": null,
+          "remaining_at_entry_y": null,
+          "signal": 6,
+          "stderr_head": "thread '<unknown>' (2284416) has overflowed its stack | fatal runtime error: stack overflow, aborting",
+          "variant": "A-plain"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.654,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": null,
+          "remaining_at_entry_y": null,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B64-plain"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.636,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": null,
+          "remaining_at_entry_y": null,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B64-plain"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.455,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": null,
+          "remaining_at_entry_y": null,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B256-plain"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.399,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": null,
+          "remaining_at_entry_y": null,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B256-plain"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.43,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": null,
+          "remaining_at_entry_y": null,
+          "signal": 6,
+          "stderr_head": "thread 'e01-c-worker-0' (2284428) has overflowed its stack | fatal runtime error: stack overflow, aborting",
+          "variant": "C-plain"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.407,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": null,
+          "remaining_at_entry_y": null,
+          "signal": 6,
+          "stderr_head": "thread 'e01-c-worker-0' (2284430) has overflowed its stack | fatal runtime error: stack overflow, aborting",
+          "variant": "C-plain"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256848,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "A-stacker"
+          },
+          "elapsed_ms": 40.693,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256848,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256848,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "A-stacker"
+          },
+          "elapsed_ms": 40.925,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256848,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256848,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "A-stacker"
+          },
+          "elapsed_ms": 40.939,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256848,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256848,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "A-stacker"
+          },
+          "elapsed_ms": 41.01,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256848,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256848,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "A-stacker"
+          },
+          "elapsed_ms": 40.705,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256848,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.615,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": 4406976,
+          "remaining_at_entry_y": null,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B64-stacker"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.778,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": 4406976,
+          "remaining_at_entry_y": null,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B64-stacker"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.458,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": 4406976,
+          "remaining_at_entry_y": null,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B64-stacker"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.244,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": 4406976,
+          "remaining_at_entry_y": null,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B64-stacker"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.23,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": 4406976,
+          "remaining_at_entry_y": null,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B64-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 0,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "B256-stacker"
+          },
+          "elapsed_ms": 40.491,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "B256-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 0,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "B256-stacker"
+          },
+          "elapsed_ms": 40.885,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "B256-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 0,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "B256-stacker"
+          },
+          "elapsed_ms": 40.709,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "B256-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 0,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "B256-stacker"
+          },
+          "elapsed_ms": 41.067,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "B256-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 0,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "B256-stacker"
+          },
+          "elapsed_ms": 40.804,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "B256-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 0,
+            "remaining_stack_at_entry": 2091824,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "C-stacker"
+          },
+          "elapsed_ms": 40.689,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 2091824,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "C-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 0,
+            "remaining_stack_at_entry": 2091824,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "C-stacker"
+          },
+          "elapsed_ms": 40.682,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 2091824,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "C-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 0,
+            "remaining_stack_at_entry": 2091824,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "C-stacker"
+          },
+          "elapsed_ms": 41.008,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 2091824,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "C-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 0,
+            "remaining_stack_at_entry": 2091824,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "C-stacker"
+          },
+          "elapsed_ms": 40.731,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 2091824,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "C-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 0,
+            "remaining_stack_at_entry": 2091824,
+            "remaining_stack_at_entry_y": null,
+            "statuses": [
+              "exit 3"
+            ],
+            "variant": "C-stacker"
+          },
+          "elapsed_ms": 40.699,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 2091824,
+          "remaining_at_entry_y": null,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "C-stacker"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256832,
+            "remaining_stack_at_entry_y": 256848,
+            "statuses": [
+              "exit 3",
+              "exit 3"
+            ],
+            "variant": "A-stacker-interleaved"
+          },
+          "elapsed_ms": 40.944,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256832,
+          "remaining_at_entry_y": 256848,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker-interleaved"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256832,
+            "remaining_stack_at_entry_y": 256848,
+            "statuses": [
+              "exit 3",
+              "exit 3"
+            ],
+            "variant": "A-stacker-interleaved"
+          },
+          "elapsed_ms": 41.04,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256832,
+          "remaining_at_entry_y": 256848,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker-interleaved"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256832,
+            "remaining_stack_at_entry_y": 256848,
+            "statuses": [
+              "exit 3",
+              "exit 3"
+            ],
+            "variant": "A-stacker-interleaved"
+          },
+          "elapsed_ms": 40.97,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256832,
+          "remaining_at_entry_y": 256848,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker-interleaved"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256832,
+            "remaining_stack_at_entry_y": 256848,
+            "statuses": [
+              "exit 3",
+              "exit 3"
+            ],
+            "variant": "A-stacker-interleaved"
+          },
+          "elapsed_ms": 40.636,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256832,
+          "remaining_at_entry_y": 256848,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker-interleaved"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 256832,
+            "remaining_stack_at_entry_y": 256848,
+            "statuses": [
+              "exit 3",
+              "exit 3"
+            ],
+            "variant": "A-stacker-interleaved"
+          },
+          "elapsed_ms": 40.516,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 256832,
+          "remaining_at_entry_y": 256848,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "A-stacker-interleaved"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.541,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": 2375360,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B256-stacker-interleaved"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 0,
+            "remaining_stack_at_entry_y": 0,
+            "statuses": [
+              "exit 3",
+              "exit 3"
+            ],
+            "variant": "B256-stacker-interleaved"
+          },
+          "elapsed_ms": 40.805,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": 0,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "B256-stacker-interleaved"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.714,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": 2375360,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B256-stacker-interleaved"
+        },
+        {
+          "child": null,
+          "elapsed_ms": 10.478,
+          "exit_code": null,
+          "host_survived": false,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": 2375360,
+          "signal": 11,
+          "stderr_head": "",
+          "variant": "B256-stacker-interleaved"
+        },
+        {
+          "child": {
+            "depth_reached": 99999,
+            "real_stack_bytes": 262144,
+            "remaining_stack_at_entry": 0,
+            "remaining_stack_at_entry_y": 0,
+            "statuses": [
+              "exit 3",
+              "exit 3"
+            ],
+            "variant": "B256-stacker-interleaved"
+          },
+          "elapsed_ms": 40.64,
+          "exit_code": 0,
+          "host_survived": true,
+          "remaining_at_entry": 0,
+          "remaining_at_entry_y": 0,
+          "signal": null,
+          "stderr_head": "",
+          "variant": "B256-stacker-interleaved"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "host_load_at_end": "1.91 2.77 3.48 1/2160 2284881",
+    "recommendation": "A",
+    "recommendation_inputs": {
+      "a_cgroup_per_idle_proc_bytes": 35003.324,
+      "a_handoff_p99_ns": 24006.0,
+      "a_rss_per_idle_proc_bytes": 10207.505,
+      "a_spawn_exit_p50_us": 20.168,
+      "a_sustains_max_count": true,
+      "a_worst_bulk_pipeline_ratio": 0.65,
+      "a_worst_pipeline_vs_native_linux": 1.0602019147153277,
+      "a_worst_records_pipeline_ratio": 0.63,
+      "b_stacker_in_coroutine_crashed": true,
+      "b_tls_naive_mismatches": 9800,
+      "c_async_interpreter_slowdown_pct": 17.227,
+      "h07_neighbor_share_nice0": 0.498,
+      "h07_neighbor_share_watchdog": 0.99
+    },
+    "runtime_s": 48.086
+  },
+  "notes": [
+    "Recomendação: modelo A. Regra: B sai por falha de segurança medida; entre A e C, A fica se sustentar o maior número de processos, se o pior pipeline em bloco dele ficar em pelo menos 25% do melhor modelo e se, com o watchdog de nice 19, o vizinho de um laço sem checkpoint ficar com mais de 90% da CPU que os dois dividem.",
+    "B: alguma execução de stacker dentro de corrotina derrubou o host = true; conferências de thread-local erradas sem troca manual = 9800. B descartado.",
+    "A: pior pipeline em bloco = 65% do melhor modelo e 106% do mesmo pipeline com processos reais do Linux; pior pipeline de registros de 64 bytes = 63%; spawn+exit mediano 20.2 µs; sustenta o maior N = true; RSS por processo ocioso 10.0 KiB (34.2 KiB no cgroup, contando pilha de kernel); vizinho de um laço sem checkpoint no mesmo núcleo fica com 50% da CPU dos dois sem mitigação e 99% com o watchdog; p99 do timer até o próximo processo rodar 24.0 µs.",
+    "C exige que todo builtin e toda crate de terceiros sejam async; código síncrono de terceiros (jaq, uutils, gix, regex) bloqueia o worker inteiro enquanto roda, um laço sem checkpoint num worker do C não tem mitigação por thread (H07) porque a thread é compartilhada; o mesmo interpretador escrito em async custou +17.2% em relação à versão síncrona na mesma thread (H05).",
+    "Medições de tempo feitas com a máquina compartilhada com outros experimentos são provisórias; o runner refaz tudo em sequência numa máquina quieta (ver host_load_at_end nas métricas)."
+  ]
+}

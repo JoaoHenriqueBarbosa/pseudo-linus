@@ -1,0 +1,149 @@
+tool = "csv"
+source = "manual"
+
+# RFC 4180 sem oráculo GNU: a referência é o módulo `csv` do Python 3.13 que está no oráculo (é
+# dependência do yq). Leitura: um registro por linha, em JSON (`json.dumps(..., ensure_ascii=False)`).
+# Escrita: cada linha de stdin é um array JSON, escrito com `csv.writer` (QUOTE_MINIMAL).
+# Os casos usam sempre o mesmo programa Python, que o front-end nosso reconhece literalmente.
+
+[[case]]
+id = "csv-read-simple"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read"]
+[case.files]
+"in.csv" = "name,age\nana,30\nbob,41\n"
+
+[[case]]
+id = "csv-read-quoted-comma"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "quote"]
+[case.files]
+"in.csv" = "id,desc\n1,\"a, b, c\"\n"
+
+[[case]]
+id = "csv-read-doubled-quote"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "quote"]
+[case.files]
+"in.csv" = "a,\"say \"\"hi\"\"\",b\n"
+
+[[case]]
+id = "csv-read-newline-in-field"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "quote"]
+[case.files]
+"in.csv" = "id,text\n1,\"line one\nline two\"\n2,\"crlf\r\ninside\"\n"
+
+[[case]]
+id = "csv-read-crlf"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "crlf"]
+[case.files]
+"in.csv" = "a,b\r\nc,d\r\n"
+
+[[case]]
+id = "csv-read-cr-only"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "crlf"]
+[case.files]
+"in.csv" = "a,b\rc,d\r"
+
+[[case]]
+id = "csv-read-empty-fields"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read"]
+[case.files]
+"in.csv" = "a,,c\n,,\n\"\",x\n"
+
+[[case]]
+id = "csv-read-no-final-newline"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read"]
+[case.files]
+"in.csv" = "a,b\nc,d"
+
+[[case]]
+id = "csv-read-bom"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "bom"]
+[case.files]
+"in.csv" = "\uFEFFname,age\nana,30\n"
+
+[[case]]
+id = "csv-read-ragged"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "ragged"]
+[case.files]
+"in.csv" = "a,b,c\nd\ne,f\n"
+
+[[case]]
+id = "csv-read-blank-line"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "blank"]
+[case.files]
+"in.csv" = "a,b\n\nc,d\n"
+
+[[case]]
+id = "csv-read-quote-inside-unquoted"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "malformed"]
+[case.files]
+"in.csv" = "a\"b,c\n"
+
+[[case]]
+id = "csv-read-text-after-closing-quote"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "malformed"]
+[case.files]
+"in.csv" = "\"x\"y,z\n"
+
+[[case]]
+id = "csv-read-spaces"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read"]
+[case.files]
+"in.csv" = " a , b ,\" c \"\n"
+
+[[case]]
+id = "csv-read-unicode"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "unicode"]
+[case.files]
+"in.csv" = "cidade,emoji\nsão paulo,😀\n\"maceió, AL\",✓\n"
+
+[[case]]
+id = "csv-read-unterminated-quote"
+argv = ["python3", "-c", "import csv, sys, json\nfor row in csv.reader(open(sys.argv[1], newline='', encoding='utf-8')):\n    print(json.dumps(row, ensure_ascii=False))\n", "in.csv"]
+tags = ["read", "malformed"]
+[case.files]
+"in.csv" = "a,\"never closed\n"
+
+[[case]]
+id = "csv-write-minimal"
+argv = ["python3", "-c", "import csv, sys, json\nw = csv.writer(sys.stdout, lineterminator='\\n')\nfor line in sys.stdin:\n    w.writerow(json.loads(line))\n"]
+stdin = "[\"a\", \"b\"]\n[\"x,y\", \"plain\"]\n[\"say \\\"hi\\\"\", \"\"]\n"
+tags = ["write"]
+
+[[case]]
+id = "csv-write-newlines"
+argv = ["python3", "-c", "import csv, sys, json\nw = csv.writer(sys.stdout, lineterminator='\\n')\nfor line in sys.stdin:\n    w.writerow(json.loads(line))\n"]
+stdin = "[\"line1\\nline2\", \"cr\\rhere\", \"tab\\tthere\"]\n"
+tags = ["write"]
+
+[[case]]
+id = "csv-write-single-empty-field"
+argv = ["python3", "-c", "import csv, sys, json\nw = csv.writer(sys.stdout, lineterminator='\\n')\nfor line in sys.stdin:\n    w.writerow(json.loads(line))\n"]
+stdin = "[\"\"]\n[]\n[\"\", \"\"]\n"
+tags = ["write", "blank"]
+
+[[case]]
+id = "csv-write-spaces-unicode"
+argv = ["python3", "-c", "import csv, sys, json\nw = csv.writer(sys.stdout, lineterminator='\\n')\nfor line in sys.stdin:\n    w.writerow(json.loads(line))\n"]
+stdin = "[\" lead\", \"trail \", \"são\", \"#x\"]\n"
+tags = ["write", "unicode"]
+
+[[case]]
+id = "csv-write-default-crlf"
+argv = ["python3", "-c", "import csv, sys, json\nw = csv.writer(sys.stdout)\nfor line in sys.stdin:\n    w.writerow(json.loads(line))\n"]
+stdin = "[\"a\", \"b\"]\n[\"c\", \"d,e\"]\n"
+tags = ["write", "crlf"]

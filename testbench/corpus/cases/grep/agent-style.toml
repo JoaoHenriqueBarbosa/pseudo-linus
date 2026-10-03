@@ -1,0 +1,763 @@
+tool = "grep"
+source = "agent-style"
+
+# Casos de grep como agentes usam: flags comuns, vários arquivos, stdin, recursão, binário, contexto,
+# exit codes 0/1/2 e mensagens de erro. Tags `flag:*` dão a quebra por flag; `order-insensitive`
+# marca saída cuja ordem depende da ordem do readdir (comparada com as linhas ordenadas).
+
+[[case]]
+id = "basic-literal"
+argv = ["grep", "ERROR", "app.log"]
+tags = ["basic"]
+[case.files]
+"app.log" = "2026-01-15 12:00:00 INFO start\n2026-01-15 12:00:01 ERROR db down\n2026-01-15 12:00:02 WARN retry 1\n2026-01-15 12:00:03 error lowercase\n2026-01-15 12:00:04 INFO ok\n"
+
+[[case]]
+id = "no-match-exit-1"
+argv = ["grep", "FATAL", "app.log"]
+tags = ["basic", "exit"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\n"
+
+[[case]]
+id = "missing-file-exit-2"
+argv = ["grep", "x", "nope.txt"]
+tags = ["error", "exit"]
+
+[[case]]
+id = "missing-file-suppressed"
+argv = ["grep", "-s", "x", "nope.txt"]
+tags = ["error", "exit", "flag:-s"]
+
+[[case]]
+id = "missing-and-match"
+argv = ["grep", "ERROR", "nope.txt", "app.log"]
+tags = ["error", "exit", "multi-file"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\n"
+
+[[case]]
+id = "quiet-match"
+argv = ["grep", "-q", "ERROR", "app.log"]
+tags = ["exit", "flag:-q"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\n"
+
+[[case]]
+id = "quiet-no-match"
+argv = ["grep", "-q", "FATAL", "app.log"]
+tags = ["exit", "flag:-q"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\n"
+
+[[case]]
+id = "quiet-match-with-missing"
+argv = ["grep", "-q", "ERROR", "app.log", "nope.txt"]
+tags = ["exit", "flag:-q", "error"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\n"
+
+[[case]]
+id = "stdin-implicit"
+argv = ["grep", "b"]
+stdin = "a\nb\nab\nc\n"
+tags = ["stdin"]
+
+[[case]]
+id = "stdin-dash"
+argv = ["grep", "-n", "b", "-"]
+stdin = "a\nb\nab\nc\n"
+tags = ["stdin", "flag:-n"]
+
+[[case]]
+id = "stdin-with-H"
+argv = ["grep", "-H", "b"]
+stdin = "a\nb\n"
+tags = ["stdin", "flag:-H"]
+
+[[case]]
+id = "stdin-label"
+argv = ["grep", "-H", "--label=input", "b"]
+stdin = "a\nb\n"
+tags = ["stdin", "flag:--label"]
+
+[[case]]
+id = "extended-alternation"
+argv = ["grep", "-E", "ERROR|WARN", "app.log"]
+tags = ["flag:-E"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\nWARN retry\nerror x\n"
+
+[[case]]
+id = "basic-alternation-gnu"
+argv = ["grep", "ERROR\\|WARN", "app.log"]
+tags = ["flag:-G", "bre"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\nWARN retry\nerror x\n"
+
+[[case]]
+id = "egrep-style-plus"
+argv = ["grep", "-E", "[0-9]+ passed", "out.txt"]
+tags = ["flag:-E"]
+[case.files]
+"out.txt" = "test result: ok. 12 passed; 0 failed\nrunning 3 tests\n0 passed\n"
+
+[[case]]
+id = "fixed-string-metachars"
+argv = ["grep", "-F", "a.b[c]", "in.txt"]
+tags = ["flag:-F"]
+[case.files]
+"in.txt" = "a.b[c]\naxb[c]\nabc\n"
+
+[[case]]
+id = "fixed-multiple-e"
+argv = ["grep", "-F", "-e", "foo", "-e", "b.r", "in.txt"]
+tags = ["flag:-F", "flag:-e"]
+[case.files]
+"in.txt" = "foo\nbar\nb.r\nbaz\n"
+
+[[case]]
+id = "ignore-case"
+argv = ["grep", "-i", "error", "app.log"]
+tags = ["flag:-i"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\nWARN retry\nerror x\nErRoR y\n"
+
+[[case]]
+id = "ignore-case-utf8"
+argv = ["grep", "-i", "ÉCOLE", "in.txt"]
+tags = ["flag:-i", "utf8"]
+[case.files]
+"in.txt" = "école\nECOLE\nÉcole\nnada\n"
+
+[[case]]
+id = "invert"
+argv = ["grep", "-v", "^#", "conf"]
+tags = ["flag:-v"]
+[case.files]
+"conf" = "# comment\nkey=1\n#x\n  # indented\nother=2\n"
+
+[[case]]
+id = "invert-count"
+argv = ["grep", "-vc", "^$", "in.txt"]
+tags = ["flag:-v", "flag:-c"]
+[case.files]
+"in.txt" = "a\n\nb\n\n\nc\n"
+
+[[case]]
+id = "line-numbers"
+argv = ["grep", "-n", "fn ", "main.rs"]
+tags = ["flag:-n"]
+[case.files]
+"main.rs" = "use std::io;\n\nfn main() {\n    let x = foo(1);\n}\n\nfn foo(a: i32) -> i32 {\n    a + 1\n}\n"
+
+[[case]]
+id = "count"
+argv = ["grep", "-c", "INFO", "app.log"]
+tags = ["flag:-c"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\nINFO ok\nINFO INFO twice\n"
+
+[[case]]
+id = "count-zero"
+argv = ["grep", "-c", "FATAL", "app.log"]
+tags = ["flag:-c", "exit"]
+[case.files]
+"app.log" = "INFO start\nERROR db down\n"
+
+[[case]]
+id = "count-multi-file"
+argv = ["grep", "-c", "x", "a.txt", "b.txt"]
+tags = ["flag:-c", "multi-file"]
+[case.files]
+"a.txt" = "x\nx\ny\n"
+"b.txt" = "y\n"
+
+[[case]]
+id = "files-with-matches"
+argv = ["grep", "-l", "TODO", "a.rs", "b.rs", "c.rs"]
+tags = ["flag:-l", "multi-file"]
+[case.files]
+"a.rs" = "// TODO: x\nfn a() {}\n// TODO: y\n"
+"b.rs" = "fn b() {}\n"
+"c.rs" = "// TODO\n"
+
+[[case]]
+id = "files-without-match"
+argv = ["grep", "-L", "TODO", "a.rs", "b.rs", "c.rs"]
+tags = ["flag:-L", "multi-file", "exit"]
+[case.files]
+"a.rs" = "// TODO: x\n"
+"b.rs" = "fn b() {}\n"
+"c.rs" = "// TODO\n"
+
+[[case]]
+id = "files-without-match-none"
+argv = ["grep", "-L", "fn", "a.rs"]
+tags = ["flag:-L", "exit"]
+[case.files]
+"a.rs" = "fn a() {}\n"
+
+[[case]]
+id = "only-matching"
+argv = ["grep", "-o", "[0-9]\\+", "in.txt"]
+tags = ["flag:-o"]
+[case.files]
+"in.txt" = "a1b22c333\nnone\n4 55\n"
+
+[[case]]
+id = "only-matching-empty-matches"
+argv = ["grep", "-o", "[0-9]*", "in.txt"]
+tags = ["flag:-o"]
+[case.files]
+"in.txt" = "a1b22\nxyz\n"
+
+[[case]]
+id = "only-matching-longest"
+argv = ["grep", "-oE", "ab|abcd", "in.txt"]
+tags = ["flag:-o", "leftmost-longest"]
+[case.files]
+"in.txt" = "abcd ab\n"
+
+[[case]]
+id = "only-matching-line-byte"
+argv = ["grep", "-onb", "foo", "in.txt"]
+tags = ["flag:-o", "flag:-n", "flag:-b"]
+[case.files]
+"in.txt" = "x foo foo\nbar\nfoo\n"
+
+[[case]]
+id = "only-matching-ignore-case"
+argv = ["grep", "-oi", "todo", "in.txt"]
+tags = ["flag:-o", "flag:-i"]
+[case.files]
+"in.txt" = "TODO a todo b ToDo\n"
+
+[[case]]
+id = "byte-offset"
+argv = ["grep", "-b", "x", "in.txt"]
+tags = ["flag:-b"]
+[case.files]
+"in.txt" = "abc\nxyz\nfoo x\n"
+
+[[case]]
+id = "word-regexp"
+argv = ["grep", "-w", "foo", "in.txt"]
+tags = ["flag:-w"]
+[case.files]
+"in.txt" = "foo\nfoobar\nbar foo baz\nfoo_bar\n(foo)\nxfoo foo\n"
+
+[[case]]
+id = "word-regexp-retry-shorter"
+argv = ["grep", "-ow", "ab*", "in.txt"]
+tags = ["flag:-w", "flag:-o"]
+[case.files]
+"in.txt" = "abbbx ab a abb\n"
+
+[[case]]
+id = "line-regexp"
+argv = ["grep", "-x", "foo", "in.txt"]
+tags = ["flag:-x"]
+[case.files]
+"in.txt" = "foo\nfoo \n foo\nfoobar\nfoo\n"
+
+[[case]]
+id = "line-regexp-fixed"
+argv = ["grep", "-xF", "a.b", "in.txt"]
+tags = ["flag:-x", "flag:-F"]
+[case.files]
+"in.txt" = "a.b\naxb\na.bc\n"
+
+[[case]]
+id = "multi-file-prefix"
+argv = ["grep", "x", "a.txt", "b.txt"]
+tags = ["multi-file"]
+[case.files]
+"a.txt" = "x1\ny\n"
+"b.txt" = "x2\n"
+
+[[case]]
+id = "multi-file-no-filename"
+argv = ["grep", "-h", "x", "a.txt", "b.txt"]
+tags = ["multi-file", "flag:-h"]
+[case.files]
+"a.txt" = "x1\ny\n"
+"b.txt" = "x2\n"
+
+[[case]]
+id = "single-file-with-filename"
+argv = ["grep", "-Hn", "x", "a.txt"]
+tags = ["flag:-H", "flag:-n"]
+[case.files]
+"a.txt" = "x1\ny\nx3\n"
+
+[[case]]
+id = "multiple-e"
+argv = ["grep", "-n", "-e", "alpha", "-e", "gamma", "in.txt"]
+tags = ["flag:-e"]
+[case.files]
+"in.txt" = "alpha\nbeta\ngamma\ndelta\n"
+
+[[case]]
+id = "pattern-file"
+argv = ["grep", "-f", "pats.txt", "in.txt"]
+tags = ["flag:-f"]
+[case.files]
+"pats.txt" = "beta\n^d\n"
+"in.txt" = "alpha\nbeta\ngamma\ndelta\n"
+
+[[case]]
+id = "pattern-file-empty"
+argv = ["grep", "-f", "empty.txt", "in.txt"]
+tags = ["flag:-f", "exit"]
+[case.files]
+"empty.txt" = ""
+"in.txt" = "alpha\nbeta\n"
+
+[[case]]
+id = "pattern-dash-via-e"
+argv = ["grep", "-e", "-v", "in.txt"]
+tags = ["flag:-e"]
+[case.files]
+"in.txt" = "use -v here\nnothing\n"
+
+[[case]]
+id = "double-dash"
+argv = ["grep", "--", "-x", "in.txt"]
+tags = ["flag:--"]
+[case.files]
+"in.txt" = "a -x b\nnothing\n"
+
+[[case]]
+id = "empty-pattern"
+argv = ["grep", "", "in.txt"]
+tags = ["basic"]
+[case.files]
+"in.txt" = "a\n\nb\n"
+
+[[case]]
+id = "max-count"
+argv = ["grep", "-m", "2", "x", "in.txt"]
+tags = ["flag:-m"]
+[case.files]
+"in.txt" = "x1\nx2\nx3\nx4\n"
+
+[[case]]
+id = "max-count-attached"
+argv = ["grep", "-m1", "-c", "x", "in.txt"]
+tags = ["flag:-m", "flag:-c"]
+[case.files]
+"in.txt" = "x1\nx2\nx3\n"
+
+[[case]]
+id = "after-context"
+argv = ["grep", "-A", "1", "ERROR", "app.log"]
+tags = ["context", "flag:-A"]
+[case.files]
+"app.log" = "a\nERROR 1\nb\nc\nd\nERROR 2\ne\n"
+
+[[case]]
+id = "before-context"
+argv = ["grep", "-B2", "ERROR", "app.log"]
+tags = ["context", "flag:-B"]
+[case.files]
+"app.log" = "a\nb\nERROR 1\nc\nd\ne\nf\nERROR 2\n"
+
+[[case]]
+id = "context-merge"
+argv = ["grep", "-n", "-C", "1", "x", "in.txt"]
+tags = ["context", "flag:-C", "flag:-n"]
+[case.files]
+"in.txt" = "1\nx2\n3\n4\nx5\n6\n7\n8\nx9\n10\n"
+
+[[case]]
+id = "context-numeric-shorthand"
+argv = ["grep", "-1", "x", "in.txt"]
+tags = ["context", "flag:-NUM"]
+[case.files]
+"in.txt" = "1\n2\nx3\n4\n5\n6\nx7\n"
+
+[[case]]
+id = "context-multi-file"
+argv = ["grep", "-A1", "x", "a.txt", "b.txt"]
+tags = ["context", "multi-file"]
+[case.files]
+"a.txt" = "x1\n2\n3\n"
+"b.txt" = "0\nx1\n"
+
+[[case]]
+id = "context-max-count"
+argv = ["grep", "-m1", "-A2", "x", "in.txt"]
+tags = ["context", "flag:-m"]
+[case.files]
+"in.txt" = "x1\n2\nx3\n4\n"
+
+[[case]]
+id = "context-invert"
+argv = ["grep", "-v", "-A1", "keep", "in.txt"]
+tags = ["context", "flag:-v"]
+[case.files]
+"in.txt" = "keep\ndrop1\nkeep\nkeep\ndrop2\nkeep\n"
+
+[[case]]
+id = "recursive-dir"
+argv = ["grep", "-r", "TODO", "src"]
+tags = ["recursive", "flag:-r", "order-insensitive"]
+[case.files]
+"src/main.rs" = "fn main() {}\n// TODO: main\n"
+"src/lib/mod.rs" = "// TODO: mod\n"
+"src/lib/util.rs" = "fn util() {}\n"
+"README.md" = "TODO outside\n"
+
+[[case]]
+id = "recursive-default-dot"
+argv = ["grep", "-rn", "needle"]
+tags = ["recursive", "flag:-r", "order-insensitive"]
+[case.files]
+"a.txt" = "hay\nneedle\n"
+"sub/b.txt" = "needle here\n"
+
+[[case]]
+id = "recursive-list-files"
+argv = ["grep", "-rl", "TODO", "."]
+tags = ["recursive", "flag:-l", "order-insensitive"]
+[case.files]
+"src/main.rs" = "// TODO\n"
+"src/x.rs" = "nothing\n"
+"docs/notes.md" = "TODO: write\n"
+
+[[case]]
+id = "recursive-include"
+argv = ["grep", "-rn", "--include=*.rs", "fn", "."]
+tags = ["recursive", "flag:--include", "order-insensitive"]
+[case.files]
+"src/main.rs" = "fn main() {}\n"
+"src/script.py" = "def fn(): pass\n"
+"build.rs" = "fn build() {}\n"
+
+[[case]]
+id = "recursive-exclude"
+argv = ["grep", "-r", "--exclude=*.log", "x", "."]
+tags = ["recursive", "flag:--exclude", "order-insensitive"]
+[case.files]
+"a.txt" = "x\n"
+"b.log" = "x\n"
+
+[[case]]
+id = "recursive-exclude-dir"
+argv = ["grep", "-rn", "--exclude-dir=target", "x", "."]
+tags = ["recursive", "flag:--exclude-dir", "order-insensitive"]
+[case.files]
+"src/a.rs" = "x\n"
+"target/debug/out.txt" = "x\n"
+
+[[case]]
+id = "recursive-count"
+argv = ["grep", "-rc", "x", "d"]
+tags = ["recursive", "flag:-c", "order-insensitive"]
+[case.files]
+"d/a" = "x\nx\n"
+"d/b" = "y\n"
+
+[[case]]
+id = "recursive-skips-symlink"
+argv = ["grep", "-r", "secret", "d"]
+tags = ["recursive", "symlink", "order-insensitive"]
+[case.files]
+"d/a.txt" = "secret a\n"
+"d/link.txt" = { symlink = "../outside.txt" }
+"outside.txt" = "secret outside\n"
+
+[[case]]
+id = "recursive-follow-symlink"
+argv = ["grep", "-R", "secret", "d"]
+tags = ["recursive", "symlink", "flag:-R", "order-insensitive"]
+[case.files]
+"d/a.txt" = "secret a\n"
+"d/link.txt" = { symlink = "../outside.txt" }
+"outside.txt" = "secret outside\n"
+
+[[case]]
+id = "directory-without-r"
+argv = ["grep", "x", "src"]
+tags = ["error", "exit"]
+[case.files]
+"src/a.txt" = "x\n"
+
+[[case]]
+id = "directory-skip"
+argv = ["grep", "-d", "skip", "x", "src", "f.txt"]
+tags = ["flag:-d"]
+[case.files]
+"src/a.txt" = "x\n"
+"f.txt" = "x here\n"
+
+[[case]]
+id = "binary-file-matches"
+argv = ["grep", "foo", "data.bin"]
+tags = ["binary"]
+[case.files]
+"data.bin" = { content_b64 = "Zm9vAAFiYXIKYmF6Cg==" }
+
+[[case]]
+id = "binary-no-match"
+argv = ["grep", "zzz", "data.bin"]
+tags = ["binary", "exit"]
+[case.files]
+"data.bin" = { content_b64 = "Zm9vAAFiYXIKYmF6Cg==" }
+
+[[case]]
+id = "binary-as-text"
+argv = ["grep", "-a", "foo", "data.bin"]
+tags = ["binary", "flag:-a"]
+[case.files]
+"data.bin" = { content_b64 = "Zm9vAAFiYXIKYmF6Cg==" }
+
+[[case]]
+id = "binary-count"
+argv = ["grep", "-c", "ba", "data.bin"]
+tags = ["binary", "flag:-c"]
+[case.files]
+"data.bin" = { content_b64 = "Zm9vAAFiYXIKYmF6Cg==" }
+
+[[case]]
+id = "binary-without-match-option"
+argv = ["grep", "--binary-files=without-match", "foo", "data.bin", "t.txt"]
+tags = ["binary", "flag:--binary-files"]
+[case.files]
+"data.bin" = { content_b64 = "Zm9vAAFiYXIKYmF6Cg==" }
+"t.txt" = "foo text\n"
+
+[[case]]
+id = "binary-in-recursive"
+argv = ["grep", "-r", "foo", "d"]
+tags = ["binary", "recursive", "order-insensitive"]
+[case.files]
+"d/data.bin" = { content_b64 = "Zm9vAAFiYXIKYmF6Cg==" }
+"d/t.txt" = "foo text\n"
+
+[[case]]
+id = "invalid-utf8-is-binary"
+argv = ["grep", "caf", "latin1.txt"]
+tags = ["binary", "utf8"]
+[case.files]
+"latin1.txt" = { content_b64 = "Y2Fm6QpvdXRybwo=" }
+
+[[case]]
+id = "no-trailing-newline"
+argv = ["grep", "end", "in.txt"]
+tags = ["basic"]
+[case.files]
+"in.txt" = "start\nthe end"
+
+[[case]]
+id = "crlf-lines"
+argv = ["grep", "-c", "x$", "in.txt"]
+tags = ["basic"]
+[case.files]
+"in.txt" = "ax\r\nbx\nc\r\n"
+
+[[case]]
+id = "invalid-regex-paren"
+argv = ["grep", "-E", "(", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "(\n"
+
+[[case]]
+id = "invalid-regex-bracket"
+argv = ["grep", "[abc", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "invalid-regex-backref"
+argv = ["grep", "\\(a\\)\\2", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "aa\n"
+
+[[case]]
+id = "unknown-option"
+argv = ["grep", "--frobnicate", "x", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "missing-pattern"
+argv = ["grep"]
+tags = ["error", "exit"]
+
+[[case]]
+id = "perl-regexp"
+argv = ["grep", "-P", "\\d+", "in.txt"]
+tags = ["flag:-P"]
+[case.files]
+"in.txt" = "a1\nb\n"
+
+[[case]]
+id = "backref-bre"
+argv = ["grep", "\\(ab\\)\\1", "in.txt"]
+tags = ["bre", "backref"]
+[case.files]
+"in.txt" = "abab\nab\nxababx\n"
+
+[[case]]
+id = "interval-ere"
+argv = ["grep", "-E", "^[0-9]{3}-[0-9]{4}$", "in.txt"]
+tags = ["flag:-E"]
+[case.files]
+"in.txt" = "555-1234\n55-1234\n555-12345\n"
+
+[[case]]
+id = "posix-class"
+argv = ["grep", "-c", "^[[:space:]]*$", "in.txt"]
+tags = ["flag:-c"]
+[case.files]
+"in.txt" = "a\n\n  \n\t\nb\n"
+
+[[case]]
+id = "word-class-gnu"
+argv = ["grep", "-o", "\\w\\+@\\w\\+", "in.txt"]
+tags = ["flag:-o", "bre"]
+[case.files]
+"in.txt" = "mail bob@host and amy@x\n"
+
+[[case]]
+id = "anchored-import"
+argv = ["grep", "-n", "^import", "a.py"]
+tags = ["flag:-n"]
+[case.files]
+"a.py" = "import os\nfrom x import y\n  import z\nimport sys\n"
+
+[[case]]
+id = "error-or-warning"
+argv = ["grep", "-nE", "^(error|warning)", "build.log"]
+tags = ["flag:-n", "flag:-E"]
+[case.files]
+"build.log" = "   Compiling x\nwarning: unused\nerror[E0425]: cannot find\nerror: aborting\n"
+
+[[case]]
+id = "rust-fn-defs"
+argv = ["grep", "-rnE", "^\\s*(pub )?fn [a-z_]+", "src"]
+tags = ["recursive", "flag:-E", "order-insensitive"]
+[case.files]
+"src/lib.rs" = "pub fn alpha() {}\nfn beta() {}\n    fn gamma() {}\n// fn not\n"
+
+[[case]]
+id = "count-per-file-recursive-h"
+argv = ["grep", "-rh", "x", "d"]
+tags = ["recursive", "flag:-h", "order-insensitive"]
+[case.files]
+"d/a" = "x1\n"
+"d/b" = "x2\n"
+
+[[case]]
+id = "ignore-case-word-count"
+argv = ["grep", "-ciw", "the", "in.txt"]
+tags = ["flag:-i", "flag:-w", "flag:-c"]
+[case.files]
+"in.txt" = "The cat\nother\nthe end\nbathe\nTHE\n"
+
+[[case]]
+id = "long-options"
+argv = ["grep", "--count", "--ignore-case", "--regexp=x", "in.txt"]
+tags = ["flag:long"]
+[case.files]
+"in.txt" = "X\nx\ny\n"
+
+[[case]]
+id = "long-files-with-matches"
+argv = ["grep", "--files-with-matches", "x", "a.txt", "b.txt"]
+tags = ["flag:long", "flag:-l"]
+[case.files]
+"a.txt" = "x\n"
+"b.txt" = "y\n"
+
+[[case]]
+id = "color-never"
+argv = ["grep", "--color=never", "x", "in.txt"]
+tags = ["flag:--color"]
+[case.files]
+"in.txt" = "x\ny\n"
+
+[[case]]
+id = "null-separated-names"
+argv = ["grep", "-lZ", "x", "a.txt", "b.txt"]
+tags = ["flag:-Z", "flag:-l"]
+[case.files]
+"a.txt" = "x\n"
+"b.txt" = "x\n"
+
+[[case]]
+id = "only-matching-multiple-patterns"
+argv = ["grep", "-o", "-e", "ab", "-e", "abc", "in.txt"]
+tags = ["flag:-o", "flag:-e", "leftmost-longest"]
+[case.files]
+"in.txt" = "xabcx ab\n"
+
+[[case]]
+id = "invert-files-with-matches"
+argv = ["grep", "-lv", "x", "a.txt", "b.txt"]
+tags = ["flag:-l", "flag:-v"]
+[case.files]
+"a.txt" = "x\n"
+"b.txt" = "x\ny\n"
+
+[[case]]
+id = "files-without-match-exit"
+argv = ["grep", "-L", "x", "a.txt", "b.txt"]
+tags = ["flag:-L", "exit"]
+[case.files]
+"a.txt" = "x\n"
+"b.txt" = "x\n"
+
+[[case]]
+id = "max-count-zero"
+argv = ["grep", "-m", "0", "x", "in.txt"]
+tags = ["flag:-m", "exit"]
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "initial-tab"
+argv = ["grep", "-nT", "x", "in.txt"]
+tags = ["flag:-T"]
+[case.files]
+"in.txt" = "ax\nb\n"
+
+[[case]]
+id = "empty-file"
+argv = ["grep", "-c", "x", "empty.txt"]
+tags = ["basic", "exit"]
+[case.files]
+"empty.txt" = ""
+
+[[case]]
+id = "stdin-count"
+argv = ["grep", "-c", "error"]
+stdin = "error x\nok\nerror y\n"
+tags = ["stdin", "flag:-c"]
+
+[[case]]
+id = "dot-matches-utf8"
+argv = ["grep", "-o", "c.f", "in.txt"]
+tags = ["flag:-o", "utf8"]
+[case.files]
+"in.txt" = "café cxf c€f\n"
+
+[[case]]
+id = "fixed-ignore-case"
+argv = ["grep", "-Fi", "HELLO", "in.txt"]
+tags = ["flag:-F", "flag:-i"]
+[case.files]
+"in.txt" = "hello\nHeLLo world\nhelo\n"
+
+[[case]]
+id = "word-at-line-edges"
+argv = ["grep", "-cw", "x", "in.txt"]
+tags = ["flag:-w", "flag:-c"]
+[case.files]
+"in.txt" = "x\nx y\ny x\nxy\nyx\n"

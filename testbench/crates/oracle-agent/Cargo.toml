@@ -1,0 +1,16 @@
+[package]
+name = "oracle-agent"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Roda casos da bancada dentro do container do oráculo"
+
+[dependencies]
+anyhow.workspace = true
+harness.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,536 @@
+{
+  "date-parse-compound-relative": {
+    "stdout": "2026-01-16 10:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-date-plus-day": {
+    "stdout": "2026-01-16 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-date-plus-month-overflow": {
+    "stdout": "2026-03-03 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-datetime-plus-hours": {
+    "stdout": "2026-01-15 10:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-day-month-name-year": {
+    "stdout": "2026-03-01 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-days-ago": {
+    "stdout": "2026-01-13 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-default-output-roundtrip": {
+    "stdout": "2026-03-01 14:15:16 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-empty-string": {
+    "stdout": "2026-01-15 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-epoch": {
+    "stdout": "2023-11-14 22:13:20 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-epoch-default-output": {
+    "stdout": "Tue Nov 14 22:13:20 UTC 2023\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-epoch-fraction": {
+    "stdout": "2023-11-14 22:13:20.500000000 1700000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-epoch-negative": {
+    "stdout": "1969-12-31 23:59:59 +0000 -1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-epoch-negative-fraction": {
+    "stdout": "-2 500000000 23:59:58\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-epoch-zero": {
+    "stdout": "1970-01-01 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-fortnight": {
+    "stdout": "2026-01-29 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-friday": {
+    "stdout": "2026-01-16 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-gmt-word": {
+    "stdout": "2026-03-01 14:15:16 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-hours-ago": {
+    "stdout": "2026-01-15 09:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-in-days": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘in 3 days’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-invalid-day": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘2026-02-30’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-invalid-epoch-combined": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘@1700000000 +1 day’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-invalid-hour": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘25:00’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-invalid-military-zone-letter": {
+    "stdout": "Thu Jan 15 12:00:00 UTC 2026\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-invalid-month": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘2026-13-01’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-invalid-trailing": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘2 days agoo’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-invalid-weekday": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘next blursday’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-invalid-word": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘foo’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-iso-compact-number": {
+    "stdout": "2026-03-01 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-date": {
+    "stdout": "2026-03-01 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-date-time": {
+    "stdout": "2026-03-01 14:15:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-epoch-origin": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-fraction": {
+    "stdout": "2026-03-01 14:15:16.250000000 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-fraction-comma": {
+    "stdout": "2026-03-01 14:15:16.500 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-offset": {
+    "stdout": "2026-03-01 08:45:16 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-offset-compact": {
+    "stdout": "2026-03-01 17:15:16 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-t-separator": {
+    "stdout": "2026-03-01 14:15:16 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-utc-word": {
+    "stdout": "2026-03-01 14:15:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-iso-zulu": {
+    "stdout": "2026-03-01 14:15:16 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-last-friday": {
+    "stdout": "2026-01-09 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-last-friday-18h": {
+    "stdout": "2026-01-09 18:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-last-month": {
+    "stdout": "2025-12-15 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-last-week": {
+    "stdout": "2026-01-08 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-midnight": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘midnight’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-military-zone-letter": {
+    "stdout": "2026-01-15 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-minus-week": {
+    "stdout": "2026-01-08 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-minutes": {
+    "stdout": "2026-01-15 13:30:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-monday": {
+    "stdout": "2026-01-19 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-month-ago-overflow": {
+    "stdout": "2026-03-03 10:30:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-month-name-comma": {
+    "stdout": "2026-03-01 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-month-name-day-year": {
+    "stdout": "2026-03-01 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-month-name-only": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘march’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-next-friday": {
+    "stdout": "2026-01-16 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-next-monday-9am": {
+    "stdout": "2026-01-19 09:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-next-month": {
+    "stdout": "2026-02-15 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-next-month-overflow": {
+    "stdout": "2026-03-03 10:30:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-next-thursday": {
+    "stdout": "2026-01-22 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-next-year": {
+    "stdout": "2027-01-15 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-noon": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘noon’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-now": {
+    "stdout": "2026-01-15 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-plus-week": {
+    "stdout": "2026-01-22 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-rfc2822": {
+    "stdout": "2026-03-01 14:15:16 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-rfc2822-offset": {
+    "stdout": "2026-01-15 12:30:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-seconds-plus": {
+    "stdout": "2026-01-15 12:00:45 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-sunday-abbr": {
+    "stdout": "2026-01-18 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-third-friday": {
+    "stdout": "2026-01-30 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-this-thursday": {
+    "stdout": "2026-01-15 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-time-12am": {
+    "stdout": "2026-01-15 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-time-12pm": {
+    "stdout": "2026-01-15 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-time-9am": {
+    "stdout": "2026-01-15 09:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-time-only": {
+    "stdout": "2026-01-15 12:30:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-time-pm": {
+    "stdout": "2026-01-15 12:30:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-time-seconds": {
+    "stdout": "2026-01-15 23:59:59 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-today": {
+    "stdout": "2026-01-15 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-tomorrow": {
+    "stdout": "2026-01-16 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-tomorrow-10h": {
+    "stdout": "2026-01-16 10:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-uppercase": {
+    "stdout": "2026-01-13 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-us-slash": {
+    "stdout": "2026-03-01 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-us-slash-short-year": {
+    "stdout": "2026-03-01 00:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-year-1900": {
+    "stdout": "1900-01-01 00:00:00 +0000 -2208988800 Mon\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-year-1999": {
+    "stdout": "1999-12-31 23:59:59 +0000 946684799\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-year-2038": {
+    "stdout": "2038-01-19 03:14:08 +0000 2147483648\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-year-9999": {
+    "stdout": "9999-12-31 23:59:59 253402300799\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-year-ago": {
+    "stdout": "2025-01-15 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-year-ago-leap": {
+    "stdout": "2027-03-01 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-yesterday": {
+    "stdout": "2026-01-14 12:00:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-yesterday-noon": {
+    "stdout": "",
+    "stderr": "date: invalid date ‘yesterday noon’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "date-parse-zone-est": {
+    "stdout": "2026-03-01 19:15:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-zone-pst": {
+    "stdout": "2026-03-01 22:15:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "date-parse-zone-utc-offset": {
+    "stdout": "2026-03-01 11:15:00 +0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

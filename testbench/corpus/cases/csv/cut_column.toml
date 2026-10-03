@@ -1,0 +1,110 @@
+tool = "csv"
+source = "manual"
+
+# Não existe ferramenta GNU de CSV. Em CSV sem aspas, `cut -d, -fN` e `column -t -s,` são a referência
+# GNU/util-linux mais próxima: um front-end nosso sobre a crate `csv` que imita esses dois comandos deve
+# bater byte a byte. Onde a semântica de CSV e a desses comandos diverge de propósito (CRLF, aspas), o
+# caso fica marcado com a tag "semantics".
+
+[[case]]
+id = "csv-cut-field"
+argv = ["cut", "-d,", "-f2", "data.csv"]
+tags = ["cut"]
+[case.files]
+"data.csv" = "name,age,city\nana,30,recife\nbob,41,rio\n"
+
+[[case]]
+id = "csv-cut-list"
+argv = ["cut", "-d,", "-f1,3", "data.csv"]
+tags = ["cut"]
+[case.files]
+"data.csv" = "name,age,city\nana,30,recife\nbob,41,rio\n"
+
+[[case]]
+id = "csv-cut-range"
+argv = ["cut", "-d,", "-f2-", "data.csv"]
+tags = ["cut"]
+[case.files]
+"data.csv" = "a,b,c,d\n1,2,3,4\n"
+
+[[case]]
+id = "csv-cut-empty-fields"
+argv = ["cut", "-d,", "-f2,3", "data.csv"]
+tags = ["cut"]
+[case.files]
+"data.csv" = "a,,c\n,,\nx,y,\n"
+
+[[case]]
+id = "csv-cut-ragged"
+argv = ["cut", "-d,", "-f3", "data.csv"]
+tags = ["cut"]
+[case.files]
+"data.csv" = "a,b,c\nd,e\nf\n"
+
+[[case]]
+id = "csv-cut-no-final-newline"
+argv = ["cut", "-d,", "-f1", "data.csv"]
+tags = ["cut"]
+[case.files]
+"data.csv" = "a,b\nc,d"
+
+[[case]]
+id = "csv-cut-unicode"
+argv = ["cut", "-d,", "-f2", "data.csv"]
+tags = ["cut", "unicode"]
+[case.files]
+"data.csv" = "id,cidade\n1,são paulo\n2,brasília\n"
+
+[[case]]
+id = "csv-cut-stdin"
+argv = ["cut", "-d,", "-f1"]
+stdin = "x,1\ny,2\n"
+tags = ["cut"]
+
+[[case]]
+id = "csv-cut-crlf"
+argv = ["cut", "-d,", "-f2", "data.csv"]
+tags = ["cut", "semantics"]
+[case.files]
+"data.csv" = "a,b\r\nc,d\r\n"
+
+[[case]]
+id = "csv-cut-quoted"
+argv = ["cut", "-d,", "-f2", "data.csv"]
+tags = ["cut", "semantics"]
+[case.files]
+"data.csv" = "name,desc\nx,\"a, b\"\n"
+
+[[case]]
+id = "csv-column-basic"
+argv = ["column", "-t", "-s,", "data.csv"]
+tags = ["column"]
+[case.files]
+"data.csv" = "name,age,city\nana,30,recife\nbartolomeu,7,rio\n"
+
+[[case]]
+id = "csv-column-empty-and-ragged"
+argv = ["column", "-t", "-s,", "data.csv"]
+tags = ["column"]
+[case.files]
+"data.csv" = "name,age,city\nana,30,são paulo\nbob,,rio\ncarl,5\n"
+
+[[case]]
+id = "csv-column-unicode-width"
+argv = ["column", "-t", "-s,", "data.csv"]
+tags = ["column", "unicode"]
+[case.files]
+"data.csv" = "k,v\nção,1\nabc,2\n"
+
+[[case]]
+id = "csv-column-stdin"
+argv = ["column", "-t", "-s,"]
+stdin = "a,bb,ccc\ndddd,e,f\n"
+tags = ["column"]
+
+[[case]]
+id = "csv-column-crlf"
+argv = ["column", "-t", "-s,", "data.csv"]
+tags = ["column", "semantics"]
+[case.files]
+"data.csv" = "a,b\r\nccc,d\r\n"

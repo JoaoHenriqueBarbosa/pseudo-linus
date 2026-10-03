@@ -1,0 +1,365 @@
+tool = "jq"
+source = "agent-style"
+
+# Flags de linha de comando, variáveis, entradas e códigos de saída do jq 1.7.1.
+
+[[case]]
+id = "jq-identity-pretty"
+argv = ["jq", ".", "data.json"]
+tags = ["cli", "format"]
+[case.files]
+"data.json" = '{"users":[{"id":1,"name":"Alice","email":"alice@example.com","age":30,"tags":["admin","dev"],"active":true},{"id":2,"name":"Bob","email":null,"age":25,"tags":[],"active":false}],"meta":{"total":2,"page":1,"empty":{}}}'
+
+[[case]]
+id = "jq-compact"
+argv = ["jq", "-c", ".users[]", "data.json"]
+tags = ["cli", "format"]
+[case.files]
+"data.json" = '{"users":[{"id":1,"name":"Alice","tags":["admin","dev"]},{"id":2,"name":"Bob","tags":[]}]}'
+
+[[case]]
+id = "jq-raw-output"
+argv = ["jq", "-r", ".users[].name"]
+tags = ["cli"]
+stdin = '{"users":[{"name":"Alice"},{"name":"Bob \"B\"\n2"}]}'
+
+[[case]]
+id = "jq-raw-output-nonstring"
+argv = ["jq", "-r", ".[]"]
+tags = ["cli", "format"]
+stdin = '["s", 1, null, {"a": [1]}, true]'
+
+[[case]]
+id = "jq-join-output"
+argv = ["jq", "-j", ".[]"]
+tags = ["cli"]
+stdin = '["a", 1, "b", {"c":2}]'
+
+[[case]]
+id = "jq-combined-short-flags"
+argv = ["jq", "-rc", ".[] | [.name, .id]"]
+tags = ["cli"]
+stdin = '[{"name":"a","id":1},{"name":"b","id":2}]'
+
+[[case]]
+id = "jq-null-input"
+argv = ["jq", "-n", "1 + 1, [range(3)]"]
+tags = ["cli"]
+
+[[case]]
+id = "jq-null-input-ignores-stdin"
+argv = ["jq", "-n", "input"]
+tags = ["cli", "inputs"]
+stdin = "41 42"
+
+[[case]]
+id = "jq-slurp-length"
+argv = ["jq", "-s", "length"]
+tags = ["cli"]
+stdin = "1 2 3\n{\"a\":1}\n"
+
+[[case]]
+id = "jq-slurp-add"
+argv = ["jq", "-s", "add"]
+tags = ["cli"]
+stdin = "1\n2\n39\n"
+
+[[case]]
+id = "jq-slurp-empty-input"
+argv = ["jq", "-s", "."]
+tags = ["cli"]
+stdin = ""
+
+[[case]]
+id = "jq-empty-input-no-output"
+argv = ["jq", "."]
+tags = ["cli"]
+stdin = ""
+
+[[case]]
+id = "jq-raw-input-lines"
+argv = ["jq", "-R", "."]
+tags = ["cli"]
+stdin = "line one\n\"quoted\"\n\nlast"
+
+[[case]]
+id = "jq-raw-input-slurp"
+argv = ["jq", "-Rs", "split(\"\\n\")"]
+tags = ["cli"]
+stdin = "a\nb\n"
+
+[[case]]
+id = "jq-raw-input-null-input-inputs"
+argv = ["jq", "-nR", "[inputs | select(length > 0)]"]
+tags = ["cli", "inputs"]
+stdin = "x\n\ny\n"
+
+[[case]]
+id = "jq-exit-status-false"
+argv = ["jq", "-e", ".active"]
+tags = ["cli", "exit"]
+stdin = '{"active": false}'
+
+[[case]]
+id = "jq-exit-status-null"
+argv = ["jq", "-e", ".missing"]
+tags = ["cli", "exit"]
+stdin = '{"active": false}'
+
+[[case]]
+id = "jq-exit-status-true"
+argv = ["jq", "-e", ".active"]
+tags = ["cli", "exit"]
+stdin = '{"active": "yes"}'
+
+[[case]]
+id = "jq-exit-status-no-output"
+argv = ["jq", "-e", "empty"]
+tags = ["cli", "exit"]
+stdin = "1"
+
+[[case]]
+id = "jq-exit-status-last-value-wins"
+argv = ["jq", "-e", ".[]"]
+tags = ["cli", "exit"]
+stdin = "[false, 1, null]"
+
+[[case]]
+id = "jq-exit-status-select-pattern"
+script = "if jq -e '.items | length > 0' data.json > /dev/null; then echo has-items; else echo \"empty: $?\"; fi"
+tags = ["cli", "exit"]
+[case.files]
+"data.json" = '{"items": []}'
+
+[[case]]
+id = "jq-arg"
+argv = ["jq", "--arg", "name", "Bob", ".users[] | select(.name == $name) | .id"]
+tags = ["cli", "vars"]
+stdin = '{"users":[{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]}'
+
+[[case]]
+id = "jq-arg-is-string"
+argv = ["jq", "-n", "--arg", "n", "5", "[$n, ($n | tonumber) + 1, ($n | type)]", "-c"]
+tags = ["cli", "vars"]
+
+[[case]]
+id = "jq-argjson"
+argv = ["jq", "-c", "--argjson", "min", "28", "--argjson", "cfg", '{"x":[1,2]}', "[.[] | select(.age > $min) | .name] + $cfg.x"]
+tags = ["cli", "vars"]
+stdin = '[{"name":"a","age":30},{"name":"b","age":25}]'
+
+[[case]]
+id = "jq-argjson-invalid"
+argv = ["jq", "-n", "--argjson", "x", "{bad", "$x"]
+tags = ["cli", "errors"]
+
+[[case]]
+id = "jq-slurpfile"
+argv = ["jq", "-n", "--slurpfile", "d", "values.json", "$d | length, $d[1].k"]
+tags = ["cli", "vars"]
+[case.files]
+"values.json" = '{"k": 1} {"k": 2} 3'
+
+[[case]]
+id = "jq-rawfile"
+argv = ["jq", "-n", "--rawfile", "t", "notes.txt", "$t | length, ($t | split(\"\\n\") | length)"]
+tags = ["cli", "vars"]
+[case.files]
+"notes.txt" = "olá\nmundo\n"
+
+[[case]]
+id = "jq-args-positional"
+argv = ["jq", "-nc", "$ARGS", "--args", "a", "b c", "--", "-d"]
+tags = ["cli", "vars"]
+
+[[case]]
+id = "jq-jsonargs"
+argv = ["jq", "-nc", "$ARGS.positional", "--jsonargs", "1", '{"a":2}', "null"]
+tags = ["cli", "vars"]
+
+[[case]]
+id = "jq-args-named"
+argv = ["jq", "-nc", "--arg", "x", "1", "--argjson", "y", "2", "$ARGS.named"]
+tags = ["cli", "vars"]
+
+[[case]]
+id = "jq-undefined-variable"
+argv = ["jq", "-n", "$nope"]
+tags = ["cli", "errors"]
+
+[[case]]
+id = "jq-indent-4"
+argv = ["jq", "--indent", "4", "."]
+tags = ["cli", "format"]
+stdin = '{"a":[1,{"b":2}],"c":{}}'
+
+[[case]]
+id = "jq-indent-0"
+argv = ["jq", "--indent", "0", "."]
+tags = ["cli", "format"]
+stdin = '{"a":[1,{"b":2}],"c":{}}'
+
+[[case]]
+id = "jq-indent-too-big"
+argv = ["jq", "--indent", "9", "."]
+tags = ["cli", "errors"]
+stdin = "{}"
+
+[[case]]
+id = "jq-tab"
+argv = ["jq", "--tab", "."]
+tags = ["cli", "format"]
+stdin = '{"a":[1,{"b":2}]}'
+
+[[case]]
+id = "jq-sort-keys"
+argv = ["jq", "-S", "."]
+tags = ["cli", "format"]
+stdin = '{"b":1,"a":{"d":1,"c":2},"A":[{"z":1,"y":2}]}'
+
+[[case]]
+id = "jq-sort-keys-compact"
+argv = ["jq", "-Sc", "."]
+tags = ["cli", "format"]
+stdin = '{"b":1,"a":{"d":1,"c":2}}'
+
+[[case]]
+id = "jq-ascii-output"
+argv = ["jq", "-ac", "."]
+tags = ["cli", "format"]
+stdin = '{"s":"olá ☃ 😀"}'
+
+[[case]]
+id = "jq-raw-output0"
+argv = ["jq", "--raw-output0", ".[]"]
+tags = ["cli"]
+stdin = '["a","b"]'
+
+[[case]]
+id = "jq-from-file"
+argv = ["jq", "-f", "prog.jq", "data.json"]
+tags = ["cli"]
+[case.files]
+"prog.jq" = "# soma as idades\n[.[] | .age] | add\n"
+"data.json" = '[{"age":30},{"age":12}]'
+
+[[case]]
+id = "jq-options-after-filter"
+argv = ["jq", ".a", "data.json", "-c", "-r"]
+tags = ["cli"]
+[case.files]
+"data.json" = '{"a":{"b":"c"}}'
+
+[[case]]
+id = "jq-multiple-files"
+argv = ["jq", "-c", "[., input_filename]", "a.json", "b.json"]
+tags = ["cli", "inputs"]
+[case.files]
+"a.json" = '{"f":"a"}'
+"b.json" = '1 2'
+
+[[case]]
+id = "jq-missing-file"
+argv = ["jq", ".", "nope.json"]
+tags = ["cli", "errors"]
+
+[[case]]
+id = "jq-missing-file-among-others"
+argv = ["jq", "-c", ".", "a.json", "nope.json"]
+tags = ["cli", "errors"]
+[case.files]
+"a.json" = '{"ok":true}'
+
+[[case]]
+id = "jq-unknown-option"
+argv = ["jq", "--frobnicate", "."]
+tags = ["cli", "errors"]
+
+[[case]]
+id = "jq-no-filter-stdin"
+argv = ["jq"]
+tags = ["cli"]
+stdin = '{"a":1}'
+
+[[case]]
+id = "jq-stream-flag"
+argv = ["jq", "-c", "--stream", "."]
+tags = ["cli", "paths"]
+stdin = '{"a":[1,{"b":null}],"c":"d"}'
+
+[[case]]
+id = "jq-seq-flag"
+argv = ["jq", "--seq", "-c", "."]
+tags = ["cli", "format"]
+stdin = "[1] 2"
+
+[[case]]
+id = "jq-input-filename-stdin"
+argv = ["jq", "input_filename"]
+tags = ["cli", "inputs"]
+stdin = "1"
+
+[[case]]
+id = "jq-input-and-inputs"
+argv = ["jq", "-c", "[., input]"]
+tags = ["inputs"]
+stdin = "1 2 3 4"
+
+[[case]]
+id = "jq-input-odd-count-error"
+argv = ["jq", "-c", "[., input]"]
+tags = ["inputs", "errors"]
+stdin = "1 2 3"
+
+[[case]]
+id = "jq-null-input-inputs-reduce"
+argv = ["jq", "-n", "reduce inputs as $x (0; . + $x.v)"]
+tags = ["inputs"]
+stdin = '{"v":1}{"v":2} {"v":39}'
+
+[[case]]
+id = "jq-inputs-collect"
+argv = ["jq", "-nc", "[inputs]"]
+tags = ["inputs"]
+stdin = "1 \"a\" [2]"
+
+[[case]]
+id = "jq-env-and-ENV"
+argv = ["jq", "-n", "-c", "[env.HOME, $ENV.MY_VAR, (env | has(\"PATH\"))]"]
+tags = ["vars"]
+[case.env]
+MY_VAR = "x y"
+
+[[case]]
+id = "jq-loc"
+argv = ["jq", "-nc", "$__loc__, (1 | $__loc__)"]
+tags = ["vars"]
+
+[[case]]
+id = "jq-version"
+argv = ["jq", "--version"]
+tags = ["cli"]
+
+[[case]]
+id = "jq-pipeline-curl-style"
+script = "printf '%s' '{\"data\":[{\"id\":7,\"ok\":true},{\"id\":8,\"ok\":false}]}' | jq -r '.data[] | select(.ok) | .id'"
+tags = ["cli", "pipeline"]
+
+[[case]]
+id = "jq-pipeline-to-while-read"
+script = "jq -r '.[] | \"\\(.name)\\t\\(.size)\"' files.json | while IFS=$'\\t' read -r n s; do echo \"$n=$s\"; done"
+tags = ["cli", "pipeline"]
+[case.files]
+"files.json" = '[{"name":"a.txt","size":10},{"name":"b c.txt","size":0}]'
+
+[[case]]
+id = "jq-modify-file-via-tmp"
+script = "jq '.version = \"2.0\" | .deps += [\"x\"]' pkg.json > pkg.tmp && mv pkg.tmp pkg.json && cat pkg.json"
+tags = ["cli", "pipeline"]
+[case.files]
+"pkg.json" = '{"name":"p","version":"1.0","deps":[]}'
+
+[[case]]
+id = "jq-exit-in-set-e-script"
+script = "set -e; echo '{\"a\":1}' | jq -e '.b' || echo \"jq falhou com $?\""
+tags = ["cli", "exit", "pipeline"]

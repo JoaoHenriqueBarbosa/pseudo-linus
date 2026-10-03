@@ -1,0 +1,384 @@
+{
+  "yq-add": {
+    "stdout": "6.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "list.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "68bfadad18586ab1563b2d30b23328534f22ee2a7094f01d77b5028199556bfe",
+        "data": "items:\n  - n: 1\n  - n: 2.5\n  - n: 3\n"
+      }
+    }
+  },
+  "yq-compact": {
+    "stdout": "{\"name\":\"app\",\"ports\":[80,443],\"env\":{\"DEBUG\":\"false\",\"LEVEL\":\"info\"},\"nested\":{\"a\":{\"b\":{\"c\":[]}}}}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "config.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 89,
+        "sha256": "52442793150891e95a9218856ea3b9712e30567c6e4d25f1578a31ffe1802e23",
+        "data": "name: app\nports: [80, 443]\nenv:\n  DEBUG: \"false\"\n  LEVEL: info\nnested: {a: {b: {c: []}}}\n"
+      }
+    }
+  },
+  "yq-field-path": {
+    "stdout": "\"web\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "deploy.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "347560a63019f48d6768553468d1bc55d674fa97f3eeca47c737fe7775ed0ff6",
+        "data": "metadata:\n  name: web\n  labels:\n    app: web\n    tier: frontend\n"
+      }
+    }
+  },
+  "yq-field-raw": {
+    "stdout": "web\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "deploy.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "2e22f24fe86af2911ad31e6376e8620a767d1ecba7893bd13311c1586933520e",
+        "data": "metadata:\n  name: web\n"
+      }
+    }
+  },
+  "yq-has-del": {
+    "stdout": "true\n{\"b\":2}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "d02b8bb58aa82e872f709035f39b734b9f28dde0c3d305698a95d04aec594cfa",
+        "data": "a: 1\nb: 2\n"
+      }
+    }
+  },
+  "yq-identity": {
+    "stdout": "{\n  \"apiVersion\": \"apps/v1\",\n  \"kind\": \"Deployment\",\n  \"metadata\": {\n    \"name\": \"web\",\n    \"labels\": {\n      \"app\": \"web\",\n      \"tier\": \"frontend\"\n    }\n  },\n  \"spec\": {\n    \"replicas\": 3,\n    \"template\": {\n      \"spec\": {\n        \"containers\": [\n          {\n            \"name\": \"nginx\",\n            \"image\": \"nginx:1.27\",\n            \"ports\": [\n              {\n                \"containerPort\": 80\n              }\n            ]\n          },\n          {\n            \"name\": \"sidecar\",\n            \"image\": \"busybox\"\n          }\n        ]\n      }\n    }\n  }\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "deploy.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 309,
+        "sha256": "ad790017594a312539bf2f440ba3751c3cb372799ef1ef7862f7ea874a79e270",
+        "data": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\n  labels:\n    app: web\n    tier: frontend\nspec:\n  replicas: 3\n  template:\n    spec:\n      containers:\n        - name: nginx\n          image: nginx:1.27\n          ports:\n            - containerPort: 80\n        - name: sidecar\n          image: busybox\n"
+      }
+    }
+  },
+  "yq-indent-4": {
+    "stdout": "{\n    \"a\": {\n        \"b\": [\n            1,\n            2\n        ]\n    }\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "map.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "2cc620e1e8c10922c0e0492a70663f4f2e66deb6b09fab2e9d01f63c522a784b",
+        "data": "a:\n  b: [1, 2]\n"
+      }
+    }
+  },
+  "yq-iterate": {
+    "stdout": "{\n  \"name\": \"nginx\",\n  \"image\": \"nginx:1.27\"\n}\n{\n  \"name\": \"sidecar\",\n  \"image\": \"busybox\"\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pod.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 103,
+        "sha256": "18fb211e9fdc81b31e7e9983da1b050dc63a84584c7a9490534f395025e1d89a",
+        "data": "spec:\n  containers:\n    - name: nginx\n      image: nginx:1.27\n    - name: sidecar\n      image: busybox\n"
+      }
+    }
+  },
+  "yq-iterate-raw-names": {
+    "stdout": "nginx:1.27\nbusybox\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pod.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 103,
+        "sha256": "18fb211e9fdc81b31e7e9983da1b050dc63a84584c7a9490534f395025e1d89a",
+        "data": "spec:\n  containers:\n    - name: nginx\n      image: nginx:1.27\n    - name: sidecar\n      image: busybox\n"
+      }
+    }
+  },
+  "yq-join": {
+    "stdout": "alpha,beta,gamma\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "t.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "4c1d03d89d614e4e278a83fc6c0bd96e9c4ba121a785205ba51232ab6c718c95",
+        "data": "tags:\n  - alpha\n  - beta\n  - gamma\n"
+      }
+    }
+  },
+  "yq-keys": {
+    "stdout": "[\"alpha\",\"mid\",\"zeta\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "map.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "d072b8a15b6b003545eb9129535ddcec45700463c48648d48e74b46f4d853c53",
+        "data": "zeta: 1\nalpha: 2\nmid: 3\n"
+      }
+    }
+  },
+  "yq-keys-unsorted": {
+    "stdout": "[\"zeta\",\"alpha\",\"mid\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "map.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "d072b8a15b6b003545eb9129535ddcec45700463c48648d48e74b46f4d853c53",
+        "data": "zeta: 1\nalpha: 2\nmid: 3\n"
+      }
+    }
+  },
+  "yq-length": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "list.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "4dcfa30d6d196253de6d7e2673af0ecf4b02437624f716c4a1b00f1d4e9c10c8",
+        "data": "items:\n  - a\n  - b\n  - c\n"
+      }
+    }
+  },
+  "yq-map-arith": {
+    "stdout": "[4,3]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "svc.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 75,
+        "sha256": "8d5f4c78533ca9501da66185b9ba5717cc5fd708b78b5e45fb1235ace58ff566",
+        "data": "services:\n  - name: api\n    replicas: 2\n  - name: worker\n    replicas: 1.5\n"
+      }
+    }
+  },
+  "yq-map-select": {
+    "stdout": "[\"api\",\"cron\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "svc.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 159,
+        "sha256": "441a80717693457f8932004c117d66210f4434a117fe6a5db37cbaf60b25d0ea",
+        "data": "services:\n  - name: api\n    enabled: true\n    replicas: 2\n  - name: worker\n    enabled: false\n    replicas: 1\n  - name: cron\n    enabled: true\n    replicas: 1\n"
+      }
+    }
+  },
+  "yq-null-input": {
+    "stdout": "{\"a\":1,\"b\":[2,3]}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yq-paths": {
+    "stdout": "[[\"a\"],[\"a\",\"b\"],[\"a\",\"c\"],[\"a\",\"c\",0],[\"a\",\"c\",1]]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "tree.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "39bca7a22d2840b9812803e0c616d3b39837a0aa705dec2e1c1b708932117905",
+        "data": "a:\n  b: 1\n  c: [x, y]\n"
+      }
+    }
+  },
+  "yq-slurp": {
+    "stdout": "[\"a\",\"b\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "1e7e5f3c45fc71cc0d92ffd6a4136ce35256118f2cb9a940b09a9e336022a571",
+        "data": "name: a\n"
+      },
+      "b.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "9aa29ea4012f59d336d24b7c12ddf5dea51a5c4ba44ae92dea070ce4e893708c",
+        "data": "name: b\n"
+      }
+    }
+  },
+  "yq-sort-by": {
+    "stdout": "[\"a\",\"b\",\"c\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "list.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 61,
+        "sha256": "35e0bb914b69ba84210a4e317eed15a2475b1d0a5e1b84eff697ca809fc1d0d5",
+        "data": "items:\n  - {id: c, n: 3}\n  - {id: a, n: 1}\n  - {id: b, n: 2}\n"
+      }
+    }
+  },
+  "yq-sort-keys": {
+    "stdout": "{\n  \"alpha\": {\n    \"b\": 2,\n    \"y\": 1\n  },\n  \"zeta\": 1\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "map.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "301f1062572d5144faec076a582446221ad83936a35cadb71bc33c85b7551548",
+        "data": "zeta: 1\nalpha:\n  y: 1\n  b: 2\n"
+      }
+    }
+  },
+  "yq-stdin": {
+    "stdout": "[\n  1,\n  2\n]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yq-stdin-dash": {
+    "stdout": "{\"x\":1,\"y\":[\"a\",\"b\"]}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yq-tab": {
+    "stdout": "{\n\t\"a\": {\n\t\t\"b\": [\n\t\t\t1\n\t\t]\n\t}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "map.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "4737759cc3ed8f761156d1aa803f9c7901f2f41e12dcebdf9618c86242d4be33",
+        "data": "a:\n  b: [1]\n"
+      }
+    }
+  },
+  "yq-to-entries": {
+    "stdout": "[{\"key\":\"b\",\"value\":2},{\"key\":\"a\",\"value\":1}]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "map.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2ada5f19bba7d27d756007d4a5ac25e066e05cc4bea25e1618e12165beae48b6",
+        "data": "b: 2\na: 1\n"
+      }
+    }
+  },
+  "yq-tostring-number": {
+    "stdout": "[\"10\",\"2.5\",\"1000.0\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "9647ecf6b1cf407c5e1982300b191e0676084ce778cb433181c19258aa2a056c",
+        "data": "a: 10\nb: 2.50\nc: 1e3\n"
+      }
+    }
+  },
+  "yq-two-files": {
+    "stdout": "{\"name\":\"a\"}\n{\"name\":\"b\",\"list\":[1]}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "1e7e5f3c45fc71cc0d92ffd6a4136ce35256118f2cb9a940b09a9e336022a571",
+        "data": "name: a\n"
+      },
+      "b.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "3787ad91227ed5ac053df482895e1b0dd1e59956f5aa16beba00876db20af917",
+        "data": "name: b\nlist: [1]\n"
+      }
+    }
+  },
+  "yq-update": {
+    "stdout": "{\"replicas\":5,\"image\":\"x\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "5906ed82b71cc75e63f3b15f1c8f1c2d61a6966bd456e6857686a66c1e801098",
+        "data": "spec:\n  replicas: 3\n  image: x\n"
+      }
+    }
+  },
+  "yq-with-entries-raw": {
+    "stdout": "HOST=localhost\nPORT=8080\nTLS=true\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "env.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 48,
+        "sha256": "177a1c40755c9bdc0a983484102b7c64c9abe748f744afdb00c5c9212c2eeafc",
+        "data": "env:\n  HOST: localhost\n  PORT: 8080\n  TLS: true\n"
+      }
+    }
+  }
+}

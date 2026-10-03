@@ -1,0 +1,248 @@
+{
+  "yesno-065": {
+    "stdout": "3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n8:70:[H08 yes]\n9:80:[I09 yes]\n13:120:[M13 yes]\n14:130:[N14 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-066": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n9:85:yes\n13:125:yes\n14:135:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-067": {
+    "stdout": "2-10-[B02 no ]\n3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n6-50-[F06 no ]\n7-60-[G07 no ]\n8:70:[H08 yes]\n9:80:[I09 yes]\n10-90-[J10 no ]\n--\n12-110-[L12 no ]\n13:120:[M13 yes]\n14:130:[N14 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-068": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n9:85:yes\n--\n13:125:yes\n14:135:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-069": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n9:85:yes\nXYZ\n13:125:yes\n14:135:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-070": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n9:85:yes\n13:125:yes\n14:135:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-071": {
+    "stdout": "2-10-[B02 no ]\n3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n6-50-[F06 no ]\n7-60-[G07 no ]\n8:70:[H08 yes]\n9:80:[I09 yes]\n10-90-[J10 no ]\n--\n12-110-[L12 no ]\n13:120:[M13 yes]\n14:130:[N14 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-072": {
+    "stdout": "2-10-[B02 no ]\n3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n6-50-[F06 no ]\n7-60-[G07 no ]\n8:70:[H08 yes]\n9:80:[I09 yes]\n10-90-[J10 no ]\nXYZ\n12-110-[L12 no ]\n13:120:[M13 yes]\n14:130:[N14 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-073": {
+    "stdout": "2-10-[B02 no ]\n3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n6-50-[F06 no ]\n7-60-[G07 no ]\n8:70:[H08 yes]\n9:80:[I09 yes]\n10-90-[J10 no ]\n12-110-[L12 no ]\n13:120:[M13 yes]\n14:130:[N14 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-074": {
+    "stdout": "3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n8:70:[H08 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-075": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-076": {
+    "stdout": "2-10-[B02 no ]\n3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n6-50-[F06 no ]\n7-60-[G07 no ]\n8:70:[H08 yes]\n9-80-[I09 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-077": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-078": {
+    "stdout": "3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n8:70:[H08 yes]\n9:80:[I09 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-079": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n9:85:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-080": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n9:85:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-081": {
+    "stdout": "3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n8:70:[H08 yes]\n9:80:[I09 yes]\n13:120:[M13 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-082": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n9:85:yes\n13:125:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-083": {
+    "stdout": "2-10-[B02 no ]\n3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n6-50-[F06 no ]\n7-60-[G07 no ]\n8:70:[H08 yes]\n9:80:[I09 yes]\n10-90-[J10 no ]\n--\n12-110-[L12 no ]\n13:120:[M13 yes]\n14-130-[N14 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-084": {
+    "stdout": "3:25:yes\n4:35:yes\n5:45:yes\n8:75:yes\n9:85:yes\n--\n13:125:yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-085": {
+    "stdout": "1:0:[A01 no ]\n2:10:[B02 no ]\n6:50:[F06 no ]\n7:60:[G07 no ]\n10:90:[J10 no ]\n11:100:[K11 no ]\n12:110:[L12 no ]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-086": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-087": {
+    "stdout": "1:0:[A01 no ]\n2:10:[B02 no ]\n3-20-[C03 yes]\n--\n5-40-[E05 yes]\n6:50:[F06 no ]\n7:60:[G07 no ]\n8-70-[H08 yes]\n9-80-[I09 yes]\n10:90:[J10 no ]\n11:100:[K11 no ]\n12:110:[L12 no ]\n13-120-[M13 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-088": {
+    "stdout": "3-25-yes\n--\n5-45-yes\n8-75-yes\n9-85-yes\n13-125-yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-089": {
+    "stdout": "1:0:[A01 no ]\n2:10:[B02 no ]\n3-20-[C03 yes]\nXYZ\n5-40-[E05 yes]\n6:50:[F06 no ]\n7:60:[G07 no ]\n8-70-[H08 yes]\n9-80-[I09 yes]\n10:90:[J10 no ]\n11:100:[K11 no ]\n12:110:[L12 no ]\n13-120-[M13 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-090": {
+    "stdout": "1:0:[A01 no ]\n2:10:[B02 no ]\n3-20-[C03 yes]\n5-40-[E05 yes]\n6:50:[F06 no ]\n7:60:[G07 no ]\n8-70-[H08 yes]\n9-80-[I09 yes]\n10:90:[J10 no ]\n11:100:[K11 no ]\n12:110:[L12 no ]\n13-120-[M13 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-091": {
+    "stdout": "2-10-[B02 no ]\n3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n6-50-[F06 no ]\n7-60-[G07 no ]\n8:70:[H08 yes]\n9:80:[I09 yes]\n10-90-[J10 no ]\n--\n12-110-[L12 no ]\n13:120:[M13 yes]\n14:130:[N14 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-092": {
+    "stdout": "1:0:[A01 no ]\n2:10:[B02 no ]\n3-20-[C03 yes]\n--\n5-40-[E05 yes]\n6:50:[F06 no ]\n7:60:[G07 no ]\n8-70-[H08 yes]\n9-80-[I09 yes]\n10:90:[J10 no ]\n11:100:[K11 no ]\n12:110:[L12 no ]\n13-120-[M13 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-093": {
+    "stdout": "1:0:[A01 no ]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-094": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-095": {
+    "stdout": "1:0:[A01 no ]\n2-10-[B02 no ]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-096": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-097": {
+    "stdout": "1:0:[A01 no ]\n2:10:[B02 no ]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-098": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-099": {
+    "stdout": "1:0:[A01 no ]\n2:10:[B02 no ]\n6:50:[F06 no ]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-100": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-101": {
+    "stdout": "1:0:[A01 no ]\n2:10:[B02 no ]\n3-20-[C03 yes]\n--\n5-40-[E05 yes]\n6:50:[F06 no ]\n7-60-[G07 no ]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-102": {
+    "stdout": "3-25-yes\n--\n5-45-yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-107": {
+    "stdout": "2-10-[B02 no ]\n3:20:[C03 yes]\n4:30:[D04 yes]\n5:40:[E05 yes]\n6-50-[F06 no ]\n7-60-[G07 no ]\n8:70:[H08 yes]\n9:80:[I09 yes]\n10-90-[J10 no ]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-108": {
+    "stdout": "1:0:[A01 no ]\n2:10:[B02 no ]\n3-20-[C03 yes]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yesno-109": {
+    "stdout": "3-25-yes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,3193 @@
+# Gerado por testbench/experiments/f01-regex (binário f01-gen-cases). Não edite à mão:
+# edite experiments/f01-regex/data/agent_style.toml ou regenere a partir de corpus/upstream/grep.
+
+tool = "regex"
+source = "upstream:grep-3.11/tests/ere.tests"
+
+[[case]]
+id = "ere-001-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "ere-002-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-003-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc|de", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-004-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a|b|c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-005-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a(b)c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-005-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a(b)c\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-005-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a(b)c
+"""
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-006-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a(", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EPAREN
+"""
+
+[[case]]
+id = "ere-007-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\(', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a(
+"""
+
+[[case]]
+id = "ere-008-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a(b", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EPAREN
+"""
+
+[[case]]
+id = "ere-009-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a)", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a)
+"""
+
+[[case]]
+id = "ere-010-grep-o"
+argv = ["grep", "-ob", "-E", "-e", ")", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+)
+"""
+
+[[case]]
+id = "ere-011-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a()b", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "ere-011-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a()b\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "ere-011-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a()b
+"""
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "ere-012-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^abc$", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-013-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a^b", "s.txt"]
+tags = ["src:ere", "expect:1", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a^b
+"""
+
+[[case]]
+id = "ere-014-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a$b", "s.txt"]
+tags = ["src:ere", "expect:1", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a$b
+"""
+
+[[case]]
+id = "ere-015-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-016-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "$", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-017-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^$", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+
+"""
+
+[[case]]
+id = "ere-018-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "$^", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+
+"""
+
+[[case]]
+id = "ere-019-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^^", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+
+"""
+
+[[case]]
+id = "ere-020-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "$$", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+
+"""
+
+[[case]]
+id = "ere-021-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a*(^b$)c*", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:anchor", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+b
+"""
+
+[[case]]
+id = "ere-021-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a*(^b$)c*\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:anchor", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+b
+"""
+
+[[case]]
+id = "ere-021-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:anchor", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a*(^b$)c*
+"""
+"s.txt" = """
+b
+"""
+
+[[case]]
+id = "ere-022-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "|", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-023-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "*", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-024-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "+", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-025-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "?", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-026-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "&C", "s.txt"]
+tags = ["src:ere", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+PASS
+"""
+
+[[case]]
+id = "ere-027-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "()", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-027-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001()\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-027-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+()
+"""
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-028-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a||b", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-029-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "|ab", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-030-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab|", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-031-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(|a)b", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-031-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(|a)b\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-031-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(|a)b
+"""
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-032-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a|)b", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-032-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a|)b\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-032-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a|)b
+"""
+"s.txt" = """
+EMPTY
+"""
+
+[[case]]
+id = "ere-033-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(*a)", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-033-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(*a)\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-034-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(+a)", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-034-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(+a)\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-035-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(?a)", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-035-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(?a)\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-036-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "({1}a)", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-036-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001({1}a)\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-037-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a|*b)", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-037-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a|*b)\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-038-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a|+b)", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-038-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a|+b)\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-039-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a|?b)", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-039-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a|?b)\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-040-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a|{1}b)", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-040-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a|{1}b)\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-041-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^*", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-042-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^+", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-043-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^?", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-044-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^{1}", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-045-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a.c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-046-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[bc]d", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abd
+"""
+
+[[case]]
+id = "ere-047-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\*c', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a*c
+"""
+
+[[case]]
+id = "ere-048-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\\b', "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+a\b
+'''
+
+[[case]]
+id = "ere-049-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\\\*b', "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+a\*b
+'''
+
+[[case]]
+id = "ere-050-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\bc', "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-051-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\', "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EESCAPE
+"""
+
+[[case]]
+id = "ere-052-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\\bc', "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+a\bc
+'''
+
+[[case]]
+id = "ere-053-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\[b', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a[b
+"""
+
+[[case]]
+id = "ere-054-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[b", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-055-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a$", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "ere-056-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a$", "s.txt"]
+tags = ["src:ere", "expect:1", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a$
+"""
+
+[[case]]
+id = "ere-057-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\$', "s.txt"]
+tags = ["src:ere", "expect:1", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "ere-058-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\$', "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a$
+"""
+
+[[case]]
+id = "ere-059-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\\$', "s.txt"]
+tags = ["src:ere", "expect:1", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "ere-060-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\\$', "s.txt"]
+tags = ["src:ere", "expect:1", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a$
+"""
+
+[[case]]
+id = "ere-061-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\\$', "s.txt"]
+tags = ["src:ere", "expect:1", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+a\$
+'''
+
+[[case]]
+id = "ere-062-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\\$', "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+a\
+'''
+
+[[case]]
+id = "ere-063-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab*c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-064-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab+c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-065-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab?c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-066-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "{", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+{
+"""
+
+[[case]]
+id = "ere-067-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "{abc", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+{abc
+"""
+
+[[case]]
+id = "ere-068-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "{1", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+{1
+"""
+
+[[case]]
+id = "ere-069-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "{1}", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-070-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{b", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a{b
+"""
+
+[[case]]
+id = "ere-071-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1}b", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "ere-072-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1,}b", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "ere-073-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1,2}b", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aab
+"""
+
+[[case]]
+id = "ere-074-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a{1
+"""
+
+[[case]]
+id = "ere-075-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1a", "s.txt"]
+tags = ["src:ere", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aa
+"""
+
+[[case]]
+id = "ere-076-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1a}", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a{1a}
+"""
+
+[[case]]
+id = "ere-077-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{,2}", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a{,2}
+"""
+
+[[case]]
+id = "ere-078-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{,}", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a{,}
+"""
+
+[[case]]
+id = "ere-079-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{}", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADBR
+"""
+
+[[case]]
+id = "ere-080-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1,*}", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a{1,,,}
+"""
+
+[[case]]
+id = "ere-081-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1,x", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACE
+"""
+
+[[case]]
+id = "ere-082-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{300}", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADBR
+"""
+
+[[case]]
+id = "ere-083-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1,0}", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADBR
+"""
+
+[[case]]
+id = "ere-084-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab{0,0}c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcac
+"""
+
+[[case]]
+id = "ere-085-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab{0,1}c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcac
+"""
+
+[[case]]
+id = "ere-086-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab{0,3}c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbcac
+"""
+
+[[case]]
+id = "ere-087-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab{1,1}c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+acabc
+"""
+
+[[case]]
+id = "ere-088-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab{1,3}c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+acabc
+"""
+
+[[case]]
+id = "ere-089-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab{2,2}c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcabbc
+"""
+
+[[case]]
+id = "ere-090-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab{2,4}c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcabbc
+"""
+
+[[case]]
+id = "ere-091-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a**", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-092-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a++", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-093-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a??", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-094-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a*+", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-095-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a*?", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-096-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a+*", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-097-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a+?", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-098-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a?*", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-099-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a?+", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-100-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1}{1}", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:interval", "feat:nested-repeat", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-101-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a*{1}", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:interval", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-102-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a+{1}", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:interval", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-103-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a?{1}", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:interval", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-104-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1}*", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:interval", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-105-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1}+", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:interval", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-106-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a{1}?", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:interval", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+BADRPT
+"""
+
+[[case]]
+id = "ere-107-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a*{b}", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a{b}
+"""
+
+[[case]]
+id = "ere-108-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[b]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-109-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[ab]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-110-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^ab]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+adc
+"""
+
+[[case]]
+id = "ere-111-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[]b]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a]c
+"""
+
+[[case]]
+id = "ere-112-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[b]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a[c
+"""
+
+[[case]]
+id = "ere-113-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[-b]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a-c
+"""
+
+[[case]]
+id = "ere-114-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^]b]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+adc
+"""
+
+[[case]]
+id = "ere-115-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^-b]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+adc
+"""
+
+[[case]]
+id = "ere-116-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[b-]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a-c
+"""
+
+[[case]]
+id = "ere-117-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[b", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-118-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[]", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-119-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[1-3]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a2c
+"""
+
+[[case]]
+id = "ere-120-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[3-1]c", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ERANGE
+"""
+
+[[case]]
+id = "ere-121-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[1-3-5]c", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ERANGE
+"""
+
+[[case]]
+id = "ere-122-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.-.]--]c", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a-c
+"""
+
+[[case]]
+id = "ere-123-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[1-", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ERANGE
+"""
+
+[[case]]
+id = "ere-124-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-125-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.x", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-126-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.x.", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-127-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.x.]", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-128-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.x.]]", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ax
+"""
+
+[[case]]
+id = "ere-129-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.x,.]]", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ECOLLATE
+"""
+
+[[case]]
+id = "ere-130-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.one.]]b", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a1b
+"""
+
+[[case]]
+id = "ere-131-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.notdef.]]b", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ECOLLATE
+"""
+
+[[case]]
+id = "ere-132-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[.].]]b", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a]b
+"""
+
+[[case]]
+id = "ere-133-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:alpha:]]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:posix-class", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-134-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:notdef:]]c", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ECTYPE
+"""
+
+[[case]]
+id = "ere-135-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-136-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:alpha", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-137-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:alpha:]", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-138-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:alpha,:]", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ECTYPE
+"""
+
+[[case]]
+id = "ere-139-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:]:]]b", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ECTYPE
+"""
+
+[[case]]
+id = "ere-140-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:-:]]b", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ECTYPE
+"""
+
+[[case]]
+id = "ere-141-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:alph:]]", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ECTYPE
+"""
+
+[[case]]
+id = "ere-142-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:alphabet:]]", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ECTYPE
+"""
+
+[[case]]
+id = "ere-143-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:digit:]]+", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:posix-class", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a019b
+"""
+
+[[case]]
+id = "ere-144-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:lower:]]+", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:posix-class", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+AabC
+"""
+
+[[case]]
+id = "ere-145-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:upper:]]+", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:posix-class", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aBCd
+"""
+
+[[case]]
+id = "ere-146-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:xdigit:]]+", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:posix-class", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+p0f3Cq
+"""
+
+[[case]]
+id = "ere-147-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[=b=]]c", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-148-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[=", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-149-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[=b", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-150-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[=b=", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-151-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[=b=]", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+EBRACK
+"""
+
+[[case]]
+id = "ere-152-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[=b,=]]", "s.txt"]
+tags = ["src:ere", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ECOLLATE
+"""
+
+[[case]]
+id = "ere-153-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[=one=]]b", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a1b
+"""
+
+[[case]]
+id = "ere-154-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a(((b)))c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-154-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a(((b)))c\u0001\u0002&\u0003\\1\u0003\\2\u0003\\3\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-154-gawk"
+argv = ["gawk", "-v", "N=3", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a(((b)))c
+"""
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-155-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a(b|(c))d", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abd
+"""
+
+[[case]]
+id = "ere-155-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a(b|(c))d\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abd
+"""
+
+[[case]]
+id = "ere-155-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a(b|(c))d
+"""
+"s.txt" = """
+abd
+"""
+
+[[case]]
+id = "ere-156-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a(b*|c)d", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbd
+"""
+
+[[case]]
+id = "ere-156-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a(b*|c)d\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbd
+"""
+
+[[case]]
+id = "ere-156-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a(b*|c)d
+"""
+"s.txt" = """
+abbd
+"""
+
+[[case]]
+id = "ere-157-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[ab]{20}", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aaaaabaaaabaaaabaaaab
+"""
+
+[[case]]
+id = "ere-158-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab]", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aaaaabaaaabaaaabaaaab
+"""
+
+[[case]]
+id = "ere-159-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab](wee|week)(knights|night)", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aaaaabaaaabaaaabaaaabweeknights
+"""
+
+[[case]]
+id = "ere-159-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a[ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab](wee|week)(knights|night)\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aaaaabaaaabaaaabaaaabweeknights
+"""
+
+[[case]]
+id = "ere-159-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a[ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab][ab](wee|week)(knights|night)
+"""
+"s.txt" = """
+aaaaabaaaabaaaabaaaabweeknights
+"""
+
+[[case]]
+id = "ere-160-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "12345678901234567890123456789", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a12345678901234567890123456789b
+"""
+
+[[case]]
+id = "ere-161-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "123456789012345678901234567890", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a123456789012345678901234567890b
+"""
+
+[[case]]
+id = "ere-162-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "1234567890123456789012345678901", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a1234567890123456789012345678901b
+"""
+
+[[case]]
+id = "ere-163-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "12345678901234567890123456789012", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a12345678901234567890123456789012b
+"""
+
+[[case]]
+id = "ere-164-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "123456789012345678901234567890123", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a123456789012345678901234567890123b
+"""
+
+[[case]]
+id = "ere-165-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "1234567890123456789012345678901234567890123456789012345678901234567890", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a1234567890123456789012345678901234567890123456789012345678901234567890b
+"""
+
+[[case]]
+id = "ere-166-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[ab][cd][ef][gh][ij][kl][mn]", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xacegikmoq
+"""
+
+[[case]]
+id = "ere-167-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[ab][cd][ef][gh][ij][kl][mn][op]", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xacegikmoq
+"""
+
+[[case]]
+id = "ere-168-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[ab][cd][ef][gh][ij][kl][mn][op][qr]", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xacegikmoqy
+"""
+
+[[case]]
+id = "ere-169-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[ab][cd][ef][gh][ij][kl][mn][op][q]", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xacegikmoqy
+"""
+
+[[case]]
+id = "ere-170-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xabcy
+"""
+
+[[case]]
+id = "ere-171-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "aBc", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+Abc
+"""
+
+[[case]]
+id = "ere-172-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[Bc]*d", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:bracket", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abBCcd
+"""
+
+[[case]]
+id = "ere-173-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "0[[:upper:]]1", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:bracket", "feat:posix-class", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+0a1
+"""
+
+[[case]]
+id = "ere-174-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "0[[:lower:]]1", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:bracket", "feat:posix-class", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+0A1
+"""
+
+[[case]]
+id = "ere-175-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^b]c", "s.txt"]
+tags = ["src:ere", "expect:1", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-176-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^b]c", "s.txt"]
+tags = ["src:ere", "expect:1", "upstream-todo", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aBc
+"""
+
+[[case]]
+id = "ere-177-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^b]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+adc
+"""
+
+[[case]]
+id = "ere-178-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[a]b[c]", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-179-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[a]b[a]", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aba
+"""
+
+[[case]]
+id = "ere-180-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[abc]b[abc]", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "ere-181-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[abc]b[abd]", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abd
+"""
+
+[[case]]
+id = "ere-182-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a(b?c)+d", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+accd
+"""
+
+[[case]]
+id = "ere-182-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a(b?c)+d\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+accd
+"""
+
+[[case]]
+id = "ere-182-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a(b?c)+d
+"""
+"s.txt" = """
+accd
+"""
+
+[[case]]
+id = "ere-183-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(wee|week)(knights|night)", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+weeknights
+"""
+
+[[case]]
+id = "ere-183-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(wee|week)(knights|night)\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+weeknights
+"""
+
+[[case]]
+id = "ere-183-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(wee|week)(knights|night)
+"""
+"s.txt" = """
+weeknights
+"""
+
+[[case]]
+id = "ere-184-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(we|wee|week|frob)(knights|night|day)", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+weeknights
+"""
+
+[[case]]
+id = "ere-184-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(we|wee|week|frob)(knights|night|day)\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+weeknights
+"""
+
+[[case]]
+id = "ere-184-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(we|wee|week|frob)(knights|night|day)
+"""
+"s.txt" = """
+weeknights
+"""
+
+[[case]]
+id = "ere-185-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[bc]d", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyzaaabcaababdacd
+"""
+
+[[case]]
+id = "ere-186-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[ab]c", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aaabc
+"""
+
+[[case]]
+id = "ere-187-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a*", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+b
+"""
+
+[[case]]
+id = "ere-188-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*.*\*/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/
+"""
+
+[[case]]
+id = "ere-189-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*.*\*/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/y/*z*/
+"""
+
+[[case]]
+id = "ere-190-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*([^*]|\*[^/])*\*/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/
+"""
+
+[[case]]
+id = "ere-190-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001/\\*([^*]|\\*[^/])*\\*/\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/
+"""
+
+[[case]]
+id = "ere-191-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*([^*]|\*[^/])*\*/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/y/*z*/
+"""
+
+[[case]]
+id = "ere-191-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001/\\*([^*]|\\*[^/])*\\*/\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/y/*z*/
+"""
+
+[[case]]
+id = "ere-192-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*([^*]|\*[^/])*\*/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x**/y/*z*/
+"""
+
+[[case]]
+id = "ere-192-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001/\\*([^*]|\\*[^/])*\\*/\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x**/y/*z*/
+"""
+
+[[case]]
+id = "ere-193-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*([^*]|\*+[^*/])*\*+/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/
+"""
+
+[[case]]
+id = "ere-193-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001/\\*([^*]|\\*+[^*/])*\\*+/\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/
+"""
+
+[[case]]
+id = "ere-194-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*([^*]|\*+[^*/])*\*+/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/y/*z*/
+"""
+
+[[case]]
+id = "ere-194-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001/\\*([^*]|\\*+[^*/])*\\*+/\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x*/y/*z*/
+"""
+
+[[case]]
+id = "ere-195-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*([^*]|\*+[^*/])*\*+/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x**/y/*z*/
+"""
+
+[[case]]
+id = "ere-195-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001/\\*([^*]|\\*+[^*/])*\\*+/\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x**/y/*z*/
+"""
+
+[[case]]
+id = "ere-196-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*([^*]|\*+[^*/])*\*+/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x****/y/*z*/
+"""
+
+[[case]]
+id = "ere-196-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001/\\*([^*]|\\*+[^*/])*\\*+/\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x****/y/*z*/
+"""
+
+[[case]]
+id = "ere-197-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*([^*]|\*+[^*/])*\*+/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x**x*/y/*z*/
+"""
+
+[[case]]
+id = "ere-197-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001/\\*([^*]|\\*+[^*/])*\\*+/\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x**x*/y/*z*/
+"""
+
+[[case]]
+id = "ere-198-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '/\*([^*]|\*+[^*/])*\*+/', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x***x/y/*z*/
+"""
+
+[[case]]
+id = "ere-198-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001/\\*([^*]|\\*+[^*/])*\\*+/\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+/*x***x/y/*z*/
+"""
+
+[[case]]
+id = "ere-199-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "aZb", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "ere-200-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:<:]]a", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "ere-201-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:<:]]a", "s.txt"]
+tags = ["src:ere", "expect:1", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ba
+"""
+
+[[case]]
+id = "ere-202-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:<:]]a", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-a
+"""
+
+[[case]]
+id = "ere-203-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:>:]]", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "ere-204-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:>:]]", "s.txt"]
+tags = ["src:ere", "expect:1", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "ere-205-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[[:>:]]", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a-
+"""
+
+[[case]]
+id = "ere-206-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:<:]]a.c[[:>:]]", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+axcd-dayc-dazce-abc
+"""
+
+[[case]]
+id = "ere-207-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:<:]]a.c[[:>:]]", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+axcd-dayc-dazce-abc-q
+"""
+
+[[case]]
+id = "ere-208-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:<:]]a.c[[:>:]]", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+axc-dayc-dazce-abc
+"""
+
+[[case]]
+id = "ere-209-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:<:]]b.c[[:>:]]", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a_bxc-byc_d-bzc-q
+"""
+
+[[case]]
+id = "ere-210-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:<:]].x..[[:>:]]", "s.txt"]
+tags = ["src:ere", "expect:0", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+y_xa_-_xb_y-_xc_-axdc
+"""
+
+[[case]]
+id = "ere-211-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[[:<:]]a_b[[:>:]]", "s.txt"]
+tags = ["src:ere", "expect:1", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+x_a_b
+"""
+
+[[case]]
+id = "ere-212-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(A[1])|(A[2])|(A[3])|(A[4])|(A[5])|(A[6])|(A[7])|(A[8])|(A[9])|(A[A])", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+A1
+"""
+
+[[case]]
+id = "ere-212-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(A[1])|(A[2])|(A[3])|(A[4])|(A[5])|(A[6])|(A[7])|(A[8])|(A[9])|(A[A])\u0001\u0002&\u0003\\1\u0003\\2\u0003\\3\u0003\\4\u0003\\5\u0003\\6\u0003\\7\u0003\\8\u0003\\9\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+A1
+"""
+
+[[case]]
+id = "ere-212-gawk"
+argv = ["gawk", "-v", "N=10", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(A[1])|(A[2])|(A[3])|(A[4])|(A[5])|(A[6])|(A[7])|(A[8])|(A[9])|(A[A])
+"""
+"s.txt" = """
+A1
+"""
+
+[[case]]
+id = "ere-213-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abcdefghijklmnop", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcdefghijklmnop
+"""
+
+[[case]]
+id = "ere-214-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abcdefghijklmnopqrstuv", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcdefghijklmnopqrstuv
+"""
+
+[[case]]
+id = "ere-215-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "CC[13]1|a{21}[23][EO][123][Es][12]a{15}aa[34][EW]aaaaaaa[X]a", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:bracket", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+CC11
+"""
+
+[[case]]
+id = "ere-216-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a?b", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "ere-217-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "b{1000000000}", "s.txt"]
+tags = ["src:ere", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ESIZE
+"""
+
+[[case]]
+id = "ere-218-grep-o"
+argv = ["grep", "-ob", "-E", "-e", ")", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+)
+"""
+
+[[case]]
+id = "ere-219-grep-o"
+argv = ["grep", "-ob", "-E", "-e", ")", "s.txt"]
+tags = ["src:ere", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+x
+"""
+
+[[case]]
+id = "ere-220-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '\()\((a\())(b))', "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+()(a()b)
+"""
+
+[[case]]
+id = "ere-220-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001\\()\\((a\\())(b))\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+()(a()b)
+"""
+
+[[case]]
+id = "ere-220-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:ere", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = '''
+\()\((a\())(b))
+'''
+"s.txt" = """
+()(a()b)
+"""
+
+[[case]]
+id = "ere-222-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a+a+a", "s.txt"]
+tags = ["src:ere", "expect:1", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aa
+"""

@@ -1,0 +1,21 @@
+# Manifesto de sonda: nunca é compilado. Serve só pro `cargo metadata` resolver e baixar as fontes de
+# candidatos descartados sem compilar (libgit2 é C), pra que o depscan e a varredura de API rodem neles.
+[package]
+name = "f12-probes"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+
+[workspace]
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+git2 = { version = "=0.21.0", default-features = false }
+turso = { version = "=0.8.1", default-features = false }
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,20 @@
+[package]
+name = "harness"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Modelo de caso, FS de fixture, comparação diferencial e resultados da bancada"
+
+[dependencies]
+anyhow.workspace = true
+base64.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+toml.workspace = true
+humantime = "2"
+
+[lints]
+workspace = true

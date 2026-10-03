@@ -1,0 +1,278 @@
+tool = "diff"
+source = "agent-style"
+
+# Formatos de saída (normal, unificado, contexto), agrupamento de hunks, -q, -s, rótulos e exit codes.
+# Todas as fixtures têm mtime fixo (2026-01-15 12:00:00 UTC), então os cabeçalhos com data são
+# determinísticos.
+
+[[case]]
+id = "diff-normal-change"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["normal"]
+[case.files]
+"a.txt" = "one\ntwo\nthree\n"
+"b.txt" = "one\nTWO\nthree\n"
+
+[[case]]
+id = "diff-normal-add"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["normal"]
+[case.files]
+"a.txt" = "one\ntwo\nthree\n"
+"b.txt" = "one\ntwo\ntwo and a half\nthree\nfour\n"
+
+[[case]]
+id = "diff-normal-delete"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["normal"]
+[case.files]
+"a.txt" = "zero\none\ntwo\nthree\nfour\n"
+"b.txt" = "one\nthree\n"
+
+[[case]]
+id = "diff-normal-mixed"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["normal"]
+[case.files]
+"a.txt" = "alpha\nbeta\ngamma\ndelta\nepsilon\nzeta\neta\ntheta\n"
+"b.txt" = "alpha\nBETA\nBETA2\ngamma\nepsilon\nzeta\nnew\neta\n"
+
+[[case]]
+id = "diff-normal-explicit-flag"
+argv = ["diff", "--normal", "a.txt", "b.txt"]
+tags = ["normal"]
+[case.files]
+"a.txt" = "x\ny\n"
+"b.txt" = "x\nz\n"
+
+[[case]]
+id = "diff-identical"
+argv = ["diff", "a.txt", "b.txt"]
+tags = ["exit"]
+[case.files]
+"a.txt" = "same\ncontent\n"
+"b.txt" = "same\ncontent\n"
+
+[[case]]
+id = "diff-identical-u"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["exit", "unified"]
+[case.files]
+"a.txt" = "same\ncontent\n"
+"b.txt" = "same\ncontent\n"
+
+[[case]]
+id = "diff-u-basic"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified"]
+[case.files]
+"a.txt" = "one\ntwo\nthree\nfour\nfive\nsix\nseven\n"
+"b.txt" = "one\ntwo\nthree\nFOUR\nfive\nsix\nseven\n"
+
+[[case]]
+id = "diff-u-first-line"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified"]
+[case.files]
+"a.txt" = "head\nl2\nl3\nl4\nl5\nl6\n"
+"b.txt" = "HEAD\nl2\nl3\nl4\nl5\nl6\n"
+
+[[case]]
+id = "diff-u-last-line"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified"]
+[case.files]
+"a.txt" = "l1\nl2\nl3\nl4\nl5\ntail\n"
+"b.txt" = "l1\nl2\nl3\nl4\nl5\nTAIL\n"
+
+[[case]]
+id = "diff-u-append"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified"]
+[case.files]
+"a.txt" = "l1\nl2\nl3\nl4\nl5\n"
+"b.txt" = "l1\nl2\nl3\nl4\nl5\nl6\nl7\n"
+
+[[case]]
+id = "diff-u-prepend"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified"]
+[case.files]
+"a.txt" = "l1\nl2\nl3\nl4\nl5\n"
+"b.txt" = "l0\nl1\nl2\nl3\nl4\nl5\n"
+
+[[case]]
+id = "diff-u-pure-delete-middle"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified"]
+[case.files]
+"a.txt" = "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8\nl9\n"
+"b.txt" = "l1\nl2\nl3\nl4\nl6\nl7\nl8\nl9\n"
+
+[[case]]
+id = "diff-u-whole-replace"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified"]
+[case.files]
+"a.txt" = "a\nb\nc\n"
+"b.txt" = "x\ny\n"
+
+[[case]]
+id = "diff-u-two-hunks"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified", "hunks"]
+[case.files]
+"a.txt" = "l01\nl02\nl03\nl04\nl05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\nl13\nl14\nl15\nl16\nl17\nl18\nl19\nl20\n"
+"b.txt" = "l01\nl02\nL03\nl04\nl05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\nl13\nl14\nl15\nl16\nL17\nl18\nl19\nl20\n"
+
+[[case]]
+id = "diff-u-gap-six-merges"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified", "hunks"]
+[case.files]
+"a.txt" = "l01\nl02\nl03\nl04\nl05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\nl13\nl14\nl15\nl16\nl17\nl18\nl19\nl20\n"
+"b.txt" = "l01\nl02\nl03\nl04\nL05\nl06\nl07\nl08\nl09\nl10\nl11\nL12\nl13\nl14\nl15\nl16\nl17\nl18\nl19\nl20\n"
+
+[[case]]
+id = "diff-u-gap-seven-splits"
+argv = ["diff", "-u", "a.txt", "b.txt"]
+tags = ["unified", "hunks"]
+[case.files]
+"a.txt" = "l01\nl02\nl03\nl04\nl05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\nl13\nl14\nl15\nl16\nl17\nl18\nl19\nl20\n"
+"b.txt" = "l01\nl02\nl03\nl04\nL05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\nL13\nl14\nl15\nl16\nl17\nl18\nl19\nl20\n"
+
+[[case]]
+id = "diff-U0"
+argv = ["diff", "-U0", "a.txt", "b.txt"]
+tags = ["unified", "hunks"]
+[case.files]
+"a.txt" = "l1\nl2\nl3\nl4\nl5\nl6\nl7\n"
+"b.txt" = "l1\nL2\nl3\nl5\nl6\nnew\nl7\n"
+
+[[case]]
+id = "diff-U1"
+argv = ["diff", "-U", "1", "a.txt", "b.txt"]
+tags = ["unified", "hunks"]
+[case.files]
+"a.txt" = "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8\n"
+"b.txt" = "l1\nL2\nl3\nl4\nl5\nL6\nl7\nl8\n"
+
+[[case]]
+id = "diff-U5"
+argv = ["diff", "-U5", "a.txt", "b.txt"]
+tags = ["unified", "hunks"]
+[case.files]
+"a.txt" = "l01\nl02\nl03\nl04\nl05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\n"
+"b.txt" = "l01\nl02\nl03\nl04\nl05\nl06\nCHANGED\nl08\nl09\nl10\nl11\nl12\n"
+
+[[case]]
+id = "diff-unified-long-option"
+argv = ["diff", "--unified=2", "a.txt", "b.txt"]
+tags = ["unified"]
+[case.files]
+"a.txt" = "a\nb\nc\nd\ne\nf\ng\n"
+"b.txt" = "a\nb\nc\nD\ne\nf\ng\n"
+
+[[case]]
+id = "diff-u-labels"
+argv = ["diff", "-u", "--label", "old/config.yaml", "--label", "new/config.yaml", "a.txt", "b.txt"]
+tags = ["unified", "labels"]
+[case.files]
+"a.txt" = "port: 80\nhost: localhost\n"
+"b.txt" = "port: 8080\nhost: localhost\n"
+
+[[case]]
+id = "diff-u-label-equals"
+argv = ["diff", "-u", "--label=left", "--label=right", "a.txt", "b.txt"]
+tags = ["unified", "labels"]
+[case.files]
+"a.txt" = "1\n"
+"b.txt" = "2\n"
+
+[[case]]
+id = "diff-c-basic"
+argv = ["diff", "-c", "a.txt", "b.txt"]
+tags = ["context"]
+[case.files]
+"a.txt" = "one\ntwo\nthree\nfour\nfive\nsix\nseven\n"
+"b.txt" = "one\ntwo\nthree\nFOUR\nfive\nsix\nseven\n"
+
+[[case]]
+id = "diff-c-add-only"
+argv = ["diff", "-c", "a.txt", "b.txt"]
+tags = ["context"]
+[case.files]
+"a.txt" = "one\ntwo\nthree\n"
+"b.txt" = "one\ntwo\ninserted\nthree\n"
+
+[[case]]
+id = "diff-c-delete-only"
+argv = ["diff", "-c", "a.txt", "b.txt"]
+tags = ["context"]
+[case.files]
+"a.txt" = "one\ntwo\ngone\nthree\n"
+"b.txt" = "one\ntwo\nthree\n"
+
+[[case]]
+id = "diff-c-mixed-two-hunks"
+argv = ["diff", "-c", "a.txt", "b.txt"]
+tags = ["context", "hunks"]
+[case.files]
+"a.txt" = "l01\nl02\nl03\nl04\nl05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\nl13\nl14\nl15\nl16\nl17\nl18\nl19\nl20\n"
+"b.txt" = "l01\nl02\nL03\nl04\nl05\nl06\nl07\nl08\nl09\nl10\nl11\nl12\nl13\nl14\nl15\nl17\nl18\nadded\nl19\nl20\n"
+
+[[case]]
+id = "diff-C1"
+argv = ["diff", "-C", "1", "a.txt", "b.txt"]
+tags = ["context"]
+[case.files]
+"a.txt" = "a\nb\nc\nd\ne\n"
+"b.txt" = "a\nb\nX\nd\ne\n"
+
+[[case]]
+id = "diff-q-differ"
+argv = ["diff", "-q", "a.txt", "b.txt"]
+tags = ["brief", "exit"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "diff-q-same"
+argv = ["diff", "-q", "a.txt", "b.txt"]
+tags = ["brief", "exit"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "a\n"
+
+[[case]]
+id = "diff-brief-long"
+argv = ["diff", "--brief", "a.txt", "b.txt"]
+tags = ["brief", "exit"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "a\nb\n"
+
+[[case]]
+id = "diff-s-same"
+argv = ["diff", "-s", "a.txt", "b.txt"]
+tags = ["brief", "exit"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "a\n"
+
+[[case]]
+id = "diff-s-differ-u"
+argv = ["diff", "-s", "-u", "a.txt", "b.txt"]
+tags = ["unified", "exit"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "diff-e-ed-script"
+argv = ["diff", "-e", "a.txt", "b.txt"]
+tags = ["ed"]
+[case.files]
+"a.txt" = "one\ntwo\nthree\nfour\n"
+"b.txt" = "one\nTWO\nthree\nfour\nfive\n"

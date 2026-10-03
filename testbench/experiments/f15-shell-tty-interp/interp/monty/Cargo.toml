@@ -1,0 +1,16 @@
+[package]
+name = "f15-interp-monty"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F17: Monty (subconjunto de Python da pydantic) embutido, com I/O só pelo nosso lado"
+
+[dependencies]
+f15-interp-common = { path = "../common" }
+monty = "=1.0.0"
+monty-types = "=1.0.0"
+
+[lints.rust]
+unsafe_code = "forbid"

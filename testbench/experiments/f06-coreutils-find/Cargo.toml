@@ -1,0 +1,39 @@
+[package]
+name = "f06-coreutils-find"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F06/F07: porte real de uutils (cat, sort, ls, head, wc) e findutils (find, xargs) pra um shim sysio sobre MemTree"
+
+# Workspace próprio: cada experimento compila isolado (ver testbench/Cargo.toml).
+# - `original/`: multicall com os utilitários originais do crates.io, sem alteração.
+# - `crates/sysio`: o shim (std::fs/std::io sobre MemTree, contexto de processo por thread).
+# - `ported/*`: cópias vendorizadas do uutils/findutils com o porte aplicado por Edit.
+[workspace]
+members = [".", "original", "crates/sysio"]
+
+[dependencies]
+anyhow = "1"
+harness = { path = "../../crates/harness" }
+depscan = { path = "../../crates/depscan" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+cargo_metadata = "0.23"
+similar = "2"
+walkdir = "2"
+sysio = { path = "crates/sysio" }
+uucore = { path = "ported/uucore-0.12.0", package = "port-uucore" }
+uu_cat = { path = "ported/uu_cat-0.12.0", package = "port-uu-cat" }
+uu_head = { path = "ported/uu_head-0.12.0", package = "port-uu-head" }
+uu_wc = { path = "ported/uu_wc-0.12.0", package = "port-uu-wc" }
+uu_sort = { path = "ported/uu_sort-0.12.0", package = "port-uu-sort" }
+uu_ls = { path = "ported/uu_ls-0.12.0", package = "port-uu-ls" }
+findutils = { path = "ported/findutils-0.10.0", package = "port-findutils" }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+debug = "line-tables-only"

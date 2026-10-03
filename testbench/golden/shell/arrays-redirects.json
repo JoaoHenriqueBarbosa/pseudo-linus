@@ -1,0 +1,237 @@
+{
+  "array-assoc-iteration-order": {
+    "stdout": "teta alfa eta delta epsilon beta zeta gama\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "array-assoc-ops": {
+    "stdout": "amarela 4\nbanana=amarela\nkiwi=verde\nmaçã=vermelha\nuva=roxa\ntem uva\nsem uva\na:3\nb:2\nc:1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "array-indexed-ops": {
+    "stdout": "5 dois três dez 0 1 2 3 10\nzero dois três quatro dez\n[zero][dois três][quatro][dez]\ndois três quatro\n3\nzero dois três quatro dez -zero -dois três -quatro -dez\n1 2 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "background-jobs-wait": {
+    "stdout": "w1=0\nw2=4\nbg1\ntodos\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bg1.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "9230d4feacdc2cb62b78393f37e04ec61f13b0ee2bed8ca954ee288d1f9708c7",
+        "data": "bg1\n"
+      }
+    }
+  },
+  "coproc-basic": {
+    "stdout": "TEXTO\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "env-and-export": {
+    "stdout": "filho vê: sim nada\nsó-no-comando\ndepois: vazio\nenv -i: 1 sem home\n/root root C.UTF-8 UTC\napós unset: sumiu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "long-agent-script": {
+    "stdout": "a.txt          2 linhas   3 palavras\nb.txt          3 linhas   5 palavras\ntotal=5 arquivos=2\nflag\nsummary.txt\n",
+    "stderr": "ignorando missing.txt\n",
+    "exit": 0,
+    "files": {
+      "build": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "build/flag": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "3fd108af3e27fc8b748fe975e585a9666d096c2ef496c4a66638356b993b51a8",
+        "data": "grande\n"
+      },
+      "build/summary.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "b12ccdad0ef8d433e0f4d6a629c76946405a0ad299f8c4b570590dcc70d71b16",
+        "data": "total=5 arquivos=2\n"
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "178b6bef35ab37f71391ba5dade41f7032062feb66beb27ce6411641e5034089",
+        "data": "um dois\ntrês\n"
+      },
+      "src/b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "2b290774d2c15d82d94cf2ce77bca8e44ccab49ddb72cf03a6d2772baa2f7569",
+        "data": "quatro cinco seis\nsete\noito\n"
+      }
+    }
+  },
+  "mapfile-readarray": {
+    "stdout": "4: linha2\nlinha2 linha3\n[a][b][c\n]\n$'x\\n' $'y\\n' \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dados.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "1f539be13022098aada1953b2c34a6722617971e6f88b0d5156730f10307afc5",
+        "data": "linha1\nlinha2\nlinha3\nlinha4\n"
+      }
+    }
+  },
+  "pipeline-common-agent": {
+    "stdout": "      2 INFO\n      2 ERROR\n2\n15\n5 ./log.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 102,
+        "sha256": "bca9afec55b55a958a23af95f3a558f56426900ec860f37a52b4a44d8aa4ad36",
+        "data": "2026 INFO id=1 start\n2026 ERROR id=2 falha\n2026 DEBUG id=3 x\n2026 ERROR id=4 falha\n2026 INFO id=5 fim\n"
+      }
+    }
+  },
+  "pipeline-sigpipe-producers": {
+    "stdout": "y\ny\n1\n  \\0  \\0  \\0  \\0  \\0\n141 0 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "redirect-fd-manipulation": {
+    "stdout": "lido: via 3\nfd nomeado\nerro\nbash: line N: echo: write error: Bad file descriptor\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "fd3.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "a592ebbd5ad0577f0cb35642eb33510e91f0512200105af170f88a101e96ce80",
+        "data": "via 3\n"
+      },
+      "named.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c9c030bd72418ebfa768cb5ad239fbcbe6e1fc1d65a3b7e7c6d35b342cc6060d",
+        "data": "fd nomeado\n"
+      }
+    }
+  },
+  "redirect-input-and-dup": {
+    "stdout": "3\nabacate\nmanga\npera\nPERA\nmanga\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "entrada.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "8fbd25ef4ddfe5e61d2e0c5ec552d07face68e3d5fd5580053fdb96baf9b5e18",
+        "data": "pera\nabacate\nmanga\n"
+      },
+      "ordenado.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "b12980723c4b4816932b623ed461bfbb3031823a798b5b3992aaaa2301cb0d88",
+        "data": "abacate\nmanga\npera\n"
+      }
+    }
+  },
+  "redirect-noclobber-and-errors": {
+    "stdout": "rc=1\nc\nrc=1\nrc=1\nrc=1\n",
+    "stderr": "bash: line 3: f.txt: cannot overwrite existing file\nbash: line 6: naoexiste.txt: No such file or directory\nbash: line 7: dir/: Is a directory\nbash: line 8: /proc/naopode: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a3a5e715f0cc574a73c3f9bebb6bc24f32ffd5b67b387244c2c909da779a1478",
+        "data": "c\n"
+      }
+    }
+  },
+  "redirect-stdout-stderr-combos": {
+    "stdout": "pipe:err\n2\no1: out out \ne1: err \nboth: out err \nonly_out: out \namp: out err out err \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "amp.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "06b8514909ab080cc86214f616a4d11eb6c99187ebf9b40592f34c3f1ebe5443",
+        "data": "out\nerr\nout\nerr\n"
+      },
+      "both.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "9f345aa1474b011fb7f938c3c12eb48e8b583d94bdbe1235d9e972cfe5b1b4ef",
+        "data": "out\nerr\n"
+      },
+      "e1.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2ccde4875ec595757efdf23d7b1336fcd69cf0fb869310b12a0d219c52817b20",
+        "data": "err\n"
+      },
+      "o1.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "c7ea2d1b46b9f2effca7cde83099f0eab374e89e68ed97412c8b7fc332965ef5",
+        "data": "out\nout\n"
+      },
+      "only_out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "54034ac5c6e9ea95734ec2b729fd6d62abf64af34a9f9ce5d466cb788191a73d",
+        "data": "out\n"
+      }
+    }
+  },
+  "special-vars": {
+    "stdout": "bash|10|a b c d e f g h i j|a b c d e f g h i j|j\nhashall\n5\n1\n6\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "string-ops-agent-idioms": {
+    "stdout": "[Olá, Mundo!]\n4\ncba\ncontém\n11\n13\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

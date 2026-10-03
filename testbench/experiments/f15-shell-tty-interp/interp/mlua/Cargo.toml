@@ -1,0 +1,17 @@
+[package]
+name = "f15-interp-mlua"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F17: mlua (Lua 5.4 em C, vendored) com StdLib sem io/os/package e print nosso"
+
+[dependencies]
+f15-interp-common = { path = "../common" }
+# serialize: json.decode/encode nossos (serde_json <-> valores Lua).
+mlua = { version = "=0.12.1", features = ["lua54", "vendored", "serialize"] }
+serde_json = "1"
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,529 @@
+{
+  "patch-add-final-newline": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 73,
+        "sha256": "2abd1e086aea6b078d6d8e9564a049bcfae71b785d56e88b298077dd597529a5",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n a\n-b\n\\ No newline at end of file\n+b\n"
+      }
+    }
+  },
+  "patch-backup-b": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "b0d5fcac7492427d0767380786c6d7843c342299a8a447ac2ccc8deaa78ca153",
+        "data": "alpha\nBETA\ngamma\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "data": "alpha\nbeta\ngamma\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 62,
+        "sha256": "769e3423b52a40ada0e4a7256848751012f178f4a74ebb88d07baa37c2ed631e",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n alpha\n-beta\n+BETA\n gamma\n"
+      }
+    }
+  },
+  "patch-clean-p0": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 74,
+        "sha256": "25ff04b07a9aedbc4cf0c13419af1ddb97e6329e750cb16d5e4051b556032dce",
+        "data": "line 1\nline 2\nline 3\nline 4\nline five\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 103,
+        "sha256": "a4cd2f30faa48f8d16c5bc8f3ca32d1d713b3be26f8e6bc36d24a32bd4ce13b8",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,7 +2,7 @@\n line 2\n line 3\n line 4\n-line 5\n+line five\n line 6\n line 7\n line 8\n"
+      }
+    }
+  },
+  "patch-clean-p1": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 74,
+        "sha256": "25ff04b07a9aedbc4cf0c13419af1ddb97e6329e750cb16d5e4051b556032dce",
+        "data": "line 1\nline 2\nline 3\nline 4\nline five\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 179,
+        "sha256": "7cecfa813cd26ef2ba80e753f4d6de88f87c6279952dd56d6a4300bf03d6125e",
+        "data": "--- a/a.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ b/a.txt\t2026-01-15 12:00:00.000000000 +0000\n@@ -2,7 +2,7 @@\n line 2\n line 3\n line 4\n-line 5\n+line five\n line 6\n line 7\n line 8\n"
+      }
+    }
+  },
+  "patch-context-format": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 74,
+        "sha256": "25ff04b07a9aedbc4cf0c13419af1ddb97e6329e750cb16d5e4051b556032dce",
+        "data": "line 1\nline 2\nline 3\nline 4\nline five\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 155,
+        "sha256": "3f2bbb99c99b2a5c6afcc70cf35ff8deebe69474713f4e61131224d8e6108dc0",
+        "data": "*** a.txt\n--- a.txt\n***************\n*** 3,7 ****\n  line 3\n  line 4\n! line 5\n  line 6\n  line 7\n--- 3,7 ----\n  line 3\n  line 4\n! line five\n  line 6\n  line 7\n"
+      }
+    }
+  },
+  "patch-delete-file": {
+    "stdout": "patching file old.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 54,
+        "sha256": "761f5c1d079fa216b17e0c339268d01a04acb1c1976d872f10e05f7f626d563c",
+        "data": "--- a/old.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-bye\n-now\n"
+      }
+    }
+  },
+  "patch-dry-run": {
+    "stdout": "checking file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "data": "alpha\nbeta\ngamma\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 62,
+        "sha256": "769e3423b52a40ada0e4a7256848751012f178f4a74ebb88d07baa37c2ed631e",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n alpha\n-beta\n+BETA\n gamma\n"
+      }
+    }
+  },
+  "patch-empty-patch": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "empty.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "patch-explicit-target": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "b0d5fcac7492427d0767380786c6d7843c342299a8a447ac2ccc8deaa78ca153",
+        "data": "alpha\nBETA\ngamma\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 76,
+        "sha256": "f7ac2064db09fc9538bc1a65989ff0daa43b8cf7f2a35eb80e0de519a21894f7",
+        "data": "--- whatever.txt\n+++ whatever.txt\n@@ -1,3 +1,3 @@\n alpha\n-beta\n+BETA\n gamma\n"
+      }
+    }
+  },
+  "patch-garbage": {
+    "stdout": "",
+    "stderr": "patch: **** Only garbage was found in the patch input.\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "junk.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "6d8084ba87ef1eca22606c210e46b05620ec1f2666562e1344ade09ca8513a65",
+        "data": "this is not a patch\njust text\n"
+      }
+    }
+  },
+  "patch-git-format": {
+    "stdout": "patching file src/lib.rs\npatching file README.md\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "README.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "cd3f0c89f5ff6e2ee23de56f31f26dee7557efa5f4f6215f1260651128fac3ca",
+        "data": "# demo\n\nUso: cargo run\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 320,
+        "sha256": "e96ef33ce32798254d488239d052677f2bfa9fdbd785a05f6e58d0810bb6a8e4",
+        "data": "diff --git a/src/lib.rs b/src/lib.rs\nindex 3b18e51..a1b2c3d 100644\n--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -1,3 +1,3 @@\n pub fn greet() {\n-    println!(\"hi\");\n+    println!(\"hello\");\n }\ndiff --git a/README.md b/README.md\nindex 1111111..2222222 100644\n--- a/README.md\n+++ b/README.md\n@@ -1 +1,3 @@\n # demo\n+\n+Uso: cargo run\n"
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/lib.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "568bf99ec4810ef9b28f6f11daf62c81ae44f7c5824b60c00b4a9b3ac01e8aa3",
+        "data": "pub fn greet() {\n    println!(\"hello\");\n}\n"
+      }
+    }
+  },
+  "patch-git-new-file": {
+    "stdout": "patching file hello.sh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 145,
+        "sha256": "eb95f8663cf2fc7811a294ecc0ce2a6bdd399ebf0aaf90acf5f9f9df51973bec",
+        "data": "diff --git a/hello.sh b/hello.sh\nnew file mode 100755\nindex 0000000..e69de29\n--- /dev/null\n+++ b/hello.sh\n@@ -0,0 +1,2 @@\n+#!/bin/sh\n+echo hello\n"
+      },
+      "hello.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 21,
+        "sha256": "bfdeaeb08cffb6a36438bcd12dda25417e3cdd36f1e7e482a2849d539225288b",
+        "data": "#!/bin/sh\necho hello\n"
+      }
+    }
+  },
+  "patch-malformed-hunk": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "patch: **** malformed patch at line 5:  \n\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "aeb74868f6d294be32700f6a8978478174f4e4f4fb05b196a1125874fd6487e8",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n a\n-b\n"
+      }
+    }
+  },
+  "patch-missing-patch-file": {
+    "stdout": "",
+    "stderr": "patch: **** Can't open patch file nope.patch : No such file or directory\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "patch-missing-target": {
+    "stdout": "can't find file to patch at input line 3\nPerhaps you used the wrong -p or --strip option?\nThe text leading up to this was:\n--------------------------\n|--- ghost.txt\n|+++ ghost.txt\n--------------------------\nFile to patch: \nSkip this patch? [y] \nSkipping patch.\n1 out of 1 hunk ignored\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 53,
+        "sha256": "ec38fd0cd8a63bd1f0a21e2ccce21ad42757ef545b43757abc86a6cd0cb39228",
+        "data": "--- ghost.txt\n+++ ghost.txt\n@@ -1,2 +1,2 @@\n a\n-b\n+c\n"
+      }
+    }
+  },
+  "patch-multi-file": {
+    "stdout": "patching file one.txt\npatching file two.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 115,
+        "sha256": "422dd4195bee2f3be79b82edb019c1fac92afceb09007f5c8ef86438bd83ed8b",
+        "data": "--- a/one.txt\n+++ b/one.txt\n@@ -1,3 +1,3 @@\n 1\n-2\n+two\n 3\n--- a/two.txt\n+++ b/two.txt\n@@ -1,3 +1,4 @@\n a\n b\n+b2\n c\n"
+      },
+      "one.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "d3dda5cebc3fa4e564f1756ae4f9261ee07542a52254dc828fecfcb5f0e43e27",
+        "data": "1\ntwo\n3\n"
+      },
+      "two.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "5a4188b9744fa3d9c77c45845fa034f6c0fceb8a9af77e655d41a60d4d458771",
+        "data": "a\nb\nb2\nc\n"
+      }
+    }
+  },
+  "patch-new-file": {
+    "stdout": "patching file new.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 58,
+        "sha256": "143c4abca10d380846f12c0ed016d3fe5a5d1a725d187bd21b76b68e2dc54fc0",
+        "data": "--- /dev/null\n+++ b/new.txt\n@@ -0,0 +1,2 @@\n+hello\n+world\n"
+      },
+      "keep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "19732980d68fbd00358a0a4d98246c960400b87e4fa2a2e155db98be2b42ed6c",
+        "data": "k\n"
+      },
+      "new.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "4a1e67f2fe1d1cc7b31d0ca2ec441da4778203a036a77da10344c85e24ff0f92",
+        "data": "hello\nworld\n"
+      }
+    }
+  },
+  "patch-new-file-in-subdir": {
+    "stdout": "patching file docs/notes/new.md\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "docs": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "docs/notes": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "docs/notes/new.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "728e50d7e9a0a0e00752f6a7cee93325450d6916a73b9cbb362211b8e1a9451f",
+        "data": "# Notas\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 61,
+        "sha256": "c86a22c4cf072b81eb900cc3dc6f09e0a0fcf30c5c0cd5776b6c24daf300d143",
+        "data": "--- /dev/null\n+++ b/docs/notes/new.md\n@@ -0,0 +1 @@\n+# Notas\n"
+      }
+    }
+  },
+  "patch-normal-format": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "ee91fe5b341fa961d91d83f33a44dc0b4eeb70c4445583d522afcd3842127fe8",
+        "data": "line 1\nline 2\nline 3\nline 4\nline five\nline 6\n"
+      },
+      "fix.diff": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "789e1b7694e9a35da822945d0bf3bfa10600c62eebfbe6d4ca9aeb30d2d2333f",
+        "data": "5c5\n< line 5\n---\n> line five\n"
+      }
+    }
+  },
+  "patch-output-file": {
+    "stdout": "patching file out.txt (read from a.txt)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "data": "alpha\nbeta\ngamma\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 62,
+        "sha256": "769e3423b52a40ada0e4a7256848751012f178f4a74ebb88d07baa37c2ed631e",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n alpha\n-beta\n+BETA\n gamma\n"
+      },
+      "out.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 17,
+        "sha256": "b0d5fcac7492427d0767380786c6d7843c342299a8a447ac2ccc8deaa78ca153",
+        "data": "alpha\nBETA\ngamma\n"
+      }
+    }
+  },
+  "patch-remove-final-newline": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "7e18f737311b2dc3b2f269dd78396b0351f14fb66efa879f768cb23181883c78",
+        "data": "a\nb"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 73,
+        "sha256": "2d15c62ae1a315f130934684970801f7737e2e05d296a8bca34d08c8aa7f4836",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n a\n-b\n+b\n\\ No newline at end of file\n"
+      }
+    }
+  },
+  "patch-reverse-R": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+        "data": "alpha\nbeta\ngamma\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 62,
+        "sha256": "769e3423b52a40ada0e4a7256848751012f178f4a74ebb88d07baa37c2ed631e",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n alpha\n-beta\n+BETA\n gamma\n"
+      }
+    }
+  },
+  "patch-silent": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "b0d5fcac7492427d0767380786c6d7843c342299a8a447ac2ccc8deaa78ca153",
+        "data": "alpha\nBETA\ngamma\n"
+      },
+      "fix.patch": {
+        "kind": "file",
+        "mode": 420,
+        "size": 62,
+        "sha256": "769e3423b52a40ada0e4a7256848751012f178f4a74ebb88d07baa37c2ed631e",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n alpha\n-beta\n+BETA\n gamma\n"
+      }
+    }
+  },
+  "patch-stdin-p1": {
+    "stdout": "patching file src/main.rs\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/main.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "2a54d7e6c5343ecd8230e408f947dbc53584b8356e01f6f6a47c54f0c5c4d5f7",
+        "data": "fn main() {\n    println!(\"hi\");\n    println!(\"bye\");\n}\n"
+      }
+    }
+  }
+}

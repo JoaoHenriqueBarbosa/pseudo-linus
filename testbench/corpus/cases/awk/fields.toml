@@ -1,0 +1,247 @@
+tool = "awk"
+source = "agent-style"
+
+# Campos, separadores e registros: o uso mais comum de awk por agentes.
+
+[[case]]
+id = "awk-print-col"
+argv = ["awk", "{print $1}"]
+tags = ["fields"]
+stdin = """
+alice 30 engineering 85000
+bob 25 marketing 52000
+carol 35 engineering 98000
+"""
+
+[[case]]
+id = "awk-print-multi-cols"
+argv = ["awk", "{print $1, $3}"]
+tags = ["fields"]
+stdin = """
+alice 30 engineering 85000
+bob 25 marketing 52000
+"""
+
+[[case]]
+id = "awk-F-colon-file"
+argv = ["awk", "-F:", "{print $1, $7}", "passwd"]
+tags = ["fields", "cli"]
+[case.files]
+"passwd" = """
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+john:x:1000:1000:John,,,:/home/john:/bin/zsh
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+"""
+
+[[case]]
+id = "awk-F-separate-arg"
+argv = ["awk", "-F", ":", "$3 >= 1000 {print $1}", "passwd"]
+tags = ["fields", "cli", "numeric"]
+[case.files]
+"passwd" = """
+root:x:0:0:root:/root:/bin/bash
+john:x:1000:1000:John,,,:/home/john:/bin/zsh
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+"""
+
+[[case]]
+id = "awk-F-comma-csv-skip-header"
+argv = ["awk", "-F,", "NR>1 {print $2}", "users.csv"]
+tags = ["fields", "cli"]
+[case.files]
+"users.csv" = """
+id,name,email,age
+1,Alice,alice@example.com,30
+2,Bob,bob@example.com,25
+"""
+
+[[case]]
+id = "awk-F-tab-escape"
+argv = ["awk", "-F", '\t', "{print $2}"]
+tags = ["fields", "cli"]
+stdin = "a\tb c\td\nx\ty\tz\n"
+
+[[case]]
+id = "awk-F-regex"
+argv = ["awk", "-F", "[,;]+", "{print NF, $2}"]
+tags = ["fields", "regex"]
+stdin = "a,b;;c\n1;2,,,3\n"
+
+[[case]]
+id = "awk-F-single-space-string"
+argv = ["awk", "-F", " ", "{print NF, $1}"]
+tags = ["fields"]
+stdin = "  lead   and trail  \n"
+
+[[case]]
+id = "awk-F-pipe-literal"
+argv = ["awk", "-F|", "{print $2}"]
+tags = ["fields"]
+stdin = "a|b|c\n"
+
+[[case]]
+id = "awk-default-fs-leading-spaces"
+argv = ["awk", "{print NF \":\" $1 \":\" $NF}"]
+tags = ["fields"]
+stdin = "   a   b\tc   \n\t\tx\n"
+
+[[case]]
+id = "awk-OFS-tab"
+argv = ["awk", 'BEGIN{FS=":"; OFS="\t"} {print $1, $3}']
+tags = ["fields"]
+stdin = "root:x:0\njohn:x:1000\n"
+
+[[case]]
+id = "awk-OFS-rebuild"
+argv = ["awk", 'BEGIN{OFS="-"} {$1=$1; print}']
+tags = ["fields"]
+stdin = "a b   c\nd e\n"
+
+[[case]]
+id = "awk-OFS-no-rebuild"
+argv = ["awk", 'BEGIN{OFS="-"} {print; print $1, $2}']
+tags = ["fields"]
+stdin = "a b   c\n"
+
+[[case]]
+id = "awk-NF-last"
+argv = ["awk", "{print $NF}"]
+tags = ["fields"]
+stdin = "a b c\none\n\n"
+
+[[case]]
+id = "awk-NF-minus-one"
+argv = ["awk", "{print $(NF-1)}"]
+tags = ["fields"]
+stdin = "a b c\nx y\n"
+
+[[case]]
+id = "awk-NF-assign-truncate"
+argv = ["awk", "{NF=2; print; print NF}"]
+tags = ["fields"]
+stdin = "a b c d\n"
+
+[[case]]
+id = "awk-NF-assign-grow"
+argv = ["awk", 'BEGIN{OFS=","} {NF=5; print}']
+tags = ["fields"]
+stdin = "a b\n"
+
+[[case]]
+id = "awk-field-beyond-NF"
+argv = ["awk", '{$6="X"; print; print NF}']
+tags = ["fields"]
+stdin = "a b c\n"
+
+[[case]]
+id = "awk-field-zero-modify"
+argv = ["awk", '{$0 = toupper($0); print $2, NF}']
+tags = ["fields", "strings"]
+stdin = "hello big world\n"
+
+[[case]]
+id = "awk-field-assign-rebuilds-dollar0"
+argv = ["awk", '{$2 = ""; print; print NF}']
+tags = ["fields"]
+stdin = "a b c\n"
+
+[[case]]
+id = "awk-NR-FNR-two-files"
+argv = ["awk", 'FNR==1{print "==", FILENAME} {print NR, FNR, $0}', "a.txt", "b.txt"]
+tags = ["fields", "files"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\nb2\nb3\n"
+
+[[case]]
+id = "awk-join-two-files"
+argv = ["awk", 'NR==FNR{price[$1]=$2; next} $1 in price {print $0, price[$1]}', "prices.txt", "orders.txt"]
+tags = ["fields", "files", "arrays"]
+[case.files]
+"prices.txt" = "apple 1.20\nbanana 0.50\ncherry 3.00\n"
+"orders.txt" = "apple 3\nkiwi 1\ncherry 2\n"
+
+[[case]]
+id = "awk-RS-paragraph-mode"
+argv = ["awk", 'BEGIN{RS=""} {print NR ": " $1 " (" NF " campos)"}']
+tags = ["records"]
+stdin = "\n\nname: a\nage: 1\n\n\n\nname: b\nage: 2\nextra\n"
+
+[[case]]
+id = "awk-RS-paragraph-FS-newline"
+argv = ["awk", 'BEGIN{RS=""; FS="\n"} {print $1 "|" $2}']
+tags = ["records"]
+stdin = "a b\nc d\n\ne f\ng h\n"
+
+[[case]]
+id = "awk-RS-char"
+argv = ["awk", 'BEGIN{RS=";"} {print NR, "[" $0 "]"}']
+tags = ["records"]
+stdin = "a;b;c\n"
+
+[[case]]
+id = "awk-RS-regex-RT"
+argv = ["awk", 'BEGIN{RS="[0-9]+"} {print NR, "[" $0 "]", "[" RT "]"}']
+tags = ["records", "gawk-ext"]
+stdin = "a12b3c"
+
+[[case]]
+id = "awk-ORS-comma"
+argv = ["awk", 'BEGIN{ORS=","} {print $1} END{printf "\n"}']
+tags = ["records"]
+stdin = "a 1\nb 2\nc 3\n"
+
+[[case]]
+id = "awk-NF-pattern-skips-blank"
+argv = ["awk", "NF"]
+tags = ["fields", "patterns"]
+stdin = "a\n\n   \nb\n\t\n"
+
+[[case]]
+id = "awk-no-trailing-newline"
+argv = ["awk", "{print NR \": \" $0}"]
+tags = ["records"]
+stdin = "first\nsecond"
+
+[[case]]
+id = "awk-crlf-input"
+argv = ["awk", "{print length($0), $2}"]
+tags = ["records"]
+stdin = "a b\r\nc d\r\n"
+
+[[case]]
+id = "awk-empty-input"
+argv = ["awk", "{print \"line\"} END{print NR}"]
+tags = ["records"]
+stdin = ""
+
+[[case]]
+id = "awk-FS-change-midstream"
+argv = ["awk", '{print $1; FS=","}']
+tags = ["fields"]
+stdin = "a,b c\nd,e f\n"
+
+[[case]]
+id = "awk-FPAT-csv-quoted"
+argv = ["awk", 'BEGIN{FPAT="([^,]*)|(\"[^\"]+\")"} {print NF, $2}']
+tags = ["fields", "gawk-ext"]
+stdin = "1,\"Carol, Jr.\",carol@example.com\n"
+
+[[case]]
+id = "awk-FIELDWIDTHS"
+argv = ["awk", 'BEGIN{FIELDWIDTHS="3 2 4"} {print $1 "|" $2 "|" $3}']
+tags = ["fields", "gawk-ext"]
+stdin = "abcdefghi\n123456789\n"
+
+[[case]]
+id = "awk-NR-assignment"
+argv = ["awk", 'NR==2{NR=10} {print NR, $0}']
+tags = ["records"]
+stdin = "a\nb\nc\n"
+
+[[case]]
+id = "awk-dollar-string-index"
+argv = ["awk", '{i="2"; print $i, $"1"}']
+tags = ["fields"]
+stdin = "x y z\n"

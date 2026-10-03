@@ -1,0 +1,184 @@
+{
+  "and-or-lists": {
+    "stdout": "a\nd\ne\nrc=1\ng\nh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "case-patterns": {
+    "stdout": "a.txt: texto\nb.TXT: texto\nimg.png: imagem\nMakefile: maiúscula\nx: outro\ncom espaço: espaço\num\nfallthrough\nprimeiro\nsegundo\nterceiro\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cd-pwd-dirstack": {
+    "stdout": "/work/case/a/b\n/work/case/a\n/work/case/a/b\nrc=1\n/tmp\n/tmp\n/work/case/a/b /work/case/a /work/case\n/work/case/a\n",
+    "stderr": "bash: line 5: cd: naoexiste: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/c": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "command-not-found-message": {
+    "stdout": "rc=127\nrc=127\n",
+    "stderr": "bash: line 1: comando_que_nao_existe: command not found\nbash: line 3: /caminho/absoluto/inexistente: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "dbracket-regex-and-patterns": {
+    "stdout": "match=1.2.3 major=1 n=4\nvar-regex ok\nquoted literal ok\nglob-ok\nquoted não é glob\ngrouping-ok\nlexico-ok\nnum-ok\nsem aspas ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dbracket-regex-invalid": {
+    "stdout": "",
+    "stderr": "bash: -c: line 1: unexpected EOF while looking for matching `)'\nbash: -c: line 3: unexpected argument to conditional binary operator\n",
+    "exit": 2,
+    "files": {}
+  },
+  "declare-p-and-attributes": {
+    "stdout": "declare -i n=\"10\"\ndeclare -r ro=\"fixo\"\ndeclare -x exp=\"sim\"\ndeclare -a idx=([0]=\"a\" [1]=\"b c\" [5]=\"f\")\ndeclare -A assoc=([chave]=\"valor\" )\ndeclare -l lower=\"mixed\"\ndeclare -u upper=\"MIXED\"\ndeclare -- s=\"texto com 'aspas'\"\nrc=1\nrc=1\n",
+    "stderr": "bash: line 10: ro: readonly variable\nbash: line 12: declare: naoexiste: not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "eval-and-source": {
+    "stdout": "eval: 3\nvalor\nsource recebeu arg1\nsim helper com sem arg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lib.sh": {
+        "kind": "file",
+        "mode": 420,
+        "size": 101,
+        "sha256": "e68e68f1d3badf2568c30a48e7461220d28ab8f47bb59b20bfb7adab37775b85",
+        "data": "LIB_LOADED=sim\nhelper() { echo \"helper com ${1:-sem arg}\"; }\n[ -n \"$1\" ] && echo \"source recebeu $1\"\n"
+      }
+    }
+  },
+  "exit-status-and-pipestatus": {
+    "stdout": "true=0\nfalse=1\nneg=0\npipe=0 ps=1 0\nps=0 1 0 n=3\n300->44\n-1->255\ncnf=127\nnoexec=126\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sem_permissao": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "397a2a1f305a0cde04b3f92dabbfa8187d2e229e91ad0afee4ca894744170dc3",
+        "data": "#!/bin/sh\necho oi\n"
+      }
+    }
+  },
+  "functions-dynamic-scope-and-unset": {
+    "stdout": "g vê f\napós unset global\nglobal: global\nh 1\nh is a function\nbash: line 6: type: h: not found\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "functions-local-return": {
+    "stdout": "rc=3 contador=5\ninner vê outer\nouter vê mudado\nglobal global\nargs=2 primeiro=a\n3628800\n3 v\ninc () \n{ \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopts-loop": {
+    "stdout": "verbose=1 out=saida.txt resto=a b\nverbose=1 out=x resto=\nopção inválida -x\nfaltou arg pra -o\nsem silêncio: a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "if-elif-else-test-forms": {
+    "stdout": "1 pequeno\n5 médio\n10 grande\nexiste\nnão é dir\nstrings-ok\neq-ok\nfs-ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "arq.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "47df473b600ab787db630671efea6d975d19c419522fd72a9fe7cb86684aa9fe",
+        "data": "conteúdo\n"
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "arq.txt"
+      }
+    }
+  },
+  "loops-break-continue": {
+    "stdout": "for 1\nfor 3\nfor 4\nwhile 3\nuntil 0\n1a\n2a\npos p\npos q\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pipe-into-while-subshell": {
+    "stdout": "fora do pipe: 0\nlastpipe: 6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "read-options": {
+    "stdout": "barra\\invertida\nbarrainvertida\n3 dois\nantes\nabc\n[  espaços  ]\n[espaços]\nrc=1 []\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "shift-set-positional": {
+    "stdout": "5 a\n4 b\n2 d e\nrc=1 2\n[x y]\n[z]\n<x>\n<y>\n<z>\nx y-z\nvazio=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "subshell-vs-group": {
+    "stdout": "sub 2\nrc=7 x=1\ngrupo 3\nx=3\n/tmp\n/work/case\n2\nERRO\n0 1 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "syntax-error-message": {
+    "stdout": "antes\nrc=2\nrc=2\n",
+    "stderr": "bash: eval: line 2: syntax error near unexpected token `then'\nbash: eval: line 2: `if then fi'\nbash: -c: line 2: syntax error: unexpected end of file\n",
+    "exit": 0,
+    "files": {}
+  },
+  "type-command-v": {
+    "stdout": "echo\ncd\n/usr/bin/ls\nbuiltin\nfile\nkeyword\nfunction\nrc=1\n/usr/bin/sort\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "while-read-file-and-ifs": {
+    "stdout": "ana tem 30 anos (Recife)\nbeto tem 25 anos (São Paulo)\n[a]\n[b]\nlinhas: 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pessoas.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "277349e37866c019dbc198221ef34b324b218cd659bc0bef47f9c128f4cc3777",
+        "data": "ana,30,Recife\nbeto,25,São Paulo\n"
+      },
+      "sem_nl_final.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "7e18f737311b2dc3b2f269dd78396b0351f14fb66efa879f768cb23181883c78",
+        "data": "a\nb"
+      }
+    }
+  }
+}

@@ -1,0 +1,587 @@
+{
+  "diff-dirs-binary-inside": {
+    "stdout": "Binary files a/blob and b/blob differ\ndiff -r a/t.txt b/t.txt\n1c1\n< x\n---\n> y\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/blob": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ae4b3280e56e2faf83f414a6e3dabe9d5fbe18976544c05fed121accb85b53fc",
+        "data": "\u0000\u0001\u0002"
+      },
+      "a/t.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/blob": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "b744d600fbe3853702978ec726c166d26274fe7b09b2c600ddf2d7d895667b24",
+        "data": "\u0000\u0001\u0003"
+      },
+      "b/t.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "diff-dirs-identical": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/s": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/s/y.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "a/x.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/s": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/s/y.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "b/x.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      }
+    }
+  },
+  "diff-dirs-no-r": {
+    "stdout": "diff a/changed.txt b/changed.txt\n1c1\n< old\n---\n> new\nOnly in a: only-a.txt\nOnly in b: only-b.txt\nCommon subdirectories: a/sub and b/sub\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "01d09d19c2139a46aebfb577780d123d7396e97201bc7ead210a2ebff8239dee",
+        "data": "old\n"
+      },
+      "a/only-a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "a/same.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "a/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/sub/deep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c",
+        "data": "new\n"
+      },
+      "b/only-b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "b/same.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "b/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/sub/deep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "diff-dirs-only-in-subdir": {
+    "stdout": "Only in a/s: y.txt\nOnly in b: t\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/s": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/s/x.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "a/s/y.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+        "data": "2\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/s": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/s/x.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "b/t": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/t/z.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2",
+        "data": "3\n"
+      }
+    }
+  },
+  "diff-dirs-r": {
+    "stdout": "diff -r a/changed.txt b/changed.txt\n1c1\n< old\n---\n> new\nOnly in a: only-a.txt\nOnly in b: only-b.txt\ndiff -r a/sub/deep.txt b/sub/deep.txt\n1c1\n< x\n---\n> y\nOnly in a/sub: gone.txt\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "01d09d19c2139a46aebfb577780d123d7396e97201bc7ead210a2ebff8239dee",
+        "data": "old\n"
+      },
+      "a/only-a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "a/same.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "a/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/sub/deep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "a/sub/gone.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c865f6c5ab8d1b0bcd383a5e1e3879d22681c96bf462c269b7581d523fbe70ab",
+        "data": "z\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c",
+        "data": "new\n"
+      },
+      "b/only-b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "b/same.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "b/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/sub/deep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "diff-dirs-r-u-separate": {
+    "stdout": "diff -r -u a/f.txt b/f.txt\n--- a/f.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ b/f.txt\t2026-01-15 12:00:00.000000000 +0000\n@@ -1 +1 @@\n-1\n+2\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+        "data": "2\n"
+      }
+    }
+  },
+  "diff-dirs-rq": {
+    "stdout": "Files a/changed.txt and b/changed.txt differ\nOnly in a: only-a.txt\nFiles a/sub/deep.txt and b/sub/deep.txt differ\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "01d09d19c2139a46aebfb577780d123d7396e97201bc7ead210a2ebff8239dee",
+        "data": "old\n"
+      },
+      "a/only-a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "a/same.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "a/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/sub/deep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c",
+        "data": "new\n"
+      },
+      "b/same.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "b/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/sub/deep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "diff-dirs-ru": {
+    "stdout": "diff -ru a/changed.txt b/changed.txt\n--- a/changed.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ b/changed.txt\t2026-01-15 12:00:00.000000000 +0000\n@@ -1,2 +1,2 @@\n-old\n+new\n keep\nOnly in a: only-a.txt\nOnly in b: only-b.txt\ndiff -ru a/sub/deep.txt b/sub/deep.txt\n--- a/sub/deep.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ b/sub/deep.txt\t2026-01-15 12:00:00.000000000 +0000\n@@ -1 +1 @@\n-x\n+y\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "93862b8f30e3b375e8a4ebfc514bab781f8e817fb28cc8e6774c4d116e73f0cd",
+        "data": "old\nkeep\n"
+      },
+      "a/only-a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "a/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/sub/deep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "dbe1b40e670a9c0139459261e911c59be001fd356949852ab20b561a5622da34",
+        "data": "new\nkeep\n"
+      },
+      "b/only-b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "b/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/sub/deep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "diff-dirs-ruN": {
+    "stdout": "diff -ruN a/changed.txt b/changed.txt\n--- a/changed.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ b/changed.txt\t2026-01-15 12:00:00.000000000 +0000\n@@ -1 +1 @@\n-old\n+new\ndiff -ruN a/only-a.txt b/only-a.txt\n--- a/only-a.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ b/only-a.txt\t1970-01-01 00:00:00.000000000 +0000\n@@ -1 +0,0 @@\n-a\ndiff -ruN a/only-b.txt b/only-b.txt\n--- a/only-b.txt\t1970-01-01 00:00:00.000000000 +0000\n+++ b/only-b.txt\t2026-01-15 12:00:00.000000000 +0000\n@@ -0,0 +1,2 @@\n+b\n+b2\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "01d09d19c2139a46aebfb577780d123d7396e97201bc7ead210a2ebff8239dee",
+        "data": "old\n"
+      },
+      "a/only-a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/changed.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c",
+        "data": "new\n"
+      },
+      "b/only-b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "0023534089cff595c0654001c732a144d4de56b02a864b7d7299a8e060f41744",
+        "data": "b\nb2\n"
+      }
+    }
+  },
+  "diff-dirs-trailing-slash": {
+    "stdout": "diff -r a/f.txt b/f.txt\n1c1\n< 1\n---\n> 2\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+        "data": "2\n"
+      }
+    }
+  },
+  "diff-dirs-type-mismatch": {
+    "stdout": "File a/thing is a regular file while file b/thing is a directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/thing": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "8b911a8716b94442f9ca3dff20584048536e4c2f47b8b5bb9096cbd43c3432d5",
+        "data": "file\n"
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/thing": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/thing/inner.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "baa36e7060b5155d6e766266c2424ddbe8e56fdb38ab3bfb76cd6351b0889606",
+        "data": "dir\n"
+      }
+    }
+  }
+}

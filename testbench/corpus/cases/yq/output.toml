@@ -1,0 +1,265 @@
+tool = "yq"
+source = "agent-style"
+
+# Saída YAML (-y, -Y), argumentos (--arg, --argjson), status de saída (-e) e erros.
+
+[[case]]
+id = "yq-yaml-out-identity"
+argv = ["yq", "-y", ".", "d.yaml"]
+tags = ["yaml-out"]
+[case.files]
+"d.yaml" = '''
+name: web
+replicas: 3
+ratio: 0.5
+enabled: true
+nothing: null
+labels:
+  app: web
+ports:
+  - 80
+  - 443
+containers:
+  - name: nginx
+    image: nginx:1.27
+empty_list: []
+empty_map: {}
+'''
+
+[[case]]
+id = "yq-yaml-out-quoting"
+argv = ["yq", "-y", ".", "q.yaml"]
+tags = ["yaml-out", "string"]
+[case.files]
+"q.yaml" = '''
+a: "yes"
+b: "012"
+c: ""
+d: " leading space"
+e: "key: value"
+f: "#hash"
+g: "line1\nline2"
+h: "1.0"
+i: "null"
+j: "-"
+k: "@at"
+l: "it's"
+'''
+
+[[case]]
+id = "yq-yaml-out-filter"
+argv = ["yq", "-y", ".spec", "d.yaml"]
+tags = ["yaml-out"]
+[case.files]
+"d.yaml" = '''
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+'''
+
+[[case]]
+id = "yq-yaml-out-scalar"
+argv = ["yq", "-y", ".n", "d.yaml"]
+tags = ["yaml-out"]
+[case.files]
+"d.yaml" = "n: 5\n"
+
+[[case]]
+id = "yq-yaml-out-string-scalar"
+argv = ["yq", "-y", ".s", "d.yaml"]
+tags = ["yaml-out"]
+[case.files]
+"d.yaml" = "s: hello\n"
+
+[[case]]
+id = "yq-yaml-out-multi"
+argv = ["yq", "-y", ".items[]", "d.yaml"]
+tags = ["yaml-out", "multidoc"]
+[case.files]
+"d.yaml" = '''
+items:
+  - {a: 1}
+  - {b: 2}
+'''
+
+[[case]]
+id = "yq-yaml-out-unicode"
+argv = ["yq", "-y", ".", "u.yaml"]
+tags = ["yaml-out", "unicode"]
+[case.files]
+"u.yaml" = '''
+nome: "olá ✓"
+ctrl: "a\tb"
+'''
+
+[[case]]
+id = "yq-yaml-out-long-line"
+argv = ["yq", "-y", ".", "l.yaml"]
+tags = ["yaml-out"]
+[case.files]
+"l.yaml" = '''
+desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore
+'''
+
+[[case]]
+id = "yq-yaml-out-nested-lists"
+argv = ["yq", "-y", ".", "n.yaml"]
+tags = ["yaml-out"]
+[case.files]
+"n.yaml" = '''
+matrix:
+  - [1, 2]
+  - [3, 4]
+deep:
+  - name: a
+    deps:
+      - b
+      - c
+'''
+
+[[case]]
+id = "yq-yaml-out-update"
+argv = ["yq", "-y", ".spec.replicas = 5", "d.yaml"]
+tags = ["yaml-out"]
+[case.files]
+"d.yaml" = '''
+kind: Deployment
+spec:
+  replicas: 3
+  image: x
+'''
+
+[[case]]
+id = "yq-yaml-roundtrip"
+argv = ["yq", "-Y", ".", "r.yaml"]
+tags = ["yaml-roundtrip"]
+[case.files]
+"r.yaml" = '''
+a: [1, 2]
+b: "quoted"
+c: 'single'
+d: plain
+'''
+
+[[case]]
+id = "yq-yaml-roundtrip-update"
+argv = ["yq", "-Y", ".a = 3", "r.yaml"]
+tags = ["yaml-roundtrip"]
+[case.files]
+"r.yaml" = '''
+a: 1
+b:
+  - x
+'''
+
+[[case]]
+id = "yq-arg"
+argv = ["yq", "-c", "--arg", "v", "3", "{a: $v, b: .b}", "m.yaml"]
+tags = ["args"]
+[case.files]
+"m.yaml" = "b: 2\n"
+
+[[case]]
+id = "yq-argjson"
+argv = ["yq", "-c", "--argjson", "v", "{\"x\": [1, 2]}", ".b = $v", "m.yaml"]
+tags = ["args"]
+[case.files]
+"m.yaml" = "b: 2\n"
+
+[[case]]
+id = "yq-exit-status-null"
+argv = ["yq", "-e", ".missing", "m.yaml"]
+tags = ["exit"]
+[case.files]
+"m.yaml" = "a: 1\n"
+
+[[case]]
+id = "yq-exit-status-true"
+argv = ["yq", "-e", ".a", "m.yaml"]
+tags = ["exit"]
+[case.files]
+"m.yaml" = "a: 1\n"
+
+[[case]]
+id = "yq-exit-status-false"
+argv = ["yq", "-e", ".a", "m.yaml"]
+tags = ["exit"]
+[case.files]
+"m.yaml" = "a: false\n"
+
+[[case]]
+id = "yq-exit-status-empty"
+argv = ["yq", "-e", "empty", "m.yaml"]
+tags = ["exit"]
+[case.files]
+"m.yaml" = "a: 1\n"
+
+[[case]]
+id = "yq-error-invalid-yaml-flow"
+argv = ["yq", ".", "bad.yaml"]
+tags = ["error"]
+[case.files]
+"bad.yaml" = "a: [1, 2\n"
+
+[[case]]
+id = "yq-error-invalid-yaml-indent"
+argv = ["yq", ".", "bad.yaml"]
+tags = ["error"]
+[case.files]
+"bad.yaml" = "a:\n  b: 1\n c: 2\n"
+
+[[case]]
+id = "yq-error-invalid-yaml-mapping"
+argv = ["yq", ".", "bad.yaml"]
+tags = ["error"]
+[case.files]
+"bad.yaml" = "a: b: c\n"
+
+[[case]]
+id = "yq-error-unknown-alias"
+argv = ["yq", ".", "bad.yaml"]
+tags = ["error", "anchor"]
+[case.files]
+"bad.yaml" = "a: *nope\n"
+
+[[case]]
+id = "yq-error-filter-syntax"
+argv = ["yq", ".a |", "m.yaml"]
+tags = ["error"]
+[case.files]
+"m.yaml" = "a: 1\n"
+
+[[case]]
+id = "yq-error-runtime"
+argv = ["yq", ".a | error(\"boom\")", "m.yaml"]
+tags = ["error"]
+[case.files]
+"m.yaml" = "a: 1\n"
+
+[[case]]
+id = "yq-error-index-string"
+argv = ["yq", ".a.b", "m.yaml"]
+tags = ["error"]
+[case.files]
+"m.yaml" = "a: text\n"
+
+[[case]]
+id = "yq-error-missing-file"
+argv = ["yq", ".", "nope.yaml"]
+tags = ["error", "files"]
+
+[[case]]
+id = "yq-error-after-output"
+argv = ["yq", "-c", ".[] | (1 / .)", "m.yaml"]
+tags = ["error", "number", "jq-engine"]
+[case.files]
+"m.yaml" = "[1, 2, 0]\n"
+
+[[case]]
+id = "yq-optional-iterate"
+argv = ["yq", "-c", "[.[] | .x?]", "m.yaml"]
+tags = ["filter"]
+[case.files]
+"m.yaml" = "[{x: 1}, 2, {x: 3}]\n"

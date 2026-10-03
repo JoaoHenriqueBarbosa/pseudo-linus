@@ -1,0 +1,262 @@
+{
+  "awk-BEGIN-only-no-input-read": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-BEGINFILE-ENDFILE": {
+    "stdout": "> a.txt\n< a.txt 2\n> b.txt\n< b.txt 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "65454a5200a827c042e1379e1f2698d151699e4d76466a3b0e4ebd348f4f131b",
+        "data": "a1\na2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "e10a1287bfc72ab847878fa7737ea038aa327a3920d6c8c28b8e6484e013e913",
+        "data": "b1\n"
+      }
+    }
+  },
+  "awk-END-count-lines": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-END-keeps-last-record": {
+    "stdout": "last line here 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-IGNORECASE": {
+    "stdout": "ERROR one\nError two\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-break-continue": {
+    "stdout": "2 4 6 8 \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-comments-and-newlines": {
+    "stdout": "total: 6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-compound-pattern": {
+    "stdout": "alice 30 engineering\nbob 25 marketing\ncarol 35 engineering\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-dedupe-by-field": {
+    "stdout": "1\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-dedupe-seen": {
+    "stdout": "b\na\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-do-while": {
+    "stdout": "10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-exit-code-begin": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 3,
+    "files": {}
+  },
+  "awk-exit-in-END-overrides": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 2,
+    "files": {}
+  },
+  "awk-exit-in-main-runs-END": {
+    "stdout": "a\nend\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-field-match": {
+    "stdout": "alice\ncarol\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-field-nomatch": {
+    "stdout": "bob\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-for-reverse-fields": {
+    "stdout": "c b a\n2 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-getline-advances": {
+    "stdout": "after getline: two 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-getline-var-pairs": {
+    "stdout": "a+b\nc+d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-if-else": {
+    "stdout": "alice senior\nbob junior\ndave mid\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-in-operator-condition": {
+    "stdout": "has k\nno z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-length-pattern": {
+    "stdout": "longer line\nabcdef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-logical-ops": {
+    "stdout": "0 1 1 0 1 0 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-negated-regex": {
+    "stdout": "10:01 WARN b\n10:03 ERROR d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-next": {
+    "stdout": "keep 1\nkeep 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-nextfile": {
+    "stdout": "a.txt a1\nb.txt b1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "f57874560d1b226ce2a6d8e4d9dab1145dc81df75e338d26000dc541d62328d2",
+        "data": "a1\na2\na3\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "60f7d20526ca5e01cb32632d83777bf8bed06baeb7a53bce9e86fecaac0e3f6d",
+        "data": "b1\nb2\n"
+      }
+    }
+  },
+  "awk-numeric-compare-pattern": {
+    "stdout": "alice\ncarol\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-range-pattern-NR": {
+    "stdout": "2: b\n3: c\n4: d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-range-pattern-regex": {
+    "stdout": "-----BEGIN CERT-----\nabc\ndef\n-----END CERT-----\n-----BEGIN CERT-----\nghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-range-same-line": {
+    "stdout": "in: x\nin: x y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-dynamic-var": {
+    "stdout": "banana\nblueberry\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-regex-pattern-log": {
+    "stdout": "db ms=5000\ndb ms=5001\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "app.log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 290,
+        "sha256": "38edb0e2a3c019595ab14102006377ed678f81359552bbabbfb7b10163e0b371",
+        "data": "2026-01-15 10:00:01 INFO server started port=8080\n2026-01-15 10:00:05 WARN slow request path=/api/users ms=1200\n2026-01-15 10:01:00 ERROR db timeout path=/api/orders ms=5000\n2026-01-15 10:02:30 INFO request path=/api/users ms=35\n2026-01-15 10:03:00 ERROR db timeout path=/api/users ms=5001\n"
+      }
+    }
+  },
+  "awk-regex-string-match-op": {
+    "stdout": "yes\nanchored\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-semicolons-and-empty-statements": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-switch": {
+    "stdout": "is a\nstarts b\nother\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-ternary": {
+    "stdout": "alice young\ncarol old\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-while-loop": {
+    "stdout": "15 6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

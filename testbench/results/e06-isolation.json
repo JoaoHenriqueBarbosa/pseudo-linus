@@ -1,0 +1,1799 @@
+{
+  "experiment": "e06-isolation",
+  "title": "Isolamento em três camadas: lint de userland, forbid(unsafe_code), Landlock e seccomp por thread",
+  "generated_at": "2026-10-02T23:41:39Z",
+  "host": {
+    "kernel": "6.12.101+deb13-amd64",
+    "cpus": 16,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+  },
+  "hypotheses": [
+    {
+      "id": "H19",
+      "verdict": "refuted",
+      "summary": "O cargo clippy -D warnings passou limpo (exit 0, 0 diagnósticos disallowed) no crate que lê o host por fs-reader e walkdir, e pegou 8 de 8 formas de chamada direta; o handle de arquivo vindo de dependência também passou. O depscan aponta o I/O de host nas dependências: fs-reader 0.1.0, same-file 1.0.6, walkdir 2.5.0.",
+      "evidence": {
+        "clippy_direct": {
+          "command": "/home/john/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo clippy --release --manifest-path /home/john/projects/pseudo-linus/testbench/experiments/e06-isolation/probes/Cargo.toml --target-dir /home/john/projects/pseudo-linus/testbench/experiments/e06-isolation/target/probes -p userland-direct --message-format=json -- -D warnings",
+          "diagnostics": [
+            {
+              "code": "clippy::disallowed_methods",
+              "file": "userland-direct/src/direct_env.rs",
+              "level": "error",
+              "line": 4,
+              "message": "use of a disallowed method `std::env::var`",
+              "target": "userland_direct"
+            },
+            {
+              "code": "clippy::disallowed_methods",
+              "file": "userland-direct/src/direct_fs.rs",
+              "level": "error",
+              "line": 4,
+              "message": "use of a disallowed method `std::fs::read`",
+              "target": "userland_direct"
+            },
+            {
+              "code": "clippy::disallowed_methods",
+              "file": "userland-direct/src/direct_net.rs",
+              "level": "error",
+              "line": 4,
+              "message": "use of a disallowed method `std::net::TcpStream::connect`",
+              "target": "userland_direct"
+            },
+            {
+              "code": "clippy::disallowed_types",
+              "file": "userland-direct/src/direct_net.rs",
+              "level": "error",
+              "line": 4,
+              "message": "use of a disallowed type `std::net::TcpStream`",
+              "target": "userland_direct"
+            },
+            {
+              "code": "clippy::disallowed_macros",
+              "file": "userland-direct/src/direct_print_macro.rs",
+              "level": "error",
+              "line": 5,
+              "message": "use of a disallowed macro `std::println`",
+              "target": "userland_direct"
+            },
+            {
+              "code": "clippy::disallowed_types",
+              "file": "userland-direct/src/direct_process.rs",
+              "level": "error",
+              "line": 4,
+              "message": "use of a disallowed type `std::process::Command`",
+              "target": "userland_direct"
+            },
+            {
+              "code": "clippy::disallowed_methods",
+              "file": "userland-direct/src/direct_process.rs",
+              "level": "error",
+              "line": 8,
+              "message": "use of a disallowed method `std::process::exit`",
+              "target": "userland_direct"
+            },
+            {
+              "code": "clippy::disallowed_methods",
+              "file": "userland-direct/src/direct_stdout.rs",
+              "level": "error",
+              "line": 6,
+              "message": "use of a disallowed method `std::io::stdout`",
+              "target": "userland_direct"
+            },
+            {
+              "code": "clippy::disallowed_types",
+              "file": "userland-direct/src/file_type_path.rs",
+              "level": "error",
+              "line": 7,
+              "message": "use of a disallowed type `std::fs::File`",
+              "target": "userland_direct"
+            },
+            {
+              "code": "clippy::disallowed_methods",
+              "file": "userland-direct/src/fn_pointer.rs",
+              "level": "error",
+              "line": 5,
+              "message": "use of a disallowed method `std::fs::read`",
+              "target": "userland_direct"
+            }
+          ],
+          "exit_code": 101,
+          "modules": [
+            {
+              "caught": true,
+              "control": true,
+              "description": "std::fs::read chamado direto",
+              "lints": [
+                "clippy::disallowed_methods"
+              ],
+              "module": "direct_fs"
+            },
+            {
+              "caught": true,
+              "control": true,
+              "description": "std::process::Command e std::process::exit",
+              "lints": [
+                "clippy::disallowed_methods",
+                "clippy::disallowed_types"
+              ],
+              "module": "direct_process"
+            },
+            {
+              "caught": true,
+              "control": true,
+              "description": "std::net::TcpStream::connect",
+              "lints": [
+                "clippy::disallowed_methods",
+                "clippy::disallowed_types"
+              ],
+              "module": "direct_net"
+            },
+            {
+              "caught": true,
+              "control": true,
+              "description": "std::env::var",
+              "lints": [
+                "clippy::disallowed_methods"
+              ],
+              "module": "direct_env"
+            },
+            {
+              "caught": true,
+              "control": true,
+              "description": "std::io::stdout",
+              "lints": [
+                "clippy::disallowed_methods"
+              ],
+              "module": "direct_stdout"
+            },
+            {
+              "caught": true,
+              "control": true,
+              "description": "println! (só disallowed-macros pega)",
+              "lints": [
+                "clippy::disallowed_macros"
+              ],
+              "module": "direct_print_macro"
+            },
+            {
+              "caught": true,
+              "control": true,
+              "description": "std::fs::File::open (tipo proibido)",
+              "lints": [
+                "clippy::disallowed_types"
+              ],
+              "module": "file_type_path"
+            },
+            {
+              "caught": true,
+              "control": true,
+              "description": "std::fs::read como ponteiro de função",
+              "lints": [
+                "clippy::disallowed_methods"
+              ],
+              "module": "fn_pointer"
+            },
+            {
+              "caught": false,
+              "control": false,
+              "description": "File do host vindo de dependência, lido pelo trait Read",
+              "lints": [],
+              "module": "handle_from_dep"
+            }
+          ]
+        },
+        "clippy_indirect": {
+          "command": "/home/john/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo clippy --release --manifest-path /home/john/projects/pseudo-linus/testbench/experiments/e06-isolation/probes/Cargo.toml --target-dir /home/john/projects/pseudo-linus/testbench/experiments/e06-isolation/target/probes -p userland --message-format=json -- -D warnings",
+          "diagnostics": [],
+          "disallowed_diagnostics": 0,
+          "exit_code": 0
+        },
+        "depscan": {
+          "userland": {
+            "host_touching_deps": {
+              "fs-reader 0.1.0": 3,
+              "same-file 1.0.6": 13,
+              "walkdir 2.5.0": 15
+            },
+            "package": "userland 0.1.0",
+            "root_host_touch": 0,
+            "root_unsafe": 0,
+            "tree_category": "b"
+          },
+          "userland_direct": {
+            "host_touching_deps": {
+              "fs-reader 0.1.0": 3
+            },
+            "package": "userland-direct 0.1.0",
+            "root_host_touch": 9,
+            "root_unsafe": 0,
+            "tree_category": "b"
+          }
+        }
+      }
+    },
+    {
+      "id": "H20",
+      "verdict": "refuted",
+      "summary": "7 de 9 casos de unsafe gerado por macro de outra crate compilaram sob forbid(unsafe_code): macro_rules_block, proc_call_site, proc_mixed_site, proc_located_at_input, macro_rules_unsafe_impl, derive_bytemuck_pod, macro_rules_no_mangle. Pegos pelo lint unsafe_code: nenhum. Barrados por E0453 (a macro emitia allow(unsafe_code) e o forbid não deixa rebaixar, sem detectar o unsafe): intrusive_adapter, macro_rules_allow. O controle, com o token unsafe no span do consumidor, foi pego pelo lint.",
+      "evidence": {
+        "baseline": {
+          "codes": [],
+          "control": false,
+          "description": "baseline sem macro",
+          "feature": "(nenhuma)",
+          "first_message": null,
+          "outcome": "compiles",
+          "seconds": 0.052425787
+        },
+        "cases": [
+          {
+            "codes": [],
+            "control": false,
+            "description": "(a) macro_rules! de outra crate expandindo pra bloco unsafe",
+            "feature": "macro_rules_block",
+            "first_message": null,
+            "outcome": "compiles",
+            "seconds": 0.020892767
+          },
+          {
+            "codes": [],
+            "control": false,
+            "description": "(b) proc macro de outra crate, span call_site",
+            "feature": "proc_call_site",
+            "first_message": null,
+            "outcome": "compiles",
+            "seconds": 0.02008735
+          },
+          {
+            "codes": [],
+            "control": false,
+            "description": "(c) proc macro de outra crate, span mixed_site",
+            "feature": "proc_mixed_site",
+            "first_message": null,
+            "outcome": "compiles",
+            "seconds": 0.020427021
+          },
+          {
+            "codes": [],
+            "control": false,
+            "description": "proc macro, contexto call_site com linha/coluna da entrada",
+            "feature": "proc_located_at_input",
+            "first_message": null,
+            "outcome": "compiles",
+            "seconds": 0.01946069
+          },
+          {
+            "codes": [],
+            "control": false,
+            "description": "(d) macro_rules! gerando unsafe impl Send",
+            "feature": "macro_rules_unsafe_impl",
+            "first_message": null,
+            "outcome": "compiles",
+            "seconds": 0.019548055
+          },
+          {
+            "codes": [],
+            "control": false,
+            "description": "(d) derive Pod/Zeroable do bytemuck (proc macro real, unsafe impl)",
+            "feature": "derive_bytemuck_pod",
+            "first_message": null,
+            "outcome": "compiles",
+            "seconds": 0.020054089
+          },
+          {
+            "codes": [
+              "E0453"
+            ],
+            "control": false,
+            "description": "(d) intrusive_collections::intrusive_adapter! (unsafe impl com allow(unsafe_code))",
+            "feature": "intrusive_adapter",
+            "first_message": "allow(unsafe_code) incompatible with previous forbid (/home/john/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/intrusive-collections-0.10.3/src/adapter.rs:203)",
+            "outcome": "forbid_overrides_allow",
+            "seconds": 0.055099481
+          },
+          {
+            "codes": [
+              "E0453"
+            ],
+            "control": false,
+            "description": "macro_rules! gerando #[allow(unsafe_code)] e bloco unsafe",
+            "feature": "macro_rules_allow",
+            "first_message": "allow(unsafe_code) incompatible with previous forbid (unsafe-macros/src/lib.rs:29)",
+            "outcome": "forbid_overrides_allow",
+            "seconds": 0.040816628
+          },
+          {
+            "codes": [],
+            "control": false,
+            "description": "macro_rules! gerando #[unsafe(no_mangle)]",
+            "feature": "macro_rules_no_mangle",
+            "first_message": null,
+            "outcome": "compiles",
+            "seconds": 0.018379126
+          },
+          {
+            "codes": [
+              "unsafe_code"
+            ],
+            "control": true,
+            "description": "controle: proc macro com o span da entrada (unsafe atribuído ao crate)",
+            "feature": "proc_input_span",
+            "first_message": "usage of an `unsafe` block (forbid-consumer/src/proc_input_span.rs:5)",
+            "outcome": "unsafe_code_lint",
+            "seconds": 0.041784311
+          }
+        ],
+        "depscan_consumer_root_unsafe": 0,
+        "depscan_unsafe_by_dependency": {
+          "bytemuck 1.25.2": 332,
+          "bytemuck_derive 1.12.1": 7,
+          "intrusive-collections 0.10.3": 385,
+          "proc-macro2 1.0.107": 6,
+          "syn 3.0.6": 77,
+          "unicode-ident 1.0.26": 2,
+          "unsafe-macros 0.1.0": 4,
+          "unsafe-proc-macro 0.1.0": 4
+        }
+      }
+    },
+    {
+      "id": "H21",
+      "verdict": "confirmed",
+      "summary": "Landlock ABI v6 (fully_enforced): a thread restrita leva EACCES fora do diretório montado e lê, cria e lista dentro dele; a filha herda; a principal, a vizinha criada depois e a que já existia seguem livres. seccomp por thread: socket, connect, execve, execveat, fork e io_uring_setup voltam EPERM só na thread filtrada e nas filhas, e criar thread continua funcionando. Overhead pela melhor de 15 rodadas (sobre 2548 ns de open+close sem filtro; medianas no JSON, ruidosas na máquina compartilhada): Landlock open+close +338 ns (+13.3%), pread 1 B -1 ns, getppid +1 ns, criar thread e aplicar +2 µs; seccomp open+close +92 ns (+3.6%), pread 1 B +35 ns, getppid +31 ns, criar thread e aplicar +81 µs; os dois open+close +441 ns (+17.3%), pread 1 B +35 ns, getppid +32 ns, criar thread e aplicar +83 µs; seccomp com BPF forçado nas syscalls do laço open+close +252 ns (+9.9%), pread 1 B +138 ns, getppid +120 ns, criar thread e aplicar +102 µs. Thread criada por uma thread já restrita herda os dois domínios em 22.9 µs (thread sem restrição: 22.7 µs).",
+      "evidence": {
+        "bench_sanity_ok": true,
+        "landlock": {
+          "applied": {
+            "all_threads": false,
+            "effective_abi": 6,
+            "kernel_abi": null,
+            "landlock": "available",
+            "no_new_privs": true,
+            "ruleset": "fully_enforced"
+          },
+          "mounted_dir": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/mounted",
+          "ok": true,
+          "probes": [
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "7 bytes",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/mounted/inside.txt",
+              "thread": "restricted"
+            },
+            {
+              "action": "create_file",
+              "expect": "allowed",
+              "result": {
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/mounted/by-restricted.txt",
+              "thread": "restricted"
+            },
+            {
+              "action": "list_dir",
+              "expect": "allowed",
+              "result": {
+                "detail": "2 entradas",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/mounted",
+              "thread": "restricted"
+            },
+            {
+              "action": "read_file",
+              "expect": {
+                "errno": 13
+              },
+              "result": {
+                "errno": 13,
+                "errno_name": "EACCES",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/outside/outside.txt",
+              "thread": "restricted"
+            },
+            {
+              "action": "create_file",
+              "expect": {
+                "errno": 13
+              },
+              "result": {
+                "errno": 13,
+                "errno_name": "EACCES",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/outside/by-restricted.txt",
+              "thread": "restricted"
+            },
+            {
+              "action": "list_dir",
+              "expect": {
+                "errno": 13
+              },
+              "result": {
+                "errno": 13,
+                "errno_name": "EACCES",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/outside",
+              "thread": "restricted"
+            },
+            {
+              "action": "read_file",
+              "expect": {
+                "errno": 13
+              },
+              "result": {
+                "errno": 13,
+                "errno_name": "EACCES",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/etc/os-release",
+              "thread": "restricted"
+            },
+            {
+              "action": "list_dir",
+              "expect": {
+                "errno": 13
+              },
+              "result": {
+                "errno": 13,
+                "errno_name": "EACCES",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/",
+              "thread": "restricted"
+            },
+            {
+              "action": "read_file",
+              "expect": {
+                "errno": 13
+              },
+              "result": {
+                "errno": 13,
+                "errno_name": "EACCES",
+                "ok": false
+              },
+              "role": "finding",
+              "target": "/proc/self/status",
+              "thread": "restricted"
+            },
+            {
+              "action": "read_preopened_fd",
+              "expect": "allowed",
+              "result": {
+                "detail": "8 bytes",
+                "ok": true
+              },
+              "role": "finding",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/outside/outside.txt",
+              "thread": "restricted"
+            },
+            {
+              "action": "reopen_via_proc_fd",
+              "expect": {
+                "errno": 13
+              },
+              "result": {
+                "errno": 13,
+                "errno_name": "EACCES",
+                "ok": false
+              },
+              "role": "finding",
+              "target": "/proc/self/fd/3",
+              "thread": "restricted"
+            },
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "7 bytes",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/mounted/inside.txt",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "create_file",
+              "expect": "allowed",
+              "result": {
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/mounted/by-child.txt",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "read_file",
+              "expect": {
+                "errno": 13
+              },
+              "result": {
+                "errno": 13,
+                "errno_name": "EACCES",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/outside/outside.txt",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "read_file",
+              "expect": {
+                "errno": 13
+              },
+              "result": {
+                "errno": 13,
+                "errno_name": "EACCES",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/etc/os-release",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "read_file_for_restricted_thread",
+              "expect": "allowed",
+              "result": {
+                "detail": "8 bytes",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/outside/outside.txt",
+              "thread": "pool_worker_created_before"
+            },
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "8 bytes",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/outside/outside.txt",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "create_file",
+              "expect": "allowed",
+              "result": {
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/outside/by-neighbor.txt",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "286 bytes",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/etc/os-release",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "list_dir",
+              "expect": "allowed",
+              "result": {
+                "detail": "25 entradas",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "1575 bytes",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/proc/self/status",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "8 bytes",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/landlock/outside/outside.txt",
+              "thread": "main"
+            },
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "286 bytes",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/etc/os-release",
+              "thread": "main"
+            }
+          ],
+          "restrict_error": null,
+          "tsync_hard_requirement": {
+            "accepted": false,
+            "error": "unsupported syscall flag: AllThreads set to true"
+          }
+        },
+        "overheads_vs_none": [
+          {
+            "config": "landlock",
+            "getppid_ns": {
+              "median": -0.3681049999999999,
+              "min": 0.5225570000000062,
+              "min_pct": 0.4364536106391041
+            },
+            "open_close_ns": {
+              "median": 327.21019000000024,
+              "min": 337.82787499999995,
+              "min_pct": 13.256590560475496
+            },
+            "pread_1b_ns": {
+              "median": 0.09543999999999642,
+              "min": -0.6979179999999587,
+              "min_pct": -0.18490519350611237
+            },
+            "spawn_us": {
+              "median": 2.2989999999999995,
+              "min": 1.7029999999999994,
+              "min_pct": 7.514450867052021
+            }
+          },
+          {
+            "config": "seccomp",
+            "getppid_ns": {
+              "median": 30.45689499999999,
+              "min": 31.074394000000012,
+              "min_pct": 25.954166645403195
+            },
+            "open_close_ns": {
+              "median": 74.67963499999996,
+              "min": 91.8482899999999,
+              "min_pct": 3.604188003165266
+            },
+            "pread_1b_ns": {
+              "median": 37.791064000000006,
+              "min": 35.374104000000045,
+              "min_pct": 9.371954219873594
+            },
+            "spawn_us": {
+              "median": 95.2645,
+              "min": 81.413,
+              "min_pct": 359.2331112385827
+            }
+          },
+          {
+            "config": "landlock_seccomp",
+            "getppid_ns": {
+              "median": 31.678077999999985,
+              "min": 31.531689999999998,
+              "min_pct": 26.336112519883514
+            },
+            "open_close_ns": {
+              "median": 422.272195,
+              "min": 441.4913449999999,
+              "min_pct": 17.324414087080978
+            },
+            "pread_1b_ns": {
+              "median": 36.54353600000002,
+              "min": 34.78118800000004,
+              "min_pct": 9.214868075494344
+            },
+            "spawn_us": {
+              "median": 100.58399999999999,
+              "min": 83.176,
+              "min_pct": 367.0123108149848
+            }
+          },
+          {
+            "config": "seccomp_arg_checked",
+            "getppid_ns": {
+              "median": 123.686585,
+              "min": 120.400497,
+              "min_pct": 100.5617217612471
+            },
+            "open_close_ns": {
+              "median": 238.7943150000001,
+              "min": 252.46097999999984,
+              "min_pct": 9.906736808963416
+            },
+            "pread_1b_ns": {
+              "median": 140.64092200000005,
+              "min": 138.44158,
+              "min_pct": 36.67847388832706
+            },
+            "spawn_us": {
+              "median": 118.3125,
+              "min": 102.253,
+              "min_pct": 451.18916295283054
+            }
+          }
+        ],
+        "seccomp": {
+          "apply_error": null,
+          "bpf_instructions": {
+            "clone3": 15,
+            "deny": 117
+          },
+          "denied": [
+            [
+              "socket",
+              "EPERM"
+            ],
+            [
+              "connect",
+              "EPERM"
+            ],
+            [
+              "execve",
+              "EPERM"
+            ],
+            [
+              "execveat",
+              "EPERM"
+            ],
+            [
+              "clone sem CLONE_THREAD",
+              "EPERM"
+            ],
+            [
+              "io_uring_setup",
+              "EPERM"
+            ],
+            [
+              "io_uring_enter",
+              "EPERM"
+            ],
+            [
+              "io_uring_register",
+              "EPERM"
+            ],
+            [
+              "clone3",
+              "ENOSYS"
+            ],
+            [
+              "fork",
+              "EPERM"
+            ],
+            [
+              "vfork",
+              "EPERM"
+            ],
+            [
+              "variantes x32 das anteriores",
+              "igual"
+            ]
+          ],
+          "ok": true,
+          "probes": [
+            {
+              "action": "socket",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "AF_INET SOCK_STREAM",
+              "thread": "restricted"
+            },
+            {
+              "action": "tcp_connect",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "127.0.0.1:33071",
+              "thread": "restricted"
+            },
+            {
+              "action": "connect_existing_socket",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "127.0.0.1:33071",
+              "thread": "restricted"
+            },
+            {
+              "action": "execve",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/nonexistent-e06/probe",
+              "thread": "restricted"
+            },
+            {
+              "action": "execveat",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "nonexistent-e06-probe",
+              "thread": "restricted"
+            },
+            {
+              "action": "spawn_process",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/bin/true",
+              "thread": "restricted"
+            },
+            {
+              "action": "io_uring_setup",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "IoUring::new(4)",
+              "thread": "restricted"
+            },
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "5 bytes",
+                "ok": true
+              },
+              "role": "control",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/seccomp/data.txt",
+              "thread": "restricted"
+            },
+            {
+              "action": "spawn_thread",
+              "expect": "allowed",
+              "result": {
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "",
+              "thread": "restricted"
+            },
+            {
+              "action": "socket",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "AF_INET SOCK_STREAM",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "tcp_connect",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "127.0.0.1:33071",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "execve",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/nonexistent-e06/probe",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "execveat",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "nonexistent-e06-probe",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "spawn_process",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/bin/true",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "io_uring_setup",
+              "expect": {
+                "errno": 1
+              },
+              "result": {
+                "errno": 1,
+                "errno_name": "EPERM",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "IoUring::new(4)",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "5 bytes",
+                "ok": true
+              },
+              "role": "control",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/seccomp/data.txt",
+              "thread": "child_of_restricted"
+            },
+            {
+              "action": "socket",
+              "expect": "allowed",
+              "result": {
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "AF_INET SOCK_STREAM",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "tcp_connect",
+              "expect": "allowed",
+              "result": {
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "127.0.0.1:33071",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "connect_existing_socket",
+              "expect": "allowed",
+              "result": {
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "127.0.0.1:33071",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "execve",
+              "expect": {
+                "errno": 2
+              },
+              "result": {
+                "errno": 2,
+                "errno_name": "ENOENT",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "/nonexistent-e06/probe",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "execveat",
+              "expect": {
+                "errno": 2
+              },
+              "result": {
+                "errno": 2,
+                "errno_name": "ENOENT",
+                "ok": false
+              },
+              "role": "criterion",
+              "target": "nonexistent-e06-probe",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "spawn_process",
+              "expect": "allowed",
+              "result": {
+                "detail": "exit 0",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/bin/true",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "io_uring_setup",
+              "expect": "allowed",
+              "result": {
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "IoUring::new(4)",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "read_file",
+              "expect": "allowed",
+              "result": {
+                "detail": "5 bytes",
+                "ok": true
+              },
+              "role": "control",
+              "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/seccomp/data.txt",
+              "thread": "neighbor_spawned_after"
+            },
+            {
+              "action": "socket",
+              "expect": "allowed",
+              "result": {
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "AF_INET SOCK_STREAM",
+              "thread": "main"
+            },
+            {
+              "action": "spawn_process",
+              "expect": "allowed",
+              "result": {
+                "detail": "exit 0",
+                "ok": true
+              },
+              "role": "criterion",
+              "target": "/bin/true",
+              "thread": "main"
+            }
+          ]
+        },
+        "strace_spawn": {
+          "after_process_via_clone3": true,
+          "after_thread_via_clone3": false,
+          "available": true,
+          "error": null,
+          "phases": {
+            "main_after": [
+              {
+                "clone_thread": true,
+                "result": "2299597",
+                "syscall": "clone"
+              },
+              {
+                "clone_thread": false,
+                "result": "2299598",
+                "syscall": "clone3"
+              }
+            ],
+            "main_before": [
+              {
+                "clone_thread": true,
+                "result": "2299593",
+                "syscall": "clone3"
+              },
+              {
+                "clone_thread": false,
+                "result": "2299594",
+                "syscall": "clone3"
+              },
+              {
+                "clone_thread": true,
+                "result": "2299595",
+                "syscall": "clone3"
+              }
+            ],
+            "restricted": [
+              {
+                "clone_thread": false,
+                "result": "-1 ENOSYS (Function not implemented)",
+                "syscall": "clone3"
+              },
+              {
+                "clone_thread": false,
+                "result": "-1 EPERM (Operation not permitted)",
+                "syscall": "clone"
+              },
+              {
+                "clone_thread": true,
+                "result": "-1 ENOSYS (Function not implemented)",
+                "syscall": "clone3"
+              },
+              {
+                "clone_thread": true,
+                "result": "2299596",
+                "syscall": "clone"
+              }
+            ]
+          },
+          "report": {
+            "probes": [
+              {
+                "action": "spawn_thread",
+                "expect": "allowed",
+                "result": {
+                  "ok": true
+                },
+                "role": "control",
+                "target": "",
+                "thread": "main_before"
+              },
+              {
+                "action": "spawn_process",
+                "expect": "allowed",
+                "result": {
+                  "detail": "exit 0",
+                  "ok": true
+                },
+                "role": "control",
+                "target": "/bin/true",
+                "thread": "main_before"
+              },
+              {
+                "action": "spawn_process",
+                "expect": {
+                  "errno": 1
+                },
+                "result": {
+                  "errno": 1,
+                  "errno_name": "EPERM",
+                  "ok": false
+                },
+                "role": "criterion",
+                "target": "/bin/true",
+                "thread": "restricted"
+              },
+              {
+                "action": "spawn_thread",
+                "expect": "allowed",
+                "result": {
+                  "ok": true
+                },
+                "role": "criterion",
+                "target": "",
+                "thread": "restricted"
+              },
+              {
+                "action": "spawn_thread",
+                "expect": "allowed",
+                "result": {
+                  "ok": true
+                },
+                "role": "control",
+                "target": "",
+                "thread": "main_after"
+              },
+              {
+                "action": "spawn_process",
+                "expect": "allowed",
+                "result": {
+                  "detail": "exit 0",
+                  "ok": true
+                },
+                "role": "control",
+                "target": "/bin/true",
+                "thread": "main_after"
+              }
+            ]
+          },
+          "restricted_clone3_enosys": true,
+          "restricted_fork_clone_eperm": true,
+          "restricted_thread_clone_ok": true
+        }
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "name": "landlock",
+      "version": "0.4.7",
+      "role": "isolamento em runtime: FS do host por thread",
+      "category": "b",
+      "fit": "fits",
+      "notes": "API segura; restrict_self vale pra thread atual e pras filhas criadas depois; ABI efetiva lida do RestrictionStatus; all_threads (TSYNC) só na ABI v8.",
+      "metrics": {
+        "applied": {
+          "all_threads": false,
+          "effective_abi": 6,
+          "kernel_abi": null,
+          "landlock": "available",
+          "no_new_privs": true,
+          "ruleset": "fully_enforced"
+        },
+        "depscan": {
+          "host_touch": 34,
+          "tree_category": "b",
+          "unsafe": 17
+        },
+        "overhead": {
+          "config": "landlock",
+          "getppid_ns": {
+            "median": -0.3681049999999999,
+            "min": 0.5225570000000062,
+            "min_pct": 0.4364536106391041
+          },
+          "open_close_ns": {
+            "median": 327.21019000000024,
+            "min": 337.82787499999995,
+            "min_pct": 13.256590560475496
+          },
+          "pread_1b_ns": {
+            "median": 0.09543999999999642,
+            "min": -0.6979179999999587,
+            "min_pct": -0.18490519350611237
+          },
+          "spawn_us": {
+            "median": 2.2989999999999995,
+            "min": 1.7029999999999994,
+            "min_pct": 7.514450867052021
+          }
+        }
+      }
+    },
+    {
+      "name": "seccompiler",
+      "version": "0.5.0",
+      "role": "isolamento em runtime: syscalls por thread",
+      "category": "b",
+      "fit": "fits",
+      "notes": "API segura; apply_filter só na thread atual; uma ação por filtro, então clone3 (ENOSYS) vai num segundo filtro; não cobre x32 sozinho.",
+      "metrics": {
+        "bpf_instructions": {
+          "clone3": 15,
+          "deny": 117
+        },
+        "depscan": {
+          "host_touch": 17,
+          "tree_category": "b",
+          "unsafe": 2
+        },
+        "overhead": {
+          "config": "seccomp",
+          "getppid_ns": {
+            "median": 30.45689499999999,
+            "min": 31.074394000000012,
+            "min_pct": 25.954166645403195
+          },
+          "open_close_ns": {
+            "median": 74.67963499999996,
+            "min": 91.8482899999999,
+            "min_pct": 3.604188003165266
+          },
+          "pread_1b_ns": {
+            "median": 37.791064000000006,
+            "min": 35.374104000000045,
+            "min_pct": 9.371954219873594
+          },
+          "spawn_us": {
+            "median": 95.2645,
+            "min": 81.413,
+            "min_pct": 359.2331112385827
+          }
+        },
+        "overhead_arg_checked": {
+          "config": "seccomp_arg_checked",
+          "getppid_ns": {
+            "median": 123.686585,
+            "min": 120.400497,
+            "min_pct": 100.5617217612471
+          },
+          "open_close_ns": {
+            "median": 238.7943150000001,
+            "min": 252.46097999999984,
+            "min_pct": 9.906736808963416
+          },
+          "pread_1b_ns": {
+            "median": 140.64092200000005,
+            "min": 138.44158,
+            "min_pct": 36.67847388832706
+          },
+          "spawn_us": {
+            "median": 118.3125,
+            "min": 102.253,
+            "min_pct": 451.18916295283054
+          }
+        }
+      }
+    }
+  ],
+  "metrics": {
+    "bench": {
+      "configs": [
+        {
+          "config": "none",
+          "getppid_ns": {
+            "max": 154.478971,
+            "median": 121.850419,
+            "min": 119.727959,
+            "n": 15
+          },
+          "open_close_ns": {
+            "max": 2728.796805,
+            "median": 2591.457505,
+            "min": 2548.376775,
+            "n": 15
+          },
+          "pread_1b_ns": {
+            "max": 392.643888,
+            "median": 380.135994,
+            "min": 377.446402,
+            "n": 15
+          },
+          "spawn_restrict_join_us": {
+            "max": 116.83,
+            "median": 25.483,
+            "min": 22.663,
+            "n": 400
+          }
+        },
+        {
+          "config": "landlock",
+          "getppid_ns": {
+            "max": 124.472891,
+            "median": 121.482314,
+            "min": 120.250516,
+            "n": 15
+          },
+          "open_close_ns": {
+            "max": 2965.70416,
+            "median": 2918.667695,
+            "min": 2886.20465,
+            "n": 15
+          },
+          "pread_1b_ns": {
+            "max": 396.058482,
+            "median": 380.231434,
+            "min": 376.748484,
+            "n": 15
+          },
+          "spawn_restrict_join_us": {
+            "max": 59.081,
+            "median": 27.782,
+            "min": 24.366,
+            "n": 400
+          }
+        },
+        {
+          "config": "seccomp",
+          "getppid_ns": {
+            "max": 158.917526,
+            "median": 152.307314,
+            "min": 150.802353,
+            "n": 15
+          },
+          "open_close_ns": {
+            "max": 2849.101195,
+            "median": 2666.13714,
+            "min": 2640.225065,
+            "n": 15
+          },
+          "pread_1b_ns": {
+            "max": 439.185584,
+            "median": 417.927058,
+            "min": 412.820506,
+            "n": 15
+          },
+          "spawn_restrict_join_us": {
+            "max": 219.593,
+            "median": 120.7475,
+            "min": 104.076,
+            "n": 400
+          }
+        },
+        {
+          "config": "landlock_seccomp",
+          "getppid_ns": {
+            "max": 157.114826,
+            "median": 153.528497,
+            "min": 151.259649,
+            "n": 15
+          },
+          "open_close_ns": {
+            "max": 3052.03631,
+            "median": 3013.7297,
+            "min": 2989.86812,
+            "n": 15
+          },
+          "pread_1b_ns": {
+            "max": 424.469114,
+            "median": 416.67953,
+            "min": 412.22759,
+            "n": 15
+          },
+          "spawn_restrict_join_us": {
+            "max": 318.499,
+            "median": 126.067,
+            "min": 105.839,
+            "n": 400
+          }
+        },
+        {
+          "config": "seccomp_arg_checked",
+          "getppid_ns": {
+            "max": 253.700415,
+            "median": 245.537004,
+            "min": 240.128456,
+            "n": 15
+          },
+          "open_close_ns": {
+            "max": 2870.895485,
+            "median": 2830.25182,
+            "min": 2800.837755,
+            "n": 15
+          },
+          "pread_1b_ns": {
+            "max": 565.251624,
+            "median": 520.776916,
+            "min": 515.887982,
+            "n": 15
+          },
+          "spawn_restrict_join_us": {
+            "max": 518.687,
+            "median": 143.7955,
+            "min": 124.916,
+            "n": 400
+          }
+        }
+      ],
+      "inherited_sanity": [
+        {
+          "action": "read_file",
+          "expect": {
+            "errno": 13
+          },
+          "result": {
+            "errno": 13,
+            "errno_name": "EACCES",
+            "ok": false
+          },
+          "role": "control",
+          "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/bench/outside/outside.bin",
+          "thread": "child_of_spawner"
+        },
+        {
+          "action": "socket",
+          "expect": {
+            "errno": 1
+          },
+          "result": {
+            "errno": 1,
+            "errno_name": "EPERM",
+            "ok": false
+          },
+          "role": "control",
+          "target": "AF_INET SOCK_STREAM",
+          "thread": "child_of_spawner"
+        }
+      ],
+      "inherited_spawn_us": {
+        "max": 320.253,
+        "median": 27.086,
+        "min": 22.913,
+        "n": 400
+      },
+      "open_path": "/home/john/projects/pseudo-linus/testbench/scratch/e06/bench/mounted/file.bin",
+      "open_path_components": 11,
+      "ruleset_build_us": {
+        "max": 191.561,
+        "median": 5.45,
+        "min": 5.39,
+        "n": 400
+      },
+      "sanity": [
+        {
+          "action": "read_file",
+          "expect": "allowed",
+          "result": {
+            "detail": "1 bytes",
+            "ok": true
+          },
+          "role": "control",
+          "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/bench/outside/outside.bin",
+          "thread": "none"
+        },
+        {
+          "action": "socket",
+          "expect": "allowed",
+          "result": {
+            "ok": true
+          },
+          "role": "control",
+          "target": "AF_INET SOCK_STREAM",
+          "thread": "none"
+        },
+        {
+          "action": "read_file",
+          "expect": {
+            "errno": 13
+          },
+          "result": {
+            "errno": 13,
+            "errno_name": "EACCES",
+            "ok": false
+          },
+          "role": "control",
+          "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/bench/outside/outside.bin",
+          "thread": "landlock"
+        },
+        {
+          "action": "socket",
+          "expect": "allowed",
+          "result": {
+            "ok": true
+          },
+          "role": "control",
+          "target": "AF_INET SOCK_STREAM",
+          "thread": "landlock"
+        },
+        {
+          "action": "read_file",
+          "expect": "allowed",
+          "result": {
+            "detail": "1 bytes",
+            "ok": true
+          },
+          "role": "control",
+          "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/bench/outside/outside.bin",
+          "thread": "seccomp"
+        },
+        {
+          "action": "socket",
+          "expect": {
+            "errno": 1
+          },
+          "result": {
+            "errno": 1,
+            "errno_name": "EPERM",
+            "ok": false
+          },
+          "role": "control",
+          "target": "AF_INET SOCK_STREAM",
+          "thread": "seccomp"
+        },
+        {
+          "action": "read_file",
+          "expect": {
+            "errno": 13
+          },
+          "result": {
+            "errno": 13,
+            "errno_name": "EACCES",
+            "ok": false
+          },
+          "role": "control",
+          "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/bench/outside/outside.bin",
+          "thread": "landlock_seccomp"
+        },
+        {
+          "action": "socket",
+          "expect": {
+            "errno": 1
+          },
+          "result": {
+            "errno": 1,
+            "errno_name": "EPERM",
+            "ok": false
+          },
+          "role": "control",
+          "target": "AF_INET SOCK_STREAM",
+          "thread": "landlock_seccomp"
+        },
+        {
+          "action": "read_file",
+          "expect": "allowed",
+          "result": {
+            "detail": "1 bytes",
+            "ok": true
+          },
+          "role": "control",
+          "target": "/home/john/projects/pseudo-linus/testbench/scratch/e06/bench/outside/outside.bin",
+          "thread": "seccomp_arg_checked"
+        },
+        {
+          "action": "socket",
+          "expect": {
+            "errno": 1
+          },
+          "result": {
+            "errno": 1,
+            "errno_name": "EPERM",
+            "ok": false
+          },
+          "role": "control",
+          "target": "AF_INET SOCK_STREAM",
+          "thread": "seccomp_arg_checked"
+        }
+      ],
+      "scale": {
+        "null_iters": 1000000,
+        "open_iters": 200000,
+        "read_iters": 500000,
+        "rounds": 15,
+        "spawn_iters": 400
+      }
+    },
+    "bench_scale": "full",
+    "elapsed_s": 72.361663431,
+    "host_security": {
+      "io_uring_disabled": "0",
+      "lsm": "lockdown,capability,landlock,yama,apparmor,tomoyo,bpf,ipe,ima,evm",
+      "spec_store_bypass": "Mitigation: Speculative Store Bypass disabled via prctl",
+      "yama_ptrace_scope": "0"
+    },
+    "overheads_vs_none": [
+      {
+        "config": "landlock",
+        "getppid_ns": {
+          "median": -0.3681049999999999,
+          "min": 0.5225570000000062,
+          "min_pct": 0.4364536106391041
+        },
+        "open_close_ns": {
+          "median": 327.21019000000024,
+          "min": 337.82787499999995,
+          "min_pct": 13.256590560475496
+        },
+        "pread_1b_ns": {
+          "median": 0.09543999999999642,
+          "min": -0.6979179999999587,
+          "min_pct": -0.18490519350611237
+        },
+        "spawn_us": {
+          "median": 2.2989999999999995,
+          "min": 1.7029999999999994,
+          "min_pct": 7.514450867052021
+        }
+      },
+      {
+        "config": "seccomp",
+        "getppid_ns": {
+          "median": 30.45689499999999,
+          "min": 31.074394000000012,
+          "min_pct": 25.954166645403195
+        },
+        "open_close_ns": {
+          "median": 74.67963499999996,
+          "min": 91.8482899999999,
+          "min_pct": 3.604188003165266
+        },
+        "pread_1b_ns": {
+          "median": 37.791064000000006,
+          "min": 35.374104000000045,
+          "min_pct": 9.371954219873594
+        },
+        "spawn_us": {
+          "median": 95.2645,
+          "min": 81.413,
+          "min_pct": 359.2331112385827
+        }
+      },
+      {
+        "config": "landlock_seccomp",
+        "getppid_ns": {
+          "median": 31.678077999999985,
+          "min": 31.531689999999998,
+          "min_pct": 26.336112519883514
+        },
+        "open_close_ns": {
+          "median": 422.272195,
+          "min": 441.4913449999999,
+          "min_pct": 17.324414087080978
+        },
+        "pread_1b_ns": {
+          "median": 36.54353600000002,
+          "min": 34.78118800000004,
+          "min_pct": 9.214868075494344
+        },
+        "spawn_us": {
+          "median": 100.58399999999999,
+          "min": 83.176,
+          "min_pct": 367.0123108149848
+        }
+      },
+      {
+        "config": "seccomp_arg_checked",
+        "getppid_ns": {
+          "median": 123.686585,
+          "min": 120.400497,
+          "min_pct": 100.5617217612471
+        },
+        "open_close_ns": {
+          "median": 238.7943150000001,
+          "min": 252.46097999999984,
+          "min_pct": 9.906736808963416
+        },
+        "pread_1b_ns": {
+          "median": 140.64092200000005,
+          "min": 138.44158,
+          "min_pct": 36.67847388832706
+        },
+        "spawn_us": {
+          "median": 118.3125,
+          "min": 102.253,
+          "min_pct": 451.18916295283054
+        }
+      }
+    ]
+  },
+  "notes": [
+    "H19: um std::fs::File que chega por dependência e é lido pelo trait Read no crate de userland não é pego pelo clippy; disallowed-types só enxerga o tipo quando ele é escrito no código.",
+    "H19: println! foi pego (com disallowed-macros configurado); sem essa lista, disallowed-methods de std::io::stdout não enxerga a macro.",
+    "H20: intrusive_adapter! terminou em ForbidOverridesAllow; com deny no lugar de forbid o allow(unsafe_code) da macro passaria.",
+    "H20: o depscan conta 0 unsafe no próprio consumidor e acha o unsafe nas crates de macro (bytemuck 1.25.2, bytemuck_derive 1.12.1, intrusive-collections 0.10.3, proc-macro2 1.0.107, syn 3.0.6, unicode-ident 1.0.26, unsafe-macros 0.1.0, unsafe-proc-macro 0.1.0); a camada que pega unsafe gerado por macro é o scanner de dependências, não o lint.",
+    "H21: thread que já existia antes da restrição (modelo de pool global, rayon/tokio) fez I/O de host a pedido da thread restrita: funcionou. Pseudo-processo não pode despachar trabalho pra pool compartilhado com o kernel.",
+    "H21: fd aberto antes do restrict_self continua legível na thread restrita (ok); reabrir pelo /proc/self/fd passa pelo Landlock de novo (EACCES).",
+    "H21: TSYNC (all_threads) como requisito duro: recusado (unsupported syscall flag: AllThreads set to true).",
+    "H21 (strace): na thread filtrada clone3 voltou ENOSYS: true, o fork caiu no clone e levou EPERM: true, a thread nasceu por clone com CLONE_THREAD: true. Efeito colateral global da glibc: depois disso a thread principal, sem filtro, não cria mais thread por clone3 e ainda cria processo por clone3 (o ENOSYS fica num estático do processo).",
+    "H21: socket e connect ficam negados na thread do pseudo-processo, então a rede (ureq do F12) tem que rodar numa thread do kernel fora do filtro, ou trocar a negação por regras de rede do Landlock (AccessNet, ABI v4+)."
+  ]
+}

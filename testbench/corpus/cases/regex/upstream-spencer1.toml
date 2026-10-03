@@ -1,0 +1,3332 @@
+# Gerado por testbench/experiments/f01-regex (binário f01-gen-cases). Não edite à mão:
+# edite experiments/f01-regex/data/agent_style.toml ou regenere a partir de corpus/upstream/grep.
+
+tool = "regex"
+source = "upstream:grep-3.11/tests/spencer1.tests"
+
+[[case]]
+id = "spencer1-001-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-002-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xbc
+"""
+
+[[case]]
+id = "spencer1-003-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+axc
+"""
+
+[[case]]
+id = "spencer1-004-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abx
+"""
+
+[[case]]
+id = "spencer1-005-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xabcy
+"""
+
+[[case]]
+id = "spencer1-006-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ababc
+"""
+
+[[case]]
+id = "spencer1-007-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab*c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-008-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab*bc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-009-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab*bc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbc
+"""
+
+[[case]]
+id = "spencer1-010-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab*bc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbbbc
+"""
+
+[[case]]
+id = "spencer1-011-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab+bc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbc
+"""
+
+[[case]]
+id = "spencer1-012-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab+bc", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-013-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab+bc", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abq
+"""
+
+[[case]]
+id = "spencer1-014-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab+bc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbbbc
+"""
+
+[[case]]
+id = "spencer1-015-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab?bc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbc
+"""
+
+[[case]]
+id = "spencer1-016-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab?bc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-017-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab?bc", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbbbc
+"""
+
+[[case]]
+id = "spencer1-018-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab?c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-019-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^abc$", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-020-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^abc$", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcc
+"""
+
+[[case]]
+id = "spencer1-021-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^abc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcc
+"""
+
+[[case]]
+id = "spencer1-022-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^abc$", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aabc
+"""
+
+[[case]]
+id = "spencer1-023-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc$", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aabc
+"""
+
+[[case]]
+id = "spencer1-024-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-025-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "$", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-026-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a.c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-027-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a.c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+axc
+"""
+
+[[case]]
+id = "spencer1-028-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a.*c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+axyzc
+"""
+
+[[case]]
+id = "spencer1-029-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a.*c", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+axyzd
+"""
+
+[[case]]
+id = "spencer1-030-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[bc]d", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-031-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[bc]d", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abd
+"""
+
+[[case]]
+id = "spencer1-032-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[b-d]e", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abd
+"""
+
+[[case]]
+id = "spencer1-033-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[b-d]e", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ace
+"""
+
+[[case]]
+id = "spencer1-034-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[b-d]", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aac
+"""
+
+[[case]]
+id = "spencer1-035-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[-b]", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a-
+"""
+
+[[case]]
+id = "spencer1-036-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[b-]", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a-
+"""
+
+[[case]]
+id = "spencer1-037-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[b-a]", "s.txt"]
+tags = ["src:spencer1", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-038-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[]b", "s.txt"]
+tags = ["src:spencer1", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-039-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[", "s.txt"]
+tags = ["src:spencer1", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-040-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a]", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a]
+"""
+
+[[case]]
+id = "spencer1-041-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[]]b", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a]b
+"""
+
+[[case]]
+id = "spencer1-042-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^bc]d", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aed
+"""
+
+[[case]]
+id = "spencer1-043-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^bc]d", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abd
+"""
+
+[[case]]
+id = "spencer1-044-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^-b]c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+adc
+"""
+
+[[case]]
+id = "spencer1-045-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^-b]c", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a-c
+"""
+
+[[case]]
+id = "spencer1-046-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^]b]c", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a]c
+"""
+
+[[case]]
+id = "spencer1-047-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[^]b]c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+adc
+"""
+
+[[case]]
+id = "spencer1-048-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab|cd", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-049-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab|cd", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-050-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "()ef", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+def
+"""
+
+[[case]]
+id = "spencer1-050-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001()ef\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+def
+"""
+
+[[case]]
+id = "spencer1-050-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+()ef
+"""
+"s.txt" = """
+def
+"""
+
+[[case]]
+id = "spencer1-051-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "()*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-051-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001()*\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-051-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+()*
+"""
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-052-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "*a", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-053-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-054-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "$*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-055-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(*)b", "s.txt"]
+tags = ["src:spencer1", "expect:2", "upstream-todo", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-056-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "$b", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:anchor", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+b
+"""
+
+[[case]]
+id = "spencer1-057-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\', "s.txt"]
+tags = ["src:spencer1", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-058-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\(b', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a(b
+"""
+
+[[case]]
+id = "spencer1-059-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\(*b', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-060-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\(*b', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a((b
+"""
+
+[[case]]
+id = "spencer1-061-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a\\x', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+a\x
+'''
+
+[[case]]
+id = "spencer1-062-grep-o"
+argv = ["grep", "-ob", "-E", "-e", 'a[\]x', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+a\x
+'''
+
+[[case]]
+id = "spencer1-063-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ax", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+a\x
+'''
+
+[[case]]
+id = "spencer1-064-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc)", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-065-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(abc", "s.txt"]
+tags = ["src:spencer1", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-066-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "((a))", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-066-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001((a))\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-066-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+((a))
+"""
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-067-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a)b(c)", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-067-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a)b(c)\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-067-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a)b(c)
+"""
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-068-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a+b+c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+aabbabc
+"""
+
+[[case]]
+id = "spencer1-069-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a**", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-070-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a*?", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-071-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a*)*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-071-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a*)*\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-071-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a*)*
+"""
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-072-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a*)+", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-072-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a*)+\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-072-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a*)+
+"""
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-073-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a|)*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-073-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a|)*\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-073-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a|)*
+"""
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-074-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a*|b)*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-074-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a*|b)*\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-074-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a*|b)*
+"""
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-075-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a+|b)*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-075-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a+|b)*\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-075-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a+|b)*
+"""
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-076-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a+|b)+", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-076-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a+|b)+\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-076-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a+|b)+
+"""
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-077-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a+|b)?", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-077-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a+|b)?\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-077-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a+|b)?
+"""
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-078-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[^ab]*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+cde
+"""
+
+[[case]]
+id = "spencer1-079-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(^)*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-079-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(^)*\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-079-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:anchor", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(^)*
+"""
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-080-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(ab|)*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-080-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(ab|)*\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-080-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(ab|)*
+"""
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-081-grep-o"
+argv = ["grep", "-ob", "-E", "-e", ")(", "s.txt"]
+tags = ["src:spencer1", "expect:2", "dialect:grep-ere", "feat:syntax-error", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-082-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+
+"""
+
+[[case]]
+id = "spencer1-083-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abc", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+
+"""
+
+[[case]]
+id = "spencer1-084-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+
+"""
+
+[[case]]
+id = "spencer1-085-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "([abc])*d", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbbcd
+"""
+
+[[case]]
+id = "spencer1-085-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001([abc])*d\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abbbcd
+"""
+
+[[case]]
+id = "spencer1-085-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+([abc])*d
+"""
+"s.txt" = """
+abbbcd
+"""
+
+[[case]]
+id = "spencer1-086-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "([abc])*bcd", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-086-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001([abc])*bcd\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-086-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+([abc])*bcd
+"""
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-087-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a|b|c|d|e", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+e
+"""
+
+[[case]]
+id = "spencer1-088-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a|b|c|d|e)f", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ef
+"""
+
+[[case]]
+id = "spencer1-088-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a|b|c|d|e)f\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ef
+"""
+
+[[case]]
+id = "spencer1-088-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a|b|c|d|e)f
+"""
+"s.txt" = """
+ef
+"""
+
+[[case]]
+id = "spencer1-089-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "((a*|b))*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-089-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001((a*|b))*\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-089-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:nested-repeat", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+((a*|b))*
+"""
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-090-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abcd*efg", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcdefg
+"""
+
+[[case]]
+id = "spencer1-091-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xabyabbbz
+"""
+
+[[case]]
+id = "spencer1-092-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ab*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xayabbbz
+"""
+
+[[case]]
+id = "spencer1-093-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(ab|cd)e", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcde
+"""
+
+[[case]]
+id = "spencer1-093-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(ab|cd)e\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcde
+"""
+
+[[case]]
+id = "spencer1-093-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(ab|cd)e
+"""
+"s.txt" = """
+abcde
+"""
+
+[[case]]
+id = "spencer1-094-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[abhgefdc]ij", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+hij
+"""
+
+[[case]]
+id = "spencer1-095-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^(ab|cd)e", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcde
+"""
+
+[[case]]
+id = "spencer1-095-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001^(ab|cd)e\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcde
+"""
+
+[[case]]
+id = "spencer1-095-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+^(ab|cd)e
+"""
+"s.txt" = """
+abcde
+"""
+
+[[case]]
+id = "spencer1-096-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(abc|)ef", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcdef
+"""
+
+[[case]]
+id = "spencer1-096-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(abc|)ef\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcdef
+"""
+
+[[case]]
+id = "spencer1-096-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(abc|)ef
+"""
+"s.txt" = """
+abcdef
+"""
+
+[[case]]
+id = "spencer1-097-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(a|b)c*d", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-097-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(a|b)c*d\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-097-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(a|b)c*d
+"""
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-098-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(ab|ab*)bc", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-098-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(ab|ab*)bc\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-098-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(ab|ab*)bc
+"""
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-099-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a([bc]*)c*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-099-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a([bc]*)c*\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-099-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a([bc]*)c*
+"""
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-100-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a([bc]*)(c*d)", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-100-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a([bc]*)(c*d)\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-100-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a([bc]*)(c*d)
+"""
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-101-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a([bc]+)(c*d)", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-101-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a([bc]+)(c*d)\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-101-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a([bc]+)(c*d)
+"""
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-102-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a([bc]*)(c+d)", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-102-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a([bc]*)(c+d)\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-102-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a([bc]*)(c+d)
+"""
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-103-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[bcd]*dcdcde", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+adcdcde
+"""
+
+[[case]]
+id = "spencer1-104-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[bcd]+dcdcde", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:bracket", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+adcdcde
+"""
+
+[[case]]
+id = "spencer1-105-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(ab|a)b*c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-105-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(ab|a)b*c\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-105-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(ab|a)b*c
+"""
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-106-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "((a)(b)c)(d)", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-106-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001((a)(b)c)(d)\u0001\u0002&\u0003\\1\u0003\\2\u0003\\3\u0003\\4\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-106-gawk"
+argv = ["gawk", "-v", "N=4", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+((a)(b)c)(d)
+"""
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-107-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[A-Za-z_][A-Za-z0-9_]*", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+alpha
+"""
+
+[[case]]
+id = "spencer1-108-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "^a(bc+|b[eh])g|.h$", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:bracket", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abh
+"""
+
+[[case]]
+id = "spencer1-108-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001^a(bc+|b[eh])g|.h$\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:bracket", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abh
+"""
+
+[[case]]
+id = "spencer1-108-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:bracket", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+^a(bc+|b[eh])g|.h$
+"""
+"s.txt" = """
+abh
+"""
+
+[[case]]
+id = "spencer1-109-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(bc+d$|ef*g.|h?i(j|k))", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+effgz
+"""
+
+[[case]]
+id = "spencer1-109-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(bc+d$|ef*g.|h?i(j|k))\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+effgz
+"""
+
+[[case]]
+id = "spencer1-109-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(bc+d$|ef*g.|h?i(j|k))
+"""
+"s.txt" = """
+effgz
+"""
+
+[[case]]
+id = "spencer1-110-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(bc+d$|ef*g.|h?i(j|k))", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ij
+"""
+
+[[case]]
+id = "spencer1-110-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(bc+d$|ef*g.|h?i(j|k))\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ij
+"""
+
+[[case]]
+id = "spencer1-110-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(bc+d$|ef*g.|h?i(j|k))
+"""
+"s.txt" = """
+ij
+"""
+
+[[case]]
+id = "spencer1-111-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(bc+d$|ef*g.|h?i(j|k))", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+effg
+"""
+
+[[case]]
+id = "spencer1-111-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(bc+d$|ef*g.|h?i(j|k))\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+effg
+"""
+
+[[case]]
+id = "spencer1-111-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(bc+d$|ef*g.|h?i(j|k))
+"""
+"s.txt" = """
+effg
+"""
+
+[[case]]
+id = "spencer1-112-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(bc+d$|ef*g.|h?i(j|k))", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+bcdd
+"""
+
+[[case]]
+id = "spencer1-112-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(bc+d$|ef*g.|h?i(j|k))\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+bcdd
+"""
+
+[[case]]
+id = "spencer1-112-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(bc+d$|ef*g.|h?i(j|k))
+"""
+"s.txt" = """
+bcdd
+"""
+
+[[case]]
+id = "spencer1-113-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(bc+d$|ef*g.|h?i(j|k))", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+reffgz
+"""
+
+[[case]]
+id = "spencer1-113-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(bc+d$|ef*g.|h?i(j|k))\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+reffgz
+"""
+
+[[case]]
+id = "spencer1-113-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(bc+d$|ef*g.|h?i(j|k))
+"""
+"s.txt" = """
+reffgz
+"""
+
+[[case]]
+id = "spencer1-114-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "((((((((((a))))))))))", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-114-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001((((((((((a))))))))))\u0001\u0002&\u0003\\1\u0003\\2\u0003\\3\u0003\\4\u0003\\5\u0003\\6\u0003\\7\u0003\\8\u0003\\9\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-114-gawk"
+argv = ["gawk", "-v", "N=10", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+((((((((((a))))))))))
+"""
+"s.txt" = """
+-
+"""
+
+[[case]]
+id = "spencer1-115-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(((((((((a)))))))))", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "spencer1-115-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(((((((((a)))))))))\u0001\u0002&\u0003\\1\u0003\\2\u0003\\3\u0003\\4\u0003\\5\u0003\\6\u0003\\7\u0003\\8\u0003\\9\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "spencer1-115-gawk"
+argv = ["gawk", "-v", "N=9", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(((((((((a)))))))))
+"""
+"s.txt" = """
+a
+"""
+
+[[case]]
+id = "spencer1-116-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ca{0,0}b", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+cb
+"""
+
+[[case]]
+id = "spencer1-117-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ca{0,0}b", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+cab
+"""
+
+[[case]]
+id = "spencer1-118-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ca{0,1}b", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+cb
+"""
+
+[[case]]
+id = "spencer1-119-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ca{0,1}b", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+cab
+"""
+
+[[case]]
+id = "spencer1-120-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ca{0,1}b", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+caab
+"""
+
+[[case]]
+id = "spencer1-121-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ca{1,2}b", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+cb
+"""
+
+[[case]]
+id = "spencer1-122-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ca{1,2}b", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+cab
+"""
+
+[[case]]
+id = "spencer1-123-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ca{1,2}b", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+caab
+"""
+
+[[case]]
+id = "spencer1-124-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "ca{1,2}b", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:interval", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+caaab
+"""
+
+[[case]]
+id = "spencer1-125-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "multiple words of text", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+uh-uh
+"""
+
+[[case]]
+id = "spencer1-126-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "multiple words", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+multiple words, yeah
+"""
+
+[[case]]
+id = "spencer1-127-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "(.*)c(.*)", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcde
+"""
+
+[[case]]
+id = "spencer1-127-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(.*)c(.*)\u0001\u0002&\u0003\\1\u0003\\2\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcde
+"""
+
+[[case]]
+id = "spencer1-127-gawk"
+argv = ["gawk", "-v", "N=2", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+(.*)c(.*)
+"""
+"s.txt" = """
+abcde
+"""
+
+[[case]]
+id = "spencer1-128-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '\((.*),', "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+(.*)\)
+'''
+
+[[case]]
+id = "spencer1-128-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001\\((.*),\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = '''
+(.*)\)
+'''
+
+[[case]]
+id = "spencer1-128-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:group", "feat:quantifier", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = '''
+\((.*),
+'''
+"s.txt" = '''
+(.*)\)
+'''
+
+[[case]]
+id = "spencer1-129-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "[k]", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:bracket", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+ab
+"""
+
+[[case]]
+id = "spencer1-130-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "abcd", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:literal", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-131-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a(bc)d", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-131-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001a(bc)d\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-131-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:group", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = """
+a(bc)d
+"""
+"s.txt" = """
+abcd
+"""
+
+[[case]]
+id = "spencer1-132-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[\u0001-\u0003]?c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a\u0002c
+"""
+
+[[case]]
+id = "spencer1-133-grep-o"
+argv = ["grep", "-ob", "-E", "-e", "a[\u0001\u0002\u0003]?c", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:bracket", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+a\u0002c
+"""
+
+[[case]]
+id = "spencer1-134-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '(....).*\1', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:backref", "feat:group", "feat:quantifier", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+beriberi
+"""
+
+[[case]]
+id = "spencer1-134-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(....).*\\1\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:backref", "feat:group", "feat:quantifier", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+beriberi
+"""
+
+[[case]]
+id = "spencer1-135-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '(^|\B)a', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-135-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(^|\\B)a\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-135-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = '''
+(^|\B)a
+'''
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-136-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '(^|\B)a', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyzabc
+"""
+
+[[case]]
+id = "spencer1-136-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(^|\\B)a\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyzabc
+"""
+
+[[case]]
+id = "spencer1-136-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = '''
+(^|\B)a
+'''
+"s.txt" = """
+xyzabc
+"""
+
+[[case]]
+id = "spencer1-137-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '(^|\B)a', "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyz abc
+"""
+
+[[case]]
+id = "spencer1-137-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(^|\\B)a\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyz abc
+"""
+
+[[case]]
+id = "spencer1-137-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = '''
+(^|\B)a
+'''
+"s.txt" = """
+xyz abc
+"""
+
+[[case]]
+id = "spencer1-138-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '^a|\Ba', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-139-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '^a|\Ba', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyzabc
+"""
+
+[[case]]
+id = "spencer1-140-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '^a|\Ba', "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyz abc
+"""
+
+[[case]]
+id = "spencer1-141-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '(^|\>)a', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-141-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(^|\\>)a\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-141-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = '''
+(^|\>)a
+'''
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-142-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '(^|\>)a', "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyzabc
+"""
+
+[[case]]
+id = "spencer1-142-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(^|\\>)a\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyzabc
+"""
+
+[[case]]
+id = "spencer1-142-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = '''
+(^|\>)a
+'''
+"s.txt" = """
+xyzabc
+"""
+
+[[case]]
+id = "spencer1-143-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '(^|\>)a', "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyz abc
+"""
+
+[[case]]
+id = "spencer1-143-sed-sub"
+argv = ["sed", "-n", "-E", "s\u0001(^|\\>)a\u0001\u0002&\u0003\\1\u0004\u0001p", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:sed-sub", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyz abc
+"""
+
+[[case]]
+id = "spencer1-143-gawk"
+argv = ["gawk", "-v", "N=1", "-f", "m.awk", "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:group", "feat:word-boundary", "probe:gawk", "aspect:submatch"]
+timeout_ms = 10000
+
+[case.files]
+"m.awk" = """
+BEGIN { getline re < "re.txt" }
+{
+  if (match($0, re, a)) {
+    out = NR " " RSTART " " RLENGTH
+    for (k = 1; k <= N; k++) {
+      if ((k, "start") in a) out = out " " a[k, "start"] ":" a[k, "length"]
+      else out = out " -"
+    }
+    print out
+  } else print NR " 0"
+}
+"""
+"re.txt" = '''
+(^|\>)a
+'''
+"s.txt" = """
+xyz abc
+"""
+
+[[case]]
+id = "spencer1-144-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '^a|\>a', "s.txt"]
+tags = ["src:spencer1", "expect:0", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+abc
+"""
+
+[[case]]
+id = "spencer1-145-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '^a|\>a', "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyzabc
+"""
+
+[[case]]
+id = "spencer1-146-grep-o"
+argv = ["grep", "-ob", "-E", "-e", '^a|\>a', "s.txt"]
+tags = ["src:spencer1", "expect:1", "dialect:grep-ere", "feat:alternation", "feat:anchor", "feat:word-boundary", "probe:grep-o", "aspect:span"]
+timeout_ms = 10000
+
+[case.files]
+"s.txt" = """
+xyz abc
+"""

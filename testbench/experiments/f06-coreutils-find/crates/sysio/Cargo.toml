@@ -1,0 +1,14 @@
+[package]
+name = "sysio"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "Shim com API parecida com std::fs/std::io sobre um VFS em memória, com contexto de pseudo-processo por thread"
+
+# Sem dependências: a árvore do shim não pode tocar o host (é o que o depscan confere).
+[dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,197 @@
+tool = "shell"
+source = "agent-style"
+
+# Diversos que aparecem em scripts de agente: xtrace, mensagens de erro de builtins, exec, shopt, aliases.
+
+[[case]]
+id = "xtrace-output"
+script = '''
+set -x
+a=1
+echo "valor $a" | cat
+f() { local b=$((a + 1)); echo "$b"; }
+f
+set +x
+echo fim
+'''
+tags = ["xtrace"]
+
+[[case]]
+id = "xtrace-ps4"
+script = '''
+PS4='+ [${LINENO}] '
+set -x
+x=$(echo sub)
+[[ $x == sub ]] && echo ok
+'''
+tags = ["xtrace"]
+
+[[case]]
+id = "builtin-error-messages"
+script = '''
+test 1 -eq abc; echo "rc=$?"
+[ a -lt ]; echo "rc=$?"
+local x=1; echo "rc=$?"
+shift 9; echo "rc=$?"
+cd /naoexiste; echo "rc=$?"
+unset -v 'arr[' ; echo "rc=$?"
+read -t abc x <<< ""; echo "rc=$?"
+return 2>&1; echo "rc=$?"
+'''
+tags = ["errors", "builtins"]
+
+[[case]]
+id = "exec-replaces-shell"
+script = '''
+echo antes
+exec echo substituído
+echo nunca
+'''
+tags = ["exec"]
+
+[[case]]
+id = "exec-redirect-whole-script"
+script = '''
+exec > saida.log 2>&1
+echo "vai pro log"
+ls naoexiste
+exec >/dev/tty 2>/dev/null || true
+'''
+tags = ["exec", "redirect"]
+
+[[case]]
+id = "alias-in-script"
+script = '''
+alias ll='echo listando'
+ll
+shopt -s expand_aliases
+alias ll='echo agora expande'
+ll
+'''
+tags = ["alias", "shopt"]
+
+[[case]]
+id = "shopt-and-set-o-listing"
+script = '''
+shopt extglob nullglob globstar
+set -o | grep -E '^(errexit|nounset|pipefail|noclobber)'
+shopt -q extglob; echo "extglob q=$?"
+'''
+tags = ["shopt"]
+
+[[case]]
+id = "nested-quotes-cmdsub-arith"
+script = '''
+files=$(printf '%s\n' "a b" "c")
+n=$(( $(echo "$files" | wc -l) * 2 ))
+echo "n=$n"
+echo "$(printf '%s' "$(echo "x  y")")"
+echo $(( $(echo 3) + $(echo $(( 2 * $(echo 4) ))) ))
+msg="contagem: $(echo "$files" | grep -c "a b")"
+echo "$msg"
+'''
+tags = ["command-substitution", "nested", "arithmetic"]
+
+[[case]]
+id = "unicode-and-bytes"
+script = '''
+s="ação ñ 日本"
+echo "${#s}"
+echo "$s" | wc -c
+printf '%s\n' "${s:0:4}"
+echo "${s^^}"
+LC_ALL=C; t="ação"; echo "${#t}"
+'''
+tags = ["unicode", "param-expansion"]
+
+[[case]]
+id = "integer-overflow-and-base"
+script = '''
+echo $(( 9223372036854775807 + 1 ))
+echo $(( 10#010 + 010 ))
+x=08; echo $(( 10#$x ))
+echo $(( 08 )) 2>&1
+echo "rc=$?"
+'''
+tags = ["arithmetic", "errors"]
+
+[[case]]
+id = "loop-over-find-output-safely"
+script = '''
+find . -type f -name '*.c' -print0 | sort -z | while IFS= read -r -d '' f; do
+  printf 'arquivo: %q\n' "$f"
+done
+for f in ./*.c; do [ -e "$f" ] || continue; echo "glob: $f"; done
+'''
+tags = ["read", "glob", "pipeline"]
+[case.files]
+"a.c" = ""
+"com espaço.c" = ""
+"sub/b.c" = ""
+
+[[case]]
+id = "json-with-shell-tools"
+script = '''
+cat > dados.json <<'EOF'
+{"items": [{"n": "a", "v": 1}, {"n": "b", "v": 2}]}
+EOF
+jq -r '.items[] | "\(.n)=\(.v)"' dados.json
+total=$(jq '[.items[].v] | add' dados.json)
+echo "total=$total"
+jq -n --arg k chave --argjson v 3 '{($k): $v}'
+'''
+tags = ["userland", "heredoc"]
+
+[[case]]
+id = "sed-awk-in-pipeline"
+script = '''
+printf 'nome=ana\nidade=30\n' > p.env
+sed -n 's/^nome=//p' p.env
+awk -F= '{ printf "%s -> %s\n", $1, $2 }' p.env
+sed -i 's/30/31/' p.env && cat p.env
+awk 'BEGIN { s = 0 } { s += length($0) } END { print s }' p.env
+'''
+tags = ["userland", "pipeline"]
+
+[[case]]
+id = "wait-for-condition-loop"
+script = '''
+tries=0
+until [ -f pronto.flag ] || [ $tries -ge 3 ]; do
+  tries=$((tries + 1))
+  [ $tries -eq 2 ] && touch pronto.flag
+done
+echo "tentativas=$tries"
+'''
+tags = ["loops"]
+
+[[case]]
+id = "function-returning-via-stdout-and-nameref"
+script = '''
+get_ext() { echo "${1##*.}"; }
+ext=$(get_ext foto.jpeg); echo "$ext"
+set_result() { local -n out=$1; out="via nameref"; }
+set_result r; echo "$r"
+append() { local -n arr_ref=$1; arr_ref+=("$2"); }
+lista=(); append lista x; append lista y; echo "${lista[*]}"
+'''
+tags = ["functions", "nameref"]
+
+[[case]]
+id = "string-comparison-sort-order"
+script = '''
+[[ "a" < "B" ]] && echo "a<B" || echo "a>=B"
+[ "a" \< "B" ] && echo "test a<B" || echo "test a>=B"
+printf '%s\n' b A a B | sort
+printf '%s\n' b A a B | LC_ALL=C sort
+'''
+tags = ["dbracket", "locale"]
+
+[[case]]
+id = "time-keyword-format"
+script = '''
+TIMEFORMAT='tempo:%0R'
+time true
+time { sleep 0; }
+'''
+tags = ["time"]

@@ -1,0 +1,127 @@
+tool = "head"
+source = "agent-style"
+
+[[case]]
+id = "head-default"
+argv = ["head", "in.txt"]
+tags = ["head", "ported"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n"
+
+[[case]]
+id = "head-n3"
+argv = ["head", "-n", "3", "in.txt"]
+tags = ["head", "ported"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "head-n-glued"
+argv = ["head", "-n5", "in.txt"]
+tags = ["head", "ported"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n6\n7\n"
+
+[[case]]
+id = "head-obsolete-dash-number"
+argv = ["head", "-2", "in.txt"]
+tags = ["head", "ported"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "head-n-negative"
+argv = ["head", "-n", "-2", "in.txt"]
+tags = ["head", "ported"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "head-c"
+argv = ["head", "-c", "5", "in.txt"]
+tags = ["head", "ported"]
+[case.files]
+"in.txt" = "abcdefghij\n"
+
+[[case]]
+id = "head-c-negative"
+argv = ["head", "-c", "-3", "in.txt"]
+tags = ["head", "ported"]
+[case.files]
+"in.txt" = "abcdefghij\n"
+
+[[case]]
+id = "head-c-suffix"
+argv = ["head", "-c", "1K", "in.txt"]
+tags = ["head", "ported"]
+[case.files]
+"in.txt" = "curto\n"
+
+[[case]]
+id = "head-multi"
+argv = ["head", "-n", "1", "a.txt", "b.txt"]
+tags = ["head", "ported"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\nb2\n"
+
+[[case]]
+id = "head-q"
+argv = ["head", "-q", "-n", "1", "a.txt", "b.txt"]
+tags = ["head", "ported"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\nb2\n"
+
+[[case]]
+id = "head-v"
+argv = ["head", "-v", "-n", "1", "a.txt"]
+tags = ["head", "ported"]
+[case.files]
+"a.txt" = "a1\na2\n"
+
+[[case]]
+id = "head-stdin"
+argv = ["head", "-n", "2"]
+stdin = "x\ny\nz\n"
+tags = ["head", "ported", "stdin"]
+
+[[case]]
+id = "head-missing"
+argv = ["head", "a.txt", "nope.txt"]
+tags = ["head", "ported", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "head-dir"
+argv = ["head", "d"]
+tags = ["head", "ported", "errno"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "head-bad-count"
+argv = ["head", "-n", "abc", "in.txt"]
+tags = ["head", "ported", "usage"]
+[case.files]
+"in.txt" = "x\n"
+
+[[case]]
+id = "head-no-trailing-newline"
+argv = ["head", "-n", "5", "in.txt"]
+tags = ["head", "ported"]
+[case.files]
+"in.txt" = "1\n2\nfim"
+
+[[case]]
+id = "head-z"
+argv = ["head", "-z", "-n", "1", "in.bin"]
+tags = ["head", "ported"]
+[case.files]
+"in.bin" = { content_b64 = "YQBiAGMA" }
+
+[[case]]
+id = "head-pipeline"
+script = "seq 100 | head -n 3"
+tags = ["head", "pipeline"]

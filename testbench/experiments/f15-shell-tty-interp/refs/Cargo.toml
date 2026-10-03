@@ -1,0 +1,21 @@
+[package]
+name = "f15-refs"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F15: crates só lidas (depscan e evidência de código), nunca compiladas pela bancada"
+
+# Este crate existe só pra que `cargo metadata` resolva e baixe o código-fonte destas crates, que o
+# experimento lê (depscan do brush-core, evidência de tty do reedline e do rustyline, superfície de
+# traits do yash-env). Ele fica fora de `default-members` e nada o compila.
+[dependencies]
+brush-core = "=0.5.0"
+reedline = "=0.52.0"
+rustyline = "=18.0.1"
+# GPLv3: só leitura de código como referência de desenho; nada dele é copiado nem linkado.
+yash-env = "=0.17.0"
+
+[lints.rust]
+unsafe_code = "forbid"

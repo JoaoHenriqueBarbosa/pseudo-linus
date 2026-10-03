@@ -1,0 +1,302 @@
+{
+  "up-add": {
+    "stdout": "3\n3.00\n3.00\n48.19\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-arrays-are-passed-to-function-by-value": {
+    "stdout": "1\n2\n0\n1\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-assign-to-array-item": {
+    "stdout": "10\n34\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-assign-to-function-local-does-not-change-global": {
+    "stdout": "0\n10\n20\n30\n40\n90\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-assign-to-variable": {
+    "stdout": "3\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-assignment-of-a-single-value-to-base-register-is-hexadecimal": {
+    "stdout": "10\nD\n10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-atan-to-scale-17": {
+    "stdout": ".19739555984988075\n.54041950027058415\n.78539816339744830\n.95054684081207514\n.95054684081207514\n1.06369782240255966\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-break-out-of-loop": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-comments": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-compound-assignment": {
+    "stdout": "7.47\n-2.420\n-4.840\n-4\n-1\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-cos-to-scale-18": {
+    "stdout": ".877582561890372716\n.540302305868139717\n.070737201667702910\n-.416146836547142386\n-.801143615546933714\n-.989992496600445457\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-define-empty-function": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-define-function-with-locals": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-define-function-with-parameters": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-div": {
+    "stdout": "1\n.5\n0\n0\n10\n.5000000000\n2.0000000000\n2.0000000000\n.1728900000\n5.0184858406\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-empty-return-returns-zero": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-for-loop": {
+    "stdout": "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-function-returns-correct-value": {
+    "stdout": "999\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-function-with-no-return-returns-zero": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-if": {
+    "stdout": "2\n4\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-length": {
+    "stdout": "1\n1\n5\n10\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-ln-to-scale-17": {
+    "stdout": "-1.60943791243410037\n-.51082562376599068\n.69314718055994530\n2.70716314111414067\n4.86930895201907172\n7.17234881324178779\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-mod": {
+    "stdout": "0\n0\n3\n0\n4\n0\n4\n0\n7.4536\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-mul": {
+    "stdout": "0\n4\n3\n4.000\n6\n4.000000\n4\n4.0000\n4\n4.0000\n209300508.238355436615662060\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-multiline-numbers": {
+    "stdout": "12\n123456\n.345\n.456\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-operator-precedence": {
+    "stdout": "0\n12.2\n39.23\n9.78\n9.5\n87.5\n66.40\n6\n15.28\nif works",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-output-base-1097": {
+    "stdout": "0\n 0001\n 0009 0910\n 0093 1051.0231 0433 0917\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-output-base-14": {
+    "stdout": "0\n1\n8B.B0B\n.B09B\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-output-base-6": {
+    "stdout": "0\n1\n4442\n1034.4010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-output-base-67": {
+    "stdout": "0\n 01\n 18 34\n 01 61.60 50 00 25\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-parenthesized-assignment-prints": {
+    "stdout": "5\n7\n3\n8\n-9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-parenthesized-base-register-assignment": {
+    "stdout": "10\n100\n3\n10\n255\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-postfix-decrement": {
+    "stdout": "233.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-postfix-increment": {
+    "stdout": "10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-pow": {
+    "stdout": "3\n1024.000\n4\n1024.0000\n3\n2.000\n0\n0\n0\n0\n2\n.50\n.5000000000\n.2500000000\n.0111994624\n2\n4\n148.184\n10000000000\n1\n0\n1\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-prefix-decrement": {
+    "stdout": "339.12234\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-prefix-increment": {
+    "stdout": "4.8912\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-quit": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-quit-in-unexecuted-code": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-read-base-10": {
+    "stdout": "0\n1\n130\n.234\n.388\n2011.0367\n-3478.89\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-read-base-15": {
+    "stdout": "0\n1\n549857\n873388.327\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-read-base-2": {
+    "stdout": "0\n1\n3489\n94.0703125\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-scale": {
+    "stdout": "0\n0\n0\n3\n7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-sin-to-scale-18": {
+    "stdout": ".479425538604203000\n.841470984807896506\n.997494986604054430\n.909297426825681695\n.598472144103956494\n.141120008059867222\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-sqrt": {
+    "stdout": "0\n0\n0\n1\n0\n1\n10\n1.4142135623\n5\n1.41421\n0\n2\n2\n.50\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-strings": {
+    "stdout": "line stringmultiline\\\nstring",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-sub": {
+    "stdout": "-1\n-1.00\n-1.00\n43.59\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-unary-minus": {
+    "stdout": "0\n-1\n-20\n20\n2.45\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-uninitialized-variables-are-zero": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "up-while-loop": {
+    "stdout": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

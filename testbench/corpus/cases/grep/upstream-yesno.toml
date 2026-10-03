@@ -1,0 +1,907 @@
+# Gerado por testbench/experiments/f02-grep-sed (binário f02-gen-cases) a partir das suítes
+# upstream em corpus/upstream. Não edite à mão.
+
+tool = "grep"
+source = "upstream:grep-3.11/tests/yesno"
+
+[[case]]
+id = "yesno-065"
+argv = ["grep", "-F", "-n", "-b", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-066"
+argv = ["grep", "-F", "-n", "-b", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-067"
+argv = ["grep", "-F", "-n", "-b", "-C", "1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-068"
+argv = ["grep", "-F", "-n", "-b", "-C", "1", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-069"
+argv = ["grep", "-F", "-n", "-b", "-C", "1", "-o", "--group=XYZ", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-070"
+argv = ["grep", "-F", "-n", "-b", "-C", "1", "-o", "--no-gr", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-071"
+argv = ["grep", "-F", "-n", "-b", "-C", "4", "-1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-072"
+argv = ["grep", "-F", "-n", "-b", "-C", "1", "--group=XYZ", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-073"
+argv = ["grep", "-F", "-n", "-b", "-C", "1", "--no-gr", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-074"
+argv = ["grep", "-F", "-n", "-b", "-m", "4", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-075"
+argv = ["grep", "-F", "-n", "-b", "-m", "4", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-076"
+argv = ["grep", "-F", "-n", "-b", "-m", "4", "-C", "1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-077"
+argv = ["grep", "-F", "-n", "-b", "-m", "4", "-C", "1", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-078"
+argv = ["grep", "-F", "-n", "-b", "-m", "5", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-079"
+argv = ["grep", "-F", "-n", "-b", "-m", "5", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-080"
+argv = ["grep", "-F", "-n", "-b", "-m", "5", "-C", "1", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-081"
+argv = ["grep", "-F", "-n", "-b", "-m", "6", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-082"
+argv = ["grep", "-F", "-n", "-b", "-m", "6", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-083"
+argv = ["grep", "-F", "-n", "-b", "-m", "6", "-C", "1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-084"
+argv = ["grep", "-F", "-n", "-b", "-m", "6", "-C", "1", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-085"
+argv = ["grep", "-F", "-n", "-b", "-v", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-086"
+argv = ["grep", "-F", "-n", "-b", "-v", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-087"
+argv = ["grep", "-F", "-n", "-b", "-v", "-C", "1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-088"
+argv = ["grep", "-F", "-n", "-b", "-v", "-C", "1", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-089"
+argv = ["grep", "-F", "-n", "-b", "-v", "-C", "1", "--group=XYZ", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-090"
+argv = ["grep", "-F", "-n", "-b", "-v", "-C", "1", "--no-gr", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-091"
+argv = ["grep", "-F", "-n", "-b", "-4", "-1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-092"
+argv = ["grep", "-F", "-n", "-b", "-4", "-v", "-1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-093"
+argv = ["grep", "-F", "-n", "-b", "-m", "1", "-v", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-094"
+argv = ["grep", "-F", "-n", "-b", "-m", "1", "-v", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-095"
+argv = ["grep", "-F", "-n", "-b", "-m", "1", "-v", "-C", "1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-096"
+argv = ["grep", "-F", "-n", "-b", "-m", "1", "-v", "-C", "1", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-097"
+argv = ["grep", "-F", "-n", "-b", "-m", "2", "-v", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-098"
+argv = ["grep", "-F", "-n", "-b", "-m", "2", "-v", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-099"
+argv = ["grep", "-F", "-n", "-b", "-m", "3", "-v", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-100"
+argv = ["grep", "-F", "-n", "-b", "-m", "3", "-v", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-101"
+argv = ["grep", "-F", "-n", "-b", "-m", "3", "-v", "-C", "1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-102"
+argv = ["grep", "-F", "-n", "-b", "-m", "3", "-v", "-C", "1", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-107"
+argv = ["grep", "-F", "-n", "-b", "-m", "5", "-C", "1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno", "upstream-todo"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-108"
+argv = ["grep", "-F", "-n", "-b", "-m", "2", "-v", "-C", "1", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno", "upstream-todo"]
+timeout_ms = 10000
+
+[[case]]
+id = "yesno-109"
+argv = ["grep", "-F", "-n", "-b", "-m", "2", "-v", "-C", "1", "-o", "yes"]
+stdin = """
+[A01 no ]
+[B02 no ]
+[C03 yes]
+[D04 yes]
+[E05 yes]
+[F06 no ]
+[G07 no ]
+[H08 yes]
+[I09 yes]
+[J10 no ]
+[K11 no ]
+[L12 no ]
+[M13 yes]
+[N14 yes]
+"""
+tags = ["src:upstream-yesno", "upstream-todo"]
+timeout_ms = 10000

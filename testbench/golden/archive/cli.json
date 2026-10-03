@@ -1,0 +1,303 @@
+{
+  "bzip2-xz-zstd-lzip-roundtrip": {
+    "stdout": "bzip2 ok\nxz ok\nzstd -q ok\nlzip ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "bce2aeea9e6fc31f09b164dbaf832b013ee75fbd323262cbee9d42b8b51077b1",
+        "data": "line one\nline two\nline three\n"
+      }
+    }
+  },
+  "gzip-existing-output": {
+    "stdout": "exit=2\na.txt\na.txt.gz\n",
+    "stderr": "gzip: a.txt.gz already exists;\tnot overwritten\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c",
+        "data": "new\n"
+      },
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "567670218f6ad8ca7f5328f633860bfc6f7df9421a922969cb2ae3c3d97a860b",
+        "data": "not really gzip\n"
+      }
+    }
+  },
+  "gzip-keep-and-suffix-warning": {
+    "stdout": "exit=0\na.txt\na.txt.gz\n",
+    "stderr": "gzip: a.txt.gz already has .gz suffix -- unchanged\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "691d5610f9f7c327facbf8856c5293c7a741b8ad2c4fa31775f3cca51c62e9dd",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-stdin-roundtrip": {
+    "stdout": "abc\nexit=0 0 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gzip-v-replace": {
+    "stdout": "exit=0\na.txt.gz\n",
+    "stderr": "a.txt:\t 52.8% -- replaced with a.txt.gz\n",
+    "exit": 0,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "387fea5d08ff82eab05aa264ac9e2e43d080aece711245ac0457e310c3a1a51c",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4crAwQYAjPgJ6yQAAAA="
+        }
+      }
+    }
+  },
+  "tar-cf-xf-roundtrip": {
+    "stdout": "x:\ntotal 4\ndrwxr-xr-x 3 root root 4096 2026-01-15 dir\n\nx/dir:\ntotal 8\n-rw-r--r-- 1 root root    2 2026-01-15 a.txt\nlrwxrwxrwx 1 root root    9 2026-01-15 link -> sub/b.txt\ndrwxr-xr-x 2 root root 4096 2026-01-15 sub\n\nx/dir/sub:\ntotal 4\n-rw------- 1 root root 3 2026-01-15 b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "dir/link": {
+        "kind": "symlink",
+        "target": "sub/b.txt"
+      },
+      "dir/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir/sub/b.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 3,
+        "sha256": "a81c31ac62620b9215a14ff00544cb07a55b765594f3ab3be77e70923ae27cf1",
+        "data": "bb\n"
+      },
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/dir/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "x/dir/link": {
+        "kind": "symlink",
+        "target": "sub/b.txt"
+      },
+      "x/dir/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/dir/sub/b.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 3,
+        "sha256": "a81c31ac62620b9215a14ff00544cb07a55b765594f3ab3be77e70923ae27cf1",
+        "data": "bb\n"
+      }
+    }
+  },
+  "tar-czf-tzvf": {
+    "stdout": "drwxr-xr-x root/root         0 2026-01-15 12:00 dir/\n-rw-r--r-- root/root         2 2026-01-15 12:00 dir/a.txt\nlrwxrwxrwx root/root         0 2026-01-15 12:00 dir/link -> a.txt\n-rwxr-xr-x root/root        10 2026-01-15 12:00 dir/run.sh\ndrwxr-xr-x root/root         0 2026-01-15 12:00 dir/sub/\n-rw-r--r-- root/root         3 2026-01-15 12:00 dir/sub/b.txt\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "dir/link": {
+        "kind": "symlink",
+        "target": "a.txt"
+      },
+      "dir/run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "dir/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir/sub/b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a81c31ac62620b9215a14ff00544cb07a55b765594f3ab3be77e70923ae27cf1",
+        "data": "bb\n"
+      }
+    }
+  },
+  "tar-ustar-too-long": {
+    "stdout": "exit=2\n1\n",
+    "stderr": "tar: d/nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn/: file name is too long (cannot be split); not dumped\ntar: Exiting with failure status due to previous errors\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tar-xf-missing-member": {
+    "stdout": "exit=2\n",
+    "stderr": "tar: nope: Not found in archive\ntar: Exiting with failure status due to previous errors\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "tar-xf-not-tar": {
+    "stdout": "exit=2\n",
+    "stderr": "tar: This does not look like a tar archive\ntar: Exiting with failure status due to previous errors\n",
+    "exit": 0,
+    "files": {
+      "junk.tar": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "cdbe7e95e6e35d5d749c5bd202c4adbb9f4ee3a399a40399dec995aa0ce59343",
+        "data": "this is not a tar archive at all\n"
+      }
+    }
+  },
+  "unzip-t-corrupt": {
+    "stdout": "Archive:  bad.zip\n  End-of-central-directory signature not found.  Either this file is not\n  a zipfile, or it constitutes one disk of a multi-part archive.  In the\n  latter case the central directory and zipfile comment will be found on\n  the last disk(s) of this archive.\nunzip:  cannot find zipfile directory in one of bad.zip or\n        bad.zip.zip, and cannot find bad.zip.ZIP, period.\nexit=9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bad.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "a7bb552568af29d84d7ce74fc5f3336b3493742a8ac9bda7bb9156e18ceaf079",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFAAAAYS50eHRoZWxsbyB3b3JsZA=="
+        }
+      }
+    }
+  },
+  "zcat-multiple-files": {
+    "stdout": "A\nB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "06f961b802bc46ee168555f066d28f4f0e9afdf3f88174c1ee6f9de004fc30a0",
+        "data": "A\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c0cde77fa8fef97d476c10aad3d2d54fcc2f336140d073651c2dcccf1e379fd6",
+        "data": "B\n"
+      }
+    }
+  },
+  "zip-unzip-roundtrip": {
+    "stdout": "x:\ntotal 4\ndrwxr-xr-x 2 root root 4096 2026-01-15 dir\n\nx/dir:\ntotal 8\n-rw-r--r-- 1 root root  2 2026-01-15 a.txt\n-rwxr-xr-x 1 root root 10 2026-01-15 run.sh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "dir/run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/dir/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "x/dir/run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  }
+}

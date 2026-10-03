@@ -1,0 +1,272 @@
+{
+  "file-broken-symlink": {
+    "stdout": "dangling: broken symbolic link to nowhere.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dangling": {
+        "kind": "symlink",
+        "target": "nowhere.txt"
+      }
+    }
+  },
+  "file-broken-symlink-follow": {
+    "stdout": "dangling: cannot open `dangling' (No such file or directory)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dangling": {
+        "kind": "symlink",
+        "target": "nowhere.txt"
+      }
+    }
+  },
+  "file-directory": {
+    "stdout": "sub: directory\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "file-directory-brief": {
+    "stdout": "directory\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "file-directory-mime": {
+    "stdout": "sub: inode/directory\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "file-missing": {
+    "stdout": "missing.txt: cannot open `missing.txt' (No such file or directory)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "file-missing-mime": {
+    "stdout": "missing.txt: cannot open `missing.txt' (No such file or directory)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "file-multi": {
+    "stdout": "a.txt:     ASCII text\nimage.png: PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\ndata.json: JSON text data\nsub:       directory\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "e8c628edc9968ef0c668f54e0ba2636b35503357eb1aca0ddc828aeace432f67",
+        "data": "{\"a\": 1}\n"
+      },
+      "image.png": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "90e7ac0ea2d02e9809cf1674b27a6b7af2a169d2c5cdf26652102d956702bc39",
+        "data": {
+          "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC"
+        }
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "file-multi-brief": {
+    "stdout": "ASCII text\nPNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "image.png": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "90e7ac0ea2d02e9809cf1674b27a6b7af2a169d2c5cdf26652102d956702bc39",
+        "data": {
+          "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC"
+        }
+      }
+    }
+  },
+  "file-multi-mime": {
+    "stdout": "a.txt:     text/plain\nimage.png: image/png\ndata.json: application/json\nsub:       inode/directory\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "e8c628edc9968ef0c668f54e0ba2636b35503357eb1aca0ddc828aeace432f67",
+        "data": "{\"a\": 1}\n"
+      },
+      "image.png": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "90e7ac0ea2d02e9809cf1674b27a6b7af2a169d2c5cdf26652102d956702bc39",
+        "data": {
+          "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC"
+        }
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "file-multi-with-missing": {
+    "stdout": "a.txt: ASCII text\nnope:  cannot open `nope' (No such file or directory)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "file-separator": {
+    "stdout": "a.txt => ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "file-stdin": {
+    "stdout": "/dev/stdin: ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "file-stdin-mime": {
+    "stdout": "/dev/stdin: application/json\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "file-subdir-path": {
+    "stdout": "docs/readme.md: ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "docs": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "docs/readme.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "d977903bcf97633e598610ac99c806b20d8d6ff06bae2a7e3f4010e0cd242a22",
+        "data": "# Title\n\nSome *markdown* text.\n"
+      }
+    }
+  },
+  "file-symlink": {
+    "stdout": "link: symbolic link to ascii.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ascii.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "ascii.txt"
+      }
+    }
+  },
+  "file-symlink-follow": {
+    "stdout": "link: ASCII text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ascii.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "ascii.txt"
+      }
+    }
+  },
+  "file-symlink-mime": {
+    "stdout": "link: inode/symlink\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ascii.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "ascii.txt"
+      }
+    }
+  }
+}

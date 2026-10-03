@@ -1,0 +1,228 @@
+tool = "git"
+source = "agent-style"
+
+# Fluxo de git típico de agente: init, add, commit, log, status, diff, plumbing (hash-object,
+# write-tree, commit-tree, update-ref, cat-file). Autor, committer e datas fixos pelo ambiente.
+# Todo caso termina com `rm -rf .git`: o índice guarda ctime/ino/dev dos arquivos, o que tornaria o
+# retrato do diretório não determinístico. O conteúdo do .git é validado à parte (git fsck no
+# experimento f12).
+
+[[case]]
+id = "git-init-plain"
+script = '''git init; echo "exit=$?"; cat .git/HEAD; cat .git/config; ls .git; rm -rf .git'''
+tags = ["init"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-init-quiet-branch"
+script = '''git init -q -b main; echo "exit=$?"; cat .git/HEAD; rm -rf .git'''
+tags = ["init"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-hash-object"
+script = '''git hash-object a.txt empty.txt bin.dat; printf 'x' | git hash-object --stdin; git hash-object -t tree --stdin < /dev/null'''
+tags = ["plumbing", "hash-object"]
+[case.files]
+"a.txt" = "hello\n"
+"empty.txt" = ""
+"bin.dat" = { content_b64 = "AAECA/8=" }
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-add-write-tree"
+script = '''git init -q && git add . && git write-tree && git ls-files -s; rm -rf .git'''
+tags = ["plumbing", "index", "write-tree"]
+[case.files]
+"a.txt" = "hello\n"
+"src/main.rs" = "fn main() {}\n"
+"src/lib/mod.rs" = "pub mod x;\n"
+"run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"link" = { symlink = "a.txt" }
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-commit-tree-update-ref"
+script = '''git init -q; git add a.txt; tree=$(git write-tree); c1=$(git commit-tree $tree -m 'root commit'); echo $c1; git update-ref refs/heads/master $c1; printf 'more\n' >> a.txt; git add a.txt; c2=$(git commit-tree $(git write-tree) -p $c1 -m 'second'); git update-ref HEAD $c2; git log --format='%H %P %s'; git cat-file -p HEAD; git cat-file -t HEAD^{tree}; rm -rf .git'''
+tags = ["plumbing", "commit-tree", "update-ref", "log"]
+[case.files]
+"a.txt" = "hello\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-commit-and-log"
+script = '''git init -q && git add . && git commit -q -m 'initial import' && printf 'v2\n' > a.txt && git add a.txt && git commit -m 'update a'; git log --format='%H|%an <%ae>|%ad|%s'; git log --oneline; git rev-parse HEAD HEAD~1 HEAD^{tree}; git log -n 1 --format='%h %s' HEAD~1; rm -rf .git'''
+tags = ["porcelain", "commit", "log"]
+[case.files]
+"a.txt" = "v1\n"
+"docs/readme.md" = "# doc\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-commit-summary-output"
+script = '''git init -q; git add .; git commit -m 'first'; printf 'one\ntwo\nthree\n' > b.txt; rm c.txt; printf 'new\n' > d.txt; git add -A; git commit -m 'second'; rm -rf .git'''
+tags = ["porcelain", "commit"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "one\n"
+"c.txt" = "gone\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-status-porcelain"
+script = '''git init -q && git add . && git commit -q -m base && printf 'changed\n' > a.txt && rm b.txt && printf 'n\n' > new.txt && printf 's\n' > staged.txt && git add staged.txt && git status --porcelain && git status --short; rm -rf .git'''
+tags = ["porcelain", "status"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+"keep.txt" = "k\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-status-long"
+script = '''git init -q; git status; git add a.txt; git status; git commit -q -m base; git status; printf 'changed\n' > a.txt; printf 'u\n' > u.txt; git status; rm -rf .git'''
+tags = ["porcelain", "status"]
+[case.files]
+"a.txt" = "a\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-diff-worktree-and-cached"
+script = '''git init -q && git add . && git commit -q -m base && printf 'line1\nline2 changed\nline3\nline4\n' > a.txt && printf 'x\n' > b.txt && git add b.txt && git diff; echo ---; git diff --cached; rm -rf .git'''
+tags = ["porcelain", "diff"]
+[case.files]
+"a.txt" = "line1\nline2\nline3\nline4\n"
+"b.txt" = "old\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-diff-no-newline-and-context"
+script = '''git init -q && git add . && git commit -q -m base && printf 'a\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\n' > long.txt && printf 'no newline now' > nonl.txt && git diff; rm -rf .git'''
+tags = ["porcelain", "diff"]
+[case.files]
+"long.txt" = "a\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nN\n"
+"nonl.txt" = "no newline\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-tree-modes-and-ls-tree"
+script = '''git init -q && git add . && git commit -q -m 'modes' && git ls-tree HEAD && git ls-tree -r HEAD && git cat-file -p HEAD^{tree}; rm -rf .git'''
+tags = ["plumbing", "tree"]
+[case.files]
+"a.txt" = "hello\n"
+"bin/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"link" = { symlink = "a.txt" }
+"z/y/x.txt" = "deep\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-branch-ref"
+script = '''git init -q; git add .; git commit -q -m one; git update-ref refs/heads/feature HEAD; printf '2\n' > a.txt; git commit -q -am two; git rev-parse --short HEAD; git rev-parse --short feature; git rev-parse --short HEAD feature; git log --oneline feature; git cat-file -p feature^{tree}; rm -rf .git'''
+tags = ["plumbing", "ref"]
+[case.files]
+"a.txt" = "1\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-nothing-to-commit"
+script = '''git init -q; git add .; git commit -q -m one; git commit -m again; echo "exit=$?"; rm -rf .git'''
+tags = ["porcelain", "commit", "error"]
+[case.files]
+"a.txt" = "1\n"
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-not-a-repository"
+script = '''git status; echo "exit=$?"; git log; echo "exit=$?"'''
+tags = ["porcelain", "error"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"

@@ -1,0 +1,47 @@
+[package]
+name = "e07-mem-accounting"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "E07: contabilidade de memória por pseudo-processo com allocator global pronto, sem unsafe nosso"
+default-run = "e07-mem-accounting"
+
+# Workspace próprio: cada experimento compila isolado (ver testbench/Cargo.toml).
+[workspace]
+
+# O allocator global é um por binário, então cada candidato vira um binário em src/bin/cand-*.rs e o
+# orquestrador (src/main.rs) roda cada um como subprocesso. Regra de link: só o binário do candidato
+# referencia a crate do allocator dele; a lib nunca referencia crate que declare `#[global_allocator]`
+# (allocation-counter declara o dele dentro da própria lib), senão todo binário herdaria esse allocator.
+[dependencies]
+anyhow = "1"
+harness = { path = "../../crates/harness" }
+depscan = { path = "../../crates/depscan" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# clock_gettime(CLOCK_THREAD_CPUTIME_ID) com API segura: tempo de CPU da thread com precisão de ns.
+rustix = { version = "1", features = ["time"] }
+
+# Candidatos.
+tracking-allocator = { version = "=0.4.0", default-features = false }
+# Sem `backtrace` a crate não compila (o `lazy_static!` ignora o `cfg`); com `fs` também não, porque a
+# dependência `libc` está atrás de `cfg(linux)`, que nunca é verdadeiro. Então só `backtrace`, e o
+# BacktraceMode::None desliga a captura em tempo de execução.
+alloc-track = { version = "=0.4.0", default-features = false, features = ["backtrace"] }
+jqf-resource = "=0.1.1"
+alloc_count = "=0.4.0"
+allocation-counter = "=0.8.1"
+tikv-jemallocator = "=0.7.0"
+tikv-jemalloc-ctl = { version = "=0.7.0", features = ["stats"] }
+mimalloc = { version = "=0.1.52", default-features = false }
+cap = "=0.1.2"
+stats_alloc = "=0.1.10"
+accounting-allocator = "=0.2.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+debug = "line-tables-only"

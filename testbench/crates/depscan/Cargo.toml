@@ -1,0 +1,21 @@
+[package]
+name = "depscan"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Mede o acoplamento ao host e o unsafe de uma crate e da árvore de dependências dela"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+syn.workspace = true
+proc-macro2.workspace = true
+walkdir.workspace = true
+cargo_metadata = "0.23"
+
+[lints]
+workspace = true

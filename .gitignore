@@ -1,0 +1,8 @@
+/target/
+/testbench/target/
+/testbench/experiments/*/target/
+/testbench/corpus/agent/
+/testbench/corpus/upstream/
+/testbench/scratch/
+*.profraw
+perf.data*

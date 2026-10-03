@@ -1,0 +1,63 @@
+tool = "tail"
+source = "agent-style"
+
+[[case]]
+id = "tail-default"
+argv = ["tail", "in.txt"]
+tags = ["tail"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+
+[[case]]
+id = "tail-n3"
+argv = ["tail", "-n", "3", "in.txt"]
+tags = ["tail"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "tail-n-plus"
+argv = ["tail", "-n", "+2", "in.txt"]
+tags = ["tail"]
+[case.files]
+"in.txt" = "cabeçalho\nl1\nl2\n"
+
+[[case]]
+id = "tail-obsolete-dash-number"
+argv = ["tail", "-1", "in.txt"]
+tags = ["tail"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "tail-c"
+argv = ["tail", "-c", "4", "in.txt"]
+tags = ["tail"]
+[case.files]
+"in.txt" = "abcdefgh\n"
+
+[[case]]
+id = "tail-multi"
+argv = ["tail", "-n", "1", "a.txt", "b.txt"]
+tags = ["tail"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\nb2\n"
+
+[[case]]
+id = "tail-no-trailing-newline"
+argv = ["tail", "-n", "2", "in.txt"]
+tags = ["tail"]
+[case.files]
+"in.txt" = "1\n2\n3"
+
+[[case]]
+id = "tail-missing"
+argv = ["tail", "nope.txt"]
+tags = ["tail", "errno"]
+
+[[case]]
+id = "tail-stdin"
+argv = ["tail", "-n", "2"]
+stdin = "a\nb\nc\n"
+tags = ["tail", "stdin"]

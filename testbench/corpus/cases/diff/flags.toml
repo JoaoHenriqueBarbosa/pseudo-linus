@@ -1,0 +1,68 @@
+tool = "diff"
+source = "agent-style"
+
+# Flags de comparação (-i, -w, -b, -B, --strip-trailing-cr) e side-by-side.
+
+[[case]]
+id = "diff-i-ignore-case"
+argv = ["diff", "-i", "a.txt", "b.txt"]
+tags = ["ignore"]
+[case.files]
+"a.txt" = "Hello\nWorld\nfoo\n"
+"b.txt" = "hello\nWORLD\nbar\n"
+
+[[case]]
+id = "diff-i-ignore-case-u"
+argv = ["diff", "-iu", "a.txt", "b.txt"]
+tags = ["ignore", "unified"]
+[case.files]
+"a.txt" = "Hello\nWorld\nfoo\n"
+"b.txt" = "hello\nWORLD\nbar\n"
+
+[[case]]
+id = "diff-w-ignore-all-space"
+argv = ["diff", "-w", "a.txt", "b.txt"]
+tags = ["ignore"]
+[case.files]
+"a.txt" = "a b c\nx = 1\n\tindented\nreal change\n"
+"b.txt" = "abc\nx=1\nindented\nreal  change!\n"
+
+[[case]]
+id = "diff-b-ignore-space-change-u"
+argv = ["diff", "-bu", "a.txt", "b.txt"]
+tags = ["ignore", "unified"]
+[case.files]
+"a.txt" = "a  b\nc \nd\ne f\n"
+"b.txt" = "a b\nc\nd\nef\n"
+
+[[case]]
+id = "diff-B-ignore-blank-lines"
+argv = ["diff", "-B", "a.txt", "b.txt"]
+tags = ["ignore"]
+[case.files]
+"a.txt" = "one\ntwo\nthree\n"
+"b.txt" = "one\n\ntwo\n\n\nthree\n"
+
+[[case]]
+id = "diff-strip-trailing-cr"
+argv = ["diff", "--strip-trailing-cr", "a.txt", "b.txt"]
+tags = ["ignore", "crlf"]
+[case.files]
+"a.txt" = "one\r\ntwo\r\n"
+"b.txt" = "one\ntwo\n"
+
+[[case]]
+id = "diff-y-side-by-side"
+argv = ["diff", "-y", "-W", "40", "a.txt", "b.txt"]
+tags = ["side-by-side"]
+[case.files]
+"a.txt" = "apple\nbanana\ncherry\ndate\n"
+"b.txt" = "apple\nblueberry\ncherry\nelderberry\n"
+
+[[case]]
+id = "diff-y-suppress-common"
+argv = ["diff", "-y", "--suppress-common-lines", "-W", "40", "a.txt", "b.txt"]
+tags = ["side-by-side"]
+[case.files]
+"a.txt" = "apple\nbanana\ncherry\n"
+"b.txt" = "apple\nberry\ncherry\nfig\n"

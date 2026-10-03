@@ -1,0 +1,41 @@
+[package]
+name = "f04-awk-jq"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F04: encaixe de awk e jq em Rust (H26, H27) e pontos de checkpoint nos interpretadores (H07)"
+
+# Workspace próprio: cada experimento compila isolado (ver testbench/Cargo.toml).
+[workspace]
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+harness = { path = "../../crates/harness" }
+depscan = { path = "../../crates/depscan" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order", "arbitrary_precision"] }
+
+# jq: núcleo do jaq com uma camada de CLI nossa por cima.
+jaq-core = "=3.1.1"
+jaq-std = "=3.0.3"
+jaq-json = "=2.0.3"
+
+# awk em processo: rawk-core (só biblioteca) e awk-rs (biblioteca + binário).
+rawk-core = "=0.6.0"
+awk-rs = "=0.2.0"
+
+# Núcleo do qj (porte do jq 1.8.1 em Rust), usado em processo na sondagem de checkpoint.
+qj = { version = "=0.2.1", default-features = false }
+
+# Linha de base com awk e jq próprios rodando sobre VFS em processo.
+bashkit = { version = "=0.18.2", default-features = false, features = ["jq"] }
+tokio = { version = "1", features = ["rt", "time"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+debug = "line-tables-only"

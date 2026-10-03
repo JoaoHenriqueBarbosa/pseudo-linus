@@ -1,0 +1,302 @@
+tool = "awk"
+source = "agent-style"
+
+# Entrada e saída (arquivos, pipes, getline, system), linha de comando, erros e funções de tempo.
+
+[[case]]
+id = "awk-print-to-file-then-read"
+argv = ["awk", '{print $1 > "names.txt"} END{close("names.txt"); while ((getline l < "names.txt") > 0) n++; print n, l}']
+tags = ["io", "getline"]
+stdin = "alice 1\nbob 2\ncarol 3\n"
+
+[[case]]
+id = "awk-print-append"
+argv = ["awk", '{print >> "log.txt"}']
+tags = ["io"]
+stdin = "new 1\nnew 2\n"
+[case.files]
+"log.txt" = "old\n"
+
+[[case]]
+id = "awk-print-to-file-per-key"
+argv = ["awk", '{print $1 > ($2 ".txt")}']
+tags = ["io"]
+stdin = "a x\nb y\nc x\n"
+
+[[case]]
+id = "awk-printf-to-file"
+argv = ["awk", '{printf "%s;", $1 > "out.csv"} END{printf "\n" > "out.csv"}']
+tags = ["io", "printf"]
+stdin = "1\n2\n"
+
+[[case]]
+id = "awk-print-to-stderr"
+argv = ["awk", 'BEGIN{print "err line" > "/dev/stderr"; print "out line"; printf "e2\n" | "cat 1>&2"}']
+tags = ["io"]
+
+[[case]]
+id = "awk-pipe-to-sort"
+argv = ["awk", '{print $1 | "sort -r"} END{close("sort -r"); print "done"}']
+tags = ["io", "pipes"]
+stdin = "b\nc\na\n"
+
+[[case]]
+id = "awk-pipe-to-sort-unclosed"
+argv = ["awk", '{print $1 | "sort"}']
+tags = ["io", "pipes"]
+stdin = "b\nc\na\n"
+
+[[case]]
+id = "awk-pipe-to-sh"
+argv = ["awk", '{print "echo item-" $1 | "sh"}']
+tags = ["io", "pipes"]
+stdin = "1\n2\n"
+
+[[case]]
+id = "awk-getline-from-cmd"
+argv = ["awk", 'BEGIN{"echo hello world" | getline x; print x; "echo a b" | getline; print $2, NR}']
+tags = ["getline", "pipes"]
+
+[[case]]
+id = "awk-getline-cmd-loop"
+argv = ["awk", 'BEGIN{cmd = "seq 5"; while ((cmd | getline n) > 0) s += n; close(cmd); print s}']
+tags = ["getline", "pipes"]
+
+[[case]]
+id = "awk-getline-from-file"
+argv = ["awk", 'BEGIN{while ((getline line < "data.txt") > 0) n++; print n, line}']
+tags = ["getline", "io"]
+[case.files]
+"data.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "awk-getline-missing-file"
+argv = ["awk", 'BEGIN{r = (getline line < "nope.txt"); print r}']
+tags = ["getline", "errors"]
+
+[[case]]
+id = "awk-close-and-reread"
+argv = ["awk", 'BEGIN{getline a < "f.txt"; close("f.txt"); getline b < "f.txt"; print a, b}']
+tags = ["getline", "io"]
+[case.files]
+"f.txt" = "first\nsecond\n"
+
+[[case]]
+id = "awk-system-exit-status"
+argv = ["awk", 'BEGIN{r = system("exit 3"); print "r=" r; r = system("true"); print "r=" r}']
+tags = ["io", "pipes"]
+
+[[case]]
+id = "awk-system-output-order"
+argv = ["awk", 'BEGIN{print "before"; system("echo inside"); print "after"}']
+tags = ["io", "pipes"]
+
+[[case]]
+id = "awk-fflush"
+argv = ["awk", 'BEGIN{print "a"; fflush(); system("echo b"); print "c"}']
+tags = ["io"]
+
+[[case]]
+id = "awk-ENVIRON"
+argv = ["awk", 'BEGIN{print ENVIRON["HOME"], ENVIRON["MY_VAR"], length(ENVIRON["NOPE"])}']
+tags = ["cli"]
+[case.env]
+MY_VAR = "from env"
+
+[[case]]
+id = "awk-ARGV-ARGC"
+argv = ["awk", 'BEGIN{for (i=0; i<ARGC; i++) print i, ARGV[i]}', "x", "y=1", "z"]
+tags = ["cli"]
+
+[[case]]
+id = "awk-ARGV-modified-in-BEGIN"
+argv = ["awk", 'BEGIN{ARGV[1] = "b.txt"} {print FILENAME, $0}', "a.txt"]
+tags = ["cli", "files"]
+[case.files]
+"a.txt" = "from a\n"
+"b.txt" = "from b\n"
+
+[[case]]
+id = "awk-assignment-operands"
+argv = ["awk", "{print x, $1}", "x=1", "a.txt", "x=2", "b.txt"]
+tags = ["cli"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "awk-v-var"
+argv = ["awk", "-v", "n=2", "NR <= n"]
+tags = ["cli"]
+stdin = "a\nb\nc\n"
+
+[[case]]
+id = "awk-v-escape-processing"
+argv = ["awk", "-v", 's=a\tb\\n', 'BEGIN{print s "|" length(s)}']
+tags = ["cli"]
+
+[[case]]
+id = "awk-v-multiple"
+argv = ["awk", "-v", "a=1", "-v", "b=two", 'BEGIN{print a + 1, b}']
+tags = ["cli"]
+
+[[case]]
+id = "awk-f-progfile"
+argv = ["awk", "-f", "prog.awk", "data.txt"]
+tags = ["cli"]
+[case.files]
+"prog.awk" = """
+# soma a segunda coluna
+{ total += $2 }
+END { printf "total=%d linhas=%d\\n", total, NR }
+"""
+"data.txt" = "a 1\nb 2\nc 39\n"
+
+[[case]]
+id = "awk-f-multiple-progfiles"
+argv = ["awk", "-f", "lib.awk", "-f", "main.awk"]
+tags = ["cli", "functions"]
+[case.files]
+"lib.awk" = "function double(x) { return 2 * x }\n"
+"main.awk" = "BEGIN { print double(21) }\n"
+
+[[case]]
+id = "awk-e-and-f-mix"
+argv = ["awk", "-f", "lib.awk", "-e", "BEGIN{print double(4)}"]
+tags = ["cli", "gawk-ext"]
+[case.files]
+"lib.awk" = "function double(x) { return 2 * x }\n"
+
+[[case]]
+id = "awk-stdin-dash-and-file"
+argv = ["awk", '{print FILENAME ":" $0}', "a.txt", "-"]
+tags = ["cli", "files"]
+stdin = "from stdin\n"
+[case.files]
+"a.txt" = "from a\n"
+
+[[case]]
+id = "awk-double-dash"
+argv = ["awk", "--", "{print $1}", "a.txt"]
+tags = ["cli"]
+[case.files]
+"a.txt" = "x y\n"
+
+[[case]]
+id = "awk-missing-input-file"
+argv = ["awk", "{print}", "nope.txt"]
+tags = ["errors", "files"]
+
+[[case]]
+id = "awk-missing-file-among-others"
+argv = ["awk", "{print FILENAME, $0}", "a.txt", "nope.txt", "b.txt"]
+tags = ["errors", "files"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "awk-syntax-error"
+argv = ["awk", "{print $1"]
+tags = ["errors"]
+stdin = "x\n"
+
+[[case]]
+id = "awk-syntax-error-unexpected-token"
+argv = ["awk", "BEGIN { x = = 1 }"]
+tags = ["errors"]
+
+[[case]]
+id = "awk-unknown-function"
+argv = ["awk", "BEGIN { nosuchfunc(1) }"]
+tags = ["errors"]
+
+[[case]]
+id = "awk-unknown-option"
+argv = ["awk", "--frobnicate", "BEGIN{}"]
+tags = ["errors", "cli"]
+
+[[case]]
+id = "awk-no-program"
+argv = ["awk"]
+tags = ["errors", "cli"]
+
+[[case]]
+id = "awk-strftime-fixed-time"
+argv = ["awk", 'BEGIN{print strftime("%Y-%m-%d %H:%M:%S", 0); print strftime("%F %a %b", 86400*365); print strftime("%s", 1768478400)}']
+tags = ["time", "gawk-ext"]
+
+[[case]]
+id = "awk-strftime-utc-flag"
+argv = ["awk", 'BEGIN{print strftime("%H:%M %Z", 3600, 1)}']
+tags = ["time", "gawk-ext"]
+
+[[case]]
+id = "awk-mktime"
+argv = ["awk", 'BEGIN{print mktime("2026 01 15 12 00 00"), mktime("2026 13 01 00 00 00"), mktime("garbage")}']
+tags = ["time", "gawk-ext"]
+
+[[case]]
+id = "awk-systime-sanity"
+argv = ["awk", "BEGIN{t = systime(); print (t > 1700000000), (t == int(t))}"]
+tags = ["time", "gawk-ext"]
+
+[[case]]
+id = "awk-strftime-now-faketime"
+argv = ["awk", 'BEGIN{print strftime("%Y-%m-%dT%H:%M:%S")}']
+tags = ["time", "gawk-ext"]
+faketime = "2026-01-15 12:00:00"
+
+[[case]]
+id = "awk-PROCINFO-version"
+argv = ["awk", 'BEGIN{print PROCINFO["version"]}']
+tags = ["gawk-ext"]
+
+[[case]]
+id = "awk-pipeline-input"
+script = "printf 'a 1\\nb 2\\nc 3\\n' | awk '{s += $2} END {print s}'"
+tags = ["pipeline"]
+
+[[case]]
+id = "awk-pipeline-ps-style"
+script = "printf 'USER PID %%CPU CMD\\nroot 1 0.0 init\\njohn 42 12.5 cargo\\njohn 43 3.1 rustc\\n' | awk 'NR > 1 && $3 > 1.0 {printf \"%s:%s\\n\", $2, $4}'"
+tags = ["pipeline"]
+
+[[case]]
+id = "awk-in-shell-loop"
+script = "for f in a.txt b.txt; do awk 'END{print FILENAME, NR}' \"$f\"; done"
+tags = ["pipeline", "files"]
+[case.files]
+"a.txt" = "1\n2\n"
+"b.txt" = "1\n"
+
+[[case]]
+id = "awk-command-substitution"
+script = "total=$(awk '{s+=$1} END{print s}' nums.txt); echo \"total is $total\""
+tags = ["pipeline"]
+[case.files]
+"nums.txt" = "10\n20\n12\n"
+
+[[case]]
+id = "awk-heredoc-program-file"
+script = """
+cat > prog.awk <<'EOF'
+BEGIN { FS = "," }
+NR > 1 { sum[$1] += $2 }
+END { for (k in sum) print k, sum[k] | "sort" }
+EOF
+awk -f prog.awk sales.csv
+"""
+tags = ["pipeline", "pipes"]
+[case.files]
+"sales.csv" = "region,amount\nsouth,10\nnorth,5\nsouth,7\n"
+
+[[case]]
+id = "awk-exit-status-in-pipeline"
+script = "printf 'x\\n' | awk '{exit 4}'; echo \"status=$?\""
+tags = ["pipeline", "exit"]
+
+[[case]]
+id = "awk-gawk-name"
+argv = ["gawk", 'BEGIN{print "via gawk"}']
+tags = ["cli"]

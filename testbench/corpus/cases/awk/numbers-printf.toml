@@ -1,0 +1,228 @@
+tool = "awk"
+source = "agent-style"
+
+# Aritmética, conversão número e string, formatação de saída e printf.
+
+[[case]]
+id = "awk-sum-column"
+argv = ["awk", "{s += $4} END{print s}"]
+tags = ["numeric"]
+stdin = """
+alice 30 engineering 85000
+bob 25 marketing 52000
+carol 35 engineering 98000
+"""
+
+[[case]]
+id = "awk-average-printf"
+argv = ["awk", '{s += $2; n++} END{printf "%.2f\n", s/n}']
+tags = ["numeric", "printf"]
+stdin = "a 30\nb 25\nc 35\nd 28\n"
+
+[[case]]
+id = "awk-average-print-default-ofmt"
+argv = ["awk", "{s += $2; n++} END{print s/n}"]
+tags = ["numeric"]
+stdin = "a 30\nb 25\nc 36\n"
+
+[[case]]
+id = "awk-max-min"
+argv = ["awk", 'NR==1{max=min=$1} {if ($1>max) max=$1; if ($1<min) min=$1} END{print "max=" max, "min=" min}']
+tags = ["numeric"]
+stdin = "5\n-3\n12\n7\n"
+
+[[case]]
+id = "awk-int-division-modulo"
+argv = ["awk", "BEGIN{print 7/2, int(7/2), 7%3, -7%3, 7.5%2, int(-3.7)}"]
+tags = ["numeric"]
+
+[[case]]
+id = "awk-exponent"
+argv = ["awk", "BEGIN{print 2^10, 2**3, 2^0.5, 2^-1, (-8)^(1/3)}"]
+tags = ["numeric"]
+
+[[case]]
+id = "awk-large-integers"
+argv = ["awk", "BEGIN{print 2^53, 2^53+1, 1e6, 1e16, 123456789012, 2^63, 1e300*10}"]
+tags = ["numeric", "output-format"]
+
+[[case]]
+id = "awk-float-output"
+argv = ["awk", "BEGIN{print 0.1+0.2, 1/3, 100000*100000, 3.0, 1e-5, 123456.789, 1234567.89, -0}"]
+tags = ["numeric", "output-format"]
+
+[[case]]
+id = "awk-OFMT-CONVFMT"
+argv = ["awk", 'BEGIN{x=3.14159265; print x; OFMT="%.2f"; print x; CONVFMT="%.3f"; y = x ""; print y; print 17 ""}']
+tags = ["numeric", "output-format"]
+
+[[case]]
+id = "awk-integer-valued-float-concat"
+argv = ["awk", 'BEGIN{x = 1.0; y = 2.50; print x "", y "", 1e3 ""}']
+tags = ["numeric", "output-format"]
+
+[[case]]
+id = "awk-string-vs-number-compare"
+argv = ["awk", 'BEGIN{print ("10" < "9"), (10 < 9), ("abc" < "abd"), ("a" < 1), (2 < "10")}']
+tags = ["numeric", "strnum"]
+
+[[case]]
+id = "awk-strnum-field-compare"
+argv = ["awk", "{print ($1 < $2), ($1 == $2)}"]
+tags = ["numeric", "strnum"]
+stdin = "10 9\nabc 9\n1.0 1\n 2 2\n0x1A 26\n"
+
+[[case]]
+id = "awk-uninitialized-var"
+argv = ["awk", 'BEGIN{print x+0, "[" x "]", length(x), (x == 0), (x == "")}']
+tags = ["numeric"]
+
+[[case]]
+id = "awk-hex-source-vs-string"
+argv = ["awk", 'BEGIN{print 0x1A, "0x1A"+0, 011, "011"+0}']
+tags = ["numeric"]
+
+[[case]]
+id = "awk-math-functions"
+argv = ["awk", 'BEGIN{printf "%.4f %.4f %.4f %.4f %.4f %.4f\n", sqrt(2), exp(1), log(10), atan2(0,-1), sin(1), cos(0)}']
+tags = ["numeric", "printf"]
+
+[[case]]
+id = "awk-increment-ops"
+argv = ["awk", "BEGIN{x=5; print x++, x, ++x, x--, --x, x}"]
+tags = ["numeric"]
+
+[[case]]
+id = "awk-compound-assign"
+argv = ["awk", "BEGIN{x=10; x+=5; print x; x-=3; print x; x*=2; print x; x/=4; print x; x%=4; print x; x^=3; print x}"]
+tags = ["numeric"]
+
+[[case]]
+id = "awk-scientific-input"
+argv = ["awk", "{print $1+0, $2*4, $3+0}"]
+tags = ["numeric", "strnum"]
+stdin = "1e3 2.5E-1 .5\n"
+
+[[case]]
+id = "awk-leading-zeros-field"
+argv = ["awk", "{print $1, $1+0, ($1 == 7)}"]
+tags = ["numeric", "strnum"]
+stdin = "007\n"
+
+[[case]]
+id = "awk-numeric-prefix-string"
+argv = ["awk", 'BEGIN{print "12abc"+0, "abc"+0, " 3 "+0, "+4"+0, "-5x"*2, ".5."+0}']
+tags = ["numeric", "strnum"]
+
+[[case]]
+id = "awk-division-by-zero"
+argv = ["awk", "BEGIN{print 1/0}"]
+tags = ["numeric", "errors"]
+
+[[case]]
+id = "awk-modulo-by-zero"
+argv = ["awk", "BEGIN{x=0; print 5%x}"]
+tags = ["numeric", "errors"]
+
+[[case]]
+id = "awk-printf-columns"
+argv = ["awk", '{printf "%-10s|%5d|%8.2f\n", $1, $2, $4}']
+tags = ["printf"]
+stdin = """
+alice 30 engineering 85000
+bob 25 marketing 52000.5
+"""
+
+[[case]]
+id = "awk-printf-conversions"
+argv = ["awk", 'BEGIN{printf "%c %c %o %x %X %e %E %g %G %%\n", 65, "hello", 8, 255, 255, 1234.5, 0.000123, 1234567, 0.0001}']
+tags = ["printf"]
+
+[[case]]
+id = "awk-printf-star-width"
+argv = ["awk", 'BEGIN{printf "%*d|%-*s|%.*f\n", 5, 42, 4, "ab", 2, 3.14159}']
+tags = ["printf"]
+
+[[case]]
+id = "awk-printf-flags"
+argv = ["awk", 'BEGIN{printf "%05d|%+d|% d|%05.1f|%-5d|%#o|%#x\n", 42, 42, 42, 3.14159, 7, 8, 255}']
+tags = ["printf"]
+
+[[case]]
+id = "awk-printf-string-precision"
+argv = ["awk", 'BEGIN{printf "%.3s|%10.2s|%-6s|\n", "abcdef", "xyz", "ab"}']
+tags = ["printf"]
+
+[[case]]
+id = "awk-printf-no-newline"
+argv = ["awk", '{printf "%s ", $1} END{print ""}']
+tags = ["printf"]
+stdin = "a\nb\nc\n"
+
+[[case]]
+id = "awk-printf-parens"
+argv = ["awk", '{printf("%s=%d\n", $1, $2)}']
+tags = ["printf"]
+stdin = "x 1\ny 2\n"
+
+[[case]]
+id = "awk-printf-i-and-u"
+argv = ["awk", 'BEGIN{printf "%i %u %d\n", 3.9, 7, -2.5}']
+tags = ["printf"]
+
+[[case]]
+id = "awk-printf-d-of-strings"
+argv = ["awk", 'BEGIN{printf "%d %d %d %s\n", "12abc", "abc", "3.99", 3.14159265358979}']
+tags = ["printf", "strnum"]
+
+[[case]]
+id = "awk-printf-huge-d"
+argv = ["awk", 'BEGIN{printf "%d %d %.0f\n", 2^64, -2^63, 2^70}']
+tags = ["printf", "numeric"]
+
+[[case]]
+id = "awk-printf-g-format"
+argv = ["awk", 'BEGIN{printf "%g %g %g %g %.3g\n", 100000, 1000000, 0.0001, 0.00001, 3.14159}']
+tags = ["printf"]
+
+[[case]]
+id = "awk-printf-positional"
+argv = ["awk", 'BEGIN{printf "%2$s %1$s\n", "world", "hello"}']
+tags = ["printf", "gawk-ext"]
+
+[[case]]
+id = "awk-printf-not-enough-args"
+argv = ["awk", 'BEGIN{printf "%s %s\n", "a"}']
+tags = ["printf", "errors"]
+
+[[case]]
+id = "awk-printf-c-number-utf8"
+argv = ["awk", 'BEGIN{printf "%c%c\n", 225, 8364}']
+tags = ["printf", "utf8"]
+
+[[case]]
+id = "awk-sprintf"
+argv = ["awk", 'BEGIN{s = sprintf("%03d-%s", 7, "x"); print s, length(s)}']
+tags = ["printf", "strings"]
+
+[[case]]
+id = "awk-sprintf-table"
+argv = ["awk", '{line = sprintf("%-8s%6.1f%%", $1, $2 * 100); print line}']
+tags = ["printf"]
+stdin = "cpu 0.453\nmem 0.07\n"
+
+[[case]]
+id = "awk-length-of-number"
+argv = ["awk", "BEGIN{print length(12345), length(1/3), length(1e10)}"]
+tags = ["numeric", "strings"]
+
+[[case]]
+id = "awk-percent-histogram"
+argv = ["awk", '{c[$1]++; n++} END{printf "%s %.1f%%\n", "a", 100*c["a"]/n; printf "%s %.1f%%\n", "b", 100*c["b"]/n}']
+tags = ["numeric", "printf", "arrays"]
+stdin = "a\nb\na\na\n"
+
+[[case]]
+id = "awk-srand-return"
+argv = ["awk", "BEGIN{srand(5); print srand(7)}"]
+tags = ["numeric"]

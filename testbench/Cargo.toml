@@ -1,0 +1,38 @@
+# Workspace da infraestrutura da bancada (harness, oráculo, depscan, runner).
+#
+# Cada experimento em `experiments/<id>/` é um workspace Cargo próprio, com Cargo.lock e target
+# próprios: assim um experimento com dependência quebrada ou conflitante (ex.: duas crates que linkam
+# sqlite) não derruba o build dos outros, e eles podem ser desenvolvidos em paralelo.
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+exclude = ["experiments"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[workspace.dependencies]
+harness = { path = "crates/harness" }
+depscan = { path = "crates/depscan" }
+anyhow = "1"
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+toml = "0.9"
+walkdir = "2"
+syn = { version = "2", features = ["full", "visit", "parsing"] }
+proc-macro2 = { version = "1", features = ["span-locations"] }
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+debug = "line-tables-only"

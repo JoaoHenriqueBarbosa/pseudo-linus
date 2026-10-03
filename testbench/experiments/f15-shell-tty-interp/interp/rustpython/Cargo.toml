@@ -1,0 +1,20 @@
+[package]
+name = "f15-interp-rustpython"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F17: RustPython sem a feature host_env, com print e open nossos"
+
+[dependencies]
+f15-interp-common = { path = "../common" }
+# Sem default-features: tira host_env (os, io de arquivo, socket, subprocess), stdio e wasmbind.
+rustpython-vm = { version = "=0.6.0", default-features = false, features = ["compiler"] }
+rustpython-stdlib = { version = "=0.6.0", default-features = false, features = ["compiler"] }
+# Os módulos em Python (json, re, collections...) congelados no binário: sem isso o import procuraria
+# no FS do host (e, sem host_env, nem procuraria: só builtins e congelados existem).
+rustpython-pylib = { version = "=0.6.0", features = ["freeze-stdlib"] }
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,379 @@
+tool = "patch"
+source = "agent-style"
+
+# GNU patch 2.8: aplicação limpa, -p, stdin, arquivos novos e removidos, vários arquivos, formato git,
+# falta de newline final, --dry-run, -o, -b, formatos de contexto e normal, erros.
+
+[[case]]
+id = "patch-clean-p0"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["clean"]
+[case.files]
+"a.txt" = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -2,7 +2,7 @@
+ line 2
+ line 3
+ line 4
+-line 5
++line five
+ line 6
+ line 7
+ line 8
+'''
+
+[[case]]
+id = "patch-clean-p1"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["clean", "strip"]
+[case.files]
+"a.txt" = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+"fix.patch" = '''
+--- a/a.txt	2026-01-15 12:00:00.000000000 +0000
++++ b/a.txt	2026-01-15 12:00:00.000000000 +0000
+@@ -2,7 +2,7 @@
+ line 2
+ line 3
+ line 4
+-line 5
++line five
+ line 6
+ line 7
+ line 8
+'''
+
+[[case]]
+id = "patch-explicit-target"
+argv = ["patch", "a.txt", "fix.patch"]
+tags = ["clean"]
+[case.files]
+"a.txt" = "alpha\nbeta\ngamma\n"
+"fix.patch" = '''
+--- whatever.txt
++++ whatever.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-stdin-p1"
+argv = ["patch", "-p1"]
+tags = ["clean", "stdin", "strip"]
+stdin = '''
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -1,3 +1,4 @@
+ fn main() {
+     println!("hi");
++    println!("bye");
+ }
+'''
+[case.files]
+"src/main.rs" = "fn main() {\n    println!(\"hi\");\n}\n"
+
+[[case]]
+id = "patch-new-file"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["create"]
+[case.files]
+"keep.txt" = "k\n"
+"fix.patch" = '''
+--- /dev/null
++++ b/new.txt
+@@ -0,0 +1,2 @@
++hello
++world
+'''
+
+[[case]]
+id = "patch-new-file-in-subdir"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["create"]
+[case.files]
+"fix.patch" = '''
+--- /dev/null
++++ b/docs/notes/new.md
+@@ -0,0 +1 @@
++# Notas
+'''
+
+[[case]]
+id = "patch-delete-file"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["delete"]
+[case.files]
+"old.txt" = "bye\nnow\n"
+"fix.patch" = '''
+--- a/old.txt
++++ /dev/null
+@@ -1,2 +0,0 @@
+-bye
+-now
+'''
+
+[[case]]
+id = "patch-multi-file"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["multi"]
+[case.files]
+"one.txt" = "1\n2\n3\n"
+"two.txt" = "a\nb\nc\n"
+"fix.patch" = '''
+--- a/one.txt
++++ b/one.txt
+@@ -1,3 +1,3 @@
+ 1
+-2
++two
+ 3
+--- a/two.txt
++++ b/two.txt
+@@ -1,3 +1,4 @@
+ a
+ b
++b2
+ c
+'''
+
+[[case]]
+id = "patch-git-format"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git"]
+[case.files]
+"src/lib.rs" = "pub fn greet() {\n    println!(\"hi\");\n}\n"
+"README.md" = "# demo\n"
+"fix.patch" = '''
+diff --git a/src/lib.rs b/src/lib.rs
+index 3b18e51..a1b2c3d 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1,3 +1,3 @@
+ pub fn greet() {
+-    println!("hi");
++    println!("hello");
+ }
+diff --git a/README.md b/README.md
+index 1111111..2222222 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # demo
++
++Uso: cargo run
+'''
+
+[[case]]
+id = "patch-git-new-file"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "create"]
+[case.files]
+"fix.patch" = '''
+diff --git a/hello.sh b/hello.sh
+new file mode 100755
+index 0000000..e69de29
+--- /dev/null
++++ b/hello.sh
+@@ -0,0 +1,2 @@
++#!/bin/sh
++echo hello
+'''
+
+[[case]]
+id = "patch-add-final-newline"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["nonl"]
+[case.files]
+"a.txt" = "a\nb"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,2 +1,2 @@
+ a
+-b
+\ No newline at end of file
++b
+'''
+
+[[case]]
+id = "patch-remove-final-newline"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["nonl"]
+[case.files]
+"a.txt" = "a\nb\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,2 +1,2 @@
+ a
+-b
++b
+\ No newline at end of file
+'''
+
+[[case]]
+id = "patch-dry-run"
+argv = ["patch", "--dry-run", "-p0", "-i", "fix.patch"]
+tags = ["dry-run"]
+[case.files]
+"a.txt" = "alpha\nbeta\ngamma\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-output-file"
+argv = ["patch", "-o", "out.txt", "a.txt", "fix.patch"]
+tags = ["output"]
+[case.files]
+"a.txt" = "alpha\nbeta\ngamma\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-backup-b"
+argv = ["patch", "-b", "-p0", "-i", "fix.patch"]
+tags = ["backup"]
+[case.files]
+"a.txt" = "alpha\nbeta\ngamma\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-silent"
+argv = ["patch", "-s", "-p0", "-i", "fix.patch"]
+tags = ["clean"]
+[case.files]
+"a.txt" = "alpha\nbeta\ngamma\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-reverse-R"
+argv = ["patch", "-R", "-p0", "-i", "fix.patch"]
+tags = ["reverse"]
+[case.files]
+"a.txt" = "alpha\nBETA\ngamma\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+'''
+
+[[case]]
+id = "patch-context-format"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["context-format"]
+[case.files]
+"a.txt" = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n"
+"fix.patch" = '''
+*** a.txt
+--- a.txt
+***************
+*** 3,7 ****
+  line 3
+  line 4
+! line 5
+  line 6
+  line 7
+--- 3,7 ----
+  line 3
+  line 4
+! line five
+  line 6
+  line 7
+'''
+
+[[case]]
+id = "patch-normal-format"
+argv = ["patch", "a.txt", "fix.diff"]
+tags = ["normal-format"]
+[case.files]
+"a.txt" = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\n"
+"fix.diff" = "5c5\n< line 5\n---\n> line five\n"
+
+[[case]]
+id = "patch-empty-patch"
+argv = ["patch", "-p0", "-i", "empty.patch"]
+tags = ["error"]
+[case.files]
+"a.txt" = "a\n"
+"empty.patch" = ""
+
+[[case]]
+id = "patch-garbage"
+argv = ["patch", "-p0", "-i", "junk.patch"]
+tags = ["error"]
+[case.files]
+"a.txt" = "a\n"
+"junk.patch" = "this is not a patch\njust text\n"
+
+[[case]]
+id = "patch-malformed-hunk"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["error"]
+[case.files]
+"a.txt" = "a\nb\nc\n"
+"fix.patch" = '''
+--- a.txt
++++ a.txt
+@@ -1,3 +1,3 @@
+ a
+-b
+'''
+
+[[case]]
+id = "patch-missing-target"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["error", "missing"]
+[case.files]
+"fix.patch" = '''
+--- ghost.txt
++++ ghost.txt
+@@ -1,2 +1,2 @@
+ a
+-b
++c
+'''
+
+[[case]]
+id = "patch-missing-patch-file"
+argv = ["patch", "-p0", "-i", "nope.patch"]
+tags = ["error", "missing"]
+[case.files]
+"a.txt" = "a\n"

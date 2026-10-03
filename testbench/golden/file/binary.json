@@ -1,0 +1,494 @@
+{
+  "file-bzip2": {
+    "stdout": "a.bz2: bzip2 compressed data, block size = 900k\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 62,
+        "sha256": "80b2e31a31fea73174c4564a9588ab3c9494b13560254a7c8d617ee13a69625f",
+        "data": {
+          "b64": "QlpoOTFBWSZTWdt3RzcAADHRgAAQQAAGRJCAIABQgyYgKVQzRPSYTCYTROE4TQnSYTpPxdyRThQkNt3RzcA="
+        }
+      }
+    }
+  },
+  "file-bzip2-mime": {
+    "stdout": "a.bz2: application/x-bzip2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 62,
+        "sha256": "80b2e31a31fea73174c4564a9588ab3c9494b13560254a7c8d617ee13a69625f",
+        "data": {
+          "b64": "QlpoOTFBWSZTWdt3RzcAADHRgAAQQAAGRJCAIABQgyYgKVQzRPSYTCYTROE4TQnSYTpPxdyRThQkNt3RzcA="
+        }
+      }
+    }
+  },
+  "file-gif": {
+    "stdout": "anim.gif: GIF image data, version 87a, 2 x 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "anim.gif": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "16879d3169a3b814e6cae33f692500ce7e6493a5dcce103a1342cbad87d77d37",
+        "data": {
+          "b64": "R0lGODdhAgACAIAAAAAAAAAAACwAAAAAAgACAAAIBgABCAQQEAA7"
+        }
+      }
+    }
+  },
+  "file-gif-mime": {
+    "stdout": "anim.gif: image/gif\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "anim.gif": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "16879d3169a3b814e6cae33f692500ce7e6493a5dcce103a1342cbad87d77d37",
+        "data": {
+          "b64": "R0lGODdhAgACAIAAAAAAAAAAACwAAAAAAgACAAAIBgABCAQQEAA7"
+        }
+      }
+    }
+  },
+  "file-gzip": {
+    "stdout": "a.gz: gzip compressed data, from Unix, original size modulo 2^32 240\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "369283a89a16dbb2cd35341667c847cb646ee93a225b0d3beb540447d49c1579",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4coYAWwAvJ6dLvAAAAA="
+        }
+      }
+    }
+  },
+  "file-gzip-brief": {
+    "stdout": "gzip compressed data, from Unix, original size modulo 2^32 240\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "369283a89a16dbb2cd35341667c847cb646ee93a225b0d3beb540447d49c1579",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4coYAWwAvJ6dLvAAAAA="
+        }
+      }
+    }
+  },
+  "file-gzip-i": {
+    "stdout": "a.gz: application/gzip; charset=binary\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "369283a89a16dbb2cd35341667c847cb646ee93a225b0d3beb540447d49c1579",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4coYAWwAvJ6dLvAAAAA="
+        }
+      }
+    }
+  },
+  "file-gzip-mime": {
+    "stdout": "a.gz: application/gzip\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "369283a89a16dbb2cd35341667c847cb646ee93a225b0d3beb540447d49c1579",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4coYAWwAvJ6dLvAAAAA="
+        }
+      }
+    }
+  },
+  "file-gzip-named": {
+    "stdout": "named.txt.gz: gzip compressed data, was \"named.txt\", last modified: Thu Jan 15 12:00:00 2026, from Unix, original size modulo 2^32 240\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "named.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "61a6d7b75400d9b5cec3d7b4f39d45afa4669109b0d642a72186f9ef72b64966",
+        "data": {
+          "b64": "H4sICMDWaGkAA25hbWVkLnR4dADLSM3JyVcozy/KSeHKGAFsALyenS7wAAAA"
+        }
+      }
+    }
+  },
+  "file-gzip-z": {
+    "stdout": "named.txt.gz: ASCII text (gzip compressed data, was \"named.txt\", last modified: Thu Jan 15 12:00:00 2026, from Unix)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "named.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "61a6d7b75400d9b5cec3d7b4f39d45afa4669109b0d642a72186f9ef72b64966",
+        "data": {
+          "b64": "H4sICMDWaGkAA25hbWVkLnR4dADLSM3JyVcozy/KSeHKGAFsALyenS7wAAAA"
+        }
+      }
+    }
+  },
+  "file-jpeg": {
+    "stdout": "photo.jpg: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 8x8, components 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "photo.jpg": {
+        "kind": "file",
+        "mode": 420,
+        "size": 633,
+        "sha256": "bb31a9ee6b35da609a114c6e27df74f37312593055edd31eb31cc44c2a8586da",
+        "data": {
+          "b64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCOiiivkD83P//Z"
+        }
+      }
+    }
+  },
+  "file-jpeg-mime": {
+    "stdout": "photo.jpg: image/jpeg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "photo.jpg": {
+        "kind": "file",
+        "mode": 420,
+        "size": 633,
+        "sha256": "bb31a9ee6b35da609a114c6e27df74f37312593055edd31eb31cc44c2a8586da",
+        "data": {
+          "b64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCOiiivkD83P//Z"
+        }
+      }
+    }
+  },
+  "file-lzip": {
+    "stdout": "a.lz: lzip compressed data, version: 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.lz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 51,
+        "sha256": "a3fda0aedac6941020e0847936d677f77de7dd872b5e4d9afcf28e1463af2aac",
+        "data": {
+          "b64": "TFpJUAEMADQZSe6N6ReJOjNf/LPs5bDck///3zYAALyenS7wAAAAAAAAADMAAAAAAAAA"
+        }
+      }
+    }
+  },
+  "file-lzip-mime": {
+    "stdout": "a.lz: application/x-lzip\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.lz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 51,
+        "sha256": "a3fda0aedac6941020e0847936d677f77de7dd872b5e4d9afcf28e1463af2aac",
+        "data": {
+          "b64": "TFpJUAEMADQZSe6N6ReJOjNf/LPs5bDck///3zYAALyenS7wAAAAAAAAADMAAAAAAAAA"
+        }
+      }
+    }
+  },
+  "file-png": {
+    "stdout": "img.png: PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "img.png": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "90e7ac0ea2d02e9809cf1674b27a6b7af2a169d2c5cdf26652102d956702bc39",
+        "data": {
+          "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC"
+        }
+      }
+    }
+  },
+  "file-png-brief": {
+    "stdout": "PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "img.png": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "90e7ac0ea2d02e9809cf1674b27a6b7af2a169d2c5cdf26652102d956702bc39",
+        "data": {
+          "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC"
+        }
+      }
+    }
+  },
+  "file-png-i": {
+    "stdout": "img.png: image/png; charset=binary\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "img.png": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "90e7ac0ea2d02e9809cf1674b27a6b7af2a169d2c5cdf26652102d956702bc39",
+        "data": {
+          "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC"
+        }
+      }
+    }
+  },
+  "file-png-mime": {
+    "stdout": "img.png: image/png\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "img.png": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "90e7ac0ea2d02e9809cf1674b27a6b7af2a169d2c5cdf26652102d956702bc39",
+        "data": {
+          "b64": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAFUlEQVR4nGP8z8DQwIAEmBjQAIYAAEoaAYXoyUqYAAAAAElFTkSuQmCC"
+        }
+      }
+    }
+  },
+  "file-random": {
+    "stdout": "random.bin: data\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "random.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 256,
+        "sha256": "a75d80808c86e6ad91a4268092e9575a28ea7679b95f58e3a0e4c1231eefa999",
+        "data": {
+          "b64": "3ARlqh+tHVra5awbHl8TcHls/RD/Ga9gHQSstB0CK0Z4czry31+utwhZ0e45EMtIlbXMiSkR/wa2Yi7fPPk1/UuUKMoJfESzAl6WX7PqbazULYFuaa/g5odMnATn0jZdLGDJ6vR59oag65Mm5GIS1Q3Ls3cVamo6aLqO23QIRp7zzrMK+NDdaLv4X/ok8tL8GIf7XIe6tDgypZsbPRB893jWf+Jt+BGRKX6TlcsSxVfOWvHUFhjXGbwEW36ZZfGilHHEKqxqqTjEdcetMjgCHwU7LJka/OsV3s9ouuB8vNYelxuaC52+l2PTkvyv36KMlyNFYuvdB2Vw/1iJas/3yg=="
+        }
+      }
+    }
+  },
+  "file-random-i": {
+    "stdout": "random.bin: application/octet-stream; charset=binary\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "random.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 256,
+        "sha256": "a75d80808c86e6ad91a4268092e9575a28ea7679b95f58e3a0e4c1231eefa999",
+        "data": {
+          "b64": "3ARlqh+tHVra5awbHl8TcHls/RD/Ga9gHQSstB0CK0Z4czry31+utwhZ0e45EMtIlbXMiSkR/wa2Yi7fPPk1/UuUKMoJfESzAl6WX7PqbazULYFuaa/g5odMnATn0jZdLGDJ6vR59oag65Mm5GIS1Q3Ls3cVamo6aLqO23QIRp7zzrMK+NDdaLv4X/ok8tL8GIf7XIe6tDgypZsbPRB893jWf+Jt+BGRKX6TlcsSxVfOWvHUFhjXGbwEW36ZZfGilHHEKqxqqTjEdcetMjgCHwU7LJka/OsV3s9ouuB8vNYelxuaC52+l2PTkvyv36KMlyNFYuvdB2Vw/1iJas/3yg=="
+        }
+      }
+    }
+  },
+  "file-random-mime": {
+    "stdout": "random.bin: application/octet-stream\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "random.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 256,
+        "sha256": "a75d80808c86e6ad91a4268092e9575a28ea7679b95f58e3a0e4c1231eefa999",
+        "data": {
+          "b64": "3ARlqh+tHVra5awbHl8TcHls/RD/Ga9gHQSstB0CK0Z4czry31+utwhZ0e45EMtIlbXMiSkR/wa2Yi7fPPk1/UuUKMoJfESzAl6WX7PqbazULYFuaa/g5odMnATn0jZdLGDJ6vR59oag65Mm5GIS1Q3Ls3cVamo6aLqO23QIRp7zzrMK+NDdaLv4X/ok8tL8GIf7XIe6tDgypZsbPRB893jWf+Jt+BGRKX6TlcsSxVfOWvHUFhjXGbwEW36ZZfGilHHEKqxqqTjEdcetMjgCHwU7LJka/OsV3s9ouuB8vNYelxuaC52+l2PTkvyv36KMlyNFYuvdB2Vw/1iJas/3yg=="
+        }
+      }
+    }
+  },
+  "file-tar": {
+    "stdout": "a.tar: POSIX tar archive\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.tar": {
+        "kind": "file",
+        "mode": 420,
+        "size": 512,
+        "sha256": "78824f2f60d9f76332af19c1416631e5dcfaa30c74abcebb82f99b234acab65d",
+        "data": "ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp\u00000000777\u00000000000\u00000000000\u000000000000000\u000015132153300\u0000135366\u0000 2ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt\u0000ustar\u000000uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\u0000ggggggggggggggggggggggggggggggg\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "file-tar-mime": {
+    "stdout": "a.tar: application/x-tar\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.tar": {
+        "kind": "file",
+        "mode": 420,
+        "size": 512,
+        "sha256": "78824f2f60d9f76332af19c1416631e5dcfaa30c74abcebb82f99b234acab65d",
+        "data": "ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp\u00000000777\u00000000000\u00000000000\u000000000000000\u000015132153300\u0000135366\u0000 2ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt\u0000ustar\u000000uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu\u0000ggggggggggggggggggggggggggggggg\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "file-tgz": {
+    "stdout": "a.tgz: gzip compressed data, from Unix, original size modulo 2^32 10240\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.tgz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "e7f58798d6c16144d2ea827bf1b65d035f91925b449aed2018e5eb02cbc6d6d3",
+        "data": {
+          "b64": "H4sIAAAAAAAAA+3QPQrDMAyGYc89hU9QpKjxfQwJZDC4uC5tb5+fKXRO0kDfZ/nEt0joHj8px+5a39XtRSYh3JacfKdYEKetWqOt2dyrqInzsttFK89HjcX7I1ad0dCnlP0rl9Rd/mH+9b8BAAAAAAAAAAAAAAAAYCsjpsYpMQAoAAA="
+        }
+      }
+    }
+  },
+  "file-xz": {
+    "stdout": "a.xz: XZ compressed data, checksum CRC64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.xz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 92,
+        "sha256": "1876ec8465c5d84bf7df3cd962211943cddce480e77ad927cbfeb8c1940884d4",
+        "data": {
+          "b64": "/Td6WFoAAATm1rRGBMAb8AEhARYAAAAAAAAAALueTWPgAO8AE10ANBlJ7o3pF4k6M1/8s+zlayAAAAAA4U8ceXHM7C4AATfwAQAAAPDUoiqxxGf7AgAAAAAEWVo="
+        }
+      }
+    }
+  },
+  "file-xz-mime": {
+    "stdout": "a.xz: application/x-xz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.xz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 92,
+        "sha256": "1876ec8465c5d84bf7df3cd962211943cddce480e77ad927cbfeb8c1940884d4",
+        "data": {
+          "b64": "/Td6WFoAAATm1rRGBMAb8AEhARYAAAAAAAAAALueTWPgAO8AE10ANBlJ7o3pF4k6M1/8s+zlayAAAAAA4U8ceXHM7C4AATfwAQAAAPDUoiqxxGf7AgAAAAAEWVo="
+        }
+      }
+    }
+  },
+  "file-zip": {
+    "stdout": "a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompressed size 240, method=deflate\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 137,
+        "sha256": "a9c53d219a1a53ccf41e9916934d3ce2f2409342c80793578309a32a4b46543a",
+        "data": {
+          "b64": "UEsDBBQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAcGF5bG9hZC50eHTLSM3JyVcozy/KSeHKGAFsAFBLAQIeAxQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAAAAAAAEAAAC0gQAAAABwYXlsb2FkLnR4dFBLBQYAAAAAAQABADkAAAA6AAAAAAA="
+        }
+      }
+    }
+  },
+  "file-zip-brief": {
+    "stdout": "Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompressed size 240, method=deflate\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 137,
+        "sha256": "a9c53d219a1a53ccf41e9916934d3ce2f2409342c80793578309a32a4b46543a",
+        "data": {
+          "b64": "UEsDBBQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAcGF5bG9hZC50eHTLSM3JyVcozy/KSeHKGAFsAFBLAQIeAxQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAAAAAAAEAAAC0gQAAAABwYXlsb2FkLnR4dFBLBQYAAAAAAQABADkAAAA6AAAAAAA="
+        }
+      }
+    }
+  },
+  "file-zip-mime": {
+    "stdout": "a.zip: application/zip\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 137,
+        "sha256": "a9c53d219a1a53ccf41e9916934d3ce2f2409342c80793578309a32a4b46543a",
+        "data": {
+          "b64": "UEsDBBQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAcGF5bG9hZC50eHTLSM3JyVcozy/KSeHKGAFsAFBLAQIeAxQAAAAIAABgL1y8np0uEQAAAPAAAAALAAAAAAAAAAEAAAC0gQAAAABwYXlsb2FkLnR4dFBLBQYAAAAAAQABADkAAAA6AAAAAAA="
+        }
+      }
+    }
+  },
+  "file-zstd": {
+    "stdout": "a.zst: Zstandard compressed data (v0.8+), Dictionary ID: None\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.zst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "558007827c9c8d3288fa74ed423e50cbbf7cd707cd8619bb31451c5a701c32f3",
+        "data": {
+          "b64": "KLUv/STwnQAAYGhlbGxvIHdvcmxkCgEA4VMlCcomQzo="
+        }
+      }
+    }
+  },
+  "file-zstd-mime": {
+    "stdout": "a.zst: application/zstd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.zst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "558007827c9c8d3288fa74ed423e50cbbf7cd707cd8619bb31451c5a701c32f3",
+        "data": {
+          "b64": "KLUv/STwnQAAYGhlbGxvIHdvcmxkCgEA4VMlCcomQzo="
+        }
+      }
+    }
+  }
+}

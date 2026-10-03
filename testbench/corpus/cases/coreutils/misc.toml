@@ -1,0 +1,218 @@
+tool = "coreutils"
+source = "agent-style"
+
+# tee, seq, printf, echo, env, date (com faketime) e du.
+
+[[case]]
+id = "tee-file"
+argv = ["tee", "out.txt"]
+stdin = "copiado pra saída e pro arquivo\n"
+tags = ["tee", "fs"]
+
+[[case]]
+id = "tee-append"
+argv = ["tee", "-a", "log.txt"]
+stdin = "nova\n"
+tags = ["tee", "fs"]
+[case.files]
+"log.txt" = "antiga\n"
+
+[[case]]
+id = "tee-multi"
+argv = ["tee", "a.txt", "b.txt"]
+stdin = "x\n"
+tags = ["tee", "fs"]
+
+[[case]]
+id = "tee-missing-dir"
+argv = ["tee", "nodir/out.txt"]
+stdin = "x\n"
+tags = ["tee", "fs", "errno"]
+
+[[case]]
+id = "seq-basic"
+argv = ["seq", "5"]
+tags = ["seq"]
+
+[[case]]
+id = "seq-step"
+argv = ["seq", "2", "2", "10"]
+tags = ["seq"]
+
+[[case]]
+id = "seq-w"
+argv = ["seq", "-w", "8", "11"]
+tags = ["seq"]
+
+[[case]]
+id = "seq-s"
+argv = ["seq", "-s,", "3"]
+tags = ["seq"]
+
+[[case]]
+id = "seq-float"
+argv = ["seq", "1", "0.5", "3"]
+tags = ["seq"]
+
+[[case]]
+id = "seq-down"
+argv = ["seq", "10", "-3", "1"]
+tags = ["seq"]
+
+[[case]]
+id = "seq-f"
+argv = ["seq", "-f", "file%03g.txt", "3"]
+tags = ["seq"]
+
+[[case]]
+id = "printf-s"
+argv = ["printf", "%s\\n", "a", "b", "c"]
+tags = ["printf"]
+
+[[case]]
+id = "printf-widths"
+argv = ["printf", "%-10s|%5d|\\n", "nome", "42"]
+tags = ["printf"]
+
+[[case]]
+id = "printf-float"
+argv = ["printf", "%05.2f %.3e %g\\n", "3.14159", "12345.678", "0.0001"]
+tags = ["printf"]
+
+[[case]]
+id = "printf-int-bases"
+argv = ["printf", "%x %X %o %#x\\n", "255", "255", "8", "255"]
+tags = ["printf"]
+
+[[case]]
+id = "printf-escapes"
+argv = ["printf", "a\\tb\\\\n\\101\\n"]
+tags = ["printf"]
+
+[[case]]
+id = "printf-q"
+argv = ["printf", "%q\\n", "a b'c"]
+tags = ["printf"]
+
+[[case]]
+id = "printf-bad-number"
+argv = ["printf", "%d\\n", "abc"]
+tags = ["printf", "errno"]
+
+[[case]]
+id = "echo-basic"
+argv = ["echo", "olá", "mundo"]
+tags = ["echo"]
+
+[[case]]
+id = "echo-n"
+argv = ["echo", "-n", "sem quebra"]
+tags = ["echo"]
+
+[[case]]
+id = "echo-e"
+argv = ["echo", "-e", "a\\tb\\nc"]
+tags = ["echo"]
+
+[[case]]
+id = "echo-no-escape-default"
+argv = ["echo", "a\\tb"]
+tags = ["echo"]
+
+[[case]]
+id = "echo-double-dash"
+argv = ["echo", "--", "-n"]
+tags = ["echo"]
+
+[[case]]
+id = "env-print"
+argv = ["env"]
+tags = ["env"]
+
+[[case]]
+id = "env-set-and-run"
+argv = ["env", "FOO=bar", "printenv", "FOO"]
+tags = ["env"]
+
+[[case]]
+id = "env-i"
+argv = ["env", "-i", "A=1", "env"]
+tags = ["env"]
+
+[[case]]
+id = "env-u"
+argv = ["env", "-u", "HOME", "printenv", "HOME"]
+tags = ["env", "errno"]
+
+[[case]]
+id = "env-missing-command"
+argv = ["env", "nope-cmd"]
+tags = ["env", "errno"]
+
+[[case]]
+id = "date-default"
+argv = ["date"]
+faketime = "2026-01-15 12:00:00"
+tags = ["date", "time"]
+
+[[case]]
+id = "date-format"
+argv = ["date", "+%Y-%m-%d %H:%M:%S %a %j"]
+faketime = "2026-01-15 12:00:00"
+tags = ["date", "time"]
+
+[[case]]
+id = "date-epoch"
+argv = ["date", "+%s"]
+faketime = "2026-01-15 12:00:00"
+tags = ["date", "time"]
+
+[[case]]
+id = "date-d-relative"
+argv = ["date", "-d", "2026-01-31 + 1 month", "+%F"]
+tags = ["date", "time"]
+
+[[case]]
+id = "date-d-at"
+argv = ["date", "-u", "-d", "@0"]
+tags = ["date", "time"]
+
+[[case]]
+id = "date-iso"
+argv = ["date", "-I", "-d", "2026-03-04 05:06:07"]
+tags = ["date", "time"]
+
+[[case]]
+id = "date-iso-seconds"
+argv = ["date", "--iso-8601=seconds"]
+faketime = "2026-01-15 12:00:00"
+tags = ["date", "time"]
+
+[[case]]
+id = "date-bad"
+argv = ["date", "-d", "ontem de manhã"]
+tags = ["date", "time", "errno"]
+
+[[case]]
+id = "du-s"
+argv = ["du", "-s", "d"]
+tags = ["du", "fs"]
+[case.files]
+"d/a" = "x"
+"d/b/c" = "y"
+
+[[case]]
+id = "du-sh"
+argv = ["du", "-sh", "d"]
+tags = ["du", "fs"]
+[case.files]
+"d/a" = "x"
+
+[[case]]
+id = "du-max-depth"
+script = "du -h --max-depth=1 . | sort -k2"
+tags = ["du", "fs", "pipeline"]
+[case.files]
+"a/x" = "1"
+"b/y" = "2"
+"b/z/w" = "3"

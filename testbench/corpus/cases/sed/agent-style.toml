@@ -1,0 +1,822 @@
+tool = "sed"
+source = "agent-style"
+
+# Casos de sed como agentes usam: s com flags, -n/-E/-i, endereços e intervalos, d/p/q/a/i/c/y,
+# hold space, N/D/P, rótulos, múltiplos -e, scripts típicos de agente, erros e exit codes.
+
+[[case]]
+id = "subst-first"
+argv = ["sed", "s/foo/bar/", "in.txt"]
+tags = ["cmd:s"]
+[case.files]
+"in.txt" = "foo foo\nnone\nafoo\n"
+
+[[case]]
+id = "subst-global"
+argv = ["sed", "s/foo/bar/g", "in.txt"]
+tags = ["cmd:s", "flag:g"]
+[case.files]
+"in.txt" = "foo foo foo\nnone\n"
+
+[[case]]
+id = "subst-nth"
+argv = ["sed", "s/a/X/2", "in.txt"]
+tags = ["cmd:s", "flag:N"]
+[case.files]
+"in.txt" = "aaaa\nab\n"
+
+[[case]]
+id = "subst-nth-global"
+argv = ["sed", "s/a/X/2g", "in.txt"]
+tags = ["cmd:s", "flag:N", "flag:g"]
+[case.files]
+"in.txt" = "aaaa\n"
+
+[[case]]
+id = "subst-print-quiet"
+argv = ["sed", "-n", "s/error/ERROR/p", "log"]
+tags = ["cmd:s", "flag:p", "opt:-n"]
+[case.files]
+"log" = "ok\nerror one\nfine\nerror two\n"
+
+[[case]]
+id = "subst-icase"
+argv = ["sed", "s/hello/bye/I", "in.txt"]
+tags = ["cmd:s", "flag:I"]
+[case.files]
+"in.txt" = "Hello world\nHELLO\nhello\n"
+
+[[case]]
+id = "subst-ampersand"
+argv = ["sed", "s/[0-9]\\+/<&>/g", "in.txt"]
+tags = ["cmd:s", "repl:&"]
+[case.files]
+"in.txt" = "a1 b22 c333\n"
+
+[[case]]
+id = "subst-backrefs-bre"
+argv = ["sed", "s/\\([a-z]*\\)@\\([a-z.]*\\)/\\2 at \\1/", "in.txt"]
+tags = ["cmd:s", "repl:backref", "bre"]
+[case.files]
+"in.txt" = "mail bob@example.com now\n"
+
+[[case]]
+id = "subst-backrefs-ere"
+argv = ["sed", "-E", "s/([0-9]+)-([0-9]+)/\\2-\\1/g", "in.txt"]
+tags = ["cmd:s", "repl:backref", "opt:-E"]
+[case.files]
+"in.txt" = "1-2 and 30-40\n"
+
+[[case]]
+id = "subst-r-flag"
+argv = ["sed", "-r", "s/(a|b)+/X/", "in.txt"]
+tags = ["cmd:s", "opt:-r"]
+[case.files]
+"in.txt" = "ccabab\n"
+
+[[case]]
+id = "subst-custom-delimiter"
+argv = ["sed", "s|/usr/local|/opt|g", "paths"]
+tags = ["cmd:s", "delimiter"]
+[case.files]
+"paths" = "/usr/local/bin:/usr/local/lib\n"
+
+[[case]]
+id = "subst-delimiter-escaped"
+argv = ["sed", "s#a\\#b#X#", "in.txt"]
+tags = ["cmd:s", "delimiter"]
+[case.files]
+"in.txt" = "a#b\n"
+
+[[case]]
+id = "subst-newline-in-replacement"
+argv = ["sed", "s/, /\\n/g", "in.txt"]
+tags = ["cmd:s", "repl:newline"]
+[case.files]
+"in.txt" = "a, b, c\n"
+
+[[case]]
+id = "subst-case-conversion"
+argv = ["sed", "-E", "s/(\\w+) (\\w+)/\\U\\1\\E \\u\\2/", "in.txt"]
+tags = ["cmd:s", "repl:case", "gnu"]
+[case.files]
+"in.txt" = "hello world\n"
+
+[[case]]
+id = "subst-lowercase-all"
+argv = ["sed", "s/.*/\\L&/", "in.txt"]
+tags = ["cmd:s", "repl:case", "gnu"]
+[case.files]
+"in.txt" = "MiXeD CaSe\n"
+
+[[case]]
+id = "subst-empty-regex-reuse"
+argv = ["sed", "/foo/s//bar/", "in.txt"]
+tags = ["cmd:s", "empty-regex"]
+[case.files]
+"in.txt" = "foo foo\nbaz\n"
+
+[[case]]
+id = "subst-empty-matches-global"
+argv = ["sed", "s/x*/-/g", "in.txt"]
+tags = ["cmd:s", "flag:g", "empty-match"]
+[case.files]
+"in.txt" = "abc\nbaaac\n"
+
+[[case]]
+id = "subst-anchor-start"
+argv = ["sed", "s/^/> /", "in.txt"]
+tags = ["cmd:s"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "subst-anchor-end"
+argv = ["sed", "s/$/;/", "in.txt"]
+tags = ["cmd:s"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "subst-trim-leading"
+argv = ["sed", "s/^[ \\t]*//", "in.txt"]
+tags = ["cmd:s", "agent"]
+[case.files]
+"in.txt" = "   a\n\t\tb\nc\n"
+
+[[case]]
+id = "subst-trim-trailing"
+argv = ["sed", "s/[[:space:]]*$//", "in.txt"]
+tags = ["cmd:s", "agent"]
+[case.files]
+"in.txt" = "a   \nb\t\nc\n"
+
+[[case]]
+id = "subst-strip-html"
+argv = ["sed", "-e", "s/<[^>]*>//g", "page.html"]
+tags = ["cmd:s", "agent"]
+[case.files]
+"page.html" = "<p>Hello <b>world</b></p>\n<br/>end\n"
+
+[[case]]
+id = "subst-version-bump"
+argv = ["sed", "-E", "s/^version = \"([0-9]+)\\.([0-9]+)\\.([0-9]+)\"/version = \"\\1.\\2.99\"/", "Cargo.toml"]
+tags = ["cmd:s", "agent"]
+[case.files]
+"Cargo.toml" = "[package]\nname = \"x\"\nversion = \"0.1.0\"\n"
+
+[[case]]
+id = "subst-write-file"
+argv = ["sed", "-n", "s/err/ERR/w out.txt", "log"]
+tags = ["cmd:s", "flag:w", "files"]
+[case.files]
+"log" = "err a\nok\nerr b\n"
+
+[[case]]
+id = "inplace-basic"
+argv = ["sed", "-i", "s/old/new/g", "conf.txt"]
+tags = ["opt:-i", "files"]
+[case.files]
+"conf.txt" = "old value\nkeep\nold old\n"
+
+[[case]]
+id = "inplace-suffix"
+argv = ["sed", "-i.bak", "s/a/b/", "f.txt"]
+tags = ["opt:-i", "files"]
+[case.files]
+"f.txt" = "a\na\n"
+
+[[case]]
+id = "inplace-multiple-files"
+argv = ["sed", "-i", "1d", "a.txt", "b.txt"]
+tags = ["opt:-i", "files"]
+[case.files]
+"a.txt" = "1\n2\n"
+"b.txt" = "x\ny\n"
+
+[[case]]
+id = "inplace-separate-last-line"
+argv = ["sed", "-i", "$s/$/ END/", "a.txt", "b.txt"]
+tags = ["opt:-i", "files", "addr:$"]
+[case.files]
+"a.txt" = "1\n2\n"
+"b.txt" = "x\ny\n"
+
+[[case]]
+id = "inplace-long-option"
+argv = ["sed", "--in-place=.orig", "-e", "s/x/y/", "f"]
+tags = ["opt:-i", "files"]
+[case.files]
+"f" = "x\n"
+
+[[case]]
+id = "inplace-missing-file"
+argv = ["sed", "-i", "s/x/y/", "nope.txt"]
+tags = ["opt:-i", "error"]
+
+[[case]]
+id = "delete-line-number"
+argv = ["sed", "2d", "in.txt"]
+tags = ["cmd:d", "addr:N"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "delete-first-line"
+argv = ["sed", "1d", "in.csv"]
+tags = ["cmd:d", "addr:N", "agent"]
+[case.files]
+"in.csv" = "header\na,b\nc,d\n"
+
+[[case]]
+id = "delete-last-line"
+argv = ["sed", "$d", "in.txt"]
+tags = ["cmd:d", "addr:$"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "delete-regex"
+argv = ["sed", "/^#/d", "conf"]
+tags = ["cmd:d", "addr:re"]
+[case.files]
+"conf" = "# c\nk=v\n#x\nz=1\n"
+
+[[case]]
+id = "delete-empty-lines"
+argv = ["sed", "/^$/d", "in.txt"]
+tags = ["cmd:d", "addr:re", "agent"]
+[case.files]
+"in.txt" = "a\n\n\nb\n\n"
+
+[[case]]
+id = "delete-range"
+argv = ["sed", "2,4d", "in.txt"]
+tags = ["cmd:d", "addr:range"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "delete-negated"
+argv = ["sed", "/keep/!d", "in.txt"]
+tags = ["cmd:d", "addr:!"]
+[case.files]
+"in.txt" = "keep 1\ndrop\nkeep 2\n"
+
+[[case]]
+id = "print-range-numbers"
+argv = ["sed", "-n", "2,3p", "in.txt"]
+tags = ["cmd:p", "addr:range", "opt:-n", "agent"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n"
+
+[[case]]
+id = "print-range-head-like"
+argv = ["sed", "-n", "1,60p", "in.txt"]
+tags = ["cmd:p", "addr:range", "opt:-n", "agent"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "print-range-regex"
+argv = ["sed", "-n", "/BEGIN/,/END/p", "in.txt"]
+tags = ["cmd:p", "addr:range", "addr:re"]
+[case.files]
+"in.txt" = "x\nBEGIN\n1\nEND\ny\nBEGIN\n2\n"
+
+[[case]]
+id = "print-range-number-to-regex"
+argv = ["sed", "-n", "3,/stop/p", "in.txt"]
+tags = ["cmd:p", "addr:range"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\nstop\n6\n"
+
+[[case]]
+id = "print-range-plus"
+argv = ["sed", "-n", "/start/,+2p", "in.txt"]
+tags = ["cmd:p", "addr:range", "gnu"]
+[case.files]
+"in.txt" = "a\nstart\nb\nc\nd\n"
+
+[[case]]
+id = "print-step"
+argv = ["sed", "-n", "1~2p", "in.txt"]
+tags = ["cmd:p", "addr:step", "gnu"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "print-last-line"
+argv = ["sed", "-n", "$p", "in.txt"]
+tags = ["cmd:p", "addr:$"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "print-duplicate"
+argv = ["sed", "p", "in.txt"]
+tags = ["cmd:p"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "print-regex-icase-address"
+argv = ["sed", "-n", "/error/Ip", "in.txt"]
+tags = ["cmd:p", "addr:re", "flag:I"]
+[case.files]
+"in.txt" = "Error 1\nok\nERROR 2\n"
+
+[[case]]
+id = "print-custom-delimiter-address"
+argv = ["sed", "-n", "\\|/tmp|p", "in.txt"]
+tags = ["cmd:p", "addr:re", "delimiter"]
+[case.files]
+"in.txt" = "/tmp/a\n/var/b\n"
+
+[[case]]
+id = "quit-after"
+argv = ["sed", "3q", "in.txt"]
+tags = ["cmd:q"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "quit-exit-code"
+argv = ["sed", "/stop/q 5", "in.txt"]
+tags = ["cmd:q", "exit", "gnu"]
+[case.files]
+"in.txt" = "a\nstop\nb\n"
+
+[[case]]
+id = "quit-silent"
+argv = ["sed", "/stop/Q", "in.txt"]
+tags = ["cmd:Q", "gnu"]
+[case.files]
+"in.txt" = "a\nstop\nb\n"
+
+[[case]]
+id = "print-then-quit"
+argv = ["sed", "-n", "2{p;q}", "in.txt"]
+tags = ["cmd:p", "cmd:q", "block"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "append-gnu-oneliner"
+argv = ["sed", "/b/a after b", "in.txt"]
+tags = ["cmd:a", "gnu"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "append-classic"
+argv = ["sed", "/b/a\\\nafter b", "in.txt"]
+tags = ["cmd:a"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "insert-first-line"
+argv = ["sed", "1i #!/bin/sh", "in.sh"]
+tags = ["cmd:i", "gnu", "agent"]
+[case.files]
+"in.sh" = "echo hi\n"
+
+[[case]]
+id = "insert-before-match"
+argv = ["sed", "/fn main/i // entry point", "main.rs"]
+tags = ["cmd:i", "agent"]
+[case.files]
+"main.rs" = "use x;\nfn main() {}\n"
+
+[[case]]
+id = "change-line"
+argv = ["sed", "2c replaced", "in.txt"]
+tags = ["cmd:c"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "change-range"
+argv = ["sed", "2,3c\\\nX", "in.txt"]
+tags = ["cmd:c", "addr:range"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n"
+
+[[case]]
+id = "transliterate"
+argv = ["sed", "y/abc/xyz/", "in.txt"]
+tags = ["cmd:y"]
+[case.files]
+"in.txt" = "aabbcc abc\n"
+
+[[case]]
+id = "line-number-cmd"
+argv = ["sed", "-n", "/x/=", "in.txt"]
+tags = ["cmd:="]
+[case.files]
+"in.txt" = "a\nx\nb\nx\n"
+
+[[case]]
+id = "count-lines"
+argv = ["sed", "-n", "$=", "in.txt"]
+tags = ["cmd:=", "agent"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "list-cmd"
+argv = ["sed", "-n", "l", "in.txt"]
+tags = ["cmd:l"]
+[case.files]
+"in.txt" = "a\tb\\c\n"
+
+[[case]]
+id = "hold-reverse-tac"
+argv = ["sed", "-n", "1!G;h;$p", "in.txt"]
+tags = ["cmd:G", "cmd:h", "hold"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "hold-exchange"
+argv = ["sed", "-n", "h;n;G;p", "in.txt"]
+tags = ["cmd:h", "cmd:G", "cmd:n", "hold"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n"
+
+[[case]]
+id = "hold-x"
+argv = ["sed", "x;$!d;x;G", "in.txt"]
+tags = ["cmd:x", "hold"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "hold-append-H"
+argv = ["sed", "-n", "H;${x;s/\\n/,/g;s/^,//;p}", "in.txt"]
+tags = ["cmd:H", "hold", "block"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "join-lines-label-loop"
+argv = ["sed", ":a;N;$!ba;s/\\n/ /g", "in.txt"]
+tags = ["cmd:N", "label", "agent"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "join-pairs"
+argv = ["sed", "N;s/\\n/=/", "in.txt"]
+tags = ["cmd:N"]
+[case.files]
+"in.txt" = "k1\nv1\nk2\nv2\nodd\n"
+
+[[case]]
+id = "delete-dup-adjacent"
+argv = ["sed", "$!N;/^\\(.*\\)\\n\\1$/!P;D", "in.txt"]
+tags = ["cmd:N", "cmd:P", "cmd:D", "backref"]
+[case.files]
+"in.txt" = "a\na\nb\nc\nc\nc\nd\n"
+
+[[case]]
+id = "print-first-of-pattern-space"
+argv = ["sed", "-n", "N;P", "in.txt"]
+tags = ["cmd:N", "cmd:P"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n"
+
+[[case]]
+id = "branch-conditional-t"
+argv = ["sed", ":a;s/aa/a/;ta", "in.txt"]
+tags = ["label", "cmd:t"]
+[case.files]
+"in.txt" = "aaaaab\n"
+
+[[case]]
+id = "branch-T"
+argv = ["sed", "s/x/X/;T;s/$/ changed/", "in.txt"]
+tags = ["label", "cmd:T", "gnu"]
+[case.files]
+"in.txt" = "x1\ny\n"
+
+[[case]]
+id = "branch-unconditional-skip"
+argv = ["sed", "/skip/b;s/a/A/", "in.txt"]
+tags = ["label", "cmd:b"]
+[case.files]
+"in.txt" = "a skip\na\n"
+
+[[case]]
+id = "multiple-e"
+argv = ["sed", "-e", "s/a/b/", "-e", "s/b/c/", "in.txt"]
+tags = ["opt:-e"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "script-file"
+argv = ["sed", "-f", "script.sed", "in.txt"]
+tags = ["opt:-f"]
+[case.files]
+"script.sed" = "# comment\ns/one/1/\n/two/d\n$a\\\nend\n"
+"in.txt" = "one\ntwo\nthree\n"
+
+[[case]]
+id = "block-braces"
+argv = ["sed", "/x/{s/x/y/;s/$/!/}", "in.txt"]
+tags = ["block"]
+[case.files]
+"in.txt" = "x\nz\n"
+
+[[case]]
+id = "semicolons-and-spaces"
+argv = ["sed", "-n", " /a/ p ; /b/ p ", "in.txt"]
+tags = ["parse"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "stdin-input"
+argv = ["sed", "s/^/[/;s/$/]/"]
+stdin = "x\ny\n"
+tags = ["stdin"]
+
+[[case]]
+id = "stdin-dash"
+argv = ["sed", "=", "-"]
+stdin = "x\ny\n"
+tags = ["stdin", "cmd:="]
+
+[[case]]
+id = "multiple-files-continuous"
+argv = ["sed", "-n", "$p", "a.txt", "b.txt"]
+tags = ["multi-file", "addr:$"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\nb2\n"
+
+[[case]]
+id = "multiple-files-separate"
+argv = ["sed", "-s", "-n", "$p", "a.txt", "b.txt"]
+tags = ["multi-file", "opt:-s"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\nb2\n"
+
+[[case]]
+id = "file-name-cmd"
+argv = ["sed", "-n", "1F", "a.txt"]
+tags = ["cmd:F", "gnu"]
+[case.files]
+"a.txt" = "x\n"
+
+[[case]]
+id = "read-file-cmd"
+argv = ["sed", "/here/r ins.txt", "in.txt"]
+tags = ["cmd:r", "files"]
+[case.files]
+"in.txt" = "a\nhere\nb\n"
+"ins.txt" = "INSERTED\n"
+
+[[case]]
+id = "write-file-cmd"
+argv = ["sed", "-n", "/keep/w kept.txt", "in.txt"]
+tags = ["cmd:w", "files"]
+[case.files]
+"in.txt" = "keep 1\ndrop\nkeep 2\n"
+
+[[case]]
+id = "zap-pattern-space"
+argv = ["sed", "/b/z", "in.txt"]
+tags = ["cmd:z", "gnu"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "no-trailing-newline"
+argv = ["sed", "s/a/b/", "in.txt"]
+tags = ["eol"]
+[case.files]
+"in.txt" = "a\na"
+
+[[case]]
+id = "crlf-preserved"
+argv = ["sed", "s/x/y/", "in.txt"]
+tags = ["eol"]
+[case.files]
+"in.txt" = "x\r\nx\n"
+
+[[case]]
+id = "utf8-dot"
+argv = ["sed", "s/./X/2", "in.txt"]
+tags = ["utf8"]
+[case.files]
+"in.txt" = "ação\n"
+
+[[case]]
+id = "utf8-icase"
+argv = ["sed", "s/école/SCHOOL/I", "in.txt"]
+tags = ["utf8", "flag:I"]
+[case.files]
+"in.txt" = "ÉCOLE école\n"
+
+[[case]]
+id = "y-utf8"
+argv = ["sed", "y/ãé/ae/", "in.txt"]
+tags = ["cmd:y", "utf8"]
+[case.files]
+"in.txt" = "ação é\n"
+
+[[case]]
+id = "regex-interval-bre"
+argv = ["sed", "-n", "/^[0-9]\\{3\\}$/p", "in.txt"]
+tags = ["addr:re", "bre"]
+[case.files]
+"in.txt" = "12\n123\n1234\n"
+
+[[case]]
+id = "regex-word-boundary"
+argv = ["sed", "s/\\bcat\\b/dog/g", "in.txt"]
+tags = ["cmd:s", "gnu"]
+[case.files]
+"in.txt" = "cat concat cat.\n"
+
+[[case]]
+id = "regex-plus-question-gnu-bre"
+argv = ["sed", "s/ab\\?c\\+/X/g", "in.txt"]
+tags = ["cmd:s", "bre", "gnu"]
+[case.files]
+"in.txt" = "acc abc ab\n"
+
+[[case]]
+id = "regex-alternation-bre"
+argv = ["sed", "s/cat\\|dog/pet/g", "in.txt"]
+tags = ["cmd:s", "bre", "gnu"]
+[case.files]
+"in.txt" = "cat and dog\n"
+
+[[case]]
+id = "regex-tab-escape"
+argv = ["sed", "s/\\t/ | /g", "in.tsv"]
+tags = ["cmd:s", "escape"]
+[case.files]
+"in.tsv" = "a\tb\tc\n"
+
+[[case]]
+id = "replacement-escaped-ampersand"
+argv = ["sed", "s/and/\\&/", "in.txt"]
+tags = ["cmd:s", "repl:&"]
+[case.files]
+"in.txt" = "this and that\n"
+
+[[case]]
+id = "error-unterminated-s"
+argv = ["sed", "s/a/b", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "error-unknown-command"
+argv = ["sed", "k", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "error-unknown-option-to-s"
+argv = ["sed", "s/a/b/z", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "error-missing-file"
+argv = ["sed", "p", "nope.txt"]
+tags = ["error", "exit"]
+
+[[case]]
+id = "error-missing-file-continues"
+argv = ["sed", "-n", "p", "nope.txt", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "still\n"
+
+[[case]]
+id = "error-bad-regex"
+argv = ["sed", "s/\\(a/b/", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "error-invalid-backref"
+argv = ["sed", "s/a/\\1/", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "error-no-script"
+argv = ["sed"]
+tags = ["error", "exit"]
+
+[[case]]
+id = "error-unknown-option"
+argv = ["sed", "--frobnicate", "p", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "error-unmatched-brace"
+argv = ["sed", "/a/{p", "in.txt"]
+tags = ["error", "exit"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "error-undefined-label"
+argv = ["sed", "b nowhere", "in.txt"]
+tags = ["error", "exit", "label"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "comment-and-n"
+argv = ["sed", "#n\np", "in.txt"]
+tags = ["parse"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "next-line-cmd"
+argv = ["sed", "n;d", "in.txt"]
+tags = ["cmd:n"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "address-zero-regex"
+argv = ["sed", "-n", "0,/x/p", "in.txt"]
+tags = ["addr:range", "gnu"]
+[case.files]
+"in.txt" = "x\ny\nx\n"
+
+[[case]]
+id = "extract-between-quotes"
+argv = ["sed", "-n", "s/.*\"\\([^\"]*\\)\".*/\\1/p", "in.json"]
+tags = ["cmd:s", "agent"]
+[case.files]
+"in.json" = "{\n  \"name\": \"pseudo-linus\",\n  \"version\": \"0.1.0\"\n}\n"
+
+[[case]]
+id = "comment-out-line"
+argv = ["sed", "-i", "/^export DEBUG/s/^/# /", ".env"]
+tags = ["opt:-i", "agent", "files"]
+[case.files]
+".env" = "export PATH=x\nexport DEBUG=1\n"
+
+[[case]]
+id = "replace-in-range-only"
+argv = ["sed", "10,20s/foo/bar/", "in.txt"]
+tags = ["cmd:s", "addr:range"]
+[case.files]
+"in.txt" = "foo\nfoo\n"
+
+[[case]]
+id = "number-lines-with-tab"
+argv = ["sed", "=", "in.txt"]
+tags = ["cmd:="]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "null-data"
+argv = ["sed", "-z", "s/\\n/,/g", "in.txt"]
+tags = ["opt:-z", "gnu"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "posix-character-class-replace"
+argv = ["sed", "s/[[:digit:]]\\+/N/g", "in.txt"]
+tags = ["cmd:s", "bre"]
+[case.files]
+"in.txt" = "a1b22c\n"
+
+[[case]]
+id = "e-with-newline-script"
+argv = ["sed", "-e", "1{", "-e", "s/a/b/", "-e", "}", "in.txt"]
+tags = ["opt:-e", "block"]
+[case.files]
+"in.txt" = "a\na\n"
+
+[[case]]
+id = "debug-version-long-quiet"
+argv = ["sed", "--quiet", "--expression=2p", "in.txt"]
+tags = ["opt:long"]
+[case.files]
+"in.txt" = "1\n2\n3\n"

@@ -1,0 +1,196 @@
+{
+  "csv-column-basic": {
+    "stdout": "name        age  city\nana         30   recife\nbartolomeu  7    rio\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "735ddb1bb79abc09bd6c97b589a630dad4899f8180cb6269f5e8bdb7933ae7a6",
+        "data": "name,age,city\nana,30,recife\nbartolomeu,7,rio\n"
+      }
+    }
+  },
+  "csv-column-crlf": {
+    "stdout": "a    b\r\nccc  d\r\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "b5b87cce47c26ecaf847770c826779bb0c42fddd40485d79816e98791e9c28ab",
+        "data": "a,b\r\nccc,d\r\n"
+      }
+    }
+  },
+  "csv-column-empty-and-ragged": {
+    "stdout": "name  age  city\nana   30   são paulo\nbob        rio\ncarl  5    \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 48,
+        "sha256": "b1b767c4cf8dd641683a1c6db1f08b6d9e382787ee0eb3aa670cc478a4c51d6d",
+        "data": "name,age,city\nana,30,são paulo\nbob,,rio\ncarl,5\n"
+      }
+    }
+  },
+  "csv-column-stdin": {
+    "stdout": "a     bb  ccc\ndddd  e   f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "csv-column-unicode-width": {
+    "stdout": "k    v\nção  1\nabc  2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "f61cb21aa7f8244547d99b553064500244fab7ade1d2bde66019ac362c46d8e6",
+        "data": "k,v\nção,1\nabc,2\n"
+      }
+    }
+  },
+  "csv-cut-crlf": {
+    "stdout": "b\r\nd\r\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7b80bae4f56bdb4b6b952938c42715cde7b1610cb021e70148d164c80663c230",
+        "data": "a,b\r\nc,d\r\n"
+      }
+    }
+  },
+  "csv-cut-empty-fields": {
+    "stdout": ",c\n,\ny,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "a6685d8eb86029ea7f9511e749a707a7c23950f5b6154da34193a7bab4ae287f",
+        "data": "a,,c\n,,\nx,y,\n"
+      }
+    }
+  },
+  "csv-cut-field": {
+    "stdout": "age\n30\n41\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "02347775a566c42b469ed6032f12e955331cf5a386c1e7752e4e42e0477c71ef",
+        "data": "name,age,city\nana,30,recife\nbob,41,rio\n"
+      }
+    }
+  },
+  "csv-cut-list": {
+    "stdout": "name,city\nana,recife\nbob,rio\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "02347775a566c42b469ed6032f12e955331cf5a386c1e7752e4e42e0477c71ef",
+        "data": "name,age,city\nana,30,recife\nbob,41,rio\n"
+      }
+    }
+  },
+  "csv-cut-no-final-newline": {
+    "stdout": "a\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "477a29579c9a10032533d21640ec00e883d3c52736ec6b24677780499f12cc5c",
+        "data": "a,b\nc,d"
+      }
+    }
+  },
+  "csv-cut-quoted": {
+    "stdout": "desc\n\"a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "c57c31fcbc56960631f56eedc85c261503cdfda909d3b75093663ae7191f20ef",
+        "data": "name,desc\nx,\"a, b\"\n"
+      }
+    }
+  },
+  "csv-cut-ragged": {
+    "stdout": "c\n\nf\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "b199380d2c0b99592d14ee494bd508eff15a45e7bd6174b96a227fe5e539f7d7",
+        "data": "a,b,c\nd,e\nf\n"
+      }
+    }
+  },
+  "csv-cut-range": {
+    "stdout": "b,c,d\n2,3,4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "1db894ae1e9cb3063af835edffb2ba9c369b96401f1462ded1cedb31dd36eeb6",
+        "data": "a,b,c,d\n1,2,3,4\n"
+      }
+    }
+  },
+  "csv-cut-stdin": {
+    "stdout": "x\ny\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "csv-cut-unicode": {
+    "stdout": "cidade\nsão paulo\nbrasília\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "e6657eee9a5ab2c9d9c1eb60375103c8c3aeb31b7524b15c40c5cf512b44e852",
+        "data": "id,cidade\n1,são paulo\n2,brasília\n"
+      }
+    }
+  }
+}

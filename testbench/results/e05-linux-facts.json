@@ -1,0 +1,264 @@
+{
+  "experiment": "e05-linux-facts",
+  "title": "Verdade de campo do Linux real",
+  "generated_at": "2026-10-02T23:40:23Z",
+  "host": {
+    "kernel": "6.12.101+deb13-amd64",
+    "cpus": 16,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)"
+  },
+  "hypotheses": [
+    {
+      "id": "H14",
+      "verdict": "partial",
+      "summary": "14 de 16 constantes batem. Divergem: pid_max (v1 dizia 32768, real 4194304); sysctl_sched_base_slice na 6.12.101 (ns) (v1 dizia 750000, real 700000). Pipe tem 65536 bytes por padrão; escrita de 4096 bytes nunca misturou (0 blocos misturados em 16000), escrita de 256 KiB misturou 160 de 160 blocos.",
+      "evidence": {
+        "mismatches": [
+          {
+            "constant": "pid_max",
+            "design": "32768",
+            "measured": "4194304"
+          },
+          {
+            "constant": "sysctl_sched_base_slice na 6.12.101 (ns)",
+            "design": "750000",
+            "measured": "700000"
+          }
+        ]
+      }
+    },
+    {
+      "id": "H15",
+      "verdict": "confirmed",
+      "summary": "strerror da glibc (via std) bate com a tabela da glibc em 130/130 errnos, e 14/14 mensagens reais de cat, mkdir, cd, rmdir, ls, rm, mv, cp, ln e escrita em /dev/full terminam exatamente com o strerror do errno esperado. A tabela errno, nome e mensagem foi gravada em golden/linux-facts/linux_facts.json.",
+      "evidence": {
+        "strerror_agree": 130,
+        "tool_messages_match": 14
+      }
+    }
+  ],
+  "candidates": [],
+  "metrics": {
+    "base_slice": {
+      "ncpus": 16,
+      "source_ns": "700000",
+      "tunable_scaling_factor": 4
+    },
+    "checks": [
+      {
+        "constant": "capacidade padrão do pipe",
+        "design": "65536",
+        "matches": true,
+        "measured": "65536"
+      },
+      {
+        "constant": "escrita de PIPE_BUF (4096) é atômica",
+        "design": "0 blocos misturados",
+        "matches": true,
+        "measured": "0 blocos misturados"
+      },
+      {
+        "constant": "cadeia de 40 symlinks resolve",
+        "design": "None",
+        "matches": true,
+        "measured": "None"
+      },
+      {
+        "constant": "cadeia de 41 symlinks dá ELOOP (40)",
+        "design": "Some(40)",
+        "matches": true,
+        "measured": "Some(40)"
+      },
+      {
+        "constant": "nome de 255 bytes aceito",
+        "design": "None",
+        "matches": true,
+        "measured": "None"
+      },
+      {
+        "constant": "nome de 256 bytes dá ENAMETOOLONG (36)",
+        "design": "Some(36)",
+        "matches": true,
+        "measured": "Some(36)"
+      },
+      {
+        "constant": "escrita em /dev/full dá ENOSPC (28)",
+        "design": "Some(28)",
+        "matches": true,
+        "measured": "Some(28)"
+      },
+      {
+        "constant": "pid_max",
+        "design": "32768",
+        "matches": false,
+        "measured": "4194304"
+      },
+      {
+        "constant": "sysctl_sched_base_slice na 6.12.101 (ns)",
+        "design": "750000",
+        "matches": false,
+        "measured": "700000"
+      },
+      {
+        "constant": "PATH_MAX",
+        "design": "4096",
+        "matches": true,
+        "measured": "4096"
+      },
+      {
+        "constant": "NAME_MAX",
+        "design": "255",
+        "matches": true,
+        "measured": "255"
+      },
+      {
+        "constant": "PIPE_BUF",
+        "design": "4096",
+        "matches": true,
+        "measured": "4096"
+      },
+      {
+        "constant": "bash: morto por SIGTERM sai com 143",
+        "design": "143",
+        "matches": true,
+        "measured": "143"
+      },
+      {
+        "constant": "bash: comando inexistente sai com 127",
+        "design": "127",
+        "matches": true,
+        "measured": "127"
+      },
+      {
+        "constant": "bash: sem permissão de execução sai com 126",
+        "design": "126",
+        "matches": true,
+        "measured": "126"
+      },
+      {
+        "constant": "yes | head: yes morre por SIGPIPE (141)",
+        "design": "141 0",
+        "matches": true,
+        "measured": "141 0"
+      }
+    ],
+    "pid_max": {
+      "container": "4194304",
+      "host": "4194304",
+      "kernel_default_for_16_cpus": 32768,
+      "note": "o Debian 13 sobe via /usr/lib/sysctl.d (systemd); pid_max não é por namespace"
+    },
+    "pipe_atomicity": {
+      "block_256KiB": {
+        "blocks": 160,
+        "mixed_blocks": 160
+      },
+      "block_4096": {
+        "blocks": 16000,
+        "mixed_blocks": 0
+      }
+    },
+    "root_bypass": {
+      "cat_mode_000_as_root": "0",
+      "write_into_mode_000_dir_as_root": "0"
+    },
+    "strerror": {
+      "agree_with_glibc_tables": 130,
+      "compared": 130
+    },
+    "tool_messages": {
+      "detail": [
+        {
+          "errno": 2,
+          "line": "cat: missing: No such file or directory",
+          "matches_strerror": true,
+          "tool_prefix": "cat: missing:"
+        },
+        {
+          "errno": 17,
+          "line": "mkdir: cannot create directory ‘d’: File exists",
+          "matches_strerror": true,
+          "tool_prefix": "mkdir: cannot create directory"
+        },
+        {
+          "errno": 20,
+          "line": "bash: line 38: cd: f: Not a directory",
+          "matches_strerror": true,
+          "tool_prefix": "cd: f:"
+        },
+        {
+          "errno": 39,
+          "line": "rmdir: failed to remove 'e': Directory not empty",
+          "matches_strerror": true,
+          "tool_prefix": "rmdir: failed to remove 'e':"
+        },
+        {
+          "errno": 21,
+          "line": "cat: d: Is a directory",
+          "matches_strerror": true,
+          "tool_prefix": "cat: d:"
+        },
+        {
+          "errno": 40,
+          "line": "cat: loop1: Too many levels of symbolic links",
+          "matches_strerror": true,
+          "tool_prefix": "cat: loop1:"
+        },
+        {
+          "errno": 20,
+          "line": "cat: f/x: Not a directory",
+          "matches_strerror": true,
+          "tool_prefix": "cat: f/x:"
+        },
+        {
+          "errno": 28,
+          "line": "bash: line 43: echo: write error: No space left on device",
+          "matches_strerror": true,
+          "tool_prefix": "write error:"
+        },
+        {
+          "errno": 36,
+          "line": "ls: cannot access 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa': File name too long",
+          "matches_strerror": true,
+          "tool_prefix": "ls: cannot access"
+        },
+        {
+          "errno": 21,
+          "line": "rm: cannot remove 'd': Is a directory",
+          "matches_strerror": true,
+          "tool_prefix": "rm: cannot remove 'd':"
+        },
+        {
+          "errno": 2,
+          "line": "mv: cannot stat 'missing': No such file or directory",
+          "matches_strerror": true,
+          "tool_prefix": "mv: cannot stat 'missing':"
+        },
+        {
+          "errno": 2,
+          "line": "cp: cannot stat 'missing': No such file or directory",
+          "matches_strerror": true,
+          "tool_prefix": "cp: cannot stat 'missing':"
+        },
+        {
+          "errno": 2,
+          "line": "rmdir: failed to remove 'missing': No such file or directory",
+          "matches_strerror": true,
+          "tool_prefix": "rmdir: failed to remove 'missing':"
+        },
+        {
+          "errno": 17,
+          "line": "ln: failed to create symbolic link 'f': File exists",
+          "matches_strerror": true,
+          "tool_prefix": "ln: failed to create symbolic link 'f':"
+        }
+      ],
+      "match": 14,
+      "total": 14
+    }
+  },
+  "notes": [
+    "Aspas dependem da função de quoting do coreutils, não só do locale: em C.UTF-8 o mkdir escreve \"mkdir: cannot create directory ‘d’: File exists\" (aspas curvas, quote()), enquanto rm, mv, cp, ln e ls usam aspas ASCII (quoteaf()). O porte de cada utilitário tem que manter a função certa.",
+    "Root ignora permissões no Debian real: cat de arquivo modo 000 sai com 0 e escrever em diretório modo 000 sai com 0. O VFS precisa reproduzir CAP_DAC_OVERRIDE pro usuário root."
+  ]
+}

@@ -1,0 +1,192 @@
+tool = "xargs"
+source = "agent-style"
+
+# xargs lendo da entrada padrão. O comando padrão do xargs é o echo do coreutils.
+
+[[case]]
+id = "xargs-default-echo"
+argv = ["xargs"]
+stdin = "a b\nc\n  d\n"
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-echo-explicit"
+argv = ["xargs", "echo", "itens:"]
+stdin = "um dois três\n"
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-n1"
+argv = ["xargs", "-n", "1", "echo"]
+stdin = "a b c\n"
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-n2"
+argv = ["xargs", "-n", "2", "echo", "par:"]
+stdin = "1 2 3 4 5\n"
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-0"
+argv = ["xargs", "-0", "echo"]
+stdin = "com espaço\u0000outro\u0000"
+tags = ["xargs", "null"]
+
+[[case]]
+id = "xargs-0-n1"
+argv = ["xargs", "-0", "-n", "1", "echo"]
+stdin = "a b\u0000c\u0000"
+tags = ["xargs", "null"]
+
+[[case]]
+id = "xargs-I"
+argv = ["xargs", "-I", "{}", "echo", "item: {} fim"]
+stdin = "a\nb c\n"
+tags = ["xargs", "replace"]
+
+[[case]]
+id = "xargs-I-custom"
+argv = ["xargs", "-I%", "echo", "%-%"]
+stdin = "x\ny\n"
+tags = ["xargs", "replace"]
+
+[[case]]
+id = "xargs-r-empty"
+argv = ["xargs", "-r", "echo", "não deveria"]
+stdin = ""
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-empty-without-r"
+argv = ["xargs", "echo", "roda uma vez"]
+stdin = ""
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-quotes"
+argv = ["xargs", "-n", "1", "echo"]
+stdin = "'a b' \"c d\" e\\ f\n"
+tags = ["xargs", "quoting"]
+
+[[case]]
+id = "xargs-unmatched-quote"
+argv = ["xargs", "echo"]
+stdin = "it's\n"
+tags = ["xargs", "quoting", "errno"]
+
+[[case]]
+id = "xargs-d-newline"
+argv = ["xargs", "-d", "\\n", "-n", "1", "echo"]
+stdin = "a b\nc 'd\n"
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-L1"
+argv = ["xargs", "-L", "1", "echo"]
+stdin = "a b\nc\nd e f\n"
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-P"
+argv = ["xargs", "-P", "4", "-n", "1", "echo"]
+stdin = "1 2 3 4 5 6\n"
+tags = ["xargs", "unordered", "parallel"]
+
+[[case]]
+id = "xargs-wc"
+argv = ["xargs", "wc", "-l"]
+stdin = "a.txt\nb.txt\n"
+tags = ["xargs"]
+[case.files]
+"a.txt" = "1\n2\n"
+"b.txt" = "1\n"
+
+[[case]]
+id = "xargs-cat"
+argv = ["xargs", "cat"]
+stdin = "a.txt b.txt"
+tags = ["xargs"]
+[case.files]
+"a.txt" = "A\n"
+"b.txt" = "B\n"
+
+[[case]]
+id = "xargs-head"
+argv = ["xargs", "-n", "1", "head", "-n", "1"]
+stdin = "a.txt\nb.txt\n"
+tags = ["xargs"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\nb2\n"
+
+[[case]]
+id = "xargs-t"
+argv = ["xargs", "-t", "-n", "2", "echo"]
+stdin = "a b c\n"
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-missing-command"
+argv = ["xargs", "nope-cmd"]
+stdin = "a\n"
+tags = ["xargs", "errno"]
+
+[[case]]
+id = "xargs-command-fails"
+argv = ["xargs", "false"]
+stdin = "a\n"
+tags = ["xargs", "errno"]
+
+[[case]]
+id = "xargs-command-fails-partial"
+argv = ["xargs", "-n", "1", "cat"]
+stdin = "a.txt nope.txt\n"
+tags = ["xargs", "errno"]
+[case.files]
+"a.txt" = "ok\n"
+
+[[case]]
+id = "xargs-s-limit"
+argv = ["xargs", "-s", "20", "echo"]
+stdin = "aaaa bbbb cccc dddd eeee ffff\n"
+tags = ["xargs", "limits"]
+
+[[case]]
+id = "xargs-a-file"
+argv = ["xargs", "-a", "list.txt", "echo"]
+tags = ["xargs"]
+[case.files]
+"list.txt" = "x y\nz\n"
+
+[[case]]
+id = "xargs-E-eof"
+argv = ["xargs", "-E", "PARE", "echo"]
+stdin = "a b PARE c\n"
+tags = ["xargs"]
+
+[[case]]
+id = "xargs-rm"
+argv = ["xargs", "rm"]
+stdin = "a.tmp b.tmp\n"
+tags = ["xargs", "fs"]
+[case.files]
+"a.tmp" = ""
+"b.tmp" = ""
+"keep.txt" = ""
+
+[[case]]
+id = "xargs-pipeline-find"
+script = "find . -name '*.txt' -print0 | sort -z | xargs -0 wc -c"
+tags = ["xargs", "find", "pipeline"]
+[case.files]
+"a.txt" = "abc"
+"d/b.txt" = "12345"
+
+[[case]]
+id = "xargs-pipeline-I-mv"
+script = "ls *.txt | xargs -I{} mv {} {}.bak && ls"
+tags = ["xargs", "pipeline", "fs"]
+[case.files]
+"a.txt" = ""
+"b.txt" = ""

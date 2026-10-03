@@ -1,0 +1,157 @@
+tool = "sqlite"
+source = "agent-style"
+
+# Recursos "modernos" que agentes usam bastante: CTE recursiva, funções de janela, JSON, upsert,
+# RETURNING, colunas geradas, tabelas STRICT.
+
+[[case]]
+id = "sqlite-with-recursive-counter"
+argv = ["sqlite3", "db.sqlite", '''WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x < 10) SELECT group_concat(x, ' ') FROM c;''']
+tags = ["cte", "recursive", "argv"]
+
+[[case]]
+id = "sqlite-with-recursive-fibonacci"
+argv = ["sqlite3", "db.sqlite", '''WITH RECURSIVE fib(n, a, b) AS (SELECT 1, 0, 1 UNION ALL SELECT n + 1, b, a + b FROM fib WHERE n < 15) SELECT n, a FROM fib;''']
+tags = ["cte", "recursive", "argv"]
+
+[[case]]
+id = "sqlite-with-recursive-tree"
+stdin = '''
+CREATE TABLE org(name TEXT PRIMARY KEY, boss TEXT);
+INSERT INTO org VALUES ('alice', NULL), ('bob', 'alice'), ('cris', 'alice'), ('dan', 'bob'), ('eve', 'dan');
+WITH RECURSIVE under(name, level, path) AS (
+  SELECT name, 0, name FROM org WHERE boss IS NULL
+  UNION ALL
+  SELECT org.name, under.level + 1, under.path || '/' || org.name FROM org JOIN under ON org.boss = under.name
+  ORDER BY 2 DESC
+)
+SELECT substr('..........', 1, level * 2) || name, path FROM under;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cte", "recursive", "stdin"]
+
+[[case]]
+id = "sqlite-with-recursive-mandelbrot"
+stdin = '''
+WITH RECURSIVE
+  xaxis(x) AS (VALUES(-2.0) UNION ALL SELECT x+0.05 FROM xaxis WHERE x<1.2),
+  yaxis(y) AS (VALUES(-1.0) UNION ALL SELECT y+0.1 FROM yaxis WHERE y<1.0),
+  m(iter, cx, cy, x, y) AS (
+    SELECT 0, x, y, 0.0, 0.0 FROM xaxis, yaxis
+    UNION ALL
+    SELECT iter+1, cx, cy, x*x-y*y + cx, 2.0*x*y + cy FROM m
+     WHERE (x*x + y*y) < 4.0 AND iter<28
+  ),
+  m2(iter, cx, cy) AS (
+    SELECT max(iter), cx, cy FROM m GROUP BY cx, cy
+  ),
+  a(t) AS (
+    SELECT group_concat( substr(' .+*#', 1+min(iter/7,4), 1), '')
+    FROM m2 GROUP BY cy
+  )
+SELECT group_concat(rtrim(t),x'0a') FROM a;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cte", "recursive", "real", "stdin"]
+
+[[case]]
+id = "sqlite-window-ranking"
+stdin = '''
+CREATE TABLE s(dept TEXT, name TEXT, pay INTEGER);
+INSERT INTO s VALUES ('eng', 'a', 100), ('eng', 'b', 120), ('eng', 'c', 120), ('ops', 'd', 80), ('ops', 'e', 95);
+SELECT dept, name, pay, row_number() OVER w, rank() OVER w, dense_rank() OVER w, ntile(2) OVER w FROM s WINDOW w AS (PARTITION BY dept ORDER BY pay DESC) ORDER BY dept, pay DESC, name;
+SELECT name, percent_rank() OVER (ORDER BY pay), cume_dist() OVER (ORDER BY pay) FROM s ORDER BY pay, name;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["window", "stdin"]
+
+[[case]]
+id = "sqlite-window-frames"
+stdin = '''
+CREATE TABLE m(day INTEGER, v INTEGER);
+INSERT INTO m VALUES (1, 10), (2, 20), (3, 5), (4, 40), (5, 15);
+SELECT day, v, sum(v) OVER (ORDER BY day), avg(v) OVER (ORDER BY day ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING), lag(v) OVER (ORDER BY day), lead(v, 2, -1) OVER (ORDER BY day), first_value(v) OVER (ORDER BY day ROWS 2 PRECEDING), last_value(v) OVER (ORDER BY day ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING), nth_value(v, 2) OVER (ORDER BY day) FROM m;
+SELECT day, group_concat(v, '+') OVER (ORDER BY day RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) FROM m;
+SELECT day, count(*) OVER (ORDER BY v GROUPS BETWEEN 1 PRECEDING AND 1 FOLLOWING EXCLUDE CURRENT ROW) FROM m ORDER BY day;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["window", "stdin"]
+
+[[case]]
+id = "sqlite-json-scalar"
+argv = ["sqlite3", "db.sqlite", '''SELECT json(' { "a" : 1, "b" : [1, 2, {"c": null}] } '), json_extract('{"a":{"b":2}}', '$.a.b'), '{"a":[10,20]}' -> '$.a', '{"a":[10,20]}' ->> '$.a[1]', json_array(1, '2', NULL, 3.5), json_object('k', 1, 'n', json('[true]')), json_type('{"a":1.5}', '$.a'), json_valid('{x'), json_array_length('[1,2,3]'), json_quote('a"b');''']
+tags = ["json", "argv"]
+
+[[case]]
+id = "sqlite-json-modify"
+argv = ["sqlite3", "db.sqlite", '''SELECT json_set('{"a":1}', '$.b', 2, '$.a', 'x'), json_insert('{"a":1}', '$.a', 9, '$.c', json('[1]')), json_replace('{"a":1}', '$.a', 5, '$.z', 0), json_remove('[0,1,2]', '$[1]'), json_patch('{"a":1,"b":2}', '{"b":null,"c":3}'), json_extract('[1,2,3]', '$[#-1]');''']
+tags = ["json", "argv"]
+
+[[case]]
+id = "sqlite-json-table-valued"
+stdin = '''
+CREATE TABLE docs(id INTEGER PRIMARY KEY, body TEXT);
+INSERT INTO docs VALUES (1, '{"tags":["a","b"],"n":3}'), (2, '{"tags":["c"],"n":5}');
+SELECT d.id, j.key, j.value, j.type FROM docs d, json_each(d.body, '$.tags') j ORDER BY d.id, j.key;
+SELECT key, value, type, path FROM json_tree('{"x":{"y":[1,2]}}');
+SELECT json_group_array(id), json_group_object(id, body ->> '$.n') FROM docs;
+SELECT id FROM docs WHERE body ->> '$.n' > 4;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["json", "stdin"]
+
+[[case]]
+id = "sqlite-upsert"
+stdin = '''
+CREATE TABLE counts(word TEXT PRIMARY KEY, n INTEGER NOT NULL);
+INSERT INTO counts VALUES ('a', 1) ON CONFLICT(word) DO UPDATE SET n = n + excluded.n;
+INSERT INTO counts VALUES ('a', 5) ON CONFLICT(word) DO UPDATE SET n = n + excluded.n;
+INSERT INTO counts VALUES ('b', 2) ON CONFLICT DO NOTHING;
+INSERT INTO counts VALUES ('b', 7) ON CONFLICT DO NOTHING;
+INSERT INTO counts VALUES ('c', 1) ON CONFLICT(word) DO UPDATE SET n = 100 WHERE n > 50;
+INSERT INTO counts VALUES ('c', 1) ON CONFLICT(word) DO UPDATE SET n = 100 WHERE n > 50;
+SELECT * FROM counts ORDER BY word;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["upsert", "stdin"]
+
+[[case]]
+id = "sqlite-returning"
+stdin = '''
+CREATE TABLE t(id INTEGER PRIMARY KEY, name TEXT, n INTEGER DEFAULT 0);
+INSERT INTO t(name) VALUES ('x'), ('y') RETURNING id, name, n;
+UPDATE t SET n = n + 5 WHERE name = 'y' RETURNING id, n;
+DELETE FROM t WHERE id = 1 RETURNING *;
+SELECT count(*) FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["returning", "stdin"]
+
+[[case]]
+id = "sqlite-generated-columns"
+stdin = '''
+CREATE TABLE t(a INTEGER, b INTEGER GENERATED ALWAYS AS (a * 2) VIRTUAL, c TEXT AS ('v' || a) STORED);
+INSERT INTO t(a) VALUES (1), (21);
+SELECT a, b, c FROM t;
+UPDATE t SET a = 5 WHERE a = 1;
+SELECT * FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["ddl", "generated", "stdin"]
+
+[[case]]
+id = "sqlite-strict-table"
+stdin = '''
+CREATE TABLE t(a INTEGER, b TEXT, c ANY) STRICT;
+INSERT INTO t VALUES (1, 'x', 1.5);
+INSERT INTO t VALUES ('2', 'y', 'z');
+INSERT INTO t VALUES ('abc', 'y', 'z');
+SELECT a, typeof(a), b, c, typeof(c) FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["ddl", "strict", "error", "stdin"]
+
+[[case]]
+id = "sqlite-case-insensitive-keywords"
+argv = ["sqlite3", "db.sqlite", '''create table "Weird Name"("col 1" int, [col2] text, `col3`); insert into "Weird Name" values (1, 'a', 'b'); select "col 1", [col2], `col3` from "Weird Name";''']
+tags = ["ddl", "quoting", "argv"]

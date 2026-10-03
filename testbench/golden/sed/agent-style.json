@@ -1,0 +1,1670 @@
+{
+  "address-zero-regex": {
+    "stdout": "x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f6e24ee5290211b2c177e81c46c5404783e2380ab1070d8681d35837d5b588d2",
+        "data": "x\ny\nx\n"
+      }
+    }
+  },
+  "append-classic": {
+    "stdout": "a\nb\nafter b\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "append-gnu-oneliner": {
+    "stdout": "a\nb\nafter b\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "block-braces": {
+    "stdout": "y!\nz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "8b0451450fa20031acfb3fedca57e1c58e3b503e97cfd2ce42d1b1745d81416e",
+        "data": "x\nz\n"
+      }
+    }
+  },
+  "branch-T": {
+    "stdout": "X1 changed\ny\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "61f1daf9af417986f2d991780ba85b8f7e46ae281f7ff670aaf04395e91abb69",
+        "data": "x1\ny\n"
+      }
+    }
+  },
+  "branch-conditional-t": {
+    "stdout": "ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "30716a34589105de70a0d990569b3fc75c3e91392dec2f3d4a875e8c8870ad35",
+        "data": "aaaaab\n"
+      }
+    }
+  },
+  "branch-unconditional-skip": {
+    "stdout": "a skip\nA\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "501fdb0be27f09f3109475e8adfc5b842516ba2c27e818a18ab56d977b6e6887",
+        "data": "a skip\na\n"
+      }
+    }
+  },
+  "change-line": {
+    "stdout": "1\nreplaced\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      }
+    }
+  },
+  "change-range": {
+    "stdout": "1\nX\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "16fbd7d1f18d2fedb247d73edc3bc6aa040f5ab99bd3b48c35b79e543d22179b",
+        "data": "1\n2\n3\n4\n"
+      }
+    }
+  },
+  "comment-and-n": {
+    "stdout": "a\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "comment-out-line": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      ".env": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "0f04f793ee1d9389ae765fcbfa1930a5b47478a74e54e598b23937866a5981f6",
+        "data": "export PATH=x\n# export DEBUG=1\n"
+      }
+    }
+  },
+  "count-lines": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "crlf-preserved": {
+    "stdout": "y\r\ny\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "002eed15d84ab25a5c7fcc92259661f1d279b5ff694a8177e12ff6547e2aa2ed",
+        "data": "x\r\nx\n"
+      }
+    }
+  },
+  "debug-version-long-quiet": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      }
+    }
+  },
+  "delete-dup-adjacent": {
+    "stdout": "a\nb\nc\nd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "974a3856af4f880f8b06f3c1566e48edd32489dfdfb4d618c407163cac79482c",
+        "data": "a\na\nb\nc\nc\nc\nd\n"
+      }
+    }
+  },
+  "delete-empty-lines": {
+    "stdout": "a\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "b882d1d32081afffd3de2dd00cae41ba9e3c089a695959995814535f8e95034d",
+        "data": "a\n\n\nb\n\n"
+      }
+    }
+  },
+  "delete-first-line": {
+    "stdout": "a,b\nc,d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "630f2f42b6f5e50e240f7a2b02fb38229dc8f2d6833131e984e8c3ffeb8620f0",
+        "data": "header\na,b\nc,d\n"
+      }
+    }
+  },
+  "delete-last-line": {
+    "stdout": "1\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      }
+    }
+  },
+  "delete-line-number": {
+    "stdout": "1\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      }
+    }
+  },
+  "delete-negated": {
+    "stdout": "keep 1\nkeep 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "bd25910729ebaf744af93066939725103041a75a2e86f0f18732c89f6da9fc51",
+        "data": "keep 1\ndrop\nkeep 2\n"
+      }
+    }
+  },
+  "delete-range": {
+    "stdout": "1\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "f6b49467f595b1a44e442c198b3df4d221e88efcaabc26254f8e0ad4f79b6242",
+        "data": "1\n2\n3\n4\n5\n"
+      }
+    }
+  },
+  "delete-regex": {
+    "stdout": "k=v\nz=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "conf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "8464c4465a404b2e6b8e5322b8b117002bcfedd74f7fe9ed436e898540e64d99",
+        "data": "# c\nk=v\n#x\nz=1\n"
+      }
+    }
+  },
+  "e-with-newline-script": {
+    "stdout": "b\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7da0810372718aaba44c608981aa81247cee8c3fc0ece1f7f7dd0e3152b41715",
+        "data": "a\na\n"
+      }
+    }
+  },
+  "error-bad-regex": {
+    "stdout": "",
+    "stderr": "sed: -e expression #1, char 8: Unmatched ( or \\(\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "error-invalid-backref": {
+    "stdout": "",
+    "stderr": "sed: -e expression #1, char 7: invalid reference \\1 on `s' command's RHS\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "error-missing-file": {
+    "stdout": "",
+    "stderr": "sed: can't read nope.txt: No such file or directory\n",
+    "exit": 2,
+    "files": {}
+  },
+  "error-missing-file-continues": {
+    "stdout": "still\n",
+    "stderr": "sed: can't read nope.txt: No such file or directory\n",
+    "exit": 2,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "d9117b435a4d8c1d21e7177908a1b9a222f523498d8c9390b7d77b0bdb0ca8ad",
+        "data": "still\n"
+      }
+    }
+  },
+  "error-no-script": {
+    "stdout": "",
+    "stderr": "Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\n\n  -n, --quiet, --silent\n                 suppress automatic printing of pattern space\n      --debug\n                 annotate program execution\n  -e script, --expression=script\n                 add the script to the commands to be executed\n  -f script-file, --file=script-file\n                 add the contents of script-file to the commands to be executed\n  --follow-symlinks\n                 follow symlinks when processing in place\n  -i[SUFFIX], --in-place[=SUFFIX]\n                 edit files in place (makes backup if SUFFIX supplied)\n  -l N, --line-length=N\n                 specify the desired line-wrap length for the `l' command\n  --posix\n                 disable all GNU extensions.\n  -E, -r, --regexp-extended\n                 use extended regular expressions in the script\n                 (for portability use POSIX -E).\n  -s, --separate\n                 consider files as separate rather than as a single,\n                 continuous long stream.\n      --sandbox\n                 operate in sandbox mode (disable e/r/w commands).\n  -u, --unbuffered\n                 load minimal amounts of data from the input files and flush\n                 the output buffers more often\n  -z, --null-data\n                 separate lines by NUL characters\n      --help     display this help and exit\n      --version  output version information and exit\n\nIf no -e, --expression, -f, or --file option is given, then the first\nnon-option argument is taken as the sed script to interpret.  All\nremaining arguments are names of input files; if no input files are\nspecified, then the standard input is read.\n\nGNU sed home page: <https://www.gnu.org/software/sed/>.\nGeneral help using GNU software: <https://www.gnu.org/gethelp/>.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "error-undefined-label": {
+    "stdout": "",
+    "stderr": "sed: can't find label for jump to `nowhere'\n",
+    "exit": 4,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "error-unknown-command": {
+    "stdout": "",
+    "stderr": "sed: -e expression #1, char 1: unknown command: `k'\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "error-unknown-option": {
+    "stdout": "",
+    "stderr": "sed: unrecognized option '--frobnicate'\nUsage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\n\n  -n, --quiet, --silent\n                 suppress automatic printing of pattern space\n      --debug\n                 annotate program execution\n  -e script, --expression=script\n                 add the script to the commands to be executed\n  -f script-file, --file=script-file\n                 add the contents of script-file to the commands to be executed\n  --follow-symlinks\n                 follow symlinks when processing in place\n  -i[SUFFIX], --in-place[=SUFFIX]\n                 edit files in place (makes backup if SUFFIX supplied)\n  -l N, --line-length=N\n                 specify the desired line-wrap length for the `l' command\n  --posix\n                 disable all GNU extensions.\n  -E, -r, --regexp-extended\n                 use extended regular expressions in the script\n                 (for portability use POSIX -E).\n  -s, --separate\n                 consider files as separate rather than as a single,\n                 continuous long stream.\n      --sandbox\n                 operate in sandbox mode (disable e/r/w commands).\n  -u, --unbuffered\n                 load minimal amounts of data from the input files and flush\n                 the output buffers more often\n  -z, --null-data\n                 separate lines by NUL characters\n      --help     display this help and exit\n      --version  output version information and exit\n\nIf no -e, --expression, -f, or --file option is given, then the first\nnon-option argument is taken as the sed script to interpret.  All\nremaining arguments are names of input files; if no input files are\nspecified, then the standard input is read.\n\nGNU sed home page: <https://www.gnu.org/software/sed/>.\nGeneral help using GNU software: <https://www.gnu.org/gethelp/>.\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "error-unknown-option-to-s": {
+    "stdout": "",
+    "stderr": "sed: -e expression #1, char 7: unknown option to `s'\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "error-unmatched-brace": {
+    "stdout": "",
+    "stderr": "sed: -e expression #1, char 0: unmatched `{'\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "error-unterminated-s": {
+    "stdout": "",
+    "stderr": "sed: -e expression #1, char 5: unterminated `s' command\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "extract-between-quotes": {
+    "stdout": "pseudo-linus\n0.1.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 51,
+        "sha256": "d38e86ad14fda07af8bfa27d00e766a64fb531978aff1c15e974d26e304651ca",
+        "data": "{\n  \"name\": \"pseudo-linus\",\n  \"version\": \"0.1.0\"\n}\n"
+      }
+    }
+  },
+  "file-name-cmd": {
+    "stdout": "a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "hold-append-H": {
+    "stdout": "a,b,c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "hold-exchange": {
+    "stdout": "2\n1\n4\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "16fbd7d1f18d2fedb247d73edc3bc6aa040f5ab99bd3b48c35b79e543d22179b",
+        "data": "1\n2\n3\n4\n"
+      }
+    }
+  },
+  "hold-reverse-tac": {
+    "stdout": "3\n2\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      }
+    }
+  },
+  "hold-x": {
+    "stdout": "c\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "inplace-basic": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "conf.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "60da0761a87d70feee3005e471abf8fdb171bec04f2f3ed422dfeb342cc4c10b",
+        "data": "new value\nkeep\nnew new\n"
+      }
+    }
+  },
+  "inplace-long-option": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      },
+      "f.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "inplace-missing-file": {
+    "stdout": "",
+    "stderr": "sed: can't read nope.txt: No such file or directory\n",
+    "exit": 2,
+    "files": {}
+  },
+  "inplace-multiple-files": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+        "data": "2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "inplace-separate-last-line": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "82748f9d7b689df49a600f27ec3a7f163bd86164f819a2235797618d110e8c49",
+        "data": "1\n2 END\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "77136008908af52ae40174cff1620634d6ff7c677605d777e40a12c92d1df47a",
+        "data": "x\ny END\n"
+      }
+    }
+  },
+  "inplace-suffix": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "f288623ee73a16eb4e2e51ed403847b534ca46ba1d2062ed641fe946f627f7a1",
+        "data": "b\nb\n"
+      },
+      "f.txt.bak": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7da0810372718aaba44c608981aa81247cee8c3fc0ece1f7f7dd0e3152b41715",
+        "data": "a\na\n"
+      }
+    }
+  },
+  "insert-before-match": {
+    "stdout": "use x;\n// entry point\nfn main() {}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "main.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "c1933dd9b4cd77edf7fb7642cc5db620591f39d5432f4710c9dc618c74249481",
+        "data": "use x;\nfn main() {}\n"
+      }
+    }
+  },
+  "insert-first-line": {
+    "stdout": "#!/bin/sh\necho hi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.sh": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "join-lines-label-loop": {
+    "stdout": "a b c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "join-pairs": {
+    "stdout": "k1=v1\nk2=v2\nodd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "77ef7ffc5f9cb710a3007e0db2d905d2bf2824fc561486d79a6151fd332f1cea",
+        "data": "k1\nv1\nk2\nv2\nodd\n"
+      }
+    }
+  },
+  "line-number-cmd": {
+    "stdout": "2\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "62f955344f7e3669d52659a9f448fc446a3782b96d75aac905f9ab16f5712101",
+        "data": "a\nx\nb\nx\n"
+      }
+    }
+  },
+  "list-cmd": {
+    "stdout": "a\\tb\\\\c$\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "26d85436116aebd0b2864416ab18b58080975f3408f4d58bbba663f921aaf735",
+        "data": "a\tb\\c\n"
+      }
+    }
+  },
+  "multiple-e": {
+    "stdout": "c\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "multiple-files-continuous": {
+    "stdout": "b2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "65454a5200a827c042e1379e1f2698d151699e4d76466a3b0e4ebd348f4f131b",
+        "data": "a1\na2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "60f7d20526ca5e01cb32632d83777bf8bed06baeb7a53bce9e86fecaac0e3f6d",
+        "data": "b1\nb2\n"
+      }
+    }
+  },
+  "multiple-files-separate": {
+    "stdout": "a2\nb2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "65454a5200a827c042e1379e1f2698d151699e4d76466a3b0e4ebd348f4f131b",
+        "data": "a1\na2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "60f7d20526ca5e01cb32632d83777bf8bed06baeb7a53bce9e86fecaac0e3f6d",
+        "data": "b1\nb2\n"
+      }
+    }
+  },
+  "next-line-cmd": {
+    "stdout": "1\n3\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "f6b49467f595b1a44e442c198b3df4d221e88efcaabc26254f8e0ad4f79b6242",
+        "data": "1\n2\n3\n4\n5\n"
+      }
+    }
+  },
+  "no-trailing-newline": {
+    "stdout": "b\nb",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "99b4ae0e261695ce9cb3912cdb821b687ad3ee28746333d2c49c9a141576d800",
+        "data": "a\na"
+      }
+    }
+  },
+  "null-data": {
+    "stdout": "a,b,c,",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "number-lines-with-tab": {
+    "stdout": "1\na\n2\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "posix-character-class-replace": {
+    "stdout": "aNbNc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "24390329bfafc024399bf70429a94dc4d531a03756c1ff8b3f975a003dc460e5",
+        "data": "a1b22c\n"
+      }
+    }
+  },
+  "print-custom-delimiter-address": {
+    "stdout": "/tmp/a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "379399f81031bf2c717fb1c7a23a098a34f1b24de060084be91656e32207d962",
+        "data": "/tmp/a\n/var/b\n"
+      }
+    }
+  },
+  "print-duplicate": {
+    "stdout": "a\na\nb\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "print-first-of-pattern-space": {
+    "stdout": "1\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "16fbd7d1f18d2fedb247d73edc3bc6aa040f5ab99bd3b48c35b79e543d22179b",
+        "data": "1\n2\n3\n4\n"
+      }
+    }
+  },
+  "print-last-line": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      }
+    }
+  },
+  "print-range-head-like": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "print-range-number-to-regex": {
+    "stdout": "3\n4\nstop\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "862e69ccf1bbda83b1fe9f89ece346ece7c62d4eabc0b843bcbe9676081a49e7",
+        "data": "1\n2\n3\n4\nstop\n6\n"
+      }
+    }
+  },
+  "print-range-numbers": {
+    "stdout": "2\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "16fbd7d1f18d2fedb247d73edc3bc6aa040f5ab99bd3b48c35b79e543d22179b",
+        "data": "1\n2\n3\n4\n"
+      }
+    }
+  },
+  "print-range-plus": {
+    "stdout": "start\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "e94ce5fcd91a3200a4e8f567b19f50d757bed416bd3ba706316d19a64aeca7e6",
+        "data": "a\nstart\nb\nc\nd\n"
+      }
+    }
+  },
+  "print-range-regex": {
+    "stdout": "BEGIN\n1\nEND\nBEGIN\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "9223006f2aa1576d06ec1d40d737ed1c37ccb58e65ee689a7076f9b05ae5c6cb",
+        "data": "x\nBEGIN\n1\nEND\ny\nBEGIN\n2\n"
+      }
+    }
+  },
+  "print-regex-icase-address": {
+    "stdout": "Error 1\nERROR 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1a7089138375c8e283c575ca7f3d877b75e36f0e2350a5e98c8ef85ee3a827dc",
+        "data": "Error 1\nok\nERROR 2\n"
+      }
+    }
+  },
+  "print-step": {
+    "stdout": "1\n3\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "f6b49467f595b1a44e442c198b3df4d221e88efcaabc26254f8e0ad4f79b6242",
+        "data": "1\n2\n3\n4\n5\n"
+      }
+    }
+  },
+  "print-then-quit": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      }
+    }
+  },
+  "quit-after": {
+    "stdout": "1\n2\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "f6b49467f595b1a44e442c198b3df4d221e88efcaabc26254f8e0ad4f79b6242",
+        "data": "1\n2\n3\n4\n5\n"
+      }
+    }
+  },
+  "quit-exit-code": {
+    "stdout": "a\nstop\n",
+    "stderr": "",
+    "exit": 5,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "8ddfeba556095d2e717b5fc07ae4eb1d71c79d50571a3012b69ca64c1f780f74",
+        "data": "a\nstop\nb\n"
+      }
+    }
+  },
+  "quit-silent": {
+    "stdout": "a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "8ddfeba556095d2e717b5fc07ae4eb1d71c79d50571a3012b69ca64c1f780f74",
+        "data": "a\nstop\nb\n"
+      }
+    }
+  },
+  "read-file-cmd": {
+    "stdout": "a\nhere\nINSERTED\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "4b9852b29963a9a11a162e11b65823600899dd5d112f6fe99ffda9eeafe67d9b",
+        "data": "a\nhere\nb\n"
+      },
+      "ins.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "363cf3a0237a78fb0cf5ad8fd926fa02f27913720c86152ac99ecdfaa9529dce",
+        "data": "INSERTED\n"
+      }
+    }
+  },
+  "regex-alternation-bre": {
+    "stdout": "pet and pet\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "1df2cdcb112d34d82da377008e8706bc2e3b9a8d92f75bdc938772151e73e0bd",
+        "data": "cat and dog\n"
+      }
+    }
+  },
+  "regex-interval-bre": {
+    "stdout": "123\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "7690aa66c97a17fcda7774698166f30759823b69aaf494cac51bef48050f0db6",
+        "data": "12\n123\n1234\n"
+      }
+    }
+  },
+  "regex-plus-question-gnu-bre": {
+    "stdout": "X X ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "33b460949226d5dfb0f3436c8930524ed8c03396e881334f079639c28e2601b3",
+        "data": "acc abc ab\n"
+      }
+    }
+  },
+  "regex-tab-escape": {
+    "stdout": "a | b | c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.tsv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "bd56df9b747166a38de6b261ee06660e07909915c60eedf81312e4697bd1b8ea",
+        "data": "a\tb\tc\n"
+      }
+    }
+  },
+  "regex-word-boundary": {
+    "stdout": "dog concat dog.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "e21fb4387e43d7d9bcb78bab308729f3047e665164216c88bbe6603df4991c4d",
+        "data": "cat concat cat.\n"
+      }
+    }
+  },
+  "replace-in-range-only": {
+    "stdout": "foo\nfoo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "f13a55b71d31ec3df35f99d6b6332b23a4967312314456941aff922a7d354818",
+        "data": "foo\nfoo\n"
+      }
+    }
+  },
+  "replacement-escaped-ampersand": {
+    "stdout": "this & that\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "5d20250e98a7390195409044f2251d74edc50b60c02df53e71e76384e5b70bf7",
+        "data": "this and that\n"
+      }
+    }
+  },
+  "script-file": {
+    "stdout": "1\nthree\nend\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "b6285c57e8797db5d4c51c80d6f11938afda9b11c6a003549709189e9b4b92a2",
+        "data": "one\ntwo\nthree\n"
+      },
+      "script.sed": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "39fda08b4a651da090199177dd19c593b7c66d170b7d724366b74c3f9c7643e8",
+        "data": "# comment\ns/one/1/\n/two/d\n$a\\\nend\n"
+      }
+    }
+  },
+  "semicolons-and-spaces": {
+    "stdout": "a\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "stdin-dash": {
+    "stdout": "1\nx\n2\ny\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "stdin-input": {
+    "stdout": "[x]\n[y]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "subst-ampersand": {
+    "stdout": "a<1> b<22> c<333>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "7d40654b9c02b77a9bcea2a998885071a3d6968bcb278efbd4f50559b0db4a11",
+        "data": "a1 b22 c333\n"
+      }
+    }
+  },
+  "subst-anchor-end": {
+    "stdout": "a;\nb;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "subst-anchor-start": {
+    "stdout": "> a\n> b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "subst-backrefs-bre": {
+    "stdout": "mail example.com at bob now\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "808d9aedd25b65261c3075745a4e86e7bd9ba120b77d2e5a87e0f2a3cbca9a68",
+        "data": "mail bob@example.com now\n"
+      }
+    }
+  },
+  "subst-backrefs-ere": {
+    "stdout": "2-1 and 40-30\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "46ef40da7b2a390b3732da08bc9e27489b4826ceee7a1f41bf0e5a419e07eddb",
+        "data": "1-2 and 30-40\n"
+      }
+    }
+  },
+  "subst-case-conversion": {
+    "stdout": "HELLO World\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "subst-custom-delimiter": {
+    "stdout": "/opt/bin:/opt/lib\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "paths": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "12a39954e01cd6e1026e4a28d540609234092afeac3cd856655785509d9f6da6",
+        "data": "/usr/local/bin:/usr/local/lib\n"
+      }
+    }
+  },
+  "subst-delimiter-escaped": {
+    "stdout": "X\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "b2cb8df15c8604c5311c31873512b90a7e338a713b1cedb6bfd73b586b841a40",
+        "data": "a#b\n"
+      }
+    }
+  },
+  "subst-empty-matches-global": {
+    "stdout": "-a-b-c-\n-b-a-a-a-c-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "ef0721f668d1847786b324574740d4289bc34cbd10ce8a16fe8f697b49d164f0",
+        "data": "abc\nbaaac\n"
+      }
+    }
+  },
+  "subst-empty-regex-reuse": {
+    "stdout": "bar foo\nbaz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "fd0141372f679022e00c8675ab124c9613fa2465f763bfa541b3a1d2cfd9ee4f",
+        "data": "foo foo\nbaz\n"
+      }
+    }
+  },
+  "subst-first": {
+    "stdout": "bar foo\nnone\nabar\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "16abf41fdaa40697eb366feb5dd0e299ffd9c3906be8167feb9f953cad2e3d02",
+        "data": "foo foo\nnone\nafoo\n"
+      }
+    }
+  },
+  "subst-global": {
+    "stdout": "bar bar bar\nnone\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "3f68a688c6beaac1545f9d8bda20d15324207d5ac3bf2508fc5c0fad10c5e4c1",
+        "data": "foo foo foo\nnone\n"
+      }
+    }
+  },
+  "subst-icase": {
+    "stdout": "bye world\nbye\nbye\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "678e03bb144024800d5c306c10fbe17b2a881eba7d1437935537eca04fb91c2a",
+        "data": "Hello world\nHELLO\nhello\n"
+      }
+    }
+  },
+  "subst-lowercase-all": {
+    "stdout": "mixed case\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "61e604525459e87bf44e9e6bb3e10cdfadfd10fcf1ad8d65e1788c39b4949be7",
+        "data": "MiXeD CaSe\n"
+      }
+    }
+  },
+  "subst-newline-in-replacement": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "c684753b5936e93d36aebbab9863bc921ab6d17ecdb0cf00900fa2a95990c215",
+        "data": "a, b, c\n"
+      }
+    }
+  },
+  "subst-nth": {
+    "stdout": "aXaa\nab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "7712622ec9d90b2610769e2316b3f5334919ac2992c28588be44a575f2a455a9",
+        "data": "aaaa\nab\n"
+      }
+    }
+  },
+  "subst-nth-global": {
+    "stdout": "aXXX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "11a77c3d96c06974b53d7f40a577e6813739eb5c811b2a86f59038ea90add772",
+        "data": "aaaa\n"
+      }
+    }
+  },
+  "subst-print-quiet": {
+    "stdout": "ERROR one\nERROR two\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "290217dc701fc7f5cc1aaefea047178e55373fd0ce079d58bad29a4056d724b6",
+        "data": "ok\nerror one\nfine\nerror two\n"
+      }
+    }
+  },
+  "subst-r-flag": {
+    "stdout": "ccX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "9118f679741856dd17df14b8d83edf6ccc22ec7b5865f7d2acef1a3637085a56",
+        "data": "ccabab\n"
+      }
+    }
+  },
+  "subst-strip-html": {
+    "stdout": "Hello world\nend\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "page.html": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "c2d02c49cc8002e72e87ddf6f319cf36043cc4b8b58ff8ff528970d8aea7f342",
+        "data": "<p>Hello <b>world</b></p>\n<br/>end\n"
+      }
+    }
+  },
+  "subst-trim-leading": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "86dfdb3fea81fc3bce9c5bbf0b72f1b50a8d73b7193bcc66023ff84e7296035e",
+        "data": "   a\n\t\tb\nc\n"
+      }
+    }
+  },
+  "subst-trim-trailing": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "0b5772b4da85ba7518c850867c867a87b204da5555c42a819ad3a055b655aabd",
+        "data": "a   \nb\t\nc\n"
+      }
+    }
+  },
+  "subst-version-bump": {
+    "stdout": "[package]\nname = \"x\"\nversion = \"0.1.99\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "Cargo.toml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "92450c958ec9c06ac76a1c964af6d57e03d0ebccda4dcf5de8d8e4de64c97abb",
+        "data": "[package]\nname = \"x\"\nversion = \"0.1.0\"\n"
+      }
+    }
+  },
+  "subst-write-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "e2c2560938e69d5441c2eb6db9f3e0e0f05c3bdc2bfe86eb1e884c2d777b37ae",
+        "data": "err a\nok\nerr b\n"
+      },
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "3183d5fc277144eb4e024a71545825f2165a5801de29b18bc4155945950fdb5c",
+        "data": "ERR a\nERR b\n"
+      }
+    }
+  },
+  "transliterate": {
+    "stdout": "xxyyzz xyz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "a03b148fc17cf1828b4f0bf7a305d7fd5a05dae765fcc7d0c663fae6bd8103de",
+        "data": "aabbcc abc\n"
+      }
+    }
+  },
+  "utf8-dot": {
+    "stdout": "aXão\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "ada323d45a144db50e2fbb47c5744fc4cbcb9ab393e42f63ce91913eeea74489",
+        "data": "ação\n"
+      }
+    }
+  },
+  "utf8-icase": {
+    "stdout": "SCHOOL école\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "324c12ca69443e2c9e9d2d1401bc1017cc27445c8c48a73d2817bb490cb0d32d",
+        "data": "ÉCOLE école\n"
+      }
+    }
+  },
+  "write-file-cmd": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "bd25910729ebaf744af93066939725103041a75a2e86f0f18732c89f6da9fc51",
+        "data": "keep 1\ndrop\nkeep 2\n"
+      },
+      "kept.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "6e713278a5c4e41b363953e7c2eea4b9e411625222c58c67157077203967a51b",
+        "data": "keep 1\nkeep 2\n"
+      }
+    }
+  },
+  "y-utf8": {
+    "stdout": "açao e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "96b7951a9105821f82da4914d379ada7a7b2f89fa59ce3556d429b271974dda2",
+        "data": "ação é\n"
+      }
+    }
+  },
+  "zap-pattern-space": {
+    "stdout": "a\n\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  }
+}

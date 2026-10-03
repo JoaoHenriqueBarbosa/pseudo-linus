@@ -1,0 +1,296 @@
+{
+  "yq-scalar-bool-canonical": {
+    "stdout": "{\"a\":true,\"b\":false,\"c\":true,\"d\":false}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "2fce584043a60d2a24d2819e73fd6775e0ace1e5ab51eee19a34eba5b841f93a",
+        "data": "a: true\nb: false\nc: True\nd: FALSE\n"
+      }
+    }
+  },
+  "yq-scalar-bool-words": {
+    "stdout": "{\"a\":\"yes\",\"b\":\"no\",\"c\":\"on\",\"d\":\"off\",\"e\":\"Y\",\"f\":\"n\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "e7164201c5ce66dc04ecd1ad0f7d647cc71fdb716493e86982e26f2ae8f8fa7c",
+        "data": "a: yes\nb: no\nc: on\nd: off\ne: Y\nf: n\n"
+      }
+    }
+  },
+  "yq-scalar-dates": {
+    "stdout": "{\"a\":\"2026-01-15\",\"b\":\"2026-01-15T10:00:00Z\",\"c\":\"2026-01-15 10:00:00\",\"d\":\"2026-01-15t10:00:00.5+03:00\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 92,
+        "sha256": "0e183e12e763ebe5a41eb2d444067bc9817b1099ad81406797ad000243da33dd",
+        "data": "a: 2026-01-15\nb: 2026-01-15T10:00:00Z\nc: 2026-01-15 10:00:00\nd: 2026-01-15t10:00:00.5+03:00\n"
+      }
+    }
+  },
+  "yq-scalar-explicit-tags": {
+    "stdout": "{\"a\":\"123\",\"b\":1.0,\"c\":5,\"d\":true,\"e\":null}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 69,
+        "sha256": "43acaffbd6b3cb0aae8b6ee06b658d663c58dc2407858021d3b6cd1762bcda6c",
+        "data": "a: !!str 123\nb: !!float 1\nc: !!int \"5\"\nd: !!bool \"true\"\ne: !!null \"\"\n"
+      }
+    }
+  },
+  "yq-scalar-float-dotless": {
+    "stdout": "{\"a\":1000.0,\"b\":0.01,\"c\":0.5,\"d\":1.0,\"e\":6.02E+23}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "5cba4e0a69cf234f253a69666e8faa9e3064318151b16a0bffcbf7db1e62a9eb",
+        "data": "a: 1e3\nb: 1E-2\nc: .5\nd: 1.\ne: 6.02e23\n"
+      }
+    }
+  },
+  "yq-scalar-float-extreme": {
+    "stdout": "{\"a\":1E+16,\"b\":1E+20,\"c\":0.00001,\"d\":1.5E-7,\"e\":123456789.12345679}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 63,
+        "sha256": "1d96fd8407b044f1a2bc655790517fa2a7d8b3e027b7dd34c27b2b19aa7d350b",
+        "data": "a: 1e16\nb: 1.0e+20\nc: 0.00001\nd: 1.5e-7\ne: 123456789.123456789\n"
+      }
+    }
+  },
+  "yq-scalar-float-forms": {
+    "stdout": "{\"a\":1.0,\"b\":1.5,\"c\":-0.5,\"d\":0.1,\"e\":3.14159265358979,\"f\":2.5}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "c54f88b9f30eba161c4c7a280e53ba17af4107aead9ba765b9bbc947a12397d0",
+        "data": "a: 1.0\nb: 1.5\nc: -0.5\nd: 0.1\ne: 3.14159265358979\nf: 2.50\n"
+      }
+    }
+  },
+  "yq-scalar-inf-nan": {
+    "stdout": "{\"a\":1.7976931348623157e+308,\"b\":-1.7976931348623157e+308,\"c\":null,\"d\":1.7976931348623157e+308}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "cc7f2523b9bc5b705ddab55260db71c1d40ba34f3713ee43ed10d42b37ecc55b",
+        "data": "a: .inf\nb: -.inf\nc: .nan\nd: .Inf\n"
+      }
+    }
+  },
+  "yq-scalar-int-08": {
+    "stdout": "",
+    "stderr": "yq: Error running jq: ValueError: invalid literal for int() with base 8: '08'.\n",
+    "exit": 1,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "84fc5aacef2614dfe2eacf7e761410a60d2219218b377b2e9dd1e8d0bec57d64",
+        "data": "a: 08\n"
+      }
+    }
+  },
+  "yq-scalar-int-big": {
+    "stdout": "{\"a\":100000000000000000000,\"b\":-99999999999999999999999}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 53,
+        "sha256": "4670fb12ff5ac00e8a4235761bbed706c459292cf920a58fb002552d07bd2deb",
+        "data": "a: 100000000000000000000\nb: -99999999999999999999999\n"
+      }
+    }
+  },
+  "yq-scalar-int-binary": {
+    "stdout": "{\"a\":\"0b101\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "3ee9128e44707f36ea73509dc33446420caed87e180c0a993ebe4b5a88157609",
+        "data": "a: 0b101\n"
+      }
+    }
+  },
+  "yq-scalar-int-decimal": {
+    "stdout": "{\"a\":0,\"b\":-5,\"c\":7,\"d\":42,\"e\":9007199254740993}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 43,
+        "sha256": "5d12b662e013c7eb7bff4ca480132827376d3381c371c5f9554a7b801ae8b9a0",
+        "data": "a: 0\nb: -5\nc: +7\nd: 42\ne: 9007199254740993\n"
+      }
+    }
+  },
+  "yq-scalar-int-hex": {
+    "stdout": "{\"a\":31,\"b\":255,\"c\":\"-0x10\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "f81b5bb3d9a8b864984b9b5c5bef2fcd37a6b3c5fbd19e4401a03c48d8625c06",
+        "data": "a: 0x1F\nb: 0xff\nc: -0x10\n"
+      }
+    }
+  },
+  "yq-scalar-int-legacy-octal": {
+    "stdout": "{\"a\":10,\"b\":493}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "c4c048a4f442a8443c01fe66b8ac780f155691c20159692a4e28bd745091afc6",
+        "data": "a: 012\nb: 0755\n"
+      }
+    }
+  },
+  "yq-scalar-int-octal-12": {
+    "stdout": "{\"a\":10,\"b\":493}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "922397ca1bb2644e6a93c5b4a76204c141b73b5495784da35091ba348c1c8ef8",
+        "data": "a: 0o12\nb: 0o755\n"
+      }
+    }
+  },
+  "yq-scalar-int-underscore": {
+    "stdout": "{\"a\":\"1_000\",\"b\":\"1_000.5\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "d9acb9abcfc32d5a9fbb39ecd38a92c76c3fac14e98f22cacc94b2f929077460",
+        "data": "a: 1_000\nb: 1_000.5\n"
+      }
+    }
+  },
+  "yq-scalar-null-forms": {
+    "stdout": "{\"a\":null,\"b\":null,\"c\":null,\"d\":null,\"e\":null}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "4f8f52d2d8fd010a2a1f9fbf5d13ea935616a5ef140215bbefb57b656d000421",
+        "data": "a: ~\nb: null\nc: Null\nd:\ne: NULL\n"
+      }
+    }
+  },
+  "yq-scalar-number-arith": {
+    "stdout": "[2,2000,2.5,-0.4]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "7e449af80e1de57e2b3469ed5a19023a2fc90f388211ba617f1828b3f57073dd",
+        "data": "a: 1.0\nb: 1e3\nc: 10\nd: 0.1\n"
+      }
+    }
+  },
+  "yq-scalar-plain-strings": {
+    "stdout": "{\"a\":\"hello world\",\"b\":\"1.2.3\",\"c\":\"0x\",\"d\":\"12abc\",\"e\":\"a-b\",\"f\":\"a:b\",\"g\":\"http://example.com/x?y=1#z\",\"h\":\"v1.27\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 92,
+        "sha256": "6a5afe2d002446644c5d21e3fe7225952b991620677d7555ed090021556b0c26",
+        "data": "a: hello world\nb: 1.2.3\nc: 0x\nd: 12abc\ne: a-b\nf: a:b\ng: http://example.com/x?y=1#z\nh: v1.27\n"
+      }
+    }
+  },
+  "yq-scalar-quoted": {
+    "stdout": "{\"a\":\"yes\",\"b\":\"012\",\"c\":\"1.0\",\"d\":\"null\",\"e\":\"\",\"f\":\"true\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 53,
+        "sha256": "cf1ea835be6a68019e75ab168fddaec3ff27fe8019b4cd3cafd6b0eaf982efa4",
+        "data": "a: \"yes\"\nb: '012'\nc: \"1.0\"\nd: \"null\"\ne: ''\nf: \"true\"\n"
+      }
+    }
+  },
+  "yq-scalar-sexagesimal": {
+    "stdout": "{\"a\":\"1:20\",\"b\":\"190:20:30\",\"c\":\"22:00\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "7df8d15fc871684f7105fd8d244fff22d0357d5f01568a438fba00e46626a3e0",
+        "data": "a: 1:20\nb: 190:20:30\nc: 22:00\n"
+      }
+    }
+  }
+}

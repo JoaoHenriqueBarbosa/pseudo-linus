@@ -1,0 +1,256 @@
+{
+  "csv-read-blank-line": {
+    "stdout": "[\"a\", \"b\"]\n[]\n[\"c\", \"d\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "f84503a648733ef5e20d7c2cfff69d774ef42a4dfcec627f627b77caa40669ae",
+        "data": "a,b\n\nc,d\n"
+      }
+    }
+  },
+  "csv-read-bom": {
+    "stdout": "[\"﻿name\", \"age\"]\n[\"ana\", \"30\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1d1bdeab79b0a1271cbb13ba3a7550f24faeabcc21a52aea5e3a08f427730224",
+        "data": "﻿name,age\nana,30\n"
+      }
+    }
+  },
+  "csv-read-cr-only": {
+    "stdout": "[\"a\", \"b\"]\n[\"c\", \"d\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "1c625b64258792733c80e5b5c96e02ad1cbbff5a21e9f139c4cce35a5f712468",
+        "data": "a,b\rc,d\r"
+      }
+    }
+  },
+  "csv-read-crlf": {
+    "stdout": "[\"a\", \"b\"]\n[\"c\", \"d\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7b80bae4f56bdb4b6b952938c42715cde7b1610cb021e70148d164c80663c230",
+        "data": "a,b\r\nc,d\r\n"
+      }
+    }
+  },
+  "csv-read-doubled-quote": {
+    "stdout": "[\"a\", \"say \\\"hi\\\"\", \"b\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "b4ae233d68e8cb19928d31c166fc45adbdbd070eb5cd91b54ea05de1298cae6f",
+        "data": "a,\"say \"\"hi\"\"\",b\n"
+      }
+    }
+  },
+  "csv-read-empty-fields": {
+    "stdout": "[\"a\", \"\", \"c\"]\n[\"\", \"\", \"\"]\n[\"\", \"x\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "82918c5d26365a27b6a809e7ad0af6deb50f4a80977f7c187653498b08b28378",
+        "data": "a,,c\n,,\n\"\",x\n"
+      }
+    }
+  },
+  "csv-read-newline-in-field": {
+    "stdout": "[\"id\", \"text\"]\n[\"1\", \"line one\\nline two\"]\n[\"2\", \"crlf\\r\\ninside\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "6b1371977c9460f52964a34e9fb351b3c82237c16f75731ecb21fe45898343c1",
+        "data": "id,text\n1,\"line one\nline two\"\n2,\"crlf\r\ninside\"\n"
+      }
+    }
+  },
+  "csv-read-no-final-newline": {
+    "stdout": "[\"a\", \"b\"]\n[\"c\", \"d\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "477a29579c9a10032533d21640ec00e883d3c52736ec6b24677780499f12cc5c",
+        "data": "a,b\nc,d"
+      }
+    }
+  },
+  "csv-read-quote-inside-unquoted": {
+    "stdout": "[\"a\\\"b\", \"c\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "02eb80fa377cd41a66379be604e8698baa40e82200ea2a0c7f72db0d0858dcae",
+        "data": "a\"b,c\n"
+      }
+    }
+  },
+  "csv-read-quoted-comma": {
+    "stdout": "[\"id\", \"desc\"]\n[\"1\", \"a, b, c\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "ba1e635316d529771cd5e9ad69d26d40267876af7ba0f5ffb74bfaa3e9310992",
+        "data": "id,desc\n1,\"a, b, c\"\n"
+      }
+    }
+  },
+  "csv-read-ragged": {
+    "stdout": "[\"a\", \"b\", \"c\"]\n[\"d\"]\n[\"e\", \"f\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "c41acaf6a8facc5e7a1effc55b330d832670f95768aa54948a1acde3faa13b51",
+        "data": "a,b,c\nd\ne,f\n"
+      }
+    }
+  },
+  "csv-read-simple": {
+    "stdout": "[\"name\", \"age\"]\n[\"ana\", \"30\"]\n[\"bob\", \"41\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "8eaeb9f8e7d55224d84e03c4b43059edb1f347fe5b348acba060d25be5167caa",
+        "data": "name,age\nana,30\nbob,41\n"
+      }
+    }
+  },
+  "csv-read-spaces": {
+    "stdout": "[\" a \", \" b \", \" c \"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "3c01db49244a5aee560d23f8c6c4ff92da46656cfefb2f0bbf0226e05d6571f5",
+        "data": " a , b ,\" c \"\n"
+      }
+    }
+  },
+  "csv-read-text-after-closing-quote": {
+    "stdout": "[\"xy\", \"z\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "8f5db559546c607fda50ea4ca57fa4d757baf11a8254958f77b4ec206ccc491d",
+        "data": "\"x\"y,z\n"
+      }
+    }
+  },
+  "csv-read-unicode": {
+    "stdout": "[\"cidade\", \"emoji\"]\n[\"são paulo\", \"😀\"]\n[\"maceió, AL\", \"✓\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "e45e385684d21d37b136f76a75f1024e9bf559fca544a0c273d66b5596841682",
+        "data": "cidade,emoji\nsão paulo,😀\n\"maceió, AL\",✓\n"
+      }
+    }
+  },
+  "csv-read-unterminated-quote": {
+    "stdout": "[\"a\", \"never closed\\n\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "d92ccea2e51e8da5a497015207b2aff72882d7500133745351d124e952f12a23",
+        "data": "a,\"never closed\n"
+      }
+    }
+  },
+  "csv-write-default-crlf": {
+    "stdout": "a,b\r\nc,\"d,e\"\r\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "csv-write-minimal": {
+    "stdout": "a,b\n\"x,y\",plain\n\"say \"\"hi\"\"\",\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "csv-write-newlines": {
+    "stdout": "\"line1\nline2\",\"cr\rhere\",tab\tthere\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "csv-write-single-empty-field": {
+    "stdout": "\"\"\n\n,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "csv-write-spaces-unicode": {
+    "stdout": " lead,trail ,são,#x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

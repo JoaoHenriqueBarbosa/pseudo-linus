@@ -1,0 +1,32 @@
+[package]
+name = "forbid-consumer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Sonda do E06 (H20): crate com forbid(unsafe_code) que só invoca macros de outras crates"
+
+[dependencies]
+unsafe-macros = { path = "../unsafe-macros" }
+unsafe-proc-macro = { path = "../unsafe-proc-macro" }
+bytemuck = { version = "1", features = ["derive"] }
+intrusive-collections = "0.10"
+
+# Um caso por feature: o E06 compila cada caso sozinho, pra que um erro não esconda o resultado dos outros.
+[features]
+macro_rules_block = []
+proc_call_site = []
+proc_mixed_site = []
+proc_input_span = []
+proc_located_at_input = []
+macro_rules_unsafe_impl = []
+derive_bytemuck_pod = []
+intrusive_adapter = []
+macro_rules_allow = []
+macro_rules_no_mangle = []
+
+# O forbid entra pelas duas portas: aqui (vira `-F unsafe_code` na linha de comando) e no atributo
+# `#![forbid(unsafe_code)]` do lib.rs.
+[lints.rust]
+unsafe_code = "forbid"

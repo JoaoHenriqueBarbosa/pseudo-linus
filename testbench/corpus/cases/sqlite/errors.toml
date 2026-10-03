@@ -1,0 +1,98 @@
+tool = "sqlite"
+source = "agent-style"
+
+# Erros: o texto vem em parte do motor (mensagem) e em parte do CLI (moldura "Error: in prepare",
+# "Parse error near line N", acento circunflexo apontando o erro, código de saída).
+
+[[case]]
+id = "sqlite-error-syntax-argv"
+argv = ["sqlite3", "db.sqlite", '''SELEC 1;''']
+tags = ["error", "syntax", "argv"]
+
+[[case]]
+id = "sqlite-error-syntax-stdin"
+stdin = '''
+SELECT 1;
+SELECT * FROM (SELECT 1) WHERE;
+SELECT 2;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["error", "syntax", "stdin"]
+
+[[case]]
+id = "sqlite-error-no-such-table"
+argv = ["sqlite3", "db.sqlite", '''SELECT * FROM missing;''']
+tags = ["error", "argv"]
+
+[[case]]
+id = "sqlite-error-no-such-column"
+stdin = '''
+CREATE TABLE t(a);
+SELECT b FROM t;
+SELECT a FROM t WHERE zzz = 1;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["error", "stdin"]
+
+[[case]]
+id = "sqlite-error-unique-argv"
+argv = ["sqlite3", "db.sqlite", '''CREATE TABLE t(a UNIQUE); INSERT INTO t VALUES (1); INSERT INTO t VALUES (1); SELECT 'not reached';''']
+tags = ["error", "constraint", "argv"]
+
+[[case]]
+id = "sqlite-error-constraints-stdin"
+stdin = '''
+CREATE TABLE t(id INTEGER PRIMARY KEY, a NOT NULL, b CHECK (b > 0));
+INSERT INTO t(a, b) VALUES (NULL, 1);
+INSERT INTO t(a, b) VALUES (1, -1);
+INSERT INTO t(id, a, b) VALUES (1, 1, 1);
+INSERT INTO t(id, a, b) VALUES (1, 2, 2);
+SELECT * FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["error", "constraint", "stdin"]
+
+[[case]]
+id = "sqlite-error-value-count"
+argv = ["sqlite3", "db.sqlite", '''CREATE TABLE t(a, b); INSERT INTO t VALUES (1);''']
+tags = ["error", "argv"]
+
+[[case]]
+id = "sqlite-error-misc-prepare"
+stdin = '''
+CREATE TABLE a(x);
+CREATE TABLE b(x);
+SELECT x FROM a, b;
+SELECT count(*) FROM a WHERE count(*) > 1;
+SELECT abs(1, 2);
+SELECT nosuchfunc(1);
+CREATE TABLE a(y);
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["error", "stdin"]
+
+[[case]]
+id = "sqlite-error-incomplete-statement"
+stdin = '''
+SELECT 1;
+SELECT 'unterminated
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["error", "cli", "stdin"]
+
+[[case]]
+id = "sqlite-error-multiline-position"
+stdin = '''
+CREATE TABLE t(a);
+SELECT a,
+       b
+  FROM t;
+SELECT 3;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["error", "cli", "stdin"]
+
+[[case]]
+id = "sqlite-error-raise-trigger"
+argv = ["sqlite3", "db.sqlite", '''CREATE TABLE t(x); CREATE TRIGGER tr BEFORE INSERT ON t BEGIN SELECT RAISE(FAIL, 'nope'); END; INSERT INTO t VALUES (1);''']
+tags = ["error", "trigger", "argv"]

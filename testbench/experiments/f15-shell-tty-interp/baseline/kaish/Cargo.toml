@@ -1,0 +1,18 @@
+[package]
+name = "f15-baseline-kaish"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+description = "F15/H40: kaish-kernel (shell pra agentes com VFS) como linha de base"
+
+[dependencies]
+f15-baseline-common = { path = "../common" }
+harness = { path = "../../../../crates/harness" }
+anyhow = "1"
+kaish-kernel = { version = "=0.17.2", default-features = false }
+tokio = { version = "1", features = ["rt", "macros"] }
+
+[lints.rust]
+unsafe_code = "forbid"

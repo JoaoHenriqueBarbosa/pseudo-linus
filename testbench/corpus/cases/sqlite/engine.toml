@@ -1,0 +1,260 @@
+tool = "sqlite"
+source = "agent-style"
+
+# Núcleo do motor: DDL, DML, tipos e afinidade, funções escalares e agregadas, consultas.
+# Tudo em modo list (o padrão do CLI). O banco é sempre `db.sqlite` no diretório do caso.
+
+[[case]]
+id = "sqlite-create-insert-select"
+argv = ["sqlite3", "db.sqlite", '''CREATE TABLE t(a INTEGER, b TEXT); INSERT INTO t VALUES(1,'x'),(2,'y'),(3,NULL); SELECT * FROM t;''']
+tags = ["ddl", "dml", "argv"]
+
+[[case]]
+id = "sqlite-null-and-literals"
+argv = ["sqlite3", "db.sqlite", '''SELECT NULL, 1, 'a', -5, 2.5, '';''']
+tags = ["types", "argv"]
+
+[[case]]
+id = "sqlite-type-affinity"
+stdin = '''
+CREATE TABLE t(i INTEGER, r REAL, tx TEXT, b BLOB, n NUMERIC, none);
+INSERT INTO t VALUES('12', '3', 4, x'05', '5.0', '6');
+INSERT INTO t VALUES('1e3', 'abc', 4.5, 'b', '7.25', 8);
+SELECT typeof(i), typeof(r), typeof(tx), typeof(b), typeof(n), typeof(none) FROM t;
+SELECT i, r, tx, n, none FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["types", "affinity", "stdin"]
+
+[[case]]
+id = "sqlite-real-formatting"
+argv = ["sqlite3", "db.sqlite", '''SELECT 1.0, 0.1+0.2, 1e20, 1.5e-7, 100.0/3, 2.0*3, 9007199254740993.0, 1e308*10, -1e308*10, 123456789012345678.0, 0.5, 1e15, 1e16;''']
+tags = ["types", "real", "argv"]
+
+[[case]]
+id = "sqlite-integer-arithmetic"
+argv = ["sqlite3", "db.sqlite", '''SELECT 7/2, 7%3, 7/2.0, -7/2, 9223372036854775807+1, abs(-5), 1<<62, 5/0, 5%0, -9223372036854775808, 2*3+4;''']
+tags = ["types", "arith", "argv"]
+
+[[case]]
+id = "sqlite-string-functions"
+argv = ["sqlite3", "db.sqlite", '''SELECT upper('abc'), lower('ABC'), length('héllo'), substr('hello',2,3), substr('hello',-3), replace('aaa','a','b'), trim('  x  '), ltrim('xxy','x'), instr('hello','l'), 'a'||'b', 'a'||NULL, hex('abc'), quote('it''s'), char(65,66), unicode('A'), concat('a', NULL, 'b'), concat_ws('-', 'x', 'y');''']
+tags = ["functions", "string", "argv"]
+
+[[case]]
+id = "sqlite-printf-format"
+argv = ["sqlite3", "db.sqlite", '''SELECT printf('%05.2f|%-5s|%d|%x|%e|%q|%%', 3.14159, 'ab', 42, 255, 12345.678, 'o''k'), format('%s-%s', 'a', 1);''']
+tags = ["functions", "printf", "argv"]
+
+[[case]]
+id = "sqlite-like-glob"
+argv = ["sqlite3", "db.sqlite", '''SELECT 'abc' LIKE 'A%', 'abc' GLOB 'A*', 'abc' GLOB 'a?c', 'a_c' LIKE 'a\_c' ESCAPE '\', 'x' NOT LIKE 'y', 'abc' GLOB '[a-c]*';''']
+tags = ["functions", "pattern", "argv"]
+
+[[case]]
+id = "sqlite-case-coalesce"
+argv = ["sqlite3", "db.sqlite", '''SELECT CASE WHEN 1>2 THEN 'x' ELSE 'y' END, CASE 3 WHEN 1 THEN 'one' WHEN 3 THEN 'three' END, coalesce(NULL,NULL,3), ifnull(NULL,'z'), nullif(1,1), iif(1,'t','f'), NULL IS NULL, 1 IS NOT 2;''']
+tags = ["functions", "argv"]
+
+[[case]]
+id = "sqlite-cast-conversions"
+argv = ["sqlite3", "db.sqlite", '''SELECT CAST('12abc' AS INTEGER), CAST(3.9 AS INTEGER), CAST('3.0' AS REAL), CAST(12 AS TEXT) || 'x', '10' + 5, '1e2' + 0, CAST(x'3132' AS INTEGER), CAST('abc' AS NUMERIC), typeof(CAST('5' AS NUMERIC)), 1 = '1', '2' < 10;''']
+tags = ["types", "cast", "argv"]
+
+[[case]]
+id = "sqlite-aggregates-group-by"
+stdin = '''
+CREATE TABLE sales(region TEXT, amount INTEGER);
+INSERT INTO sales VALUES ('north', 10), ('south', 5), ('north', 7), ('east', 3), ('south', 20), ('north', NULL);
+SELECT region, count(*), count(amount), sum(amount), avg(amount), min(amount), max(amount), total(amount) FROM sales GROUP BY region HAVING count(*) > 1 ORDER BY region;
+SELECT group_concat(region, ',') FROM (SELECT region FROM sales ORDER BY rowid);
+SELECT count(DISTINCT region), sum(amount) FILTER (WHERE region = 'north') FROM sales;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["aggregate", "stdin"]
+
+[[case]]
+id = "sqlite-order-limit-nulls"
+stdin = '''
+CREATE TABLE t(a, b);
+INSERT INTO t VALUES (3, 'c'), (1, NULL), (2, 'b'), (4, 'a'), (5, NULL);
+SELECT a, b FROM t ORDER BY b, a;
+SELECT a FROM t ORDER BY b DESC NULLS FIRST, a LIMIT 3;
+SELECT a FROM t ORDER BY a LIMIT 2 OFFSET 2;
+SELECT a FROM t ORDER BY a DESC LIMIT -1 OFFSET 3;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["query", "order", "stdin"]
+
+[[case]]
+id = "sqlite-compound-select"
+argv = ["sqlite3", "db.sqlite", '''SELECT 1 UNION SELECT 2 UNION SELECT 1; SELECT 1 UNION ALL SELECT 1; SELECT 1 INTERSECT SELECT 1; SELECT 2 EXCEPT SELECT 2; SELECT DISTINCT x FROM (SELECT 1 AS x UNION ALL SELECT 1 UNION ALL SELECT 2) ORDER BY x DESC;''']
+tags = ["query", "compound", "argv"]
+
+[[case]]
+id = "sqlite-joins"
+stdin = '''
+CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT);
+CREATE TABLE orders(id INTEGER PRIMARY KEY, user_id INTEGER, total REAL);
+INSERT INTO users VALUES (1, 'ana'), (2, 'bia'), (3, 'caio');
+INSERT INTO orders VALUES (10, 1, 9.5), (11, 1, 20), (12, 3, 1.25), (13, 9, 7);
+SELECT u.name, o.total FROM users u JOIN orders o ON o.user_id = u.id ORDER BY o.id;
+SELECT u.name, o.id FROM users u LEFT JOIN orders o ON o.user_id = u.id ORDER BY u.id, o.id;
+SELECT u.name, count(o.id), coalesce(sum(o.total), 0) FROM users u LEFT JOIN orders o ON o.user_id = u.id GROUP BY u.id ORDER BY u.id;
+SELECT count(*) FROM users CROSS JOIN orders;
+SELECT o.id FROM orders o WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = o.user_id);
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["query", "join", "stdin"]
+
+[[case]]
+id = "sqlite-subqueries"
+stdin = '''
+CREATE TABLE t(g TEXT, v INTEGER);
+INSERT INTO t VALUES ('a', 1), ('a', 5), ('b', 2), ('b', 9), ('c', 4);
+SELECT g, v FROM t WHERE v > (SELECT avg(v) FROM t) ORDER BY v;
+SELECT g, v FROM t t1 WHERE v = (SELECT max(v) FROM t t2 WHERE t2.g = t1.g) ORDER BY g;
+SELECT g FROM t WHERE v IN (SELECT v FROM t WHERE v % 2 = 0) ORDER BY g;
+SELECT (SELECT count(*) FROM t) AS n, (SELECT max(v) FROM t) AS mx;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["query", "subquery", "stdin"]
+
+[[case]]
+id = "sqlite-views-and-triggers"
+stdin = '''
+CREATE TABLE items(id INTEGER PRIMARY KEY, name TEXT, qty INTEGER);
+CREATE TABLE audit(msg TEXT);
+CREATE TRIGGER items_ai AFTER INSERT ON items BEGIN INSERT INTO audit VALUES ('added ' || NEW.name); END;
+CREATE TRIGGER items_au AFTER UPDATE OF qty ON items WHEN NEW.qty < 0 BEGIN SELECT RAISE(ABORT, 'negative qty'); END;
+CREATE VIEW low_stock AS SELECT name FROM items WHERE qty < 5;
+INSERT INTO items(name, qty) VALUES ('pen', 3), ('book', 10);
+SELECT * FROM low_stock;
+SELECT msg FROM audit ORDER BY rowid;
+UPDATE items SET qty = -1 WHERE name = 'pen';
+SELECT qty FROM items WHERE name = 'pen';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["ddl", "trigger", "view", "stdin"]
+
+[[case]]
+id = "sqlite-rowid-autoincrement"
+stdin = '''
+CREATE TABLE a(id INTEGER PRIMARY KEY, v TEXT);
+CREATE TABLE b(id INTEGER PRIMARY KEY AUTOINCREMENT, v TEXT);
+INSERT INTO a(v) VALUES ('x'), ('y');
+SELECT last_insert_rowid(), changes(), total_changes();
+DELETE FROM a WHERE id = 2;
+INSERT INTO a(v) VALUES ('z');
+INSERT INTO b(v) VALUES ('x'), ('y');
+DELETE FROM b WHERE id = 2;
+INSERT INTO b(v) VALUES ('z');
+SELECT id, v FROM a ORDER BY id;
+SELECT id, v FROM b ORDER BY id;
+SELECT name, seq FROM sqlite_sequence;
+SELECT rowid, _rowid_, oid FROM a ORDER BY 1;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["ddl", "rowid", "stdin"]
+
+[[case]]
+id = "sqlite-defaults-and-check"
+stdin = '''
+CREATE TABLE t(id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT 'anon', score INTEGER DEFAULT 0 CHECK (score >= 0), created TEXT DEFAULT '2026-01-15');
+INSERT INTO t(id) VALUES (1);
+INSERT INTO t(id, name, score) VALUES (2, 'bia', 7);
+INSERT INTO t DEFAULT VALUES;
+SELECT * FROM t ORDER BY id;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["ddl", "constraint", "stdin"]
+
+[[case]]
+id = "sqlite-alter-table"
+stdin = '''
+CREATE TABLE t(a INTEGER, b TEXT);
+INSERT INTO t VALUES (1, 'one');
+ALTER TABLE t ADD COLUMN c TEXT DEFAULT 'z';
+ALTER TABLE t RENAME COLUMN b TO bee;
+ALTER TABLE t RENAME TO t2;
+ALTER TABLE t2 DROP COLUMN a;
+SELECT * FROM t2;
+SELECT sql FROM sqlite_schema WHERE name = 't2';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["ddl", "alter", "stdin"]
+
+[[case]]
+id = "sqlite-update-delete-changes"
+stdin = '''
+CREATE TABLE t(id INTEGER PRIMARY KEY, v INTEGER);
+INSERT INTO t(v) VALUES (1), (2), (3), (4), (5);
+UPDATE t SET v = v * 10 WHERE v % 2 = 1;
+SELECT changes();
+DELETE FROM t WHERE v > 20;
+SELECT changes(), total_changes();
+SELECT * FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["dml", "stdin"]
+
+[[case]]
+id = "sqlite-collate-nocase"
+stdin = '''
+CREATE TABLE t(name TEXT COLLATE NOCASE);
+INSERT INTO t VALUES ('beta'), ('Alpha'), ('alpha'), ('Gamma');
+SELECT name FROM t ORDER BY name, rowid;
+SELECT count(*) FROM t WHERE name = 'ALPHA';
+SELECT 'a' = 'A', 'a' = 'A' COLLATE NOCASE, 'b' > 'A' COLLATE BINARY;
+SELECT name FROM t ORDER BY name COLLATE BINARY;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["query", "collation", "stdin"]
+
+[[case]]
+id = "sqlite-blob-values"
+argv = ["sqlite3", "db.sqlite", '''SELECT hex(x'00ff'), length(x'0102'), typeof(x''), hex(zeroblob(3)), x'414243', x'41004243', quote(x'0a0b');''']
+tags = ["types", "blob", "argv"]
+
+[[case]]
+id = "sqlite-date-functions"
+argv = ["sqlite3", "db.sqlite", '''SELECT date('2026-01-15'), date('2026-01-31', '+1 month'), date('2026-01-15', 'start of month', '+1 month', '-1 day'), strftime('%Y-%m-%d %H:%M:%S', 1768478400, 'unixepoch'), julianday('2026-01-15'), datetime(0, 'unixepoch'), unixepoch('2026-01-15 12:00:00'), time('12:34:56', '+1 hour'), strftime('%w %j %W', '2026-01-15'), date('2026-02-30');''']
+tags = ["functions", "date", "argv"]
+
+[[case]]
+id = "sqlite-math-functions"
+argv = ["sqlite3", "db.sqlite", '''SELECT sqrt(16), pow(2, 10), floor(-1.5), ceil(1.2), round(2.5), round(-2.5), round(1.2345, 2), ln(1), pi(), max(3, 7, 5), min(3, 7, 5), sign(-3), mod(7, 3), log10(1000), exp(0);''']
+tags = ["functions", "math", "argv"]
+
+[[case]]
+id = "sqlite-insert-variants"
+stdin = '''
+CREATE TABLE t(id INTEGER PRIMARY KEY, v TEXT UNIQUE);
+INSERT INTO t VALUES (1, 'a'), (2, 'b');
+INSERT OR IGNORE INTO t VALUES (3, 'a');
+INSERT OR REPLACE INTO t VALUES (4, 'b');
+REPLACE INTO t VALUES (1, 'c');
+CREATE TABLE copy AS SELECT * FROM t WHERE id > 1;
+INSERT INTO copy SELECT id + 100, v || '!' FROM t;
+SELECT * FROM t ORDER BY id;
+SELECT * FROM copy ORDER BY id;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["dml", "conflict", "stdin"]
+
+[[case]]
+id = "sqlite-without-rowid"
+stdin = '''
+CREATE TABLE kv(k TEXT PRIMARY KEY, v BLOB) WITHOUT ROWID;
+INSERT INTO kv VALUES ('b', 2), ('a', 1), ('c', 3);
+SELECT k, v FROM kv;
+SELECT k FROM kv WHERE k > 'a';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["ddl", "without-rowid", "stdin"]
+
+[[case]]
+id = "sqlite-unicode-text"
+argv = ["sqlite3", "db.sqlite", '''CREATE TABLE t(s TEXT); INSERT INTO t VALUES ('ação'), ('über'), ('日本'), ('a
+b'); SELECT s, length(s), upper(s) FROM t;''']
+tags = ["types", "unicode", "argv"]

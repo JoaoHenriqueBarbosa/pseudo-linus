@@ -1,0 +1,285 @@
+tool = "file"
+source = "manual"
+
+# Fixtures de texto: detecção de codificação, terminadores de linha, scripts e formatos textuais.
+# Cada fixture roda em `file x` e em `file --mime-type x`; alguns também em `-i` e `--mime-encoding`.
+
+[[case]]
+id = "file-ascii"
+argv = ["file", "ascii.txt"]
+tags = ["text", "describe"]
+[case.files]
+"ascii.txt" = "hello world\n"
+
+[[case]]
+id = "file-ascii-mime"
+argv = ["file", "--mime-type", "ascii.txt"]
+tags = ["text", "mime"]
+[case.files]
+"ascii.txt" = "hello world\n"
+
+[[case]]
+id = "file-ascii-i"
+argv = ["file", "-i", "ascii.txt"]
+tags = ["text", "mime-charset"]
+[case.files]
+"ascii.txt" = "hello world\n"
+
+[[case]]
+id = "file-ascii-brief"
+argv = ["file", "-b", "ascii.txt"]
+tags = ["text", "describe", "brief"]
+[case.files]
+"ascii.txt" = "hello world\n"
+
+[[case]]
+id = "file-utf8"
+argv = ["file", "utf8.txt"]
+tags = ["text", "describe"]
+[case.files]
+"utf8.txt" = "olá, mundo: ação\n"
+
+[[case]]
+id = "file-utf8-mime"
+argv = ["file", "--mime-type", "utf8.txt"]
+tags = ["text", "mime"]
+[case.files]
+"utf8.txt" = "olá, mundo: ação\n"
+
+[[case]]
+id = "file-utf8-i"
+argv = ["file", "-i", "utf8.txt"]
+tags = ["text", "mime-charset"]
+[case.files]
+"utf8.txt" = "olá, mundo: ação\n"
+
+[[case]]
+id = "file-utf8-encoding"
+argv = ["file", "--mime-encoding", "utf8.txt"]
+tags = ["text", "mime-charset"]
+[case.files]
+"utf8.txt" = "olá, mundo: ação\n"
+
+[[case]]
+id = "file-crlf"
+argv = ["file", "crlf.txt"]
+tags = ["text", "describe"]
+[case.files]
+"crlf.txt" = "line one\r\nline two\r\n"
+
+[[case]]
+id = "file-crlf-mime"
+argv = ["file", "--mime-type", "crlf.txt"]
+tags = ["text", "mime"]
+[case.files]
+"crlf.txt" = "line one\r\nline two\r\n"
+
+[[case]]
+id = "file-cr-only"
+argv = ["file", "cr.txt"]
+tags = ["text", "describe"]
+[case.files]
+"cr.txt" = "line one\rline two\r"
+
+[[case]]
+id = "file-no-newline"
+argv = ["file", "nonl.txt"]
+tags = ["text", "describe"]
+[case.files]
+"nonl.txt" = "no newline at end"
+
+[[case]]
+id = "file-long-lines"
+argv = ["file", "long.txt"]
+tags = ["text", "describe"]
+[case.files]
+"long.txt" = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+
+[[case]]
+id = "file-latin1"
+argv = ["file", "latin1.txt"]
+tags = ["text", "describe"]
+[case.files]
+"latin1.txt" = { content_b64 = "Y2Fm6SBjcuhtZQo=" }
+
+[[case]]
+id = "file-latin1-i"
+argv = ["file", "-i", "latin1.txt"]
+tags = ["text", "mime-charset"]
+[case.files]
+"latin1.txt" = { content_b64 = "Y2Fm6SBjcuhtZQo=" }
+
+[[case]]
+id = "file-utf8-bom"
+argv = ["file", "bom.txt"]
+tags = ["text", "describe"]
+[case.files]
+"bom.txt" = { content_b64 = "77u/aGVsbG8K" }
+
+[[case]]
+id = "file-utf16le-bom"
+argv = ["file", "utf16.txt"]
+tags = ["text", "describe"]
+[case.files]
+"utf16.txt" = { content_b64 = "//5oAGkACgA=" }
+
+[[case]]
+id = "file-utf16le-bom-i"
+argv = ["file", "-i", "utf16.txt"]
+tags = ["text", "mime-charset"]
+[case.files]
+"utf16.txt" = { content_b64 = "//5oAGkACgA=" }
+
+[[case]]
+id = "file-empty"
+argv = ["file", "empty"]
+tags = ["text", "describe"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "file-empty-mime"
+argv = ["file", "--mime-type", "empty"]
+tags = ["text", "mime"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "file-empty-i"
+argv = ["file", "-i", "empty"]
+tags = ["text", "mime-charset"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "file-script-bash"
+argv = ["file", "run.sh"]
+tags = ["script", "describe"]
+[case.files]
+"run.sh" = { content = "#!/bin/bash\necho hi\n", mode = 0o755 }
+
+[[case]]
+id = "file-script-bash-mime"
+argv = ["file", "--mime-type", "run.sh"]
+tags = ["script", "mime"]
+[case.files]
+"run.sh" = { content = "#!/bin/bash\necho hi\n", mode = 0o755 }
+
+[[case]]
+id = "file-script-python"
+argv = ["file", "tool.py"]
+tags = ["script", "describe"]
+[case.files]
+"tool.py" = { content = "#!/usr/bin/env python3\nprint('hi')\n", mode = 0o755 }
+
+[[case]]
+id = "file-script-python-mime"
+argv = ["file", "--mime-type", "tool.py"]
+tags = ["script", "mime"]
+[case.files]
+"tool.py" = { content = "#!/usr/bin/env python3\nprint('hi')\n", mode = 0o755 }
+
+[[case]]
+id = "file-script-sh"
+argv = ["file", "posix"]
+tags = ["script", "describe"]
+[case.files]
+"posix" = { content = "#!/bin/sh\nexit 0\n", mode = 0o755 }
+
+[[case]]
+id = "file-script-sh-mime"
+argv = ["file", "--mime-type", "posix"]
+tags = ["script", "mime"]
+[case.files]
+"posix" = { content = "#!/bin/sh\nexit 0\n", mode = 0o755 }
+
+[[case]]
+id = "file-c-source"
+argv = ["file", "main.c"]
+tags = ["source", "describe"]
+[case.files]
+"main.c" = "#include <stdio.h>\n\nint main(void)\n{\n    printf(\"hi\\n\");\n    return 0;\n}\n"
+
+[[case]]
+id = "file-c-source-mime"
+argv = ["file", "--mime-type", "main.c"]
+tags = ["source", "mime"]
+[case.files]
+"main.c" = "#include <stdio.h>\n\nint main(void)\n{\n    printf(\"hi\\n\");\n    return 0;\n}\n"
+
+[[case]]
+id = "file-json"
+argv = ["file", "data.json"]
+tags = ["structured", "describe"]
+[case.files]
+"data.json" = "{\"a\": [1, 2, 3], \"b\": {\"c\": \"d\"}}\n"
+
+[[case]]
+id = "file-json-mime"
+argv = ["file", "--mime-type", "data.json"]
+tags = ["structured", "mime"]
+[case.files]
+"data.json" = "{\"a\": [1, 2, 3], \"b\": {\"c\": \"d\"}}\n"
+
+[[case]]
+id = "file-json-i"
+argv = ["file", "-i", "data.json"]
+tags = ["structured", "mime-charset"]
+[case.files]
+"data.json" = "{\"a\": [1, 2, 3], \"b\": {\"c\": \"d\"}}\n"
+
+[[case]]
+id = "file-xml"
+argv = ["file", "doc.xml"]
+tags = ["structured", "describe"]
+[case.files]
+"doc.xml" = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root><a>1</a></root>\n"
+
+[[case]]
+id = "file-xml-mime"
+argv = ["file", "--mime-type", "doc.xml"]
+tags = ["structured", "mime"]
+[case.files]
+"doc.xml" = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root><a>1</a></root>\n"
+
+[[case]]
+id = "file-html"
+argv = ["file", "page.html"]
+tags = ["structured", "describe"]
+[case.files]
+"page.html" = "<!DOCTYPE html>\n<html><head><title>t</title></head><body><p>x</p></body></html>\n"
+
+[[case]]
+id = "file-html-mime"
+argv = ["file", "--mime-type", "page.html"]
+tags = ["structured", "mime"]
+[case.files]
+"page.html" = "<!DOCTYPE html>\n<html><head><title>t</title></head><body><p>x</p></body></html>\n"
+
+[[case]]
+id = "file-csv"
+argv = ["file", "people.csv"]
+tags = ["structured", "describe"]
+[case.files]
+"people.csv" = "name,age\nana,30\nbia,25\n"
+
+[[case]]
+id = "file-csv-mime"
+argv = ["file", "--mime-type", "people.csv"]
+tags = ["structured", "mime"]
+[case.files]
+"people.csv" = "name,age\nana,30\nbia,25\n"
+
+[[case]]
+id = "file-pdf"
+argv = ["file", "doc.pdf"]
+tags = ["document", "describe"]
+[case.files]
+"doc.pdf" = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"
+
+[[case]]
+id = "file-pdf-mime"
+argv = ["file", "--mime-type", "doc.pdf"]
+tags = ["document", "mime"]
+[case.files]
+"doc.pdf" = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"

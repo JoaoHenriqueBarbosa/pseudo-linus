@@ -1,0 +1,37 @@
+tool = "smoke"
+source = "manual"
+
+# Casos mínimos que validam o próprio harness e o oráculo.
+
+[[case]]
+id = "echo"
+argv = ["echo", "olá", "mundo"]
+
+[[case]]
+id = "cat-missing"
+argv = ["cat", "naoexiste"]
+tags = ["errno"]
+
+[[case]]
+id = "pipeline-yes-head"
+script = "yes | head -n 3; echo \"status=${PIPESTATUS[*]}\""
+tags = ["pipe", "sigpipe"]
+
+[[case]]
+id = "fixture-and-write"
+script = "sort in.txt > out.txt && stat -c '%A %s %N' in.txt link out.txt sub && ls -l --time-style=+%F in.txt"
+tags = ["fs"]
+[case.files]
+"in.txt" = "c\nb\na\n"
+"sub" = { dir = true, mode = 0o700 }
+"link" = { symlink = "in.txt" }
+
+[[case]]
+id = "stdin-binary"
+argv = ["od", "-An", "-tx1"]
+stdin_b64 = "AP+A"
+
+[[case]]
+id = "faketime-date"
+argv = ["date", "+%F %T %Z"]
+faketime = "2026-01-15 12:00:00"

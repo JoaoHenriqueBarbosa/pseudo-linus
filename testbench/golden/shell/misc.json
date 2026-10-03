@@ -1,0 +1,162 @@
+{
+  "alias-in-script": {
+    "stdout": "agora expande\n",
+    "stderr": "bash: line 2: ll: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "builtin-error-messages": {
+    "stdout": "rc=2\nrc=2\nrc=1\nrc=1\nrc=1\nrc=1\nrc=1\nbash: line 8: return: can only `return' from a function or sourced script\nrc=2\n",
+    "stderr": "bash: line 1: test: abc: integer expression expected\nbash: line 2: [: a: unary operator expected\nbash: line 3: local: can only be used in a function\nbash: line 5: cd: /naoexiste: No such file or directory\nbash: line 6: unset: `arr[': not a valid identifier\nbash: line 7: read: abc: invalid timeout specification\n",
+    "exit": 0,
+    "files": {}
+  },
+  "exec-redirect-whole-script": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "saida.log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 119,
+        "sha256": "22cf588b1bd48a7514ef2f879e384ff0e8d4392163b4ef93deca809cca68183a",
+        "data": "vai pro log\nls: cannot access 'naoexiste': No such file or directory\nbash: line 4: /dev/tty: No such device or address\n"
+      }
+    }
+  },
+  "exec-replaces-shell": {
+    "stdout": "antes\nsubstituído\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "function-returning-via-stdout-and-nameref": {
+    "stdout": "jpeg\nvia nameref\nx y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "integer-overflow-and-base": {
+    "stdout": "-9223372036854775808\n18\n8\nrc=1\n",
+    "stderr": "bash: line 4: 08: value too great for base (error token is \"08\")\n",
+    "exit": 0,
+    "files": {}
+  },
+  "json-with-shell-tools": {
+    "stdout": "a=1\nb=2\ntotal=3\n{\n  \"chave\": 3\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dados.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "dd44a6d32f834ea14f8017b59d649461391643b4cd837122c3afe334c3d1df76",
+        "data": "{\"items\": [{\"n\": \"a\", \"v\": 1}, {\"n\": \"b\", \"v\": 2}]}\n"
+      }
+    }
+  },
+  "loop-over-find-output-safely": {
+    "stdout": "arquivo: ./a.c\narquivo: ./com\\ espaço.c\narquivo: ./sub/b.c\nglob: ./a.c\nglob: ./com espaço.c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "com espaço.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/b.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "nested-quotes-cmdsub-arith": {
+    "stdout": "n=4\nx  y\n11\ncontagem: 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sed-awk-in-pipeline": {
+    "stdout": "ana\nnome -> ana\nidade -> 30\nnome=ana\nidade=31\n16\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "p.env": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "0fb287007d3fc5c19772a79171163c696f9e97adc4e95d04eba018fe6d65a0bd",
+        "data": "nome=ana\nidade=31\n"
+      }
+    }
+  },
+  "shopt-and-set-o-listing": {
+    "stdout": "extglob        \toff\nnullglob       \toff\nglobstar       \toff\nerrexit        \toff\nnoclobber      \toff\nnounset        \toff\npipefail       \toff\nextglob q=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "string-comparison-sort-order": {
+    "stdout": "a>=B\ntest a>=B\nA\nB\na\nb\nA\nB\na\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "time-keyword-format": {
+    "stdout": "",
+    "stderr": "tempo:0\ntempo:0\n",
+    "exit": 0,
+    "files": {}
+  },
+  "unicode-and-bytes": {
+    "stdout": "9\n17\nação\nAÇÃO Ñ 日本\n6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "wait-for-condition-loop": {
+    "stdout": "tentativas=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pronto.flag": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "xtrace-output": {
+    "stdout": "valor 1\n2\nfim\n",
+    "stderr": "+ a=1\n+ echo 'valor 1'\n+ cat\n+ f\n+ local b=2\n+ echo 2\n+ set +x\n",
+    "exit": 0,
+    "files": {}
+  },
+  "xtrace-ps4": {
+    "stdout": "ok\n",
+    "stderr": "++ [3] echo sub\n+ [3] x=sub\n+ [4] [[ sub == sub ]]\n+ [4] echo ok\n",
+    "exit": 0,
+    "files": {}
+  }
+}

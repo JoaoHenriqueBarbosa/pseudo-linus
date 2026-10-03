@@ -1,0 +1,211 @@
+tool = "coreutils"
+source = "agent-style"
+
+# Operações de arquivo: o que conta é a árvore final (o golden guarda o retrato do diretório).
+
+[[case]]
+id = "cp-file"
+argv = ["cp", "a.txt", "b.txt"]
+tags = ["cp", "fs"]
+[case.files]
+"a.txt" = "conteúdo\n"
+
+[[case]]
+id = "cp-into-dir"
+argv = ["cp", "a.txt", "b.txt", "dest/"]
+tags = ["cp", "fs"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+"dest" = { dir = true }
+
+[[case]]
+id = "cp-r"
+argv = ["cp", "-r", "src", "backup"]
+tags = ["cp", "fs"]
+[case.files]
+"src/a.rs" = "a\n"
+"src/mod/b.rs" = "b\n"
+"src/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "cp-dir-without-r"
+argv = ["cp", "src", "backup"]
+tags = ["cp", "fs", "errno"]
+[case.files]
+"src/a" = ""
+
+[[case]]
+id = "cp-missing-dest-dir"
+argv = ["cp", "a.txt", "nodir/b.txt"]
+tags = ["cp", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "cp-overwrite"
+argv = ["cp", "new.txt", "old.txt"]
+tags = ["cp", "fs"]
+[case.files]
+"new.txt" = "novo\n"
+"old.txt" = "velho e maior\n"
+
+[[case]]
+id = "cp-preserve-mode"
+argv = ["cp", "run.sh", "copy.sh"]
+tags = ["cp", "fs"]
+[case.files]
+"run.sh" = { content = "#!/bin/sh\n", mode = 0o750 }
+
+[[case]]
+id = "mv-rename"
+argv = ["mv", "a.txt", "b.txt"]
+tags = ["mv", "fs"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "mv-into-dir"
+argv = ["mv", "a.txt", "dir"]
+tags = ["mv", "fs"]
+[case.files]
+"a.txt" = "a\n"
+"dir" = { dir = true }
+
+[[case]]
+id = "mv-overwrite"
+argv = ["mv", "-f", "new.txt", "old.txt"]
+tags = ["mv", "fs"]
+[case.files]
+"new.txt" = "novo\n"
+"old.txt" = "velho\n"
+
+[[case]]
+id = "mv-dir"
+argv = ["mv", "src", "lib"]
+tags = ["mv", "fs"]
+[case.files]
+"src/x/y.txt" = "y\n"
+
+[[case]]
+id = "mv-missing"
+argv = ["mv", "nope", "x"]
+tags = ["mv", "fs", "errno"]
+
+[[case]]
+id = "rm-file"
+argv = ["rm", "a.txt"]
+tags = ["rm", "fs"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "rm-missing"
+argv = ["rm", "nope.txt"]
+tags = ["rm", "fs", "errno"]
+
+[[case]]
+id = "rm-f-missing"
+argv = ["rm", "-f", "nope.txt"]
+tags = ["rm", "fs"]
+
+[[case]]
+id = "rm-dir-without-r"
+argv = ["rm", "d"]
+tags = ["rm", "fs", "errno"]
+[case.files]
+"d/x" = ""
+
+[[case]]
+id = "rm-rf"
+argv = ["rm", "-rf", "build", "dist", "nope"]
+tags = ["rm", "fs"]
+[case.files]
+"build/a/b/c.o" = "x"
+"dist/app.js" = "y"
+"keep.txt" = "k\n"
+
+[[case]]
+id = "rm-r-verbose"
+argv = ["rm", "-rv", "d"]
+tags = ["rm", "fs"]
+[case.files]
+"d/f" = ""
+
+[[case]]
+id = "mkdir-p"
+argv = ["mkdir", "-p", "a/b/c", "x/y"]
+tags = ["mkdir", "fs"]
+
+[[case]]
+id = "mkdir-exists"
+argv = ["mkdir", "d"]
+tags = ["mkdir", "fs", "errno"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "mkdir-p-exists"
+argv = ["mkdir", "-p", "d"]
+tags = ["mkdir", "fs"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "mkdir-missing-parent"
+argv = ["mkdir", "a/b"]
+tags = ["mkdir", "fs", "errno"]
+
+[[case]]
+id = "mkdir-m"
+argv = ["mkdir", "-m", "700", "private"]
+tags = ["mkdir", "fs"]
+
+[[case]]
+id = "ln-s"
+argv = ["ln", "-s", "target.txt", "link"]
+tags = ["ln", "fs", "symlink"]
+[case.files]
+"target.txt" = "t\n"
+
+[[case]]
+id = "ln-s-exists"
+argv = ["ln", "-s", "target.txt", "link"]
+tags = ["ln", "fs", "symlink", "errno"]
+[case.files]
+"target.txt" = "t\n"
+"link" = ""
+
+[[case]]
+id = "ln-sf"
+argv = ["ln", "-sf", "new.txt", "link"]
+tags = ["ln", "fs", "symlink"]
+[case.files]
+"old.txt" = "o\n"
+"new.txt" = "n\n"
+"link" = { symlink = "old.txt" }
+
+[[case]]
+id = "touch-new"
+argv = ["touch", "new.txt", "other.log"]
+tags = ["touch", "fs"]
+
+[[case]]
+id = "touch-existing-keeps-content"
+argv = ["touch", "a.txt"]
+tags = ["touch", "fs"]
+[case.files]
+"a.txt" = "não muda\n"
+
+[[case]]
+id = "touch-missing-dir"
+argv = ["touch", "nodir/x"]
+tags = ["touch", "fs", "errno"]
+
+[[case]]
+id = "cp-then-cat"
+script = "mkdir -p out && cp a.txt out/ && cat out/a.txt"
+tags = ["cp", "mkdir", "fs", "shell"]
+[case.files]
+"a.txt" = "copiado\n"

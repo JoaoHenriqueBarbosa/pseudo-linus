@@ -1,0 +1,237 @@
+tool = "ls"
+source = "agent-style"
+
+# ls como agente usa pra se orientar no repositório. Saída não é tty, então o formato padrão é uma
+# entrada por linha. Nada aqui lista o próprio diretório do caso com -l nem mostra . e .. com data:
+# o mtime dele é o da criação do caso, não o da fixture. Link simbólico não tem mtime fixo, então
+# aparece em -l só com --time-style=+ (data vazia).
+
+[[case]]
+id = "ls-basic"
+argv = ["ls"]
+tags = ["ls", "ported"]
+[case.files]
+"b.txt" = "b\n"
+"a.txt" = "a\n"
+"src" = { dir = true }
+".hidden" = "h\n"
+"Zeta.md" = "z\n"
+"_under" = ""
+
+[[case]]
+id = "ls-a"
+argv = ["ls", "-a"]
+tags = ["ls", "ported"]
+[case.files]
+"a.txt" = "a\n"
+".env" = "X=1\n"
+".git" = { dir = true }
+
+[[case]]
+id = "ls-A"
+argv = ["ls", "-A"]
+tags = ["ls", "ported"]
+[case.files]
+"a.txt" = "a\n"
+".env" = "X=1\n"
+
+[[case]]
+id = "ls-1-dir"
+argv = ["ls", "-1", "src"]
+tags = ["ls", "ported"]
+[case.files]
+"src/main.rs" = "fn main() {}\n"
+"src/lib.rs" = ""
+"src/util" = { dir = true }
+
+[[case]]
+id = "ls-R"
+argv = ["ls", "-R"]
+tags = ["ls", "ported"]
+[case.files]
+"top.txt" = ""
+"src/main.rs" = ""
+"src/util/mod.rs" = ""
+"docs/readme.md" = ""
+
+[[case]]
+id = "ls-l-long-iso"
+argv = ["ls", "-l", "--time-style=long-iso"]
+tags = ["ls", "ported", "long"]
+[case.files]
+"a.txt" = "conteúdo\n"
+"run.sh" = { content = "#!/bin/sh\necho oi\n", mode = 0o755 }
+"secret" = { content = "x", mode = 0o600 }
+"sub" = { dir = true, mode = 0o700 }
+"sub/inner.txt" = "i\n"
+"big.log" = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+
+[[case]]
+id = "ls-l-default-old-date"
+argv = ["ls", "-l", "a.txt", "b.txt"]
+tags = ["ls", "ported", "long", "time"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "bb\n"
+
+# NO_FAKE_STAT: sem ele o libfaketime desloca o mtime devolvido pelo statx pela diferença entre a
+# data falsa e a real, e o golden passaria a depender do dia em que foi gerado.
+[[case]]
+id = "ls-l-recent-date"
+argv = ["ls", "-l", "a.txt"]
+faketime = "2026-01-20 08:00:00"
+tags = ["ls", "ported", "long", "time"]
+[case.env]
+NO_FAKE_STAT = "1"
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "ls-full-time"
+argv = ["ls", "--full-time", "a.txt"]
+tags = ["ls", "ported", "long", "time"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "ls-l-time-style-format"
+argv = ["ls", "-l", "--time-style=+%Y-%m-%d %H:%M", "dir"]
+tags = ["ls", "ported", "long", "time"]
+[case.files]
+"dir/x" = "1\n"
+"dir/y" = "22\n"
+
+[[case]]
+id = "ls-l-symlink"
+argv = ["ls", "-l", "--time-style=+", "link", "real.txt"]
+tags = ["ls", "ported", "long", "symlink"]
+[case.files]
+"real.txt" = "x\n"
+"link" = { symlink = "real.txt" }
+
+[[case]]
+id = "ls-lh"
+argv = ["ls", "-lh", "--time-style=long-iso", "data"]
+tags = ["ls", "ported", "long"]
+[case.files]
+"data/small" = "abc"
+"data/medium.txt" = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+
+[[case]]
+id = "ls-ld"
+argv = ["ls", "-ld", "--time-style=long-iso", "sub", "a.txt"]
+tags = ["ls", "ported", "long"]
+[case.files]
+"a.txt" = ""
+"sub/one" = { dir = true }
+"sub/two.txt" = ""
+
+[[case]]
+id = "ls-n-numeric"
+argv = ["ls", "-n", "--time-style=long-iso", "a.txt"]
+tags = ["ls", "ported", "long"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "ls-t"
+argv = ["ls", "-t", "d"]
+tags = ["ls", "ported", "time"]
+[case.files]
+"d/b" = ""
+"d/a" = ""
+"d/c" = ""
+
+[[case]]
+id = "ls-S"
+argv = ["ls", "-S", "d"]
+tags = ["ls", "ported"]
+[case.files]
+"d/small" = "1"
+"d/large" = "1234567890"
+"d/mid" = "12345"
+"d/mid2" = "12345"
+
+[[case]]
+id = "ls-lS"
+argv = ["ls", "-lS", "--time-style=long-iso", "d"]
+tags = ["ls", "ported", "long"]
+[case.files]
+"d/small" = "1"
+"d/large" = "1234567890"
+
+[[case]]
+id = "ls-r"
+argv = ["ls", "-r", "d"]
+tags = ["ls", "ported"]
+[case.files]
+"d/a" = ""
+"d/b" = ""
+"d/c" = ""
+
+[[case]]
+id = "ls-F"
+argv = ["ls", "-F", "d"]
+tags = ["ls", "ported"]
+[case.files]
+"d/run.sh" = { content = "", mode = 0o755 }
+"d/sub" = { dir = true }
+"d/plain" = ""
+"d/link" = { symlink = "plain" }
+
+[[case]]
+id = "ls-p"
+argv = ["ls", "-p", "d"]
+tags = ["ls", "ported"]
+[case.files]
+"d/sub" = { dir = true }
+"d/file" = ""
+
+[[case]]
+id = "ls-files-and-dirs"
+argv = ["ls", "z.txt", "d", "a.txt"]
+tags = ["ls", "ported"]
+[case.files]
+"z.txt" = ""
+"a.txt" = ""
+"d/inner" = ""
+
+[[case]]
+id = "ls-missing"
+argv = ["ls", "nope", "a.txt"]
+tags = ["ls", "ported", "errno"]
+[case.files]
+"a.txt" = ""
+
+[[case]]
+id = "ls-names-with-spaces"
+argv = ["ls", "d"]
+tags = ["ls", "ported", "quoting"]
+[case.files]
+"d/com espaço.txt" = ""
+"d/aspas'simples" = ""
+"d/normal" = ""
+
+[[case]]
+id = "ls-color-never"
+argv = ["ls", "--color=never", "-a", "d"]
+tags = ["ls", "ported"]
+[case.files]
+"d/x" = ""
+
+[[case]]
+id = "ls-d-glob"
+script = "ls -d */"
+tags = ["ls", "shell"]
+[case.files]
+"one/a" = ""
+"two" = { dir = true }
+"file" = ""
+
+[[case]]
+id = "ls-la-dir-head"
+script = "ls -la --time-style=long-iso sub | tail -n +4"
+tags = ["ls", "pipeline"]
+[case.files]
+"sub/a" = "a\n"
+"sub/b" = "bb\n"

@@ -1,0 +1,13 @@
+[package]
+name = "rbtree"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Árvore rubro-negra aumentada em arena (índices u32), tradução do lib/rbtree.c do Linux sem unsafe"
+
+[dependencies]
+
+[lints]
+workspace = true
