@@ -929,8 +929,10 @@ impl Syscalls for ProcHandle {
                 let off = f.offset as usize;
                 let n = match &w.node(ino).kind {
                     Kind::File(d) => {
-                        let n = d.len().saturating_sub(off).min(buf.len());
-                        buf[..n].copy_from_slice(&d[off..off + n]);
+                        // Offset além do fim (lseek depois do EOF) lê 0 bytes, como no Linux.
+                        let start = off.min(d.len());
+                        let n = (d.len() - start).min(buf.len());
+                        buf[..n].copy_from_slice(&d[start..start + n]);
                         n
                     }
                     Kind::Device(Dev::Null) => 0,
@@ -1021,9 +1023,9 @@ impl Syscalls for ProcHandle {
         match &f.kind {
             OpenKind::Inode(ino) => match &self.w().node(*ino).kind {
                 Kind::File(d) => {
-                    let off = offset as usize;
-                    let n = d.len().saturating_sub(off).min(buf.len());
-                    buf[..n].copy_from_slice(&d[off..off + n]);
+                    let start = (offset as usize).min(d.len());
+                    let n = (d.len() - start).min(buf.len());
+                    buf[..n].copy_from_slice(&d[start..start + n]);
                     Ok(n)
                 }
                 _ => Err(Errno::ESPIPE),
@@ -2412,6 +2414,23 @@ mod tests {
         assert_eq!(r.stdout, b"from stdin");
         let r = k.run(&["nope"], b"");
         assert_eq!(r.code(), 127);
+    }
+
+    fn read_past_end(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let sys = ctx.sys().clone();
+        let fd = sys.openat(Fd::CWD, b"small", OFlags::RDONLY, 0).unwrap();
+        sys.lseek(fd, 1000, Whence::Set).unwrap();
+        let mut buf = [0u8; 16];
+        let n = sys.read(fd, &mut buf).unwrap();
+        let p = sys.pread(fd, &mut buf, 5000).unwrap();
+        ctx.stdout().write_all(format!("{n} {p}\n").as_bytes()).ok();
+        0
+    }
+
+    #[test]
+    fn read_past_end_returns_zero() {
+        let k = kit().programs([Program::bin("rpe", read_past_end)]).file("/work/small", "abc", 0o644);
+        assert_eq!(k.run(&["rpe"], b"").stdout_str(), "0 0\n");
     }
 
     #[test]
