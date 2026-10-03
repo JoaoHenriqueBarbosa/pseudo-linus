@@ -171,10 +171,60 @@ impl Report {
     }
 }
 
+/// Tag de caso cuja saída depende da ordem do readdir (o oráculo roda em overlayfs sobre ext4, o
+/// pseudo-linus segue o tmpfs): stdout é comparado com as linhas ordenadas.
+pub const ORDER_INSENSITIVE: &str = "order-insensitive";
+
+fn sorted_lines(b: &harness::Bytes) -> harness::Bytes {
+    let mut lines: Vec<&[u8]> = b.as_slice().split_inclusive(|c| *c == b'\n').collect();
+    lines.sort();
+    harness::Bytes(lines.concat())
+}
+
+/// Como `harness::score`, mais a normalização de casos `order-insensitive`.
+fn score_cases(cand: &dyn Candidate, cases: &[(harness::Case, Outcome)]) -> (Conformance, Vec<harness::CaseComparison>) {
+    let mut conf = Conformance { candidate: cand.name(), ..Conformance::default() };
+    let mut all = Vec::with_capacity(cases.len());
+    for (case, golden) in cases {
+        let actual = match case.invocation() {
+            Ok(inv) => match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| cand.run(&inv))) {
+                Ok(o) => o,
+                Err(_) => Outcome::unsupported("panic no candidato"),
+            },
+            Err(e) => Outcome::unsupported(format!("caso inválido: {e}")),
+        };
+        let cmp = if case.tags.iter().any(|t| t == ORDER_INSENSITIVE) {
+            let mut g = golden.clone();
+            let mut a = actual;
+            g.stdout = sorted_lines(&g.stdout);
+            a.stdout = sorted_lines(&a.stdout);
+            harness::compare_outcome(case, &g, &a)
+        } else {
+            harness::compare_outcome(case, golden, &actual)
+        };
+        all.push(cmp);
+    }
+    for cmp in &all {
+        conf.total += 1;
+        conf.strict_pass += cmp.strict as usize;
+        conf.lenient_pass += cmp.lenient as usize;
+        conf.unsupported += cmp.unsupported.is_some() as usize;
+        let tags: Vec<String> = if cmp.tags.is_empty() { vec!["untagged".into()] } else { cmp.tags.clone() };
+        for tag in tags {
+            let slot = conf.by_tag.entry(tag).or_default();
+            slot.0 += cmp.strict as usize;
+            slot.1 += cmp.lenient as usize;
+            slot.2 += 1;
+        }
+    }
+    conf.sample_failures = all.iter().filter(|c| !c.strict).take(15).cloned().collect();
+    (conf, all)
+}
+
 /// Roda todos os casos de `testbench/corpus/cases/<tool>` que têm golden.
 pub fn score_tool(tool: &str, cand: &dyn Candidate) -> Report {
     let (cases, missing_golden) = harness::paths::load_tool(tool).expect("carregar casos e golden");
-    let (conformance, comparisons) = harness::score(cand, &cases);
+    let (conformance, comparisons) = score_cases(cand, &cases);
     Report { tool: tool.to_string(), conformance, missing_golden, comparisons }
 }
 
@@ -182,7 +232,7 @@ pub fn score_tool(tool: &str, cand: &dyn Candidate) -> Report {
 pub fn score_ids(tool: &str, cand: &dyn Candidate, ids: &[&str]) -> Report {
     let (cases, _) = harness::paths::load_tool(tool).expect("carregar casos e golden");
     let picked: Vec<_> = cases.into_iter().filter(|(c, _)| ids.contains(&c.id.as_str())).collect();
-    let (conformance, comparisons) = harness::score(cand, &picked);
+    let (conformance, comparisons) = score_cases(cand, &picked);
     Report { tool: tool.to_string(), conformance, missing_golden: 0, comparisons }
 }
 
