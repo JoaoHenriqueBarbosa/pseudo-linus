@@ -9,7 +9,7 @@ um `PROVENANCE.md` com a origem arquivo por arquivo.
 | Crate | Origem derivada | Licença declarada |
 |---|---|---|
 | `sched` | porte do `kernel/sched/fair.c` do Linux 6.12.101 (GPL-2.0-only), mesmos nomes de função e mesma ordem de passos | GPL-2.0-only |
-| `regex-posix` | parser traduzido do `regcomp.c` da glibc/gnulib (LGPL-2.1+), submatches do `regexec.c` (LGPL-2.1+), trechos do `dfa.c` (GPL-3.0+) | LGPL-2.1-or-later (os trechos do dfa.c pedem GPL-3.0+; ver PROVENANCE) |
+| `regex-posix` | parser traduzido do `regcomp.c` da glibc/gnulib (LGPL-2.1+), submatches do `regexec.c` (LGPL-2.1+), `colon_state` e regra de `laststart` do `dfa.c` (GPL-3.0+) | LGPL-2.1-or-later AND GPL-3.0-or-later (ver `crates/regex-posix/PROVENANCE.md`; especificação comportamental pra sala limpa em `crates/regex-posix/SPEC.md`) |
 | `ul-textproc` (grep) | porte do `grep.c`/`dfasearch.c` do GNU grep (GPL-3.0+) | GPL-3.0-or-later |
 | `ul-textproc` (sed) | escrito a partir do manual e do oráculo, por quem leu partes do `compile.c`/`execute.c` antes da regra (não é sala limpa estrita) | GPL-3.0-or-later por precaução |
 | `kernel`, `vfs` | inventário pedido ao agente; ver os PROVENANCE.md | a confirmar |

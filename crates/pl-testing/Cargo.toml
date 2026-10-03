@@ -9,6 +9,7 @@ description = "Conformidade do pseudo-linus contra o golden da bancada: candidat
 
 [dependencies]
 sysabi = { workspace = true, features = ["testkit"] }
+kernel = { workspace = true }
 harness = { path = "../../testbench/crates/harness" }
 
 [lints]

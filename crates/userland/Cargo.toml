@@ -1,0 +1,39 @@
+[package]
+name = "userland"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Tabela única de programas do pseudo-linus (agrega o programs() de cada crate de userland)"
+
+[features]
+default = ["coreutils", "textproc", "awk", "jq", "diff", "archive", "misc", "procps", "sqlite", "git"]
+shell = ["dep:shell"]
+coreutils = ["dep:ul-coreutils"]
+textproc = ["dep:ul-textproc"]
+awk = ["dep:ul-awk"]
+jq = ["dep:ul-jq"]
+diff = ["dep:ul-diff"]
+archive = ["dep:ul-archive"]
+misc = ["dep:ul-misc"]
+procps = ["dep:ul-procps"]
+sqlite = ["dep:ul-sqlite"]
+git = ["dep:ul-git"]
+
+[dependencies]
+sysabi = { workspace = true }
+shell = { workspace = true, optional = true }
+ul-coreutils = { path = "../ul-coreutils", optional = true }
+ul-textproc = { path = "../ul-textproc", optional = true }
+ul-awk = { path = "../ul-awk", optional = true }
+ul-jq = { path = "../ul-jq", optional = true }
+ul-diff = { path = "../ul-diff", optional = true }
+ul-archive = { path = "../ul-archive", optional = true }
+ul-misc = { path = "../ul-misc", optional = true }
+ul-procps = { path = "../ul-procps", optional = true }
+ul-sqlite = { path = "../ul-sqlite", optional = true }
+ul-git = { path = "../ul-git", optional = true }
+
+[lints]
+workspace = true

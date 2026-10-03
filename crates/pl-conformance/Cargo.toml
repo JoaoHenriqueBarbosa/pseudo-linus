@@ -1,0 +1,31 @@
+[package]
+name = "pl-conformance"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Painel de conformidade: a bancada inteira sobre o kernel real com todos os programas"
+
+[features]
+default = ["coreutils", "textproc", "awk", "jq", "diff", "archive", "misc", "procps", "sqlite", "git"]
+shell = ["userland/shell"]
+coreutils = ["userland/coreutils"]
+textproc = ["userland/textproc"]
+awk = ["userland/awk"]
+jq = ["userland/jq"]
+diff = ["userland/diff"]
+archive = ["userland/archive"]
+misc = ["userland/misc"]
+procps = ["userland/procps"]
+sqlite = ["userland/sqlite"]
+git = ["userland/git"]
+
+[dependencies]
+sysabi = { workspace = true }
+userland = { path = "../userland", default-features = false }
+pl-testing = { path = "../pl-testing" }
+harness = { path = "../../testbench/crates/harness" }
+
+[lints]
+workspace = true

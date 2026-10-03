@@ -88,6 +88,133 @@ impl Candidate for TestkitCandidate {
     }
 }
 
+/// Candidato que roda cada caso no kernel real (`crates/kernel`): threads de verdade, pipes
+/// concorrentes, sinais, escalonador. Cada caso ganha um sandbox novo, derivado em O(1) de um retrato da
+/// imagem base com os programas.
+pub struct KernelCandidate {
+    name: String,
+    programs: Vec<Program>,
+    kernel: kernel::Kernel,
+    base: kernel::Snapshot,
+    timeout: std::time::Duration,
+}
+
+impl KernelCandidate {
+    pub fn new(name: impl Into<String>, programs: Vec<Program>) -> KernelCandidate {
+        let kernel = kernel::Kernel::new(kernel::KernelConfig::default());
+        let template = kernel
+            .create_sandbox(kernel::SandboxConfig { programs: programs.clone(), ..kernel::SandboxConfig::default() })
+            .expect("sandbox da imagem base");
+        let base = template.snapshot();
+        drop(template);
+        KernelCandidate { name: name.into(), programs, kernel, base, timeout: std::time::Duration::from_secs(20) }
+    }
+
+    /// Prazo de parede por caso (padrão 20 s, igual ao oráculo).
+    pub fn with_timeout(mut self, d: std::time::Duration) -> KernelCandidate {
+        self.timeout = d;
+        self
+    }
+
+    /// Sandbox com a fixture do caso montada em `/work/case`.
+    pub fn sandbox_for(&self, inv: &Invocation) -> Result<kernel::Sandbox, String> {
+        let clock = match inv.faketime.as_deref().and_then(parse_faketime) {
+            Some(sec) => kernel::ClockMode::Fixed(sysabi::TimeSpec { sec, nsec: 0 }),
+            None => kernel::ClockMode::Host,
+        };
+        let env: Vec<Vec<u8>> = inv.full_env().into_iter().map(|(k, v)| format!("{k}={v}").into_bytes()).collect();
+        let cfg = kernel::SandboxConfig {
+            programs: self.programs.clone(),
+            clock,
+            env,
+            cwd: CASE_DIR.as_bytes().to_vec(),
+            ..kernel::SandboxConfig::default()
+        };
+        let sb = self.kernel.create_sandbox_from(&self.base, cfg).map_err(|e| format!("create_sandbox: {e:?}"))?;
+        let fs = sb.fs();
+        fs.mkdir_all(CASE_DIR.as_bytes(), 0o755).map_err(|e| format!("mkdir {CASE_DIR}: {e:?}"))?;
+        for (rel, entry) in &inv.files.entries {
+            let path = format!("{CASE_DIR}/{rel}");
+            let p = path.as_bytes();
+            let r = match entry {
+                Entry::File { data: Some(d), mode, .. } => fs.write_file(p, d.as_slice(), *mode),
+                Entry::File { data: None, mode, .. } => fs.write_file(p, b"", *mode),
+                Entry::Dir { mode } => fs.mkdir_all(p, *mode),
+                Entry::Symlink { target } => fs.symlink(target.as_bytes(), p),
+            };
+            r.map_err(|e| format!("fixture {rel}: {e:?}"))?;
+        }
+        let t = sysabi::TimeSpec { sec: harness::FIXTURE_MTIME as i64, nsec: 0 };
+        for rel in inv.files.entries.keys() {
+            let _ = fs.set_mtime(format!("{CASE_DIR}/{rel}").as_bytes(), t);
+        }
+        Ok(sb)
+    }
+}
+
+impl Candidate for KernelCandidate {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn run(&self, inv: &Invocation) -> Outcome {
+        let sb = match self.sandbox_for(inv) {
+            Ok(sb) => sb,
+            Err(e) => return Outcome::unsupported(e),
+        };
+        let argv: Vec<Vec<u8>> = match &inv.script {
+            Some(s) => vec![b"bash".to_vec(), b"-c".to_vec(), s.as_bytes().to_vec()],
+            None => inv.argv.iter().map(|a| a.as_bytes().to_vec()).collect(),
+        };
+        let req = kernel::RunRequest {
+            argv,
+            env: None,
+            cwd: Some(CASE_DIR.as_bytes().to_vec()),
+            stdin: inv.stdin.clone(),
+            timeout: Some(self.timeout),
+        };
+        let out = match sb.run(req) {
+            Ok(o) => o,
+            Err(e) => return Outcome::unsupported(format!("run: {e:?}")),
+        };
+        let (exit, signal) = match out.status {
+            WaitStatus::Exited(c) => (Some(c), None),
+            WaitStatus::Signaled { signal, .. } => (None, Some(signal.0)),
+            WaitStatus::Stopped(s) => (None, Some(s.0)),
+            WaitStatus::Continued => (Some(0), None),
+        };
+        let files = match sb.fs().tree(CASE_DIR.as_bytes()) {
+            Ok(t) => kernel_tree_to_memtree(t),
+            Err(e) => return Outcome::unsupported(format!("tree: {e:?}")),
+        };
+        Outcome {
+            stdout: out.stdout.into(),
+            stderr: out.stderr.into(),
+            exit,
+            signal,
+            timed_out: out.timed_out,
+            files,
+            unsupported: None,
+        }
+    }
+}
+
+pub fn kernel_tree_to_memtree(tree: Vec<(Vec<u8>, kernel::TreeEntry)>) -> MemTree {
+    tree_to_memtree(
+        tree.into_iter()
+            .map(|(p, e)| {
+                let e = match e {
+                    kernel::TreeEntry::File { data, mode } => TreeEntry::File { data, mode },
+                    kernel::TreeEntry::Dir { mode } => TreeEntry::Dir { mode },
+                    kernel::TreeEntry::Symlink { target } => TreeEntry::Symlink { target },
+                    kernel::TreeEntry::Other { mode } => TreeEntry::Other { mode },
+                };
+                (p, e)
+            })
+            .collect(),
+    )
+}
+
 pub fn tree_to_memtree(tree: Vec<(Vec<u8>, TreeEntry)>) -> MemTree {
     let mut m = MemTree::new();
     for (rel, e) in tree {
