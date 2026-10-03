@@ -1,0 +1,2216 @@
+//! Kernel de teste em memória (feature `testkit`).
+//!
+//! Serve pra testar programas antes do kernel real. É **síncrono e de uma thread**: `spawn` e
+//! `spawn_fn` rodam o filho até o fim antes de voltar, e `wait4` só colhe quem já terminou. Com isso:
+//!
+//! - pipes não bloqueiam: escrita acumula até 1 MiB (aí o escritor leva EPIPE/SIGPIPE, que é o que
+//!   acontece com `yes | head` no Linux, só que antes) e leitura de pipe vazio é EOF;
+//! - sinais pra outros processos quase sempre chegam tarde (eles já terminaram);
+//! - não há escalonador, rlimits, procfs nem permissões (todo mundo é root).
+//!
+//! O resto segue o Linux: inodes, hardlinks, symlinks com limite de 40, `..`, barra final, errnos,
+//! open file descriptions compartilhadas por `dup`, CLOEXEC, `O_APPEND`, `readdir` na ordem do tmpfs
+//! (mais novo primeiro), `execve` de builtin e de `#!`.
+
+use std::collections::{BTreeMap, VecDeque};
+use std::ffi::OsString;
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::Duration;
+
+use crate::ctx::{Ctx, to_os_args};
+use crate::linux::{DefaultAction, Errno, Signal};
+use crate::program::{Main, Program};
+use crate::sys::{self, ExecUnwind, ExitUnwind, KillUnwind, SysResult, Syscalls};
+use crate::types::*;
+
+/// 2026-01-15T12:00:00Z, o mesmo instante das fixtures da bancada.
+pub const DEFAULT_TIME: i64 = 1_768_478_400;
+const PIPE_LIMIT: usize = 1 << 20;
+const MAXSYMLINKS: usize = 40;
+const PATH_MAX: usize = 4096;
+const NAME_MAX: usize = 255;
+
+/// Ambiente padrão, o mesmo do oráculo da bancada.
+pub const BASE_ENV: &[(&str, &str)] = &[
+    ("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"),
+    ("HOME", "/root"),
+    ("USER", "root"),
+    ("LOGNAME", "root"),
+    ("SHELL", "/bin/bash"),
+    ("LC_ALL", "C.UTF-8"),
+    ("TZ", "UTC"),
+];
+
+type Ino = u64;
+
+#[derive(Clone, Debug)]
+enum Kind {
+    File(Vec<u8>),
+    Dir(BTreeMap<Vec<u8>, (Ino, u64)>),
+    Symlink(Vec<u8>),
+    Builtin(String),
+    Device(Dev),
+    Fifo,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Dev {
+    Null,
+    Zero,
+    Full,
+    Random,
+    Tty,
+}
+
+#[derive(Clone, Debug)]
+struct Node {
+    kind: Kind,
+    mode: Mode,
+    uid: Uid,
+    gid: Gid,
+    nlink: u64,
+    atime: TimeSpec,
+    mtime: TimeSpec,
+    ctime: TimeSpec,
+}
+
+impl Node {
+    fn type_bits(&self) -> Mode {
+        match &self.kind {
+            Kind::File(_) | Kind::Builtin(_) => mode::S_IFREG,
+            Kind::Dir(_) => mode::S_IFDIR,
+            Kind::Symlink(_) => mode::S_IFLNK,
+            Kind::Device(_) => mode::S_IFCHR,
+            Kind::Fifo => mode::S_IFIFO,
+        }
+    }
+
+    fn file_type(&self) -> FileType {
+        FileType::from_mode(self.type_bits())
+    }
+}
+
+#[derive(Debug)]
+struct PipeBuf {
+    data: VecDeque<u8>,
+    readers: usize,
+    writers: usize,
+}
+
+#[derive(Debug)]
+enum OpenKind {
+    Inode(Ino),
+    Dir { ino: Ino, listing: Option<Vec<DirEntry>> },
+    PipeRead(Arc<Mutex<PipeBuf>>),
+    PipeWrite(Arc<Mutex<PipeBuf>>),
+}
+
+#[derive(Debug)]
+struct OpenFile {
+    kind: OpenKind,
+    flags: OFlags,
+    offset: u64,
+}
+
+impl Drop for OpenFile {
+    fn drop(&mut self) {
+        match &self.kind {
+            OpenKind::PipeRead(p) => lock(p).readers -= 1,
+            OpenKind::PipeWrite(p) => lock(p).writers -= 1,
+            _ => {}
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct FdEntry {
+    file: Arc<Mutex<OpenFile>>,
+    cloexec: bool,
+}
+
+#[derive(Clone, Debug)]
+struct Proc {
+    pid: Pid,
+    ppid: Pid,
+    pgid: Pid,
+    sid: Pid,
+    cwd: Vec<u8>,
+    env: Vec<Vec<u8>>,
+    argv: Vec<Vec<u8>>,
+    umask: Mode,
+    fds: BTreeMap<i32, FdEntry>,
+    sigs: BTreeMap<i32, SigDisposition>,
+    caught: Vec<Signal>,
+    pending_fatal: Option<Signal>,
+    status: Option<WaitStatus>,
+    reaped: bool,
+    rlimits: BTreeMap<Resource, Rlimit>,
+}
+
+struct World {
+    nodes: BTreeMap<Ino, Node>,
+    next_ino: Ino,
+    seq: u64,
+    programs: BTreeMap<String, Main>,
+    procs: BTreeMap<Pid, Proc>,
+    next_pid: Pid,
+    now: TimeSpec,
+    hostname: Vec<u8>,
+    rng: u64,
+}
+
+const ROOT: Ino = 1;
+
+fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+fn split(path: &[u8]) -> Vec<&[u8]> {
+    path.split(|b| *b == b'/').filter(|c| !c.is_empty()).collect()
+}
+
+/// Resultado de resolver um caminho até o último componente.
+struct Resolved {
+    parent: Ino,
+    name: Vec<u8>,
+    ino: Option<Ino>,
+    /// Caminho canônico do pai (pra `chdir`/`getcwd`).
+    parent_path: Vec<u8>,
+    trailing_slash: bool,
+}
+
+impl World {
+    fn new() -> World {
+        let mut w = World {
+            nodes: BTreeMap::new(),
+            next_ino: ROOT,
+            seq: 0,
+            programs: BTreeMap::new(),
+            procs: BTreeMap::new(),
+            next_pid: 100,
+            now: TimeSpec { sec: DEFAULT_TIME, nsec: 0 },
+            hostname: b"pseudo-linus".to_vec(),
+            rng: 0x9E37_79B9_7F4A_7C15,
+        };
+        let root = w.alloc(Kind::Dir(BTreeMap::new()), 0o755);
+        debug_assert_eq!(root, ROOT);
+        for (dir, m) in [
+            ("/usr", 0o755), ("/usr/bin", 0o755), ("/usr/sbin", 0o755), ("/usr/lib", 0o755),
+            ("/usr/share", 0o755), ("/etc", 0o755), ("/tmp", 0o1777), ("/root", 0o700), ("/home", 0o755),
+            ("/work", 0o755), ("/dev", 0o755), ("/var", 0o755), ("/var/tmp", 0o1777), ("/proc", 0o555),
+        ] {
+            w.mkdir_p(dir.as_bytes(), m);
+        }
+        for (link, target) in [("/bin", "usr/bin"), ("/sbin", "usr/sbin"), ("/lib", "usr/lib")] {
+            w.put(link.as_bytes(), Kind::Symlink(target.as_bytes().to_vec()), 0o777);
+        }
+        for (name, dev, m) in [
+            ("null", Dev::Null, 0o666), ("zero", Dev::Zero, 0o666), ("full", Dev::Full, 0o666),
+            ("random", Dev::Random, 0o666), ("urandom", Dev::Random, 0o666), ("tty", Dev::Tty, 0o666),
+        ] {
+            w.put(format!("/dev/{name}").as_bytes(), Kind::Device(dev), m);
+        }
+        for (name, n) in [("stdin", 0), ("stdout", 1), ("stderr", 2)] {
+            w.put(format!("/dev/{name}").as_bytes(), Kind::Symlink(format!("/proc/self/fd/{n}").into_bytes()), 0o777);
+        }
+        w.put(b"/dev/fd", Kind::Symlink(b"/proc/self/fd".to_vec()), 0o777);
+        let files: &[(&str, &str)] = &[
+            ("/etc/passwd", "root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n"),
+            ("/etc/group", "root:x:0:\ndaemon:x:1:\nnogroup:x:65534:\n"),
+            ("/etc/hostname", "pseudo-linus\n"),
+            ("/etc/os-release", "PRETTY_NAME=\"pseudo-linus\"\nNAME=\"pseudo-linus\"\nID=pseudo-linus\nID_LIKE=debian\n"),
+        ];
+        for (p, c) in files {
+            w.put(p.as_bytes(), Kind::File(c.as_bytes().to_vec()), 0o644);
+        }
+        w
+    }
+
+    fn alloc(&mut self, kind: Kind, perm: Mode) -> Ino {
+        let ino = self.next_ino;
+        self.next_ino += 1;
+        let now = self.now;
+        self.nodes.insert(ino, Node { kind, mode: perm & 0o7777, uid: 0, gid: 0, nlink: 1, atime: now, mtime: now, ctime: now });
+        ino
+    }
+
+    fn node(&self, ino: Ino) -> &Node {
+        self.nodes.get(&ino).expect("inode existe")
+    }
+
+    fn node_mut(&mut self, ino: Ino) -> &mut Node {
+        self.nodes.get_mut(&ino).expect("inode existe")
+    }
+
+    fn dir_lookup(&self, dir: Ino, name: &[u8]) -> Option<Ino> {
+        match &self.node(dir).kind {
+            Kind::Dir(m) => m.get(name).map(|e| e.0),
+            _ => None,
+        }
+    }
+
+    fn link_into(&mut self, dir: Ino, name: &[u8], ino: Ino) {
+        self.seq += 1;
+        let seq = self.seq;
+        let now = self.now;
+        let d = self.node_mut(dir);
+        if let Kind::Dir(m) = &mut d.kind {
+            m.insert(name.to_vec(), (ino, seq));
+        }
+        d.mtime = now;
+        d.ctime = now;
+    }
+
+    fn unlink_from(&mut self, dir: Ino, name: &[u8]) -> Option<Ino> {
+        let now = self.now;
+        let d = self.node_mut(dir);
+        d.mtime = now;
+        d.ctime = now;
+        match &mut d.kind {
+            Kind::Dir(m) => m.remove(name).map(|e| e.0),
+            _ => None,
+        }
+    }
+
+    /// Cria (ou substitui) um nó num caminho absoluto, criando os diretórios que faltarem.
+    fn put(&mut self, path: &[u8], kind: Kind, perm: Mode) -> Ino {
+        let comps = split(path);
+        let (last, dirs) = comps.split_last().expect("caminho não vazio");
+        let mut cur = ROOT;
+        for c in dirs {
+            cur = match self.dir_lookup(cur, c) {
+                Some(i) => i,
+                None => {
+                    let i = self.alloc(Kind::Dir(BTreeMap::new()), 0o755);
+                    self.link_into(cur, c, i);
+                    i
+                }
+            };
+        }
+        if let Some(old) = self.unlink_from(cur, last) {
+            self.node_mut(old).nlink = self.node(old).nlink.saturating_sub(1);
+        }
+        let ino = self.alloc(kind, perm);
+        self.link_into(cur, last, ino);
+        ino
+    }
+
+    fn mkdir_p(&mut self, path: &[u8], perm: Mode) {
+        let mut cur = ROOT;
+        for c in split(path) {
+            cur = match self.dir_lookup(cur, c) {
+                Some(i) => i,
+                None => {
+                    let i = self.alloc(Kind::Dir(BTreeMap::new()), perm);
+                    self.link_into(cur, c, i);
+                    i
+                }
+            };
+        }
+        self.node_mut(cur).mode = perm & 0o7777;
+    }
+
+    /// namei: resolve `path` a partir de `cwd`. Segue symlinks intermediários sempre e o último se
+    /// `follow_last`. Devolve o pai e o nome do último componente (que pode não existir).
+    fn resolve(&self, cwd: &[u8], path: &[u8], follow_last: bool) -> SysResult<Resolved> {
+        if path.is_empty() {
+            return Err(Errno::ENOENT);
+        }
+        if path.len() >= PATH_MAX {
+            return Err(Errno::ENAMETOOLONG);
+        }
+        let trailing_slash = path.ends_with(b"/");
+        let mut queue: VecDeque<Vec<u8>> = VecDeque::new();
+        if !path.starts_with(b"/") {
+            for c in split(cwd) {
+                queue.push_back(c.to_vec());
+            }
+        }
+        for c in split(path) {
+            queue.push_back(c.to_vec());
+        }
+        // Pilha de (ino, nome) do caminho canônico.
+        let mut stack: Vec<(Ino, Vec<u8>)> = Vec::new();
+        let mut links = 0;
+        let cur_ino = |stack: &Vec<(Ino, Vec<u8>)>| stack.last().map(|e| e.0).unwrap_or(ROOT);
+        if queue.is_empty() {
+            return Ok(Resolved { parent: ROOT, name: Vec::new(), ino: Some(ROOT), parent_path: b"/".to_vec(), trailing_slash });
+        }
+        loop {
+            let c = queue.pop_front().expect("fila não vazia");
+            let last = queue.is_empty();
+            if c.len() > NAME_MAX {
+                return Err(Errno::ENAMETOOLONG);
+            }
+            let dir = cur_ino(&stack);
+            if !matches!(self.node(dir).kind, Kind::Dir(_)) {
+                return Err(Errno::ENOTDIR);
+            }
+            if c == b"." || c == b".." {
+                if c == b".." {
+                    stack.pop();
+                }
+                if last {
+                    let ino = cur_ino(&stack);
+                    let (parent, name, parent_path) = match stack.split_last() {
+                        Some(((_, n), rest)) => (
+                            rest.last().map(|e| e.0).unwrap_or(ROOT),
+                            n.clone(),
+                            canonical(rest),
+                        ),
+                        None => (ROOT, Vec::new(), b"/".to_vec()),
+                    };
+                    return Ok(Resolved { parent, name, ino: Some(ino), parent_path, trailing_slash });
+                }
+                continue;
+            }
+            let child = self.dir_lookup(dir, &c);
+            match child {
+                None => {
+                    if last {
+                        return Ok(Resolved { parent: dir, name: c, ino: None, parent_path: canonical(&stack), trailing_slash });
+                    }
+                    return Err(Errno::ENOENT);
+                }
+                Some(ino) => {
+                    if let Kind::Symlink(target) = &self.node(ino).kind
+                        && (!last || follow_last || trailing_slash)
+                    {
+                        {
+                            links += 1;
+                            if links > MAXSYMLINKS {
+                                return Err(Errno::ELOOP);
+                            }
+                            if target.starts_with(b"/proc/self/fd") {
+                                // /dev/fd e /dev/std*: o testkit não tem procfs; o chamador trata.
+                                let mut rest: Vec<Vec<u8>> = queue.drain(..).collect();
+                                let mut t = target.clone();
+                                for r in rest.drain(..) {
+                                    t.push(b'/');
+                                    t.extend(r);
+                                }
+                                return Ok(Resolved { parent: dir, name: t, ino: None, parent_path: b"\0fd".to_vec(), trailing_slash });
+                            }
+                            let mut next: VecDeque<Vec<u8>> = split(target).into_iter().map(<[u8]>::to_vec).collect();
+                            if target.starts_with(b"/") {
+                                stack.clear();
+                            }
+                            next.extend(queue.drain(..));
+                            queue = next;
+                            if queue.is_empty() {
+                                let ino = cur_ino(&stack);
+                                return Ok(Resolved { parent: ino, name: Vec::new(), ino: Some(ino), parent_path: canonical(&stack), trailing_slash });
+                            }
+                            continue;
+                        }
+                    }
+                    if last {
+                        return Ok(Resolved { parent: dir, name: c, ino: Some(ino), parent_path: canonical(&stack), trailing_slash });
+                    }
+                    stack.push((ino, c));
+                }
+            }
+        }
+    }
+
+    fn stat_of(&self, ino: Ino) -> Stat {
+        let n = self.node(ino);
+        let size = match &n.kind {
+            Kind::File(d) => d.len() as u64,
+            Kind::Symlink(t) => t.len() as u64,
+            Kind::Dir(m) => 40 + 20 * m.len() as u64,
+            _ => 0,
+        };
+        Stat {
+            dev: 0x2a,
+            ino,
+            mode: n.type_bits() | n.mode,
+            nlink: if let Kind::Dir(m) = &n.kind {
+                2 + m.values().filter(|(i, _)| matches!(self.node(*i).kind, Kind::Dir(_))).count() as u64
+            } else {
+                n.nlink
+            },
+            uid: n.uid,
+            gid: n.gid,
+            rdev: if let Kind::Device(d) = n.kind { dev_number(d) } else { 0 },
+            size,
+            blksize: 4096,
+            blocks: size.div_ceil(4096) * 8,
+            atime: n.atime,
+            mtime: n.mtime,
+            ctime: n.ctime,
+            btime: Some(n.ctime),
+        }
+    }
+
+    fn rand(&mut self) -> u64 {
+        // xorshift64*: determinístico, suficiente pra testes.
+        let mut x = self.rng;
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        self.rng = x;
+        x.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    }
+}
+
+fn dev_number(d: Dev) -> u64 {
+    match d {
+        Dev::Null => (1 << 8) | 3,
+        Dev::Zero => (1 << 8) | 5,
+        Dev::Full => (1 << 8) | 7,
+        Dev::Random => (1 << 8) | 9,
+        Dev::Tty => 5 << 8,
+    }
+}
+
+fn canonical(stack: &[(Ino, Vec<u8>)]) -> Vec<u8> {
+    if stack.is_empty() {
+        return b"/".to_vec();
+    }
+    let mut out = Vec::new();
+    for (_, n) in stack {
+        out.push(b'/');
+        out.extend_from_slice(n);
+    }
+    out
+}
+
+fn join(dir: &[u8], name: &[u8]) -> Vec<u8> {
+    let mut p = dir.to_vec();
+    if !p.ends_with(b"/") {
+        p.push(b'/');
+    }
+    p.extend_from_slice(name);
+    p
+}
+
+/// O processo de teste: implementa `Syscalls` sobre o mundo compartilhado.
+struct ProcHandle {
+    world: Arc<Mutex<World>>,
+    pid: Pid,
+}
+
+impl ProcHandle {
+    fn w(&self) -> MutexGuard<'_, World> {
+        lock(&self.world)
+    }
+
+    fn with_proc<R>(&self, f: impl FnOnce(&mut World, Pid) -> R) -> R {
+        let mut w = self.w();
+        f(&mut w, self.pid)
+    }
+
+    fn fd_entry(&self, fd: Fd) -> SysResult<FdEntry> {
+        let w = self.w();
+        w.procs.get(&self.pid).and_then(|p| p.fds.get(&fd.0)).cloned().ok_or(Errno::EBADF)
+    }
+
+    fn cwd(&self) -> Vec<u8> {
+        self.w().procs[&self.pid].cwd.clone()
+    }
+
+    /// Caminho base pra uma syscall `*at`.
+    fn base(&self, dirfd: Fd, path: &[u8]) -> SysResult<Vec<u8>> {
+        if path.starts_with(b"/") || dirfd == Fd::CWD {
+            return Ok(self.cwd());
+        }
+        let e = self.fd_entry(dirfd)?;
+        let f = lock(&e.file);
+        match &f.kind {
+            OpenKind::Dir { ino, .. } | OpenKind::Inode(ino) => {
+                let w = self.w();
+                path_of(&w, *ino).ok_or(Errno::ENOENT)
+            }
+            _ => Err(Errno::ENOTDIR),
+        }
+    }
+
+    fn resolve_at(&self, dirfd: Fd, path: &[u8], follow: bool) -> SysResult<Resolved> {
+        let base = self.base(dirfd, path)?;
+        self.w().resolve(&base, path, follow)
+    }
+
+    fn alloc_fd(&self, w: &mut World, entry: FdEntry, min: i32) -> SysResult<Fd> {
+        let p = w.procs.get_mut(&self.pid).expect("processo");
+        let limit = p.rlimits.get(&Resource::Nofile).map(|l| l.cur).unwrap_or(1024) as i32;
+        let mut n = min;
+        while p.fds.contains_key(&n) {
+            n += 1;
+        }
+        if n >= limit {
+            return Err(Errno::EMFILE);
+        }
+        p.fds.insert(n, entry);
+        Ok(Fd(n))
+    }
+
+    /// Entrega a ação padrão de um sinal fatal ao próprio processo.
+    fn deliver(&self, sig: Signal) -> SysResult<()> {
+        let disp = self.w().procs[&self.pid].sigs.get(&sig.0).copied().unwrap_or(SigDisposition::Default);
+        match disp {
+            SigDisposition::Ignore => Ok(()),
+            SigDisposition::Catch => {
+                self.w().procs.get_mut(&self.pid).expect("processo").caught.push(sig);
+                Ok(())
+            }
+            SigDisposition::Default => match sig.default_action() {
+                DefaultAction::Terminate | DefaultAction::CoreDump => std::panic::resume_unwind(Box::new(KillUnwind(sig))),
+                _ => Ok(()),
+            },
+        }
+    }
+
+    fn check_pending(&self) {
+        let pending = self.w().procs.get_mut(&self.pid).and_then(|p| p.pending_fatal.take());
+        if let Some(sig) = pending {
+            let _ = self.deliver(sig);
+        }
+    }
+
+    fn new_child(&self, attrs: &ProcAttrs, argv: Vec<Vec<u8>>) -> SysResult<Pid> {
+        let mut w = self.w();
+        let parent = w.procs[&self.pid].clone();
+        let pid = w.next_pid;
+        w.next_pid += 1;
+        let mut child = parent.clone();
+        child.pid = pid;
+        child.ppid = self.pid;
+        child.argv = argv;
+        child.caught.clear();
+        child.pending_fatal = None;
+        child.status = None;
+        child.reaped = false;
+        if let Some(env) = &attrs.env {
+            child.env = env.clone();
+        }
+        if let Some(cwd) = &attrs.cwd {
+            let r = w.resolve(&parent.cwd, cwd, true)?;
+            let ino = r.ino.ok_or(Errno::ENOENT)?;
+            if !matches!(w.node(ino).kind, Kind::Dir(_)) {
+                return Err(Errno::ENOTDIR);
+            }
+            child.cwd = path_of(&w, ino).unwrap_or_else(|| cwd.clone());
+        }
+        match attrs.group {
+            ProcessGroup::Inherit => {}
+            ProcessGroup::New => child.pgid = pid,
+            ProcessGroup::Join(g) => child.pgid = g,
+        }
+        if attrs.new_session {
+            child.sid = pid;
+            child.pgid = pid;
+        }
+        for s in &attrs.reset_signals {
+            child.sigs.remove(&s.0);
+        }
+        for s in &attrs.ignore_signals {
+            child.sigs.insert(s.0, SigDisposition::Ignore);
+        }
+        // Catch vira Default no filho de exec; spawn_fn mantém (como fork).
+        w.procs.insert(pid, child);
+        drop(w);
+        // Ações de fd, aplicadas no contexto do filho.
+        let child_handle = ProcHandle { world: self.world.clone(), pid };
+        for a in &attrs.fd_actions {
+            let r = match a {
+                FdAction::Dup2 { from, to } => {
+                    if from == to {
+                        child_handle.set_cloexec(*from, false)
+                    } else {
+                        child_handle.dup3(*from, *to, false).map(|_| ())
+                    }
+                }
+                FdAction::Close(fd) => {
+                    let _ = child_handle.close(*fd);
+                    Ok(())
+                }
+                FdAction::Open { fd, path, flags, mode } => child_handle.openat(Fd::CWD, path, *flags, *mode).and_then(|got| {
+                    if got != *fd {
+                        child_handle.dup3(got, *fd, false)?;
+                        child_handle.close(got)?;
+                    }
+                    Ok(())
+                }),
+            };
+            if let Err(e) = r {
+                self.w().procs.remove(&pid);
+                return Err(e);
+            }
+        }
+        Ok(pid)
+    }
+
+    /// Roda o corpo de um processo filho já criado, até o fim, nesta thread.
+    fn run_child(&self, pid: Pid, body: ProcessFn) {
+        let handle: Arc<dyn Syscalls> = Arc::new(ProcHandle { world: self.world.clone(), pid });
+        let prev = sys::install(handle.clone());
+        let mut body: Option<ProcessFn> = Some(body);
+        let status = loop {
+            let f = body.take().expect("corpo");
+            match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                Ok(code) => break WaitStatus::Exited(code & 0xff),
+                Err(payload) => {
+                    if let Some(e) = payload.downcast_ref::<ExitUnwind>() {
+                        break WaitStatus::Exited(e.0 & 0xff);
+                    }
+                    if let Some(k) = payload.downcast_ref::<KillUnwind>() {
+                        break WaitStatus::Signaled { signal: k.0, core_dumped: false };
+                    }
+                    if let Ok(exec) = payload.downcast::<ExecUnwind>() {
+                        let h = ProcHandle { world: self.world.clone(), pid };
+                        match h.prepare_exec(&exec.path, exec.argv.clone(), exec.env.clone()) {
+                            Ok(next) => {
+                                body = Some(next);
+                                continue;
+                            }
+                            Err(_) => break WaitStatus::Exited(127),
+                        }
+                    }
+                    let msg = b"testkit: panic no processo\n";
+                    let _ = handle.write(Fd::STDERR, msg);
+                    break WaitStatus::Signaled { signal: Signal::SIGABRT, core_dumped: true };
+                }
+            }
+        };
+        sys::uninstall();
+        if let Some(p) = prev {
+            sys::install(p);
+        }
+        let mut w = self.w();
+        let mut fds = BTreeMap::new();
+        if let Some(p) = w.procs.get_mut(&pid) {
+            std::mem::swap(&mut fds, &mut p.fds);
+            p.status = Some(status);
+        }
+        // Órfãos do filho viram filhos do processo raiz do teste (no Linux, do init).
+        let root_pid = w.procs.keys().next().copied().unwrap_or(pid);
+        for p in w.procs.values_mut() {
+            if p.ppid == pid {
+                p.ppid = root_pid;
+            }
+        }
+        drop(w);
+        drop(fds);
+    }
+
+    /// Prepara o corpo de um `execve`: builtin, `#!` ou erro.
+    fn prepare_exec(&self, path: &[u8], argv: Vec<Vec<u8>>, env: Option<Vec<Vec<u8>>>) -> SysResult<ProcessFn> {
+        let mut path = path.to_vec();
+        let mut argv = argv;
+        for _ in 0..4 {
+            let r = self.resolve_at(Fd::CWD, &path, true)?;
+            let ino = r.ino.ok_or(Errno::ENOENT)?;
+            let (kind, mode) = {
+                let w = self.w();
+                let n = w.node(ino);
+                (n.kind.clone(), n.mode)
+            };
+            match kind {
+                Kind::Dir(_) => return Err(Errno::EACCES),
+                Kind::Builtin(name) => {
+                    let main = self.w().programs.get(&name).copied().ok_or(Errno::ENOENT)?;
+                    {
+                        let mut w = self.w();
+                        let p = w.procs.get_mut(&self.pid).expect("processo");
+                        p.argv = argv.clone();
+                        if let Some(e) = &env {
+                            p.env = e.clone();
+                        }
+                        // CLOEXEC fecha, disposições capturadas voltam ao padrão.
+                        let close: Vec<i32> = p.fds.iter().filter(|(_, e)| e.cloexec).map(|(k, _)| *k).collect();
+                        for k in close {
+                            p.fds.remove(&k);
+                        }
+                        p.sigs.retain(|_, d| *d == SigDisposition::Ignore);
+                        p.caught.clear();
+                    }
+                    let args = to_os_args(&argv);
+                    let argv0 = argv.first().cloned().unwrap_or_default();
+                    return Ok(Box::new(move || run_main(main, &argv0, &args)));
+                }
+                Kind::File(data) => {
+                    if mode & 0o111 == 0 {
+                        return Err(Errno::EACCES);
+                    }
+                    if !data.starts_with(b"#!") {
+                        return Err(Errno::ENOEXEC);
+                    }
+                    let line = data[2..].split(|b| *b == b'\n').next().unwrap_or(b"");
+                    let line = line.strip_suffix(b"\r").unwrap_or(line);
+                    let trimmed: Vec<u8> = line.iter().copied().skip_while(|b| *b == b' ' || *b == b'\t').collect();
+                    let mut parts = trimmed.splitn(2, |b| *b == b' ' || *b == b'\t');
+                    let interp = parts.next().unwrap_or(b"").to_vec();
+                    let arg: Vec<u8> = parts.next().map(|a| a.iter().copied().skip_while(|b| *b == b' ').collect()).unwrap_or_default();
+                    if interp.is_empty() {
+                        return Err(Errno::ENOEXEC);
+                    }
+                    let mut new_argv = vec![interp.clone()];
+                    if !arg.is_empty() {
+                        new_argv.push(arg);
+                    }
+                    new_argv.push(path.clone());
+                    new_argv.extend(argv.into_iter().skip(1));
+                    argv = new_argv;
+                    path = interp;
+                }
+                _ => return Err(Errno::EACCES),
+            }
+        }
+        Err(Errno::ELOOP)
+    }
+
+    fn open_special(&self, target: &[u8], flags: OFlags) -> SysResult<Fd> {
+        // /proc/self/fd/N: duplica o fd N.
+        let n: i32 = std::str::from_utf8(target.strip_prefix(b"/proc/self/fd/").ok_or(Errno::ENOENT)?)
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .ok_or(Errno::ENOENT)?;
+        let fd = self.dup(Fd(n))?;
+        self.set_cloexec(fd, flags.contains(OFlags::CLOEXEC))?;
+        Ok(fd)
+    }
+}
+
+fn path_of(w: &World, target: Ino) -> Option<Vec<u8>> {
+    if target == ROOT {
+        return Some(b"/".to_vec());
+    }
+    // Busca em largura a partir da raiz (testkit: árvores pequenas).
+    let mut queue: VecDeque<(Ino, Vec<u8>)> = VecDeque::from([(ROOT, Vec::new())]);
+    while let Some((ino, path)) = queue.pop_front() {
+        if let Kind::Dir(m) = &w.node(ino).kind {
+            for (name, (child, _)) in m {
+                let mut p = path.clone();
+                p.push(b'/');
+                p.extend_from_slice(name);
+                if *child == target {
+                    return Some(p);
+                }
+                if matches!(w.node(*child).kind, Kind::Dir(_)) {
+                    queue.push_back((*child, p));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Chama o `main` de um builtin com o `Ctx` do processo corrente.
+pub fn run_main(main: Main, argv0: &[u8], args: &[OsString]) -> i32 {
+    let mut ctx = Ctx::current(argv0);
+    main(&mut ctx, args)
+}
+
+impl Syscalls for ProcHandle {
+    fn openat(&self, dirfd: Fd, path: &[u8], flags: OFlags, mode: Mode) -> SysResult<Fd> {
+        self.check_pending();
+        let follow = !flags.contains(OFlags::NOFOLLOW);
+        let r = self.resolve_at(dirfd, path, follow)?;
+        if r.parent_path == b"\0fd" {
+            return self.open_special(&r.name, flags);
+        }
+        let mut w = self.w();
+        let umask = w.procs[&self.pid].umask;
+        let ino = match r.ino {
+            Some(ino) => {
+                if flags.contains(OFlags::CREAT) && flags.contains(OFlags::EXCL) {
+                    return Err(Errno::EEXIST);
+                }
+                ino
+            }
+            None => {
+                if !flags.contains(OFlags::CREAT) {
+                    return Err(Errno::ENOENT);
+                }
+                if r.trailing_slash {
+                    return Err(Errno::EISDIR);
+                }
+                let ino = w.alloc(Kind::File(Vec::new()), mode & !umask);
+                w.link_into(r.parent, &r.name, ino);
+                ino
+            }
+        };
+        let is_dir = matches!(w.node(ino).kind, Kind::Dir(_));
+        if let Kind::Symlink(_) = w.node(ino).kind
+            && flags.contains(OFlags::NOFOLLOW)
+            && !flags.contains(OFlags::PATH)
+        {
+            return Err(Errno::ELOOP);
+        }
+        if flags.contains(OFlags::DIRECTORY) && !is_dir {
+            return Err(Errno::ENOTDIR);
+        }
+        if is_dir && flags.writable() {
+            return Err(Errno::EISDIR);
+        }
+        if r.trailing_slash && !is_dir {
+            return Err(Errno::ENOTDIR);
+        }
+        if flags.contains(OFlags::TRUNC) && flags.writable() {
+            let now = w.now;
+            let n = w.node_mut(ino);
+            if let Kind::File(d) = &mut n.kind {
+                d.clear();
+                n.mtime = now;
+                n.ctime = now;
+            }
+        }
+        let kind = if is_dir { OpenKind::Dir { ino, listing: None } } else { OpenKind::Inode(ino) };
+        let entry = FdEntry {
+            file: Arc::new(Mutex::new(OpenFile { kind, flags, offset: 0 })),
+            cloexec: flags.contains(OFlags::CLOEXEC),
+        };
+        self.alloc_fd(&mut w, entry, 0)
+    }
+
+    fn close(&self, fd: Fd) -> SysResult<()> {
+        let removed = self.with_proc(|w, pid| w.procs.get_mut(&pid).and_then(|p| p.fds.remove(&fd.0)));
+        removed.map(drop).ok_or(Errno::EBADF)
+    }
+
+    fn read(&self, fd: Fd, buf: &mut [u8]) -> SysResult<usize> {
+        self.check_pending();
+        let e = self.fd_entry(fd)?;
+        let mut f = lock(&e.file);
+        if !f.flags.readable() {
+            return Err(Errno::EBADF);
+        }
+        match &f.kind {
+            OpenKind::PipeRead(p) => {
+                let mut p = lock(p);
+                let n = buf.len().min(p.data.len());
+                for (i, b) in p.data.drain(..n).enumerate() {
+                    buf[i] = b;
+                }
+                Ok(n)
+            }
+            OpenKind::PipeWrite(_) => Err(Errno::EBADF),
+            OpenKind::Dir { .. } => Err(Errno::EISDIR),
+            OpenKind::Inode(ino) => {
+                let ino = *ino;
+                let mut w = self.w();
+                let off = f.offset as usize;
+                let n = match &w.node(ino).kind {
+                    Kind::File(d) => {
+                        let n = d.len().saturating_sub(off).min(buf.len());
+                        buf[..n].copy_from_slice(&d[off..off + n]);
+                        n
+                    }
+                    Kind::Device(Dev::Null) => 0,
+                    Kind::Device(Dev::Zero | Dev::Full) => {
+                        buf.fill(0);
+                        buf.len()
+                    }
+                    Kind::Device(Dev::Random) => {
+                        for b in buf.iter_mut() {
+                            *b = w.rand() as u8;
+                        }
+                        buf.len()
+                    }
+                    Kind::Device(Dev::Tty) => return Err(Errno::ENXIO),
+                    _ => return Err(Errno::EINVAL),
+                };
+                let now = w.now;
+                w.node_mut(ino).atime = now;
+                drop(w);
+                f.offset += n as u64;
+                Ok(n)
+            }
+        }
+    }
+
+    fn write(&self, fd: Fd, buf: &[u8]) -> SysResult<usize> {
+        self.check_pending();
+        let e = self.fd_entry(fd)?;
+        let mut f = lock(&e.file);
+        if !f.flags.writable() {
+            return Err(Errno::EBADF);
+        }
+        match &f.kind {
+            OpenKind::PipeWrite(p) => {
+                let full = {
+                    let mut p = lock(p);
+                    if p.readers == 0 || p.data.len() + buf.len() > PIPE_LIMIT {
+                        true
+                    } else {
+                        p.data.extend(buf.iter().copied());
+                        false
+                    }
+                };
+                if full {
+                    drop(f);
+                    self.deliver(Signal::SIGPIPE)?;
+                    return Err(Errno::EPIPE);
+                }
+                Ok(buf.len())
+            }
+            OpenKind::PipeRead(_) => Err(Errno::EBADF),
+            OpenKind::Dir { .. } => Err(Errno::EISDIR),
+            OpenKind::Inode(ino) => {
+                let ino = *ino;
+                let append = f.flags.contains(OFlags::APPEND);
+                let mut w = self.w();
+                let now = w.now;
+                let n = w.node_mut(ino);
+                match &mut n.kind {
+                    Kind::File(d) => {
+                        let off = if append { d.len() } else { f.offset as usize };
+                        if d.len() < off {
+                            d.resize(off, 0);
+                        }
+                        let end = off + buf.len();
+                        if d.len() < end {
+                            d.resize(end, 0);
+                        }
+                        d[off..end].copy_from_slice(buf);
+                        n.mtime = now;
+                        n.ctime = now;
+                        drop(w);
+                        f.offset = end as u64;
+                        Ok(buf.len())
+                    }
+                    Kind::Device(Dev::Null | Dev::Zero | Dev::Random) => Ok(buf.len()),
+                    Kind::Device(Dev::Full) => Err(Errno::ENOSPC),
+                    _ => Err(Errno::EINVAL),
+                }
+            }
+        }
+    }
+
+    fn pread(&self, fd: Fd, buf: &mut [u8], offset: u64) -> SysResult<usize> {
+        let e = self.fd_entry(fd)?;
+        let f = lock(&e.file);
+        match &f.kind {
+            OpenKind::Inode(ino) => match &self.w().node(*ino).kind {
+                Kind::File(d) => {
+                    let off = offset as usize;
+                    let n = d.len().saturating_sub(off).min(buf.len());
+                    buf[..n].copy_from_slice(&d[off..off + n]);
+                    Ok(n)
+                }
+                _ => Err(Errno::ESPIPE),
+            },
+            OpenKind::Dir { .. } => Err(Errno::EISDIR),
+            _ => Err(Errno::ESPIPE),
+        }
+    }
+
+    fn pwrite(&self, fd: Fd, buf: &[u8], offset: u64) -> SysResult<usize> {
+        let e = self.fd_entry(fd)?;
+        let f = lock(&e.file);
+        match &f.kind {
+            OpenKind::Inode(ino) => {
+                let mut w = self.w();
+                match &mut w.node_mut(*ino).kind {
+                    Kind::File(d) => {
+                        let off = offset as usize;
+                        let end = off + buf.len();
+                        if d.len() < end {
+                            d.resize(end, 0);
+                        }
+                        d[off..end].copy_from_slice(buf);
+                        Ok(buf.len())
+                    }
+                    _ => Err(Errno::ESPIPE),
+                }
+            }
+            _ => Err(Errno::ESPIPE),
+        }
+    }
+
+    fn lseek(&self, fd: Fd, offset: i64, whence: Whence) -> SysResult<u64> {
+        let e = self.fd_entry(fd)?;
+        let mut f = lock(&e.file);
+        let size = match &f.kind {
+            OpenKind::Inode(ino) => match &self.w().node(*ino).kind {
+                Kind::File(d) => d.len() as i64,
+                Kind::Device(_) => 0,
+                _ => return Err(Errno::ESPIPE),
+            },
+            OpenKind::Dir { .. } => 0,
+            _ => return Err(Errno::ESPIPE),
+        };
+        let base = match whence {
+            Whence::Set => 0,
+            Whence::Cur => f.offset as i64,
+            Whence::End => size,
+            Whence::Data => offset,
+            Whence::Hole => size,
+        };
+        let new = if matches!(whence, Whence::Data | Whence::Hole) { base } else { base + offset };
+        if new < 0 {
+            return Err(Errno::EINVAL);
+        }
+        if let OpenKind::Dir { listing, .. } = &mut f.kind
+            && new == 0
+        {
+            *listing = None;
+        }
+        f.offset = new as u64;
+        Ok(new as u64)
+    }
+
+    fn fstat(&self, fd: Fd) -> SysResult<Stat> {
+        let e = self.fd_entry(fd)?;
+        let f = lock(&e.file);
+        match &f.kind {
+            OpenKind::Inode(ino) | OpenKind::Dir { ino, .. } => Ok(self.w().stat_of(*ino)),
+            OpenKind::PipeRead(_) | OpenKind::PipeWrite(_) => Ok(Stat {
+                mode: mode::S_IFIFO | 0o600,
+                nlink: 1,
+                blksize: 4096,
+                ino: 0x1000 + fd.0 as u64,
+                dev: 0xc,
+                ..Stat::default()
+            }),
+        }
+    }
+
+    fn fstatat(&self, dirfd: Fd, path: &[u8], flags: AtFlags) -> SysResult<Stat> {
+        if path.is_empty() && flags.contains(AtFlags::EMPTY_PATH) {
+            return self.fstat(dirfd);
+        }
+        let r = self.resolve_at(dirfd, path, !flags.contains(AtFlags::SYMLINK_NOFOLLOW))?;
+        if r.parent_path == b"\0fd" {
+            let fd = self.open_special(&r.name, OFlags::CLOEXEC)?;
+            let st = self.fstat(fd);
+            let _ = self.close(fd);
+            return st;
+        }
+        let ino = r.ino.ok_or(Errno::ENOENT)?;
+        let w = self.w();
+        if r.trailing_slash && !matches!(w.node(ino).kind, Kind::Dir(_)) {
+            return Err(Errno::ENOTDIR);
+        }
+        Ok(w.stat_of(ino))
+    }
+
+    fn faccessat(&self, dirfd: Fd, path: &[u8], mode: AccessMode, _flags: AtFlags) -> SysResult<()> {
+        let st = self.fstatat(dirfd, path, AtFlags::empty())?;
+        // Root: leitura e escrita sempre; execução só se algum bit x estiver ligado (ou diretório).
+        if mode.contains(AccessMode::X_OK) && st.perm() & 0o111 == 0 && st.file_type() != FileType::Directory {
+            return Err(Errno::EACCES);
+        }
+        Ok(())
+    }
+
+    fn mkdirat(&self, dirfd: Fd, path: &[u8], mode: Mode) -> SysResult<()> {
+        let r = self.resolve_at(dirfd, path, false)?;
+        if r.ino.is_some() {
+            return Err(Errno::EEXIST);
+        }
+        let mut w = self.w();
+        let umask = w.procs[&self.pid].umask;
+        let ino = w.alloc(Kind::Dir(BTreeMap::new()), mode & !umask & 0o7777);
+        w.link_into(r.parent, &r.name, ino);
+        Ok(())
+    }
+
+    fn unlinkat(&self, dirfd: Fd, path: &[u8], flags: AtFlags) -> SysResult<()> {
+        let r = self.resolve_at(dirfd, path, false)?;
+        let ino = r.ino.ok_or(Errno::ENOENT)?;
+        let mut w = self.w();
+        let is_dir = matches!(w.node(ino).kind, Kind::Dir(_));
+        if flags.contains(AtFlags::REMOVEDIR) {
+            if !is_dir {
+                return Err(Errno::ENOTDIR);
+            }
+            if r.name.is_empty() || r.name == b"." {
+                return Err(Errno::EINVAL);
+            }
+            if let Kind::Dir(m) = &w.node(ino).kind {
+                if !m.is_empty() {
+                    return Err(Errno::ENOTEMPTY);
+                }
+            }
+        } else {
+            if is_dir {
+                return Err(Errno::EISDIR);
+            }
+            if r.trailing_slash {
+                return Err(Errno::ENOTDIR);
+            }
+        }
+        w.unlink_from(r.parent, &r.name);
+        let n = w.node_mut(ino);
+        n.nlink = n.nlink.saturating_sub(1);
+        Ok(())
+    }
+
+    fn renameat2(&self, olddir: Fd, old: &[u8], newdir: Fd, new: &[u8], flags: RenameFlags) -> SysResult<()> {
+        let src = self.resolve_at(olddir, old, false)?;
+        let src_ino = src.ino.ok_or(Errno::ENOENT)?;
+        let dst = self.resolve_at(newdir, new, false)?;
+        let mut w = self.w();
+        let src_dir = matches!(w.node(src_ino).kind, Kind::Dir(_));
+        if let Some(d) = dst.ino {
+            if d == src_ino {
+                return Ok(());
+            }
+            if flags.contains(RenameFlags::NOREPLACE) {
+                return Err(Errno::EEXIST);
+            }
+            let dst_dir = matches!(w.node(d).kind, Kind::Dir(_));
+            match (src_dir, dst_dir) {
+                (true, false) => return Err(Errno::ENOTDIR),
+                (false, true) => return Err(Errno::EISDIR),
+                (true, true) => {
+                    if let Kind::Dir(m) = &w.node(d).kind {
+                        if !m.is_empty() {
+                            return Err(Errno::ENOTEMPTY);
+                        }
+                    }
+                }
+                _ => {}
+            }
+            w.unlink_from(dst.parent, &dst.name);
+            let n = w.node_mut(d);
+            n.nlink = n.nlink.saturating_sub(1);
+        } else if dst.trailing_slash && !src_dir {
+            return Err(Errno::ENOTDIR);
+        }
+        // Não pode mover um diretório pra dentro dele mesmo.
+        if src_dir {
+            let src_path = path_of(&w, src_ino).unwrap_or_default();
+            let dst_parent = path_of(&w, dst.parent).unwrap_or_default();
+            if dst_parent == src_path || dst_parent.starts_with(&join(&src_path, b"")) {
+                return Err(Errno::EINVAL);
+            }
+        }
+        w.unlink_from(src.parent, &src.name);
+        w.link_into(dst.parent, &dst.name, src_ino);
+        let now = w.now;
+        w.node_mut(src_ino).ctime = now;
+        Ok(())
+    }
+
+    fn linkat(&self, olddir: Fd, old: &[u8], newdir: Fd, new: &[u8], flags: AtFlags) -> SysResult<()> {
+        let src = self.resolve_at(olddir, old, flags.contains(AtFlags::SYMLINK_FOLLOW))?;
+        let ino = src.ino.ok_or(Errno::ENOENT)?;
+        let dst = self.resolve_at(newdir, new, false)?;
+        if dst.ino.is_some() {
+            return Err(Errno::EEXIST);
+        }
+        let mut w = self.w();
+        if matches!(w.node(ino).kind, Kind::Dir(_)) {
+            return Err(Errno::EPERM);
+        }
+        w.link_into(dst.parent, &dst.name, ino);
+        let now = w.now;
+        let n = w.node_mut(ino);
+        n.nlink += 1;
+        n.ctime = now;
+        Ok(())
+    }
+
+    fn symlinkat(&self, target: &[u8], dirfd: Fd, path: &[u8]) -> SysResult<()> {
+        if target.is_empty() {
+            return Err(Errno::ENOENT);
+        }
+        let r = self.resolve_at(dirfd, path, false)?;
+        if r.ino.is_some() {
+            return Err(Errno::EEXIST);
+        }
+        let mut w = self.w();
+        let ino = w.alloc(Kind::Symlink(target.to_vec()), 0o777);
+        w.link_into(r.parent, &r.name, ino);
+        Ok(())
+    }
+
+    fn readlinkat(&self, dirfd: Fd, path: &[u8]) -> SysResult<Vec<u8>> {
+        let r = self.resolve_at(dirfd, path, false)?;
+        let ino = r.ino.ok_or(Errno::ENOENT)?;
+        match &self.w().node(ino).kind {
+            Kind::Symlink(t) => Ok(t.clone()),
+            _ => Err(Errno::EINVAL),
+        }
+    }
+
+    fn mknodat(&self, dirfd: Fd, path: &[u8], mode: Mode, _dev: u64) -> SysResult<()> {
+        let r = self.resolve_at(dirfd, path, false)?;
+        if r.ino.is_some() {
+            return Err(Errno::EEXIST);
+        }
+        if FileType::from_mode(mode) != FileType::Fifo {
+            return Err(Errno::EPERM);
+        }
+        let mut w = self.w();
+        let umask = w.procs[&self.pid].umask;
+        let ino = w.alloc(Kind::Fifo, mode & !umask & 0o7777);
+        w.link_into(r.parent, &r.name, ino);
+        Ok(())
+    }
+
+    fn fchmodat(&self, dirfd: Fd, path: &[u8], mode: Mode, flags: AtFlags) -> SysResult<()> {
+        let r = self.resolve_at(dirfd, path, !flags.contains(AtFlags::SYMLINK_NOFOLLOW))?;
+        let ino = r.ino.ok_or(Errno::ENOENT)?;
+        let mut w = self.w();
+        let now = w.now;
+        let n = w.node_mut(ino);
+        n.mode = mode & 0o7777;
+        n.ctime = now;
+        Ok(())
+    }
+
+    fn fchmod(&self, fd: Fd, mode: Mode) -> SysResult<()> {
+        let e = self.fd_entry(fd)?;
+        let f = lock(&e.file);
+        if let OpenKind::Inode(ino) | OpenKind::Dir { ino, .. } = &f.kind {
+            let mut w = self.w();
+            w.node_mut(*ino).mode = mode & 0o7777;
+        }
+        Ok(())
+    }
+
+    fn fchownat(&self, dirfd: Fd, path: &[u8], uid: Option<Uid>, gid: Option<Gid>, flags: AtFlags) -> SysResult<()> {
+        let r = self.resolve_at(dirfd, path, !flags.contains(AtFlags::SYMLINK_NOFOLLOW))?;
+        let ino = r.ino.ok_or(Errno::ENOENT)?;
+        let mut w = self.w();
+        let n = w.node_mut(ino);
+        if let Some(u) = uid {
+            n.uid = u;
+        }
+        if let Some(g) = gid {
+            n.gid = g;
+        }
+        Ok(())
+    }
+
+    fn utimensat(&self, dirfd: Fd, path: &[u8], atime: SetTime, mtime: SetTime, flags: AtFlags) -> SysResult<()> {
+        let r = self.resolve_at(dirfd, path, !flags.contains(AtFlags::SYMLINK_NOFOLLOW))?;
+        let ino = r.ino.ok_or(Errno::ENOENT)?;
+        let mut w = self.w();
+        let now = w.now;
+        let n = w.node_mut(ino);
+        match atime {
+            SetTime::Now => n.atime = now,
+            SetTime::At(t) => n.atime = t,
+            SetTime::Omit => {}
+        }
+        match mtime {
+            SetTime::Now => n.mtime = now,
+            SetTime::At(t) => n.mtime = t,
+            SetTime::Omit => {}
+        }
+        n.ctime = now;
+        Ok(())
+    }
+
+    fn futimens(&self, fd: Fd, atime: SetTime, mtime: SetTime) -> SysResult<()> {
+        let e = self.fd_entry(fd)?;
+        let f = lock(&e.file);
+        if let OpenKind::Inode(ino) | OpenKind::Dir { ino, .. } = &f.kind {
+            let mut w = self.w();
+            let now = w.now;
+            let n = w.node_mut(*ino);
+            if let SetTime::At(t) = atime {
+                n.atime = t;
+            } else if atime == SetTime::Now {
+                n.atime = now;
+            }
+            if let SetTime::At(t) = mtime {
+                n.mtime = t;
+            } else if mtime == SetTime::Now {
+                n.mtime = now;
+            }
+        }
+        Ok(())
+    }
+
+    fn ftruncate(&self, fd: Fd, len: u64) -> SysResult<()> {
+        let e = self.fd_entry(fd)?;
+        let f = lock(&e.file);
+        if !f.flags.writable() {
+            return Err(Errno::EINVAL);
+        }
+        match &f.kind {
+            OpenKind::Inode(ino) => {
+                let mut w = self.w();
+                if let Kind::File(d) = &mut w.node_mut(*ino).kind {
+                    d.resize(len as usize, 0);
+                    Ok(())
+                } else {
+                    Err(Errno::EINVAL)
+                }
+            }
+            _ => Err(Errno::EINVAL),
+        }
+    }
+
+    fn fsync(&self, fd: Fd) -> SysResult<()> {
+        self.fd_entry(fd).map(|_| ())
+    }
+
+    fn getdents(&self, fd: Fd) -> SysResult<Vec<DirEntry>> {
+        let e = self.fd_entry(fd)?;
+        let mut f = lock(&e.file);
+        let OpenKind::Dir { ino, listing } = &mut f.kind else {
+            return Err(Errno::ENOTDIR);
+        };
+        if listing.is_some() {
+            return Ok(Vec::new());
+        }
+        let w = self.w();
+        let parent = {
+            let p = path_of(&w, *ino).unwrap_or_else(|| b"/".to_vec());
+            let up = if p == b"/" { b"/".to_vec() } else { p[..p.iter().rposition(|b| *b == b'/').unwrap_or(0).max(1)].to_vec() };
+            w.resolve(b"/", &up, true).ok().and_then(|r| r.ino).unwrap_or(ROOT)
+        };
+        let mut out = vec![
+            DirEntry { ino: *ino, kind: FileType::Directory, name: b".".to_vec() },
+            DirEntry { ino: parent, kind: FileType::Directory, name: b"..".to_vec() },
+        ];
+        if let Kind::Dir(m) = &w.node(*ino).kind {
+            // Ordem do tmpfs: mais novo primeiro.
+            let mut items: Vec<(&Vec<u8>, &(Ino, u64))> = m.iter().collect();
+            items.sort_by(|a, b| b.1.1.cmp(&a.1.1));
+            for (name, (child, _)) in items {
+                out.push(DirEntry { ino: *child, kind: w.node(*child).file_type(), name: name.clone() });
+            }
+        }
+        drop(w);
+        *listing = Some(Vec::new());
+        Ok(out)
+    }
+
+    fn statfs(&self, _path: &[u8]) -> SysResult<StatFs> {
+        Ok(StatFs { fs_type: 0x0102_1994, bsize: 4096, blocks: 262_144, bfree: 262_000, bavail: 262_000, files: 65_536, ffree: 65_000, namelen: 255, frsize: 4096, flags: 0 })
+    }
+
+    fn fstatfs(&self, fd: Fd) -> SysResult<StatFs> {
+        self.fd_entry(fd)?;
+        self.statfs(b"/")
+    }
+
+    fn dup(&self, fd: Fd) -> SysResult<Fd> {
+        self.dup_min(fd, Fd(0), false)
+    }
+
+    fn dup3(&self, old: Fd, new: Fd, cloexec: bool) -> SysResult<Fd> {
+        if old == new {
+            return Err(Errno::EINVAL);
+        }
+        let e = self.fd_entry(old)?;
+        let removed = self.with_proc(|w, pid| {
+            let p = w.procs.get_mut(&pid).expect("processo");
+            let prev = p.fds.insert(new.0, FdEntry { file: e.file.clone(), cloexec });
+            prev
+        });
+        drop(removed);
+        Ok(new)
+    }
+
+    fn dup_min(&self, fd: Fd, min: Fd, cloexec: bool) -> SysResult<Fd> {
+        let e = self.fd_entry(fd)?;
+        let mut w = self.w();
+        self.alloc_fd(&mut w, FdEntry { file: e.file, cloexec }, min.0)
+    }
+
+    fn get_cloexec(&self, fd: Fd) -> SysResult<bool> {
+        Ok(self.fd_entry(fd)?.cloexec)
+    }
+
+    fn set_cloexec(&self, fd: Fd, on: bool) -> SysResult<()> {
+        self.with_proc(|w, pid| {
+            let e = w.procs.get_mut(&pid).and_then(|p| p.fds.get_mut(&fd.0)).ok_or(Errno::EBADF)?;
+            e.cloexec = on;
+            Ok(())
+        })
+    }
+
+    fn get_status_flags(&self, fd: Fd) -> SysResult<OFlags> {
+        Ok(lock(&self.fd_entry(fd)?.file).flags)
+    }
+
+    fn set_status_flags(&self, fd: Fd, flags: OFlags) -> SysResult<()> {
+        let e = self.fd_entry(fd)?;
+        let mut f = lock(&e.file);
+        let keep = f.flags - (OFlags::APPEND | OFlags::NONBLOCK);
+        f.flags = keep | (flags & (OFlags::APPEND | OFlags::NONBLOCK));
+        Ok(())
+    }
+
+    fn pipe2(&self, flags: OFlags) -> SysResult<(Fd, Fd)> {
+        let buf = Arc::new(Mutex::new(PipeBuf { data: VecDeque::new(), readers: 1, writers: 1 }));
+        let cloexec = flags.contains(OFlags::CLOEXEC);
+        let r = FdEntry { file: Arc::new(Mutex::new(OpenFile { kind: OpenKind::PipeRead(buf.clone()), flags: OFlags::RDONLY, offset: 0 })), cloexec };
+        let wr = FdEntry { file: Arc::new(Mutex::new(OpenFile { kind: OpenKind::PipeWrite(buf), flags: OFlags::WRONLY, offset: 0 })), cloexec };
+        let mut w = self.w();
+        let a = self.alloc_fd(&mut w, r, 0)?;
+        let b = self.alloc_fd(&mut w, wr, 0)?;
+        Ok((a, b))
+    }
+
+    fn isatty(&self, _fd: Fd) -> bool {
+        false
+    }
+
+    fn tcgetwinsize(&self, fd: Fd) -> SysResult<Winsize> {
+        self.fd_entry(fd)?;
+        Err(Errno::ENOTTY)
+    }
+
+    fn open_fds(&self) -> Vec<Fd> {
+        self.w().procs[&self.pid].fds.keys().map(|k| Fd(*k)).collect()
+    }
+
+    fn chdir(&self, path: &[u8]) -> SysResult<()> {
+        let r = self.resolve_at(Fd::CWD, path, true)?;
+        let ino = r.ino.ok_or(Errno::ENOENT)?;
+        let mut w = self.w();
+        if !matches!(w.node(ino).kind, Kind::Dir(_)) {
+            return Err(Errno::ENOTDIR);
+        }
+        let p = path_of(&w, ino).ok_or(Errno::ENOENT)?;
+        w.procs.get_mut(&self.pid).expect("processo").cwd = p;
+        Ok(())
+    }
+
+    fn fchdir(&self, fd: Fd) -> SysResult<()> {
+        let e = self.fd_entry(fd)?;
+        let f = lock(&e.file);
+        let OpenKind::Dir { ino, .. } = &f.kind else { return Err(Errno::ENOTDIR) };
+        let mut w = self.w();
+        let p = path_of(&w, *ino).ok_or(Errno::ENOENT)?;
+        w.procs.get_mut(&self.pid).expect("processo").cwd = p;
+        Ok(())
+    }
+
+    fn getcwd(&self) -> SysResult<Vec<u8>> {
+        Ok(self.cwd())
+    }
+
+    fn umask(&self, mask: Mode) -> Mode {
+        self.with_proc(|w, pid| std::mem::replace(&mut w.procs.get_mut(&pid).expect("processo").umask, mask & 0o777))
+    }
+
+    fn getpid(&self) -> Pid {
+        self.pid
+    }
+
+    fn getppid(&self) -> Pid {
+        self.w().procs[&self.pid].ppid
+    }
+
+    fn getpgid(&self, pid: Pid) -> SysResult<Pid> {
+        let pid = if pid == 0 { self.pid } else { pid };
+        self.w().procs.get(&pid).map(|p| p.pgid).ok_or(Errno::ESRCH)
+    }
+
+    fn setpgid(&self, pid: Pid, pgid: Pid) -> SysResult<()> {
+        let pid = if pid == 0 { self.pid } else { pid };
+        let mut w = self.w();
+        let p = w.procs.get_mut(&pid).ok_or(Errno::ESRCH)?;
+        p.pgid = if pgid == 0 { pid } else { pgid };
+        Ok(())
+    }
+
+    fn getsid(&self, pid: Pid) -> SysResult<Pid> {
+        let pid = if pid == 0 { self.pid } else { pid };
+        self.w().procs.get(&pid).map(|p| p.sid).ok_or(Errno::ESRCH)
+    }
+
+    fn setsid(&self) -> SysResult<Pid> {
+        let mut w = self.w();
+        let p = w.procs.get_mut(&self.pid).expect("processo");
+        if p.pgid == p.pid {
+            return Err(Errno::EPERM);
+        }
+        p.sid = p.pid;
+        p.pgid = p.pid;
+        Ok(p.pid)
+    }
+
+    fn spawn(&self, spec: SpawnSpec) -> SysResult<Pid> {
+        self.check_pending();
+        // Valida o alvo antes de criar o processo (posix_spawn reporta ENOENT/EACCES ao chamador).
+        {
+            let r = self.resolve_at(Fd::CWD, &spec.path, true)?;
+            let ino = r.ino.ok_or(Errno::ENOENT)?;
+            let w = self.w();
+            let n = w.node(ino);
+            match &n.kind {
+                Kind::Dir(_) => return Err(Errno::EACCES),
+                Kind::File(d) if n.mode & 0o111 == 0 => {
+                    let _ = d;
+                    return Err(Errno::EACCES);
+                }
+                Kind::File(d) if !d.starts_with(b"#!") => return Err(Errno::ENOEXEC),
+                _ => {}
+            }
+        }
+        let pid = self.new_child(&spec.attrs, spec.argv.clone())?;
+        let child = ProcHandle { world: self.world.clone(), pid };
+        // Exec no filho: disposições Catch voltam ao padrão.
+        {
+            let mut w = self.w();
+            w.procs.get_mut(&pid).expect("filho").sigs.retain(|_, d| *d == SigDisposition::Ignore);
+        }
+        let body = match child.prepare_exec(&spec.path, spec.argv, spec.attrs.env.clone()) {
+            Ok(b) => b,
+            Err(e) => {
+                self.w().procs.remove(&pid);
+                return Err(e);
+            }
+        };
+        self.run_child(pid, body);
+        Ok(pid)
+    }
+
+    fn spawn_fn(&self, attrs: ProcAttrs, name: Vec<u8>, body: ProcessFn) -> SysResult<Pid> {
+        self.check_pending();
+        let argv = self.w().procs[&self.pid].argv.clone();
+        let pid = self.new_child(&attrs, argv)?;
+        let _ = name;
+        self.run_child(pid, body);
+        Ok(pid)
+    }
+
+    fn execve(&self, path: &[u8], argv: &[Vec<u8>], env: Option<&[Vec<u8>]>) -> Errno {
+        // Valida antes de desenrolar: se falhar, o processo continua (o execve volta com erro).
+        let r = match self.resolve_at(Fd::CWD, path, true) {
+            Ok(r) => r,
+            Err(e) => return e,
+        };
+        let Some(ino) = r.ino else { return Errno::ENOENT };
+        {
+            let w = self.w();
+            let n = w.node(ino);
+            match &n.kind {
+                Kind::Dir(_) => return Errno::EACCES,
+                Kind::File(_) if n.mode & 0o111 == 0 => return Errno::EACCES,
+                Kind::File(d) if !d.starts_with(b"#!") => return Errno::ENOEXEC,
+                _ => {}
+            }
+        }
+        std::panic::resume_unwind(Box::new(ExecUnwind { path: path.to_vec(), argv: argv.to_vec(), env: env.map(<[Vec<u8>]>::to_vec) }))
+    }
+
+    fn wait4(&self, target: WaitTarget, _options: WaitOptions) -> SysResult<Option<(Pid, WaitStatus)>> {
+        self.check_pending();
+        let mut w = self.w();
+        let my_pgid = w.procs[&self.pid].pgid;
+        let mine: Vec<Pid> = w
+            .procs
+            .values()
+            .filter(|p| p.ppid == self.pid && !p.reaped && p.pid != self.pid)
+            .filter(|p| match target {
+                WaitTarget::Any => true,
+                WaitTarget::Pid(x) => p.pid == x,
+                WaitTarget::Group(0) => p.pgid == my_pgid,
+                WaitTarget::Group(g) => p.pgid == g,
+            })
+            .map(|p| p.pid)
+            .collect();
+        if mine.is_empty() {
+            return Err(Errno::ECHILD);
+        }
+        for pid in mine {
+            let p = w.procs.get_mut(&pid).expect("filho");
+            if let Some(st) = p.status {
+                p.reaped = true;
+                return Ok(Some((pid, st)));
+            }
+        }
+        // Síncrono: um filho vivo aqui só pode ser este processo esperando ele mesmo; não bloqueia.
+        Ok(None)
+    }
+
+    fn kill(&self, target: KillTarget, sig: Signal) -> SysResult<()> {
+        let targets: Vec<Pid> = {
+            let w = self.w();
+            let my_pgid = w.procs[&self.pid].pgid;
+            match target {
+                KillTarget::Pid(p) => {
+                    if !w.procs.contains_key(&p) {
+                        return Err(Errno::ESRCH);
+                    }
+                    vec![p]
+                }
+                KillTarget::Group(g) => {
+                    let g = if g == 0 { my_pgid } else { g };
+                    let v: Vec<Pid> = w.procs.values().filter(|p| p.pgid == g && p.status.is_none()).map(|p| p.pid).collect();
+                    if v.is_empty() {
+                        return Err(Errno::ESRCH);
+                    }
+                    v
+                }
+                KillTarget::All => w.procs.values().filter(|p| p.pid != self.pid && p.status.is_none()).map(|p| p.pid).collect(),
+            }
+        };
+        if sig.0 == 0 {
+            return Ok(());
+        }
+        if !sig.is_valid() {
+            return Err(Errno::EINVAL);
+        }
+        for pid in targets {
+            if pid == self.pid {
+                self.deliver(sig)?;
+            } else {
+                let mut w = self.w();
+                if let Some(p) = w.procs.get_mut(&pid) {
+                    if p.status.is_none() {
+                        match p.sigs.get(&sig.0).copied().unwrap_or(SigDisposition::Default) {
+                            SigDisposition::Catch => p.caught.push(sig),
+                            SigDisposition::Ignore => {}
+                            SigDisposition::Default => p.pending_fatal = Some(sig),
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn sigaction(&self, sig: Signal, disposition: SigDisposition) -> SysResult<SigDisposition> {
+        if !sig.is_valid() || sig.is_uncatchable() {
+            return Err(Errno::EINVAL);
+        }
+        self.with_proc(|w, pid| {
+            let p = w.procs.get_mut(&pid).expect("processo");
+            Ok(p.sigs.insert(sig.0, disposition).unwrap_or(SigDisposition::Default))
+        })
+    }
+
+    fn take_caught_signals(&self) -> Vec<Signal> {
+        self.with_proc(|w, pid| std::mem::take(&mut w.procs.get_mut(&pid).expect("processo").caught))
+    }
+
+    fn checkpoint(&self) {
+        self.check_pending();
+    }
+
+    fn sched_yield(&self) {}
+
+    fn getpriority(&self, _pid: Pid) -> SysResult<i32> {
+        Ok(0)
+    }
+
+    fn setpriority(&self, _pid: Pid, _nice: i32) -> SysResult<()> {
+        Ok(())
+    }
+
+    fn getrlimit(&self, res: Resource) -> SysResult<Rlimit> {
+        let w = self.w();
+        Ok(w.procs[&self.pid].rlimits.get(&res).copied().unwrap_or(match res {
+            Resource::Nofile => Rlimit { cur: 1024, max: 1_048_576 },
+            Resource::Stack => Rlimit { cur: 8 << 20, max: RLIM_INFINITY },
+            Resource::Core => Rlimit { cur: 0, max: RLIM_INFINITY },
+            _ => Rlimit { cur: RLIM_INFINITY, max: RLIM_INFINITY },
+        }))
+    }
+
+    fn setrlimit(&self, res: Resource, lim: Rlimit) -> SysResult<()> {
+        if lim.cur > lim.max {
+            return Err(Errno::EINVAL);
+        }
+        self.with_proc(|w, pid| {
+            w.procs.get_mut(&pid).expect("processo").rlimits.insert(res, lim);
+        });
+        Ok(())
+    }
+
+    fn getrusage(&self, _who: RusageWho) -> SysResult<Rusage> {
+        Ok(Rusage::default())
+    }
+
+    fn list_processes(&self) -> Vec<ProcInfo> {
+        self.w()
+            .procs
+            .values()
+            .filter(|p| !p.reaped)
+            .map(|p| ProcInfo {
+                pid: p.pid,
+                ppid: p.ppid,
+                pgid: p.pgid,
+                sid: p.sid,
+                state: if p.status.is_some() { 'Z' } else { 'R' },
+                comm: p.argv.first().map(|a| a.rsplit(|b| *b == b'/').next().unwrap_or(a).to_vec()).unwrap_or_default(),
+            })
+            .collect()
+    }
+
+    fn getuid(&self) -> Uid {
+        0
+    }
+
+    fn geteuid(&self) -> Uid {
+        0
+    }
+
+    fn getgid(&self) -> Gid {
+        0
+    }
+
+    fn getegid(&self) -> Gid {
+        0
+    }
+
+    fn getgroups(&self) -> Vec<Gid> {
+        vec![0]
+    }
+
+    fn argv(&self) -> Vec<Vec<u8>> {
+        self.w().procs[&self.pid].argv.clone()
+    }
+
+    fn environ(&self) -> Vec<Vec<u8>> {
+        self.w().procs[&self.pid].env.clone()
+    }
+
+    fn getenv(&self, name: &[u8]) -> Option<Vec<u8>> {
+        let w = self.w();
+        w.procs[&self.pid].env.iter().find_map(|kv| {
+            let eq = kv.iter().position(|b| *b == b'=')?;
+            (&kv[..eq] == name).then(|| kv[eq + 1..].to_vec())
+        })
+    }
+
+    fn setenv(&self, name: &[u8], value: &[u8]) -> SysResult<()> {
+        if name.is_empty() || name.contains(&b'=') {
+            return Err(Errno::EINVAL);
+        }
+        self.with_proc(|w, pid| {
+            let p = w.procs.get_mut(&pid).expect("processo");
+            p.env.retain(|kv| !(kv.starts_with(name) && kv.get(name.len()) == Some(&b'=')));
+            let mut kv = name.to_vec();
+            kv.push(b'=');
+            kv.extend_from_slice(value);
+            p.env.push(kv);
+        });
+        Ok(())
+    }
+
+    fn unsetenv(&self, name: &[u8]) -> SysResult<()> {
+        self.with_proc(|w, pid| {
+            w.procs.get_mut(&pid).expect("processo").env.retain(|kv| !(kv.starts_with(name) && kv.get(name.len()) == Some(&b'=')));
+        });
+        Ok(())
+    }
+
+    fn uname(&self) -> Utsname {
+        Utsname {
+            sysname: b"Linux".to_vec(),
+            nodename: self.w().hostname.clone(),
+            release: b"6.12.101+deb13-amd64".to_vec(),
+            version: b"#1 SMP PREEMPT_DYNAMIC Debian 6.12.101-1".to_vec(),
+            machine: b"x86_64".to_vec(),
+            domainname: b"(none)".to_vec(),
+        }
+    }
+
+    fn sethostname(&self, name: &[u8]) -> SysResult<()> {
+        self.w().hostname = name.to_vec();
+        Ok(())
+    }
+
+    fn clock_gettime(&self, clock: Clock) -> SysResult<TimeSpec> {
+        let now = self.w().now;
+        Ok(match clock {
+            Clock::Realtime => now,
+            _ => TimeSpec { sec: now.sec - DEFAULT_TIME + 1000, nsec: now.nsec },
+        })
+    }
+
+    fn nanosleep(&self, d: Duration) -> SysResult<()> {
+        self.check_pending();
+        let mut w = self.w();
+        let total = w.now.nsec as u64 + d.subsec_nanos() as u64;
+        w.now.sec += d.as_secs() as i64 + (total / 1_000_000_000) as i64;
+        w.now.nsec = (total % 1_000_000_000) as u32;
+        Ok(())
+    }
+
+    fn getrandom(&self, buf: &mut [u8]) -> SysResult<usize> {
+        let mut w = self.w();
+        for b in buf.iter_mut() {
+            *b = w.rand() as u8;
+        }
+        Ok(buf.len())
+    }
+
+    fn local_timezone(&self) -> Vec<u8> {
+        self.getenv(b"TZ").unwrap_or_else(|| b"UTC".to_vec())
+    }
+
+    fn net_connect(&self, _host: &[u8], _port: u16) -> SysResult<Fd> {
+        Err(Errno::ENETUNREACH)
+    }
+}
+
+/// Resultado de [`TestKit::run`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RunResult {
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+    pub status: WaitStatus,
+}
+
+impl RunResult {
+    /// `$?` como o shell veria.
+    pub fn code(&self) -> i32 {
+        self.status.shell_status()
+    }
+
+    pub fn stdout_str(&self) -> String {
+        String::from_utf8_lossy(&self.stdout).into_owned()
+    }
+
+    pub fn stderr_str(&self) -> String {
+        String::from_utf8_lossy(&self.stderr).into_owned()
+    }
+}
+
+/// Entrada de [`TestKit::tree`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TreeEntry {
+    File { data: Vec<u8>, mode: Mode },
+    Dir { mode: Mode },
+    Symlink { target: Vec<u8> },
+    Other { mode: Mode },
+}
+
+/// O kernel de teste. Cada `TestKit` é um sistema independente.
+pub struct TestKit {
+    world: Arc<Mutex<World>>,
+    cwd: Vec<u8>,
+    env: Vec<Vec<u8>>,
+}
+
+impl Default for TestKit {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TestKit {
+    pub fn new() -> TestKit {
+        TestKit {
+            world: Arc::new(Mutex::new(World::new())),
+            cwd: b"/work".to_vec(),
+            env: BASE_ENV.iter().map(|(k, v)| format!("{k}={v}").into_bytes()).collect(),
+        }
+    }
+
+    /// Registra programas embutidos em `dir/name` (ex.: /usr/bin/grep).
+    pub fn programs(self, programs: impl IntoIterator<Item = Program>) -> TestKit {
+        {
+            let mut w = lock(&self.world);
+            for p in programs {
+                w.programs.insert(p.name.to_string(), p.main);
+                w.put(p.path().as_bytes(), Kind::Builtin(p.name.to_string()), 0o755);
+            }
+        }
+        self
+    }
+
+    pub fn file(self, path: &str, data: impl AsRef<[u8]>, mode: Mode) -> TestKit {
+        self.put_file(path.as_bytes(), data.as_ref(), mode);
+        self
+    }
+
+    pub fn put_file(&self, path: &[u8], data: &[u8], mode: Mode) {
+        lock(&self.world).put(path, Kind::File(data.to_vec()), mode);
+    }
+
+    pub fn dir(self, path: &str, mode: Mode) -> TestKit {
+        lock(&self.world).mkdir_p(path.as_bytes(), mode);
+        self
+    }
+
+    pub fn put_dir(&self, path: &[u8], mode: Mode) {
+        lock(&self.world).mkdir_p(path, mode);
+    }
+
+    pub fn symlink(self, path: &str, target: &str) -> TestKit {
+        self.put_symlink(path.as_bytes(), target.as_bytes());
+        self
+    }
+
+    pub fn put_symlink(&self, path: &[u8], target: &[u8]) {
+        lock(&self.world).put(path, Kind::Symlink(target.to_vec()), 0o777);
+    }
+
+    /// Ajusta o mtime (e atime) de um caminho já existente.
+    pub fn set_mtime(&self, path: &[u8], sec: i64) {
+        let mut w = lock(&self.world);
+        if let Ok(r) = w.resolve(b"/", path, false) {
+            if let Some(ino) = r.ino {
+                let n = w.node_mut(ino);
+                n.mtime = TimeSpec { sec, nsec: 0 };
+                n.atime = TimeSpec { sec, nsec: 0 };
+            }
+        }
+    }
+
+    pub fn cwd(mut self, path: &str) -> TestKit {
+        self.cwd = path.as_bytes().to_vec();
+        self
+    }
+
+    pub fn env(mut self, key: &str, value: &str) -> TestKit {
+        let prefix = format!("{key}=");
+        self.env.retain(|kv| !kv.starts_with(prefix.as_bytes()));
+        self.env.push(format!("{key}={value}").into_bytes());
+        self
+    }
+
+    /// Relógio do sistema (segundos desde a época).
+    pub fn time(self, sec: i64) -> TestKit {
+        lock(&self.world).now = TimeSpec { sec, nsec: 0 };
+        self
+    }
+
+    pub fn read_file(&self, path: &str) -> Option<Vec<u8>> {
+        let w = lock(&self.world);
+        let r = w.resolve(b"/", path.as_bytes(), true).ok()?;
+        match &w.node(r.ino?).kind {
+            Kind::File(d) => Some(d.clone()),
+            _ => None,
+        }
+    }
+
+    /// Retrato recursivo de um diretório (caminhos relativos a `root`, ordenados).
+    pub fn tree(&self, root: &str) -> Vec<(Vec<u8>, TreeEntry)> {
+        let w = lock(&self.world);
+        let mut out = Vec::new();
+        let Ok(r) = w.resolve(b"/", root.as_bytes(), true) else { return out };
+        let Some(start) = r.ino else { return out };
+        let mut stack: Vec<(Ino, Vec<u8>)> = vec![(start, Vec::new())];
+        while let Some((ino, prefix)) = stack.pop() {
+            if let Kind::Dir(m) = &w.node(ino).kind {
+                for (name, (child, _)) in m {
+                    let rel = if prefix.is_empty() { name.clone() } else { join(&prefix, name) };
+                    let n = w.node(*child);
+                    let entry = match &n.kind {
+                        Kind::File(d) => TreeEntry::File { data: d.clone(), mode: n.mode },
+                        Kind::Dir(_) => {
+                            stack.push((*child, rel.clone()));
+                            TreeEntry::Dir { mode: n.mode }
+                        }
+                        Kind::Symlink(t) => TreeEntry::Symlink { target: t.clone() },
+                        _ => TreeEntry::Other { mode: n.mode },
+                    };
+                    out.push((rel, entry));
+                }
+            }
+        }
+        out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
+    }
+
+    /// Roda `argv` (argv[0] é procurado no PATH se não tiver `/`) com `stdin`, como um processo filho
+    /// do "sistema", e devolve stdout, stderr e status.
+    pub fn run(&self, argv: &[&str], stdin: &[u8]) -> RunResult {
+        let argv: Vec<Vec<u8>> = argv.iter().map(|a| a.as_bytes().to_vec()).collect();
+        self.run_bytes(&argv, stdin)
+    }
+
+    pub fn run_bytes(&self, argv: &[Vec<u8>], stdin: &[u8]) -> RunResult {
+        let root_pid = {
+            let mut w = lock(&self.world);
+            let pid = w.next_pid;
+            w.next_pid += 1;
+            w.procs.insert(
+                pid,
+                Proc {
+                    pid,
+                    ppid: 1,
+                    pgid: pid,
+                    sid: pid,
+                    cwd: self.cwd.clone(),
+                    env: self.env.clone(),
+                    argv: vec![b"testkit".to_vec()],
+                    umask: 0o022,
+                    fds: BTreeMap::new(),
+                    sigs: BTreeMap::new(),
+                    caught: Vec::new(),
+                    pending_fatal: None,
+                    status: None,
+                    reaped: false,
+                    rlimits: BTreeMap::new(),
+                },
+            );
+            pid
+        };
+        let root = ProcHandle { world: self.world.clone(), pid: root_pid };
+        // O processo raiz ocupa 0, 1 e 2 com /dev/null, pra que os pipes de captura ganhem números
+        // acima de 2 e as ações de fd do filho não se atropelem.
+        for _ in 0..3 {
+            root.openat(Fd::CWD, b"/dev/null", OFlags::RDWR, 0).expect("/dev/null");
+        }
+        let (in_r, in_w) = root.pipe2(OFlags::empty()).expect("pipe stdin");
+        root.write(in_w, stdin).expect("stdin cabe no pipe");
+        root.close(in_w).expect("fechar stdin");
+        let (out_r, out_w) = root.pipe2(OFlags::empty()).expect("pipe stdout");
+        let (err_r, err_w) = root.pipe2(OFlags::empty()).expect("pipe stderr");
+        let path = resolve_in_path(&root, &argv[0]);
+        let attrs = ProcAttrs {
+            fd_actions: vec![
+                FdAction::Dup2 { from: in_r, to: Fd::STDIN },
+                FdAction::Dup2 { from: out_w, to: Fd::STDOUT },
+                FdAction::Dup2 { from: err_w, to: Fd::STDERR },
+                FdAction::Close(in_r),
+                FdAction::Close(out_w),
+                FdAction::Close(err_w),
+                FdAction::Close(out_r),
+                FdAction::Close(err_r),
+            ],
+            ..ProcAttrs::default()
+        };
+        let status = match root.spawn(SpawnSpec { path, argv: argv.to_vec(), attrs }) {
+            Ok(pid) => match root.wait4(WaitTarget::Pid(pid), WaitOptions::empty()) {
+                Ok(Some((_, st))) => st,
+                _ => WaitStatus::Exited(255),
+            },
+            Err(e) => {
+                let name = String::from_utf8_lossy(&argv[0]).into_owned();
+                let msg = if e == Errno::ENOENT { format!("{name}: command not found\n") } else { format!("{name}: {}\n", e.message()) };
+                root.write(err_w, msg.as_bytes()).ok();
+                WaitStatus::Exited(if e == Errno::ENOENT { 127 } else { 126 })
+            }
+        };
+        let _ = root.close(out_w);
+        let _ = root.close(err_w);
+        let drain = |fd: Fd| {
+            let mut out = Vec::new();
+            let mut buf = vec![0u8; 65536];
+            while let Ok(n) = root.read(fd, &mut buf) {
+                if n == 0 {
+                    break;
+                }
+                out.extend_from_slice(&buf[..n]);
+            }
+            out
+        };
+        let stdout = drain(out_r);
+        let stderr = drain(err_r);
+        lock(&self.world).procs.remove(&root_pid);
+        RunResult { stdout, stderr, status }
+    }
+}
+
+fn resolve_in_path(root: &ProcHandle, name: &[u8]) -> Vec<u8> {
+    if name.contains(&b'/') {
+        return name.to_vec();
+    }
+    let path = root.getenv(b"PATH").unwrap_or_default();
+    for dir in path.split(|b| *b == b':') {
+        let candidate = join(if dir.is_empty() { b"." } else { dir }, name);
+        if root.fstatat(Fd::CWD, &candidate, AtFlags::empty()).is_ok() {
+            return candidate;
+        }
+    }
+    name.to_vec()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::{Read, Write};
+
+    fn cat(ctx: &mut Ctx, args: &[OsString]) -> i32 {
+        use std::os::unix::ffi::OsStrExt;
+        let mut out = ctx.stdout();
+        if args.len() <= 1 {
+            let mut data = Vec::new();
+            ctx.stdin().read_to_end(&mut data).ok();
+            out.write_all(&data).ok();
+            return 0;
+        }
+        let mut code = 0;
+        for a in &args[1..] {
+            match sys::read_file(a.as_bytes()) {
+                Ok(d) => {
+                    out.write_all(&d).ok();
+                }
+                Err(e) => {
+                    ctx.error(format!("{}: {}", a.to_string_lossy(), e.message()));
+                    code = 1;
+                }
+            }
+        }
+        code
+    }
+
+    fn yes(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let mut out = ctx.stdout();
+        loop {
+            if out.write_all(b"y\n").is_err() {
+                return 1;
+            }
+        }
+    }
+
+    fn head1(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let mut b = [0u8; 2];
+        let n = ctx.stdin().read(&mut b).unwrap_or(0);
+        ctx.stdout().write_all(&b[..n]).ok();
+        0
+    }
+
+    fn pipeline(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        // Simula `yes | head1` com spawn e pipe, como um shell faria.
+        let sys = ctx.sys().clone();
+        let (r, w) = sys.pipe2(OFlags::CLOEXEC).unwrap();
+        let a = sys
+            .spawn(SpawnSpec { path: b"/usr/bin/yes".to_vec(), argv: vec![b"yes".to_vec()], attrs: ProcAttrs { fd_actions: vec![FdAction::Dup2 { from: w, to: Fd::STDOUT }], ..ProcAttrs::default() } })
+            .unwrap();
+        sys.close(w).unwrap();
+        let b = sys
+            .spawn(SpawnSpec { path: b"/usr/bin/head1".to_vec(), argv: vec![b"head1".to_vec()], attrs: ProcAttrs { fd_actions: vec![FdAction::Dup2 { from: r, to: Fd::STDIN }], ..ProcAttrs::default() } })
+            .unwrap();
+        sys.close(r).unwrap();
+        let (_, sa) = sys.wait4(WaitTarget::Pid(a), WaitOptions::empty()).unwrap().unwrap();
+        let (_, sb) = sys.wait4(WaitTarget::Pid(b), WaitOptions::empty()).unwrap().unwrap();
+        let msg = format!("{} {}\n", sa.shell_status(), sb.shell_status());
+        ctx.stdout().write_all(msg.as_bytes()).ok();
+        0
+    }
+
+    fn kit() -> TestKit {
+        TestKit::new().programs([
+            Program::bin("cat", cat),
+            Program::bin("yes", yes),
+            Program::bin("head1", head1),
+            Program::bin("pipeline", pipeline),
+        ])
+    }
+
+    #[test]
+    fn runs_programs_with_files_stdin_and_errors() {
+        let k = kit().file("/work/in.txt", "abc\n", 0o644);
+        let r = k.run(&["cat", "in.txt", "missing"], b"");
+        assert_eq!(r.stdout, b"abc\n");
+        assert_eq!(r.stderr_str(), "cat: missing: No such file or directory\n");
+        assert_eq!(r.code(), 1);
+        let r = k.run(&["cat"], b"from stdin");
+        assert_eq!(r.stdout, b"from stdin");
+        let r = k.run(&["nope"], b"");
+        assert_eq!(r.code(), 127);
+    }
+
+    #[test]
+    fn pipeline_gets_sigpipe_like_linux() {
+        let r = kit().run(&["pipeline"], b"");
+        // yes morre de SIGPIPE (141) depois que o leitor some; head1 sai com 0.
+        assert_eq!(r.stdout_str(), "y\n141 0\n");
+    }
+
+    #[test]
+    fn namei_symlinks_and_tmpfs_order() {
+        let k = kit().file("/work/a", "1", 0o644).file("/work/b", "2", 0o644).symlink("/work/l", "a");
+        let tree = k.tree("/work");
+        assert_eq!(tree.len(), 3);
+        let r = k.run(&["cat", "l", "/usr/../work/b"], b"");
+        assert_eq!(r.stdout, b"12");
+        // Como no Linux: /bin é symlink pra usr/bin, então /bin/.. é /usr, não /.
+        let r = k.run(&["cat", "/bin/../work/b"], b"");
+        assert_eq!(r.stderr_str(), "cat: /bin/../work/b: No such file or directory\n");
+        // tmpfs: readdir do mais novo pro mais antigo.
+        let names: Vec<Vec<u8>> = k.tree("/work").into_iter().map(|e| e.0).collect();
+        assert_eq!(names, vec![b"a".to_vec(), b"b".to_vec(), b"l".to_vec()]);
+    }
+}

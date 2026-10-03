@@ -1,8 +1,11 @@
-# Workspace principal do pseudo-linus. Por enquanto só os crates que a bancada já valida:
-# a árvore rubro-negra aumentada e o escalonador EEVDF, ambos feitos à mão.
+# Workspace principal do pseudo-linus. Cada crate vive em crates/<nome>; crates vendorizados dentro de
+# um crate (ex.: crates/ul-coreutils/vendor/uucore) viram membros automaticamente por serem path
+# dependencies dentro do workspace.
 [workspace]
 resolver = "3"
-members = ["crates/rbtree", "crates/sched"]
+members = ["crates/*"]
+# A bancada é outro workspace (testbench/Cargo.toml); o harness entra aqui só como dependência.
+exclude = ["testbench"]
 
 [workspace.package]
 edition = "2024"
@@ -12,7 +15,29 @@ publish = false
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
-missing_debug_implementations = "warn"
+missing_debug_implementations = "allow"
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
+
+[workspace.dependencies]
+# Crates internos.
+rbtree = { path = "crates/rbtree" }
+sched = { path = "crates/sched" }
+sysabi = { path = "crates/sysabi" }
+sysio = { path = "crates/sysio" }
+vfs = { path = "crates/vfs" }
+kernel = { path = "crates/kernel" }
+shell = { path = "crates/shell" }
+regex-posix = { path = "crates/regex-posix" }
+userland = { path = "crates/userland" }
+
+[profile.dev]
+# Sem debuginfo: vários builds em paralelo precisam caber no disco e compilar rápido.
+debug = 0
+
+[profile.dev.package."*"]
+opt-level = 1
+
+[profile.release]
+debug = "line-tables-only"

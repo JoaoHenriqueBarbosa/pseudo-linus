@@ -1,0 +1,15 @@
+[package]
+name = "pl-testing"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Conformidade do pseudo-linus contra o golden da bancada: candidato sobre o testkit (e, depois, sobre o kernel real)"
+
+[dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+harness = { path = "../../testbench/crates/harness" }
+
+[lints]
+workspace = true
