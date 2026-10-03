@@ -62,9 +62,15 @@ falam com o host, e só onde o desenho manda.
 | `userland` | coordenador | `all_programs()`: junta as tabelas de todos os `ul-*` e do shell |
 | `host` | agente host | daemon JSON-RPC, supervisor e workers, CLI `osh`, imagem Docker |
 
-Cada agente só edita os próprios crates. O workspace usa `members = ["crates/*"]`: crie o crate com um
-`Cargo.toml` válido de primeira (um manifesto quebrado derruba o build de todo mundo) e rode
-`cargo metadata --format-version 1 >/dev/null` depois de mexer em dependência.
+Cada agente só edita os próprios crates. O workspace usa `members = ["crates/*"]`: um manifesto
+quebrado, ou um `Cargo.toml` sem `src/lib.rs`, derruba o build de todo mundo. Em crate novo, crie o
+`src/lib.rs` **antes** do `Cargo.toml`, e rode `cargo metadata --format-version 1 >/dev/null` depois de
+mexer em dependência. Se o seu build falhar por causa do crate de outro, espere e tente de novo (avise o
+`main` se passar de alguns minutos); não edite o crate do outro.
+
+Código C com callback em Rust (ex.: VFS do sqlite): um `ExitUnwind`/`KillUnwind` levantado dentro do
+callback atravessaria `extern "C"` e abortaria o processo host. Capture o payload no callback, devolva
+erro pro C e relance com `std::panic::resume_unwind` quando o controle voltar pro Rust.
 
 ## Convenções
 

@@ -97,12 +97,33 @@ struct PipeBuf {
     writers: usize,
 }
 
+/// Conexão de rede de teste (ver [`TestKit::net`]).
+pub trait NetStream: std::io::Read + std::io::Write + Send {
+    fn peer(&self) -> std::net::SocketAddr;
+    fn local(&self) -> std::net::SocketAddr;
+    fn set_read_timeout(&self, d: Option<Duration>) -> std::io::Result<()>;
+}
+
+/// Quem atende `net_connect` no testkit: recebe host e porta, devolve a conexão ou o errno.
+pub type NetHandler = Arc<dyn Fn(&[u8], u16) -> SysResult<Box<dyn NetStream>> + Send + Sync>;
+
+struct Socket {
+    stream: Box<dyn NetStream>,
+}
+
+impl std::fmt::Debug for Socket {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Socket({})", self.stream.peer())
+    }
+}
+
 #[derive(Debug)]
 enum OpenKind {
     Inode(Ino),
     Dir { ino: Ino, listing: Option<Vec<DirEntry>> },
     PipeRead(Arc<Mutex<PipeBuf>>),
     PipeWrite(Arc<Mutex<PipeBuf>>),
+    Socket(Arc<Mutex<Socket>>),
 }
 
 #[derive(Debug)]
@@ -157,6 +178,10 @@ struct World {
     now: TimeSpec,
     hostname: Vec<u8>,
     rng: u64,
+    net: Option<NetHandler>,
+    /// Travas OFD por inode; o dono é a open file description (fraca: some sozinha quando o último fd
+    /// que a referencia fecha).
+    locks: BTreeMap<Ino, Vec<(std::sync::Weak<Mutex<OpenFile>>, FileLock)>>,
 }
 
 const ROOT: Ino = 1;
@@ -191,6 +216,8 @@ impl World {
             now: TimeSpec { sec: DEFAULT_TIME, nsec: 0 },
             hostname: b"pseudo-linus".to_vec(),
             rng: 0x9E37_79B9_7F4A_7C15,
+            net: None,
+            locks: BTreeMap::new(),
         };
         let root = w.alloc(Kind::Dir(BTreeMap::new()), 0o755);
         debug_assert_eq!(root, ROOT);
@@ -886,6 +913,7 @@ impl Syscalls for ProcHandle {
                 Ok(n)
             }
             OpenKind::PipeWrite(_) => Err(Errno::EBADF),
+            OpenKind::Socket(s) => lock(s).stream.read(buf).map_err(|e| Errno::from_io(&e)),
             OpenKind::Dir { .. } => Err(Errno::EISDIR),
             OpenKind::Inode(ino) => {
                 let ino = *ino;
@@ -946,6 +974,7 @@ impl Syscalls for ProcHandle {
                 Ok(buf.len())
             }
             OpenKind::PipeRead(_) => Err(Errno::EBADF),
+            OpenKind::Socket(s) => lock(s).stream.write(buf).map_err(|e| Errno::from_io(&e)),
             OpenKind::Dir { .. } => Err(Errno::EISDIR),
             OpenKind::Inode(ino) => {
                 let ino = *ino;
@@ -1056,6 +1085,14 @@ impl Syscalls for ProcHandle {
         let f = lock(&e.file);
         match &f.kind {
             OpenKind::Inode(ino) | OpenKind::Dir { ino, .. } => Ok(self.w().stat_of(*ino)),
+            OpenKind::Socket(_) => Ok(Stat {
+                mode: mode::S_IFSOCK | 0o777,
+                nlink: 1,
+                blksize: 4096,
+                ino: 0x2000 + fd.0 as u64,
+                dev: 0x8,
+                ..Stat::default()
+            }),
             OpenKind::PipeRead(_) | OpenKind::PipeWrite(_) => Ok(Stat {
                 mode: mode::S_IFIFO | 0o600,
                 nlink: 1,
@@ -1835,8 +1872,137 @@ impl Syscalls for ProcHandle {
         self.getenv(b"TZ").unwrap_or_else(|| b"UTC".to_vec())
     }
 
-    fn net_connect(&self, _host: &[u8], _port: u16) -> SysResult<Fd> {
-        Err(Errno::ENETUNREACH)
+    fn poll(&self, fds: &mut [PollFd], timeout: Option<Duration>) -> SysResult<usize> {
+        self.check_pending();
+        let mut ready = 0;
+        for p in fds.iter_mut() {
+            p.revents = PollEvents::empty();
+            let Ok(e) = self.fd_entry(p.fd) else {
+                p.revents = PollEvents::NVAL;
+                ready += 1;
+                continue;
+            };
+            let f = lock(&e.file);
+            let mut rev = match &f.kind {
+                OpenKind::Inode(_) | OpenKind::Dir { .. } => PollEvents::IN | PollEvents::OUT,
+                OpenKind::PipeRead(b) => {
+                    let b = lock(b);
+                    let mut r = PollEvents::empty();
+                    if !b.data.is_empty() {
+                        r |= PollEvents::IN;
+                    }
+                    if b.writers == 0 {
+                        r |= PollEvents::HUP;
+                    }
+                    r
+                }
+                OpenKind::PipeWrite(b) => {
+                    if lock(b).readers == 0 { PollEvents::ERR } else { PollEvents::OUT }
+                }
+                // Síncrono: não dá pra saber sem bloquear; o socket de teste é tratado como pronto.
+                OpenKind::Socket(_) => PollEvents::IN | PollEvents::OUT,
+            };
+            rev &= p.events | PollEvents::ERR | PollEvents::HUP | PollEvents::NVAL;
+            p.revents = rev;
+            if !rev.is_empty() {
+                ready += 1;
+            }
+        }
+        if ready == 0 {
+            // Nada fica pronto num mundo síncrono: o tempo passa e o poll expira.
+            if let Some(d) = timeout {
+                self.nanosleep(d)?;
+            }
+        }
+        Ok(ready)
+    }
+
+    fn ofd_setlk(&self, fd: Fd, lk: FileLock, wait: bool) -> SysResult<()> {
+        let e = self.fd_entry(fd)?;
+        let (ino, flags) = {
+            let f = lock(&e.file);
+            match &f.kind {
+                OpenKind::Inode(ino) => (*ino, f.flags),
+                _ => return Err(Errno::EINVAL),
+            }
+        };
+        match lk.kind {
+            LockKind::Read if !flags.readable() => return Err(Errno::EBADF),
+            LockKind::Write if !flags.writable() => return Err(Errno::EBADF),
+            _ => {}
+        }
+        let me = Arc::downgrade(&e.file);
+        let mut w = self.w();
+        let table = w.locks.entry(ino).or_default();
+        table.retain(|(owner, _)| owner.strong_count() > 0);
+        if lk.kind != LockKind::Unlock {
+            let conflict = table.iter().any(|(owner, other)| {
+                !owner.ptr_eq(&me) && other.overlaps(&lk) && (lk.kind == LockKind::Write || other.kind == LockKind::Write)
+            });
+            if conflict {
+                // Síncrono: esperar nunca terminaria.
+                return Err(if wait { Errno::EDEADLK } else { Errno::EAGAIN });
+            }
+        }
+        // Remove a faixa deste dono e insere a nova (sem fusão fina: suficiente pros testes).
+        let mut kept = Vec::new();
+        for (owner, other) in table.drain(..) {
+            if owner.ptr_eq(&me) && other.overlaps(&lk) {
+                let end = |l: &FileLock| if l.len == 0 { u64::MAX } else { l.start + l.len };
+                if other.start < lk.start {
+                    kept.push((owner.clone(), FileLock { kind: other.kind, start: other.start, len: lk.start - other.start }));
+                }
+                if end(&other) > end(&lk) && lk.len != 0 {
+                    let s = end(&lk);
+                    let len = if other.len == 0 { 0 } else { end(&other) - s };
+                    kept.push((owner, FileLock { kind: other.kind, start: s, len }));
+                }
+            } else {
+                kept.push((owner, other));
+            }
+        }
+        if lk.kind != LockKind::Unlock {
+            kept.push((me, lk));
+        }
+        *table = kept;
+        Ok(())
+    }
+
+    fn ofd_getlk(&self, fd: Fd, lk: FileLock) -> SysResult<Option<FileLock>> {
+        let e = self.fd_entry(fd)?;
+        let ino = match &lock(&e.file).kind {
+            OpenKind::Inode(ino) => *ino,
+            _ => return Err(Errno::EINVAL),
+        };
+        let me = Arc::downgrade(&e.file);
+        let w = self.w();
+        Ok(w.locks.get(&ino).and_then(|t| {
+            t.iter()
+                .find(|(owner, other)| {
+                    owner.strong_count() > 0
+                        && !owner.ptr_eq(&me)
+                        && other.overlaps(&lk)
+                        && (lk.kind == LockKind::Write || other.kind == LockKind::Write)
+                })
+                .map(|(_, l)| *l)
+        }))
+    }
+
+    fn net_connect(&self, host: &[u8], port: u16, timeout: Option<Duration>) -> SysResult<NetConn> {
+        self.check_pending();
+        let handler = self.w().net.clone().ok_or(Errno::ENETUNREACH)?;
+        let stream = handler(host, port)?;
+        if let Some(t) = timeout {
+            let _ = stream.set_read_timeout(Some(t));
+        }
+        let (peer, local) = (stream.peer(), stream.local());
+        let entry = FdEntry {
+            file: Arc::new(Mutex::new(OpenFile { kind: OpenKind::Socket(Arc::new(Mutex::new(Socket { stream }))), flags: OFlags::RDWR, offset: 0 })),
+            cloexec: false,
+        };
+        let mut w = self.w();
+        let fd = self.alloc_fd(&mut w, entry, 0)?;
+        Ok(NetConn { fd, peer, local })
     }
 }
 
@@ -1954,6 +2120,12 @@ impl TestKit {
         let prefix = format!("{key}=");
         self.env.retain(|kv| !kv.starts_with(prefix.as_bytes()));
         self.env.push(format!("{key}={value}").into_bytes());
+        self
+    }
+
+    /// Liga a rede de teste: `net_connect` passa a chamar `handler(host, porta)`.
+    pub fn net(self, handler: NetHandler) -> TestKit {
+        lock(&self.world).net = Some(handler);
         self
     }
 

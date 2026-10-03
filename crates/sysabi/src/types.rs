@@ -441,6 +441,60 @@ pub struct SpawnSpec {
 /// Corpo de um processo criado por `spawn_fn` (o equivalente a `fork` seguido de código no filho).
 pub type ProcessFn = Box<dyn FnOnce() -> i32 + Send + 'static>;
 
+/// Conexão de rede aberta pelo kernel ([`crate::Syscalls::net_connect`]).
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct NetConn {
+    /// fd de socket: lê e escreve bytes, `fstat` dá `S_IFSOCK`.
+    pub fd: Fd,
+    pub peer: std::net::SocketAddr,
+    pub local: std::net::SocketAddr,
+}
+
+bitflags! {
+    /// Eventos do `poll(2)`.
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+    pub struct PollEvents: u16 {
+        const IN = 0x1;
+        const PRI = 0x2;
+        const OUT = 0x4;
+        const ERR = 0x8;
+        const HUP = 0x10;
+        const NVAL = 0x20;
+    }
+}
+
+/// Entrada do `poll(2)`.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct PollFd {
+    pub fd: Fd,
+    pub events: PollEvents,
+    pub revents: PollEvents,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum LockKind {
+    Read,
+    Write,
+    Unlock,
+}
+
+/// Trava de faixa de bytes, com dono = open file description (`F_OFD_SETLK`).
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct FileLock {
+    pub kind: LockKind,
+    pub start: u64,
+    /// 0 = até o fim do arquivo (e além).
+    pub len: u64,
+}
+
+impl FileLock {
+    /// Faixas `[start, end)` se sobrepõem (len 0 = infinito).
+    pub fn overlaps(&self, other: &FileLock) -> bool {
+        let end = |l: &FileLock| if l.len == 0 { u64::MAX } else { l.start.saturating_add(l.len) };
+        self.start < end(other) && other.start < end(self)
+    }
+}
+
 /// Informação mínima de processo (pra `ps`, `jobs`, `/proc`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProcInfo {

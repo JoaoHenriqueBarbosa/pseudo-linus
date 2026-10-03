@@ -137,9 +137,22 @@ pub trait Syscalls: Send + Sync {
     /// Fuso local do sandbox (conteúdo de `/etc/localtime` ou `TZ`), pra ferramentas de data.
     fn local_timezone(&self) -> Vec<u8>;
 
-    // ---- rede (a política de allowlist fica no kernel) ----
-    /// Conexão TCP; o fd devolvido lê e escreve bytes. ENETUNREACH/EACCES se a política negar.
-    fn net_connect(&self, host: &[u8], port: u16) -> SysResult<Fd>;
+    // ---- espera e travas ----
+    /// `poll(2)` em qualquer fd (socket, pipe, arquivo). `None` espera sem limite. EINTR com sinal
+    /// capturado. Devolve quantas entradas têm `revents` não vazio.
+    fn poll(&self, fds: &mut [PollFd], timeout: Option<Duration>) -> SysResult<usize>;
+    /// `F_OFD_SETLK`/`F_OFD_SETLKW`: o dono da trava é a open file description, e ela solta quando o
+    /// último fd que a referencia fecha. `wait = false` dá EAGAIN em conflito; `wait = true` bloqueia
+    /// (EINTR com sinal capturado, EDEADLK em impasse).
+    fn ofd_setlk(&self, fd: Fd, lock: FileLock, wait: bool) -> SysResult<()>;
+    /// `F_OFD_GETLK`: a primeira trava de outro dono que conflita com `lock`, ou `None`.
+    fn ofd_getlk(&self, fd: Fd, lock: FileLock) -> SysResult<Option<FileLock>>;
+
+    // ---- rede (resolução, política de allowlist e conexão ficam no kernel) ----
+    /// Conexão TCP. `timeout` cobre resolução e conexão. Erros: ENOENT = nome não resolve; EACCES = a
+    /// política negou (nome fora da allowlist ou endereço interno); ECONNREFUSED, ETIMEDOUT,
+    /// ENETUNREACH, EHOSTUNREACH como no `connect(2)`.
+    fn net_connect(&self, host: &[u8], port: u16, timeout: Option<Duration>) -> SysResult<NetConn>;
 }
 
 thread_local! {

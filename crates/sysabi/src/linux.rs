@@ -13,6 +13,13 @@ pub struct Signal(pub i32);
 
 include!(concat!(env!("OUT_DIR"), "/linux_tables.rs"));
 
+/// Aliases do Linux que a tabela gerada não traz (ela guarda um nome por número).
+impl Errno {
+    pub const EWOULDBLOCK: Errno = Errno(11);
+    pub const EDEADLK: Errno = Errno(35);
+    pub const EOPNOTSUPP: Errno = Errno(95);
+}
+
 impl Errno {
     /// Nome simbólico ("ENOENT"), quando o número tem nome.
     pub fn name(self) -> Option<&'static str> {
