@@ -182,6 +182,11 @@ struct World {
     /// Travas OFD por inode; o dono é a open file description (fraca: some sozinha quando o último fd
     /// que a referencia fecha).
     locks: BTreeMap<Ino, Vec<(std::sync::Weak<Mutex<OpenFile>>, FileLock)>>,
+    ncpus: usize,
+    next_tid: Tid,
+    /// Threads terminadas ainda não juntadas (síncrono: toda thread termina antes de `spawn_thread`
+    /// voltar).
+    finished_threads: std::collections::BTreeSet<Tid>,
 }
 
 const ROOT: Ino = 1;
@@ -218,6 +223,9 @@ impl World {
             rng: 0x9E37_79B9_7F4A_7C15,
             net: None,
             locks: BTreeMap::new(),
+            ncpus: 1,
+            next_tid: 1_000_000,
+            finished_threads: std::collections::BTreeSet::new(),
         };
         let root = w.alloc(Kind::Dir(BTreeMap::new()), 0o755);
         debug_assert_eq!(root, ROOT);
@@ -1769,6 +1777,42 @@ impl Syscalls for ProcHandle {
             .collect()
     }
 
+    fn spawn_thread(&self, body: ThreadFn) -> SysResult<Tid> {
+        let tid = {
+            let mut w = self.w();
+            let t = w.next_tid;
+            w.next_tid += 1;
+            t
+        };
+        // Síncrono: a thread roda até o fim agora. Um `exit` dentro dela desenrola até o processo, que é
+        // o que o `exit_group` faria.
+        body();
+        self.w().finished_threads.insert(tid);
+        Ok(tid)
+    }
+
+    fn join_thread(&self, tid: Tid) -> SysResult<()> {
+        if tid == self.pid {
+            return Err(Errno::EDEADLK);
+        }
+        let mut w = self.w();
+        if w.finished_threads.remove(&tid) {
+            Ok(())
+        } else if tid < w.next_tid && tid >= 1_000_000 {
+            Err(Errno::EINVAL)
+        } else {
+            Err(Errno::ESRCH)
+        }
+    }
+
+    fn gettid(&self) -> Tid {
+        self.pid
+    }
+
+    fn sched_getaffinity(&self) -> Vec<usize> {
+        (0..self.w().ncpus).collect()
+    }
+
     fn getuid(&self) -> Uid {
         0
     }
@@ -2120,6 +2164,12 @@ impl TestKit {
         let prefix = format!("{key}=");
         self.env.retain(|kv| !kv.starts_with(prefix.as_bytes()));
         self.env.push(format!("{key}={value}").into_bytes());
+        self
+    }
+
+    /// Número de CPUs virtuais que `sched_getaffinity` informa (padrão: 1).
+    pub fn cpus(self, n: usize) -> TestKit {
+        lock(&self.world).ncpus = n.max(1);
         self
     }
 

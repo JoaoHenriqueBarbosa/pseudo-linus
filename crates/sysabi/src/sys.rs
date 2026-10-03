@@ -112,6 +112,16 @@ pub trait Syscalls: Send + Sync {
     fn getrusage(&self, who: RusageWho) -> SysResult<Rusage>;
     /// Processos visíveis neste sandbox.
     fn list_processes(&self) -> Vec<ProcInfo>;
+    /// Thread nova no mesmo processo (`clone` com `CLONE_THREAD`): divide memória, fds e cwd, é
+    /// escalonada como qualquer thread e morre junto com o processo. `exit` em qualquer thread termina o
+    /// processo inteiro (como `exit_group`); a thread acaba normalmente quando `body` volta.
+    fn spawn_thread(&self, body: ThreadFn) -> SysResult<Tid>;
+    /// Espera a thread `tid` terminar (`pthread_join`). ESRCH se não existe, EINVAL se já foi juntada,
+    /// EDEADLK se for a própria.
+    fn join_thread(&self, tid: Tid) -> SysResult<()>;
+    fn gettid(&self) -> Tid;
+    /// CPUs em que o processo pode rodar (`sched_getaffinity`): as CPUs virtuais do sandbox.
+    fn sched_getaffinity(&self) -> Vec<usize>;
 
     // ---- identidade e ambiente ----
     fn getuid(&self) -> Uid;

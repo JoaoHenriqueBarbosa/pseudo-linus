@@ -19,6 +19,10 @@ impl Fd {
 }
 
 pub type Pid = i32;
+/// Id de thread (`gettid`); a thread principal tem tid = pid.
+pub type Tid = i32;
+/// Corpo de uma thread criada por [`crate::Syscalls::spawn_thread`].
+pub type ThreadFn = Box<dyn FnOnce() + Send + 'static>;
 pub type Uid = u32;
 pub type Gid = u32;
 /// Bits de permissão e tipo (`st_mode`).
