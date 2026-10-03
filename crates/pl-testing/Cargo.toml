@@ -7,9 +7,15 @@ license.workspace = true
 publish.workspace = true
 description = "Conformidade do pseudo-linus contra o golden da bancada: candidato sobre o testkit (e, depois, sobre o kernel real)"
 
+[features]
+default = []
+# KernelCandidate (kernel real). Fora do padrão pra que um kernel quebrado no meio de uma edição não
+# trave os testes que só usam o testkit.
+kernel = ["dep:kernel"]
+
 [dependencies]
 sysabi = { workspace = true, features = ["testkit"] }
-kernel = { workspace = true }
+kernel = { workspace = true, optional = true }
 harness = { path = "../../testbench/crates/harness" }
 
 [lints]

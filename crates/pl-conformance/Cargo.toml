@@ -24,7 +24,7 @@ git = ["userland/git"]
 [dependencies]
 sysabi = { workspace = true }
 userland = { path = "../userland", default-features = false }
-pl-testing = { path = "../pl-testing" }
+pl-testing = { path = "../pl-testing", features = ["kernel"] }
 harness = { path = "../../testbench/crates/harness" }
 
 [lints]

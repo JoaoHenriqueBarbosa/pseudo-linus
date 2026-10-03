@@ -90,7 +90,8 @@ impl Candidate for TestkitCandidate {
 
 /// Candidato que roda cada caso no kernel real (`crates/kernel`): threads de verdade, pipes
 /// concorrentes, sinais, escalonador. Cada caso ganha um sandbox novo, derivado em O(1) de um retrato da
-/// imagem base com os programas.
+/// imagem base com os programas. Exige a feature `kernel`.
+#[cfg(feature = "kernel")]
 pub struct KernelCandidate {
     name: String,
     programs: Vec<Program>,
@@ -99,6 +100,7 @@ pub struct KernelCandidate {
     timeout: std::time::Duration,
 }
 
+#[cfg(feature = "kernel")]
 impl KernelCandidate {
     pub fn new(name: impl Into<String>, programs: Vec<Program>) -> KernelCandidate {
         let kernel = kernel::Kernel::new(kernel::KernelConfig::default());
@@ -152,6 +154,7 @@ impl KernelCandidate {
     }
 }
 
+#[cfg(feature = "kernel")]
 impl Candidate for KernelCandidate {
     fn name(&self) -> String {
         self.name.clone()
@@ -199,6 +202,7 @@ impl Candidate for KernelCandidate {
     }
 }
 
+#[cfg(feature = "kernel")]
 pub fn kernel_tree_to_memtree(tree: Vec<(Vec<u8>, kernel::TreeEntry)>) -> MemTree {
     tree_to_memtree(
         tree.into_iter()
