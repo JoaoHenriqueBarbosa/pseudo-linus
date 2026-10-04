@@ -606,6 +606,16 @@ impl<'a, R: ?Sized + std::io::BufRead> Tokenizer<'a, R> {
     ) -> Result<(), TokenizerError> {
         let mut pending_here_doc_tokens = vec![];
         let mut drain_here_doc_tokens = false;
+        // Fork do pseudo-linus: `case` dentro do construto, pra que o `)` de um padrão não feche a
+        // substituição (`$(case x in x) echo;; esac)`).
+        #[derive(Clone, Copy, PartialEq, Eq)]
+        enum CaseState {
+            AwaitIn,
+            Pattern,
+            Body,
+        }
+        let mut cases: Vec<CaseState> = vec![];
+        let mut at_cmd_start = true;
 
         loop {
             let cur_token = if drain_here_doc_tokens && !pending_here_doc_tokens.is_empty() {
@@ -639,8 +649,35 @@ impl<'a, R: ?Sized + std::io::BufRead> Tokenizer<'a, R> {
             if let Some(cur_token_value) = cur_token.token {
                 state.append_str(cur_token_value.to_str());
 
-                if matches!(cur_token_value, Token::Operator(o, _) if o == nesting_open) {
-                    nesting_count += 1;
+                let top = cases.last().copied();
+                match &cur_token_value {
+                    Token::Word(w, _) => {
+                        // Com `include_space`, a palavra depois de um `)` traz o branco na frente.
+                        let w = w.as_str().trim_start();
+                        match top {
+                            Some(CaseState::AwaitIn) if w == "in" => {
+                                *cases.last_mut().unwrap() = CaseState::Pattern;
+                            }
+                            Some(CaseState::Pattern) if w == "esac" => {
+                                cases.pop();
+                            }
+                            Some(CaseState::Body) if w == "esac" && at_cmd_start => {
+                                cases.pop();
+                            }
+                            _ if w == "case" && at_cmd_start => cases.push(CaseState::AwaitIn),
+                            _ => {}
+                        }
+                        at_cmd_start = matches!(w, "then" | "do" | "else" | "elif" | "{" | "!" | "time");
+                    }
+                    Token::Operator(o, _) => {
+                        if top == Some(CaseState::Body) && matches!(o.as_str(), ";;" | ";&" | ";;&") {
+                            *cases.last_mut().unwrap() = CaseState::Pattern;
+                        } else if o == nesting_open && top != Some(CaseState::Pattern) {
+                            // `(` opcional antes de um padrão não abre nível.
+                            nesting_count += 1;
+                        }
+                        at_cmd_start = true;
+                    }
                 }
             }
 
@@ -649,6 +686,13 @@ impl<'a, R: ?Sized + std::io::BufRead> Tokenizer<'a, R> {
                     state.append_char('\n');
                 }
                 TokenEndReason::NonNewLineBlank => state.append_char(' '),
+                TokenEndReason::UnescapedNewLine => at_cmd_start = true,
+                TokenEndReason::SpecifiedTerminatingChar if cases.last() == Some(&CaseState::Pattern) => {
+                    // O `)` que fecha um padrão do `case`.
+                    *cases.last_mut().unwrap() = CaseState::Body;
+                    at_cmd_start = true;
+                    state.append_char(self.next_char()?.unwrap());
+                }
                 TokenEndReason::SpecifiedTerminatingChar => {
                     nesting_count -= 1;
                     if nesting_count == 0 {

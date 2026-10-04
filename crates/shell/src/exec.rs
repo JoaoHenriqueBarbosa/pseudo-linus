@@ -421,7 +421,12 @@ impl Shell {
         c.procsub_fds.clear();
         c.procsub_pids.clear();
         c.exit_trap_done = false;
-        let mut display = self.traps.clone();
+        // O que o `trap -p` mostra: os traps do shell de origem, enquanto nenhum subshell no
+        // caminho tiver mudado algum (subshells aninhados herdam a mesma visão).
+        let mut display = match &self.traps.inherited_display {
+            Some(original) => (**original).clone(),
+            None => self.traps.clone(),
+        };
         display.inherited_display = None;
         let keep_err = self.opts.get("errtrace");
         let keep_debug = self.opts.get("functrace");

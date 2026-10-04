@@ -183,6 +183,10 @@ pub struct Reader {
     pos: usize,
     /// Linha (1-based) de `pos`.
     line: Line,
+    /// Onde começou o último pedaço lido (o `seek_line` conta as linhas a partir daqui: depois de
+    /// ler um pedaço inteiro, `pos` já está no fim dele).
+    chunk_pos: usize,
+    chunk_line: Line,
     source: Arc<str>,
 }
 
@@ -194,7 +198,7 @@ pub enum Chunk {
 
 impl Reader {
     pub fn new(src: String, first_line: Line, source: Arc<str>) -> Reader {
-        Reader { src, pos: 0, line: first_line, source }
+        Reader { src, pos: 0, line: first_line, chunk_pos: 0, chunk_line: first_line, source }
     }
 
     pub fn at_end(&self) -> bool {
@@ -203,8 +207,8 @@ impl Reader {
 
     /// Byte inicial da linha `line` (relativa ao começo do texto), a partir de `pos`.
     fn offset_of_line(&self, line: Line) -> usize {
-        let mut cur = self.line;
-        let mut idx = self.pos;
+        let mut cur = self.chunk_line;
+        let mut idx = self.chunk_pos;
         let bytes = self.src.as_bytes();
         while cur < line && idx < bytes.len() {
             if bytes[idx] == b'\n' {
@@ -217,7 +221,7 @@ impl Reader {
 
     /// Recomeça a leitura na linha `line` (depois de executar os comandos que vieram antes dela).
     pub fn seek_line(&mut self, line: Line) {
-        if line > self.line {
+        if line > self.chunk_line {
             self.pos = self.offset_of_line(line);
             self.line = line;
         }
@@ -234,6 +238,8 @@ impl Reader {
             self.finish();
             return None;
         }
+        self.chunk_pos = self.pos;
+        self.chunk_line = self.line;
         let rest = &self.src[self.pos..];
         let offset = self.line - 1;
         match parse_text(rest, offset, &self.source, env) {
