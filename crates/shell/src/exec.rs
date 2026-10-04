@@ -686,7 +686,10 @@ impl Shell {
     pub fn exec_simple(&mut self, s: &Simple) -> Exec {
         self.lineno = s.line;
         self.last_cmdsub_status = None;
-        self.current_command = crate::print::simple_text(s);
+        // Durante um trap o `BASH_COMMAND` continua sendo o comando que disparou o trap.
+        if self.in_trap == 0 {
+            self.current_command = crate::print::simple_text(s);
+        }
         if let Some(dbg) = self.traps.debug.clone() {
             if self.in_trap == 0 && (!self.in_function() || self.opts.get("functrace")) {
                 self.run_trap_command(&dbg, self.status)?;
@@ -783,9 +786,11 @@ impl Shell {
             self.xtrace_line(&words);
         }
 
-        // 6. Redireções.
+        // 6. Redireções. `exec` sem comando as torna permanentes no shell.
         let mut undo = Undo::default();
-        let redir_ok = match self.apply_redirects(&s.redirects, Some(&mut undo)) {
+        let permanent = matches!(kind, CmdKind::Builtin) && name_str == "exec" && args.len() == 1;
+        let undo_ref = if permanent { None } else { Some(&mut undo) };
+        let redir_ok = match self.apply_redirects(&s.redirects, undo_ref) {
             Ok(r) => r.is_ok(),
             Err(f) => {
                 if pushed_temp {
@@ -1063,7 +1068,11 @@ impl Shell {
         self.loop_depth = saved_loop;
         self.params = saved_params;
         self.vars.pop();
-        self.frames.pop();
+        // De volta ao chamador, o `LINENO` é o da linha da chamada (o trap ERR do comando que
+        // chamou a função vê essa linha).
+        if let Some(frame) = self.frames.pop() {
+            self.lineno = frame.call_line;
+        }
         r
     }
 

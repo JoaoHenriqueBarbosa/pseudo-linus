@@ -524,6 +524,11 @@ peg::parser! {
 
         // N.B. here strings are extensions to the POSIX standard.
         rule io_redirect() -> ast::IoRedirect =
+            // Fork do pseudo-linus: `{nome}>arq` (o bash aloca um fd >= 10 e guarda em `nome`).
+            non_posix_extensions_enabled() v:named_fd() f:io_file() {
+                    let (kind, target) = f;
+                    ast::IoRedirect::NamedFd(v, Box::new(ast::IoRedirect::File(None, kind, target)))
+                } /
             n:io_number()? f:io_file() {
                     let (kind, target) = f;
                     ast::IoRedirect::File(n, kind, target)
@@ -699,6 +704,15 @@ peg::parser! {
                 w.parse().unwrap()
             }
 
+        // Fork do pseudo-linus: `{nome}` ou `{nome[índice]}` colado num operador de redireção.
+        rule named_fd() -> String =
+            [Token::Word(w, name_loc) if is_named_fd_word(w)]
+            &([Token::Operator(o, redir_loc) if
+                    o.starts_with(['<', '>']) &&
+                    locations_are_contiguous(name_loc, redir_loc)]) {
+                w[1..w.len() - 1].to_owned()
+            }
+
         //
         // Helpers
         //
@@ -750,6 +764,21 @@ fn add_pipe_extension_redirection(c: &mut ast::Command) -> Result<(), &'static s
 #[inline]
 fn locations_are_contiguous(loc_left: &crate::SourceSpan, loc_right: &crate::SourceSpan) -> bool {
     loc_left.end.index == loc_right.start.index
+}
+
+/// Fork do pseudo-linus: `{nome}` com nome de variável válido, ou `{nome[índice]}`.
+fn is_named_fd_word(w: &str) -> bool {
+    let Some(inner) = w.strip_prefix('{').and_then(|r| r.strip_suffix('}')) else {
+        return false;
+    };
+    let name = match inner.find('[') {
+        Some(i) if inner.ends_with(']') && i + 1 < inner.len() - 1 => &inner[..i],
+        Some(_) => return false,
+        None => inner,
+    };
+    let mut chars = name.chars();
+    matches!(chars.next(), Some(c) if c == '_' || c.is_ascii_alphabetic())
+        && chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
 }
 
 impl peg::Parse for Tokens<'_> {

@@ -988,6 +988,27 @@ fn find_substring_colon(s: &[u8]) -> Option<usize> {
     None
 }
 
+/// `\/` vira `/`; outros pares com barra ficam como estão (`\\` inclusive, sem olhar o seguinte).
+fn unescape_slash(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            match chars.next() {
+                Some('/') => out.push('/'),
+                Some(n) => {
+                    out.push('\\');
+                    out.push(n);
+                }
+                None => out.push('\\'),
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 fn parse_param_op(rest: &str, in_dq: bool, line: Line) -> Result<ParamOp, SyntaxError> {
     let r = rest.as_bytes();
     if r.is_empty() {
@@ -1033,6 +1054,9 @@ fn parse_param_op(rest: &str, in_dq: bool, line: Line) -> Result<ParamOp, Syntax
             };
             let pattern = word_parts(pat, in_dq, true, line)?;
             let replacement = match rep {
+                // Entre aspas duplas o bash ainda tira a barra de `\/` na substituição (a barra
+                // escapada é o delimitador protegido); fora delas a remoção de aspas já faz isso.
+                Some(rp) if in_dq => Some(word_parts(&unescape_slash(rp), in_dq, false, line)?),
                 Some(rp) => Some(word_parts(rp, in_dq, false, line)?),
                 None => None,
             };

@@ -19,6 +19,9 @@ struct P<'a, 'e> {
     noeval: u32,
     depth: u32,
     whole: &'a [u8],
+    /// Onde começa o operando direito do operador binário em curso (o "error token" do bash na
+    /// divisão por zero).
+    rhs_start: usize,
 }
 
 type R = Result<i64, ArithError>;
@@ -31,7 +34,7 @@ fn eval_depth(expr: &[u8], env: &mut dyn ArithEnv, depth: u32) -> R {
     if depth > 1024 {
         return Err(ArithError { message: format!("{}: expression recursion level exceeded", String::from_utf8_lossy(expr)), from_env: false });
     }
-    let mut p = P { s: expr, i: 0, env, noeval: 0, depth, whole: expr };
+    let mut p = P { s: expr, i: 0, env, noeval: 0, depth, whole: expr, rhs_start: 0 };
     p.ws();
     if p.i >= p.s.len() {
         return Ok(0);
@@ -87,7 +90,10 @@ impl P<'_, '_> {
             for op in ["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "|=", "^="] {
                 if self.peek(op) && !(op == "=" && self.peek("==")) {
                     self.i += op.len();
+                    self.ws();
+                    let rhs_start = self.i;
                     let rhs = self.assign()?;
+                    self.rhs_start = rhs_start;
                     let v = if op == "=" {
                         rhs
                     } else {
@@ -221,7 +227,10 @@ impl P<'_, '_> {
                         continue;
                     }
                     self.i += op.len();
+                    self.ws();
+                    let rhs_start = self.i;
                     let r = next(self)?;
+                    self.rhs_start = rhs_start;
                     v = self.binop(op, v, r)?;
                     continue 'outer;
                 }
@@ -274,11 +283,13 @@ impl P<'_, '_> {
                     if self.noeval > 0 {
                         return Ok(0);
                     }
-                    let mut e = self.err("division by 0");
-                    let tok = String::from_utf8_lossy(&self.s[self.i.saturating_sub(1).min(self.s.len())..]).trim_start().to_string();
-                    let _ = tok;
-                    e.message = e.message.clone();
-                    return Err(e);
+                    // O bash cita do operando direito até o fim da expressão.
+                    let whole = String::from_utf8_lossy(self.whole).trim().to_string();
+                    let tok = String::from_utf8_lossy(&self.s[self.rhs_start.min(self.s.len())..]).into_owned();
+                    return Err(ArithError {
+                        message: format!("{whole}: division by 0 (error token is \"{tok}\")"),
+                        from_env: false,
+                    });
                 }
                 if op == "/" { a.wrapping_div(b) } else { a.wrapping_rem(b) }
             }

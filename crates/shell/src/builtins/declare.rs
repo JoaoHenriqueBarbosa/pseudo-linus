@@ -217,15 +217,11 @@ pub fn run(sh: &mut Shell, name: &str, args: &[Arg]) -> Exec {
         for op in operands {
             let n = String::from_utf8_lossy(op.as_bytes()).into_owned();
             match sh.vars.get(&n) {
-                Some(v) if v.is_set() || v.attrs.0 != 0 || true => text.push_str(&format!("{}\n", declare_line(&n, v))),
-                _ => {
+                Some(v) => text.push_str(&format!("{}\n", declare_line(&n, v))),
+                None => {
                     sh.builtin_error(name, format!("{n}: not found"));
                     status = 1;
                 }
-            }
-            if sh.vars.get(&n).is_none() {
-                sh.builtin_error(name, format!("{n}: not found"));
-                status = 1;
             }
         }
         out(sh, name, text.as_bytes());
