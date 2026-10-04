@@ -5,10 +5,11 @@
 
 // spell-checker:ignore (ToDO) PSKIP linebreak ostream parasplit tabwidth xanti xprefix
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::ffi::OsString;
-use std::fs::File;
-use std::io::{BufReader, BufWriter, Read, Stdout, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{BufReader, BufWriter, Read, Stdout, Write, stdin, stdout};
 use std::path::Path;
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult, USimpleError};

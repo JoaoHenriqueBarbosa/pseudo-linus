@@ -19,6 +19,7 @@
 
 #![forbid(unsafe_code)]
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::borrow::Cow;
 
 use crate::EnvError;
@@ -103,7 +104,7 @@ impl<'a> SplitIterator<'a> {
         let name = var_parse.parse_variable()?;
 
         let varname_os_str_cow = from_native_int_representation(Cow::Borrowed(name));
-        if let Some(value) = std::env::var_os(varname_os_str_cow) {
+        if let Some(value) = sysio::env::var_os(varname_os_str_cow) {
             self.expander.put_string(value);
         }
 

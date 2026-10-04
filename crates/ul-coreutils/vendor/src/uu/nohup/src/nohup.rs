@@ -5,11 +5,12 @@
 
 // spell-checker:ignore (ToDO) SIGHUP cproc vprocmgr homeout
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
-use std::env;
-use std::fs::File;
-use std::io::{Error, ErrorKind};
-use std::process;
+use sysio::env;
+use sysio::fs::File;
+use sysio::io::{Error, ErrorKind};
+use sysio::process;
 use std::sync::LazyLock;
 use thiserror::Error;
 use uucore::display::Quotable;
@@ -129,8 +130,8 @@ fn find_stdout() -> UResult<File> {
     })
 }
 
-fn try_open_nohup_file(path: &str) -> std::io::Result<File> {
-    let mut opt = std::fs::OpenOptions::new();
+fn try_open_nohup_file(path: &str) -> sysio::io::Result<File> {
+    let mut opt = sysio::fs::OpenOptions::new();
     opt.create(true).append(true);
     platform::set_output_file_mode(&mut opt);
     let file = opt.open(path)?;

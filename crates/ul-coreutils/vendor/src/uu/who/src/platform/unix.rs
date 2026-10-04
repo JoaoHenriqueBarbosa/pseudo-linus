@@ -5,20 +5,23 @@
 
 // spell-checker:ignore (ToDO) ttyname hostnames runlevel mesg wtmp
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::options;
 use crate::uu_app;
 
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult};
-use uucore::libc::S_IWGRP;
 use uucore::translate;
 
-use uucore::utmpx::{self, UtmpxRecord, time};
+use uucore::utmpx::{self, UtmpxRecord};
+
+// Porte pseudo-linus: o bit de escrita do grupo sem a libc.
+const S_IWGRP: u32 = 0o020;
 
 use std::borrow::Cow;
 use std::fmt::Write;
-use std::io::{Write as _, stdout};
-use std::os::unix::fs::MetadataExt;
+use sysio::io::{Write as _, stdout};
+use sysio::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 
 fn get_long_usage() -> String {
@@ -178,11 +181,11 @@ struct Who {
 /// Render how long a terminal has been quiet: `hours:minutes`, `.` when under a
 /// minute, and the localized `old` past a day or before the given boot time.
 fn format_idle<'a>(when: i64, since_boot: i64) -> Cow<'a, str> {
-    thread_local! {
-        static NOW: time::OffsetDateTime = time::OffsetDateTime::now_local().unwrap();
-    }
-    NOW.with(|n| {
-        let now = n.unix_timestamp();
+    // Porte pseudo-linus: o relógio do pseudo-kernel (o `time` lia o do host).
+    let now = sysio::time::now()
+        .duration_since(sysio::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64);
+    {
         if since_boot < when && now - 24 * 3600 < when && when <= now {
             let quiet_for = now - when;
             if quiet_for < 60 {
@@ -193,36 +196,29 @@ fn format_idle<'a>(when: i64, since_boot: i64) -> Cow<'a, str> {
         } else {
             translate!("who-idle-old").into()
         }
-    })
+    }
 }
 
 fn format_timestamp(ut: &UtmpxRecord) -> String {
-    const FORMAT_DESCRIPTION_VERSION: usize = 2;
-
-    let pattern: Vec<time::format_description::FormatItem> = if ["LC_ALL", "LC_TIME", "LANG"]
+    // Porte pseudo-linus: `login_time` é um `jiff::Zoned` no fuso do pseudo-processo; os mesmos
+    // dois formatos do original, por strftime.
+    let pattern = if ["LC_ALL", "LC_TIME", "LANG"]
         .into_iter()
-        .find_map(std::env::var_os)
+        .find_map(sysio::env::var_os)
         .as_deref()
         == Some(std::ffi::OsStr::new("C"))
     {
-        // "%b %e %H:%M"
-        time::format_description::parse_borrowed::<FORMAT_DESCRIPTION_VERSION>(
-            "[month repr:short] [day padding:space] [hour]:[minute]",
-        )
-        .unwrap()
+        "%b %e %H:%M"
     } else {
-        // "%Y-%m-%d %H:%M"
-        time::format_description::parse_borrowed::<FORMAT_DESCRIPTION_VERSION>(
-            "[year]-[month]-[day] [hour]:[minute]",
-        )
-        .unwrap()
+        "%Y-%m-%d %H:%M"
     };
-    ut.login_time().format(&pattern).unwrap()
+    ut.login_time().strftime(pattern).to_string()
 }
 
 fn current_tty() -> String {
-    rustix::termios::ttyname(std::io::stdin(), Vec::with_capacity(16))
-        .map(|s| s.to_string_lossy().trim_start_matches("/dev/").to_owned())
+    // Porte pseudo-linus: ttyname(3) do fd 0 do pseudo-processo.
+    sysio::unistd::ttyname(0)
+        .map(|s| String::from_utf8_lossy(&s).trim_start_matches("/dev/").to_owned())
         .unwrap_or_default()
 }
 
@@ -376,7 +372,8 @@ impl Who {
         p.push(ut.tty_device().as_str());
         // A terminal that cannot be stat'ed reports an unknown write state and
         // an unknown idle time rather than failing the whole listing.
-        let (write_state, last_touched) = match p.metadata() {
+        // Porte pseudo-linus: stat(2) no FS do pseudo-processo.
+        let (write_state, last_touched) = match sysio::path::PathExt::sys_metadata(&p) {
             Ok(meta) => {
                 #[cfg(all(
                     not(target_vendor = "apple"),

@@ -5,13 +5,14 @@
 
 // spell-checker:ignore (ToDO) autoformat FILENUM whitespaces nocheck memmem
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::builder::ValueParser;
 use clap::{Arg, ArgAction, Command};
 use memchr::{Memchr3, memchr_iter, memmem::Finder};
 use std::cmp::Ordering;
 use std::ffi::OsString;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, BufWriter, Split, Stdin, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{self, BufRead, BufReader, BufWriter, Split, Stdin, Write, stdin, stdout};
 use std::num::IntErrorKind;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;

@@ -5,8 +5,9 @@
 
 //! I/O processing infrastructure for tr operations with SIMD optimizations
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::operation::ChunkProcessor;
-use std::io::{BufRead, Write};
+use sysio::io::{BufRead, Write};
 use uucore::error::{FromIo, UResult};
 use uucore::translate;
 
@@ -74,7 +75,7 @@ where
         let length = match input.read(&mut buf[..]) {
             Ok(0) => break,
             Ok(len) => len,
-            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(e) if e.kind() == sysio::io::ErrorKind::Interrupted => continue,
             Err(e) => return Err(e.map_err_context(|| translate!("tr-error-read-error"))),
         };
 
@@ -100,8 +101,8 @@ pub fn write_output<W: Write>(output: &mut W, buf: &[u8]) -> UResult<()> {
     #[cfg(windows)]
     match output.write_all(buf) {
         Ok(()) => Ok(()),
-        Err(err) if err.kind() == std::io::ErrorKind::BrokenPipe => {
-            std::process::exit(13);
+        Err(err) if err.kind() == sysio::io::ErrorKind::BrokenPipe => {
+            sysio::process::exit(13);
         }
         Err(err) => Err(err.map_err_context(|| translate!("tr-error-write-error"))),
     }

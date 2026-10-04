@@ -5,6 +5,7 @@
 
 // spell-checker:ignore (paths) GPGHome findxs
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::builder::{TypedValueParser, ValueParserFactory};
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use uucore::display::{Quotable, println_verbatim};
@@ -12,21 +13,13 @@ use uucore::error::{FromIo, UError, UResult, UUsageError};
 use uucore::format_usage;
 use uucore::translate;
 
-use std::env;
+use sysio::env;
 use std::ffi::{OsStr, OsString};
-use std::fs;
-use std::io::ErrorKind;
+use sysio::fs;
+use sysio::io::ErrorKind;
 use std::iter;
 use std::path::{MAIN_SEPARATOR, Path, PathBuf};
 
-#[cfg(unix)]
-use std::os::unix::prelude::PermissionsExt;
-
-use rand::{
-    RngExt as _, SeedableRng as _,
-    rngs::{self, SmallRng},
-};
-use tempfile::Builder;
 use thiserror::Error;
 
 static DEFAULT_TEMPLATE: &str = "tmp.XXXXXXXXXX";
@@ -50,9 +43,8 @@ const FALLBACK_TMPDIR: &str = "/tmp";
 
 #[derive(Error, Debug)]
 enum MkTempError {
-    #[error("{}", translate!("mktemp-error-persist-file", "path" => .0.quote()))]
-    PersistError(PathBuf),
-
+    // Porte pseudo-linus: sem `PersistError` (não há arquivo temporário a persistir: a criação é
+    // direta e exclusiva).
     #[error("{}", translate!("mktemp-error-must-end-in-x", "template" => .0.quote()))]
     MustEndInX(String),
 
@@ -143,7 +135,7 @@ impl Options {
                     // If --tmpdir is given without an argument, or -t is given
                     // export in TMPDIR
                     #[cfg(target_os = "wasi")]
-                    // WASI's `std::env::temp_dir()` unconditionally panics
+                    // WASI's `sysio::env::temp_dir()` unconditionally panics
                     let default_tmp_dir = env::var_os(TMPDIR_ENV_VAR)
                         .map_or_else(|| PathBuf::from(FALLBACK_TMPDIR), PathBuf::from);
                     #[cfg(not(target_os = "wasi"))]
@@ -534,12 +526,8 @@ fn dry_exec(tmpdir: &Path, prefix: &str, rand: usize, suffix: &str) -> PathBuf {
 
     // Randomize.
     let bytes = &mut buf[prefix.len()..prefix.len() + rand];
-    SmallRng::try_from_rng(&mut rngs::SysRng)
-        .unwrap_or_else(|_| {
-            //rand::rng panics if getrandom failed
-            SmallRng::seed_from_u64(bytes.as_ptr() as usize as u64)
-        })
-        .fill(bytes);
+    // Porte pseudo-linus: getrandom(2) do pseudo-kernel no lugar do RNG do sistema.
+    sysio::random::fill_bytes(bytes);
     for byte in bytes {
         *byte = match *byte % 62 {
             v @ 0..=9 => v + b'0',
@@ -565,22 +553,12 @@ fn dry_exec(tmpdir: &Path, prefix: &str, rand: usize, suffix: &str) -> PathBuf {
 /// If the temporary directory could not be written to disk or if the
 /// given directory `dir` does not exist.
 fn make_temp_dir(dir: &Path, prefix: &str, rand: usize, suffix: &str) -> UResult<PathBuf> {
-    let mut builder = Builder::new();
-    builder.prefix(prefix).rand_bytes(rand).suffix(suffix);
-
-    // On *nix platforms grant read-write-execute for owner only.
-    // The directory is created with these permission at creation time, using mkdir(3) syscall.
-    // This is not relevant on Windows systems. See: https://docs.rs/tempfile/latest/tempfile/#security
-    // `fs` is not imported on Windows anyways.
-    #[cfg(unix)]
-    builder.permissions(fs::Permissions::from_mode(0o700));
-
-    match builder.tempdir_in(dir) {
-        Ok(d) => {
-            // `keep` consumes the TempDir without removing it
-            let path = d.keep();
-            Ok(path)
-        }
+    // Porte pseudo-linus: mkdir(2) exclusivo com modo 0700 no FS do pseudo-processo (o `tempfile`
+    // criava no host).
+    match create_unique(dir, prefix, rand, suffix, |p| {
+        sysio::os::unix::fs::DirBuilderExt::mode(&mut fs::DirBuilder::new(), 0o700).create(p)
+    }) {
+        Ok(path) => Ok(path),
         Err(e) if e.kind() == ErrorKind::NotFound => {
             let filename = format!("{prefix}{}{suffix}", "X".repeat(rand));
             let path = Path::new(dir).join(filename);
@@ -602,14 +580,14 @@ fn make_temp_dir(dir: &Path, prefix: &str, rand: usize, suffix: &str) -> UResult
 /// If the file could not be written to disk or if the directory does
 /// not exist.
 fn make_temp_file(dir: &Path, prefix: &str, rand: usize, suffix: &str) -> UResult<PathBuf> {
-    let mut builder = Builder::new();
-    builder.prefix(prefix).rand_bytes(rand).suffix(suffix);
-    match builder.tempfile_in(dir) {
-        // `keep` ensures that the file is not deleted
-        Ok(named_tempfile) => match named_tempfile.keep() {
-            Ok((_, pathbuf)) => Ok(pathbuf),
-            Err(e) => Err(MkTempError::PersistError(e.file.path().to_path_buf()).into()),
-        },
+    // Porte pseudo-linus: open(O_CREAT|O_EXCL) com modo 0600 no FS do pseudo-processo.
+    match create_unique(dir, prefix, rand, suffix, |p| {
+        let mut opts = fs::OpenOptions::new();
+        opts.read(true).write(true).create_new(true);
+        sysio::os::unix::fs::OpenOptionsExt::mode(&mut opts, 0o600);
+        opts.open(p).map(|_| ())
+    }) {
+        Ok(path) => Ok(path),
         Err(e) if e.kind() == ErrorKind::NotFound => {
             let filename = format!("{prefix}{}{suffix}", "X".repeat(rand));
             let path = Path::new(dir).join(filename);
@@ -617,6 +595,28 @@ fn make_temp_file(dir: &Path, prefix: &str, rand: usize, suffix: &str) -> UResul
         }
         Err(e) => Err(e.into()),
     }
+}
+
+/// Porte pseudo-linus: o laço do `tempfile` (e do `gen_tempname` da glibc): sorteia o nome e tenta
+/// criar de forma exclusiva, de novo enquanto der EEXIST.
+fn create_unique(
+    dir: &Path,
+    prefix: &str,
+    rand: usize,
+    suffix: &str,
+    create: impl Fn(&Path) -> sysio::io::Result<()>,
+) -> sysio::io::Result<PathBuf> {
+    const ATTEMPTS: u32 = 1 << 16;
+    let mut last = None;
+    for _ in 0..ATTEMPTS {
+        let path = dry_exec(dir, prefix, rand, suffix);
+        match create(&path) {
+            Ok(()) => return Ok(path),
+            Err(e) if e.kind() == ErrorKind::AlreadyExists && rand > 0 => last = Some(e),
+            Err(e) => return Err(e),
+        }
+    }
+    Err(last.unwrap_or_else(|| sysio::io::Error::from(ErrorKind::AlreadyExists)))
 }
 
 fn exec(dir: &Path, prefix: &str, rand: usize, suffix: &str, make_dir: bool) -> UResult<PathBuf> {
@@ -645,7 +645,7 @@ fn exec(dir: &Path, prefix: &str, rand: usize, suffix: &str, make_dir: bool) -> 
 fn get_tmpdir_env_or_default() -> PathBuf {
     match env::var_os(TMPDIR_ENV_VAR) {
         Some(val) if val.is_empty() => PathBuf::from(FALLBACK_TMPDIR),
-        // WASI's `std::env::temp_dir()` unconditionally panics,
+        // WASI's `sysio::env::temp_dir()` unconditionally panics,
         // so read `TMPDIR` directly.
         #[cfg(target_os = "wasi")]
         Some(val) => PathBuf::from(val),

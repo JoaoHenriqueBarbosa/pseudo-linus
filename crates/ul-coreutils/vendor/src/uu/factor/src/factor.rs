@@ -5,10 +5,11 @@
 
 // spell-checker:ignore funcs newtype
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::collections::BTreeMap;
 use std::fmt::Display;
-use std::io::BufRead;
-use std::io::{self, Write, stdin, stdout};
+use sysio::io::BufRead;
+use sysio::io::{self, Write, stdin, stdout};
 use std::iter::once;
 use std::num::IntErrorKind;
 

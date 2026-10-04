@@ -9,6 +9,7 @@
 // but not on Android, Redox or other minimal Unix systems
 
 // Macro to reduce cfg duplication across the module
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 macro_rules! cfg_langinfo {
     ($($item:item)*) => {
         $(
@@ -19,18 +20,15 @@ macro_rules! cfg_langinfo {
 }
 
 cfg_langinfo! {
-    use core::ffi::CStr;
     use std::sync::OnceLock;
 
     #[cfg(test)]
     use std::sync::Mutex;
 
-    /// glibc's `_DATE_FMT` has been stable for the last 12 years
-    /// being added upstream to libc TODO: update to libc
-    #[cfg(any(target_os = "linux", target_os = "cygwin"))]
-    const DATE_FMT: libc::nl_item = 0x2006c;
-    #[cfg(not(any(target_os = "linux", target_os = "cygwin")))]
-    const DATE_FMT: libc::nl_item = libc::D_T_FMT;
+    /// Porte pseudo-linus: o `_DATE_FMT` do locale C da glibc 2.41. O pseudo-linus só tem os
+    /// locales C, POSIX e C.UTF-8 (como a imagem mínima do Debian): qualquer outro nome faz o
+    /// `setlocale` da glibc falhar e ficar no C, que tem este mesmo formato.
+    const C_DATE_FMT: &str = "%a %b %e %H:%M:%S %Z %Y";
 }
 
 cfg_langinfo! {
@@ -70,18 +68,7 @@ cfg_langinfo! {
         #[cfg(test)]
         let _lock = LOCALE_MUTEX.lock().unwrap();
 
-        unsafe {
-            // Set locale from environment variables
-            libc::setlocale(libc::LC_TIME, c"".as_ptr());
-
-            // Get the date/time format string
-            let d_t_fmt_ptr = libc::nl_langinfo(DATE_FMT);
-            if d_t_fmt_ptr.is_null() {
-                return None;
-            }
-
-            CStr::from_ptr(d_t_fmt_ptr).to_str().ok().filter(|f| !f.is_empty()).map(ToOwned::to_owned)
-        }
+        Some(C_DATE_FMT.to_owned())
     }
 
     /// Ensures the format string includes timezone (%Z)
@@ -218,9 +205,9 @@ mod tests {
             let _lock = LOCALE_MUTEX.lock().unwrap();
 
             // Save original locale (both environment and process locale)
-            let original_lc_all = std::env::var_os("LC_ALL");
-            let original_lc_time = std::env::var_os("LC_TIME");
-            let original_lang = std::env::var_os("LANG");
+            let original_lc_all = sysio::env::var_os("LC_ALL");
+            let original_lc_time = sysio::env::var_os("LC_TIME");
+            let original_lang = sysio::env::var_os("LANG");
 
             // Save current process locale
             let original_process_locale = unsafe {
@@ -234,9 +221,9 @@ mod tests {
 
             unsafe {
                 // Set C locale
-                std::env::set_var("LC_ALL", "C");
-                std::env::remove_var("LC_TIME");
-                std::env::remove_var("LANG");
+                sysio::env::set_var("LC_ALL", "C");
+                sysio::env::remove_var("LC_TIME");
+                sysio::env::remove_var("LANG");
             }
 
             // Get the locale format
@@ -262,19 +249,19 @@ mod tests {
             // Restore original environment variables
             unsafe {
                 if let Some(val) = original_lc_all {
-                    std::env::set_var("LC_ALL", val);
+                    sysio::env::set_var("LC_ALL", val);
                 } else {
-                    std::env::remove_var("LC_ALL");
+                    sysio::env::remove_var("LC_ALL");
                 }
                 if let Some(val) = original_lc_time {
-                    std::env::set_var("LC_TIME", val);
+                    sysio::env::set_var("LC_TIME", val);
                 } else {
-                    std::env::remove_var("LC_TIME");
+                    sysio::env::remove_var("LC_TIME");
                 }
                 if let Some(val) = original_lang {
-                    std::env::set_var("LANG", val);
+                    sysio::env::set_var("LANG", val);
                 } else {
-                    std::env::remove_var("LANG");
+                    sysio::env::remove_var("LANG");
                 }
             }
 

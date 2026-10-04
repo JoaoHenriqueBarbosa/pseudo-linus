@@ -6,11 +6,19 @@
 use sysabi::Program;
 
 mod core;
+mod data;
+mod files;
 mod run;
+mod system;
+mod text;
 
 /// Tabela de programas deste crate.
 pub fn programs() -> Vec<Program> {
     let mut out = Vec::new();
     out.extend(core::programs());
+    out.extend(data::programs());
+    out.extend(files::programs());
+    out.extend(system::programs());
+    out.extend(text::programs());
     out
 }

@@ -5,6 +5,7 @@
 
 // spell-checker:ignore (ToDO) COMFOLLOW Passwd RFILE RFILE's derefer dgid duid groupname
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use uucore::display::Quotable;
 pub use uucore::entries::{self, Group, Locate, Passwd};
 use uucore::format_usage;
@@ -16,8 +17,8 @@ use uucore::error::{FromIo, UResult, USimpleError};
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
-use std::fs;
-use std::os::unix::fs::MetadataExt;
+use sysio::fs;
+use sysio::os::unix::fs::MetadataExt;
 
 fn parse_gid_uid_and_filter(matches: &ArgMatches) -> UResult<GidUidOwnerFilter> {
     let filter = if let Some(spec) = matches.get_one::<String>(options::FROM) {
@@ -236,7 +237,7 @@ fn parse_spec(spec: &str, sep: char) -> UResult<(Option<u32>, Option<u32>)> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::env;
+    use sysio::env;
     use uucore::locale;
 
     #[test]

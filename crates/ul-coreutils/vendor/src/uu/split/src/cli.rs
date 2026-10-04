@@ -3,8 +3,9 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command, ValueHint};
-use std::env;
+use sysio::env;
 use std::ffi::OsString;
 pub use uucore::{format_usage, translate};
 

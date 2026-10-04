@@ -5,9 +5,10 @@
 
 // spell-checker:ignore NPROCESSORS SCHED ONLN getaffinity getcpu getscheduler sched sysconf
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
-use std::env;
-use std::io::{Write, stdout};
+use sysio::env;
+use sysio::io::{Write, stdout};
 use uucore::{
     error::{UResult, USimpleError, strip_errno},
     format_usage, translate,
@@ -92,17 +93,19 @@ pub fn uu_app() -> Command {
 fn num_cpus_all() -> usize {
     // sysconf returns (hardcoded?) 2 if /proc and /sys are masked, and sched_getaffinity syscall was blocked by strace.
     // So fallback to available_parallelism at here is not useful
+    // Porte pseudo-linus: as CPUs configuradas do sandbox são as vCPUs que o pseudo-kernel dá a
+    // ele (não há /sys/devices/system/cpu do host pra glibc contar).
     #[cfg(unix)]
-    return unsafe { libc::sysconf(libc::_SC_NPROCESSORS_CONF) } as usize;
+    return sysio::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
     // not sure what we can do for non-unix...
     #[cfg(not(unix))]
     available_parallelism()
 }
 
-// We cannot use std::thread::available_parallelism to mimic GNU's rounding...
+// We cannot use sysio::thread::available_parallelism to mimic GNU's rounding...
 #[cfg(any(target_os = "linux", target_os = "android"))]
 fn cgroups2_quota() -> Option<usize> {
-    use std::fs::read_to_string;
+    use sysio::fs::read_to_string;
     let cgroups = read_to_string("/proc/self/cgroup").ok()?;
     let path = cgroups.lines().next()?.split(':').nth(2)?;
     let pair = read_to_string(format!("/sys/fs/cgroup{path}/cpu.max")).ok()?;
@@ -117,18 +120,12 @@ fn cgroups2_quota() -> Option<usize> {
 
 fn available_parallelism() -> usize {
     // return all online cores if sched_getaffinity syscall failed as same as GNU
+    // Porte pseudo-linus: sched_getaffinity(2) do pseudo-kernel (vCPUs do sandbox). Todo processo
+    // é SCHED_OTHER (o EEVDF do pseudo-kernel), então a cota do cgroup sempre vale.
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    let affinity = rustix::thread::sched_getaffinity(None).map_or_else(
-        |_| unsafe { libc::sysconf(libc::_SC_NPROCESSORS_ONLN) } as usize,
-        |s| s.count() as usize,
-    );
-    // ignore quota under some schedulers
+    let affinity = sysio::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    match unsafe { libc::sched_getscheduler(0) } {
-        libc::SCHED_FIFO | libc::SCHED_RR | libc::SCHED_DEADLINE => affinity,
-        // GNU has no quota if /proc is masked
-        _ => affinity.min(cgroups2_quota().unwrap_or(usize::MAX)),
-    }
+    return affinity.min(cgroups2_quota().unwrap_or(usize::MAX));
     #[cfg(not(any(target_os = "linux", target_os = "android")))]
-    std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get)
+    sysio::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get)
 }

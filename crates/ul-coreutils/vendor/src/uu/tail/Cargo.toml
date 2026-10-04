@@ -66,11 +66,16 @@ package = "pl-uucore"
 features = [
     "fs",
     "parser-size",
+    # Porte pseudo-linus: `pipes` (send_n_bytes) explícito; antes vinha por unificação.
+    "pipes",
     "signals",
 ]
 
 [dependencies.sysio]
 path = "../../../../../sysio"
+
+[dependencies.sysabi]
+path = "../../../../../sysabi"
 
 [lints.clippy]
 cargo_common_metadata = "allow"

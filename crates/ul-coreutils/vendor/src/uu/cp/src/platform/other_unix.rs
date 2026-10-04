@@ -5,6 +5,7 @@
 
 // spell-checker:ignore reflink
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::path::Path;
 
 use uucore::buf_copy;
@@ -60,7 +61,7 @@ pub(crate) fn copy_on_write(
         }
 
         buf_copy::copy_fast(&mut src_file, &mut dst_file)
-            .map_err(|_| std::io::Error::from(std::io::ErrorKind::Other))
+            .map_err(|_| sysio::io::Error::from(sysio::io::ErrorKind::Other))
             .map_err(|e| CpError::IoErrContext(e, context.to_owned()))?;
 
         return Ok(copy_debug);
@@ -78,7 +79,7 @@ pub(crate) fn copy_on_write(
             translate!("cp-error-cannot-create-regular-file", "path" => dest.quote()),
         )
     })?;
-    std::io::copy(&mut src_file, &mut dst_file)
+    sysio::io::copy(&mut src_file, &mut dst_file)
         .map_err(|e| CpError::IoErrContext(e, context.to_owned()))?;
 
     Ok(copy_debug)

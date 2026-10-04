@@ -5,8 +5,9 @@
 
 // spell-checker:ignore bfloat multifile mant
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use half::{bf16, f16};
-use std::io;
+use sysio::io;
 
 use crate::byteorder_io::ByteOrder;
 use crate::multifile_reader::HasError;
@@ -210,7 +211,7 @@ mod tests {
     use super::*;
     use crate::byteorder_io::ByteOrder;
     use crate::peek_reader::PeekReader;
-    use std::io::Cursor;
+    use sysio::io::Cursor;
 
     #[test]
     #[allow(clippy::float_cmp)]

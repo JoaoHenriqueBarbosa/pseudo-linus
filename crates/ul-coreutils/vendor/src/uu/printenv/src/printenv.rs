@@ -3,8 +3,9 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
-use std::env;
-use std::io::Write;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::env;
+use sysio::io::Write;
 
 use clap::{Arg, ArgAction, Command};
 
@@ -41,7 +42,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             continue;
         }
         if let Some(var) = env::var_os(env_var) {
-            let mut stdout = std::io::stdout().lock();
+            let mut stdout = sysio::io::stdout().lock();
             stdout.write_all_os(&var)?;
             write!(stdout, "{separator}")?;
         } else {

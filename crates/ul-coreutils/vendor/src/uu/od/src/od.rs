@@ -22,9 +22,10 @@ mod prn_char;
 mod prn_float;
 mod prn_int;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::cmp;
 use std::fmt::Write;
-use std::io::{BufReader, Read};
+use sysio::io::{BufReader, Read};
 
 use crate::byteorder_io::ByteOrder;
 use crate::formatter_item_info::FormatWriter;
@@ -266,7 +267,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     // Kept for the caret in SIZE diagnostics, which echoes the command line.
     let diag_args = uucore::diagnostics::capture(&raw_args);
     let od_options = OdOptions::new(&clap_matches, &args, diag_args.as_deref())?;
-    let mut out = std::io::stdout().lock();
+    let mut out = sysio::io::stdout().lock();
 
     // Check if we're in strings mode
     if let Some(min_length) = od_options.string_min_length {
@@ -527,7 +528,7 @@ fn odfunc<I, W>(
 ) -> UResult<()>
 where
     I: PeekRead + HasError,
-    W: std::io::Write,
+    W: sysio::io::Write,
 {
     let mut duplicate_line = false;
     let mut previous_bytes: Vec<u8> = Vec::new();
@@ -605,7 +606,7 @@ fn extract_strings_from_input(
     read_bytes: Option<u64>,
     min_length: usize,
     radix: Radix,
-    writer: &mut impl std::io::Write,
+    writer: &mut impl sysio::io::Write,
 ) -> UResult<()> {
     let inputs = map_input_strings(input_strings);
     let mut mf = MultifileReader::new(inputs);
@@ -622,7 +623,7 @@ fn extract_strings_from_input(
     }
 
     // Helper function to format and print a string
-    let mut print_string = |offset: u64, string: &[u8]| -> std::io::Result<()> {
+    let mut print_string = |offset: u64, string: &[u8]| -> sysio::io::Result<()> {
         let string_content = String::from_utf8_lossy(string);
         match radix {
             Radix::NoPrefix => writeln!(writer, "{string_content}"),
@@ -697,11 +698,11 @@ fn extract_strings_from_input(
 
 /// Outputs a single line of input, into one or more lines human readable output.
 fn write_bytes(
-    writer: &mut impl std::io::Write,
+    writer: &mut impl sysio::io::Write,
     prefix: &str,
     input_decoder: &MemoryDecoder,
     output_info: &OutputInfo,
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     let mut first = true; // First line of a multi-format raster.
     for f in output_info.spaced_formatters_iter() {
         let mut output_text = String::new();

@@ -5,9 +5,10 @@
 
 // spell-checker:ignore (ToDO) cmdline evec nonrepeating seps shufable rvec fdata
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::{OsStr, OsString};
-use std::fs::File;
-use std::io::{self, BufReader, BufWriter, Read, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{self, BufReader, BufWriter, Read, Write, stdin, stdout};
 use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -280,7 +281,7 @@ fn read_input_file(filename: &Path) -> UResult<Vec<u8>> {
             .map_err_context(|| translate!("shuf-error-read-error"))?;
         Ok(data)
     } else {
-        std::fs::read(filename).map_err_context(|| filename.maybe_quote().to_string())
+        sysio::fs::read(filename).map_err_context(|| filename.maybe_quote().to_string())
     }
 }
 

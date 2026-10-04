@@ -5,13 +5,14 @@
 
 // spell-checker:ignore badoption CTYPE
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{
     Arg, ArgAction, ArgMatches, Command, builder::ValueParser, error::ContextKind, error::Error,
     error::ErrorKind,
 };
 use std::ffi::{OsStr, OsString};
-use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{BufRead, BufReader, BufWriter, Write, stdin, stdout};
 use std::num::IntErrorKind;
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UError, UResult, USimpleError};
@@ -201,7 +202,7 @@ impl Uniq {
     fn is_c_locale() -> bool {
         ["LC_ALL", "LC_CTYPE", "LANG"]
             .iter()
-            .find_map(|&key| std::env::var_os(key))
+            .find_map(|&key| sysio::env::var_os(key))
             .filter(|v| !v.is_empty())
             .is_none_or(|v| v == "C" || v == "POSIX")
     }

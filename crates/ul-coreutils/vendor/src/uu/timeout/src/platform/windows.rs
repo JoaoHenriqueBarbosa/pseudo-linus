@@ -11,8 +11,9 @@
 //! process group tracked by a Job Object, so a lethal signal kills the whole
 //! tree and `INT`/`QUIT` arrive as a catchable `CTRL_BREAK_EVENT`.
 
-use std::io;
-use std::process::Child;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io;
+use sysio::process::Child;
 
 use uucore::process::{
     Job, configure_process_group, enable_ctrl_forwarding, send_signal_to_console_group,
@@ -34,7 +35,7 @@ pub(crate) struct SpawnState {
 /// Configure the child's spawn attributes and console-event forwarding, right
 /// before the child is spawned.
 pub(crate) fn prepare(
-    cmd_builder: &mut std::process::Command,
+    cmd_builder: &mut sysio::process::Command,
     foreground: bool,
     _signal: usize,
 ) -> io::Result<()> {
@@ -99,7 +100,7 @@ pub(crate) fn send_signal(
 
 /// Windows exit statuses carry no signal information: terminated children
 /// report their forced `128 + signal` value through `status.code()` instead.
-pub(crate) fn status_signal(_status: std::process::ExitStatus) -> Option<i32> {
+pub(crate) fn status_signal(_status: sysio::process::ExitStatus) -> Option<i32> {
     None
 }
 

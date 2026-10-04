@@ -7,15 +7,16 @@
 
 //! Contains the trait `PeekRead` and type `PeekReader` implementing it.
 
-use std::io;
-use std::io::{Read, Write};
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io;
+use sysio::io::{Read, Write};
 
 use crate::multifile_reader::HasError;
 
 /// A trait which supplies a function to peek into a stream without
 /// actually reading it.
 ///
-/// Like `std::io::Read`, it allows to read data from a stream, with
+/// Like `sysio::io::Read`, it allows to read data from a stream, with
 /// the additional possibility to reserve a part of the returned data
 /// with the data which will be read in subsequent calls.
 ///
@@ -32,14 +33,14 @@ pub trait PeekRead {
     /// It can also return an error.
     ///
     /// A type implementing this trait, will typically also implement
-    /// `std::io::Read`.
+    /// `sysio::io::Read`.
     ///
     /// # Panics
     /// Might panic if `peek_size` is larger then the size of `out`
     fn peek_read(&mut self, out: &mut [u8], peek_size: usize) -> io::Result<(usize, usize)>;
 }
 
-/// Wrapper for `std::io::Read` allowing to peek into the data to be read.
+/// Wrapper for `sysio::io::Read` allowing to peek into the data to be read.
 pub struct PeekReader<R> {
     inner: R,
     temp_buffer: Vec<u8>,
@@ -119,7 +120,7 @@ impl<R: HasError> HasError for PeekReader<R> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::{Cursor, Read};
+    use sysio::io::{Cursor, Read};
 
     #[test]
     fn test_read_normal() {

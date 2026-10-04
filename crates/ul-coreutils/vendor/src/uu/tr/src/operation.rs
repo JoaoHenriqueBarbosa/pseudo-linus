@@ -5,6 +5,7 @@
 
 // spell-checker:ignore (strings) anychar combinator Alnum Punct Xdigit alnum punct xdigit cntrl alpah
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::unicode_table;
 use nom::{
     IResult, Parser,
@@ -15,13 +16,8 @@ use nom::{
     multi::many_m_n,
     sequence::{delimited, preceded, separated_pair, terminated},
 };
-use std::{
-    char,
-    error::Error,
-    fmt::{Debug, Display},
-    io::{BufRead, Write},
-    ops::Range,
-};
+use std::{char, error::Error, fmt::{Debug, Display}, ops::Range};
+use sysio::{io::{BufRead, Write}};
 use uucore::error::{FromIo, UError, UResult};
 use uucore::translate;
 
@@ -862,7 +858,7 @@ where
         let length = match input.read(&mut buf[..]) {
             Ok(0) => break, // EOF reached
             Ok(len) => len,
-            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(e) if e.kind() == sysio::io::ErrorKind::Interrupted => continue,
             Err(e) => return Err(e.map_err_context(|| translate!("tr-error-read-error"))),
         };
 
@@ -893,8 +889,8 @@ pub fn flush_output<W: Write>(output: &mut W) -> UResult<()> {
     #[cfg(windows)]
     match output.flush() {
         Ok(()) => Ok(()),
-        Err(err) if err.kind() == std::io::ErrorKind::BrokenPipe => {
-            std::process::exit(13);
+        Err(err) if err.kind() == sysio::io::ErrorKind::BrokenPipe => {
+            sysio::process::exit(13);
         }
         Err(err) => Err(err.map_err_context(|| translate!("tr-error-write-error"))),
     }

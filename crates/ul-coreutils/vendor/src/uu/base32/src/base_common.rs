@@ -5,10 +5,11 @@
 
 // spell-checker:ignore hexupper lsbf msbf unpadded nopad aGVsbG8sIHdvcmxkIQ
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
+use sysio::fs::File;
+use sysio::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use uucore::display::Quotable;
 use uucore::encoding::{
@@ -143,8 +144,7 @@ pub fn get_input(config: &Config) -> UResult<Box<dyn BufRead>> {
         Some(path_buf) => {
             let file =
                 File::open(path_buf).map_err_context(|| path_buf.maybe_quote().to_string())?;
-            #[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
-            let _ = rustix::fs::fadvise(&file, 0, None, rustix::fs::Advice::Sequential);
+            // Porte pseudo-linus: sem fadvise (dica ao kernel do host; o pseudo-kernel não tem cache de páginas).
             Ok(Box::new(BufReader::with_capacity(DEFAULT_BUF_SIZE, file)))
         }
         None => {
@@ -290,12 +290,8 @@ pub fn get_supports_fast_decode_and_encode(
 
 pub mod fast_encode {
     use crate::base_common::WRAP_DEFAULT;
-    use std::{
-        cmp::min,
-        collections::VecDeque,
-        io::{self, BufRead, Write},
-        num::NonZeroUsize,
-    };
+    use std::{cmp::min, collections::VecDeque, num::NonZeroUsize};
+use sysio::{io::{self, BufRead, Write}};
     use uucore::{
         encoding::SupportsFastDecodeAndEncode,
         error::{UResult, USimpleError},
@@ -623,7 +619,7 @@ pub mod fast_encode {
 }
 
 pub mod fast_decode {
-    use std::io::{self, BufRead, Write};
+    use sysio::io::{self, BufRead, Write};
     use uucore::{
         encoding::SupportsFastDecodeAndEncode,
         error::{UResult, USimpleError},
@@ -923,7 +919,7 @@ fn read_and_has_padding<R: io::Read>(input: &mut R) -> UResult<(bool, Vec<u8>)> 
 #[cfg(test)]
 mod tests {
     use crate::base_common::read_and_has_padding;
-    use std::io::Cursor;
+    use sysio::io::Cursor;
 
     #[test]
     fn test_has_padding() {

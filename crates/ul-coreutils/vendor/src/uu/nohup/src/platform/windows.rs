@@ -3,11 +3,12 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
-use std::fs::OpenOptions;
-use std::io::{self, Error, IsTerminal as _};
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::fs::OpenOptions;
+use sysio::io::{self, Error, IsTerminal as _};
 use std::os::windows::io::{AsHandle as _, OwnedHandle};
 use std::os::windows::process::CommandExt as _;
-use std::process::{Command, Stdio};
+use sysio::process::{Command, Stdio};
 use thiserror::Error as ThisError;
 use uucore::error::{UError, UResult};
 use uucore::translate;

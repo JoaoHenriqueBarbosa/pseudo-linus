@@ -3,8 +3,9 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::OsString;
-use std::fs::remove_file;
+use sysio::fs::remove_file;
 use std::path::Path;
 
 use clap::builder::ValueParser;

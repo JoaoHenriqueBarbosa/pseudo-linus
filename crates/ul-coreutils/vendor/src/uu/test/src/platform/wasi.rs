@@ -3,8 +3,9 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::{CString, OsStr};
-use std::fs;
+use sysio::fs;
 
 use crate::{PathCondition, modified_since_read};
 

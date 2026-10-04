@@ -5,13 +5,14 @@
 
 // spell-checker:ignore (ToDOs) corasick memchr Roff trunc oset iset CHARCLASS
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::cmp;
 use std::cmp::PartialEq;
 use std::collections::BTreeSet;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Write as FmtWrite;
-use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{BufRead, BufReader, BufWriter, Read, Write, stdin, stdout};
 use std::ops::Range;
 use std::path::Path;
 
@@ -80,7 +81,7 @@ impl Default for Config {
 fn read_word_filter_file(
     matches: &clap::ArgMatches,
     option: &str,
-) -> std::io::Result<FxHashSet<String>> {
+) -> sysio::io::Result<FxHashSet<String>> {
     let filename = matches
         .get_one::<OsString>(option)
         .expect("parsing options failed!");
@@ -101,7 +102,7 @@ fn read_word_filter_file(
 fn read_char_filter_file(
     matches: &clap::ArgMatches,
     option: &str,
-) -> std::io::Result<FxHashSet<char>> {
+) -> sysio::io::Result<FxHashSet<char>> {
     let filename = matches
         .get_one::<OsString>(option)
         .expect("parsing options failed!");
@@ -310,7 +311,7 @@ fn read_input(input_files: &[OsString], config: &Config) -> UResult<FileMap> {
 fn read_lines(
     sentence_splitter: Option<&Regex>,
     reader: &mut dyn BufRead,
-) -> std::io::Result<Vec<String>> {
+) -> sysio::io::Result<Vec<String>> {
     // GNU ptx works on bytes, so invalid UTF-8 input must not be an error.
     // Read everything and replace invalid sequences instead of failing.
     let mut bytes = Vec::new();

@@ -10,6 +10,7 @@
 //! Use the [`BufferedOutput`] struct to create a buffered form of the
 //! [`Output`] writer.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::{Output, WriteStat};
 
 /// Buffer partial output blocks until they are completed.
@@ -34,7 +35,7 @@ impl<'a> BufferedOutput<'a> {
     /// The internal buffer size is at most the value of `obs` as
     /// defined in `inner`. `obs` may be huge, so the allocation can fail
     /// without aborting: an oversized `obs` returns an error (like GNU `dd`).
-    pub(crate) fn new(inner: Output<'a>) -> std::io::Result<Self> {
+    pub(crate) fn new(inner: Output<'a>) -> sysio::io::Result<Self> {
         let obs = inner.settings.obs;
         let mut buf = Vec::new();
         buf.try_reserve(obs)?;
@@ -46,7 +47,7 @@ impl<'a> BufferedOutput<'a> {
     }
 
     /// Flush the partial block stored in the internal buffer.
-    pub(crate) fn flush(&mut self) -> std::io::Result<WriteStat> {
+    pub(crate) fn flush(&mut self) -> sysio::io::Result<WriteStat> {
         let wstat = self.inner.write_blocks(&self.buf)?;
         let n = wstat.bytes_total.try_into().unwrap();
         self.buf.drain(0..n);
@@ -54,12 +55,12 @@ impl<'a> BufferedOutput<'a> {
     }
 
     /// Synchronize the inner block writer.
-    pub(crate) fn sync(&mut self) -> std::io::Result<()> {
+    pub(crate) fn sync(&mut self) -> sysio::io::Result<()> {
         self.inner.sync()
     }
 
     /// Truncate the underlying file to the current stream position, if possible.
-    pub(crate) fn truncate(&mut self) -> std::io::Result<()> {
+    pub(crate) fn truncate(&mut self) -> sysio::io::Result<()> {
         self.inner.dst.truncate()
     }
 
@@ -69,7 +70,7 @@ impl<'a> BufferedOutput<'a> {
     /// buffered until enough bytes have been provided to complete a
     /// block. The returned [`WriteStat`] object will include the
     /// number of blocks written during execution of this function.
-    pub(crate) fn write_blocks(&mut self, buf: &[u8]) -> std::io::Result<WriteStat> {
+    pub(crate) fn write_blocks(&mut self, buf: &[u8]) -> sysio::io::Result<WriteStat> {
         // Split the incoming buffer into two parts: the bytes to write
         // and the bytes to buffer for next time.
         //

@@ -5,6 +5,7 @@
 
 //! Errors returned by tac during processing of a file.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::OsString;
 use thiserror::Error;
 use uucore::display::Quotable;
@@ -19,21 +20,21 @@ pub enum TacError {
     /// An error opening a file for reading.
     ///
     /// The parameters are the name of the file and the underlying
-    /// [`std::io::Error`] that caused this error.
+    /// [`sysio::io::Error`] that caused this error.
     #[error("{}", translate!("tac-error-open-error", "filename" => .0.quote(), "error" => strip_errno(.1)))]
-    OpenError(OsString, std::io::Error),
+    OpenError(OsString, sysio::io::Error),
     /// An error reading the contents of a file or stdin.
     ///
     /// The parameters are the name of the file and the underlying
-    /// [`std::io::Error`] that caused this error.
+    /// [`sysio::io::Error`] that caused this error.
     #[error("{}", translate!("tac-error-read-error", "filename" => .0.maybe_quote(), "error" => strip_errno(.1)))]
-    ReadError(OsString, std::io::Error),
+    ReadError(OsString, sysio::io::Error),
     /// An error writing the (reversed) contents of a file or stdin.
     ///
-    /// The parameter is the underlying [`std::io::Error`] that caused
+    /// The parameter is the underlying [`sysio::io::Error`] that caused
     /// this error.
     #[error("{}", translate!("tac-error-write-error", "error" => strip_errno(.0)))]
-    WriteError(std::io::Error),
+    WriteError(sysio::io::Error),
 }
 
 impl UError for TacError {

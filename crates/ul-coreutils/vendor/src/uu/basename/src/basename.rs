@@ -5,10 +5,11 @@
 
 // spell-checker:ignore (ToDO) fullname
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::builder::ValueParser;
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
-use std::io::{Write, stdout};
+use sysio::io::{Write, stdout};
 use std::path::{PathBuf, is_separator};
 use uucore::display::Quotable;
 use uucore::error::{UResult, UUsageError};

@@ -12,7 +12,10 @@
 [package]
 edition = "2024"
 rust-version = "1.88.0"
-name = "uu_unexpand"
+# Porte pseudo-linus: pacote renomeado; uucore e sysio do pseudo-linus; sem testes upstream (são
+# escritos contra o host); sem o binário avulso; clap sem `wrap_help` (mede o terminal do host);
+# sem as dependências que tocam o host (rustix).
+name = "pl-uu-unexpand"
 version = "0.12.0"
 build = false
 autolib = false
@@ -38,20 +41,11 @@ repository = "https://github.com/uutils/coreutils/tree/main/src/uu/unexpand"
 name = "uu_unexpand"
 path = "src/unexpand.rs"
 doctest = false
-
-[[bin]]
-name = "unexpand"
-path = "src/main.rs"
-
-[[bench]]
-name = "unexpand_bench"
-path = "benches/unexpand_bench.rs"
-harness = false
+test = false
 
 [dependencies.clap]
 version = "4.5"
 features = [
-    "wrap_help",
     "cargo",
     "color",
 ]
@@ -63,23 +57,9 @@ version = "0.17.0"
 version = "2.0.3"
 
 [dependencies.uucore]
+path = "../../uucore"
+package = "pl-uucore"
 version = "0.12.0"
-
-[dev-dependencies.divan]
-version = "5.0.0"
-package = "codspeed-divan-compat"
-
-[dev-dependencies.tempfile]
-version = "3.15.0"
-
-[dev-dependencies.uucore]
-version = "0.12.0"
-features = ["benchmark"]
-
-[target.'cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))'.dependencies.rustix]
-version = "1.1.4"
-features = ["fs"]
-default-features = false
 
 [lints.clippy]
 cargo_common_metadata = "allow"
@@ -127,11 +107,18 @@ level = "warn"
 priority = -1
 
 [lints.rust]
+unsafe_code = "forbid"
 unused_qualifications = "warn"
 
 [lints.rust.renamed_and_removed_lints]
 level = "allow"
 priority = -1
+
+[dependencies.sysio]
+path = "../../../../../sysio"
+
+[dependencies.sysabi]
+path = "../../../../../sysabi"
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

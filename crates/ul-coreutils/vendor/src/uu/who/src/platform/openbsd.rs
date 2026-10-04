@@ -5,6 +5,9 @@
 
 // Specific implementation for OpenBSD: tool unsupported (utmpx not supported)
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::{println};
 use crate::uu_app;
 
 use uucore::error::UResult;

@@ -5,17 +5,18 @@
 
 // spell-checker:ignore (path) eacces inacc rm-r4 unlinkat fstatat rootlink
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::builder::{PossibleValue, ValueParser};
 use clap::{Arg, ArgAction, Command, parser::ValueSource};
-use indicatif::{ProgressBar, ProgressStyle};
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use std::ffi::{OsStr, OsString};
-use std::fs::{self, Metadata};
-use std::io::{self, IsTerminal, Write, stdin};
+use sysio::fs::{self, Metadata};
+use sysio::io::{self, IsTerminal, Write, stdin};
 use std::ops::BitOr;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
 #[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
+use sysio::os::unix::fs::PermissionsExt;
 use std::path::MAIN_SEPARATOR;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -228,7 +229,6 @@ static OPT_PROMPT_ALWAYS: &str = "prompt-always";
 static OPT_PROMPT_ONCE: &str = "prompt-once";
 static OPT_RECURSIVE: &str = "recursive";
 static OPT_VERBOSE: &str = "verbose";
-static OPT_PROGRESS: &str = "progress";
 static PRESUME_INPUT_TTY: &str = "-presume-input-tty";
 
 static ARG_FILES: &str = "files";
@@ -291,7 +291,8 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         recursive,
         dir: matches.get_flag(OPT_DIR),
         verbose: matches.get_flag(OPT_VERBOSE),
-        progress: matches.get_flag(OPT_PROGRESS),
+        // Porte pseudo-linus: a opção não existe (ver `uu_app`).
+        progress: false,
         __presume_input_tty: if matches.get_flag(PRESUME_INPUT_TTY) {
             Some(true)
         } else {
@@ -454,13 +455,8 @@ pub fn uu_app() -> Command {
                 .help(translate!("rm-help-verbose"))
                 .action(ArgAction::SetTrue),
         )
-        .arg(
-            Arg::new(OPT_PROGRESS)
-                .short('g')
-                .long(OPT_PROGRESS)
-                .help(translate!("rm-help-progress"))
-                .action(ArgAction::SetTrue),
-        )
+        // Porte pseudo-linus: sem `-g`/`--progress` (extensão do uutils que o GNU rm não tem; a
+        // barra do indicatif desenhava no terminal do host).
         // Hidden, and meant only for the test suite: handing the process a real
         // tty on stdin is awkward to arrange, and the prompting paths behave
         // differently once it has one, so this switch stands in for that state
@@ -483,64 +479,25 @@ pub fn uu_app() -> Command {
         )
 }
 
-/// Creates a progress bar for rm operations if conditions are met.
-/// Returns Some(ProgressBar) if `total_files` > 0, None otherwise.
-fn create_progress_bar(files: &[&OsStr], recursive: bool) -> Option<ProgressBar> {
-    let total_files = count_files(files, recursive);
-    if total_files == 0 {
-        return None;
+/// Porte pseudo-linus: sem barra de progresso (ver `uu_app`). O tipo fica, sem valores, pra que as
+/// assinaturas que recebem `Option<&ProgressBar>` continuem iguais às do upstream; nunca existe um.
+pub enum ProgressBar {}
+
+impl ProgressBar {
+    pub fn inc(&self, _delta: u64) {
+        match *self {}
     }
 
-    Some(
-        ProgressBar::new(total_files)
-            .with_style(
-                ProgressStyle::with_template(
-                    "{msg}: [{elapsed_precise}] {wide_bar} {pos:>7}/{len:7} files",
-                )
-                .unwrap(),
-            )
-            .with_message(translate!("rm-progress-removing")),
-    )
-}
-
-/// Count the total number of files and directories to be deleted.
-/// This function recursively counts all files and directories that will be processed.
-/// Files are not deduplicated when appearing in multiple sources. If `recursive` is set to `false`, the
-/// directories in `paths` will be ignored.
-fn count_files(paths: &[&OsStr], recursive: bool) -> u64 {
-    let mut total = 0;
-    for p in paths {
-        let path = Path::new(p);
-        if let Ok(md) = fs::symlink_metadata(path) {
-            if md.is_dir() && !is_symlink_dir(&md) {
-                if recursive {
-                    total += count_files_in_directory(path);
-                }
-            } else {
-                total += 1;
-            }
-        }
-        // If we can't access the file, skip it for counting
-        // This matches the behavior where -f suppresses errors for missing files
+    pub fn finish(&self) {
+        match *self {}
     }
-    total
 }
 
-/// A helper for `count_files` specialized for directories.
-fn count_files_in_directory(p: &Path) -> u64 {
-    let entries_count = fs::read_dir(p).map_or(0, |entries| {
-        entries
-            .flatten()
-            .map(|entry| match entry.file_type() {
-                Ok(ft) if ft.is_dir() => count_files_in_directory(&entry.path()),
-                Ok(_) => 1,
-                Err(_) => 0,
-            })
-            .sum()
-    });
-
-    1 + entries_count
+/// Porte pseudo-linus: nunca há barra (a opção `--progress` não existe).
+fn create_progress_bar(_files: &[&OsStr], _recursive: bool) -> Option<ProgressBar> {
+    None
 }
+
 
 /// Remove (or unlink) the given files
 ///
@@ -571,7 +528,8 @@ pub fn remove(files: &[&OsStr], options: &Options) -> bool {
             continue;
         }
 
-        had_err = match file.symlink_metadata() {
+        // Porte pseudo-linus: lstat(2) no FS do pseudo-processo.
+        had_err = match sysio::path::PathExt::sys_symlink_metadata(file) {
             Ok(metadata) => {
                 // Create progress bar on first successful file metadata read
                 if options.progress && progress_bar.is_none() {
@@ -665,7 +623,7 @@ fn remove_dir_recursive(
     // a directory and we don't want to recurse. In particular, this
     // avoids an infinite recursion in the case of a link to the current
     // directory, like `ln -s . link`.
-    if !path.is_dir() || path.is_symlink() {
+    if !path.sys_is_dir() || path.sys_is_symlink() {
         return remove_file(path, options, progress_bar);
     }
 

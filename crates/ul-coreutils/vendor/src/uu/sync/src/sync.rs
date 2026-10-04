@@ -3,6 +3,7 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use std::path::Path;
 use uucore::display::Quotable;
@@ -21,9 +22,7 @@ static ARG_FILES: &str = "files";
 #[cfg(unix)]
 mod platform {
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    use std::fs::{File, OpenOptions};
-    #[cfg(any(target_os = "linux", target_os = "android"))]
-    use std::os::unix::fs::OpenOptionsExt;
+    use sysio::fs::{File, OpenOptions};
     #[cfg(any(target_os = "linux", target_os = "android"))]
     use uucore::display::Quotable;
     #[cfg(any(target_os = "linux", target_os = "android"))]
@@ -38,8 +37,20 @@ mod platform {
         reason = "fn sig must match on all platforms"
     )]
     pub fn do_sync() -> UResult<()> {
-        rustix::fs::sync();
+        // Porte pseudo-linus: sync(2) do pseudo-kernel.
+        sysio::unistd::sync();
         Ok(())
+    }
+
+    /// Porte pseudo-linus: `O_NONBLOCK` e o fsync(2) do contrato (o pseudo-kernel não distingue
+    /// syncfs, fdatasync e fsync: tudo é a mesma descarga do arquivo).
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    const O_NONBLOCK: i32 = 0o4000;
+
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    fn fsync_fd(f: File) -> sysio::io::Result<()> {
+        use sysio::os::fd::AsRawFd;
+        sysio::unistd::fsync(f.as_raw_fd())
     }
 
     /// Opens a file and resets its O_NONBLOCK flag to match GNU behavior.
@@ -49,14 +60,21 @@ mod platform {
     fn open_and_reset_nonblock(path: &str) -> UResult<File> {
         let f = OpenOptions::new()
             .read(true)
-            .custom_flags(rustix::fs::OFlags::NONBLOCK.bits() as i32)
+            .custom_flags(O_NONBLOCK)
             .open(path)
             .map_err_context(|| path.to_string())?;
         // Reset O_NONBLOCK flag if it was set (matches GNU behavior)
         // This is non-critical, so we log errors but don't fail
-        if let Err(e) = rustix::fs::fcntl_setfl(&f, rustix::fs::OFlags::empty()) {
-            use std::io::{Write, stderr};
-            let msg = translate!("sync-warning-fcntl-failed", "file" => path, "error" => std::io::Error::from(e).to_string());
+        let reset = {
+            use sysio::os::fd::AsRawFd;
+            sysio::errno::cvt(sysabi::sys::current().set_status_flags(
+                sysabi::Fd(f.as_raw_fd()),
+                sysabi::OFlags::empty(),
+            ))
+        };
+        if let Err(e) = reset {
+            use sysio::io::{Write, stderr};
+            let msg = translate!("sync-warning-fcntl-failed", "file" => path, "error" => uucore::error::strip_errno(&e));
             let _ = writeln!(stderr(), "sync: {msg}");
             uucore::error::set_exit_code(1);
         }
@@ -66,11 +84,11 @@ mod platform {
     #[cfg(any(target_os = "linux", target_os = "android"))]
     pub fn do_sync_with<F>(files: &[String], op: F) -> UResult<()>
     where
-        F: Fn(File) -> Result<(), rustix::io::Errno>,
+        F: Fn(File) -> sysio::io::Result<()>,
     {
         for path in files {
             let f = open_and_reset_nonblock(path)?;
-            op(f).map_err(std::io::Error::from).map_err_context(
+            op(f).map_err_context(
                 || translate!("sync-error-syncing-file", "file" => path.quote()),
             )?;
         }
@@ -79,18 +97,18 @@ mod platform {
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     pub fn do_syncfs(files: &[String]) -> UResult<()> {
-        do_sync_with(files, rustix::fs::syncfs)
+        do_sync_with(files, fsync_fd)
     }
 
     #[cfg(any(target_os = "linux", target_os = "android"))]
     pub fn do_fdatasync(files: &[String]) -> UResult<()> {
-        do_sync_with(files, rustix::fs::fdatasync)
+        do_sync_with(files, fsync_fd)
     }
 }
 
 #[cfg(windows)]
 mod platform {
-    use std::fs::OpenOptions;
+    use sysio::fs::OpenOptions;
     use std::path::Path;
     use uucore::error::{UResult, USimpleError};
     use uucore::translate;
@@ -104,7 +122,7 @@ mod platform {
     use windows_sys::Win32::System::WindowsProgramming::DRIVE_FIXED;
 
     fn get_last_error() -> u32 {
-        std::io::Error::last_os_error().raw_os_error().unwrap_or(1) as u32
+        sysio::io::Error::last_os_error().raw_os_error().unwrap_or(1) as u32
     }
 
     fn flush_volume(name: &str) -> UResult<()> {
@@ -216,13 +234,15 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         #[cfg(any(target_os = "linux", target_os = "android"))]
         {
             let path = Path::new(f);
-            if let Err(e) = rustix::fs::open(
-                path,
-                rustix::fs::OFlags::NONBLOCK,
-                rustix::fs::Mode::empty(),
-            ) && (e != rustix::io::Errno::ACCESS || path.is_dir())
+            // Porte pseudo-linus: open(2) com O_NONBLOCK no FS do pseudo-processo.
+            let opened = sysio::fs::OpenOptions::new()
+                .read(true)
+                .custom_flags(0o4000)
+                .open(path);
+            if let Err(e) = opened
+                && (e.raw_os_error() != Some(sysio::errno::EACCES) || sysio::path::PathExt::sys_is_dir(path))
             {
-                let msg = translate!("sync-error-opening-file", "file" => f.quote(), "err" => uucore::error::strip_errno(&std::io::Error::from(e)));
+                let msg = translate!("sync-error-opening-file", "file" => f.quote(), "err" => uucore::error::strip_errno(&e));
                 show_error!("{msg}");
                 set_exit_code(1);
             }

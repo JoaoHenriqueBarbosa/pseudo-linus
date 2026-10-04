@@ -5,9 +5,10 @@
 
 // spell-checker:ignore (ToDO) filetime utimensat
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use filetime::FileTime;
 use rustix::fs::{AtFlags, CWD, Timespec, Timestamps, utimensat};
-use std::io::{Error, Result};
+use sysio::io::{Error, Result};
 use std::path::{Path, PathBuf};
 
 use uucore::translate;

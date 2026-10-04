@@ -5,11 +5,12 @@
 
 // spell-checker:ignore (ToDO) errno
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
-use std::env;
+use sysio::env;
 use std::ffi::OsString;
-use std::fs;
-use std::io::{Write, stdout};
+use sysio::fs;
+use sysio::io::{Write, stdout};
 use std::path::{Path, PathBuf};
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult};
@@ -181,7 +182,7 @@ pub fn uu_app() -> Command {
         )
 }
 
-fn show(path: &Path, line_ending: Option<LineEnding>) -> std::io::Result<()> {
+fn show(path: &Path, line_ending: Option<LineEnding>) -> sysio::io::Result<()> {
     uucore::display::print_verbatim(path)?;
     if let Some(line_ending) = line_ending {
         write!(stdout(), "{line_ending}")?;

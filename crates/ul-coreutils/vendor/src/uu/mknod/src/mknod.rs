@@ -5,11 +5,57 @@
 
 // spell-checker:ignore (ToDO) parsemode makedev sysmacros perror IFBLK IFCHR IFIFO sflag
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command, value_parser};
-use nix::libc::{S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR, mode_t};
-use nix::sys::stat::{Mode, SFlag, dev_t, mknod as nix_mknod, umask as nix_umask};
+// Porte pseudo-linus: o `nix` (mknod(2) e umask(2) do host) vira este shim sobre o sysio, com a
+// mesma interface.
+#[allow(non_camel_case_types)]
+type mode_t = u32;
+#[allow(non_camel_case_types)]
+type dev_t = u64;
+const S_IRUSR: mode_t = 0o400;
+const S_IWUSR: mode_t = 0o200;
+const S_IRGRP: mode_t = 0o040;
+const S_IWGRP: mode_t = 0o020;
+const S_IROTH: mode_t = 0o004;
+const S_IWOTH: mode_t = 0o002;
+
+#[derive(Clone, Copy)]
+struct Mode(mode_t);
+
+impl Mode {
+    fn empty() -> Self {
+        Self(0)
+    }
+    fn from_bits_truncate(bits: mode_t) -> Self {
+        Self(bits & 0o7777)
+    }
+    fn bits(self) -> mode_t {
+        self.0
+    }
+}
+
+struct SFlag(mode_t);
+
+impl SFlag {
+    const S_IFBLK: SFlag = SFlag(sysio::errno::S_IFBLK);
+    const S_IFCHR: SFlag = SFlag(sysio::errno::S_IFCHR);
+    const S_IFIFO: SFlag = SFlag(sysio::errno::S_IFIFO);
+    #[allow(dead_code)]
+    fn bits(&self) -> mode_t {
+        self.0
+    }
+}
+
+fn nix_mknod(path: &str, kind: SFlag, perm: Mode, dev: dev_t) -> io::Result<()> {
+    sysio::fs::mknod(path, kind.0 | perm.0, dev)
+}
+
+fn nix_umask(mask: Mode) -> Mode {
+    Mode(sysio::process::set_umask(mask.0))
+}
 use std::ffi::OsString;
-use std::io::{self, Write as _};
+use sysio::io::{self, Write as _};
 
 use uucore::display::Quotable;
 use uucore::error::{ExitCode, UResult, USimpleError, UUsageError, set_exit_code};
@@ -117,9 +163,11 @@ fn mknod(file_name: &str, config: Config) -> i32 {
     if let Some(err) = mknod_err {
         let _ = writeln!(
             io::stderr(),
-            "{}: {}",
+            "{}: {}: {}",
             uucore::execution_phrase(),
-            io::Error::from(err)
+            file_name,
+            // Porte pseudo-linus: mensagem da glibc, sem o " (os error N)" do Display do std.
+            uucore::error::strip_errno(&err)
         );
     }
 
@@ -128,7 +176,7 @@ fn mknod(file_name: &str, config: Config) -> i32 {
     if config.set_security_context
         && let Err(e) =
             uucore::smack::set_smack_label_and_cleanup(file_name, config.context.as_ref(), |p| {
-                std::fs::remove_file(p)
+                sysio::fs::remove_file(p)
             })
     {
         let _ = writeln!(io::stderr(), "mknod: {e}");

@@ -143,7 +143,8 @@ pub fn get_uptime(boot_time: Option<time_t>) -> UResult<i64> {
     };
 
     if let Some(t) = derived_boot_time {
-        let now = Timestamp::now().as_second();
+        // Porte pseudo-linus: relógio do pseudo-kernel.
+        let now = Timestamp::try_from(sysio::time::now()).map_or(0, |t| t.as_second());
         #[cfg(target_pointer_width = "64")]
         let boottime: i64 = t;
         #[cfg(not(target_pointer_width = "64"))]

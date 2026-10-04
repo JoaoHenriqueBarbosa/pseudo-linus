@@ -5,12 +5,13 @@
 
 // spell-checker:ignore (ToDO) RFILE fsize
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
-use std::fs::{OpenOptions, metadata};
-use std::io::ErrorKind;
+use sysio::fs::{OpenOptions, metadata};
+use sysio::io::ErrorKind;
 #[cfg(unix)]
-use std::os::unix::fs::FileTypeExt;
+use sysio::os::unix::fs::FileTypeExt;
 use std::path::Path;
 use uucore::diagnostics::OptionValue;
 use uucore::display::Quotable;
@@ -257,7 +258,7 @@ fn do_file_truncate(filename: &Path, create: bool, size: u64) -> UResult<()> {
 
 /// Block size for file in question, or if file does not yet exist, for the
 /// parent directory of the file.
-fn io_block_size(path: &Path, metadata: Option<&std::fs::Metadata>) -> u64 {
+fn io_block_size(path: &Path, metadata: Option<&sysio::fs::Metadata>) -> u64 {
     metadata.map_or_else(
         || {
             let parent = path

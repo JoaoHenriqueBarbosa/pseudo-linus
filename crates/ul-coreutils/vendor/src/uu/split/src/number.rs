@@ -17,6 +17,9 @@
 //! [radix]: https://en.wikipedia.org/wiki/Radix
 //! [positional notation]: https://en.wikipedia.org/wiki/Positional_notation
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::{println};
 use std::error::Error;
 use std::fmt::{self, Display, Formatter, Write};
 use uucore::translate;

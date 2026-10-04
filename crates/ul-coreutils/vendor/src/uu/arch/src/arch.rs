@@ -3,20 +3,19 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::Command;
-use platform_info::{PlatformInfo, PlatformInfoAPI, UNameAPI};
-use std::io::{Write, stdout};
-use uucore::error::{UResult, USimpleError};
+use sysio::io::{Write, stdout};
+use uucore::error::UResult;
 use uucore::translate;
 
 #[uucore::main(no_signals)]
 pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     uucore::clap_localization::handle_clap_result(uu_app(), args)?;
 
-    let uts =
-        PlatformInfo::new().map_err(|_| USimpleError::new(1, translate!("cannot-get-system")))?;
-    // machine is a valid unicode
-    let machine = uts.machine().as_encoded_bytes().trim_ascii();
+    // Porte pseudo-linus: uname(2) do pseudo-kernel no lugar do `platform_info`.
+    let uts = sysio::unistd::uname();
+    let machine = uts.machine.trim_ascii();
     let mut out = stdout();
     out.write_all(machine)?;
     Ok(out.write_all(b"\n")?)

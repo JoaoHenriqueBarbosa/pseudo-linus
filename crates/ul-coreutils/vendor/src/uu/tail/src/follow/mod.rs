@@ -5,10 +5,14 @@
 
 #[cfg(not(target_os = "wasi"))]
 mod files;
+// Porte pseudo-linus: o watcher de polling sobre o pseudo-kernel.
+#[cfg(not(target_os = "wasi"))]
+mod notify;
 #[cfg(not(target_os = "wasi"))]
 mod watch;
 
 #[cfg(not(target_os = "wasi"))]
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 pub use watch::{Observer, follow};
 
 // WASI: notify/inotify are unavailable, so `tail -f` cannot work.
@@ -16,7 +20,7 @@ pub use watch::{Observer, follow};
 #[cfg(target_os = "wasi")]
 mod wasi_stubs {
     use crate::args::Settings;
-    use std::io::BufRead;
+    use sysio::io::BufRead;
     use std::path::Path;
     use uucore::error::{UResult, USimpleError};
 

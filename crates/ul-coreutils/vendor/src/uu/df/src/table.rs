@@ -10,6 +10,7 @@
 //! A table ([`Table`]) comprises a header row ([`Header`]) and a
 //! collection of data rows ([`Row`]), one per filesystem.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use unicode_width::UnicodeWidthStr;
 
 use crate::blocks::{SuffixType, to_magnitude_and_suffix};
@@ -536,7 +537,7 @@ impl Table {
         alignments
     }
 
-    pub(crate) fn write_to(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+    pub(crate) fn write_to(&self, writer: &mut dyn sysio::io::Write) -> sysio::io::Result<()> {
         for row in &self.rows {
             let mut col_iter = row.iter().enumerate().peekable();
             while let Some((i, elem)) = col_iter.next() {
@@ -585,7 +586,7 @@ mod tests {
 
     fn init() {
         unsafe {
-            std::env::set_var("LANG", "C");
+            sysio::env::set_var("LANG", "C");
         }
         let _ = setup_localization("df");
     }

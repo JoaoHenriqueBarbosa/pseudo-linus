@@ -5,11 +5,12 @@
 
 // spell-checker:ignore (ToDO) kqueue Signum
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::paths::Input;
 use crate::{Quotable, parse, platform};
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use std::ffi::OsString;
-use std::io::{IsTerminal, Write};
+use sysio::io::{IsTerminal, Write};
 use std::time::Duration;
 use uucore::diagnostics::OptionValue;
 use uucore::error::{UResult, USimpleError, UUsageError};
@@ -317,7 +318,7 @@ impl Settings {
 
     /// Check [`Settings`] for problematic configurations of tail originating from user provided
     /// command line arguments and print appropriate warnings.
-    pub fn check_warnings(&self) -> std::io::Result<()> {
+    pub fn check_warnings(&self) -> sysio::io::Result<()> {
         if self.retry {
             if self.follow.is_none() {
                 show_warning!("{}", translate!("tail-warning-retry-ignored"));
@@ -329,7 +330,7 @@ impl Settings {
         if let Some(pid) = self.pid {
             if self.follow.is_none() {
                 writeln!(
-                    std::io::stderr().lock(),
+                    sysio::io::stderr().lock(),
                     "{}: warning: {}",
                     uucore::util_name(),
                     translate!("tail-warning-pid-ignored")
@@ -345,8 +346,9 @@ impl Settings {
         // cannot be applied under these circumstances and is therefore ineffective.
         if self.follow.is_some() && self.has_stdin() {
             #[cfg(unix)]
-            let stdin_is_regular = rustix::fs::fstat(std::io::stdin())
-                .is_ok_and(|stat| stat.st_mode & libc::S_IFMT == libc::S_IFREG);
+            // Porte pseudo-linus: fstat(2) do fd 0 do pseudo-processo.
+            let stdin_is_regular =
+                sysio::os::fd::AsFd::fstat(&sysio::io::stdin()).is_ok_and(|md| md.is_file());
             #[cfg(not(unix))]
             let stdin_is_regular = true;
             let blocking_stdin = self.pid.unwrap_or_default() == 0
@@ -354,7 +356,7 @@ impl Settings {
                 && self.num_inputs() == 1
                 && !stdin_is_regular;
 
-            if !blocking_stdin && std::io::stdin().is_terminal() {
+            if !blocking_stdin && sysio::io::stdin().is_terminal() {
                 show_warning!("{}", translate!("tail-warning-following-stdin-ineffective"));
             }
         }

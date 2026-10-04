@@ -5,10 +5,11 @@
 
 // spell-checker:ignore (ToDO) ctype cwidth iflag nbytes nspaces nums tspaces Preprocess
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::ffi::OsString;
-use std::fs::File;
-use std::io::{BufReader, BufWriter, Read, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{BufReader, BufWriter, Read, Write, stdin, stdout};
 use std::num::IntErrorKind;
 use std::path::Path;
 use std::str::from_utf8;
@@ -269,8 +270,7 @@ fn open(path: &OsString) -> UResult<BufReader<Box<dyn Read>>> {
         ));
     }
     let file = File::open(path_ref).map_err_context(|| path.maybe_quote().to_string())?;
-    #[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
-    let _ = rustix::fs::fadvise(&file, 0, None, rustix::fs::Advice::Sequential);
+    // Porte pseudo-linus: sem fadvise (dica ao kernel do host; o pseudo-kernel não tem cache de páginas).
     Ok(BufReader::new(Box::new(file) as Box<dyn Read>))
 }
 
@@ -350,7 +350,7 @@ fn classify_char(buf: &[u8], byte: usize, utf8: bool) -> (CharType, usize, usize
 
 /// Write spaces for a tab expansion.
 #[inline]
-fn write_spaces(output: &mut impl Write, mut n: usize) -> std::io::Result<()> {
+fn write_spaces(output: &mut impl Write, mut n: usize) -> sysio::io::Result<()> {
     const SPACES: [u8; 256] = [b' '; 256];
 
     while n > 0 {
@@ -364,11 +364,11 @@ fn write_spaces(output: &mut impl Write, mut n: usize) -> std::io::Result<()> {
 
 fn expand_buf(
     buf: &[u8],
-    output: &mut BufWriter<std::io::Stdout>,
+    output: &mut BufWriter<sysio::io::Stdout>,
     tabstops: &[usize],
     options: &Options,
     col: &mut usize,
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     use self::CharType::{Backspace, Other, Tab};
 
     // Fast path: if there are no tabs, backspaces, and (in UTF-8 mode or no carriage returns),
@@ -442,7 +442,7 @@ fn expand_buf(
 
 fn expand_file(
     file: &OsString,
-    output: &mut BufWriter<std::io::Stdout>,
+    output: &mut BufWriter<sysio::io::Stdout>,
     options: &Options,
 ) -> UResult<()> {
     let mut buf = [0u8; 4096];

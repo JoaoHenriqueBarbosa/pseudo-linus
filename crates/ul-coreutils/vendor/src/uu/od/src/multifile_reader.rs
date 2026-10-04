@@ -5,10 +5,11 @@
 
 // spell-checker:ignore (ToDO) multifile curr fnames fname xfrd fillloop mockstream
 
-use std::fs::File;
-use std::io;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::fs::File;
+use sysio::io;
 #[cfg(unix)]
-use std::io::{Seek, SeekFrom};
+use sysio::io::{Seek, SeekFrom};
 
 use uucore::{display::Quotable, error::strip_errno, show_error, translate};
 
@@ -26,9 +27,24 @@ pub enum InputSource<'a> {
 enum CurrentReader {
     File(File),
     #[cfg(any(unix, target_os = "wasi"))]
-    Stdin(uucore::io::RawReader<rustix::fd::BorrowedFd<'static>>),
+    Stdin(uucore::io::RawReader<RawStdin>),
     #[cfg(not(any(unix, target_os = "wasi")))]
     Stdin(io::Stdin),
+}
+
+/// Porte pseudo-linus: read(2) direto no fd 0 do pseudo-processo, sem buffer (o original usava o
+/// fd do rustix), pra que `od -N` não consuma além do que mostra.
+pub struct RawStdin;
+
+impl io::Read for RawStdin {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        loop {
+            match sysabi::sys::read(sysabi::Fd::STDIN, buf) {
+                Err(sysabi::Errno::EINTR) => {}
+                r => return sysio::errno::cvt(r),
+            }
+        }
+    }
 }
 
 impl io::Read for CurrentReader {
@@ -40,12 +56,13 @@ impl io::Read for CurrentReader {
     }
 }
 
+// Porte pseudo-linus: o `AsFd` do sysio (o `discard_n_bytes` faz fstat/lseek pelo fd).
 #[cfg(any(target_os = "linux", target_os = "android"))]
-impl rustix::fd::AsFd for CurrentReader {
-    fn as_fd(&self) -> rustix::fd::BorrowedFd<'_> {
+impl sysio::os::fd::AsFd for CurrentReader {
+    fn as_fd(&self) -> sysio::os::fd::BorrowedFd<'_> {
         match self {
             Self::File(f) => f.as_fd(),
-            Self::Stdin(s) => s.0,
+            Self::Stdin(_) => sysio::os::fd::BorrowedFd::borrow_raw(0),
         }
     }
 }
@@ -91,7 +108,7 @@ impl MultifileReader<'_> {
                     // limit.
                     #[cfg(any(unix, target_os = "wasi"))]
                     {
-                        let stdin = uucore::io::RawReader(rustix::stdio::stdin());
+                        let stdin = uucore::io::RawReader(RawStdin);
                         self.curr_file = Some(CurrentReader::Stdin(stdin));
                     }
 
@@ -268,7 +285,7 @@ impl HasError for MultifileReader<'_> {
 #[cfg(not(target_os = "wasi"))]
 mod tests {
     use super::*;
-    use std::io::{Read, Write as _};
+    use sysio::io::{Read, Write as _};
     use tempfile::NamedTempFile;
 
     #[test]

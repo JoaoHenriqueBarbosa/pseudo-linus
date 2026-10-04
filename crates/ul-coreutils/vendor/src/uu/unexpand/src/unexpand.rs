@@ -5,10 +5,11 @@
 
 // spell-checker:ignore (ToDO) nums aflag scol prevtab amode ctype cwidth nbytes lastcol pctype Preprocess iswblank
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
-use std::fs::File;
-use std::io::{self, BufReader, BufWriter, Read, Stdin, Stdout, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{self, BufReader, BufWriter, Read, Stdin, Stdout, Write, stdin, stdout};
 use std::num::IntErrorKind;
 use thiserror::Error;
 use uucore::char_width::char_info_at;
@@ -311,8 +312,7 @@ fn open(path: &OsString) -> UResult<BufReader<Input>> {
         return Ok(BufReader::new(Input::Stdin(stdin())));
     }
     let f = File::open(path).map_err_context(|| path.maybe_quote().to_string())?;
-    #[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
-    let _ = rustix::fs::fadvise(&f, 0, None, rustix::fs::Advice::Sequential);
+    // Porte pseudo-linus: sem fadvise (dica ao kernel do host; o pseudo-kernel não tem cache de páginas).
     Ok(BufReader::new(Input::File(f)))
 }
 

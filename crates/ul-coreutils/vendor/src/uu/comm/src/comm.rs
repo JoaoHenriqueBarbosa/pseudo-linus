@@ -5,10 +5,11 @@
 
 // spell-checker:ignore (ToDO) delim mkdelim pairable
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::cmp::Ordering;
 use std::ffi::OsString;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, BufWriter, StdinLock, Write, stderr, stdin};
+use sysio::fs::File;
+use sysio::io::{self, BufRead, BufReader, BufWriter, StdinLock, Write, stderr, stdin};
 use std::path::Path;
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult, USimpleError};
@@ -293,7 +294,7 @@ fn open_file(name: &OsString, line_ending: LineEnding) -> io::Result<LineReader>
         // some platforms shows different read error
         // try to override the error message, but failure of it is not serious
         #[cfg(any(target_os = "wasi", windows))]
-        if std::fs::metadata(name).is_ok_and(|m| m.is_dir()) {
+        if sysio::fs::metadata(name).is_ok_and(|m| m.is_dir()) {
             return Err(io::Error::other(translate!("comm-error-is-directory")));
         }
         let f = File::open(name)?;

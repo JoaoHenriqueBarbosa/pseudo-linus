@@ -5,10 +5,11 @@
 
 // spell-checker:ignore reflink
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::CString;
-use std::fs::{self, File, OpenOptions};
+use sysio::fs::{self, File, OpenOptions};
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::fs::OpenOptionsExt;
+use sysio::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
 
 use uucore::buf_copy;
@@ -69,7 +70,7 @@ pub(crate) fn copy_on_write(
                 flags: u32,
             ) -> core::ffi::c_int = std::mem::transmute(raw_pfn);
             error = pfn(src.as_ptr(), dst.as_ptr(), 0);
-            if std::io::Error::last_os_error().kind() == std::io::ErrorKind::AlreadyExists
+            if sysio::io::Error::last_os_error().kind() == sysio::io::ErrorKind::AlreadyExists
                 // Only remove the `dest` if the `source` and `dest` are not the same
                 && source != dest
             {
@@ -136,7 +137,7 @@ pub(crate) fn copy_on_write(
             }
 
             buf_copy::copy_fast(&mut src_file, &mut dst_file)
-                .map_err(|_| std::io::Error::from(std::io::ErrorKind::Other))
+                .map_err(|_| sysio::io::Error::from(sysio::io::ErrorKind::Other))
                 .map_err(|e| CpError::IoErrContext(e, context.to_owned()))?;
         } else {
             let mut src_file = open_source(source, nofollow)
@@ -147,7 +148,7 @@ pub(crate) fn copy_on_write(
                     translate!("cp-error-cannot-create-regular-file", "path" => dest.quote()),
                 )
             })?;
-            std::io::copy(&mut src_file, &mut dst_file)
+            sysio::io::copy(&mut src_file, &mut dst_file)
                 .map_err(|e| CpError::IoErrContext(e, context.to_owned()))?;
         }
     }

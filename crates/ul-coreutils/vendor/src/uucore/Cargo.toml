@@ -78,7 +78,9 @@ format = [
     "unit-prefix",
 ]
 fs = []
+# Porte pseudo-linus: o fsext portado usa `crate::fs::mode`, então liga `fs`.
 fsext = [
+    "fs",
     "windows-sys",
     "bstr",
     "wide",

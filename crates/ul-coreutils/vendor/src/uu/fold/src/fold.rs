@@ -5,9 +5,10 @@
 
 // spell-checker:ignore (ToDOs) ncount routput
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
-use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{BufRead, BufReader, BufWriter, Read, Write, stdin, stdout};
 use std::num::IntErrorKind;
 use std::path::Path;
 use unicode_width::UnicodeWidthChar;

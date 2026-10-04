@@ -5,9 +5,10 @@
 
 // spell-checker:ignore (vars) DACL PSECURITY PSID
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::{OsStr, OsString};
-use std::fs::{Metadata, OpenOptions};
-use std::io::{self, IsTerminal};
+use sysio::fs::{Metadata, OpenOptions};
+use sysio::io::{self, IsTerminal};
 use std::os::windows::fs::OpenOptionsExt;
 use std::os::windows::io::{AsHandle, OwnedHandle};
 use std::path::Path;
@@ -27,7 +28,7 @@ use windows_sys::Win32::Storage::FileSystem::{
 /// SIDs only as [`Sid`]s borrowed from the buffer that owns them.
 mod sys {
     use std::ffi::OsStr;
-    use std::io;
+    use sysio::io;
     use std::marker::PhantomData;
     use std::os::windows::io::{AsRawHandle, BorrowedHandle, FromRawHandle, OwnedHandle};
     use std::ptr;
@@ -324,7 +325,7 @@ struct PathExt {
 }
 
 static PATHEXT: LazyLock<PathExt> = LazyLock::new(|| {
-    let raw = std::env::var_os("PATHEXT").map(OsString::into_boxed_os_str);
+    let raw = sysio::env::var_os("PATHEXT").map(OsString::into_boxed_os_str);
 
     let parsed = raw
         // Turn PATHEXT into a &[u8] slice with some fallback values.

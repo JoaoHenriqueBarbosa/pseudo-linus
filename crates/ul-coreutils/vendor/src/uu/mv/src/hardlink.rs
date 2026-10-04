@@ -10,8 +10,9 @@
 //! This module provides functionality to preserve hardlink relationships
 //! when moving files across different filesystems/partitions.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use rustc_hash::FxHashMap;
-use std::io::{self, Write as _};
+use sysio::io::{self, Write as _};
 use std::path::{Path, PathBuf};
 
 use uucore::display::Quotable;
@@ -120,7 +121,7 @@ impl HardlinkTracker {
         scanner: &HardlinkGroupScanner,
         options: &HardlinkOptions,
     ) -> Option<PathBuf> {
-        use std::os::unix::fs::MetadataExt;
+        use sysio::os::unix::fs::MetadataExt;
 
         let metadata = match source.symlink_metadata() {
             Ok(meta) => meta,
@@ -214,7 +215,7 @@ impl HardlinkGroupScanner {
 
     /// Scan a single path (file or directory)
     fn scan_single_path(&mut self, path: &Path) -> io::Result<()> {
-        use std::os::unix::fs::MetadataExt;
+        use sysio::os::unix::fs::MetadataExt;
 
         if path.is_dir() {
             // Recursively scan directory contents
@@ -234,9 +235,9 @@ impl HardlinkGroupScanner {
 
     /// Recursively scan a directory for hardlinked files
     fn scan_directory_recursive(&mut self, dir: &Path) -> io::Result<()> {
-        use std::os::unix::fs::MetadataExt;
+        use sysio::os::unix::fs::MetadataExt;
 
-        let entries = std::fs::read_dir(dir)?;
+        let entries = sysio::fs::read_dir(dir)?;
         for entry in entries {
             let entry = entry?;
             let path = entry.path();

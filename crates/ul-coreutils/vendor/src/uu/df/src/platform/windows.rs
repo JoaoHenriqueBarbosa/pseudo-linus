@@ -7,6 +7,9 @@
 
 //! Windows backend of `df`: volume usage probes, path resolution and the `-i` notice.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::{println};
 use std::ffi::OsString;
 use std::path::Path;
 

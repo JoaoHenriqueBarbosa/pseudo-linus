@@ -5,6 +5,7 @@
 
 // spell-checker:ignore behavior
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::errors::NumfmtError;
 use crate::format::{escape_line, write_formatted_with_delimiter, write_formatted_with_whitespace};
 use crate::options::{
@@ -16,7 +17,7 @@ use crate::options::{
 use crate::units::{Result, Unit};
 use clap::{Arg, ArgAction, ArgMatches, Command, builder::ValueParser, parser::ValueSource};
 use std::ffi::OsString;
-use std::io::{BufRead, BufWriter, IsTerminal, Write, stderr};
+use sysio::io::{BufRead, BufWriter, IsTerminal, Write, stderr};
 use std::str::FromStr;
 
 use uucore::display::Quotable;
@@ -120,7 +121,7 @@ fn format_and_write(
 /// Whatever `body` wrote is flushed before this returns, so an error still
 /// leaves the lines that came before it on stdout.
 fn with_stdout<T>(body: impl FnOnce(&mut dyn Write) -> UResult<T>) -> UResult<T> {
-    let stdout = std::io::stdout();
+    let stdout = sysio::io::stdout();
     if stdout.is_terminal() {
         let mut writer = stdout.lock();
         finish(body(&mut writer), &mut writer)
@@ -528,7 +529,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             .map_err(NumfmtError::IllegalArgument)?;
         handle_args(byte_args.into_iter(), &options, format_args.as_deref())
     } else {
-        let stdin = std::io::stdin();
+        let stdin = sysio::io::stdin();
         handle_buffer(stdin.lock(), &options)
     };
 
@@ -536,7 +537,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         Err(e) => {
             // Flush stdout before returning the error so any partial output is
             // visible (matches GNU behavior).
-            let _ = std::io::stdout().flush();
+            let _ = sysio::io::stdout().flush();
             Err(e)
         }
         Ok(saw_invalid) => {
@@ -707,7 +708,7 @@ mod tests {
         TransformOptions, Unit, handle_args, handle_buffer, parse_unit_size,
         parse_unit_size_suffix,
     };
-    use std::io::{BufReader, Error, ErrorKind, Read};
+    use sysio::io::{BufReader, Error, ErrorKind, Read};
     struct MockBuffer {}
 
     impl Read for MockBuffer {

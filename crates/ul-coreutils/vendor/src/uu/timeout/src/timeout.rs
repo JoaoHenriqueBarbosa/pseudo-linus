@@ -10,10 +10,11 @@
 mod platform;
 mod status;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::status::ExitStatus;
 use clap::{Arg, ArgAction, Command};
-use std::io::{ErrorKind, Write};
-use std::process::{self, Child, Stdio};
+use sysio::io::{ErrorKind, Write};
+use sysio::process::{self, Child, Stdio};
 use std::time::Duration;
 use uucore::display::Quotable;
 use uucore::error::{UResult, USimpleError, UUsageError};
@@ -183,7 +184,7 @@ fn report_if_verbose(signal: usize, cmd: &str, verbose: bool) {
         } else {
             signal_list_name_by_value(signal).unwrap()
         };
-        let mut stderr = std::io::stderr();
+        let mut stderr = sysio::io::stderr();
         let _ = writeln!(
             stderr,
             "timeout: {}",
@@ -221,7 +222,7 @@ fn wait_or_kill_process(
     foreground: bool,
     verbose: bool,
     spawn_state: &platform::SpawnState,
-) -> std::io::Result<i32> {
+) -> sysio::io::Result<i32> {
     match process.wait_or_timeout(duration, true) {
         Ok(TimeoutRet::Exited(status)) => {
             if preserve_status {

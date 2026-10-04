@@ -5,12 +5,14 @@
 
 // spell-checker:ignore (ToDO) dircolors eightbit fnmatch setenv colorterm disp cshell
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use std::borrow::Borrow;
-use std::env;
+use sysio::env;
 use std::ffi::OsString;
 use std::fmt::Write as _;
-use std::fs::File;
-use std::io::{BufRead, BufReader, Write, stdout};
+use sysio::fs::File;
+use sysio::io::{BufRead, BufReader, Write, stdout};
 use std::path::Path;
 
 use clap::{Arg, ArgAction, Command};
@@ -174,12 +176,12 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         )),
         [file_arg] => {
             let result = if *file_arg == "-" {
-                let fin = BufReader::new(std::io::stdin());
+                let fin = BufReader::new(sysio::io::stdin());
                 // For example, for echo "owt 40;33"|dircolors -b -
                 parse(fin.lines().map_while(Result::ok), &out_format, "-")
             } else {
                 let path = Path::new(&file_arg);
-                if path.is_dir() {
+                if path.sys_is_dir() {
                     return Err(USimpleError::new(
                         2,
                         translate!("dircolors-error-expected-file-got-directory", "path" => path.quote()),

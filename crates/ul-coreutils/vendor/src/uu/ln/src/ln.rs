@@ -5,8 +5,10 @@
 
 // spell-checker:ignore (ToDO) srcpath targetpath EEXIST
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use clap::{Arg, ArgAction, Command};
-use std::io::{self, Write, stdout};
+use sysio::io::{self, Write, stdout};
 use uucore::display::Quotable;
 use uucore::error::{UError, UIoError, UResult};
 
@@ -18,7 +20,7 @@ use uucore::{format_usage, prompt_yes, show_error};
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::ffi::OsString;
-use std::fs;
+use sysio::fs;
 use thiserror::Error;
 
 use std::path::{Path, PathBuf};
@@ -126,7 +128,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     };
 
     let backup_mode =
-        backup_control::determine_backup_mode(std::env::var("VERSION_CONTROL").ok(), &matches)?;
+        backup_control::determine_backup_mode(sysio::env::var("VERSION_CONTROL").ok(), &matches)?;
     let backup_suffix = backup_control::determine_backup_suffix(&matches);
 
     // When we have "-L" or "-L -P", false otherwise
@@ -278,7 +280,7 @@ fn exec(files: &[PathBuf], settings: &Settings) -> LnResult<()> {
             link_files_in_dir(files, &PathBuf::from("."), settings)
         }
         // create links in the last argument
-        (last, rest) if !settings.no_target_dir && (rest.len() > 1 || last.is_dir()) => {
+        (last, rest) if !settings.no_target_dir && (rest.len() > 1 || last.sys_is_dir()) => {
             link_files_in_dir(rest, last, settings)
         }
         (f0, []) => Err(LnError::MissingDestination(f0.clone())),
@@ -292,7 +294,7 @@ fn exec(files: &[PathBuf], settings: &Settings) -> LnResult<()> {
 
 #[allow(clippy::cognitive_complexity)]
 fn link_files_in_dir(files: &[PathBuf], target_dir: &Path, settings: &Settings) -> LnResult<()> {
-    if !target_dir.is_dir() {
+    if !target_dir.sys_is_dir() {
         return Err(LnError::TargetIsNotADirectory(target_dir.to_owned()));
     }
     // remember the linked destinations for further usage
@@ -300,7 +302,7 @@ fn link_files_in_dir(files: &[PathBuf], target_dir: &Path, settings: &Settings) 
 
     let mut all_successful = true;
     for srcpath in files {
-        let targetpath = if settings.no_dereference && target_dir.is_symlink() {
+        let targetpath = if settings.no_dereference && target_dir.sys_is_symlink() {
             let remove_target = || {
                 // Not sure why but on Windows, the symlink can be
                 // considered as a dir
@@ -402,7 +404,7 @@ pub fn link(src: &Path, dst: &Path, settings: &Settings) -> LnResult<()> {
         src.into()
     };
 
-    if dst.is_symlink() || dst.exists() {
+    if dst.sys_is_symlink() || dst.sys_exists() {
         backup_path = backup_control::get_backup_path(settings.backup, dst, &settings.suffix);
         if settings.backup == BackupMode::Existing && !settings.symbolic {
             // when ln --backup f f, it should detect that it is the same file
@@ -428,7 +430,7 @@ pub fn link(src: &Path, dst: &Path, settings: &Settings) -> LnResult<()> {
                 overwrite_on_conflict = true;
             }
             OverwriteMode::Force => {
-                if !dst.is_symlink()
+                if !dst.sys_is_symlink()
                     && paths_refer_to_same_file(src, dst, true)
                     && is_same_entry(src, dst)
                 {
@@ -443,7 +445,7 @@ pub fn link(src: &Path, dst: &Path, settings: &Settings) -> LnResult<()> {
     // Resolved once: this can fail independently of the destination.
     let hard_link_src = if settings.symbolic {
         None
-    } else if settings.logical && source.is_symlink() {
+    } else if settings.logical && source.sys_is_symlink() {
         Some(fs::canonicalize(&source).map_err(|e| {
             LnError::IoContext(
                 UIoError::from(e),
@@ -474,7 +476,7 @@ pub fn link(src: &Path, dst: &Path, settings: &Settings) -> LnResult<()> {
                     "dest" => dst.quote()
                 ),
             )
-        } else if hard_link_src.as_ref().is_some_and(|p| p.is_dir()) {
+        } else if hard_link_src.as_ref().is_some_and(|p| p.sys_is_dir()) {
             LnError::FailedToCreateHardLinkDir(source.to_path_buf())
         } else {
             LnError::IoContext(
@@ -527,5 +529,6 @@ pub fn symlink<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dst: P2) -> io::Result
 
 #[cfg(any(unix, target_os = "wasi"))]
 pub fn symlink<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dst: P2) -> io::Result<()> {
-    rustix::fs::symlink(src.as_ref(), dst.as_ref()).map_err(io::Error::from)
+    // Porte pseudo-linus: symlink(2) do pseudo-processo.
+    sysio::fs::symlink(src.as_ref(), dst.as_ref())
 }

@@ -7,8 +7,11 @@
 // spell-checker:ignore (FORMATS) MMDDhhmm YYYYMMDDHHMM YYMMDDHHMM YYYYMMDDHHMMS CREAT ENXIO RDONLY utimensat
 
 pub mod error;
+mod filetime;
 mod platform;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use clap::builder::{PossibleValue, ValueParser};
 use clap::{Arg, ArgAction, ArgGroup, ArgMatches, Command};
 use filetime::FileTime;
@@ -20,25 +23,23 @@ use jiff::civil::Time;
 use jiff::fmt::strtime;
 use jiff::tz::TimeZone;
 use jiff::{Timestamp, ToSpan, Zoned};
+
+/// Porte pseudo-linus: o `CLOCK_REALTIME` do pseudo-kernel (o `Timestamp::now` lia o do host).
+fn now_timestamp() -> Timestamp {
+    Timestamp::try_from(sysio::time::now()).unwrap_or(Timestamp::UNIX_EPOCH)
+}
+// Porte pseudo-linus: `O_NONBLOCK` do Linux sem a libc.
 #[cfg(unix)]
-use libc::O_NONBLOCK;
-#[cfg(unix)]
-use rustix::fs::Timestamps;
-#[cfg(unix)]
-use rustix::fs::futimens;
+const O_NONBLOCK: i32 = 0o4000;
 use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
-use std::fs;
-use std::fs::OpenOptions;
-use std::io::{Error, ErrorKind};
-#[cfg(unix)]
-use std::os::unix::fs::OpenOptionsExt;
+use sysio::fs;
+use sysio::fs::OpenOptions;
+use sysio::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult, USimpleError};
-#[cfg(target_os = "linux")]
-use uucore::libc;
 use uucore::parser::shortcut_value_parser::ShortcutValueParser;
 use uucore::translate;
 use uucore::{format_usage, show};
@@ -146,7 +147,8 @@ fn timestamp_to_filetime(ts: Timestamp) -> FileTime {
 
 fn filetime_to_zoned(ft: &FileTime) -> Option<Zoned> {
     let ts = Timestamp::new(ft.unix_seconds(), ft.nanoseconds() as i32).ok()?;
-    Some(Zoned::new(ts, TimeZone::system()))
+    // Porte pseudo-linus: o fuso do pseudo-processo (TZ do ambiente), não o do host.
+    Some(Zoned::new(ts, uucore::time::process_time_zone()))
 }
 
 /// Whether all characters in the string are digits.
@@ -178,7 +180,7 @@ fn is_first_filename_timestamp(
         && date.is_none()
         && files.len() >= 2
         // env check is last as the slowest op
-        && matches!(std::env::var("_POSIX2_VERSION").as_deref(), Ok("199209"))
+        && matches!(sysio::env::var("_POSIX2_VERSION").as_deref(), Ok("199209"))
         && files[0].to_str().is_some_and(is_timestamp)
 }
 
@@ -395,14 +397,14 @@ pub fn touch(files: &[InputFile], opts: &Options) -> Result<(), TouchError> {
             #[cfg(target_os = "linux")]
             {
                 if opts.date.is_none() {
-                    now = FileTime::from_unix_time(0, libc::UTIME_NOW as u32);
+                    now = FileTime::from_unix_time(0, filetime::UTIME_NOW);
                 } else {
-                    now = timestamp_to_filetime(Timestamp::now());
+                    now = timestamp_to_filetime(now_timestamp());
                 }
             }
             #[cfg(not(target_os = "linux"))]
             {
-                now = timestamp_to_filetime(Timestamp::now());
+                now = timestamp_to_filetime(now_timestamp());
             }
             (now, now)
         }
@@ -447,7 +449,7 @@ pub fn touch(files: &[InputFile], opts: &Options) -> Result<(), TouchError> {
 /// symlink at `path` in the window between the metadata check in
 /// [`touch_file`] and this open, the open follows it but must not zero the
 /// symlink's target. Matches GNU touch (issue #10019).
-fn create_without_truncate(path: &Path) -> std::io::Result<fs::File> {
+fn create_without_truncate(path: &Path) -> sysio::io::Result<fs::File> {
     OpenOptions::new()
         .write(true)
         .create(true)
@@ -477,9 +479,9 @@ fn touch_file(
     };
 
     let metadata_result = if opts.no_deref {
-        path.symlink_metadata()
+        path.sys_symlink_metadata()
     } else {
-        path.metadata()
+        path.sys_metadata()
     };
 
     if let Err(e) = metadata_result {
@@ -509,7 +511,7 @@ fn touch_file(
             // we need to check if the path is the path to a directory (ends with a separator)
             // we can't use File::create to create a directory
             // we cannot use path.is_dir() because it calls fs::metadata which we already called
-            // when stable, we can change to use e.kind() == std::io::ErrorKind::IsADirectory
+            // when stable, we can change to use e.kind() == sysio::io::ErrorKind::IsADirectory
             let is_directory = path.as_os_str().as_encoded_bytes().last()
                 == Some(&(std::path::MAIN_SEPARATOR as u8));
             if is_directory {
@@ -616,9 +618,7 @@ fn update_times(
             // directly: it preserves the UTIME_NOW sentinel, while
             // filetime::set_file_times would normalize it into a literal
             // 1970 timestamp.
-            let timestamps = build_timestamps(atime, mtime);
-            return futimens(std::io::stdout(), &timestamps)
-                .map_err(|e| Error::from_raw_os_error(e.raw_os_error()))
+            return filetime::set_fd_times(1, atime, mtime)
                 .map_err_context(
                     || translate!("touch-error-setting-times-of-path", "path" => path.quote()),
                 );
@@ -644,37 +644,15 @@ fn update_times(
     }
 }
 
-#[cfg(unix)]
-/// Build a rustix `Timestamps` from the access and modification `FileTime`s,
-/// preserving the `UTIME_NOW`/`UTIME_OMIT` sentinels in the nanoseconds field.
-fn build_timestamps(atime: FileTime, mtime: FileTime) -> Timestamps {
-    Timestamps {
-        last_access: rustix::fs::Timespec {
-            tv_sec: atime.unix_seconds(),
-            tv_nsec: atime.nanoseconds() as _,
-        },
-        last_modification: rustix::fs::Timespec {
-            tv_sec: mtime.unix_seconds(),
-            tv_nsec: mtime.nanoseconds() as _,
-        },
-    }
-}
-
 #[cfg(all(unix, not(target_os = "redox")))]
 /// Set file times by path using `utimensat`, following symlinks.
 ///
 /// This never opens the file, so it does not block on special files such as
 /// FIFOs.
 fn set_times_by_path(path: &Path, atime: FileTime, mtime: FileTime) -> UResult<()> {
-    let timestamps = build_timestamps(atime, mtime);
-    rustix::fs::utimensat(
-        rustix::fs::CWD,
-        path,
-        &timestamps,
-        rustix::fs::AtFlags::empty(),
-    )
-    .map_err(|e| Error::from_raw_os_error(e.raw_os_error()))
-    .map_err_context(|| translate!("touch-error-setting-times-of-path", "path" => path.quote()))
+    // Porte pseudo-linus: utimensat(2) do pseudo-kernel (ver o módulo `filetime`).
+    filetime::set_file_times(path, atime, mtime)
+        .map_err_context(|| translate!("touch-error-setting-times-of-path", "path" => path.quote()))
 }
 
 #[cfg(target_os = "redox")]
@@ -694,31 +672,22 @@ fn set_times_by_path(path: &Path, atime: FileTime, mtime: FileTime) -> UResult<(
 /// This opens the file write-only and uses the POSIX `futimens` call to set
 /// access and modification times on the open FD (not by path), which also
 /// triggers `IN_CLOSE_WRITE` on Linux when the FD is closed.
-fn try_futimens_via_write_fd(path: &Path, atime: FileTime, mtime: FileTime) -> std::io::Result<()> {
+fn try_futimens_via_write_fd(path: &Path, atime: FileTime, mtime: FileTime) -> sysio::io::Result<()> {
     let file = OpenOptions::new()
         .write(true)
         // Avoid blocking on special files (e.g. FIFOs) before we can inspect metadata.
         .custom_flags(O_NONBLOCK)
         .open(path)?;
 
-    let timestamps = Timestamps {
-        last_access: rustix::fs::Timespec {
-            tv_sec: atime.unix_seconds(),
-            tv_nsec: atime.nanoseconds() as _,
-        },
-        last_modification: rustix::fs::Timespec {
-            tv_sec: mtime.unix_seconds(),
-            tv_nsec: mtime.nanoseconds() as _,
-        },
-    };
-
-    futimens(&file, &timestamps).map_err(|e| Error::from_raw_os_error(e.raw_os_error()))
+    // Porte pseudo-linus: futimens(2) do pseudo-kernel.
+    use sysio::os::fd::AsRawFd;
+    filetime::set_fd_times(file.as_raw_fd(), atime, mtime)
 }
 
 /// Get metadata of the provided path
 /// If `follow` is `true`, the function will try to follow symlinks. Errors if the symlink is dangling, otherwise defaults to symlink metadata.
 /// If `follow` is `false`, the function will return metadata of the symlink itself
-fn stat(path: &Path, follow: bool) -> std::io::Result<(FileTime, FileTime)> {
+fn stat(path: &Path, follow: bool) -> sysio::io::Result<(FileTime, FileTime)> {
     let metadata = if follow {
         match fs::metadata(path) {
             // Successfully followed symlink
@@ -794,7 +763,7 @@ fn parse_date(ref_zoned: Zoned, s: &str) -> Result<FileTime, TouchError> {
     if let Ok(filetime) = strtime::parse(format::ISO_8601, s)
         .and_then(|tm| tm.to_date())
         .and_then(|date| {
-            TimeZone::system()
+            uucore::time::process_time_zone()
                 .to_ambiguous_zoned(date.to_datetime(Time::midnight()))
                 .unambiguous()
         })
@@ -852,7 +821,7 @@ fn prepend_century(s: &str) -> UResult<String> {
 fn parse_timestamp(s: &str) -> UResult<FileTime> {
     use format::{YYYYMMDDHHMM, YYYYMMDDHHMM_DOT_SS};
 
-    let current_year = || Timestamp::now().to_zoned(TimeZone::system()).year();
+    let current_year = || now_timestamp().to_zoned(uucore::time::process_time_zone()).year();
 
     let (format, ts) = match s.chars().count() {
         15 => (YYYYMMDDHHMM_DOT_SS, s.to_owned()),
@@ -895,7 +864,7 @@ fn parse_timestamp(s: &str) -> UResult<FileTime> {
     // Due to daylight saving time switch, local time can jump from 1:59 AM to
     // 3:00 AM, in which case any time between 2:00 AM and 2:59 AM is not valid.
     // Jiff's `to_ambiguous_zoned(...).unambiguous()` handles this case.
-    let local = TimeZone::system()
+    let local = uucore::time::process_time_zone()
         .to_ambiguous_zoned(dt)
         .unambiguous()
         .map_err(|_| {
@@ -935,7 +904,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[cfg(windows)]
-    use std::env;
+    use sysio::env;
     #[cfg(windows)]
     use uucore::locale;
     #[cfg(windows)]
@@ -1019,14 +988,14 @@ mod tests {
     fn test_try_futimens_via_write_fd_sets_times() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("futimens-file");
-        std::fs::write(&path, b"data").unwrap();
+        sysio::fs::write(&path, b"data").unwrap();
 
         let atime = FileTime::from_unix_time(1_600_000_000, 123_456_789);
         let mtime = FileTime::from_unix_time(1_600_000_100, 987_654_321);
 
         super::try_futimens_via_write_fd(&path, atime, mtime).unwrap();
 
-        let metadata = std::fs::metadata(&path).unwrap();
+        let metadata = sysio::fs::metadata(&path).unwrap();
         let actual_atime = FileTime::from_last_access_time(&metadata);
         let actual_mtime = FileTime::from_last_modification_time(&metadata);
 
@@ -1044,11 +1013,11 @@ mod tests {
     fn create_without_truncate_does_not_truncate_existing_file() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("victim");
-        std::fs::write(&path, b"do not truncate me").unwrap();
+        sysio::fs::write(&path, b"do not truncate me").unwrap();
 
         super::create_without_truncate(&path).unwrap();
 
-        assert_eq!(std::fs::read(&path).unwrap(), b"do not truncate me");
+        assert_eq!(sysio::fs::read(&path).unwrap(), b"do not truncate me");
     }
 
     // The other half of the contract: when the path is missing it must be
@@ -1061,6 +1030,6 @@ mod tests {
 
         super::create_without_truncate(&path).unwrap();
 
-        assert_eq!(std::fs::read(&path).unwrap(), b"");
+        assert_eq!(sysio::fs::read(&path).unwrap(), b"");
     }
 }

@@ -7,6 +7,7 @@
 
 #![cfg(unix)]
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use uucore::display::Quotable;
 use uucore::entries;
 use uucore::error::{FromIo, UResult, USimpleError};
@@ -16,8 +17,8 @@ use uucore::translate;
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 
-use std::fs;
-use std::os::unix::fs::MetadataExt;
+use sysio::fs;
+use sysio::os::unix::fs::MetadataExt;
 
 fn parse_gid_from_str(group: &str) -> Result<u32, String> {
     if let Some(gid_str) = group.strip_prefix(':') {

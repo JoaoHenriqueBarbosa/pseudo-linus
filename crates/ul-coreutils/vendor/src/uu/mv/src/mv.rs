@@ -11,6 +11,9 @@ mod error;
 #[cfg(unix)]
 mod hardlink;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::{println};
 use clap::builder::ValueParser;
 use clap::error::ErrorKind;
 use clap::{Arg, ArgAction, ArgMatches, Command};
@@ -19,14 +22,14 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 #[cfg(all(unix, not(any(target_vendor = "apple", target_os = "redox"))))]
 use rustc_hash::FxHashMap;
 use rustc_hash::FxHashSet;
-use std::env;
+use sysio::env;
 use std::ffi::OsString;
-use std::fs;
-use std::io::{self, IsTerminal};
+use sysio::fs;
+use sysio::io::{self, IsTerminal};
 #[cfg(unix)]
 use std::os::unix;
 #[cfg(unix)]
-use std::os::unix::fs::{FileTypeExt, PermissionsExt};
+use sysio::os::unix::fs::{FileTypeExt, PermissionsExt};
 #[cfg(windows)]
 use std::os::windows;
 use std::path::{Path, PathBuf, absolute};
@@ -1103,7 +1106,7 @@ fn rename_dir_fallback(
     // redirect the list/get calls to a different inode.
     #[cfg(all(unix, not(any(target_vendor = "apple", target_os = "redox"))))]
     let xattrs = {
-        use std::fs::File;
+        use sysio::fs::File;
         File::open(from)
             .and_then(|f| fsxattr::retrieve_xattrs_fd(&f))
             .unwrap_or_else(|_| FxHashMap::default())
@@ -1130,7 +1133,7 @@ fn rename_dir_fallback(
     // fsetxattr checks write permission on the inode, not the open mode.
     #[cfg(all(unix, not(any(target_vendor = "apple", target_os = "redox"))))]
     {
-        use std::fs::File;
+        use sysio::fs::File;
         let dest = File::open(to)?;
         fsxattr::apply_xattrs_fd_ignore_unsupported(&dest, xattrs)?;
     }
@@ -1403,8 +1406,8 @@ fn rename_file_fallback(
     // step to a different inode.
     #[cfg(unix)]
     {
-        use std::fs::Permissions;
-        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        use sysio::fs::Permissions;
+        use sysio::os::unix::fs::{MetadataExt, PermissionsExt};
         use uucore::safe_copy::{create_dest_restrictive, open_source};
         let src_file = open_source(from, /* nofollow */ true)
             .map_err(|err| io::Error::new(err.kind(), translate!("mv-error-permission-denied")))?;
@@ -1460,7 +1463,7 @@ fn rename_file_fallback(
 /// identity, not the original one's, which is why GNU drops them.
 #[cfg(unix)]
 fn preserve_ownership(from: &Path, to: &Path) -> io::Result<bool> {
-    use std::os::unix::fs::MetadataExt;
+    use sysio::os::unix::fs::MetadataExt;
 
     let source_meta = from.symlink_metadata()?;
     let uid = source_meta.uid();
@@ -1554,7 +1557,7 @@ fn prompt_overwrite(to: &Path, cached_mode: Option<u32>) -> io::Result<()> {
 /// Checks if a file can be deleted by attempting to open it with delete permissions.
 #[cfg(windows)]
 fn can_delete_file(path: &Path) -> bool {
-    use std::fs::OpenOptions;
+    use sysio::fs::OpenOptions;
     use std::os::windows::fs::OpenOptionsExt;
     use windows_sys::Win32::Storage::FileSystem::DELETE;
 

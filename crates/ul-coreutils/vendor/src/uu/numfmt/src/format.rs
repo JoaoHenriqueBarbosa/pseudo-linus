@@ -5,6 +5,7 @@
 
 // spell-checker:ignore powf seps replacen
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use uucore::display::Quotable;
 use uucore::i18n::decimal::{locale_decimal_separator, locale_grouping_separator};
 use uucore::translate;
@@ -907,7 +908,7 @@ fn split_bytes<'a>(input: &'a [u8], delim: &'a [u8]) -> impl Iterator<Item = &'a
     })
 }
 
-pub fn write_formatted_with_delimiter<W: std::io::Write + ?Sized>(
+pub fn write_formatted_with_delimiter<W: sysio::io::Write + ?Sized>(
     writer: &mut W,
     input: &[u8],
     options: &NumfmtOptions,
@@ -943,7 +944,7 @@ pub fn write_formatted_with_delimiter<W: std::io::Write + ?Sized>(
     Ok(())
 }
 
-pub fn write_formatted_with_whitespace<W: std::io::Write + ?Sized>(
+pub fn write_formatted_with_whitespace<W: sysio::io::Write + ?Sized>(
     writer: &mut W,
     s: &str,
     options: &NumfmtOptions,

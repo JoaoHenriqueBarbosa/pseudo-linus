@@ -5,8 +5,9 @@
 
 // spell-checker:ignore reflink misalign deleters
 
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Seek, SeekFrom};
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::fs::{File, OpenOptions};
+use sysio::io::{Read, Seek, SeekFrom};
 use std::os::windows::fs::{FileExt, MetadataExt, OpenOptionsExt};
 use std::path::Path;
 
@@ -25,7 +26,7 @@ const DEFAULT_CLUSTER_SIZE: usize = 4096;
 
 /// Cluster (allocation unit) size of the volume that holds `dest`. The size is
 /// configurable at format time (512 B up to 2 MiB), so it is read at runtime.
-fn cluster_size(dest: &Path) -> std::io::Result<usize> {
+fn cluster_size(dest: &Path) -> sysio::io::Result<usize> {
     // Resolve the mount-point root of the volume holding `dest`; this handles
     // both plain drive letters and volumes mounted on a directory.
     let root = uucore::fs::volume_path_name(dest)?;
@@ -74,13 +75,13 @@ fn sparse_block_size(dest: &Path) -> usize {
 /// allocation granularity; a short read would misalign every subsequent block.
 /// The `Interrupted` arm mirrors std's own read loops, although Windows file
 /// I/O does not produce it.
-fn read_full(reader: &mut impl Read, buf: &mut [u8]) -> std::io::Result<usize> {
+fn read_full(reader: &mut impl Read, buf: &mut [u8]) -> sysio::io::Result<usize> {
     let mut total = 0;
     while total < buf.len() {
         match reader.read(&mut buf[total..]) {
             Ok(0) => break,
             Ok(n) => total += n,
-            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(e) if e.kind() == sysio::io::ErrorKind::Interrupted => {}
             Err(e) => return Err(e),
         }
     }
@@ -93,12 +94,12 @@ fn read_full(reader: &mut impl Read, buf: &mut [u8]) -> std::io::Result<usize> {
 /// the Unix `write_all_at`), so dropped tails on partial writes are handled
 /// here. The `Interrupted` arm mirrors std's own write loops, although Windows
 /// file I/O does not produce it.
-fn write_all_at(file: &File, mut buf: &[u8], mut offset: u64) -> std::io::Result<()> {
+fn write_all_at(file: &File, mut buf: &[u8], mut offset: u64) -> sysio::io::Result<()> {
     while !buf.is_empty() {
         match file.seek_write(buf, offset) {
             Ok(0) => {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::WriteZero,
+                return Err(sysio::io::Error::new(
+                    sysio::io::ErrorKind::WriteZero,
                     "failed to write whole buffer",
                 ));
             }
@@ -106,7 +107,7 @@ fn write_all_at(file: &File, mut buf: &[u8], mut offset: u64) -> std::io::Result
                 buf = &buf[n..];
                 offset += n as u64;
             }
-            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(e) if e.kind() == sysio::io::ErrorKind::Interrupted => {}
             Err(e) => return Err(e),
         }
     }
@@ -119,11 +120,11 @@ fn write_all_at(file: &File, mut buf: &[u8], mut offset: u64) -> std::io::Result
 enum SparseCopyError {
     /// The destination filesystem does not support sparse files (e.g. FAT).
     Unsupported,
-    Io(std::io::Error),
+    Io(sysio::io::Error),
 }
 
-impl From<std::io::Error> for SparseCopyError {
-    fn from(e: std::io::Error) -> Self {
+impl From<sysio::io::Error> for SparseCopyError {
+    fn from(e: sysio::io::Error) -> Self {
         Self::Io(e)
     }
 }
@@ -184,7 +185,7 @@ fn sparse_copy(src_file: &mut File, dest: &Path) -> Result<(), SparseCopyError> 
 ///
 /// The source is rewound first, so this is safe to call after a sparse-copy
 /// attempt on the same handle.
-fn plain_copy(src_file: &mut File, dest: &Path) -> std::io::Result<()> {
+fn plain_copy(src_file: &mut File, dest: &Path) -> sysio::io::Result<()> {
     src_file.seek(SeekFrom::Start(0))?;
     let mut dst_file = OpenOptions::new()
         .write(true)
@@ -192,7 +193,7 @@ fn plain_copy(src_file: &mut File, dest: &Path) -> std::io::Result<()> {
         .truncate(true)
         .share_mode(FILE_SHARE_READ)
         .open(dest)?;
-    std::io::copy(src_file, &mut dst_file)?;
+    sysio::io::copy(src_file, &mut dst_file)?;
     Ok(())
 }
 
@@ -202,7 +203,7 @@ fn plain_copy(src_file: &mut File, dest: &Path) -> std::io::Result<()> {
 /// Returns the sparse-detection debug value describing what actually happened:
 /// [`SparseDebug::Zeros`] for a sparse copy, [`SparseDebug::Unsupported`] for
 /// the plain-copy fallback.
-fn sparse_copy_or_plain(src_file: &mut File, dest: &Path) -> std::io::Result<SparseDebug> {
+fn sparse_copy_or_plain(src_file: &mut File, dest: &Path) -> sysio::io::Result<SparseDebug> {
     match sparse_copy(src_file, dest) {
         Ok(()) => Ok(SparseDebug::Zeros),
         Err(SparseCopyError::Unsupported) => {
@@ -217,7 +218,7 @@ fn sparse_copy_or_plain(src_file: &mut File, dest: &Path) -> std::io::Result<Spa
 ///
 /// Checked on the handle rather than the path so the decision applies to the
 /// same file that is subsequently copied.
-fn is_sparse(file: &File) -> std::io::Result<bool> {
+fn is_sparse(file: &File) -> sysio::io::Result<bool> {
     Ok(file.metadata()?.file_attributes() & FILE_ATTRIBUTE_SPARSE_FILE != 0)
 }
 
@@ -270,12 +271,12 @@ pub(crate) fn copy_on_write(
                 // `fs::copy` (`CopyFileExW`) keeps the kernel copy path, ReFS
                 // block cloning and SMB offload on this — the default — copy
                 // path; see the PR discussion for the TOCTOU trade-off.
-                std::fs::copy(source, dest).map_err(context_err)?;
+                sysio::fs::copy(source, dest).map_err(context_err)?;
             }
         }
         // `--sparse=never` performs a plain copy that never introduces holes.
         SparseMode::Never => {
-            std::fs::copy(source, dest).map_err(context_err)?;
+            sysio::fs::copy(source, dest).map_err(context_err)?;
         }
     }
 
@@ -285,14 +286,14 @@ pub(crate) fn copy_on_write(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Read;
+    use sysio::io::Read;
 
     /// A reader that returns at most 3 bytes per `read` call, exercising the
     /// partial-read handling of `read_full`.
     struct ShortReader<'a>(&'a [u8]);
 
     impl Read for ShortReader<'_> {
-        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        fn read(&mut self, buf: &mut [u8]) -> sysio::io::Result<usize> {
             let n = self.0.len().min(buf.len()).min(3);
             buf[..n].copy_from_slice(&self.0[..n]);
             self.0 = &self.0[n..];
@@ -326,7 +327,7 @@ mod tests {
         let file = File::create(&path).unwrap();
         write_all_at(&file, b"data", 8).unwrap();
         drop(file);
-        let contents = std::fs::read(&path).unwrap();
+        let contents = sysio::fs::read(&path).unwrap();
         assert_eq!(contents, b"\0\0\0\0\0\0\0\0data");
     }
 }

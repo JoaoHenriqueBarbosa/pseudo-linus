@@ -5,19 +5,16 @@
 
 // spell-checker:ignore (ToDO) getlogin userlogin
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::Command;
-use core::ffi::CStr;
-use std::io::{Write, stdout};
+use sysio::io::{Write, stdout};
 use uucore::translate;
 use uucore::{error::UResult, show_error};
 
+// Porte pseudo-linus: o `getlogin(3)` da glibc procura o terminal de controle no utmp. O
+// pseudo-linus não tem sessão de login nem utmp (como um container), e ali a glibc devolve NULL.
 fn get_userlogin() -> Option<String> {
-    let login_ptr = unsafe { libc::getlogin() };
-    if login_ptr.is_null() {
-        None
-    } else {
-        Some(String::from_utf8_lossy(unsafe { CStr::from_ptr(login_ptr) }.to_bytes()).to_string())
-    }
+    None
 }
 
 #[uucore::main(no_signals)]

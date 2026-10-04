@@ -55,8 +55,10 @@ impl UError for UptimeError {
 
 /// Returns the formatted time string, e.g. "12:34:56"
 pub fn get_formatted_time() -> String {
-    Timestamp::now()
-        .to_zoned(TimeZone::system())
+    // Porte pseudo-linus: relógio do pseudo-kernel e fuso do pseudo-processo.
+    Timestamp::try_from(sysio::time::now())
+        .unwrap_or(Timestamp::UNIX_EPOCH)
+        .to_zoned(crate::time::process_time_zone())
         .strftime("%H:%M:%S")
         .to_string()
 }

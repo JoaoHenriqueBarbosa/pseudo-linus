@@ -7,12 +7,13 @@
 
 mod error;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use memchr::memmem;
-use memmap2::Mmap;
 use std::ffi::{OsStr, OsString};
-use std::io::{BufWriter, Read, Write, stdin, stdout};
-use std::{fs::File, path::Path};
+use sysio::io::{BufWriter, Read, Write, stdin, stdout};
+use std::{path::Path};
+use sysio::{fs::File};
 #[cfg(all(unix, not(target_os = "fuchsia")))]
 use uucore::error::UError;
 use uucore::error::UResult;
@@ -105,18 +106,18 @@ pub fn uu_app() -> Command {
 /// `before` is `false`, then each match of this pattern is interpreted
 /// as the end of a line.
 ///
-/// This function writes each line in `data` to [`std::io::Stdout`] in
+/// This function writes each line in `data` to [`sysio::io::Stdout`] in
 /// reverse.
 ///
 /// # Errors
 ///
 /// If there is a problem writing to `stdout`, then this function
-/// returns [`std::io::Error`].
+/// returns [`sysio::io::Error`].
 fn buffer_tac_regex(
     data: &[u8],
     pattern: &regex::bytes::Regex,
     before: bool,
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     let out = stdout();
     let mut out = BufWriter::new(out.lock());
 
@@ -186,7 +187,7 @@ fn buffer_tac_regex(
 /// If `before` is `true`, then this function assumes that the
 /// `separator` appears at the beginning of each line, as in
 /// `"/abc/def"`.
-fn buffer_tac(data: &[u8], before: bool, separator: &OsStr) -> std::io::Result<()> {
+fn buffer_tac(data: &[u8], before: bool, separator: &OsStr) -> sysio::io::Result<()> {
     let out = stdout();
     let mut out = BufWriter::new(out.lock());
 
@@ -335,7 +336,6 @@ fn tac(filenames: &[OsString], before: bool, regex: bool, separator: &OsStr) -> 
     };
 
     for filename in filenames {
-        let mmap;
         let buf;
 
         let data: &[u8] = if filename == "-" {
@@ -343,24 +343,19 @@ fn tac(filenames: &[OsString], before: bool, regex: bool, separator: &OsStr) -> 
             if uucore::signals::stdin_was_closed() {
                 let e: Box<dyn UError> = TacError::ReadError(
                     OsString::from("-"),
-                    std::io::Error::from_raw_os_error(libc::EBADF),
+                    sysio::io::Error::from_raw_os_error(sysio::errno::EBADF),
                 )
                 .into();
                 show!(e);
                 set_exit_code(1);
                 continue;
             }
-            // Spool stdin to a temp file and mmap that (buffer_stdin explains
-            // why mapping the temp file is sound). Mapping the raw stdin fd
-            // would expose `tac < file` to the same truncation SIGBUS as #9748,
-            // and the temp file also bounds memory for huge stdin (#10094).
-            match buffer_stdin() {
-                Ok(StdinData::Mmap(mmap1)) => {
-                    mmap = mmap1;
-                    &mmap
-                }
-                Ok(StdinData::Vec(buf1)) => {
-                    buf = buf1;
+            // Porte pseudo-linus: sem arquivo temporário mapeado (não há mmap); a entrada padrão é
+            // lida inteira na memória do pseudo-processo, que é contabilizada pelo kernel.
+            let mut contents = Vec::new();
+            match stdin().read_to_end(&mut contents) {
+                Ok(_) => {
+                    buf = contents;
                     &buf
                 }
                 Err(e) => {
@@ -405,31 +400,6 @@ fn tac(filenames: &[OsString], before: bool, regex: bool, separator: &OsStr) -> 
         .map_err(TacError::WriteError)?;
     }
     Ok(())
-}
-
-enum StdinData {
-    Mmap(Mmap),
-    Vec(Vec<u8>),
-}
-
-/// Copy stdin to a temp file, then memory-map it.
-/// Falls back to reading directly into memory if temp file creation fails.
-fn buffer_stdin() -> std::io::Result<StdinData> {
-    // Try to create a temp file (respects TMPDIR)
-    let Ok(mut tmp) = tempfile::tempfile() else {
-        // Fall back to reading directly into memory (e.g., bad TMPDIR)
-        let mut buf = Vec::new();
-        stdin().read_to_end(&mut buf)?;
-        return Ok(StdinData::Vec(buf));
-    };
-    // Temp file created - copy stdin to it, then read back
-    uucore::buf_copy::copy_fast(&mut stdin(), &mut tmp)?;
-    // SAFETY: `tmp` is an unlinked file owned by this process, so no other
-    // process can open and truncate it. The mapping therefore stays valid
-    // for its whole lifetime and cannot trigger SIGBUS (unlike mapping a
-    // caller-provided file; see #9748).
-    let mmap = unsafe { Mmap::map(&tmp)? };
-    Ok(StdinData::Mmap(mmap))
 }
 
 #[cfg(test)]

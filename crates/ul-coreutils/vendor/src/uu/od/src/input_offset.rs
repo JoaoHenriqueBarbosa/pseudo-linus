@@ -3,7 +3,8 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
-use std::io::{self, Write};
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io::{self, Write};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Radix {

@@ -7,8 +7,9 @@
 
 #![cfg(not(target_os = "fuchsia"))]
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
-use std::io::{IsTerminal, Write};
+use sysio::io::{IsTerminal, Write};
 use uucore::error::{UResult, set_exit_code, strip_errno};
 use uucore::{format_usage, show_error, translate};
 
@@ -29,19 +30,20 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
 
     // If silent, we don't need the name, only whether or not stdin is a tty.
     if silent {
-        return if std::io::stdin().is_terminal() {
+        return if sysio::io::stdin().is_terminal() {
             Ok(())
         } else {
             Err(1.into())
         };
     }
 
-    let mut stdout = std::io::stdout();
+    let mut stdout = sysio::io::stdout();
     #[cfg(unix)]
-    let name = rustix::termios::ttyname(std::io::stdin(), Vec::with_capacity(8));
+    // Porte pseudo-linus: ttyname(3) sobre o fd 0 do pseudo-processo.
+    let name = sysio::unistd::ttyname(0);
     #[cfg(unix)]
     let write_result = if let Ok(name) = name {
-        let mut buf = name.as_bytes().to_vec();
+        let mut buf = name;
         buf.push(b'\n');
         stdout.write_all(&buf)
     } else {
@@ -49,7 +51,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         writeln!(stdout, "{}", translate!("tty-not-a-tty"))
     };
     #[cfg(target_os = "wasi")]
-    let write_result = if std::io::stdin().is_terminal() {
+    let write_result = if sysio::io::stdin().is_terminal() {
         // maximize compatibility
         writeln!(stdout, r"/dev/tty")
     } else {
@@ -59,7 +61,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     #[cfg(windows)]
     let write_result = {
         use std::os::windows::io::AsHandle;
-        let stdin = std::io::stdin();
+        let stdin = sysio::io::stdin();
         let stdin_handle = stdin.as_handle();
         if stdin_handle.is_terminal() {
             writeln!(

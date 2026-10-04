@@ -3,10 +3,11 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::ArgAction;
 use clap::{Arg, Command};
-use std::env;
-use std::io;
+use sysio::env;
+use sysio::io;
 use std::path::PathBuf;
 use uucore::format_usage;
 
@@ -20,7 +21,7 @@ const OPT_PHYSICAL: &str = "physical";
 const ARG_OPERANDS: &str = "operands";
 
 fn physical_path() -> io::Result<PathBuf> {
-    // std::env::current_dir() is a thin wrapper around libc::getcwd().
+    // sysio::env::current_dir() is a thin wrapper around libc::getcwd().
     let path = env::current_dir()?;
 
     // On Unix, getcwd() must return the physical path:
@@ -81,8 +82,8 @@ fn logical_path() -> io::Result<PathBuf> {
             // Finally, check if it matches the directory we're in.
             #[cfg(unix)]
             {
-                use std::fs::metadata;
-                use std::os::unix::fs::MetadataExt;
+                use sysio::fs::metadata;
+                use sysio::os::unix::fs::MetadataExt;
                 match (metadata(path), metadata(".")) {
                     (Ok(info1), Ok(info2)) => {
                         info1.dev() == info2.dev() && info1.ino() == info2.ino()
@@ -93,7 +94,7 @@ fn logical_path() -> io::Result<PathBuf> {
 
             #[cfg(not(unix))]
             {
-                use std::fs::canonicalize;
+                use sysio::fs::canonicalize;
                 match (canonicalize(path), canonicalize(".")) {
                     (Ok(path1), Ok(path2)) => path1 == path2,
                     _ => false,

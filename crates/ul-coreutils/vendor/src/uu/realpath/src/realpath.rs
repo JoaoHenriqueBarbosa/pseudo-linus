@@ -5,15 +5,14 @@
 
 // spell-checker:ignore (ToDO) retcode
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use clap::{
     Arg, ArgAction, ArgMatches, Command,
     builder::{TypedValueParser, ValueParserFactory},
 };
-use std::{
-    ffi::{OsStr, OsString},
-    io::{Write, stdout},
-    path::{Path, PathBuf},
-};
+use std::{ffi::{OsStr, OsString}, path::{Path, PathBuf}};
+use sysio::{io::{Write, stdout}};
 use uucore::translate;
 use uucore::{
     display::{Quotable, print_verbatim},
@@ -268,10 +267,10 @@ fn canonicalize_relative(
     r: &Path,
     can_mode: MissingHandling,
     resolve: ResolveMode,
-) -> std::io::Result<PathBuf> {
+) -> sysio::io::Result<PathBuf> {
     let abs = canonicalize(r, can_mode, resolve)?;
-    if can_mode == MissingHandling::Existing && !abs.is_dir() {
-        abs.read_dir()?; // raise not a directory error
+    if can_mode == MissingHandling::Existing && !abs.sys_is_dir() {
+        abs.sys_read_dir()?; // raise not a directory error
     }
     Ok(abs)
 }
@@ -296,12 +295,12 @@ fn resolve_path(
     can_mode: MissingHandling,
     relative_to: Option<&Path>,
     relative_base: Option<&Path>,
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     let abs = canonicalize(p, can_mode, resolve)?;
     if can_mode == MissingHandling::Normal {
         let path_bytes = p.as_os_str().as_encoded_bytes();
         if path_bytes.ends_with(b"/.") || path_bytes.ends_with(b"/./") {
-            abs.metadata()?; // raise no such file or directory error
+            abs.sys_metadata()?; // raise no such file or directory error
         }
     }
 

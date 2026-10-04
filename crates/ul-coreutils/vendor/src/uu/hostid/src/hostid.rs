@@ -5,9 +5,10 @@
 
 // spell-checker:ignore (ToDO) gethostid
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::Command;
 use core::ffi::c_long;
-use std::io::{Write, stdout};
+use sysio::io::{Write, stdout};
 use uucore::{error::UResult, format_usage, translate};
 
 // support targets missing libc::gethostid
@@ -15,22 +16,27 @@ fn gethostid() -> c_long {
     // /etc/hostid is still useful when
     // - Windows native hostid is called on MSYS shell
     // - wasi binary is called on unix host
-    if let Ok(data) = std::fs::read("/etc/hostid")
+    if let Ok(data) = sysio::fs::read("/etc/hostid")
         && let Some(bytes) = data.get(..4).and_then(|s| <[u8; 4]>::try_from(s).ok())
     {
         return u32::from_ne_bytes(bytes) as c_long;
     }
+    // Porte pseudo-linus: o `gethostbyname` da glibc com o nsswitch do Debian (`files dns`) olha
+    // primeiro o /etc/hosts; aqui só ele, o do pseudo-FS (sem DNS do host).
     #[cfg(unix)]
     {
-        use std::net::{IpAddr, ToSocketAddrs as _};
-        let uname = rustix::system::uname();
-        if let Ok(hostname) = uname.nodename().to_str() {
-            let query = format!("{hostname}:0");
-            if let Ok(mut addrs) = query.to_socket_addrs()
-                && let Some(addr) = addrs.find(|a| a.ip().is_ipv4())
-                && let IpAddr::V4(ipv4) = addr.ip()
-            {
-                return u32::from_ne_bytes(ipv4.octets()).rotate_left(16) as c_long;
+        let hostname = sysio::unistd::gethostname();
+        if let Ok(hosts) = sysio::fs::read("/etc/hosts") {
+            for line in hosts.split(|b| *b == b'\n') {
+                let line = line.split(|b| *b == b'#').next().unwrap_or(&[]);
+                let mut fields = line.split(|b| b.is_ascii_whitespace()).filter(|f| !f.is_empty());
+                let Some(addr) = fields.next() else { continue };
+                if !fields.any(|name| name == hostname.as_slice()) {
+                    continue;
+                }
+                if let Ok(ipv4) = String::from_utf8_lossy(addr).parse::<std::net::Ipv4Addr>() {
+                    return u32::from_ne_bytes(ipv4.octets()).rotate_left(16) as c_long;
+                }
             }
         }
     }

@@ -3,8 +3,9 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::OsString;
-use std::io;
+use sysio::io;
 use std::os::windows::ffi::OsStringExt;
 use windows_sys::Win32::NetworkManagement::NetManagement::UNLEN;
 use windows_sys::Win32::System::WindowsProgramming::GetUserNameW;

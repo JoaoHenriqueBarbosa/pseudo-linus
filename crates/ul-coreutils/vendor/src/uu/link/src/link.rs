@@ -3,10 +3,11 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::builder::ValueParser;
 use clap::{Arg, Command};
 use std::ffi::OsString;
-use std::fs::hard_link;
+use sysio::fs::hard_link;
 use std::path::Path;
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult};

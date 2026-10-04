@@ -6,14 +6,12 @@
 // spell-checker:ignore rustdoc
 #![allow(rustdoc::private_intra_doc_links)]
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::ffi::OsString;
-use std::io::{self, BufReader, ErrorKind};
-use std::{
-    fs::{File, remove_file},
-    io::{BufRead, BufWriter, Write},
-};
+use sysio::io::{self, BufReader, ErrorKind};
+use sysio::{fs::{File, remove_file}, io::{BufRead, BufWriter, Write}};
 
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use regex::Regex;

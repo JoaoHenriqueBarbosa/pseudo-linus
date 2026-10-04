@@ -5,9 +5,10 @@
 
 // spell-checker:ignore (ToDO) algo
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::borrow::Borrow;
 use std::ffi::OsString;
-use std::io;
+use sysio::io;
 
 use clap::builder::ValueParser;
 use clap::{Arg, ArgAction, ArgMatches, Command, ValueHint};

@@ -5,10 +5,11 @@
 
 // spell-checker:ignore (ToDO) lstat
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
-use std::fs;
-use std::io::ErrorKind;
+use sysio::fs;
+use sysio::io::ErrorKind;
 use uucore::display::Quotable;
 use uucore::error::strip_errno;
 use uucore::error::{UResult, set_exit_code};
@@ -35,10 +36,11 @@ mod options {
 const POSIX_PATH_MAX: usize = 256;
 const POSIX_NAME_MAX: usize = 14;
 
+// Porte pseudo-linus: os valores do Linux (PATH_MAX e FILENAME_MAX da glibc) sem a libc do host.
 #[cfg(all(unix, not(target_os = "redox")))]
-const PATH_MAX: usize = libc::PATH_MAX as usize;
+const PATH_MAX: usize = 4096;
 #[cfg(all(unix, not(target_os = "redox")))]
-const FILENAME_MAX: usize = libc::FILENAME_MAX as usize;
+const FILENAME_MAX: usize = 4096;
 #[cfg(target_os = "redox")]
 const PATH_MAX: usize = 4096;
 #[cfg(target_os = "redox")]

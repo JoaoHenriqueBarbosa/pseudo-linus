@@ -14,6 +14,7 @@ mod numbers;
 mod parseargs;
 mod progress;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::bufferedoutput::BufferedOutput;
 use blocks::conv_block_unblock_helper;
 use datastructures::{ConversionMode, IConvFlags, IFlags, OConvFlags, OFlags, options};
@@ -26,14 +27,14 @@ use uucore::io::OwnedFileDescriptorOrHandle;
 use uucore::translate;
 
 use std::cmp;
-use std::env;
+use sysio::env;
 use std::ffi::OsString;
 #[cfg(unix)]
-use std::fs::Metadata;
-use std::fs::{File, OpenOptions};
-use std::io::{self, Read, Seek, SeekFrom, Write};
+use sysio::fs::Metadata;
+use sysio::fs::{File, OpenOptions};
+use sysio::io::{self, Read, Seek, SeekFrom, Write};
 #[cfg(any(target_os = "linux", target_os = "android"))]
-use std::os::unix::fs::OpenOptionsExt;
+use sysio::os::unix::fs::OpenOptionsExt;
 #[cfg(unix)]
 use std::os::unix::{
     fs::FileTypeExt,
@@ -44,7 +45,7 @@ use std::os::windows::{fs::MetadataExt, io::AsHandle};
 use std::path::Path;
 use std::sync::atomic::AtomicU8;
 use std::sync::{Arc, atomic::Ordering::Relaxed, mpsc};
-use std::thread;
+use sysio::thread;
 use std::time::{Duration, Instant};
 
 use clap::{Arg, Command};
@@ -1554,7 +1555,7 @@ fn try_get_len_of_block_device(file: &mut File) -> io::Result<Option<u64>> {
 /// Decide whether the named file is a named pipe, also known as a FIFO.
 #[cfg(unix)]
 fn is_fifo(filename: &str) -> bool {
-    std::fs::metadata(filename).is_ok_and(|m| m.file_type().is_fifo())
+    sysio::fs::metadata(filename).is_ok_and(|m| m.file_type().is_fifo())
 }
 
 #[uucore::main]
@@ -1621,7 +1622,7 @@ mod tests {
         use crate::AlignedBuf;
 
         fn peak_rss_kib() -> u64 {
-            std::fs::read_to_string("/proc/self/status")
+            sysio::fs::read_to_string("/proc/self/status")
                 .unwrap()
                 .lines()
                 .find_map(|line| line.strip_prefix("VmHWM:"))
@@ -1722,12 +1723,12 @@ mod tests {
     #[test]
     fn truncate_propagates_error_on_regular_file() {
         use crate::{Density, Dest};
-        use std::fs::OpenOptions;
-        use std::io::Write;
+        use sysio::fs::OpenOptions;
+        use sysio::io::Write;
 
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("regular");
-        std::fs::File::create(&path)
+        sysio::fs::File::create(&path)
             .unwrap()
             .write_all(b"hello world")
             .unwrap();
@@ -1744,7 +1745,7 @@ mod tests {
     #[test]
     fn truncate_suppresses_error_on_special_file() {
         use crate::{Density, Dest};
-        use std::fs::OpenOptions;
+        use sysio::fs::OpenOptions;
 
         let f = OpenOptions::new().write(true).open("/dev/null").unwrap();
         let mut dst = Dest::File(f, Density::Dense);

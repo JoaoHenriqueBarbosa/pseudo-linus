@@ -5,8 +5,9 @@
 
 // spell-checker:ignore (paths) wtmp
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::OsString;
-use std::io::{Write, stdout};
+use sysio::io::{Write, stdout};
 use std::path::Path;
 
 use clap::builder::ValueParser;

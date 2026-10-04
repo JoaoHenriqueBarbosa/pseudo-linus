@@ -8,6 +8,7 @@ mod operation;
 mod simd;
 mod unicode_table;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command, value_parser};
 use operation::{
     DeleteOperation, Sequence, SqueezeOperation, SymbolTranslator, TranslateOperation,
@@ -15,7 +16,7 @@ use operation::{
 };
 use simd::process_input;
 use std::ffi::OsString;
-use std::io::{stdin, stdout};
+use sysio::io::{stdin, stdout};
 use uucore::display::Quotable;
 use uucore::error::{UResult, USimpleError, UUsageError};
 use uucore::fs::is_stdin_directory;

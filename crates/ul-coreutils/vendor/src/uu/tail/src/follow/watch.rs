@@ -5,16 +5,19 @@
 
 // spell-checker:ignore (ToDO) tailable untailable stdlib kqueue Uncategorized unwatch
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::args::{FollowMode, Settings};
 use crate::follow::files::{FileHandling, PathData};
 use crate::paths::{Input, InputKind, MetadataExtTail, PathExtTail};
 use crate::{platform, text};
-use notify::{RecommendedWatcher, RecursiveMode, Watcher, WatcherKind};
-use std::io::BufRead;
+// Porte pseudo-linus: o watcher de polling síncrono do pseudo-linus (ver `follow::notify`).
+use super::notify::{self, PollWatcher, RecursiveMode};
+use sysio::io::BufRead;
+use sysio::path::PathExt;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::{self, Receiver, channel};
+use std::sync::mpsc;
 use uucore::display::Quotable;
-use uucore::error::{UResult, USimpleError, set_exit_code};
+use uucore::error::{UResult, USimpleError};
 #[cfg(target_os = "linux")]
 use uucore::signals::ensure_stdout_not_broken;
 use uucore::translate;
@@ -22,23 +25,19 @@ use uucore::translate;
 use uucore::show_error;
 
 pub struct WatcherRx {
-    watcher: Box<dyn Watcher>,
-    receiver: Receiver<Result<notify::Event, notify::Error>>,
+    watcher: PollWatcher,
 }
 
 impl WatcherRx {
-    fn new(
-        watcher: Box<dyn Watcher>,
-        receiver: Receiver<Result<notify::Event, notify::Error>>,
-    ) -> Self {
-        Self { watcher, receiver }
+    fn new(watcher: PollWatcher) -> Self {
+        Self { watcher }
     }
 
     /// Wrapper for `notify::Watcher::watch` to also add the parent directory of `path` if necessary.
     fn watch_with_parent(&mut self, path: &Path) -> UResult<()> {
         let mut path = path.to_owned();
         #[cfg(target_os = "linux")]
-        if path.is_file() {
+        if path.sys_is_file() {
             /*
             NOTE: Using the parent directory instead of the file is a workaround.
             This workaround follows the recommendation of the notify crate authors:
@@ -49,7 +48,7 @@ impl WatcherRx {
             Tested for notify::InotifyWatcher and for notify::PollWatcher.
             */
             if let Some(parent) = path.parent() {
-                if parent.is_dir() {
+                if parent.sys_is_dir() {
                     path = parent.to_owned();
                 } else {
                     path = PathBuf::from(".");
@@ -62,7 +61,7 @@ impl WatcherRx {
             }
         }
         if path.is_relative() {
-            path = path.canonicalize()?;
+            path = path.sys_canonicalize()?;
         }
 
         // for syscalls: 2x "inotify_add_watch" ("filename" and ".") and 1x "inotify_rm_watch"
@@ -146,11 +145,11 @@ impl Observer {
     ) -> UResult<()> {
         if self.follow.is_some() {
             let path = if path.is_relative() {
-                std::env::current_dir()?.join(path)
+                sysio::env::current_dir()?.join(path)
             } else {
                 path.to_owned()
             };
-            let metadata = path.metadata().ok();
+            let metadata = path.sys_metadata().ok();
             self.files.insert(
                 &path,
                 PathData::new(reader, metadata, display_name),
@@ -179,26 +178,7 @@ impl Observer {
             return Ok(());
         }
 
-        let (tx, rx) = channel();
-
-        /*
-        Watcher is implemented per platform using the best implementation available on that
-        platform. In addition to such event driven implementations, a polling implementation
-        is also provided that should work on any platform.
-        Linux / Android: inotify
-        macOS: FSEvents / kqueue
-        Windows: ReadDirectoryChangesWatcher
-        FreeBSD / NetBSD / OpenBSD / DragonflyBSD: kqueue
-        Fallback: polling every n seconds
-
-        NOTE:
-        We force the use of kqueue with: features=["macos_kqueue"].
-        On macOS only `kqueue` is suitable for our use case because `FSEvents`
-        waits for file close util it delivers a modify event. See:
-        https://github.com/notify-rs/notify/issues/240
-        */
-
-        let watcher: Box<dyn Watcher>;
+        // Porte pseudo-linus: só há polling (o contrato não tem inotify); ver `follow::notify`.
         let watcher_config = notify::Config::default()
             .with_poll_interval(settings.sleep_sec)
             /*
@@ -207,33 +187,8 @@ impl Observer {
             However, this is necessary to pass: "gnu/tests/tail-2/F-vs-rename.sh"
             */
             .with_compare_contents(true);
-        if self.use_polling || RecommendedWatcher::kind() == WatcherKind::PollWatcher {
-            self.use_polling = true; // We have to use polling because there's no supported backend
-            watcher = Box::new(notify::PollWatcher::new(tx, watcher_config).unwrap());
-        } else {
-            let tx_clone = tx.clone();
-            match RecommendedWatcher::new(tx, notify::Config::default()) {
-                Ok(w) => watcher = Box::new(w),
-                Err(e) if e.to_string().starts_with("Too many open files") => {
-                    /*
-                    NOTE: This ErrorKind is `Uncategorized`, but it is not recommended
-                    to match an error against `Uncategorized`
-                    NOTE: Could be tested with decreasing `max_user_instances`, e.g.:
-                    `sudo sysctl fs.inotify.max_user_instances=64`
-                    */
-                    show_error!(
-                        "{}",
-                        translate!("tail-error-backend-cannot-be-used-too-many-files", "backend" => text::BACKEND)
-                    );
-                    set_exit_code(1);
-                    self.use_polling = true;
-                    watcher = Box::new(notify::PollWatcher::new(tx_clone, watcher_config).unwrap());
-                }
-                Err(e) => return Err(USimpleError::new(1, e.to_string())),
-            }
-        }
-
-        self.watcher_rx = Some(WatcherRx::new(watcher, rx));
+        self.use_polling = true;
+        self.watcher_rx = Some(WatcherRx::new(PollWatcher::new(watcher_config)));
         self.init_files(&settings.inputs)?;
 
         Ok(())
@@ -262,22 +217,22 @@ impl Observer {
                     InputKind::Stdin => (),
                     InputKind::File(path) => {
                         #[cfg(all(unix, not(target_os = "linux")))]
-                        if !path.is_file() {
+                        if !path.sys_is_file() {
                             continue;
                         }
                         let mut path = path.clone();
                         if path.is_relative() {
-                            path = std::env::current_dir()?.join(path);
+                            path = sysio::env::current_dir()?.join(path);
                         }
 
                         if path.is_tailable() {
                             // Add existing regular files to `Watcher` (InotifyWatcher).
                             watcher_rx.watch_with_parent(&path)?;
-                        } else if let Some(active_parent) = path.parent().filter(|p| p.is_dir()) {
+                        } else if let Some(active_parent) = path.parent().filter(|p| p.sys_is_dir()) {
                             // If `path` is not a tailable file, add its parent to `Watcher`.
                             watcher_rx.watch(active_parent, RecursiveMode::NonRecursive)?;
                             // Add symlinks to orphans for retry polling (target may not exist)
-                            if path.is_symlink() {
+                            if path.sys_is_symlink() {
                                 self.orphans.push(path);
                             }
                         } else {
@@ -314,14 +269,14 @@ impl Observer {
             // `Modify(Data(..))`/`Modify(Metadata(..))` instead, so this is a no-op there.
             EventKind::Modify(ModifyKind::Any | ModifyKind::Metadata(MetadataKind::Any | MetadataKind::WriteTime) | ModifyKind::Data(DataChange::Any) | ModifyKind::Name(RenameMode::To)) |
             EventKind::Create(CreateKind::File | CreateKind::Folder | CreateKind::Any) => {
-                if let Ok(new_md) = event_path.metadata() {
+                if let Ok(new_md) = event_path.sys_metadata() {
                     // `metadata()` follows symlinks, so under --follow=name a
                     // watched file swapped for a symlink would otherwise be
                     // silently followed to its target. GNU treats such a
                     // replacement as untailable.
                     let replaced_by_symlink = self.follow_name()
                         && event_path
-                            .symlink_metadata()
+                            .sys_symlink_metadata()
                             .is_ok_and(|m| m.file_type().is_symlink());
                     let is_tailable = !replaced_by_symlink && new_md.is_tailable();
                     let pd = self.files.get(event_path);
@@ -402,7 +357,7 @@ impl Observer {
                         }
                     }
                     self.files.update_metadata(event_path, Some(new_md));
-                } else if event_path.is_symlink() && settings.retry {
+                } else if event_path.sys_is_symlink() && settings.retry {
                     self.files.reset_reader(event_path);
                     self.orphans.push(event_path.clone());
                 }
@@ -526,7 +481,7 @@ pub fn follow(mut observer: Observer, settings: &Settings) -> UResult<()> {
             for new_path in &observer.orphans {
                 // Use metadata() directly instead of exists() + metadata().unwrap()
                 // to avoid a TOCTOU race where the file is removed between the two calls.
-                if let Ok(md) = new_path.metadata() {
+                if let Ok(md) = new_path.sys_metadata() {
                     let pd = observer.files.get(new_path);
                     if md.is_tailable() && pd.reader.is_none() {
                         show_error!(
@@ -552,7 +507,7 @@ pub fn follow(mut observer: Observer, settings: &Settings) -> UResult<()> {
             .watcher_rx
             .as_mut()
             .unwrap()
-            .receiver
+            .watcher
             .recv_timeout(settings.sleep_sec);
 
         if rx_result.is_ok() {
@@ -588,25 +543,16 @@ pub fn follow(mut observer: Observer, settings: &Settings) -> UResult<()> {
                 process_event(&mut observer, event, settings, &mut paths)?;
 
                 // Drain any additional pending events to batch them together.
-                // This prevents redundant headers when multiple inotify events
-                // are queued (e.g., after resuming from SIGSTOP).
-                // Multiple iterations with spin_loop hints give the notify
-                // background thread chances to deliver pending events.
-                for _ in 0..100 {
-                    while let Ok(Ok(event)) =
-                        observer.watcher_rx.as_mut().unwrap().receiver.try_recv()
-                    {
-                        process_event(&mut observer, event, settings, &mut paths)?;
-                    }
-                    // Use both yield and spin hint for broader CPU support
-                    std::thread::yield_now();
-                    std::hint::spin_loop();
+                // Porte pseudo-linus: o watcher é síncrono, então tudo o que a varredura achou já
+                // está na fila; não há thread de fundo pra esperar.
+                while let Ok(Ok(event)) = observer.watcher_rx.as_mut().unwrap().watcher.try_recv() {
+                    process_event(&mut observer, event, settings, &mut paths)?;
                 }
             }
             Ok(Err(notify::Error {
                 kind: notify::ErrorKind::Io(ref e),
                 paths,
-            })) if e.kind() == std::io::ErrorKind::NotFound => {
+            })) if e.kind() == sysio::io::ErrorKind::NotFound => {
                 if let Some(event_path) = paths.first().filter(|p| observer.files.contains_key(p)) {
                     let _ = observer
                         .watcher_rx

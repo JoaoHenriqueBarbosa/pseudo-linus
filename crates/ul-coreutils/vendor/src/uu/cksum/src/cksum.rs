@@ -5,7 +5,8 @@
 
 // spell-checker:ignore (ToDO) fname, algo, bitlen
 
-use std::io::{Write, stderr};
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io::{Write, stderr};
 
 use clap::Command;
 use uu_checksum_common::{ChecksumCommand, checksum_main, default_checksum_app, options};

@@ -5,86 +5,43 @@
 
 // spell-checker:ignore (ToDO) sigstr setpgid sigchld sigwait getpid TTIN TTOU
 
-use std::io;
-use std::os::unix::process::CommandExt;
-use std::os::unix::process::ExitStatusExt;
-use std::process::Child;
+// Porte pseudo-linus: o original usava rustix e libc (setpgid, sigprocmask, pre_exec com
+// signal/close/prctl no filho entre o fork e o exec). Aqui tudo passa pelo pseudo-kernel:
+//
+// - os sinais que o timeout repassa ficam em "capturar" (`catch_timeout_signals`) e a espera é o
+//   `wait_or_timeout` do uucore portado, que os consulta;
+// - o que o `pre_exec` fazia no filho é feito no próprio timeout antes do spawn, porque o filho
+//   herda as disposições "ignorar" e "padrão" (como depois de um `execve` no Linux) e as capturas
+//   voltam ao padrão nele: TTIN e TTOU ficam no padrão, SIGPIPE ignorado continua ignorado;
+// - `PR_SET_PDEATHSIG` não existe no contrato: se o timeout morrer por SIGKILL, o filho segue vivo
+//   (no Linux receberia o sinal do timeout).
+use sysio::io;
+use sysio::os::unix::process::ExitStatusExt;
+use sysio::process::Child;
 
-use rustix::process::{Pid, Signal, getpid, kill_process, setpgid};
-use uucore::process::{ChildExt, timeout_signal_set, unblock_signal};
-use uucore::signals::{install_signal_handler, signal_by_name_or_value};
-
-/// Install SIGCHLD handler to ensure waiting for child works even if parent ignored SIGCHLD.
-fn install_sigchld() {
-    extern "C" fn chld(_: core::ffi::c_int) {}
-    let _ = install_signal_handler(Signal::as_raw(Signal::CHILD), chld);
-}
+use sysabi::{SigDisposition, Signal};
+use uucore::process::{ChildExt, catch_timeout_signals, unblock_signal};
+use uucore::signals::signal_by_name_or_value;
 
 fn signal_from_raw(sig: i32) -> Option<Signal> {
-    if sig <= 0 {
-        return None;
-    }
-    // Fast path: standard named signals (SIGHUP, SIGTERM, SIGKILL, etc.)
-    if let Some(s) = Signal::from_named_raw(sig) {
-        return Some(s);
-    }
-    // Slow path: realtime signals (SIGRTMIN..=SIGRTMAX).
-    #[cfg(target_os = "linux")]
-    {
-        let rtmin = libc::SIGRTMIN();
-        let rtmax = libc::SIGRTMAX();
-        if sig >= rtmin && sig <= rtmax {
-            return Some(unsafe { Signal::from_raw_unchecked(sig) });
-        }
-    }
-
-    None
+    let s = Signal(sig);
+    (sig > 0 && s.is_valid()).then_some(s)
 }
 
-/// Configure our own process group, the child's spawn attributes and the
-/// blocked signal set (consumed by `wait_or_timeout` via `sigwait`), right
-/// before the child is spawned.
+/// Configure our own process group and the signals the wait consumes, right before the child is
+/// spawned.
 pub(crate) fn prepare(
-    cmd_builder: &mut std::process::Command,
+    _cmd_builder: &mut sysio::process::Command,
     foreground: bool,
-    signal: usize,
+    _signal: usize,
 ) -> io::Result<()> {
     if !foreground {
-        let _ = setpgid(Pid::from_raw(0), Pid::from_raw(0));
+        let _ = sysio::unistd::setpgid(0, 0);
     }
-
-    {
-        #[cfg(target_os = "linux")]
-        let death_sig = signal_from_raw(signal as i32);
-        #[cfg(not(target_os = "linux"))]
-        let _ = signal;
-        let sigpipe_was_ignored = uucore::signals::sigpipe_was_ignored();
-        let stdin_was_closed = uucore::signals::stdin_was_closed();
-
-        unsafe {
-            cmd_builder.pre_exec(move || {
-                // Reset terminal signals to default
-                let _ = libc::signal(Signal::as_raw(Signal::TTIN), libc::SIG_DFL);
-                let _ = libc::signal(Signal::as_raw(Signal::TTOU), libc::SIG_DFL);
-                // Preserve SIGPIPE ignore status if parent had it ignored
-                if sigpipe_was_ignored {
-                    let _ = libc::signal(Signal::as_raw(Signal::PIPE), libc::SIG_IGN);
-                }
-                // If stdin was closed before Rust reopened it as /dev/null, close it in child
-                if stdin_was_closed {
-                    libc::close(libc::STDIN_FILENO);
-                }
-                let _ = timeout_signal_set().thread_unblock();
-                #[cfg(target_os = "linux")]
-                let _ = rustix::process::set_parent_process_death_signal(death_sig);
-                Ok(())
-            });
-        }
-    }
-
-    install_sigchld();
-    timeout_signal_set().thread_block()?;
-    Ok(())
+    // O que o `pre_exec` fazia no filho (ver o comentário do módulo).
+    let _ = sysio::unistd::signal(Signal::SIGTTIN, SigDisposition::Default);
+    let _ = sysio::unistd::signal(Signal::SIGTTOU, SigDisposition::Default);
+    catch_timeout_signals()
 }
 
 /// Unix keeps no per-spawn platform state; the type exists so the facade
@@ -119,7 +76,7 @@ pub(crate) fn send_signal(
 }
 
 /// The signal the child was terminated by, if it was terminated by a signal.
-pub(crate) fn status_signal(status: std::process::ExitStatus) -> Option<i32> {
+pub(crate) fn status_signal(status: sysio::process::ExitStatus) -> Option<i32> {
     status.signal()
 }
 
@@ -138,7 +95,7 @@ pub(crate) fn preserve_signal_info(signal: core::ffi::c_int) -> core::ffi::c_int
     // what the following is intended to accomplish.
     if let Some(sig) = signal_from_raw(signal) {
         let _ = unblock_signal(sig);
-        let _ = kill_process(getpid(), sig);
+        let _ = sysio::unistd::kill(sysio::unistd::getpid(), sig);
     }
     signal
 }

@@ -10,15 +10,16 @@ mod error;
 mod interner;
 mod parser;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use rustc_hash::FxHashMap;
 use std::collections::VecDeque;
 use std::collections::hash_map::Entry;
 use std::ffi::OsString;
 use std::fmt;
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
+use sysio::fs::File;
+use sysio::fs::OpenOptions;
+use sysio::io::{self, BufRead, BufReader, BufWriter, Write};
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UError, UResult, USimpleError};
 use uucore::{format_usage, show, translate};
@@ -83,23 +84,8 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             .open(input)
             .map_err_context(|| input.maybe_quote().to_string())?;
 
-        // advise the OS we will access the data sequentially if possible (unix)
-        #[cfg(all(
-            any(unix, target_os = "wasi"),
-            not(any(
-                target_vendor = "apple",
-                target_os = "netbsd",
-                target_os = "openbsd",
-                target_os = "dragonfly",
-                target_os = "espidf",
-                target_os = "haiku",
-                target_os = "horizon",
-                target_os = "redox",
-                target_os = "solaris",
-                target_os = "vita",
-            ))
-        ))]
-        let _ = rustix::fs::fadvise(&file, 0, None, rustix::fs::Advice::Sequential);
+        // Porte pseudo-linus: sem fadvise (dica ao kernel do host; o pseudo-kernel não tem cache de
+        // páginas).
 
         let reader = BufReader::new(file);
         process_input(reader, &mut g)?;

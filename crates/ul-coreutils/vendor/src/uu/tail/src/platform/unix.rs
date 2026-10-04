@@ -6,7 +6,8 @@
 // spell-checker:ignore (ToDO) stdlib, ISCHR, GETFD
 // spell-checker:ignore (options) EPERM, ENOSYS, NOSYS
 
-use rustix::process::{Pid as RustixPid, test_kill_process};
+// Porte pseudo-linus: `kill(pid, 0)` do pseudo-kernel no lugar do rustix.
+use sysabi::Signal;
 
 pub type Pid = i32;
 
@@ -20,8 +21,10 @@ impl ProcessChecker {
     }
 
     pub fn is_dead(&self) -> bool {
-        RustixPid::from_raw(self.pid)
-            .is_none_or(|pid| test_kill_process(pid).is_err_and(|e| e != rustix::io::Errno::PERM))
+        // Vivo enquanto kill(pid, 0) funciona ou dá EPERM (existe, mas não é nosso).
+        self.pid <= 0
+            || sysio::unistd::kill(self.pid, Signal(0))
+                .is_err_and(|e| e.raw_os_error() != Some(sysio::errno::EPERM))
     }
 }
 
@@ -30,5 +33,9 @@ impl Drop for ProcessChecker {
 }
 
 pub fn supports_pid_checks(pid: Pid) -> bool {
-    RustixPid::from_raw(pid).is_some_and(|p| test_kill_process(p) != Err(rustix::io::Errno::NOSYS))
+    pid > 0
+        && sysio::unistd::kill(pid, Signal(0))
+            .err()
+            .and_then(|e| e.raw_os_error())
+            != Some(sysio::errno::ENOSYS)
 }

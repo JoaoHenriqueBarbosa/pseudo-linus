@@ -7,12 +7,25 @@
 
 // spell-checker:ignore fstatat unlinkat statx behaviour automount
 
-use indicatif::ProgressBar;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
+use super::super::ProgressBar;
 use std::ffi::{OsStr, OsString};
-use std::fs;
-use std::io::{IsTerminal, stdin};
+
+/// Porte pseudo-linus: os nomes da libc que o arquivo usa (bits de modo, `mode_t`, `struct stat`),
+/// sem a libc, como no `safe_traversal` portado do uucore.
+#[allow(non_camel_case_types)]
+mod libc {
+    pub use sysio::sysabi::mode::*;
+    pub type mode_t = u32;
+    pub type stat = uucore::safe_traversal::FileStat;
+    pub const S_IRUSR: mode_t = 0o400;
+    pub const S_IWUSR: mode_t = 0o200;
+}
+use sysio::fs;
+use sysio::io::{IsTerminal, stdin};
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use sysio::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::Path;
 use uucore::display::Quotable;
 use uucore::error::{FromIo, strip_errno};
@@ -133,7 +146,7 @@ pub fn safe_remove_file(
             Some(false)
         }
         Err(e) => {
-            if e.kind() == std::io::ErrorKind::PermissionDenied {
+            if e.kind() == sysio::io::ErrorKind::PermissionDenied {
                 show_error!("cannot remove {}: {}", path.quote(), strip_errno(&e));
             } else {
                 let _ = show_removal_error(e, path);
@@ -173,10 +186,10 @@ pub fn safe_remove_empty_dir(
 }
 
 /// Helper to handle errors with force mode consideration
-fn handle_error_with_force(e: std::io::Error, path: &Path, options: &Options) -> bool {
+fn handle_error_with_force(e: sysio::io::Error, path: &Path, options: &Options) -> bool {
     // Permission denied errors should be shown even in force mode
     // This matches GNU rm behavior
-    if e.kind() == std::io::ErrorKind::PermissionDenied {
+    if e.kind() == sysio::io::ErrorKind::PermissionDenied {
         show_permission_denied_error(path);
         return true;
     }
@@ -244,7 +257,7 @@ pub fn remove_dir_with_special_cases(path: &Path, options: &Options, error_occur
             show_permission_denied_error(path);
             true
         }
-        Err(_) if !error_occurred && path.read_dir().is_err() => {
+        Err(_) if !error_occurred && path.sys_read_dir().is_err() => {
             // For compatibility with GNU test case on Linux
             // Check if directory is readable by attempting to read it
             show_permission_denied_error(path);
@@ -329,7 +342,7 @@ pub fn safe_remove_dir_recursive(
         Err(e) => {
             // If we can't open the directory for safe traversal,
             // handle the error appropriately and try to remove if possible
-            if e.kind() == std::io::ErrorKind::PermissionDenied {
+            if e.kind() == sysio::io::ErrorKind::PermissionDenied {
                 // Try to remove the directory directly if it's empty
                 if fs::remove_dir(path).is_ok() {
                     report_verbose_write_error(verbose_removed_directory(path, options));
@@ -453,13 +466,13 @@ fn is_subdir_empty(dir_fd: &DirFd, name: &OsStr) -> bool {
 /// Reopen the parent of `child_fd` through "..", checking it is still the
 /// directory we descended from and not one swapped in mid-walk.
 #[cfg(not(target_os = "redox"))]
-fn reopen_parent(child_fd: &DirFd, dev: u64, ino: u64) -> std::io::Result<DirFd> {
+fn reopen_parent(child_fd: &DirFd, dev: u64, ino: u64) -> sysio::io::Result<DirFd> {
     let parent_fd = child_fd.open_subdir(OsStr::new(".."), SymlinkBehavior::NoFollow)?;
     let info = parent_fd.metadata()?.file_info();
     if info.device() == dev && info.inode() == ino {
         Ok(parent_fd)
     } else {
-        Err(std::io::Error::from(std::io::ErrorKind::NotFound))
+        Err(sysio::io::Error::from(sysio::io::ErrorKind::NotFound))
     }
 }
 
@@ -474,7 +487,7 @@ pub fn safe_remove_dir_recursive_impl(
     // Read directory entries using safe traversal
     let entries = match cur_fd.read_dir() {
         Ok(entries) => entries,
-        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+        Err(e) if e.kind() == sysio::io::ErrorKind::PermissionDenied => {
             if !options.force {
                 show_permission_denied_error(path);
             }
@@ -602,7 +615,7 @@ pub fn safe_remove_dir_recursive_impl(
                 Err(e) => {
                     // If we can't open the subdirectory for safe traversal,
                     // try to handle it as best we can with safe operations
-                    if e.kind() == std::io::ErrorKind::PermissionDenied {
+                    if e.kind() == sysio::io::ErrorKind::PermissionDenied {
                         error |= handle_permission_denied(
                             &cur_fd,
                             &entry_name,
@@ -618,7 +631,7 @@ pub fn safe_remove_dir_recursive_impl(
 
             let child_entries = match child_dir_fd.read_dir() {
                 Ok(child_entries) => (child_entries.into_iter(), false),
-                Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+                Err(e) if e.kind() == sysio::io::ErrorKind::PermissionDenied => {
                     if !options.force {
                         show_permission_denied_error(path_of(&path_buf));
                     }

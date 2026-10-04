@@ -12,7 +12,8 @@
 //! [`gen_prog_updater`] function can be used to implement a progress
 //! updater that runs in its own thread.
 
-use std::io::Write;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io::Write;
 #[cfg(target_os = "linux")]
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
@@ -79,7 +80,7 @@ impl ProgUpdate {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use std::io::Cursor;
+    /// use sysio::io::Cursor;
     /// use std::time::Duration;
     /// use crate::progress::{ProgUpdate, ReadStat, WriteStat};
     ///
@@ -99,7 +100,7 @@ impl ProgUpdate {
     ///     b"1+2 records in\n3 truncated records\n4+5 records out\n"
     /// );
     /// ```
-    fn write_io_lines(&self, w: &mut impl Write) -> std::io::Result<()> {
+    fn write_io_lines(&self, w: &mut impl Write) -> sysio::io::Result<()> {
         self.read_stat.report(w)?;
         self.write_stat.report(w)?;
         match self.read_stat.records_truncated {
@@ -123,7 +124,7 @@ impl ProgUpdate {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use std::io::Cursor;
+    /// use sysio::io::Cursor;
     /// use std::time::Duration;
     /// use crate::progress::ProgUpdate;
     ///
@@ -198,7 +199,7 @@ impl ProgUpdate {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// use std::io::Cursor;
+    /// use sysio::io::Cursor;
     /// use std::time::Duration;
     /// use crate::progress::ProgUpdate;
     ///
@@ -230,7 +231,7 @@ impl ProgUpdate {
     ///
     /// See [`ProgUpdate::write_io_lines`] for more information.
     pub(crate) fn print_io_lines(&self) {
-        let mut stderr = std::io::stderr();
+        let mut stderr = sysio::io::stderr();
         if self.write_io_lines(&mut stderr).is_err() {
             set_exit_code(1);
         }
@@ -240,7 +241,7 @@ impl ProgUpdate {
     ///
     /// See [`ProgUpdate::write_prog_line`] for more information.
     pub(crate) fn reprint_prog_line(&self) {
-        let mut stderr = std::io::stderr();
+        let mut stderr = sysio::io::stderr();
         let rewrite = true;
         if self.write_prog_line(&mut stderr, rewrite).is_err() {
             set_exit_code(1);
@@ -251,7 +252,7 @@ impl ProgUpdate {
     ///
     /// See [`ProgUpdate::write_transfer_stats`] for more information.
     pub(crate) fn print_transfer_stats(&self, new_line: bool) {
-        let mut stderr = std::io::stderr();
+        let mut stderr = sysio::io::stderr();
         if self.write_transfer_stats(&mut stderr, new_line).is_err() {
             set_exit_code(1);
         }
@@ -318,7 +319,7 @@ impl ReadStat {
     /// # Errors
     ///
     /// If there is a problem writing to `w`.
-    fn report(&self, w: &mut impl Write) -> std::io::Result<()> {
+    fn report(&self, w: &mut impl Write) -> sysio::io::Result<()> {
         let message = translate!("dd-progress-records-in", "complete" => self.reads_complete, "partial" => self.reads_partial);
         writeln!(w, "{message}")?;
         Ok(())
@@ -372,7 +373,7 @@ impl WriteStat {
     /// # Errors
     ///
     /// If there is a problem writing to `w`.
-    fn report(&self, w: &mut impl Write) -> std::io::Result<()> {
+    fn report(&self, w: &mut impl Write) -> sysio::io::Result<()> {
         let message = translate!("dd-progress-records-out", "complete" => self.writes_complete, "partial" => self.writes_partial);
         writeln!(w, "{message}")
     }
@@ -462,7 +463,7 @@ extern "C" fn sigusr1_handler(_: core::ffi::c_int) {
 }
 
 #[cfg(target_os = "linux")]
-pub(crate) fn install_sigusr1_handler() -> std::io::Result<()> {
+pub(crate) fn install_sigusr1_handler() -> sysio::io::Result<()> {
     uucore::signals::install_signal_handler(libc::SIGUSR1, sigusr1_handler)?;
     Ok(())
 }
@@ -516,8 +517,8 @@ pub(crate) fn gen_prog_updater(
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-    use std::io::Cursor;
+    use sysio::env;
+    use sysio::io::Cursor;
     use std::time::Duration;
     use uucore::locale::setup_localization;
 

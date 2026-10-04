@@ -10,9 +10,10 @@
 
 // spell-checker:ignore (ToDO) filehandle BUFSIZ
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::collections::VecDeque;
-use std::fs::File;
-use std::io::{BufRead, Read, Seek, SeekFrom, Write};
+use sysio::fs::File;
+use sysio::io::{BufRead, Read, Seek, SeekFrom, Write};
 use uucore::error::UResult;
 
 /// When reading files in reverse in `bounded_tail`, this is the size of each
@@ -271,7 +272,7 @@ impl BytesChunkBuffer {
     ///
     /// ```rust,ignore
     /// use crate::chunks::BytesChunkBuffer;
-    /// use std::io::{BufReader, Cursor};
+    /// use sysio::io::{BufReader, Cursor};
     ///
     /// let mut reader = BufReader::new(Cursor::new(""));
     /// let num_print = 0;

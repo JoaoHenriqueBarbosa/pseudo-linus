@@ -12,6 +12,9 @@ pub mod string_expander;
 pub mod string_parser;
 pub mod variable_parser;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::{eprintln};
 use clap::builder::ValueParser;
 use clap::{Arg, ArgAction, Command};
 use ini::Ini;
@@ -19,28 +22,21 @@ use native_int_str::{
     Convert, NCvt, NativeIntStr, NativeIntString, NativeStr, from_native_int_representation,
     from_native_int_representation_owned, get_single_native_int_value,
 };
+// Porte pseudo-linus: sinais e exec do pseudo-kernel no lugar do nix e da libc.
 #[cfg(all(unix, not(target_os = "fuchsia")))]
-use nix::libc;
-#[cfg(all(unix, not(target_os = "fuchsia")))]
-use nix::sys::signal::{SigSet, SigmaskHow, Signal, sigprocmask};
-#[cfg(unix)]
-use nix::unistd::execvp;
+use sysabi::{SigDisposition, Signal};
 use std::borrow::Cow;
 #[cfg(all(unix, not(target_os = "fuchsia")))]
 use std::collections::BTreeMap;
 #[cfg(unix)]
 use std::collections::BTreeSet;
-use std::env;
-#[cfg(unix)]
-use std::ffi::CString;
+use sysio::env;
 use std::ffi::{OsStr, OsString};
-use std::io;
-use std::io::Write as _;
-use std::io::stderr;
-#[cfg(all(unix, not(target_os = "fuchsia")))]
-use std::mem::zeroed;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
+use sysio::io;
+use sysio::io::Write as _;
+use sysio::io::stderr;
 
 use uucore::display::{Quotable, print_all_env_vars};
 use uucore::error::{ExitCode, UError, UResult, USimpleError, UUsageError, strip_errno};
@@ -221,7 +217,7 @@ impl SignalRequest {
                     continue;
                 }
                 // SIGKILL (9) and SIGSTOP (17 on mac, 19 on linux) cannot be caught or ignored
-                if sig_value == libc::SIGKILL as usize || sig_value == libc::SIGSTOP as usize {
+                if sig_value == Signal::SIGKILL.0 as usize || sig_value == Signal::SIGSTOP.0 as usize {
                     continue;
                 }
                 f(sig_value, false)?;
@@ -300,17 +296,9 @@ fn build_signal_request(
 
 #[cfg(all(unix, not(target_os = "fuchsia")))]
 fn signal_is_valid(sig: usize) -> bool {
-    if Signal::try_from(sig as i32).is_err() {
-        // nix::sys::signal does not know about real-time signals, so check that
-        // ourselves.
-        if let Some((rtmin, rtmax)) = realtime_signal_bounds() {
-            return sig >= rtmin && sig <= rtmax;
-        }
-
-        return false;
-    }
-
-    true
+    // Porte pseudo-linus: a tabela de sinais do pseudo-kernel já inclui os de tempo real.
+    let _ = realtime_signal_bounds;
+    i32::try_from(sig).is_ok_and(|s| s > 0 && Signal(s).is_valid())
 }
 
 fn load_config_file(opts: &mut Options) -> UResult<()> {
@@ -322,7 +310,11 @@ fn load_config_file(opts: &mut Options) -> UResult<()> {
             let mut stdin_locked = stdin.lock();
             Ini::read_from(&mut stdin_locked)
         } else {
-            Ini::load_from_file(file)
+            // Porte pseudo-linus: lê pelo sysio (o `load_from_file` do crate ini abria no host).
+            match sysio::fs::read_to_string(file) {
+                Ok(text) => Ini::load_from_str(&text).map_err(ini::Error::Parse),
+                Err(e) => Err(ini::Error::Io(e)),
+            }
         };
 
         let conf =
@@ -331,7 +323,8 @@ fn load_config_file(opts: &mut Options) -> UResult<()> {
         for (_, prop) in &conf {
             // ignore all INI section lines (treat them as comments)
             for (key, value) in prop {
-                unsafe {
+                // Porte pseudo-linus: o ambiente é do pseudo-processo; `set_var` é seguro.
+                {
                     env::set_var(key, value);
                 }
             }
@@ -923,42 +916,18 @@ impl EnvAppData {
 
         #[cfg(unix)]
         {
-            // Use execvp() directly to preserve signal handlers set by apply_signal_action().
-            // Command::exec() would reset SIGPIPE, interfering with --ignore-signal=PIPE.
-
-            // Convert program name to CString.
+            // Porte pseudo-linus: execvp(3) do pseudo-kernel (busca no PATH igual à da glibc). As
+            // disposições ignoradas por apply_signal_action() sobrevivem ao exec, como no Linux.
+            use sysio::os::unix::process::CommandExt;
             let prog_os: &OsStr = prog.as_ref();
-            let Ok(prog_cstring) = CString::new(prog_os.as_bytes()) else {
-                return Err(self.make_error_no_such_file_or_dir(&prog));
-            };
-
-            // Prepare arguments for execvp.
-            let mut argv = Vec::new();
-
-            // Convert arg0 to CString.
             let arg0_os: &OsStr = arg0.as_ref();
-            let Ok(arg0_cstring) = CString::new(arg0_os.as_bytes()) else {
-                return Err(self.make_error_no_such_file_or_dir(&prog));
-            };
-            argv.push(arg0_cstring);
-
-            // Convert remaining arguments to CString.
-            for arg in args {
-                let arg_os = arg;
-                let Ok(arg_cstring) = CString::new(arg_os.as_bytes()) else {
-                    return Err(self.make_error_no_such_file_or_dir(&prog));
-                };
-                argv.push(arg_cstring);
-            }
-
-            // Execute the program using execvp. this replaces the current
-            // process. The execvp function takes care of appending a NULL
-            // argument to the argument list so that we don't have to.
-            // unwrap_err since execvp should never return on success
-            match execvp(&prog_cstring, &argv).unwrap_err() {
-                nix::errno::Errno::ENOENT => Err(self.make_error_no_such_file_or_dir(&prog)),
-                e => {
-                    uucore::show_error!("{}: {}", prog.quote(), strip_errno(&e.into()));
+            let mut cmd = sysio::process::Command::new(prog_os);
+            cmd.arg0(arg0_os).args(args);
+            let e = cmd.exec();
+            match e.raw_os_error() {
+                Some(sysio::errno::ENOENT) => Err(self.make_error_no_such_file_or_dir(&prog)),
+                _ => {
+                    uucore::show_error!("{}: {}", prog.quote(), strip_errno(&e));
                     Err(126.into())
                 }
             }
@@ -967,7 +936,7 @@ impl EnvAppData {
         #[cfg(not(unix))]
         {
             // Fallback to Command::status for non-Unix systems
-            let mut cmd = std::process::Command::new(&*prog);
+            let mut cmd = sysio::process::Command::new(&*prog);
             cmd.args(args);
 
             match cmd.status() {
@@ -994,9 +963,8 @@ fn apply_removal_of_all_env_vars(opts: &Options<'_>) {
     // remove all env vars if told to ignore presets
     if opts.ignore_env {
         for (ref name, _) in env::vars_os() {
-            unsafe {
-                env::remove_var(name);
-            }
+            // Porte pseudo-linus: ambiente do pseudo-processo; `remove_var` é seguro.
+            env::remove_var(name);
         }
     }
 }
@@ -1087,9 +1055,7 @@ fn apply_unset_env_vars(opts: &Options<'_>) -> Result<(), Box<dyn UError>> {
                 translate!("env-error-cannot-unset-invalid", "name" => name.quote()),
             ));
         }
-        unsafe {
-            env::remove_var(name);
-        }
+        env::remove_var(name);
     }
     Ok(())
 }
@@ -1149,9 +1115,7 @@ fn apply_specified_env_vars(opts: &Options<'_>) {
             );
             continue;
         }
-        unsafe {
-            env::set_var(name, val);
-        }
+        env::set_var(name, val);
     }
 }
 
@@ -1175,101 +1139,50 @@ where
         signal_fn(sig_value)?;
         log.record(sig_value, action_kind, explicit);
 
-        // Set environment variable to communicate to Rust child processes
-        // that SIGPIPE should be default (not ignored)
-        if matches!(action_kind, SignalActionKind::Default) && sig_value == libc::SIGPIPE as usize {
-            unsafe {
-                env::set_var("RUST_SIGPIPE", "default");
-            }
-        }
-
+        // Porte pseudo-linus: sem o `RUST_SIGPIPE` que o uutils exportava pra filhos em Rust (o
+        // GNU não mexe no ambiente, e a disposição já é herdada pelo exec do pseudo-kernel).
         Ok(())
     })
 }
 
+/// Porte pseudo-linus: `sigaction` do pseudo-processo, com a mensagem do GNU em caso de erro.
 #[cfg(all(unix, not(target_os = "fuchsia")))]
-fn ignore_signal(sig: usize) -> UResult<()> {
-    // SAFETY: This is safe because we write the handler for each signal only once, and therefore "the current handler is the default", as the documentation requires it.
-    // nix::sys::signal::Signal does not cover real-time signals, so we need to call
-    // libc::signal directly.
-    let result = unsafe {
-        let res = libc::signal(sig as core::ffi::c_int, libc::SIG_IGN);
-        nix::errno::Errno::result(res)
-    };
+fn set_signal_disposition(sig: usize, disposition: SigDisposition) -> UResult<()> {
+    let result = i32::try_from(sig)
+        .map_err(|_| io::Error::from_raw_os_error(sysio::errno::EINVAL))
+        .and_then(|s| sysio::unistd::signal(Signal(s), disposition));
     if let Err(err) = result {
         return Err(USimpleError::new(
             125,
-            translate!("env-error-failed-set-signal-action", "signal" => (sig as i32), "error" => err.desc()),
+            translate!("env-error-failed-set-signal-action", "signal" => (sig as i32), "error" => strip_errno(&err)),
         ));
     }
     Ok(())
+}
+
+#[cfg(all(unix, not(target_os = "fuchsia")))]
+fn ignore_signal(sig: usize) -> UResult<()> {
+    set_signal_disposition(sig, SigDisposition::Ignore)
 }
 
 #[cfg(all(unix, not(target_os = "fuchsia")))]
 fn reset_signal(sig: usize) -> UResult<()> {
-    // nix::sys::signal::Signal does not cover real-time signals, so we need to call
-    // libc::signal directly.
-    let result = unsafe {
-        let res = libc::signal(sig as core::ffi::c_int, libc::SIG_DFL);
-        nix::errno::Errno::result(res)
-    };
-    if let Err(err) = result {
-        return Err(USimpleError::new(
-            125,
-            translate!("env-error-failed-set-signal-action", "signal" => (sig as i32), "error" => err.desc()),
-        ));
-    }
-    Ok(())
+    set_signal_disposition(sig, SigDisposition::Default)
 }
 
-#[cfg(all(unix, not(target_os = "fuchsia")))]
-fn sigset_from_signal_value(sig: usize) -> UResult<SigSet> {
-    // nix::sys::signal::Signal does not cover real time signals, so we need to build
-    // sigset_t manually using libc.
-    let mut sigset: libc::sigset_t = unsafe { zeroed() };
-
-    if let Err(err) = unsafe { nix::errno::Errno::result(libc::sigemptyset(&raw mut sigset)) } {
-        return Err(USimpleError::new(
-            125,
-            translate!(
-                "env-error-failed-set-signal-action",
-                "signal" => (sig as i32),
-                "error" => err.desc()
-            ),
-        ));
-    }
-
-    if let Err(err) = unsafe {
-        nix::errno::Errno::result(libc::sigaddset(&raw mut sigset, sig as core::ffi::c_int))
-    } {
-        return Err(USimpleError::new(
-            125,
-            translate!(
-                "env-error-failed-set-signal-action",
-                "signal" => (sig as i32),
-                "error" => err.desc()
-            ),
-        ));
-    }
-
-    Ok(unsafe { SigSet::from_sigset_t_unchecked(sigset) })
-}
-
+/// Porte pseudo-linus: o contrato do pseudo-kernel ainda não tem máscara de sinais
+/// (`sigprocmask`); o pedido falha com ENOSYS, como uma syscall ausente no Linux.
 #[cfg(all(unix, not(target_os = "fuchsia")))]
 fn block_signal(sig: usize) -> UResult<()> {
-    let set = sigset_from_signal_value(sig)?;
-
-    if let Err(err) = sigprocmask(SigmaskHow::SIG_BLOCK, Some(&set), None) {
-        return Err(USimpleError::new(
-            125,
-            translate!(
-                "env-error-failed-set-signal-action",
-                "signal" => (sig as i32),
-                "error" => err.desc()
-            ),
-        ));
-    }
-    Ok(())
+    let err = io::Error::from_raw_os_error(sysio::errno::ENOSYS);
+    Err(USimpleError::new(
+        125,
+        translate!(
+            "env-error-failed-set-signal-action",
+            "signal" => (sig as i32),
+            "error" => strip_errno(&err)
+        ),
+    ))
 }
 
 #[cfg(all(unix, not(target_os = "fuchsia")))]

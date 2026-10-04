@@ -11,6 +11,8 @@
 //! filesystem mounted at a particular directory. It also includes
 //! information on amount of space available and amount of space used.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use std::ffi::OsString;
 #[cfg(unix)]
 use std::path::Path;
@@ -78,7 +80,7 @@ where
     // in the `stat` crate.
     let path = if canonicalize {
         path.as_ref()
-            .canonicalize()
+            .sys_canonicalize()
             .map_err(|_| FsError::InvalidPath)?
     } else {
         path.as_ref().to_path_buf()
@@ -90,7 +92,7 @@ where
         // Create pair MountInfo, canonicalized device name
         // TODO Abstract from accessing real filesystem to
         // make code more testable
-        .map(|m| (m, std::fs::canonicalize(&m.dev_name)))
+        .map(|m| (m, sysio::fs::canonicalize(&m.dev_name)))
         // Ignore non existing paths
         .filter_map(|m| m.1.ok().map(|m1| (m.0, m1)))
         // Try to find canonicalized device name corresponding to entered path
@@ -244,7 +246,7 @@ mod tests {
         #[test]
         fn test_dev_name_match() {
             let tmp = tempfile::TempDir::new().expect("Failed to create temp dir");
-            let dev_name = std::fs::canonicalize(tmp.path())
+            let dev_name = sysio::fs::canonicalize(tmp.path())
                 .expect("Failed to canonicalize tmp path")
                 .to_string_lossy()
                 .to_string();

@@ -5,7 +5,8 @@
 
 // spell-checker:ignore (ToDO) lpszfilepath
 
-use std::io::stdout;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io::stdout;
 use std::os::windows::prelude::AsRawHandle;
 use std::path::PathBuf;
 
@@ -51,7 +52,7 @@ pub fn pathbuf_from_stdout() -> Result<PathBuf, TouchError> {
             return Err(TouchError::WindowsStdoutPathError(translate!(
                 "touch-error-windows-stdout-path-failed",
                 "code".to_string() =>
-                    format!("{}", std::io::Error::last_os_error().raw_os_error().unwrap_or(0)),
+                    format!("{}", sysio::io::Error::last_os_error().raw_os_error().unwrap_or(0)),
             )));
         }
         e => e as usize,

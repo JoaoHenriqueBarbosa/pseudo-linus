@@ -5,7 +5,8 @@
 
 // spell-checker:ignore (misc) uioerror
 
-use filetime::FileTime;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use crate::filetime::FileTime;
 use std::path::PathBuf;
 use thiserror::Error;
 use uucore::display::Quotable;
@@ -23,7 +24,7 @@ pub enum TouchError {
 
     /// The reference file's attributes could not be found or read
     #[error("{}", translate!("touch-error-reference-file-inaccessible", "path" => .0.quote(), "error" => to_uioerror(.1)))]
-    ReferenceFileInaccessible(PathBuf, std::io::Error),
+    ReferenceFileInaccessible(PathBuf, sysio::io::Error),
 
     /// An error getting a path to stdout on Windows
     #[error("{}", translate!("touch-error-windows-stdout-path-failed", "code" => .0))]
@@ -42,11 +43,11 @@ pub enum TouchError {
     },
 }
 
-fn to_uioerror(err: &std::io::Error) -> UIoError {
+fn to_uioerror(err: &sysio::io::Error) -> UIoError {
     let copy = if let Some(code) = err.raw_os_error() {
-        std::io::Error::from_raw_os_error(code)
+        sysio::io::Error::from_raw_os_error(code)
     } else {
-        std::io::Error::from(err.kind())
+        sysio::io::Error::from(err.kind())
     };
     UIoError::from(copy)
 }

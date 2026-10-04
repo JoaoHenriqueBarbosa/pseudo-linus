@@ -5,14 +5,16 @@
 
 // spell-checker:ignore tailable stdlib (stdlib)
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::args::Settings;
 use crate::chunks::BytesChunkBuffer;
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use crate::paths::{HeaderPrinter, PathExtTail};
 use crate::text;
 use std::collections::HashMap;
 use std::collections::hash_map::Keys;
-use std::fs::{File, Metadata};
-use std::io::{BufRead, BufReader, BufWriter, Write, stdout};
+use sysio::fs::{File, Metadata};
+use sysio::io::{BufRead, BufReader, BufWriter, Write, stdout};
 use std::path::{Path, PathBuf};
 use uucore::error::UResult;
 
@@ -64,7 +66,7 @@ impl FileHandling {
     fn canonicalize_path(path: &Path) -> PathBuf {
         if path.is_relative()
             && !path.is_stdin()
-            && let Ok(p) = path.canonicalize()
+            && let Ok(p) = path.sys_canonicalize()
         {
             return p;
         }
@@ -131,7 +133,8 @@ impl FileHandling {
         self.get_mut(path).metadata = if metadata.is_some() {
             metadata
         } else {
-            path.metadata().ok()
+            // Porte pseudo-linus: stat(2) no FS do pseudo-processo.
+            path.sys_metadata().ok()
         };
     }
 
@@ -207,6 +210,6 @@ impl PathData {
             None
         };
 
-        Self::new(reader, path.metadata().ok(), data.display_name.as_str())
+        Self::new(reader, path.sys_metadata().ok(), data.display_name.as_str())
     }
 }

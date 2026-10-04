@@ -3,10 +3,12 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use clap::{Arg, ArgAction, Command};
 use std::ffi::{OsStr, OsString};
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, BufWriter, Read, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{self, BufRead, BufReader, BufWriter, Read, Write, stdin, stdout};
 use std::path::Path;
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult, USimpleError, set_exit_code};
@@ -247,7 +249,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         } else {
             let path = Path::new(file);
 
-            if path.is_dir() {
+            if path.sys_is_dir() {
                 show_error!(
                     "{}",
                     translate!("nl-error-is-directory", "path" => path.maybe_quote())

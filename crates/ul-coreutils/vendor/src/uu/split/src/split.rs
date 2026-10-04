@@ -11,6 +11,7 @@ mod number;
 mod platform;
 mod strategy;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::cli::ARG_INPUT;
 use crate::cli::ARG_PREFIX;
 use crate::cli::options;
@@ -20,9 +21,9 @@ use crate::platform::Writer;
 use crate::strategy::{NumberType, Strategy, StrategyError};
 use clap::{ArgMatches, parser::ValueSource};
 use std::ffi::{OsStr, OsString};
-use std::fs::{File, metadata};
-use std::io;
-use std::io::{BufRead, BufReader, ErrorKind, Read, Seek, SeekFrom, Write, stdin};
+use sysio::fs::{File, metadata};
+use sysio::io;
+use sysio::io::{BufRead, BufReader, ErrorKind, Read, Seek, SeekFrom, Write, stdin};
 use std::path::Path;
 use thiserror::Error;
 use uucore::display::Quotable;
@@ -423,11 +424,11 @@ fn custom_write_all<T: Write>(
 /// * l/K/N   output Kth of N to stdout without splitting lines/records
 ///
 /// For most files the size will be determined by either reading entire file content into a buffer
-/// or by `len()` function of [`std::fs::metadata`].
+/// or by `len()` function of [`sysio::fs::metadata`].
 ///
 /// However, for some files which report filesystem metadata size that does not match
 /// their actual content size, we will need to attempt to find the end of file
-/// with direct `seek()` on [`std::fs::File`].
+/// with direct `seek()` on [`sysio::fs::File`].
 ///
 /// For STDIN stream - read into a buffer up to a limit
 /// If input stream does not EOF before that - return an error
@@ -1380,8 +1381,7 @@ fn split(settings: &Settings) -> UResult<()> {
         let r = File::open(Path::new(&settings.input)).map_err_context(
             || translate!("split-error-cannot-open-for-reading", "file" => settings.input.quote()),
         )?;
-        #[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
-        let _ = rustix::fs::fadvise(&r, 0, None, rustix::fs::Advice::Sequential);
+        // Porte pseudo-linus: sem fadvise (dica ao kernel do host; o pseudo-kernel não tem cache de páginas).
         Box::new(r) as Box<dyn Read>
     };
     let io_blksize: usize = settings.io_blksize.unwrap_or(8 * 1024).try_into().unwrap();

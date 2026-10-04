@@ -5,10 +5,11 @@
 
 // spell-checker:ignore (ToDO) sysv
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
-use std::fs::File;
-use std::io::{ErrorKind, Read, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{ErrorKind, Read, Write, stdin, stdout};
 use std::path::Path;
 use uucore::display::{OsWrite, Quotable};
 use uucore::error::{UResult, USimpleError, strip_errno};
@@ -19,7 +20,7 @@ use uucore::{format_usage, show};
 // Fixed to 8 KiB (equivalent to `std::sys::io::DEFAULT_BUF_SIZE` on most targets)
 const DEFAULT_BUF_SIZE: usize = 8 * 1024;
 
-fn bsd_sum(mut reader: impl Read) -> std::io::Result<(usize, u16)> {
+fn bsd_sum(mut reader: impl Read) -> sysio::io::Result<(usize, u16)> {
     let mut buf = [0; DEFAULT_BUF_SIZE];
     let mut bytes_read = 0;
     let mut checksum: u16 = 0;
@@ -43,7 +44,7 @@ fn bsd_sum(mut reader: impl Read) -> std::io::Result<(usize, u16)> {
     Ok((blocks_read, checksum))
 }
 
-fn sysv_sum(mut reader: impl Read) -> std::io::Result<(usize, u16)> {
+fn sysv_sum(mut reader: impl Read) -> sysio::io::Result<(usize, u16)> {
     let mut buf = [0; DEFAULT_BUF_SIZE];
     let mut bytes_read = 0;
     let mut ret = 0u32;
@@ -103,8 +104,7 @@ fn open(name: &OsString) -> UResult<Reader> {
         let f = File::open(path).map_err(|e| {
             USimpleError::new(1, format!("{}: {}", name.maybe_quote(), strip_errno(&e)))
         })?;
-        #[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
-        let _ = rustix::fs::fadvise(&f, 0, None, rustix::fs::Advice::Sequential);
+        // Porte pseudo-linus: sem fadvise (dica ao kernel do host; o pseudo-kernel não tem cache de páginas).
         Ok(Reader::File(f))
     }
 }
@@ -185,12 +185,12 @@ pub fn uu_app() -> Command {
 }
 
 enum Reader {
-    Stdin(std::io::Stdin),
+    Stdin(sysio::io::Stdin),
     File(File),
 }
 
 impl Read for Reader {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> sysio::io::Result<usize> {
         match self {
             Self::Stdin(s) => s.read(buf),
             Self::File(f) => f.read(buf),

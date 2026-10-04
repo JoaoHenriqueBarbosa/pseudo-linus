@@ -7,12 +7,13 @@
 
 // spell-checker:ignore (ToDO) adFfmprt, kmerge
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use itertools::Itertools;
 use regex::Regex;
 use std::ffi::OsStr;
-use std::fs::metadata;
-use std::io::{self, Read, Write, stderr, stdin, stdout};
+use sysio::fs::metadata;
+use sysio::io::{self, Read, Write, stderr, stdin, stdout};
 use std::num::IntErrorKind;
 use std::path::PathBuf;
 use std::str::Utf8Error;
@@ -563,10 +564,10 @@ fn get_date_format(matches: &ArgMatches) -> String {
         Some(format) => format,
         None => {
             // Replicate behavior from GNU manual.
-            if std::env::var("POSIXLY_CORRECT").is_ok()
+            if sysio::env::var("POSIXLY_CORRECT").is_ok()
                 // TODO: This needs to be moved to uucore and handled by icu?
-                && (std::env::var_os("LC_TIME").as_deref() == Some(OsStr::new("POSIX"))
-                    || std::env::var_os("LC_ALL").as_deref() == Some(OsStr::new("POSIX")))
+                && (sysio::env::var_os("LC_TIME").as_deref() == Some(OsStr::new("POSIX"))
+                    || sysio::env::var_os("LC_ALL").as_deref() == Some(OsStr::new("POSIX")))
             {
                 "%b %e %H:%M %Y"
             } else {
@@ -753,7 +754,7 @@ fn build_options(
 
     let last_modified_time = {
         let time = if is_merge_mode || paths[0].eq(FILE_STDIN) {
-            Some(SystemTime::now())
+            Some(sysio::time::now())
         } else {
             metadata(paths.first().unwrap())
                 .ok()
@@ -1060,7 +1061,7 @@ fn read_to_end(name: &str) -> Result<Vec<u8>, PrError> {
         Ok(buf)
     } else {
         let path = PathBuf::from(name);
-        std::fs::read(&path).map_err(|error| PrError::ReadPath { path, error })
+        sysio::fs::read(&path).map_err(|error| PrError::ReadPath { path, error })
     }
 }
 

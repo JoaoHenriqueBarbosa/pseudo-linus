@@ -3,8 +3,9 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use memchr::memchr3;
-use std::io::{self, BufRead};
+use sysio::io::{self, BufRead};
 
 pub fn for_each_token<R, F>(mut reader: R, mut f: F) -> io::Result<()>
 where

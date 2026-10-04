@@ -7,13 +7,13 @@
 
 //! Errors returned by chroot.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::OsString;
-use std::io::Error;
+use sysio::io::Error;
 use std::path::PathBuf;
 use thiserror::Error;
 use uucore::display::Quotable;
 use uucore::error::{UError, strip_errno};
-use uucore::libc;
 use uucore::translate;
 
 /// Errors that can happen while executing chroot.
@@ -45,7 +45,7 @@ pub enum ChrootError {
     MissingNewRoot,
 
     #[error("{}", translate!("chroot-error-no-group-specified", "uid" => _0))]
-    NoGroupSpecified(libc::uid_t),
+    NoGroupSpecified(u32),
 
     /// Failed to find the specified user.
     #[error("{}", translate!("chroot-error-no-such-user"))]

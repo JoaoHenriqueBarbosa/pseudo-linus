@@ -5,11 +5,15 @@
 
 // spell-checker:ignore (ToDO) ENOTDIR
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
+use sysio::{println};
 use clap::builder::ValueParser;
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
-use std::fs::{read_dir, remove_dir};
-use std::io;
+use sysio::fs::{read_dir, remove_dir};
+use sysio::io;
 use std::path::Path;
 use uucore::display::Quotable;
 use uucore::error::{UResult, set_exit_code, strip_errno};
@@ -63,15 +67,15 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
                 use std::os::unix::ffi::OsStrExt;
 
                 fn points_to_directory(path: &Path) -> io::Result<bool> {
-                    Ok(path.metadata()?.file_type().is_dir())
+                    Ok(path.sys_metadata()?.file_type().is_dir())
                 }
 
                 let mut bytes = path.as_os_str().as_bytes();
-                if error.raw_os_error() == Some(libc::ENOTDIR) && bytes.ends_with(b"/") {
+                if error.raw_os_error() == Some(sysio::errno::ENOTDIR) && bytes.ends_with(b"/") {
                     // Strip the trailing slash or .symlink_metadata() will follow the symlink
                     bytes = strip_trailing_slashes_from_path(bytes);
                     let no_slash: &Path = OsStr::from_bytes(bytes).as_ref();
-                    if no_slash.is_symlink() && points_to_directory(no_slash).unwrap_or(true) {
+                    if no_slash.sys_is_symlink() && points_to_directory(no_slash).unwrap_or(true) {
                         show_error!(
                             "{}",
                             translate!("rmdir-error-symbolic-link-not-followed", "path" => path.quote())
@@ -131,7 +135,7 @@ fn strip_trailing_slashes_from_path(path: &[u8]) -> &[u8] {
 
 // POSIX: https://pubs.opengroup.org/onlinepubs/009696799/functions/rmdir.html
 #[cfg(not(windows))]
-const NOT_EMPTY_CODES: &[i32] = &[libc::ENOTEMPTY, libc::EEXIST];
+const NOT_EMPTY_CODES: &[i32] = &[sysio::errno::ENOTEMPTY, sysio::errno::EEXIST];
 
 // 145 is ERROR_DIR_NOT_EMPTY, determined experimentally.
 #[cfg(windows)]
@@ -142,7 +146,7 @@ const NOT_EMPTY_CODES: &[i32] = &[145];
 // This is a subset of the error codes listed in rmdir(2) from the Linux man-pages
 // project. Maybe other systems have additional codes that apply?
 #[cfg(not(windows))]
-const PERHAPS_EMPTY_CODES: &[i32] = &[libc::EACCES, libc::EBUSY, libc::EPERM, libc::EROFS];
+const PERHAPS_EMPTY_CODES: &[i32] = &[sysio::errno::EACCES, sysio::errno::EBUSY, sysio::errno::EPERM, sysio::errno::EROFS];
 
 // Probably incomplete, I can't find a list of possible errors for
 // RemoveDirectory anywhere.

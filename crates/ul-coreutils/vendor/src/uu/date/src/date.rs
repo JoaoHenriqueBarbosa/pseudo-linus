@@ -9,6 +9,8 @@
 mod format_modifiers;
 mod locale;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use clap::{Arg, ArgAction, Command};
 use jiff::fmt::strtime::{self, BrokenDownTime, Config, PosixCustom};
 use jiff::tz::{Offset, TimeZone, TimeZoneDatabase};
@@ -16,8 +18,8 @@ use jiff::{Timestamp, Zoned};
 use parse_datetime::{ExtendedDateTime, ParsedDateTime};
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write, stderr};
+use sysio::fs::File;
+use sysio::io::{BufRead, BufReader, BufWriter, Read, Write, stderr};
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use thiserror::Error;
@@ -88,7 +90,7 @@ const OPT_UNIVERSAL_2: &str = "utc";
 #[derive(Error, Debug)]
 enum DateError {
     #[error("{}", translate!("date-error-write", "error" => strip_errno(.0)))]
-    Write(std::io::Error),
+    Write(sysio::io::Error),
     #[error("{}", translate!("date-error-extra-operand", "operand" => .operand))]
     ExtraOperand { operand: String },
     #[error("{}", translate!("date-error-invalid-date", "date" => .date))]
@@ -411,17 +413,13 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let debug_mode = matches.get_flag(OPT_DEBUG);
 
     // Get the current time, either in the local time zone or UTC.
+    // Porte pseudo-linus: o CLOCK_REALTIME do pseudo-kernel e o fuso do pseudo-processo (o
+    // `Zoned::now` lia o relógio e o TZ do host).
+    let now_ts = Timestamp::try_from(sysio::time::now()).unwrap_or(Timestamp::UNIX_EPOCH);
     let now = if utc {
-        Timestamp::now().to_zoned(TimeZone::UTC)
+        now_ts.to_zoned(TimeZone::UTC)
     } else {
-        #[cfg(target_env = "ohos")]
-        {
-            Timestamp::now().to_zoned(ohos_system_zone())
-        }
-        #[cfg(not(target_env = "ohos"))]
-        {
-            Zoned::now()
-        }
+        now_ts.to_zoned(uucore::time::process_time_zone())
     };
 
     let set_to = match matches.get_one::<String>(OPT_SET) {
@@ -575,13 +573,13 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             Box::new(iter)
         }
         DateSource::Stdin => parse_dates_from_reader(
-            std::io::stdin(),
+            sysio::io::stdin(),
             &now,
             DebugOptions::new(settings.debug, true),
             allow_extended,
         ),
         DateSource::File(ref path) => {
-            if path.is_dir() {
+            if path.sys_is_dir() {
                 return Err(Box::new(DateError::ExpectedFileGotDirectory {
                     path: path.quote().to_string(),
                 }));
@@ -596,7 +594,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             )
         }
         DateSource::FileMtime(ref path) => {
-            let metadata = std::fs::metadata(path)
+            let metadata = sysio::fs::metadata(path)
                 .map_err_context(|| path.as_os_str().maybe_quote().to_string())?;
             let mtime = metadata.modified()?;
             let ts = Timestamp::try_from(mtime).map_err(|e| DateError::CannotSetDate {
@@ -615,7 +613,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             #[cfg(target_env = "ohos")]
             let date = resolution.to_zoned(ohos_system_zone());
             #[cfg(not(target_env = "ohos"))]
-            let date = resolution.to_zoned(TimeZone::system());
+            let date = resolution.to_zoned(uucore::time::process_time_zone());
             let iter = std::iter::once(Ok(ParsedDateTime::InRange(date)));
             Box::new(iter)
         }
@@ -626,7 +624,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     };
 
     let format_string = make_format_string(&settings);
-    let mut stdout = BufWriter::new(std::io::stdout().lock());
+    let mut stdout = BufWriter::new(sysio::io::stdout().lock());
 
     // Format all the dates
     let config = Config::new().custom(PosixCustom::new()).lenient(true);
@@ -1089,7 +1087,8 @@ fn resolve_tz_abbreviation(word: &str) -> Option<TimeZone> {
     {
         Offset::from_seconds(offset_secs).ok().map(TimeZone::fixed)
     } else {
-        tz_abbrev_to_iana(word).and_then(|name| TimeZone::get(name).ok())
+        // Porte pseudo-linus: a tzdb embutida (ver `uucore::time::tz_database`).
+        tz_abbrev_to_iana(word).and_then(|name| uucore::time::tz_database().get(name).ok())
     }
 }
 
@@ -1270,12 +1269,9 @@ fn get_clock_resolution() -> Timestamp {
 /// as `CLOCK_REALTIME` is required to be supported.
 /// Failure would indicate a non-conforming or otherwise broken implementation.
 fn get_clock_resolution() -> Timestamp {
-    use rustix::time::{ClockId, clock_getres};
-
-    let timespec = clock_getres(ClockId::Realtime);
-
-    #[allow(clippy::unnecessary_cast, reason = "needed for 32 bit target")]
-    Timestamp::constant(timespec.tv_sec as _, timespec.tv_nsec as _)
+    // Porte pseudo-linus: o CLOCK_REALTIME do Linux (hrtimers) tem resolução de 1 ns, que é o
+    // que o clock_getres(2) do host devolvia.
+    Timestamp::constant(0, 1)
 }
 
 #[cfg(all(unix, target_os = "redox"))]
@@ -1326,16 +1322,10 @@ fn set_system_datetime(_date: Zoned) -> UResult<()> {
 /// `<https://linux.die.net/man/3/clock_settime>`
 /// `<https://www.gnu.org/software/libc/manual/html_node/Time-Types.html>`
 fn set_system_datetime(date: Zoned) -> UResult<()> {
-    use rustix::time::{ClockId, Timespec, clock_settime};
-
-    let ts = date.timestamp();
-    let timespec = Timespec {
-        tv_sec: ts.as_second() as _,
-        tv_nsec: ts.subsec_nanosecond() as _,
-    };
-
-    clock_settime(ClockId::Realtime, timespec)
-        .map_err(std::io::Error::from)
+    // Porte pseudo-linus: o relógio é do pseudo-kernel e ninguém no sandbox tem CAP_SYS_TIME; o
+    // clock_settime(2) dá EPERM, como num container.
+    let _ = date;
+    Err(sysio::io::Error::from_raw_os_error(sysio::errno::EPERM))
         .map_err_context(|| translate!("date-error-cannot-set-date"))
 }
 
@@ -1361,7 +1351,7 @@ fn set_system_datetime(date: Zoned) -> UResult<()> {
     let result = unsafe { SetSystemTime(&raw const system_time) };
 
     if result == 0 {
-        Err(std::io::Error::last_os_error()
+        Err(sysio::io::Error::last_os_error()
             .map_err_context(|| translate!("date-error-cannot-set-date")))
     } else {
         Ok(())

@@ -3,13 +3,14 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::platform::Writer;
-use std::env;
+use sysio::env;
 use std::ffi::{OsStr, OsString};
-use std::io::{Error, Result};
-use std::io::{ErrorKind, Write};
+use sysio::io::{Error, Result};
+use sysio::io::{ErrorKind, Write};
 use std::path::Path;
-use std::process::{Child, Command, Stdio};
+use sysio::process::{Child, Command, Stdio};
 use uucore::display::Quotable;
 use uucore::error::USimpleError;
 use uucore::fs;
@@ -43,41 +44,6 @@ impl Write for FilterWriter {
     }
 }
 
-/// Have an environment variable set at a value during this lifetime
-struct WithEnvVarSet {
-    /// Env var key
-    previous_var_key: String,
-    /// Previous value set to this key
-    previous_var_value: Option<OsString>,
-}
-impl WithEnvVarSet {
-    /// Save previous value assigned to key, set key=value
-    fn new(key: &str, value: &OsStr) -> Self {
-        let previous_env_value = env::var_os(key);
-        unsafe {
-            env::set_var(key, value);
-        }
-        Self {
-            previous_var_key: String::from(key),
-            previous_var_value: previous_env_value,
-        }
-    }
-}
-
-impl Drop for WithEnvVarSet {
-    /// Restore previous value now that this is being dropped by context
-    fn drop(&mut self) {
-        if let Some(prev_value) = &self.previous_var_value {
-            unsafe {
-                env::set_var(&self.previous_var_key, prev_value);
-            }
-        } else {
-            unsafe {
-                env::remove_var(&self.previous_var_key);
-            }
-        }
-    }
-}
 impl FilterWriter {
     /// Create a new filter running a command with $FILE pointing at the output name
     ///
@@ -86,13 +52,13 @@ impl FilterWriter {
     /// * `command` - The shell command to execute
     /// * `filepath` - Path of the output file (forwarded to command as $FILE)
     fn new(command: &str, filepath: &OsStr) -> Result<Self> {
-        // set $FILE, save previous value (if there was one)
-        let _with_env_var_set = WithEnvVarSet::new("FILE", filepath);
-
+        // Porte pseudo-linus: `$FILE` só no ambiente do filho (o original mudava o ambiente do
+        // próprio processo com `set_var`, que é unsafe).
         let shell_process =
             Command::new(env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_owned()))
                 .arg("-c")
                 .arg(command)
+                .env("FILE", filepath)
                 .stdin(Stdio::piped())
                 .spawn()?;
 
@@ -103,10 +69,9 @@ impl FilterWriter {
 impl Drop for FilterWriter {
     /// flush stdin, close it and wait on `shell_process` before dropping self
     fn drop(&mut self) {
-        {
-            // close stdin by dropping it
-            let _stdin = self.shell_process.stdin.as_mut();
-        }
+        // Porte pseudo-linus: fecha de fato o stdin do filho (o `as_mut` original não fechava, e o
+        // `wait` esperaria um EOF que nunca vem).
+        drop(self.shell_process.stdin.take());
         let exit_status = self
             .shell_process
             .wait()
@@ -140,7 +105,7 @@ pub fn instantiate_current_writer(
                 create_or_truncate_output_file(input, filename)?
             } else {
                 // re-open file that we previously created to append to it
-                let file = std::fs::OpenOptions::new()
+                let file = sysio::fs::OpenOptions::new()
                     .append(true)
                     .open(Path::new(filename))
                     .map_err(|_| {
@@ -167,15 +132,15 @@ pub fn instantiate_current_writer(
     }
 }
 
-fn create_or_truncate_output_file(input: &OsStr, filename: &OsStr) -> Result<std::fs::File> {
-    match std::fs::OpenOptions::new()
+fn create_or_truncate_output_file(input: &OsStr, filename: &OsStr) -> Result<sysio::fs::File> {
+    match sysio::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(Path::new(filename))
     {
         Ok(file) => Ok(file),
         Err(e) if e.kind() == ErrorKind::AlreadyExists => {
-            let file = std::fs::OpenOptions::new()
+            let file = sysio::fs::OpenOptions::new()
                 .write(true)
                 .open(Path::new(filename))
                 .map_err(|e| open_file_error(filename, e))?;
@@ -201,9 +166,9 @@ fn open_file_error(filename: &OsStr, e: Error) -> Error {
     Error::other(format!("{}: {e}", filename.quote()))
 }
 
-fn input_and_output_refer_to_same_file(input: &OsStr, output: &std::fs::File) -> bool {
+fn input_and_output_refer_to_same_file(input: &OsStr, output: &sysio::fs::File) -> bool {
     let input_info = if input == "-" {
-        FileInformation::from_file(&std::io::stdin())
+        FileInformation::from_file(&sysio::io::stdin())
     } else {
         FileInformation::from_path(Path::new(input), true)
     };
@@ -214,7 +179,7 @@ fn input_and_output_refer_to_same_file(input: &OsStr, output: &std::fs::File) ->
 pub fn paths_refer_to_same_file(p1: &OsStr, p2: &OsStr) -> bool {
     // We have to take symlinks and relative paths into account.
     let p1 = if p1 == "-" {
-        FileInformation::from_file(&std::io::stdin())
+        FileInformation::from_file(&sysio::io::stdin())
     } else {
         FileInformation::from_path(Path::new(p1), true)
     };
@@ -224,16 +189,16 @@ pub fn paths_refer_to_same_file(p1: &OsStr, p2: &OsStr) -> bool {
 #[cfg(test)]
 mod tests {
     use super::instantiate_current_writer;
-    use std::fs;
-    use std::os::unix::fs::symlink;
+    use sysio::fs;
+    use sysio::os::unix::fs::symlink;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn reopened_writer_rejects_symlink_swapped_to_input() {
-        let tmp = std::env::temp_dir().join(format!(
+        let tmp = sysio::env::temp_dir().join(format!(
             "uutils-split-{}-{}",
-            std::process::id(),
-            SystemTime::now()
+            sysio::process::id(),
+            sysio::time::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("system time before unix epoch")
                 .as_nanos()

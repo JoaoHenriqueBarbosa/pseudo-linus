@@ -5,12 +5,16 @@
 
 // spell-checker:ignore tailable stdlib (stdlib)
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
+use sysio::{println};
 use crate::text;
 use std::ffi::OsStr;
-use std::fs::{File, Metadata};
-use std::io::{Seek, SeekFrom};
+use sysio::fs::{File, Metadata};
+use sysio::io::{Seek, SeekFrom};
 #[cfg(unix)]
-use std::os::unix::fs::{FileTypeExt, MetadataExt};
+use sysio::os::unix::fs::{FileTypeExt, MetadataExt};
 use std::path::{Path, PathBuf};
 #[cfg(not(target_os = "wasi"))]
 use uucore::error::UResult;
@@ -77,7 +81,7 @@ impl Input {
     pub fn resolve(&self) -> Option<PathBuf> {
         match &self.kind {
             InputKind::File(path) if path != &PathBuf::from(text::DEV_STDIN) => {
-                path.canonicalize().ok()
+                path.sys_canonicalize().ok()
             }
             InputKind::File(_) | InputKind::Stdin => {
                 // on macOS, /dev/fd isn't backed by /proc and canonicalize()
@@ -90,7 +94,7 @@ impl Input {
                 }
                 #[cfg(not(target_vendor = "apple"))]
                 {
-                    PathBuf::from(text::FD0).canonicalize().ok()
+                    PathBuf::from(text::FD0).sys_canonicalize().ok()
                 }
             }
         }
@@ -222,7 +226,8 @@ impl PathExtTail for Path {
 
     /// Return true if `path` has an existing parent directory
     fn has_active_parent(&self) -> bool {
-        self.parent().is_some_and(Self::is_dir)
+        // Porte pseudo-linus: stat no FS do pseudo-processo.
+        self.parent().is_some_and(|p| p.sys_is_dir())
     }
 
     /// Return true if `path` is a file type that can be tailed
@@ -232,7 +237,7 @@ impl PathExtTail for Path {
 }
 
 pub fn path_is_tailable(path: &Path) -> bool {
-    path.is_file() || path.exists() && path.metadata().is_ok_and(|meta| meta.is_tailable())
+    path.sys_is_file() || path.sys_exists() && path.sys_metadata().is_ok_and(|meta| meta.is_tailable())
 }
 
 #[inline]

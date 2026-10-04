@@ -5,14 +5,15 @@
 
 // spell-checker:ignore (ToDO) getpriority setpriority nstr PRIO
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
-use std::io::{ErrorKind, Write, stdout};
+use sysio::io::{ErrorKind, Write, stdout};
 #[cfg(unix)]
-use std::os::unix::process::CommandExt as _;
+use sysio::os::unix::process::CommandExt as _;
 #[cfg(windows)]
 use std::os::windows::process::CommandExt as _;
-use std::process;
+use sysio::process;
 #[cfg(windows)]
 use windows_sys::Win32::System::Threading::{
     ABOVE_NORMAL_PRIORITY_CLASS, BELOW_NORMAL_PRIORITY_CLASS, HIGH_PRIORITY_CLASS,
@@ -109,8 +110,9 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     #[cfg(not(unix))]
     let current_niceness = 0i32; // todo: what we can do?
     #[cfg(unix)]
-    let current_niceness = rustix::process::getpriority_process(None)
-        .map_err(|e| uucore::error::USimpleError::new(125, format!("getpriority: {e}")))?;
+    // Porte pseudo-linus: getpriority(2) do pseudo-processo.
+    let current_niceness = sysio::unistd::getpriority(0)
+        .map_err(|e| uucore::error::USimpleError::new(125, format!("getpriority: {}", uucore::error::strip_errno(&e))))?;
 
     let Some(mut cmd_iter) = matches.get_many::<String>(options::COMMAND) else {
         if matches.contains_id(options::ADJUSTMENT) {
@@ -147,10 +149,11 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     // exit code when failing to write the advisory is 125, but Rust
     // will produce an exit code of 101 when it panics.
     #[cfg(unix)]
-    if let Err(e) = rustix::process::setpriority_process(None, new_niceness) {
-        let warning_msg = translate!("nice-warning-setpriority", "util_name" => "nice", "error" => uucore::error::strip_errno(&e.into()) );
+    // Porte pseudo-linus: setpriority(2) do pseudo-processo.
+    if let Err(e) = sysio::unistd::setpriority(0, new_niceness) {
+        let warning_msg = translate!("nice-warning-setpriority", "util_name" => "nice", "error" => uucore::error::strip_errno(&e) );
 
-        if writeln!(std::io::stderr(), "{warning_msg}").is_err() {
+        if writeln!(sysio::io::stderr(), "{warning_msg}").is_err() {
             set_exit_code(125);
             return Ok(());
         }

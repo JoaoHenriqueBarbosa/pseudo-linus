@@ -5,6 +5,10 @@
 
 // spell-checker:ignore datetime
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
+use sysio::{print};
 use std::ops::Range;
 use uucore::diagnostics::OptionValue;
 use uucore::error::{UError, UResult, USimpleError};
@@ -27,12 +31,12 @@ use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::borrow::Cow;
 use std::cell::OnceCell;
 use std::ffi::{OsStr, OsString};
-use std::fs::{FileType, Metadata};
-use std::io::{self, Write};
-use std::os::unix::fs::{FileTypeExt, MetadataExt};
+use sysio::fs::{FileType, Metadata};
+use sysio::io::{self, Write};
+use sysio::os::unix::fs::{FileTypeExt, MetadataExt};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::{env, fs};
+use sysio::{env, fs};
 
 use thiserror::Error;
 use uucore::time::{FormatSystemTimeFallback, format_system_time, system_time_to_sec};
@@ -227,7 +231,7 @@ fn write_padded_bytes<W: Write>(
 }
 
 /// write padding based on a writer W and n size
-/// writer is genric to be any buffer like: `std::io::stdout`
+/// writer is genric to be any buffer like: `sysio::io::stdout`
 /// n is the calculated padding size
 fn write_padding<W: Write>(writer: &mut W, n: usize) -> io::Result<()> {
     for _ in 0..n {
@@ -1142,7 +1146,7 @@ impl Stater {
             }
         });
 
-        let path = p.as_ref().canonicalize().ok()?;
+        let path = p.as_ref().sys_canonicalize().ok()?;
         mount_list
             .as_ref()?
             .iter()
@@ -1150,8 +1154,9 @@ impl Stater {
     }
 
     fn exec(&self) -> UResult<i32> {
-        let stdin_is_fifo = rustix::fs::fstat(io::stdin())
-            .is_ok_and(|s| rustix::fs::FileType::from_raw_mode(s.st_mode).is_fifo());
+        // Porte pseudo-linus: fstat(2) do fd 0 do pseudo-processo.
+        let stdin_is_fifo = sysio::os::fd::AsFd::fstat(&io::stdin())
+            .is_ok_and(|s| sysio::os::unix::fs::FileTypeExt::is_fifo(&s.file_type()));
 
         let mut ret = 0;
         for f in &self.files {
@@ -1346,7 +1351,7 @@ impl Stater {
                 show_error!("{}", StatError::StdinFilesystemMode);
                 return Ok(1);
             }
-            if let Ok(p) = Path::new("/dev/stdin").canonicalize() {
+            if let Ok(p) = Path::new("/dev/stdin").sys_canonicalize() {
                 p.into_os_string()
             } else {
                 OsString::from("/dev/stdin")

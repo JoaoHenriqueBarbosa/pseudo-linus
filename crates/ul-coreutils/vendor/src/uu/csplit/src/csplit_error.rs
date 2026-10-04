@@ -3,7 +3,8 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
-use std::io;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io;
 use std::ops::Range;
 use thiserror::Error;
 use uucore::display::Quotable;
@@ -82,7 +83,7 @@ mod tests {
     #[test]
     fn io_error_display_is_clean() {
         // GNU does not print "IO error:" nor the raw "(os error N)" suffix.
-        let err = CsplitError::IoError(std::io::Error::from_raw_os_error(13));
+        let err = CsplitError::IoError(sysio::io::Error::from_raw_os_error(13));
         let msg = err.to_string();
         assert_eq!(msg, "Permission denied");
         assert!(!msg.contains("IO error:"));

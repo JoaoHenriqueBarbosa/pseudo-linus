@@ -6,17 +6,17 @@
 // spell-checker:ignore (ToDO) NEWROOT Userspec chrooting chroots chdir pstatus repointed
 mod error;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::error::ChrootError;
 use clap::{Arg, ArgAction, Command};
 use std::ffi::OsString;
-use std::io::{Error, ErrorKind};
-use std::os::unix::process::CommandExt;
+use sysio::io::{Error, ErrorKind};
+use sysio::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process;
+use sysio::process;
 use uucore::entries::{Locate, Passwd, grp2gid, usr2gid, usr2uid};
 use uucore::error::{UResult, UUsageError};
 use uucore::fs::{MissingHandling, ResolveMode, canonicalize};
-use uucore::libc::{self, setgid, setgroups, setuid};
 use uucore::{format_usage, show};
 
 use uucore::translate;
@@ -201,7 +201,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let (chroot_command, args) = match cmd_iter.next() {
         Some(c) => (c.clone(), cmd_iter.cloned().collect::<Vec<OsString>>()),
         None => (
-            std::env::var_os("SHELL").unwrap_or_else(|| "/bin/sh".into()),
+            sysio::env::var_os("SHELL").unwrap_or_else(|| "/bin/sh".into()),
             vec!["-i".into()],
         ),
     };
@@ -268,11 +268,11 @@ pub fn uu_app() -> Command {
 /// According to the documentation of GNU `chroot`, "POSIX requires that
 /// these commands first attempt to resolve the specified string as a
 /// name, and only once that fails, then try to interpret it as an ID."
-fn name_to_uid(name: &str) -> Result<libc::uid_t, ChrootError> {
+fn name_to_uid(name: &str) -> Result<u32, ChrootError> {
     match usr2uid(name) {
         Ok(uid) => Ok(uid),
         Err(_) => name
-            .parse::<libc::uid_t>()
+            .parse::<u32>()
             .map_err(|_| ChrootError::NoSuchUser),
     }
 }
@@ -282,11 +282,11 @@ fn name_to_uid(name: &str) -> Result<libc::uid_t, ChrootError> {
 /// According to the documentation of GNU `chroot`, "POSIX requires that
 /// these commands first attempt to resolve the specified string as a
 /// name, and only once that fails, then try to interpret it as an ID."
-fn name_to_gid(name: &str) -> Result<libc::gid_t, ChrootError> {
+fn name_to_gid(name: &str) -> Result<u32, ChrootError> {
     match grp2gid(name) {
         Ok(gid) => Ok(gid),
         Err(_) => name
-            .parse::<libc::gid_t>()
+            .parse::<u32>()
             .map_err(|_| ChrootError::NoSuchGroup),
     }
 }
@@ -296,7 +296,7 @@ fn name_to_gid(name: &str) -> Result<libc::gid_t, ChrootError> {
 /// According to the GNU documentation, "the supplementary groups are
 /// set according to the system defined list for that user". This
 /// function gets that list.
-fn supplemental_gids(uid: libc::uid_t) -> Vec<libc::gid_t> {
+fn supplemental_gids(uid: u32) -> Vec<u32> {
     match Passwd::locate(uid) {
         Err(_) => vec![],
         Ok(passwd) => passwd.belongs_to(),
@@ -304,43 +304,22 @@ fn supplemental_gids(uid: libc::uid_t) -> Vec<libc::gid_t> {
 }
 
 /// Set the supplemental group IDs for this process.
-fn set_supplemental_gids(gids: &[libc::gid_t]) -> std::io::Result<()> {
-    #[cfg(any(
-        target_vendor = "apple",
-        target_os = "freebsd",
-        target_os = "openbsd",
-        target_os = "cygwin",
-        target_os = "netbsd"
-    ))]
-    let n = gids.len() as core::ffi::c_int;
-    #[cfg(any(target_os = "linux", target_os = "android"))]
-    let n = gids.len() as libc::size_t;
-    let err = unsafe { setgroups(n, gids.as_ptr()) };
-    if err == 0 {
-        Ok(())
-    } else {
-        Err(Error::last_os_error())
-    }
+// Porte pseudo-linus: a identidade do pseudo-processo é fixada pelo pseudo-kernel (o contrato não
+// tem setuid, setgid nem setgroups), e ninguém no sandbox tem CAP_SETUID/CAP_SETGID: as três dão
+// EPERM, como pra um usuário sem privilégio no Linux. Na prática nem são alcançadas, porque o
+// chroot(2) antes delas já dá EPERM.
+fn set_supplemental_gids(_gids: &[u32]) -> sysio::io::Result<()> {
+    Err(Error::from_raw_os_error(sysio::errno::EPERM))
 }
 
 /// Set the group ID of this process.
-fn set_gid(gid: libc::gid_t) -> std::io::Result<()> {
-    let err = unsafe { setgid(gid) };
-    if err == 0 {
-        Ok(())
-    } else {
-        Err(Error::last_os_error())
-    }
+fn set_gid(_gid: u32) -> sysio::io::Result<()> {
+    Err(Error::from_raw_os_error(sysio::errno::EPERM))
 }
 
 /// Set the user ID of this process.
-fn set_uid(uid: libc::uid_t) -> std::io::Result<()> {
-    let err = unsafe { setuid(uid) };
-    if err == 0 {
-        Ok(())
-    } else {
-        Err(Error::last_os_error())
-    }
+fn set_uid(_uid: u32) -> sysio::io::Result<()> {
+    Err(Error::from_raw_os_error(sysio::errno::EPERM))
 }
 
 /// What to do when the `--groups` argument is missing.
@@ -351,7 +330,7 @@ enum Strategy {
     ///
     /// If the `bool` parameter is `false` and the list of groups for
     /// the given user is empty, then this will result in an error.
-    FromUID(libc::uid_t, bool),
+    FromUID(u32, bool),
 }
 
 /// Set supplemental groups when the `--groups` argument is not specified.
@@ -431,10 +410,10 @@ fn enter_chroot(options: &Options, skip_chdir: bool) -> UResult<()> {
     // chroot the resolved target when there is one; name the caller's spelling
     // in the error either way.
     let target = options.chroot_target.as_deref().unwrap_or(&options.newroot);
-    rustix::process::chroot(target)
-        .map_err(|e| ChrootError::CannotEnter(options.newroot.clone(), e.into()))?;
+    // Porte pseudo-linus: chroot(2) do pseudo-kernel (resolve o caminho e dá EPERM).
+    sysio::fs::chroot(target).map_err(|e| ChrootError::CannotEnter(options.newroot.clone(), e))?;
     if !skip_chdir {
-        std::env::set_current_dir("/")?;
+        sysio::env::set_current_dir("/")?;
     }
     Ok(())
 }

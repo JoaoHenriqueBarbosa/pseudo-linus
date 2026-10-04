@@ -5,10 +5,11 @@
 
 // spell-checker:ignore (ToDO) SIGHUP cproc vprocmgr homeout
 
-use std::fs::{File, OpenOptions};
-use std::io::{Error, IsTerminal as _};
-use std::os::unix::{fs::OpenOptionsExt as _, process::CommandExt as _};
-use std::process::Command;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::fs::{File, OpenOptions};
+use sysio::io::{Error, IsTerminal as _};
+use sysio::os::unix::process::CommandExt as _;
+use sysio::process::Command;
 use thiserror::Error as ThisError;
 use uucore::error::{UError, UResult};
 use uucore::translate;
@@ -36,7 +37,9 @@ impl UError for PlatformError {
 pub(crate) fn prepare() -> UResult<()> {
     replace_fds()?;
 
-    unsafe { libc::signal(libc::SIGHUP, libc::SIG_IGN) };
+    // Porte pseudo-linus: disposição do SIGHUP no pseudo-processo (herdada pelo exec, como no
+    // Linux).
+    let _ = sysio::unistd::signal(sysabi::Signal::SIGHUP, sysabi::SigDisposition::Ignore);
 
     #[cfg(target_vendor = "apple")]
     if unsafe { !_vprocmgr_detach_from_console(0).is_null() } {
@@ -67,21 +70,23 @@ pub(crate) fn set_output_file_mode(opt: &mut OpenOptions) {
 }
 
 fn replace_fds() -> UResult<()> {
-    use rustix::stdio::{dup2_stderr, dup2_stdin, dup2_stdout, stdout};
-    if std::io::stdin().is_terminal() {
+    // Porte pseudo-linus: dup2(2) do pseudo-processo no lugar do `rustix::stdio`.
+    use sysio::os::fd::AsRawFd;
+    use sysio::unistd::dup2;
+    if sysio::io::stdin().is_terminal() {
         let new_stdin = File::open(std::path::Path::new("/dev/null"))
             .map_err(|e| PlatformError::CannotReplace("STDIN", e))?;
-        dup2_stdin(&new_stdin).map_err(|e| PlatformError::CannotReplace("STDIN", e.into()))?;
+        dup2(new_stdin.as_raw_fd(), 0).map_err(|e| PlatformError::CannotReplace("STDIN", e))?;
     }
 
-    if std::io::stdout().is_terminal() {
+    if sysio::io::stdout().is_terminal() {
         let new_stdout = find_stdout()?;
 
-        dup2_stdout(&new_stdout).map_err(|e| PlatformError::CannotReplace("STDOUT", e.into()))?;
+        dup2(new_stdout.as_raw_fd(), 1).map_err(|e| PlatformError::CannotReplace("STDOUT", e))?;
     }
 
-    if std::io::stderr().is_terminal() {
-        dup2_stderr(stdout()).map_err(|e| PlatformError::CannotReplace("STDERR", e.into()))?;
+    if sysio::io::stderr().is_terminal() {
+        dup2(1, 2).map_err(|e| PlatformError::CannotReplace("STDERR", e))?;
     }
     Ok(())
 }

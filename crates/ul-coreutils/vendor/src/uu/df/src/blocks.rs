@@ -4,6 +4,7 @@
 // file that was distributed with this source code.
 
 //! Types for representing and displaying block sizes.
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::{OPT_BLOCKSIZE, OPT_PORTABILITY};
 use clap::ArgMatches;
 use std::fmt;
@@ -201,7 +202,7 @@ impl fmt::Display for BlockSize {
 #[cfg(test)]
 mod tests {
 
-    use std::env;
+    use sysio::env;
 
     use crate::blocks::{BlockSize, SuffixType, to_magnitude_and_suffix};
 

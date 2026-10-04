@@ -5,7 +5,8 @@
 
 // spell-checker:ignore (ToDO) INFTY MULT accum breakwords linebreak linebreaking linebreaks linelen maxlength minlength nchars ostream overlen parasplit plass posn powf punct signum slen sstart tabwidth tlen underlen winfo wlen wordlen
 
-use std::io::{BufWriter, Stdout, Write};
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io::{BufWriter, Stdout, Write};
 use std::mem;
 
 use crate::FmtOptions;
@@ -40,7 +41,7 @@ pub fn break_lines(
     para: &Paragraph,
     opts: &FmtOptions,
     ostream: &mut BufWriter<Stdout>,
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     // indent
     let p_indent = &para.indent_str;
     let p_indent_len = para.indent_len;
@@ -97,7 +98,7 @@ pub fn break_lines(
 fn break_simple<'a, T: Iterator<Item = &'a WordInfo<'a>>>(
     mut iter: T,
     args: &mut BreakArgs<'a>,
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     iter.try_fold((args.init_len, false), |(l, prev_punct), winfo| {
         accum_words_simple(args, l, prev_punct, winfo)
     })?;
@@ -109,7 +110,7 @@ fn accum_words_simple<'a>(
     l: usize,
     prev_punct: bool,
     winfo: &'a WordInfo<'a>,
-) -> std::io::Result<(usize, bool)> {
+) -> sysio::io::Result<(usize, bool)> {
     // compute the length of this word, considering how tabs will expand at this position on the line
     let wlen = winfo.word_nchars + args.compute_width(winfo, l, false);
 
@@ -137,12 +138,12 @@ fn accum_words_simple<'a>(
 fn break_knuth_plass<'a, T: Clone + Iterator<Item = &'a WordInfo<'a>>>(
     mut iter: T,
     args: &mut BreakArgs<'a>,
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     // run the algorithm to get the breakpoints
     let breakpoints = find_kp_breakpoints(iter.clone(), args);
 
     // iterate through the breakpoints (note that breakpoints is in reverse break order, so we .rev() it
-    let result: std::io::Result<(bool, bool)> = breakpoints.iter().rev().try_fold(
+    let result: sysio::io::Result<(bool, bool)> = breakpoints.iter().rev().try_fold(
         (false, false),
         |(mut prev_punct, mut fresh), &(next_break, break_before)| {
             if fresh {
@@ -531,7 +532,7 @@ fn slice_if_fresh(
 }
 
 /// Write a newline and add the indent.
-fn write_newline(indent: &[u8], ostream: &mut BufWriter<Stdout>) -> std::io::Result<()> {
+fn write_newline(indent: &[u8], ostream: &mut BufWriter<Stdout>) -> sysio::io::Result<()> {
     ostream.write_all(b"\n")?;
     ostream.write_all(indent)
 }
@@ -541,7 +542,7 @@ fn write_with_spaces(
     word: &[u8],
     slen: usize,
     ostream: &mut BufWriter<Stdout>,
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     if slen == 2 {
         ostream.write_all(b"  ")?;
     } else if slen == 1 {

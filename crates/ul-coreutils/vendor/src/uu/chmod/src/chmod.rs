@@ -7,11 +7,15 @@
 
 #![cfg(unix)]
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
+use sysio::{println};
 use clap::{Arg, ArgAction, Command};
 use std::collections::HashSet;
 use std::ffi::OsString;
-use std::fs;
-use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use sysio::fs;
+use sysio::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 use uucore::display::Quotable;
@@ -45,7 +49,7 @@ enum ChmodError {
     #[error("{}", translate!("chmod-error-new-permissions", "file" => _0.maybe_quote(), "actual" => _1, "expected" => _2))]
     NewPermissions(PathBuf, String, String),
     #[error("{}", translate!("chmod-error-changing-permissions", "file" => _0.quote(), "err" => strip_errno(_1)))]
-    ChangingPermissions(PathBuf, std::io::Error),
+    ChangingPermissions(PathBuf, sysio::io::Error),
 }
 
 impl UError for ChmodError {}
@@ -448,8 +452,8 @@ impl Chmoder {
         }
     }
 
-    fn print_neither_changed(file: OsString) -> std::io::Result<()> {
-        use std::io::{Write as _, stdout};
+    fn print_neither_changed(file: OsString) -> sysio::io::Result<()> {
+        use sysio::io::{Write as _, stdout};
         writeln!(
             stdout(),
             "{}",
@@ -468,9 +472,9 @@ impl Chmoder {
             // inaccessible file as "No such file or directory". Use
             // `try_exists()` so a permission error is surfaced as such, matching
             // GNU (issue #9789).
-            match file.try_exists() {
+            match file.sys_try_exists() {
                 Ok(false) => {
-                    if file.is_symlink() {
+                    if file.sys_is_symlink() {
                         if !self.dereference && !self.recursive {
                             // The file is a symlink and we should not follow it
                             // Don't try to change the mode of the symlink itself
@@ -499,7 +503,7 @@ impl Chmoder {
                     set_exit_code(1);
                     continue;
                 }
-                Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+                Err(err) if err.kind() == sysio::io::ErrorKind::PermissionDenied => {
                     if !self.quiet {
                         show!(ChmodError::PermissionDenied(filename.into()));
                     }
@@ -509,7 +513,7 @@ impl Chmoder {
                 // Present, or an unexpected error that the chmod attempt below
                 // will surface with a precise message.
                 Ok(true) | Err(_) => {
-                    if !self.dereference && file.is_symlink() {
+                    if !self.dereference && file.sys_is_symlink() {
                         // The file is a symlink and we should not follow it
                         // chmod 755 --no-dereference a/link
                         // should not change the permissions in this case
@@ -652,14 +656,14 @@ impl Chmoder {
         };
 
         // If the path is a directory (or we should follow symlinks), recurse into it using safe traversal
-        if (!file_path.is_symlink() || should_follow_symlink) && file_path.is_dir() {
+        if (!file_path.sys_is_symlink() || should_follow_symlink) && file_path.sys_is_dir() {
             match DirFd::open(file_path, SymlinkBehavior::Follow) {
                 Ok(dir_fd) => {
                     r = self.safe_traverse_dir(&dir_fd, file_path, ancestors).and(r);
                 }
                 Err(err) => {
                     // Handle permission denied errors with proper file path context
-                    if err.kind() == std::io::ErrorKind::PermissionDenied {
+                    if err.kind() == sysio::io::ErrorKind::PermissionDenied {
                         r = r.and(Err(ChmodError::PermissionDenied(file_path.into()).into()));
                     } else {
                         r = r.and(Err(err.into()));
@@ -702,7 +706,7 @@ impl Chmoder {
             let Ok(meta) = dir_meta else {
                 // Handle permission denied with proper file path context
                 let e = dir_meta.unwrap_err();
-                let error = if e.kind() == std::io::ErrorKind::PermissionDenied {
+                let error = if e.kind() == sysio::io::ErrorKind::PermissionDenied {
                     ChmodError::PermissionDenied(entry_path).into()
                 } else {
                     e.into()
@@ -711,7 +715,7 @@ impl Chmoder {
                 continue;
             };
 
-            if entry_path.is_symlink() {
+            if entry_path.sys_is_symlink() {
                 r = self
                     .handle_symlink_during_safe_recursion(
                         &entry_path,
@@ -747,7 +751,7 @@ impl Chmoder {
                                 .and(r);
                         }
                         Err(err) => {
-                            let error = if err.kind() == std::io::ErrorKind::PermissionDenied {
+                            let error = if err.kind() == sysio::io::ErrorKind::PermissionDenied {
                                 ChmodError::PermissionDenied(entry_path).into()
                             } else {
                                 err.into()
@@ -821,7 +825,7 @@ impl Chmoder {
         symlink_behavior: SymlinkBehavior,
     ) -> UResult<()> {
         // Calculate the new mode using the helper method
-        let (new_mode, _) = self.calculate_new_mode(current_mode, file_path.is_dir())?;
+        let (new_mode, _) = self.calculate_new_mode(current_mode, file_path.sys_is_dir())?;
 
         // Use safe traversal to change the mode
         if let Err(_e) = dir_fd.chmod_at(entry_name, new_mode, symlink_behavior) {
@@ -863,12 +867,12 @@ impl Chmoder {
             Ok(meta) => meta.mode() & 0o7777,
             Err(err) => {
                 // Handle dangling symlinks or other errors
-                return if file.is_symlink() && !dereference {
+                return if file.sys_is_symlink() && !dereference {
                     if self.verbose {
                         Self::print_neither_changed(file.into())?;
                     }
                     Ok(()) // Skip dangling symlinks
-                } else if err.kind() == std::io::ErrorKind::PermissionDenied {
+                } else if err.kind() == sysio::io::ErrorKind::PermissionDenied {
                     Err(ChmodError::PermissionDenied(file.into()).into())
                 } else {
                     Err(ChmodError::CannotStat(file.into()).into())
@@ -878,14 +882,14 @@ impl Chmoder {
 
         // Calculate the new mode using the helper method
         let (new_mode, naively_expected_new_mode) =
-            self.calculate_new_mode(fperm, file.is_dir())?;
+            self.calculate_new_mode(fperm, file.sys_is_dir())?;
 
         // A symlink reached without dereferencing (for example one met while
         // walking a `-R` tree) must be left alone: chmod(2) follows the link,
         // so changing it would change the mode of the referent, which can live
         // outside the tree. On most Unix systems, symlink permissions are
         // ignored by the kernel anyway, so changing them has no effect.
-        if file.is_symlink() && !dereference {
+        if file.sys_is_symlink() && !dereference {
             if self.verbose {
                 Self::print_neither_changed(file.into())?;
             }

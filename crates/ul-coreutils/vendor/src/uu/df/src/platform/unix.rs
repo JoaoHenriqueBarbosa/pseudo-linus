@@ -6,9 +6,11 @@
 //! Unix backend of `df`: `statfs` usage probes, over-mount detection and the
 //! fallback used when the mount table is unavailable.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use std::ffi::OsString;
-use std::io;
-use std::os::unix::fs::MetadataExt;
+use sysio::io;
+use sysio::os::unix::fs::MetadataExt;
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use std::path::{Path, PathBuf};
 
 use clap::ArgMatches;
@@ -19,8 +21,9 @@ use crate::filesystem::{Filesystem, FsError};
 
 /// Flush filesystem buffers for `--sync`.
 pub(crate) fn sync() {
+    // Porte pseudo-linus: sync(2) do pseudo-kernel.
     #[cfg(not(target_os = "redox"))]
-    rustix::fs::sync();
+    sysio::unistd::sync();
 }
 
 /// Usage of the filesystem at `mount_info`, `None` if it cannot be queried.
@@ -82,11 +85,12 @@ where
 
 /// Find mount point by walking up the directory tree until device ID changes.
 fn find_mount_point<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
-    let mut current = path.as_ref().canonicalize()?;
-    let current_dev = current.metadata()?.dev();
+    // Porte pseudo-linus: realpath e stat no FS do pseudo-processo.
+    let mut current = path.as_ref().sys_canonicalize()?;
+    let current_dev = current.sys_metadata()?.dev();
 
     while let Some(parent) = current.parent().filter(|p| !p.as_os_str().is_empty()) {
-        let parent_dev = parent.metadata()?.dev();
+        let parent_dev = parent.sys_metadata()?.dev();
         if parent_dev != current_dev || parent == current {
             return Ok(current);
         }
@@ -105,7 +109,7 @@ where
 
     let canonical_path = path
         .as_ref()
-        .canonicalize()
+        .sys_canonicalize()
         .map_err(|_| FsError::InvalidPath)?;
 
     let stat_result = statfs(canonical_path.as_os_str()).map_err(|_| FsError::MountMissing)?;
@@ -133,7 +137,7 @@ where
     let path = path.as_ref();
     let file = path.as_os_str().to_owned();
 
-    let canonical_path = path.canonicalize().map_err(|_| FsError::InvalidPath)?;
+    let canonical_path = path.sys_canonicalize().map_err(|_| FsError::InvalidPath)?;
 
     let stat_result = statfs(canonical_path.as_os_str()).map_err(|_| FsError::MountMissing)?;
     let mount_dir = find_mount_point(&canonical_path).map_err(|_| FsError::MountMissing)?;

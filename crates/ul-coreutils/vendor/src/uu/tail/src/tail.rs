@@ -21,15 +21,17 @@ mod paths;
 mod platform;
 pub mod text;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 pub use args::uu_app;
 use args::{FilterMode, Settings, Signum, parse_args};
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use chunks::ReverseChunks;
 use follow::Observer;
 use memchr::{memchr_iter, memrchr_iter};
 use paths::{FileExtTail, HeaderPrinter, Input, InputKind};
 use std::cmp::Ordering;
-use std::fs::File;
-use std::io::{self, BufReader, BufWriter, ErrorKind, Read, Seek, SeekFrom, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{self, BufReader, BufWriter, ErrorKind, Read, Seek, SeekFrom, Write, stdin, stdout};
 use std::path::{Path, PathBuf};
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult, USimpleError, set_exit_code};
@@ -137,7 +139,7 @@ fn tail_file(
         return Ok(());
     }
 
-    if path.is_dir() {
+    if path.sys_is_dir() {
         set_exit_code(1);
 
         header_printer.print_input(input);
@@ -223,22 +225,26 @@ fn tail_file(
 /// Without `--pid`, FIFOs block on open() until a writer connects (GNU behavior).
 #[cfg(unix)]
 fn open_file(path: &Path, use_nonblock_for_fifo: bool) -> io::Result<File> {
-    use rustix::fs::{OFlags, fcntl_getfl, fcntl_setfl};
-    use std::fs::OpenOptions;
-    use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
+    // Porte pseudo-linus: open(2) e F_GETFL/F_SETFL do pseudo-kernel no lugar do rustix.
+    use sysabi::{Fd, OFlags};
+    use sysio::fs::OpenOptions;
+    use sysio::os::fd::AsRawFd;
+    use sysio::os::unix::fs::FileTypeExt;
+    use sysio::path::PathExt;
 
-    let is_fifo = path.metadata().is_ok_and(|m| m.file_type().is_fifo());
+    let is_fifo = path.sys_metadata().is_ok_and(|m| m.file_type().is_fifo());
 
     if is_fifo && use_nonblock_for_fifo {
         let file = OpenOptions::new()
             .read(true)
-            .custom_flags(libc::O_NONBLOCK)
+            .custom_flags(OFlags::NONBLOCK.bits() as i32)
             .open(path)?;
 
         // Clear O_NONBLOCK so reads block normally
-        let flags = fcntl_getfl(&file)?;
-        let new_flags = flags & !OFlags::NONBLOCK;
-        fcntl_setfl(&file, new_flags)?;
+        let sys = sysabi::sys::current();
+        let fd = Fd(file.as_raw_fd());
+        let flags = sysio::errno::cvt(sys.get_status_flags(fd))?;
+        sysio::errno::cvt(sys.set_status_flags(fd, flags & !OFlags::NONBLOCK))?;
 
         Ok(file)
     } else {
@@ -285,7 +291,8 @@ fn tail_stdin(
         // Save the current seek position/offset of a stdin redirected file.
         // This is needed to pass "gnu/tests/tail-2/start-middle.sh"
         #[cfg(unix)]
-        let stdin_offset = rustix::fs::tell(stdin()).unwrap_or(0); // fifo
+        // Porte pseudo-linus: lseek(0, 0, SEEK_CUR) do pseudo-kernel.
+        let stdin_offset = sysio::os::fd::AsFd::seek_position(&stdin()).unwrap_or(0); // fifo
         tail_file(
             settings,
             header_printer,
@@ -336,7 +343,7 @@ fn tail_stdin(
 /// Basic usage:
 ///
 /// ```rust,ignore
-/// use std::io::Cursor;
+/// use sysio::io::Cursor;
 ///
 /// let mut reader = Cursor::new("a\nb\nc\nd\ne\n");
 /// let i = forwards_thru_file(&mut reader, 2, b'\n').unwrap();
@@ -347,7 +354,7 @@ fn tail_stdin(
 /// zero:
 ///
 /// ```rust,ignore
-/// use std::io::Cursor;
+/// use sysio::io::Cursor;
 ///
 /// let mut reader = Cursor::new("a\n");
 /// let i = forwards_thru_file(&mut reader, 0, b'\n').unwrap();
@@ -359,7 +366,7 @@ fn tail_stdin(
 /// bytes read:
 ///
 /// ```rust,ignore
-/// use std::io::Cursor;
+/// use sysio::io::Cursor;
 ///
 /// let mut reader = Cursor::new("a\n");
 /// let i = forwards_thru_file(&mut reader, 2, b'\n').unwrap();
@@ -560,7 +567,7 @@ fn unbounded_tail<T: Read>(reader: &mut BufReader<T>, settings: &Settings) -> UR
     #[cfg(windows)]
     writer.flush().inspect_err(|err| {
         if err.kind() == ErrorKind::BrokenPipe {
-            std::process::exit(13);
+            sysio::process::exit(13);
         }
     })?;
     Ok(())
@@ -569,7 +576,7 @@ fn unbounded_tail<T: Read>(reader: &mut BufReader<T>, settings: &Settings) -> UR
 // Print the target section of the file
 // use zero-copy on Linux
 fn print_target_section<
-    #[cfg(any(target_os = "linux", target_os = "android"))] R: Read + rustix::fd::AsFd,
+    #[cfg(any(target_os = "linux", target_os = "android"))] R: Read + sysio::os::fd::AsFd,
     #[cfg(not(any(target_os = "linux", target_os = "android")))] R: Read,
 >(
     file: &mut R,
@@ -600,7 +607,7 @@ fn print_target_section<
 mod tests {
 
     use crate::forwards_thru_file;
-    use std::io::Cursor;
+    use sysio::io::Cursor;
 
     #[test]
     fn test_forwards_thru_file_zero() {

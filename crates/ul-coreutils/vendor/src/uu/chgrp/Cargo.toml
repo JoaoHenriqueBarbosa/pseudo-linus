@@ -12,7 +12,10 @@
 [package]
 edition = "2024"
 rust-version = "1.88.0"
-name = "uu_chgrp"
+# Porte pseudo-linus: pacote renomeado; uucore e sysio do pseudo-linus; sem testes upstream (são
+# escritos contra o host); sem o binário avulso; clap sem `wrap_help` (mede o terminal do host);
+# sem as dependências que tocam o host (nenhuma).
+name = "pl-uu-chgrp"
 version = "0.12.0"
 build = false
 autolib = false
@@ -40,15 +43,9 @@ path = "src/chgrp.rs"
 test = false
 doctest = false
 
-[[bin]]
-name = "chgrp"
-path = "src/main.rs"
-required-features = ["uucore/default"]
-
 [target."cfg(unix)".dependencies.clap]
 version = "4.5"
 features = [
-    "wrap_help",
     "cargo",
     "color",
 ]
@@ -57,6 +54,8 @@ features = [
 version = "0.17.0"
 
 [target."cfg(unix)".dependencies.uucore]
+path = "../../uucore"
+package = "pl-uucore"
 version = "0.12.0"
 features = [
     "entries",
@@ -110,6 +109,7 @@ level = "warn"
 priority = -1
 
 [lints.rust]
+unsafe_code = "forbid"
 unused_qualifications = "warn"
 
 [lints.rust.renamed_and_removed_lints]
@@ -125,3 +125,10 @@ check-cfg = [
     'cfg(target_os, values("cygwin"))',
     "cfg(wasi_runner)",
 ]
+
+# Porte pseudo-linus: E/S do pseudo-processo.
+[dependencies.sysio]
+path = "../../../../../sysio"
+
+[dependencies.sysabi]
+path = "../../../../../sysabi"

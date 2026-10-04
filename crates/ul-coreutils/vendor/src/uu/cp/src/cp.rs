@@ -6,17 +6,21 @@
 // spell-checker:ignore (ToDO) copydir fiemap linkgs lstat nlink nlinks pathbuf reflink strs xattrs symlinked deduplicated advcpmv nushell IRWXG IRWXO IRWXU IRWXUGO IRWXU IRWXG IRWXO IRWXUGO sflag
 // spell-checker:ignore RDONLY futimens utimensat unioned
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::{println};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::fmt::Display;
-use std::fs::{self, Metadata, OpenOptions, Permissions};
+use sysio::fs::{self, Metadata, OpenOptions, Permissions};
 #[cfg(unix)]
-use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
+use sysio::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
 #[cfg(unix)]
 use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf, StripPrefixError};
-use std::{fmt, io};
+use std::{fmt};
+use sysio::{io};
 #[cfg(all(unix, not(target_os = "android")))]
 use uucore::fsxattr::{copy_acls, copy_xattrs_fd, copy_xattrs_skip_selinux};
 use uucore::translate;
@@ -467,7 +471,7 @@ impl Display for SparseDebug {
 /// no hard link or symbolic link is required, and data copy is required.
 /// It prints the debug information of the offload, reflink, and sparse detection actions.
 fn show_debug(copy_debug: &CopyDebug) -> io::Result<()> {
-    use std::io::Write;
+    use sysio::io::Write;
 
     let debug_string = translate!("cp-debug-copy-offload", "offload" => copy_debug.offload, "reflink" => copy_debug.reflink, "sparse" => copy_debug.sparse_detection);
 
@@ -1087,7 +1091,7 @@ impl Options {
         let copy_mode = CopyMode::from_matches(matches);
 
         let backup_mode =
-            backup_control::determine_backup_mode(std::env::var("VERSION_CONTROL").ok(), matches)
+            backup_control::determine_backup_mode(sysio::env::var("VERSION_CONTROL").ok(), matches)
                 .map_err(|e| CpError::Backup(BackupError(format!("{e}"))))?;
         let update_mode = update_control::determine_update_mode(matches);
 
@@ -1804,7 +1808,7 @@ pub(crate) fn set_selinux_context(path: &Path, context: Option<&String>) -> Copy
 /// Uses file descriptor-based operations to avoid TOCTOU races during xattr copying.
 #[cfg(all(unix, not(target_os = "android")))]
 fn copy_extended_attrs(source: &Path, dest: &Path, skip_selinux: bool) -> CopyResult<()> {
-    use std::fs::File;
+    use sysio::fs::File;
     use uucore::fsxattr::copy_xattrs;
     let metadata = fs::symlink_metadata(dest)?;
 
@@ -1935,7 +1939,7 @@ pub(crate) fn copy_attributes(
         if !dest.is_symlink() {
             #[cfg(unix)]
             let source_perms = {
-                use std::os::unix::fs::PermissionsExt;
+                use sysio::os::unix::fs::PermissionsExt;
                 let mut perms = source_metadata.permissions();
                 if !ownership_preserved.get() {
                     // GNU cp strips setuid (04000) and setgid (02000) when
@@ -2052,7 +2056,7 @@ fn symlink_file(
 ) -> CopyResult<()> {
     #[cfg(not(any(windows, target_os = "wasi")))]
     {
-        std::os::unix::fs::symlink(source, dest).map_err(|e| {
+        sysio::os::unix::fs::symlink(source, dest).map_err(|e| {
             CpError::IoErrContext(
                 e,
                 translate!("cp-error-cannot-create-symlink",
@@ -2363,7 +2367,7 @@ fn print_verbose_output(
 }
 
 fn print_paths(parents: bool, source: &Path, dest: &Path) -> CopyResult<()> {
-    use std::io::Write;
+    use sysio::io::Write;
 
     // Buffer the output so a failed write (e.g. stdout redirected to a full
     // disk) surfaces as one error instead of panicking inside println!.
@@ -2655,7 +2659,7 @@ fn copy_file(
                 OverwriteMode::Clobber(ClobberMode::RemoveDestination)
             )
             && !is_symlink_loop(dest)
-            && std::env::var_os("POSIXLY_CORRECT").is_none()
+            && sysio::env::var_os("POSIXLY_CORRECT").is_none()
         {
             return Err(CpError::Error(
                 translate!("cp-error-not-writing-dangling-symlink", "dest" => dest.quote()),

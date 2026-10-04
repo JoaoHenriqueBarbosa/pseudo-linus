@@ -5,12 +5,13 @@
 
 // spell-checker:ignore reflink ftruncate fiemap lseek nofollow
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use rustix::fs::{SeekFrom, ftruncate, ioctl_ficlone, seek};
-use std::fs::File;
-use std::io::{self, Read};
-use std::os::unix::fs::FileExt;
-use std::os::unix::fs::FileTypeExt;
-use std::os::unix::fs::MetadataExt;
+use sysio::fs::File;
+use sysio::io::{self, Read};
+use sysio::os::unix::fs::FileExt;
+use sysio::os::unix::fs::FileTypeExt;
+use sysio::os::unix::fs::MetadataExt;
 use std::path::Path;
 
 use uucore::buf_copy;
@@ -92,7 +93,7 @@ fn clone(
                 // replaced since, and removing blindly would drop an
                 // unrelated file.
                 if !dest_existed && path_still_refers_to(dest, &dst_file) {
-                    let _ = std::fs::remove_file(dest);
+                    let _ = sysio::fs::remove_file(dest);
                 }
                 Err(CpError::IoErrContext(err.into(), context.to_owned()))
             }
@@ -228,7 +229,7 @@ fn sparse_copy_fd(src_file: &mut File, dst_file: &File, context: &str) -> CopyRe
 /// Checks whether an existing destination is a fifo
 fn check_dest_is_fifo(dest: &Path) -> bool {
     // If our destination file exists and its a fifo , we do a standard copy .
-    std::fs::metadata(dest).is_ok_and(|f| f.file_type().is_fifo())
+    sysio::fs::metadata(dest).is_ok_and(|f| f.file_type().is_fifo())
 }
 
 /// Copy the contents of a stream from `source` to `dest`.

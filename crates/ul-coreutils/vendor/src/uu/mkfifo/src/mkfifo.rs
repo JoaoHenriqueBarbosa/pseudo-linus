@@ -3,9 +3,21 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command, value_parser};
-use rustix::fs::Mode;
-use rustix::process::umask;
+// Porte pseudo-linus: umask(2) e mkfifo(3) do pseudo-processo (sysio) no lugar do rustix.
+#[derive(Clone, Copy)]
+struct Mode(u32);
+
+impl Mode {
+    fn empty() -> Self {
+        Self(0)
+    }
+}
+
+fn umask(mask: Mode) -> Mode {
+    Mode(sysio::process::set_umask(mask.0))
+}
 use std::ffi::OsString;
 use uucore::display::Quotable;
 use uucore::error::{ExitCode, UResult, USimpleError, strip_errno};
@@ -102,7 +114,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
                 let context = matches.get_one::<String>(options::CONTEXT);
                 if set_security_context || context.is_some() {
                     uucore::smack::set_smack_label_and_cleanup(&f, context, |p| {
-                        std::fs::remove_file(p)
+                        sysio::fs::remove_file(p)
                     })?;
                 }
             }
@@ -154,23 +166,22 @@ pub fn uu_app() -> Command {
 // libc's path-based `mkfifo` there. Both rely on the caller having cleared
 // the umask so the requested mode is applied atomically (see issue #10020).
 #[cfg(not(target_vendor = "apple"))]
-fn create_fifo(path: &str, mode: u32) -> std::io::Result<()> {
-    use rustix::fs;
-    fs::mkfifoat(fs::CWD, path, Mode::from_bits_truncate(mode as fs::RawMode)).map_err(Into::into)
+fn create_fifo(path: &str, mode: u32) -> sysio::io::Result<()> {
+    sysio::fs::mkfifo(path, mode & 0o7777)
 }
 
 #[cfg(target_vendor = "apple")]
-fn create_fifo(path: &str, mode: u32) -> std::io::Result<()> {
+fn create_fifo(path: &str, mode: u32) -> sysio::io::Result<()> {
     use std::ffi::CString;
     let c_path =
-        CString::new(path).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+        CString::new(path).map_err(|e| sysio::io::Error::new(sysio::io::ErrorKind::InvalidInput, e))?;
     // SAFETY: `c_path` is a valid NUL-terminated C string and `mode` is a
     // standard mode_t bit pattern.
     let rc = unsafe { libc::mkfifo(c_path.as_ptr(), mode as libc::mode_t) };
     if rc == 0 {
         Ok(())
     } else {
-        Err(std::io::Error::last_os_error())
+        Err(sysio::io::Error::last_os_error())
     }
 }
 

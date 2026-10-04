@@ -5,12 +5,14 @@
 
 // spell-checker:ignore (ToDO) delim foxjumping sourcefiles undelimited xacfoxjumping
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use bstr::io::BufReadExt;
 use clap::builder::{PossibleValue, ValueParser};
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use std::ffi::OsString;
-use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, IsTerminal, Read, Write, stdin, stdout};
+use sysio::fs::File;
+use sysio::io::{BufRead, BufReader, BufWriter, IsTerminal, Read, Write, stdin, stdout};
 use std::path::Path;
 use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult, USimpleError, UUsageError, set_exit_code, strip_errno};
@@ -244,7 +246,7 @@ fn write_line_bytes<W: Write>(
     ranges: &[Range],
     out_delim: &[u8],
     explicit_delim: bool,
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     let mut print_delim = false;
     for &Range { low, high } in ranges {
         if low > line.len() {
@@ -357,7 +359,7 @@ impl CharCut<'_> {
     /// per-line loop, and the call costs more than the work done on a short
     /// line.
     #[inline(always)]
-    fn write_line<W: Write>(&self, line: &[u8], out: &mut W) -> std::io::Result<()> {
+    fn write_line<W: Write>(&self, line: &[u8], out: &mut W) -> sysio::io::Result<()> {
         let mut print_delim = false;
         // Byte offset of the next character to look at, and the position
         // already consumed. The ranges are sorted and disjoint, so one pass
@@ -484,7 +486,7 @@ fn write_fields_line<W: Write, M: Matcher>(
     only_delimited: bool,
     newline_char: u8,
     out_delim: &[u8],
-) -> std::io::Result<()> {
+) -> sysio::io::Result<()> {
     let mut fields_pos = 1;
     let mut low_idx = 0;
     let mut delim_search = Searcher::new(matcher, line).peekable();
@@ -934,7 +936,7 @@ where
         } else {
             let path = Path::new(filename);
 
-            if path.is_dir() {
+            if path.sys_is_dir() {
                 show_error!(
                     "{}: {}",
                     filename.maybe_quote(),

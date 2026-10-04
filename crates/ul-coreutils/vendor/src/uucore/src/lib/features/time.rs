@@ -62,7 +62,10 @@ pub fn process_time_zone() -> jiff::tz::TimeZone {
             if name.is_empty() {
                 return TimeZone::UTC;
             }
-            TimeZone::get(name)
+            // A tzdb embutida no binário: `TimeZone::get` leria o /usr/share/zoneinfo (e o TZDIR)
+            // do host.
+            tz_database()
+                .get(name)
                 .or_else(|_| TimeZone::posix(name))
                 .unwrap_or(TimeZone::UTC)
         }
@@ -71,6 +74,13 @@ pub fn process_time_zone() -> jiff::tz::TimeZone {
             .and_then(|data| TimeZone::tzif("Local", &data).ok())
             .unwrap_or(TimeZone::UTC),
     }
+}
+
+/// Porte pseudo-linus: a base IANA embutida no binário (a mesma pra todos os pseudo-processos, sem
+/// ler o FS do host).
+pub fn tz_database() -> &'static jiff::tz::TimeZoneDatabase {
+    static DB: std::sync::OnceLock<jiff::tz::TimeZoneDatabase> = std::sync::OnceLock::new();
+    DB.get_or_init(jiff::tz::TimeZoneDatabase::bundled)
 }
 
 /// Porte pseudo-linus: deslocamento UTC (em segundos) do fuso do pseudo-processo num instante, pra

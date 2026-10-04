@@ -3,7 +3,8 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
-use std::fs;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::fs;
 use std::path::Path;
 use uucore::translate;
 
@@ -11,7 +12,7 @@ use uucore::translate;
 ///
 /// Adapted from mkdir.rs.  Handles own error printing.
 pub fn chmod(path: &Path, mode: u32) -> Result<(), ()> {
-    use std::os::unix::fs::PermissionsExt;
+    use sysio::os::unix::fs::PermissionsExt;
     use uucore::{display::Quotable, show_error};
     fs::set_permissions(path, fs::Permissions::from_mode(mode)).map_err(|err| {
         show_error!(

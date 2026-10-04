@@ -7,17 +7,20 @@
 
 mod mode;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, ArgMatches, Command};
-use rustix::process::{getegid, geteuid};
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
+// Porte pseudo-linus: ids efetivos do pseudo-processo.
+use sysio::users::{getegid, geteuid};
 #[cfg(all(feature = "selinux", any(target_os = "linux", target_os = "android")))]
 use selinux::SecurityContext;
 use std::ffi::OsString;
 use std::fmt::Debug;
-use std::fs::{self, metadata};
-use std::fs::{File, OpenOptions};
-use std::io::{Write, stdout};
+use sysio::fs::{self, metadata};
+use sysio::fs::{File, OpenOptions};
+use sysio::io::{Write, stdout};
 use std::path::{MAIN_SEPARATOR, Path, PathBuf};
-use std::process;
+use sysio::process;
 use thiserror::Error;
 use uucore::backup_control::{self, BackupMode, backup_would_destroy_source};
 use uucore::buf_copy::copy_fast;
@@ -37,7 +40,7 @@ use uucore::translate;
 use uucore::{format_usage, show, show_error, show_if_err};
 
 #[cfg(unix)]
-use std::os::unix::fs::MetadataExt;
+use sysio::os::unix::fs::MetadataExt;
 #[cfg(unix)]
 use std::os::unix::prelude::OsStrExt;
 
@@ -72,7 +75,7 @@ enum InstallError {
     DirNeedsArg,
 
     #[error("{}", translate!("install-error-create-dir-failed", "path" => .0.quote()))]
-    CreateDirFailed(PathBuf, #[source] std::io::Error),
+    CreateDirFailed(PathBuf, #[source] sysio::io::Error),
 
     #[error("{}", translate!("install-error-chmod-failed", "path" => .0.quote()))]
     ChmodFailed(PathBuf),
@@ -87,7 +90,7 @@ enum InstallError {
     TargetDirIsntDir(PathBuf),
 
     #[error("{}", translate!("install-error-backup-failed", "from" => .0.quote(), "error" => strip_errno(.1)))]
-    BackupFailed(PathBuf, #[source] std::io::Error),
+    BackupFailed(PathBuf, #[source] sysio::io::Error),
 
     #[error("{}", translate!("install-error-backing-up-destroy-source", "dest" => .0.quote(), "source" => .1.quote()))]
     BackupWouldDestroySource(PathBuf, PathBuf),
@@ -102,7 +105,7 @@ enum InstallError {
     StripTerminated,
 
     #[error("{}", translate!("install-error-metadata-failed"))]
-    MetadataFailed(#[source] std::io::Error),
+    MetadataFailed(#[source] sysio::io::Error),
 
     #[error("{}", translate!("install-error-invalid-user", "user" => .0.quote()))]
     InvalidUser(String),
@@ -350,7 +353,7 @@ pub fn uu_app() -> Command {
 /// entry exists but the value is a plain integer, that integer is used as the
 /// id directly. This matches GNU, which accepts unused numeric ids such as
 /// `install -o 1100`. Returns `None` when the value is neither known nor numeric.
-fn resolve_id(value: &str, lookup: impl Fn(&str) -> std::io::Result<u32>) -> Option<u32> {
+fn resolve_id(value: &str, lookup: impl Fn(&str) -> sysio::io::Result<u32>) -> Option<u32> {
     lookup(value).ok().or_else(|| value.parse::<u32>().ok())
 }
 
@@ -386,7 +389,7 @@ fn behavior(matches: &ArgMatches, diag_args: Option<&[OsString]>) -> UResult<Beh
     };
 
     let backup_mode =
-        backup_control::determine_backup_mode(std::env::var("VERSION_CONTROL").ok(), matches)?;
+        backup_control::determine_backup_mode(sysio::env::var("VERSION_CONTROL").ok(), matches)?;
     let target_dir = matches.get_one::<String>(OPT_TARGET_DIRECTORY).cloned();
     let no_target_dir = matches.get_flag(OPT_NO_TARGET_DIRECTORY);
     if target_dir.is_some() && no_target_dir {
@@ -401,7 +404,7 @@ fn behavior(matches: &ArgMatches, diag_args: Option<&[OsString]>) -> UResult<Beh
         Some(p) => {
             if !strip
                 && writeln!(
-                    std::io::stderr(),
+                    sysio::io::stderr(),
                     "install: {}",
                     translate!("install-warning-no-strip-with-program")
                 )
@@ -483,15 +486,15 @@ fn directory(paths: &[OsString], b: &Behavior) -> UResult<()> {
 
     for path in paths.iter().map(Path::new) {
         // if the path already exist, check if it's a file
-        if path.exists() {
-            if !path.is_dir() {
+        if path.sys_exists() {
+            if !path.sys_is_dir() {
                 show!(InstallError::ExistingFileNotADirectory(path.to_path_buf()));
                 continue;
             }
         } else {
             // Special case to match GNU's behavior:
             // install -d foo/. should work and just create foo/
-            // std::fs::create_dir("foo/."); fails in pure Rust
+            // sysio::fs::create_dir("foo/."); fails in pure Rust
             // See also mkdir.rs for another occurrence of this
             let path_to_create = dir_strip_dot_for_creation(path);
             // Differently than the primary functionality
@@ -561,10 +564,10 @@ fn directory(paths: &[OsString], b: &Behavior) -> UResult<()> {
 /// Test if the path is a new file path that can be
 /// created immediately
 fn is_new_file_path(path: &Path) -> bool {
-    !path.exists()
+    !path.sys_exists()
         && path
             .parent()
-            .is_none_or(|p| p.as_os_str().is_empty() || p.is_dir())
+            .is_none_or(|p| p.as_os_str().is_empty() || p.sys_is_dir())
 }
 
 /// Test if the path is a valid target for a single-file install.
@@ -574,7 +577,7 @@ fn is_new_file_path(path: &Path) -> bool {
 /// and symlinks). Directories are handled by `copy_files_into_dir`.
 #[inline]
 fn is_valid_target(path: &Path) -> bool {
-    path.is_file() || is_new_file_path(path) || path.symlink_metadata().is_ok_and(|m| !m.is_dir())
+    path.sys_is_file() || is_new_file_path(path) || path.sys_symlink_metadata().is_ok_and(|m| !m.is_dir())
 }
 
 /// Test if the path is an existing directory or ends with a trailing separator.
@@ -584,7 +587,7 @@ fn is_valid_target(path: &Path) -> bool {
 #[cfg(unix)]
 fn is_potential_directory_path(path: &Path) -> bool {
     let separator = MAIN_SEPARATOR as u8;
-    path.as_os_str().as_bytes().last() == Some(&separator) || path.is_dir()
+    path.as_os_str().as_bytes().last() == Some(&separator) || path.sys_is_dir()
 }
 
 #[cfg(not(unix))]
@@ -654,7 +657,7 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
         };
 
         // If -t is used, check if target exists as a file before trying to create directories
-        if b.target_dir.is_some() && target.exists() && !target.is_dir() {
+        if b.target_dir.is_some() && target.sys_exists() && !target.sys_is_dir() {
             return Err(InstallError::NotADirectory(target).into());
         }
 
@@ -674,7 +677,7 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
                 _ => to_create,
             };
 
-            let dir_exists = to_create.exists() && metadata(to_create).is_ok_and(|m| m.is_dir());
+            let dir_exists = to_create.sys_exists() && metadata(to_create).is_ok_and(|m| m.is_dir());
 
             if dir_exists {
                 #[cfg(unix)]
@@ -693,7 +696,7 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
                     // When creating directories with -Dv, show directory creations step by step
                     for part in to_create.components() {
                         result.push(part.as_os_str());
-                        if !result.is_dir() {
+                        if !result.sys_is_dir() {
                             // Don't display when the directory already exists
                             writeln!(
                                 stdout(),
@@ -730,9 +733,9 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
                             }
                         }
                         Err(e) => {
-                            if e.kind() == std::io::ErrorKind::AlreadyExists
-                                && to_create.exists()
-                                && !to_create.is_dir()
+                            if e.kind() == sysio::io::ErrorKind::AlreadyExists
+                                && to_create.sys_exists()
+                                && !to_create.sys_is_dir()
                             {
                                 return Err(InstallError::NotADirectory(
                                     to_create_original.to_path_buf(),
@@ -764,7 +767,7 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
             return Err(InstallError::OmittingDirectory(source.clone()).into());
         }
 
-        if b.no_target_dir && target.is_dir() {
+        if b.no_target_dir && target.sys_is_dir() {
             return Err(InstallError::OverrideDirectoryFailed(target, source.clone()).into());
         }
 
@@ -773,8 +776,8 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
         }
 
         if b.backup_mode.ne(&BackupMode::None)
-            && let Ok(to_abs) = target.canonicalize()
-            && source.canonicalize()? == to_abs
+            && let Ok(to_abs) = target.sys_canonicalize()
+            && source.sys_canonicalize()? == to_abs
         {
             return Err(InstallError::SameFile(source.clone(), target.clone()).into());
         }
@@ -789,7 +792,7 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
                 let backup_path = perform_backup(source, &target, b)?;
 
                 if let Err(e) = parent_fd.unlink_at(filename.as_os_str(), false)
-                    && e.kind() != std::io::ErrorKind::NotFound
+                    && e.kind() != sysio::io::ErrorKind::NotFound
                 {
                     show_error!(
                         "{}",
@@ -814,7 +817,8 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
 }
 
 fn metadata_for_source(path: &Path) -> UResult<fs::Metadata> {
-    path.metadata()
+    // Porte pseudo-linus: stat(2) no FS do pseudo-processo.
+    sysio::path::PathExt::sys_metadata(path)
         .map_err_context(|| format!("cannot stat {}", path.quote()))
 }
 
@@ -829,7 +833,7 @@ fn metadata_for_source(path: &Path) -> UResult<fs::Metadata> {
 /// `target_dir` must be a directory.
 ///
 fn copy_files_into_dir(files: &[PathBuf], target_dir: &Path, b: &Behavior) -> UResult<()> {
-    if !target_dir.is_dir() {
+    if !target_dir.sys_is_dir() {
         return Err(InstallError::TargetDirIsntDir(target_dir.to_path_buf()).into());
     }
     for sourcepath in files {
@@ -919,7 +923,7 @@ fn perform_backup(from: &Path, to: &Path, b: &Behavior) -> UResult<Option<PathBu
         );
     }
 
-    if to.exists() {
+    if to.sys_exists() {
         if b.verbose {
             writeln!(
                 stdout(),
@@ -983,14 +987,13 @@ fn copy_file_safe(from: &Path, to_parent_fd: &DirFd, to_filename: &std::ffi::OsS
 /// Returns an empty Result or an error in case of failure.
 ///
 fn copy_file(from: &Path, to: &Path) -> UResult<()> {
-    use std::os::unix::fs::OpenOptionsExt;
-    if let Ok(to_abs) = to.canonicalize()
-        && from.canonicalize()? == to_abs
+    if let Ok(to_abs) = to.sys_canonicalize()
+        && from.sys_canonicalize()? == to_abs
     {
         return Err(InstallError::SameFile(from.to_path_buf(), to.to_path_buf()).into());
     }
 
-    if to.is_dir() && !from.is_dir() {
+    if to.sys_is_dir() && !from.sys_is_dir() {
         return Err(
             InstallError::OverrideDirectoryFailed(to.to_path_buf(), from.to_path_buf()).into(),
         );
@@ -999,8 +1002,8 @@ fn copy_file(from: &Path, to: &Path) -> UResult<()> {
     // Remove existing file (create_new below provides TOCTOU protection)
     if let Err(e) = fs::remove_file(to) {
         match e.kind() {
-            std::io::ErrorKind::NotFound => {}
-            std::io::ErrorKind::PermissionDenied => {
+            sysio::io::ErrorKind::NotFound => {}
+            sysio::io::ErrorKind::PermissionDenied => {
                 return Err(InstallError::NotPermitted(to.to_path_buf()).into());
             }
             _ => show_error!(
@@ -1018,11 +1021,7 @@ fn copy_file(from: &Path, to: &Path) -> UResult<()> {
         .mode(0o600)
         .open(to)?;
 
-    #[cfg(any(target_os = "linux", target_os = "android"))]
-    if rustix::fs::ioctl_ficlone(&dest, &handle).is_ok() {
-        return Ok(());
-    }
-
+    // Porte pseudo-linus: sem FICLONE (reflink do FS do host); cópia por leitura e escrita.
     copy_fast(&mut handle, &mut dest).map_err(|err| {
         InstallError::InstallFailed(from.to_path_buf(), to.to_path_buf(), err.to_string())
     })?;
@@ -1215,10 +1214,10 @@ fn should_set_selinux_context(b: &Behavior) -> bool {
 /// Check if a file needs to be copied due to ownership differences when no explicit group is specified.
 /// Returns true if the destination file's ownership would differ from what it should be after installation.
 fn needs_copy_for_ownership(to: &Path, to_meta: &fs::Metadata) -> bool {
-    use std::os::unix::fs::MetadataExt;
+    use sysio::os::unix::fs::MetadataExt;
 
     // Check if the destination file's owner differs from the effective user ID
-    if to_meta.uid() != geteuid().as_raw() {
+    if to_meta.uid() != geteuid() {
         return true;
     }
 
@@ -1230,7 +1229,7 @@ fn needs_copy_for_ownership(to: &Path, to_meta: &fs::Metadata) -> bool {
         .parent()
         .and_then(|parent| metadata(parent).ok())
         .filter(|parent_meta| parent_meta.mode() & 0o2000 != 0)
-        .map_or(getegid().as_raw(), |parent_meta| parent_meta.gid());
+        .map_or(getegid(), |parent_meta| parent_meta.gid());
 
     to_meta.gid() != expected_gid
 }

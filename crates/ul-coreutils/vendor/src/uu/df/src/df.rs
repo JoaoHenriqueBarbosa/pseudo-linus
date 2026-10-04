@@ -10,6 +10,8 @@ mod filesystem;
 mod platform;
 mod table;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use blocks::HumanReadable;
 use clap::builder::ValueParser;
 use table::HeaderMode;
@@ -24,7 +26,7 @@ use uucore::{format_usage, show, show_warning};
 use clap::{Arg, ArgAction, ArgMatches, Command, parser::ValueSource};
 
 use std::ffi::OsString;
-use std::io::{BufWriter, Write, stdout};
+use sysio::io::{BufWriter, Write, stdout};
 use std::path::Path;
 use thiserror::Error;
 
@@ -342,7 +344,7 @@ fn get_all_filesystems(opt: &Options) -> UResult<Vec<Filesystem>> {
             // the current working directory, which is extremely slow in deeply
             // nested directories (O(n) syscalls where n is the directory depth).
             if dev_path.is_absolute()
-                && dev_path.is_symlink()
+                && dev_path.sys_is_symlink()
                 && let Ok(canonicalized_symlink) = uucore::fs::canonicalize(
                     dev_path,
                     uucore::fs::MissingHandling::Existing,

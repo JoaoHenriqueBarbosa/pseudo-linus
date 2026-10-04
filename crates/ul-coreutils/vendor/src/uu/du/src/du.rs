@@ -6,22 +6,26 @@
 //
 // spell-checker:ignore fstatat openat dirfd
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
+use sysio::{println};
 use clap::{Arg, ArgAction, ArgMatches, Command, builder::PossibleValue};
 use glob::{Pattern, PatternError};
 use rustc_hash::FxHashSet as HashSet;
-use std::env;
+use sysio::env;
 use std::ffi::{OsStr, OsString};
-use std::fs::{self, DirEntry, File, Metadata};
-use std::io::{self, BufRead, BufReader, Write, stdout};
+use sysio::fs::{self, DirEntry, File, Metadata};
+use sysio::io::{self, BufRead, BufReader, Write, stdout};
 #[cfg(not(windows))]
-use std::os::unix::fs::MetadataExt;
+use sysio::os::unix::fs::MetadataExt;
 #[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt;
 #[cfg(windows)]
 use std::os::windows::io::AsRawHandle;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
-use std::thread;
+use sysio::thread;
 use std::time::SystemTime;
 use thiserror::Error;
 use uucore::diagnostics::OptionValue;
@@ -193,7 +197,7 @@ impl Stat {
 
         let blocks = safe_metadata.blocks();
 
-        // Create a temporary std::fs::Metadata by reading the same path
+        // Create a temporary sysio::fs::Metadata by reading the same path
         // This is still needed for compatibility but should work since we're dealing with
         // the root path which should be accessible
         let std_metadata = fs::symlink_metadata(full_path)?;
@@ -492,7 +496,7 @@ fn safe_du(
             .and_then(|time| time_from_raw_stat(&safe_metadata, time));
 
         // For safe traversal, we need to handle stats differently
-        // We can't use std::fs::Metadata since that requires the full path
+        // We can't use sysio::fs::Metadata since that requires the full path
         let this_stat = if is_dir {
             // For directories, recurse using safe_du
             Stat {
@@ -604,7 +608,7 @@ fn safe_du(
 
 // this takes `my_stat` to avoid having to stat files multiple times.
 // Only used on non-Linux platforms
-// Regular traversal using std::fs
+// Regular traversal using sysio::fs
 // Used on non-Linux platforms and as fallback for symlinks on Linux
 #[allow(clippy::cognitive_complexity)]
 fn du_regular(
@@ -952,7 +956,7 @@ fn read_files_from(file_name: &OsStr) -> io::Result<Vec<PathBuf>> {
     } else {
         // First, check if the file_name is a directory
         let path = PathBuf::from(file_name);
-        if path.is_dir() {
+        if path.sys_is_dir() {
             return Err(io::Error::other(
                 translate!("du-error-read-error-is-directory", "file" => file_name.maybe_quote()),
             ));

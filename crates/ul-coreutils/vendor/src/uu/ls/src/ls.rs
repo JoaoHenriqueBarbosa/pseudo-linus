@@ -6,6 +6,7 @@
 // spell-checker:ignore (ToDO) somegroup nlink tabsize dired subdired dtype colorterm stringly
 // spell-checker:ignore nohash strtime clocale
 
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use clap::{
     Arg, ArgAction, Command,
     builder::{NonEmptyStringValueParser, PossibleValue, ValueParser},
@@ -78,7 +79,7 @@ enum LsError {
         ErrorKind::NotFound => translate!("ls-error-cannot-access-no-such-file", "path" => .0.quote()),
         ErrorKind::PermissionDenied => match .1.raw_os_error().unwrap_or(1) {
             1 => translate!("ls-error-cannot-access-operation-not-permitted", "path" => .0.quote()),
-            _ => if .0.is_dir() {
+            _ => if .0.sys_is_dir() {
                 translate!("ls-error-cannot-open-directory-permission-denied", "path" => .0.quote())
             } else {
                 translate!("ls-error-cannot-access-permission-denied", "path" => .0.quote())

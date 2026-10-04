@@ -5,7 +5,8 @@
 
 // spell-checker:ignore reflink
 
-use std::fs;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::fs;
 use std::path::Path;
 use uucore::translate;
 

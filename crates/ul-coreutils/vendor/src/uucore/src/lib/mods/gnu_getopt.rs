@@ -188,7 +188,7 @@ fn quote_err(parts: &[&[u8]]) -> GetoptError {
 }
 
 fn scan_specs(specs: &[OptSpec], args: &[OsString], config: &Config) -> Result<Scanned, GetoptError> {
-    let posix = config.stop_at_first_operand || crate::sysio::env::var_os("POSIXLY_CORRECT").is_some();
+    let posix = config.stop_at_first_operand || sysio::env::var_os("POSIXLY_CORRECT").is_some();
     let mut out = Scanned::default();
     let mut i = 0;
     while i < args.len() {
@@ -408,9 +408,9 @@ pub fn report(err: &GetoptError) {
     line.extend_from_slice(b": ");
     line.extend_from_slice(&err.0);
     line.push(b'\n');
-    let _ = crate::sysio::io::stderr().write_all(&line);
+    let _ = sysio::io::stderr().write_all(&line);
     let _ = writeln!(
-        crate::sysio::io::stderr(),
+        sysio::io::stderr(),
         "Try '{} --help' for more information.",
         crate::execution_phrase()
     );

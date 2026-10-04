@@ -3,9 +3,10 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::platform::Writer;
 use std::ffi::OsStr;
-use std::io::{Error, ErrorKind, Result};
+use sysio::io::{Error, ErrorKind, Result};
 use std::path::Path;
 use uucore::display::Quotable;
 use uucore::fs;
@@ -25,7 +26,7 @@ pub fn instantiate_current_writer(
         create_or_truncate_output_file(input, filename)?
     } else {
         // re-open file that we previously created to append to it
-        let file = std::fs::OpenOptions::new()
+        let file = sysio::fs::OpenOptions::new()
             .append(true)
             .open(Path::new(filename))
             .map_err(|_| {
@@ -45,15 +46,15 @@ pub fn instantiate_current_writer(
     Ok(Writer::File(file))
 }
 
-fn create_or_truncate_output_file(input: &OsStr, filename: &OsStr) -> Result<std::fs::File> {
-    match std::fs::OpenOptions::new()
+fn create_or_truncate_output_file(input: &OsStr, filename: &OsStr) -> Result<sysio::fs::File> {
+    match sysio::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(Path::new(filename))
     {
         Ok(file) => Ok(file),
         Err(e) if e.kind() == ErrorKind::AlreadyExists => {
-            let file = std::fs::OpenOptions::new()
+            let file = sysio::fs::OpenOptions::new()
                 .write(true)
                 .open(Path::new(filename))
                 .map_err(|e| open_file_error(filename, e))?;
@@ -76,9 +77,9 @@ fn open_file_error(filename: &OsStr, e: Error) -> Error {
     Error::other(format!("{}: {e}", filename.quote()))
 }
 
-fn input_and_output_refer_to_same_file(input: &OsStr, output: &std::fs::File) -> bool {
+fn input_and_output_refer_to_same_file(input: &OsStr, output: &sysio::fs::File) -> bool {
     let input_info = if input == "-" {
-        fs::FileInformation::from_file(&std::io::stdin())
+        fs::FileInformation::from_file(&sysio::io::stdin())
     } else {
         fs::FileInformation::from_path(Path::new(input), true)
     };

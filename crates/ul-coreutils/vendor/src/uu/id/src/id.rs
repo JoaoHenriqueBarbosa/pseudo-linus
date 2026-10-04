@@ -33,19 +33,44 @@
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
 use core::ffi::CStr;
-use std::io::{self, Write};
+use sysio::io::{self, Write};
 use uucore::display::Quotable;
 use uucore::entries::{self, Group, Locate, Passwd};
 use uucore::error::UResult;
 use uucore::error::{USimpleError, set_exit_code};
 pub use uucore::libc;
-use uucore::libc::getlogin;
 use uucore::line_ending::LineEnding;
 use uucore::translate;
 
-use rustix::process::{Uid, getegid, geteuid, getgid, getuid};
+// Porte pseudo-linus: os ids do processo vêm do pseudo-kernel (sysio::users), com a interface do
+// `rustix::process` que o resto do arquivo usa.
+#[derive(Clone, Copy)]
+struct Uid(u32);
+
+impl Uid {
+    fn from_raw(raw: u32) -> Self {
+        Self(raw)
+    }
+    fn as_raw(self) -> u32 {
+        self.0
+    }
+}
+
+fn getuid() -> Uid {
+    Uid(sysio::users::getuid())
+}
+fn geteuid() -> Uid {
+    Uid(sysio::users::geteuid())
+}
+fn getgid() -> Uid {
+    Uid(sysio::users::getgid())
+}
+fn getegid() -> Uid {
+    Uid(sysio::users::getegid())
+}
 use uucore::{format_usage, show_error};
 
 macro_rules! cstr2cow {
@@ -501,7 +526,8 @@ fn pretty(possible_pw: Option<Passwd>) -> io::Result<()> {
                 .join(" ")
         )?;
     } else {
-        let login = cstr2cow!(getlogin().cast_const());
+        // Porte pseudo-linus: sem sessão de login nem utmp, o `getlogin(3)` da glibc dá NULL.
+        let login: Option<std::borrow::Cow<'_, str>> = None;
         let uid = getuid().as_raw();
         if let Ok(p) = Passwd::locate(uid) {
             if let Some(user_name) = login {
@@ -739,7 +765,7 @@ fn id_print(state: &State, groups: &[u32]) -> io::Result<()> {
     #[cfg(all(feature = "selinux", any(target_os = "linux", target_os = "android")))]
     if state.selinux_supported
         && !state.user_specified
-        && std::env::var_os("POSIXLY_CORRECT").is_none()
+        && sysio::env::var_os("POSIXLY_CORRECT").is_none()
     {
         // print SElinux context (does not depend on "-Z")
         if let Ok(context) = selinux::SecurityContext::current(false) {
@@ -751,7 +777,7 @@ fn id_print(state: &State, groups: &[u32]) -> io::Result<()> {
     #[cfg(all(feature = "smack", target_os = "linux"))]
     if state.smack_supported
         && !state.user_specified
-        && std::env::var_os("POSIXLY_CORRECT").is_none()
+        && sysio::env::var_os("POSIXLY_CORRECT").is_none()
     {
         // print SMACK label (does not depend on "-Z")
         if let Ok(label) = uucore::smack::get_smack_label_for_self() {

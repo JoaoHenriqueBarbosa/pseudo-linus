@@ -10,12 +10,15 @@
 //! See the [`copy_directory`] function for more information.
 
 #[cfg(windows)]
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+#[allow(unused_imports)]
+use sysio::{println, eprintln};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::convert::identity;
-use std::env;
-use std::fs::{self, exists};
-use std::io;
+use sysio::env;
+use sysio::fs::{self, exists};
+use sysio::io;
 use std::path::{Path, PathBuf, StripPrefixError};
 
 use indicatif::ProgressBar;
@@ -667,7 +670,7 @@ fn build_dir(
     #[cfg(unix)]
     {
         use crate::Preserve;
-        use std::os::unix::fs::PermissionsExt;
+        use sysio::os::unix::fs::PermissionsExt;
 
         // we need to allow trivial casts here because some systems like linux have u32 constants in
         // in libc while others don't.
@@ -692,7 +695,7 @@ fn build_dir(
         // Always keep the owner write bit so we can copy files into the directory.
         // The correct final permissions are applied afterward by dirs_needing_permissions.
         let mode = (!excluded_perms & 0o777) | 0o200; // mask to permission bits, always keep owner write
-        std::os::unix::fs::DirBuilderExt::mode(&mut builder, mode);
+        sysio::os::unix::fs::DirBuilderExt::mode(&mut builder, mode);
     }
 
     builder.create(path)?;

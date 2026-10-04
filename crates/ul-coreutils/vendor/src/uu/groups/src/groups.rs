@@ -5,7 +5,8 @@
 
 // spell-checker:ignore (ToDO) passwd
 
-use std::io::{Write, stdout};
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io::{Write, stdout};
 use thiserror::Error;
 use uucore::{
     display::Quotable,

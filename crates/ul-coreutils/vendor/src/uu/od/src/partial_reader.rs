@@ -5,12 +5,13 @@
 
 // spell-checker:ignore abcdefgh bcdefgh multifile
 
-use std::io;
-use std::io::Read;
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::io;
+use sysio::io::Read;
 
 use crate::multifile_reader::HasError;
 
-/// Wrapper for `std::io::Read` which limits the returned bytes to a particular
+/// Wrapper for `sysio::io::Read` which limits the returned bytes to a particular
 /// number of bytes. Skipping leading bytes is handled upstream by
 /// `MultifileReader::skip`, which can seek seekable inputs.
 pub struct PartialReader<R> {
@@ -66,7 +67,7 @@ impl<R: HasError> HasError for PartialReader<R> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Cursor;
+    use sysio::io::Cursor;
 
     #[test]
     fn test_read_without_limits() {

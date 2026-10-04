@@ -11,6 +11,7 @@ mod parser;
 #[cfg(any(windows, target_os = "wasi"))]
 mod platform;
 
+// Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::Command;
 use error::{ParseError, ParseErrorKind, ParseResult};
 use parser::{Operator, Symbol, UnaryOperator, parse};
@@ -18,13 +19,14 @@ use parser::{Operator, Symbol, UnaryOperator, parse};
 use platform::fd_is_terminal;
 #[cfg(target_os = "wasi")]
 use platform::path;
+// Porte pseudo-linus: ids efetivos e isatty do pseudo-processo (sysio) no lugar do rustix e da libc.
 #[cfg(not(any(windows, target_os = "wasi")))]
-use rustix::process::{getegid, geteuid};
+use sysio::users::{getegid, geteuid};
 use std::cmp::Ordering;
 use std::ffi::{OsStr, OsString};
-use std::fs;
+use sysio::fs;
 #[cfg(unix)]
-use std::os::unix::fs::MetadataExt;
+use sysio::os::unix::fs::MetadataExt;
 use uucore::display::Quotable;
 use uucore::error::{UResult, USimpleError};
 use uucore::format_usage;
@@ -339,8 +341,7 @@ fn isatty(fd: &OsStr) -> ParseResult<bool> {
 
 #[cfg(not(windows))]
 fn fd_is_terminal(fd: i32) -> bool {
-    // SAFETY: isatty only inspects the descriptor number it is given.
-    unsafe { libc::isatty(fd) == 1 }
+    sysio::unistd::isatty(fd)
 }
 
 #[derive(Eq, PartialEq)]
@@ -377,8 +378,8 @@ pub(crate) fn modified_since_read(metadata: &fs::Metadata) -> bool {
 
 #[cfg(not(any(windows, target_os = "wasi")))]
 fn path(path: &OsStr, condition: &PathCondition) -> bool {
-    use std::fs::Metadata;
-    use std::os::unix::fs::FileTypeExt;
+    use sysio::fs::Metadata;
+    use sysio::os::unix::fs::FileTypeExt;
 
     const S_ISUID: u32 = 0o4000;
     const S_ISGID: u32 = 0o2000;
@@ -391,9 +392,9 @@ fn path(path: &OsStr, condition: &PathCondition) -> bool {
     }
 
     let perm = |metadata: Metadata, p: Permission| {
-        if geteuid().as_raw() == metadata.uid() {
+        if geteuid() == metadata.uid() {
             metadata.mode() & ((p as u32) << 6) != 0
-        } else if getegid().as_raw() == metadata.gid() {
+        } else if getegid() == metadata.gid() {
             metadata.mode() & ((p as u32) << 3) != 0
         } else {
             metadata.mode() & (p as u32) != 0
@@ -420,10 +421,10 @@ fn path(path: &OsStr, condition: &PathCondition) -> bool {
         PathCondition::ExistsModifiedLastRead => modified_since_read(&metadata),
         PathCondition::Regular => file_type.is_file(),
         PathCondition::GroupIdFlag => metadata.mode() & S_ISGID != 0,
-        PathCondition::GroupOwns => metadata.gid() == getegid().as_raw(),
+        PathCondition::GroupOwns => metadata.gid() == getegid(),
         PathCondition::SymLink => metadata.file_type().is_symlink(),
         PathCondition::Sticky => metadata.mode() & S_ISVTX != 0,
-        PathCondition::UserOwns => metadata.uid() == geteuid().as_raw(),
+        PathCondition::UserOwns => metadata.uid() == geteuid(),
         PathCondition::Fifo => file_type.is_fifo(),
         PathCondition::Readable => perm(metadata, Permission::Read),
         PathCondition::Socket => file_type.is_socket(),
