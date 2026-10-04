@@ -292,6 +292,12 @@ pub struct Captures {
 }
 
 impl Captures {
+    /// Só o casamento inteiro, sem grupos (pra quem monta uma substituição sem regex, como o `y`
+    /// e o `s` com casamento vazio do sed).
+    pub fn whole_only(start: usize, end: usize) -> Captures {
+        Captures { spans: vec![Some((start, end))] }
+    }
+
     pub fn get(&self, i: usize) -> Option<Match> {
         self.spans.get(i).copied().flatten().map(|(start, end)| Match { start, end })
     }

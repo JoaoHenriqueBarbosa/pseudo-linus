@@ -222,7 +222,8 @@ impl<'p> Exec<'p> {
             line_no: 0,
             replaced: false,
             queue: Vec::new(),
-            ranges: vec![Range::default(); prog.cmds.len()],
+            // `0,/re/` já começa dentro da faixa (sem `-s`, `reset_stream` não roda no começo).
+            ranges: prog.cmds.iter().map(|c| Range { active: matches!(c.a1, Some(Addr::Zero)), end_line: 0 }).collect(),
             last_regex: None,
             outs: Vec::new(),
             main: 0,
@@ -1044,7 +1045,7 @@ fn append_replacement(out: &mut Vec<u8>, parts: &[Repl], caps: &regex_posix::Cap
     }
     let mut mode = Case::None;
     let mut one = Case::None;
-    let mut push = |text: &[u8], out: &mut Vec<u8>, mode: Case, one: &mut Case| {
+    let push = |text: &[u8], out: &mut Vec<u8>, mode: Case, one: &mut Case| {
         if text.is_empty() {
             return;
         }

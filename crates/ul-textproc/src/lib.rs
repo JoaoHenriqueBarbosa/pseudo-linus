@@ -4,6 +4,7 @@
 pub mod getopt;
 pub mod grep;
 pub mod io;
+pub mod sed;
 
 use sysabi::Program;
 
@@ -14,5 +15,6 @@ pub fn programs() -> Vec<Program> {
         Program::bin("egrep", grep::egrep_main),
         Program::bin("fgrep", grep::fgrep_main),
         Program::bin("rgrep", grep::rgrep_main),
+        Program::bin("sed", sed::main),
     ]
 }
