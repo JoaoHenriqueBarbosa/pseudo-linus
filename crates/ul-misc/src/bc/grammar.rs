@@ -311,9 +311,7 @@ fn build() -> Bc {
         r(Expression, &[n(Expression), t(tok), n(Expression)], A::Binary(op));
     }
     // '-' expression %prec UNARY_MINUS
-    let neg_rule = (Expression, vec![t(T::Minus), n(Expression)], Some(T::UnaryMinus), A::Neg);
-    drop(r);
-    rules.push(neg_rule);
+    rules.push((Expression, vec![t(T::Minus), n(Expression)], Some(T::UnaryMinus), A::Neg));
     let mut r = |lhs: N, rhs: &[S], act: A| rules.push((lhs, rhs.to_vec(), None, act));
     r(Expression, &[n(NamedExpression)], A::LoadNamed);
     r(Expression, &[t(T::Number)], A::Number);
@@ -377,10 +375,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn only_the_dangling_else_conflict() {
+    fn only_the_expected_conflicts() {
         let g = get();
-        // O único conflito deslocar/reduzir sem precedência é o do `else` pendente.
-        assert_eq!(g.tables.sr_conflicts, 1);
+        // Dois conflitos deslocar/reduzir sem precedência, os dois resolvidos por "desloca" como no
+        // bison: o `else` pendente e o fim de linha depois do `{` do `define` (vira o
+        // `required_eol` em vez de uma linha vazia no corpo; sem ele sai "End of line required").
+        assert_eq!(g.tables.sr_conflicts, 2);
         assert_eq!(g.tables.rr_conflicts, 0);
     }
 }

@@ -5,6 +5,7 @@
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
+pub mod bc;
 pub mod column;
 pub mod envsubst;
 pub mod file;
@@ -22,6 +23,7 @@ use sysabi::Program;
 /// Tabela de programas do crate.
 pub fn programs() -> Vec<Program> {
     vec![
+        Program::bin("bc", bc::main),
         Program::bin("column", column::main),
         Program::bin("envsubst", envsubst::main),
         Program::bin("hexdump", hexdump::main),

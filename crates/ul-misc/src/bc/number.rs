@@ -331,10 +331,15 @@ impl Num {
         let sa = u64::from(self.scale);
         let rscale = if negative { u64::from(scale) } else { sa.saturating_mul(e).min(u64::from(scale).max(sa)) };
         let full_scale = sa.saturating_mul(e);
+        let odd = e % 2 == 1;
+        // Base 0 ou 1 (inteira): o resultado não cresce, qualquer que seja o expoente.
+        if !negative && self.scale == 0 && (self.mag.is_zero() || self.mag.is_one()) {
+            let neg = if self.mag.is_zero() { e == 1 && self.neg } else { self.neg && odd };
+            return Ok((Num { neg, mag: self.mag.clone(), scale: 0 }, warn));
+        }
         // Dígitos do resultado exato antes de truncar.
         check_digits(self.digits_est().saturating_mul(e))?;
         let mag = self.mag.pow(e as u32);
-        let odd = e % 2 == 1;
         let neg = if mag.is_zero() { e == 1 && self.neg } else { self.neg && odd };
         let power = Num { neg, mag, scale: full_scale as u32 };
         if negative {

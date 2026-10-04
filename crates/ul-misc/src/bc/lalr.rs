@@ -100,8 +100,8 @@ impl Grammar {
         let n = self.n_symbols;
         let mut nullable = vec![false; n];
         let mut first: Vec<BTreeSet<u16>> = vec![BTreeSet::new(); n];
-        for t in 0..self.n_terms {
-            first[t].insert(t as u16);
+        for (t, f) in first.iter_mut().enumerate().take(self.n_terms) {
+            f.insert(t as u16);
         }
         let mut changed = true;
         while changed {
@@ -136,12 +136,12 @@ impl Grammar {
         let mut work: Vec<Item> = kernel.to_vec();
         while let Some((r, d)) = work.pop() {
             let rule = &self.rules[r as usize];
-            if let Some(&s) = rule.rhs.get(d as usize) {
-                if !self.is_term(s) {
-                    for &r2 in by_lhs.get(&s).map(Vec::as_slice).unwrap_or(&[]) {
-                        if set.insert((r2, 0)) {
-                            work.push((r2, 0));
-                        }
+            if let Some(&s) = rule.rhs.get(d as usize)
+                && !self.is_term(s)
+            {
+                for &r2 in by_lhs.get(&s).map(Vec::as_slice).unwrap_or(&[]) {
+                    if set.insert((r2, 0)) {
+                        work.push((r2, 0));
                     }
                 }
             }
@@ -403,6 +403,11 @@ pub trait Handler {
     fn take_errok(&mut self) -> bool {
         false
     }
+    /// A análise tem de parar já (o `quit`, o `halt` e os erros fatais saem do processo no meio de
+    /// uma ação ou da leitura).
+    fn aborted(&self) -> bool {
+        false
+    }
 }
 
 /// Como a análise terminou.
@@ -419,6 +424,9 @@ pub fn parse<H: Handler>(t: &Tables, h: &mut H, eof: u16, error: u16) -> Outcome
     let mut lookahead: Option<(u16, H::Value)> = None;
     let mut errstatus: u8 = 0;
     loop {
+        if h.aborted() {
+            return Outcome::Abort;
+        }
         let st = *states.last().expect("pilha") as usize;
         // yybackup
         let act = if t.default_only[st] {
@@ -477,12 +485,12 @@ pub fn parse<H: Handler>(t: &Tables, h: &mut H, eof: u16, error: u16) -> Outcome
                 errstatus = 3;
                 loop {
                     let s = *states.last().expect("pilha") as usize;
-                    if !t.default_only[s] {
-                        if let Some(Action::Shift(ns)) = t.actions[s].get(&error).copied() {
-                            states.push(ns);
-                            values.push(H::Value::default());
-                            break;
-                        }
+                    if !t.default_only[s]
+                        && let Some(Action::Shift(ns)) = t.actions[s].get(&error).copied()
+                    {
+                        states.push(ns);
+                        values.push(H::Value::default());
+                        break;
                     }
                     if states.len() == 1 {
                         return Outcome::Abort;
