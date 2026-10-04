@@ -8,7 +8,7 @@ publish.workspace = true
 description = "Painel de conformidade: a bancada inteira sobre o kernel real com todos os programas"
 
 [features]
-default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "diff", "archive", "misc", "procps", "net", "sqlite", "git"]
+default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "yaml", "diff", "archive", "misc", "procps", "net", "sqlite", "git"]
 shell = ["userland/shell"]
 coreutils = ["userland/coreutils"]
 findutils = ["userland/findutils"]
@@ -16,6 +16,7 @@ net = ["userland/net"]
 textproc = ["userland/textproc"]
 awk = ["userland/awk"]
 jq = ["userland/jq"]
+yaml = ["userland/yaml"]
 diff = ["userland/diff"]
 archive = ["userland/archive"]
 misc = ["userland/misc"]

@@ -20,6 +20,8 @@ pub fn all_programs() -> Vec<Program> {
     all.extend(ul_awk::programs());
     #[cfg(feature = "jq")]
     all.extend(ul_jq::programs());
+    #[cfg(feature = "yaml")]
+    all.extend(ul_yaml::programs());
     #[cfg(feature = "diff")]
     all.extend(ul_diff::programs());
     #[cfg(feature = "archive")]

@@ -5268,6 +5268,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ul-yaml"
+version = "0.1.0"
+dependencies = [
+ "num-bigint",
+ "num-traits",
+ "sha2 0.10.9",
+ "sysabi",
+ "sysio",
+]
+
+[[package]]
 name = "unarray"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5388,6 +5399,7 @@ dependencies = [
  "ul-procps",
  "ul-sqlite",
  "ul-textproc",
+ "ul-yaml",
 ]
 
 [[package]]

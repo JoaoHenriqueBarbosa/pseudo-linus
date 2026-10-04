@@ -8,13 +8,14 @@ publish.workspace = true
 description = "Tabela única de programas do pseudo-linus (agrega o programs() de cada crate de userland)"
 
 [features]
-default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "diff", "archive", "misc", "procps", "net", "sqlite", "git"]
+default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "yaml", "diff", "archive", "misc", "procps", "net", "sqlite", "git"]
 shell = ["dep:shell"]
 coreutils = ["dep:ul-coreutils"]
 findutils = ["dep:ul-findutils"]
 textproc = ["dep:ul-textproc"]
 awk = ["dep:ul-awk"]
 jq = ["dep:ul-jq"]
+yaml = ["dep:ul-yaml"]
 diff = ["dep:ul-diff"]
 archive = ["dep:ul-archive"]
 misc = ["dep:ul-misc"]
@@ -31,6 +32,7 @@ ul-findutils = { path = "../ul-findutils", optional = true }
 ul-textproc = { path = "../ul-textproc", optional = true }
 ul-awk = { path = "../ul-awk", optional = true }
 ul-jq = { path = "../ul-jq", optional = true }
+ul-yaml = { path = "../ul-yaml", optional = true }
 ul-diff = { path = "../ul-diff", optional = true }
 ul-archive = { path = "../ul-archive", optional = true }
 ul-misc = { path = "../ul-misc", optional = true }

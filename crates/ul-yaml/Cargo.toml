@@ -1,0 +1,24 @@
+[package]
+name = "ul-yaml"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "yq 3.4.3 (kislyuk) do pseudo-linus: YAML do PyYAML 6.0.2 com o parser do libyaml, portado pra Rust seguro, e o jq como subprocesso"
+
+[dependencies]
+sysabi = { workspace = true }
+# Fachada com a forma do std: stdout com a bufferização da glibc, Command pro jq, threads.
+sysio = { workspace = true }
+# Inteiros do Python (o YAML aceita inteiros de qualquer tamanho e o json do Python também).
+num-bigint = "0.4"
+num-traits = "0.2"
+# O `-Y` guarda o estilo de cada chave sob o sha224 do nome, como o yq.
+sha2 = "0.10"
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+
+[lints]
+workspace = true
