@@ -52,6 +52,12 @@ struct Config {
 
 impl Config {
     fn from(options: &clap::ArgMatches) -> UResult<Self> {
+        // Porte pseudo-linus: sem duração ou sem comando o GNU só imprime a linha do `Try` (o
+        // `usage(EXIT_CANCELED)`), sem "missing operand".
+        if options.get_one::<String>(options::DURATION).is_none() || options.get_many::<String>(options::COMMAND).is_none() {
+            let _ = writeln!(sysio::io::stderr(), "Try '{} --help' for more information.", uucore::execution_phrase());
+            return Err(ExitStatus::TimeoutFailed.into());
+        }
         let signal = match options.get_one::<String>(options::SIGNAL) {
             Some(signal_) => {
                 let signal_result = signal_by_name_or_value(signal_);
@@ -59,7 +65,8 @@ impl Config {
                     None => {
                         return Err(UUsageError::new(
                             ExitStatus::TimeoutFailed.into(),
-                            translate!("timeout-error-invalid-signal", "signal" => signal_.quote()),
+                            // Porte pseudo-linus: aspas do `quote()` do gnulib, como o GNU.
+                            translate!("timeout-error-invalid-signal", "signal" => uucore::display::locale_quote(signal_)),
                         ));
                     }
                     Some(signal_value) => signal_value,
@@ -160,13 +167,12 @@ pub fn uu_app() -> Command {
                 .action(ArgAction::SetTrue),
         )
         .arg(
+            // Porte pseudo-linus: obrigatoriedade checada em `Config::from` (mensagem do GNU).
             Arg::new(options::DURATION)
-                .required(true)
                 .help(translate!("timeout-help-duration")),
         )
         .arg(
             Arg::new(options::COMMAND)
-                .required(true)
                 .action(ArgAction::Append)
                 .help(translate!("timeout-help-command"))
                 .value_hint(clap::ValueHint::CommandName),
@@ -188,7 +194,7 @@ fn report_if_verbose(signal: usize, cmd: &str, verbose: bool) {
         let _ = writeln!(
             stderr,
             "timeout: {}",
-            translate!("timeout-verbose-sending-signal", "signal" => s, "command" => cmd.quote())
+            translate!("timeout-verbose-sending-signal", "signal" => s, "command" => uucore::display::locale_quote(cmd))
         );
         let _ = stderr.flush();
     }
@@ -274,9 +280,14 @@ fn timeout(
             ErrorKind::NotFound => ExitStatus::CommandNotFound.into(),
             _ => ExitStatus::CannotInvoke.into(),
         };
+        // Porte pseudo-linus: a mensagem do GNU ("failed to run command ‘x’: <strerror>").
         USimpleError::new(
             status_code,
-            translate!("timeout-error-failed-to-execute-process", "error" => err),
+            translate!(
+                "timeout-error-failed-to-execute-process",
+                "command" => uucore::display::locale_quote(&cmd[0]),
+                "error" => uucore::error::strip_errno(&err)
+            ),
         )
     })?;
 

@@ -47,6 +47,11 @@ impl ChildExt for Child {
             return sysio::unistd::kill_target(KillTarget::Group(0), sig);
         }
         // Ignore the signal temporarily so we don't receive it ourselves.
+        // Porte pseudo-linus: SIGKILL e SIGSTOP não podem ser ignorados; como no GNU (que ignora
+        // o erro do sigaction), o sinal vai pro grupo e atinge o próprio processo também.
+        if sig.is_uncatchable() {
+            return sysio::unistd::kill_target(KillTarget::Group(0), sig);
+        }
         let old = sysio::unistd::signal(sig, SigDisposition::Ignore)?;
         let result = sysio::unistd::kill_target(KillTarget::Group(0), sig);
         let _ = sysio::unistd::signal(sig, old);

@@ -10,6 +10,7 @@ pub mod envsubst;
 pub mod file;
 pub mod hexdump;
 pub mod pager;
+pub mod rev;
 pub mod strings;
 pub mod tree;
 pub mod util;
@@ -27,6 +28,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("hd", hexdump::main),
         Program::bin("less", pager::less_main),
         Program::bin("more", pager::more_main),
+        Program::bin("rev", rev::main),
         Program::bin("strings", strings::main),
         Program::bin("tree", tree::main),
         Program::bin("which", which::main),

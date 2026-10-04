@@ -21,7 +21,8 @@ timeout-after-help = Upon timeout, send the TERM signal to COMMAND, if no other 
 
 # Error messages
 timeout-error-invalid-signal = { $signal }: invalid signal
-timeout-error-failed-to-execute-process = failed to execute process: { $error }
+# Porte pseudo-linus: a mensagem do GNU timeout.
+timeout-error-failed-to-execute-process = failed to run command { $command }: { $error }
 
 # Verbose messages
 timeout-verbose-sending-signal = sending signal { $signal } to command { $command }
