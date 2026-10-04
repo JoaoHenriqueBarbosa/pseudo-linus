@@ -49,31 +49,91 @@ pub enum FormatSystemTimeFallback {
     Float,        // Just print seconds+nanoseconds since epoch (`stat`)
 }
 
-/// Format a `SystemTime` according to given fmt, and append to vector out.
-/// Porte pseudo-linus: fuso do pseudo-processo. O original convertia `SystemTime` em `Zoned` com
-/// `TimeZone::system()`, que lê o TZ do processo host e o /etc/localtime do host (e guarda num
-/// cache global). Aqui: TZ do ambiente do pseudo-processo, com a tzdb embutida no binário; sem TZ,
-/// o /etc/localtime do VFS; sem nada disso, UTC (o mesmo que a glibc faz).
+/// Porte pseudo-linus: fuso do pseudo-processo como o `tzset` da glibc 2.41 o resolve. O original
+/// usava `TimeZone::system()`, que lê o TZ do processo host e o /etc/localtime do host.
+///
+/// - Sem `TZ`: o tzfile `/etc/localtime` do FS do pseudo-processo; sem ele, UTC.
+/// - `TZ` vazio vira `Universal`; o `:` inicial sai.
+/// - O tzfile `$TZDIR/<nome>` (padrão `/usr/share/zoneinfo`), ou o caminho absoluto, no FS do
+///   pseudo-processo (a imagem tem o zoneinfo do tzdata do Debian 13, sem os links legados).
+/// - Senão, a regra POSIX (`EST5EDT`...).
+/// - Senão, o que a glibc faz com uma regra que não termina de analisar: a sigla inicial (três ou
+///   mais letras; menos que isso fica vazia) com deslocamento zero.
 pub fn process_time_zone() -> jiff::tz::TimeZone {
     use jiff::tz::TimeZone;
-    match sysio::env::var("TZ") {
-        Ok(tz) => {
-            let name = tz.strip_prefix(':').unwrap_or(&tz);
-            if name.is_empty() {
-                return TimeZone::UTC;
-            }
-            // A tzdb embutida no binário: `TimeZone::get` leria o /usr/share/zoneinfo (e o TZDIR)
-            // do host.
-            tz_database()
-                .get(name)
-                .or_else(|_| TimeZone::posix(name))
-                .unwrap_or(TimeZone::UTC)
-        }
-        Err(_) => sysio::fs::read("/etc/localtime")
+    let Some(tz) = sysio::env::var_os("TZ") else {
+        return sysio::fs::read("/etc/localtime")
             .ok()
             .and_then(|data| TimeZone::tzif("Local", &data).ok())
-            .unwrap_or(TimeZone::UTC),
+            .unwrap_or(TimeZone::UTC);
+    };
+    let tz = tz.to_string_lossy().into_owned();
+    let name = tz.strip_prefix(':').unwrap_or(&tz);
+    let name = if name.is_empty() { "Universal" } else { name };
+    let path = if name.starts_with('/') {
+        name.to_owned()
+    } else {
+        let dir = sysio::env::var("TZDIR").unwrap_or_else(|_| "/usr/share/zoneinfo".to_owned());
+        format!("{dir}/{name}")
+    };
+    if let Ok(data) = sysio::fs::read(&path)
+        && let Ok(zone) = TimeZone::tzif(name, &data)
+    {
+        return zone;
     }
+    if let Ok(zone) = TimeZone::posix(name) {
+        return zone;
+    }
+    // Regra com horário de verão mas sem datas de transição (`EST5EDT`): a glibc usa as do
+    // `posixrules` (o rodapé POSIX do tzfile, no Debian o de America/New_York).
+    if !name.contains(',') {
+        let dir = sysio::env::var("TZDIR").unwrap_or_else(|_| "/usr/share/zoneinfo".to_owned());
+        if let Some(rules) = sysio::fs::read(format!("{dir}/posixrules"))
+            .ok()
+            .and_then(|data| tzif_footer_rules(&data))
+            && let Ok(zone) = TimeZone::posix(&format!("{name},{rules}"))
+        {
+            return zone;
+        }
+    }
+    let abbr: String = name.chars().take_while(char::is_ascii_alphabetic).collect();
+    let abbr = if abbr.len() >= 3 { abbr } else { String::new() };
+    fixed_abbreviated_utc(&abbr)
+}
+
+/// As regras de transição (o que vem depois da primeira vírgula) do rodapé POSIX de um TZif v2+.
+fn tzif_footer_rules(data: &[u8]) -> Option<String> {
+    let text = data.strip_suffix(b"\n")?;
+    let start = text.iter().rposition(|b| *b == b'\n')? + 1;
+    let footer = std::str::from_utf8(&text[start..]).ok()?;
+    footer.split_once(',').map(|(_, rules)| rules.to_owned())
+}
+
+/// Fuso de deslocamento zero com a sigla dada (inclusive vazia), por um TZif mínimo: o jiff não
+/// tem como montar isso de outro jeito.
+fn fixed_abbreviated_utc(abbr: &str) -> jiff::tz::TimeZone {
+    let mut data = Vec::new();
+    data.extend_from_slice(b"TZif2");
+    data.extend_from_slice(&[0; 15]);
+    // isutcnt, isstdcnt, leapcnt, timecnt, typecnt, charcnt (versão 1, vazia).
+    for n in [0u32, 0, 0, 0, 1, 1] {
+        data.extend_from_slice(&n.to_be_bytes());
+    }
+    data.extend_from_slice(&[0, 0, 0, 0, 0, 0]);
+    data.push(0);
+    // Bloco da versão 2 com a sigla.
+    data.extend_from_slice(b"TZif2");
+    data.extend_from_slice(&[0; 15]);
+    let chars = abbr.len() as u32 + 1;
+    for n in [0u32, 0, 0, 0, 1, chars] {
+        data.extend_from_slice(&n.to_be_bytes());
+    }
+    data.extend_from_slice(&[0, 0, 0, 0, 0, 0]);
+    data.extend_from_slice(abbr.as_bytes());
+    data.push(0);
+    // Rodapé POSIX vazio (sem regra pra datas depois da última transição).
+    data.extend_from_slice(b"\n\n");
+    jiff::tz::TimeZone::tzif(abbr, &data).unwrap_or(jiff::tz::TimeZone::UTC)
 }
 
 /// Porte pseudo-linus: a base IANA embutida no binário (a mesma pra todos os pseudo-processos, sem

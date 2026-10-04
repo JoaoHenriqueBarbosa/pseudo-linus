@@ -91,9 +91,10 @@ const OPT_UNIVERSAL_2: &str = "utc";
 enum DateError {
     #[error("{}", translate!("date-error-write", "error" => strip_errno(.0)))]
     Write(sysio::io::Error),
-    #[error("{}", translate!("date-error-extra-operand", "operand" => .operand))]
+    // Porte pseudo-linus: aspas do `quote()` do gnulib (‘x’ em C.UTF-8), como o GNU.
+    #[error("{}", translate!("date-error-extra-operand", "operand" => uucore::display::locale_quote(.operand)))]
     ExtraOperand { operand: String },
-    #[error("{}", translate!("date-error-invalid-date", "date" => .date))]
+    #[error("{}", translate!("date-error-invalid-date", "date" => uucore::display::locale_quote(.date)))]
     InvalidDate { date: String },
     #[error("{}", translate!("date-error-format-missing-plus", "arg" => .arg))]
     FormatMissingPlus { arg: String },
@@ -111,7 +112,12 @@ enum DateError {
     SettingDateNotSupportedRedox,
 }
 
-impl UError for DateError {}
+impl UError for DateError {
+    // Porte pseudo-linus: operando a mais é erro de uso no GNU ("Try 'date --help'...").
+    fn usage(&self) -> bool {
+        matches!(self, Self::ExtraOperand { .. })
+    }
+}
 
 /// Settings for this program, parsed from the command line
 struct Settings {
@@ -604,7 +610,8 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             #[cfg(target_env = "ohos")]
             let date = ts.to_zoned(ohos_system_zone());
             #[cfg(not(target_env = "ohos"))]
-            let date = ts.to_zoned(TimeZone::try_system().unwrap_or(TimeZone::UTC));
+            // Porte pseudo-linus: fuso do pseudo-processo (o `try_system` lia o do host).
+            let date = ts.to_zoned(uucore::time::process_time_zone());
             let iter = std::iter::once(Ok(ParsedDateTime::InRange(date)));
             Box::new(iter)
         }
@@ -1043,7 +1050,8 @@ static TZ_ABBREV_CACHE: OnceLock<HashMap<String, String>> = OnceLock::new();
 fn build_tz_abbrev_map() -> HashMap<String, String> {
     let mut map = HashMap::new();
 
-    let tzdb = TimeZoneDatabase::from_env(); // spell-checker:disable-line
+    // Porte pseudo-linus: a tzdb embutida (o `from_env` lia o /usr/share/zoneinfo do host).
+    let tzdb = uucore::time::tz_database(); // spell-checker:disable-line
     // spell-checker:disable-next-line
     for tz_name in tzdb.available() {
         let tz_str = tz_name.as_str();

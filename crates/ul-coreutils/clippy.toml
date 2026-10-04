@@ -70,6 +70,12 @@ disallowed-methods = [
     { path = "std::os::unix::fs::fchown", reason = "use sysio::fs::fchown" },
     { path = "std::os::unix::fs::chroot", reason = "use sysio::fs::chroot" },
     { path = "jiff::tz::TimeZone::system", reason = "use uucore::time::process_time_zone" },
+    { path = "jiff::tz::TimeZone::try_system", reason = "use uucore::time::process_time_zone" },
+    { path = "jiff::tz::TimeZone::get", reason = "use uucore::time::tz_database (a tzdb do host fica fora)" },
+    { path = "jiff::tz::TimeZoneDatabase::from_env", reason = "use uucore::time::tz_database" },
+    { path = "jiff::tz::db", reason = "use uucore::time::tz_database" },
+    { path = "chrono::Local::now", reason = "use sysio::time::now e o fuso do pseudo-processo" },
+    { path = "chrono::Utc::now", reason = "use sysio::time::now" },
     { path = "jiff::Timestamp::now", reason = "use sysio::time::now" },
     { path = "jiff::Zoned::now", reason = "use sysio::time::now" },
 ]

@@ -41,6 +41,9 @@ impl TestkitCandidate {
             if let Some(sec) = parse_faketime(ts) {
                 kit = kit.time(sec);
             }
+        } else if let Some((sec, _)) = libfaketime_clock(&inv.full_env()) {
+            // O testkit só tem relógio parado.
+            kit = kit.time(sec);
         }
         for (rel, entry) in &inv.files.entries {
             let path = format!("{CASE_DIR}/{rel}");
@@ -122,7 +125,11 @@ impl KernelCandidate {
     pub fn sandbox_for(&self, inv: &Invocation) -> Result<kernel::Sandbox, String> {
         let clock = match inv.faketime.as_deref().and_then(parse_faketime) {
             Some(sec) => kernel::ClockMode::Fixed(sysabi::TimeSpec { sec, nsec: 0 }),
-            None => kernel::ClockMode::Host,
+            None => match libfaketime_clock(&inv.full_env()) {
+                Some((sec, false)) => kernel::ClockMode::Fixed(sysabi::TimeSpec { sec, nsec: 0 }),
+                Some((sec, true)) => kernel::ClockMode::StartAt(sysabi::TimeSpec { sec, nsec: 0 }),
+                None => kernel::ClockMode::Host,
+            },
         };
         let env: Vec<Vec<u8>> = inv.full_env().into_iter().map(|(k, v)| format!("{k}={v}").into_bytes()).collect();
         let cfg = kernel::SandboxConfig {
@@ -235,6 +242,35 @@ pub fn tree_to_memtree(tree: Vec<(Vec<u8>, TreeEntry)>) -> MemTree {
 }
 
 /// "AAAA-MM-DD HH:MM:SS" (UTC) em segundos desde a época.
+/// Relógio que a libfaketime daria ao processo do caso, lido do ambiente como ela lê: só vale com
+/// `LD_PRELOAD` apontando pra `libfaketime` e um `FAKETIME` absoluto (`AAAA-MM-DD HH:MM:SS`), que
+/// ela interpreta como hora local no `TZ` do processo (sem `TZ`, o /etc/localtime do oráculo, que é
+/// UTC). Sem `@` o relógio fica parado; com `@` começa ali e anda. Devolve `(segundos, anda)`.
+pub fn libfaketime_clock(env: &std::collections::BTreeMap<String, String>) -> Option<(i64, bool)> {
+    let get = |k: &str| env.get(k).map(String::as_str);
+    if !get("LD_PRELOAD").is_some_and(|p| p.contains("libfaketime")) {
+        return None;
+    }
+    let spec = get("FAKETIME")?.trim();
+    let (running, abs) = match spec.strip_prefix('@') {
+        Some(rest) => (true, rest.trim()),
+        None => (false, spec),
+    };
+    let dt: jiff::civil::DateTime = abs.parse().ok()?;
+    let tz = match get("TZ") {
+        Some(name) if !name.is_empty() => {
+            let name = name.strip_prefix(':').unwrap_or(name);
+            jiff::tz::TimeZoneDatabase::bundled()
+                .get(name)
+                .or_else(|_| jiff::tz::TimeZone::posix(name))
+                .unwrap_or(jiff::tz::TimeZone::UTC)
+        }
+        _ => jiff::tz::TimeZone::UTC,
+    };
+    let ts = dt.to_zoned(tz).ok()?.timestamp();
+    Some((ts.as_second(), running))
+}
+
 pub fn parse_faketime(ts: &str) -> Option<i64> {
     let ts = ts.trim().trim_start_matches('@');
     let (date, time) = ts.split_once(' ').unwrap_or((ts, "00:00:00"));

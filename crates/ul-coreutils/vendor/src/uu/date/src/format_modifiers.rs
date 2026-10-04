@@ -181,7 +181,8 @@ fn has_gnu_modifiers(format_string: &str) -> bool {
                 continue;
             }
             if let Some(parsed) = parse_format_spec(&format_string[i..]) {
-                if !parsed.flags.is_empty() || parsed.width.is_some() {
+                // Porte pseudo-linus: `%Z` sempre pelo caminho próprio (ver `format_with_modifiers`).
+                if !parsed.flags.is_empty() || parsed.width.is_some() || parsed.spec == "Z" {
                     return true;
                 }
                 i += parsed.len;
@@ -234,7 +235,13 @@ fn format_with_modifiers(
                 base_format.clear();
                 base_format.push('%');
                 base_format.push_str(parsed.spec);
-                let formatted = broken_down.to_string_with_config(config, &base_format)?;
+                // Porte pseudo-linus: o `%Z` do jiff põe a sigla em maiúsculas; o strftime da glibc
+                // imprime a sigla do tzfile como está (`Foo`, `Universal`, ou vazia).
+                let formatted = if parsed.spec == "Z" {
+                    date.time_zone().to_offset_info(date.timestamp()).abbreviation().to_string()
+                } else {
+                    broken_down.to_string_with_config(config, &base_format)?
+                };
 
                 if !parsed.flags.is_empty() || parsed.width.is_some() {
                     let modified = apply_modifiers(&formatted, &parsed)?;

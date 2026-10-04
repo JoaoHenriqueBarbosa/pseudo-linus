@@ -2536,6 +2536,7 @@ name = "pl-testing"
 version = "0.1.0"
 dependencies = [
  "harness",
+ "jiff",
  "kernel",
  "sysabi",
 ]

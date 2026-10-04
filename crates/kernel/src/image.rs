@@ -23,6 +23,9 @@ enum Item {
 
 use Item::*;
 
+// `/usr/share/zoneinfo` do tzdata do Debian 13 (copiado do oráculo; ver build.rs).
+include!(concat!(env!("OUT_DIR"), "/copied_trees.rs"));
+
 const ROOT_TREE: &[Item] = &[
     Link("/bin", "usr/bin"),
     Dir("/boot", 0o755),
@@ -94,6 +97,8 @@ const ROOT_TREE: &[Item] = &[
     File("/etc/motd", include_bytes!("../image/etc/motd"), 0o644),
     File("/etc/host.conf", include_bytes!("../image/etc/host.conf"), 0o644),
     File("/etc/fstab", include_bytes!("../image/etc/fstab"), 0o644),
+    // Como no container: UTC, e o glibc lê o tzfile por este link.
+    Link("/etc/localtime", "/usr/share/zoneinfo/Etc/UTC"),
     Link("/etc/mtab", "/proc/mounts"),
     File("/etc/skel/.bashrc", include_bytes!("../image/etc/skel/.bashrc"), 0o644),
     File("/etc/skel/.profile", include_bytes!("../image/etc/skel/.profile"), 0o644),
@@ -134,7 +139,7 @@ fn stamp(ns: &Namespace, cx: &Caller, path: &[u8]) -> Result<(), Errno> {
 /// Monta a raiz: árvore, `/etc` e um executável por programa.
 pub(crate) fn build_root(ns: &Namespace, cx: &Caller, programs: &[Program], hostname: &str) -> Result<(), Errno> {
     let mut stamped: Vec<Vec<u8>> = Vec::new();
-    for item in ROOT_TREE {
+    for item in ROOT_TREE.iter().chain(COPIED_TREES) {
         match item {
             Dir(p, m) => mkdir(ns, cx, p.as_bytes(), *m)?,
             File(p, data, m) => put_file(ns, cx, p.as_bytes(), data, *m)?,

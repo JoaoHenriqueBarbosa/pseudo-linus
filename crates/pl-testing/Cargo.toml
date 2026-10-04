@@ -17,6 +17,8 @@ kernel = ["dep:kernel"]
 sysabi = { workspace = true, features = ["testkit"] }
 kernel = { workspace = true, optional = true }
 harness = { path = "../../testbench/crates/harness" }
+# Emulação da libfaketime dos casos: o FAKETIME absoluto é hora local no TZ do caso.
+jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }
 
 [lints]
 workspace = true
