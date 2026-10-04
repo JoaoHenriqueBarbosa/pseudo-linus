@@ -1,0 +1,10 @@
+# Ignore específico do crates/host/Dockerfile (BuildKit usa <Dockerfile>.dockerignore quando existe).
+# Lista do que entra: o resto do repositório (target, corpus, scratch, experimentos) fica de fora.
+*
+!Cargo.toml
+!Cargo.lock
+!crates
+!testbench/Cargo.toml
+!testbench/crates
+!testbench/golden
+**/target

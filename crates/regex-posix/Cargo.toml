@@ -1,0 +1,23 @@
+[package]
+name = "regex-posix"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+# Deriva do regcomp.c/regexec.c do glibc (LGPL-2.1+) e, em trechos pequenos do parse.rs, do dfa.c
+# do gnulib (GPL-3.0+); ver PROVENANCE.md.
+license = "LGPL-2.1-or-later AND GPL-3.0-or-later"
+publish.workspace = true
+description = "Motor de regex BRE/ERE do GNU: sintaxe do regcomp do glibc (bits RE_*), leftmost-longest e submatches como o glibc"
+
+[dependencies]
+bitflags = "2"
+regex-automata = "0.4.18"
+regex-syntax = "0.8"
+
+[dev-dependencies]
+harness = { path = "../../testbench/crates/harness" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints]
+workspace = true

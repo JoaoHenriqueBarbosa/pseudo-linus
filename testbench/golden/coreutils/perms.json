@@ -1,0 +1,596 @@
+{
+  "chgrp-invalid-group": {
+    "stdout": "",
+    "stderr": "chgrp: invalid group: ‘nogroupx’\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chgrp-missing-file": {
+    "stdout": "",
+    "stderr": "chgrp: cannot access 'nope.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chgrp-missing-operand": {
+    "stdout": "",
+    "stderr": "chgrp: missing operand after ‘daemon’\nTry 'chgrp --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chgrp-recursive": {
+    "stdout": "d root:nogroup\nd/x root:nogroup\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "chgrp-v": {
+    "stdout": "changed group of 'a.txt' from root to daemon\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chgrp-v-numeric": {
+    "stdout": "changed group of 'a.txt' from root to 65534\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chgrp-v-retained": {
+    "stdout": "group of 'a.txt' retained as root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chmod-capital-x": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 457
+      },
+      "d/plain.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 2,
+        "sha256": "fd6641673e7f3bf6e80e4bc5401fcb2821a1e117206c8e1c65cef23a58dc37ff",
+        "data": "p\n"
+      },
+      "d/sub": {
+        "kind": "dir",
+        "mode": 457
+      },
+      "d/tool": {
+        "kind": "file",
+        "mode": 457,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      }
+    }
+  },
+  "chmod-changes-only": {
+    "stdout": "mode of 'b.txt' changed from 0600 (rw-------) to 0644 (rw-r--r--)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "chmod-copy-perms": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 511,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chmod-equals": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 292,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chmod-invalid-mode": {
+    "stdout": "",
+    "stderr": "chmod: invalid mode: ‘999’\nTry 'chmod --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chmod-invalid-symbolic": {
+    "stdout": "",
+    "stderr": "chmod: invalid mode: ‘u+q’\nTry 'chmod --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chmod-missing-file": {
+    "stdout": "",
+    "stderr": "chmod: cannot access 'nope.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chmod-missing-operand": {
+    "stdout": "",
+    "stderr": "chmod: missing operand after ‘755’\nTry 'chmod --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chmod-no-args": {
+    "stdout": "",
+    "stderr": "chmod: missing operand\nTry 'chmod --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chmod-octal": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 493,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chmod-plus-w-respects-umask": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ro.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "8e54b0ca18020275e4aef1ca0eb5e197e066c065c1864817652a8a39c55402cd",
+        "data": "r\n"
+      }
+    }
+  },
+  "chmod-plus-x": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "chmod-recursive": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "092fcfbbcfca3b5be7ae1b5e58538e92c35ab273ae13664fed0d67484c8e78a6",
+        "data": "f\n"
+      },
+      "d/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/sub/g.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "768c71d785bf6bbbf8c4d6af6582041f2659027140a962cd0c55b11eddfd5e3d",
+        "data": "g\n"
+      }
+    }
+  },
+  "chmod-reference": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 416,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "ref": {
+        "kind": "file",
+        "mode": 416,
+        "size": 2,
+        "sha256": "8e54b0ca18020275e4aef1ca0eb5e197e066c065c1864817652a8a39c55402cd",
+        "data": "r\n"
+      }
+    }
+  },
+  "chmod-special-bits": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.bin": {
+        "kind": "file",
+        "mode": 2541,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      }
+    }
+  },
+  "chmod-sticky-symbolic": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "shared": {
+        "kind": "dir",
+        "mode": 1023
+      }
+    }
+  },
+  "chmod-symbolic-multi": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 448,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chmod-through-symlink": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "target.txt"
+      },
+      "target.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      }
+    }
+  },
+  "chmod-verbose": {
+    "stdout": "mode of 'a.txt' changed from 0755 (rwxr-xr-x) to 0600 (rw-------)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chmod-zero": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 0,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-c-no-change": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-dot-separator": {
+    "stdout": "changed ownership of 'a.txt' from root:root to daemon:daemon\n",
+    "stderr": "chown: warning: '.' should be ':': ‘daemon.daemon’\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-h-symlink": {
+    "stdout": "changed ownership of 'link' from root to daemon\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "target.txt"
+      },
+      "target.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      }
+    }
+  },
+  "chown-invalid-group": {
+    "stdout": "",
+    "stderr": "chown: invalid group: ‘root:nogroupx’\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-invalid-user": {
+    "stdout": "",
+    "stderr": "chown: invalid user: ‘nouser’\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-login-group": {
+    "stdout": "nobody:nogroup\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-missing-file": {
+    "stdout": "",
+    "stderr": "chown: cannot access 'nope.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chown-missing-operand": {
+    "stdout": "",
+    "stderr": "chown: missing operand after ‘daemon’\nTry 'chown --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chown-recursive": {
+    "stdout": "d nobody:nogroup\nd/x nobody:nogroup\nd/sub nobody:nogroup\nd/sub/y nobody:nogroup\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/sub/y": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      },
+      "d/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "chown-v-group-only": {
+    "stdout": "changed ownership of 'a.txt' from root:root to :daemon\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-v-numeric": {
+    "stdout": "changed ownership of 'a.txt' from root:root to 65534:65534\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-v-retained": {
+    "stdout": "ownership of 'a.txt' retained as root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-v-user": {
+    "stdout": "changed ownership of 'a.txt' from root to daemon\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "chown-v-user-group": {
+    "stdout": "changed ownership of 'a.txt' from root:root to daemon:daemon\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  }
+}

@@ -1,0 +1,541 @@
+tool = "archive"
+source = "manual"
+
+# tar -c sobre a fixture (datas fixas, dono root): o arquivo gerado entra na árvore final e é
+# comparado byte a byte com o do GNU tar 1.35. Sem links simbólicos sem --mtime, porque o oráculo não
+# fixa a data deles.
+
+[[case]]
+id = "tar-create-gnu"
+argv = ["tar", "--sort=name", "--format=gnu", "-cf", "out.tar", "dir"]
+tags = ["tar", "create", "gnu"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-oldgnu"
+argv = ["tar", "-b", "1", "--sort=name", "--format=oldgnu", "-cf", "out.tar", "dir"]
+tags = ["tar", "create", "oldgnu"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-ustar"
+argv = ["tar", "-b", "1", "--sort=name", "--format=ustar", "-cf", "out.tar", "dir"]
+tags = ["tar", "create", "ustar"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-v7"
+argv = ["tar", "-b", "1", "--sort=name", "--format=v7", "-cf", "out.tar", "dir"]
+tags = ["tar", "create", "v7"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-pax-notimes"
+argv = ["tar", "-b", "1", "--sort=name", "--format=pax", "--pax-option=delete=atime,delete=ctime", "-cf", "out.tar", "dir"]
+tags = ["tar", "create", "pax"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-verbose"
+argv = ["tar", "-b", "1", "--sort=name", "-cvf", "out.tar", "dir"]
+tags = ["tar", "create", "verbose"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-vv"
+argv = ["tar", "-b", "1", "--sort=name", "-cvvf", "out.tar", "dir", "./dir/a.txt"]
+tags = ["tar", "create", "verbose"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-stdout"
+argv = ["tar", "--sort=name", "-cvf", "-", "dir/sub"]
+tags = ["tar", "create", "stdout"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-absolute"
+argv = ["tar", "-b", "1", "-cvf", "out.tar", "/work/case/dir/a.txt", "/work/case/dir/empty"]
+tags = ["tar", "create", "names"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-dotdot"
+argv = ["tar", "-b", "1", "-cvf", "out.tar", "dir/../dir/b.txt"]
+tags = ["tar", "create", "names"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-chdir"
+argv = ["tar", "-b", "1", "--sort=name", "-cvf", "out.tar", "-C", "dir", "a.txt", "sub", "-C", "sub", "deep"]
+tags = ["tar", "create", "chdir"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-missing"
+argv = ["tar", "-b", "1", "-cf", "out.tar", "dir/a.txt", "nope", "dir/zz"]
+tags = ["tar", "create", "error"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-exclude"
+argv = ["tar", "-b", "1", "--sort=name", "-cvf", "out.tar", "--exclude=*.txt", "--exclude=deep", "dir"]
+tags = ["tar", "create", "exclude"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-exclude-anchored"
+argv = ["tar", "-b", "1", "--sort=name", "-cvf", "out.tar", "--anchored", "--exclude=dir/sub", "--no-anchored", "--exclude=b.*", "dir"]
+tags = ["tar", "create", "exclude"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-no-recursion"
+argv = ["tar", "-b", "1", "--sort=name", "-cvf", "out.tar", "--no-recursion", "dir", "dir/sub", "--recursion", "dir/sub/deep"]
+tags = ["tar", "create"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-transform"
+argv = ["tar", "-b", "1", "--sort=name", "-cvf", "out.tar", "--transform=s,^dir,top,", "--transform=s/\\.txt$/.md/", "dir"]
+tags = ["tar", "create", "transform"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-owner-mode-mtime"
+argv = ["tar", "-b", "1", "--sort=name", "--owner=alice:1000", "--group=staff:50", "--mode=go-w,u+x", "--mtime=2020-02-03 04:05:06", "-cf", "out.tar", "dir"]
+tags = ["tar", "create", "owner"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-owner-names"
+argv = ["tar", "-b", "1", "--sort=name", "--owner=daemon", "--group=nogroup", "-cf", "out.tar", "dir/a.txt"]
+tags = ["tar", "create", "owner"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-numeric-blocking"
+argv = ["tar", "--sort=name", "--numeric-owner", "-b", "1", "-cf", "out.tar", "dir/a.txt", "dir/sub"]
+tags = ["tar", "create"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-record-size"
+argv = ["tar", "--sort=name", "--record-size=2048", "-cf", "out.tar", "dir/sub"]
+tags = ["tar", "create"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-files-from"
+argv = ["tar", "-b", "1", "-cvf", "out.tar", "-T", "list.txt"]
+tags = ["tar", "create", "files-from"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+"list.txt" = { content = "dir/a.txt\n-C dir\nsub/c.txt\nb.txt\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-null"
+argv = ["tar", "-b", "1", "-cvf", "out.tar", "--null", "-T", "list0"]
+tags = ["tar", "create", "files-from"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+"list0" = { content = "dir/b.txt\u0000dir/sp ace.txt\u0000", mode = 0o644 }
+
+[[case]]
+id = "tar-create-ustar-long"
+argv = ["tar", "-b", "1", "--sort=name", "--format=ustar", "-cf", "out.tar", "long"]
+tags = ["tar", "create", "error"]
+[case.files]
+"long" = { dir = true, mode = 0o755 }
+"long/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" = { dir = true, mode = 0o755 }
+"long/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy" = { dir = true, mode = 0o755 }
+"long/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy/file.txt" = { content = "deep\n", mode = 0o644 }
+"long/fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" = { content = "99\n", mode = 0o644 }
+"long/zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz" = { content = "z\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-v7-long"
+argv = ["tar", "-b", "1", "--sort=name", "--format=v7", "-cf", "out.tar", "long"]
+tags = ["tar", "create", "error"]
+[case.files]
+"long" = { dir = true, mode = 0o755 }
+"long/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" = { dir = true, mode = 0o755 }
+"long/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy" = { dir = true, mode = 0o755 }
+"long/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy/file.txt" = { content = "deep\n", mode = 0o644 }
+"long/fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" = { content = "99\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-gnu-long"
+argv = ["tar", "-b", "1", "--sort=name", "-cf", "out.tar", "long"]
+tags = ["tar", "create", "longname"]
+[case.files]
+"long" = { dir = true, mode = 0o755 }
+"long/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" = { dir = true, mode = 0o755 }
+"long/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy" = { dir = true, mode = 0o755 }
+"long/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy/file.txt" = { content = "deep\n", mode = 0o644 }
+"long/fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" = { content = "99\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-bzip2"
+argv = ["tar", "--sort=name", "-cjf", "out.tbz", "dir"]
+tags = ["tar", "create", "bzip2"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-checkpoint"
+argv = ["tar", "--sort=name", "-b", "1", "--checkpoint=4", "-cf", "out.tar", "dir"]
+tags = ["tar", "create", "checkpoint"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-checkpoint-echo"
+argv = ["tar", "--sort=name", "-b", "2", "--checkpoint=3", "--checkpoint-action=echo=n=%u %s", "--checkpoint-action=dot", "-cf", "out.tar", "dir"]
+tags = ["tar", "create", "checkpoint"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-remove-files"
+argv = ["tar", "-b", "1", "--sort=name", "--remove-files", "-cf", "out.tar", "dir/sub"]
+tags = ["tar", "create", "remove-files"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-index-file"
+argv = ["tar", "-b", "1", "--sort=name", "--index-file=idx.txt", "-cvf", "out.tar", "dir/sub"]
+tags = ["tar", "create", "verbose"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-symlink-mtime"
+argv = ["tar", "-b", "1", "--sort=name", "--mtime=@1700000000", "-cvvf", "out.tar", "dir"]
+tags = ["tar", "create", "symlink"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+"dir/link" = { symlink = "a.txt" }
+"dir/dangling" = { symlink = "nowhere" }
+
+[[case]]
+id = "tar-create-self"
+argv = ["tar", "-b", "1", "--sort=name", "--mtime=@1700000000", "-cf", "dir/self.tar", "dir"]
+tags = ["tar", "create"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-verify"
+argv = ["tar", "-b", "1", "--sort=name", "-cWvf", "out.tar", "dir/sub"]
+tags = ["tar", "create", "verify"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+
+[[case]]
+id = "tar-create-dereference"
+argv = ["tar", "-b", "1", "--sort=name", "-h", "--mtime=@1700000000", "-cf", "out.tar", "dir/link", "dir/a.txt"]
+tags = ["tar", "create", "symlink"]
+[case.files]
+"dir" = { dir = true, mode = 0o755 }
+"dir/a.txt" = { content = "hello world\n", mode = 0o644 }
+"dir/b.txt" = { content = "bee\n", mode = 0o640 }
+"dir/run.sh" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+"dir/sub" = { dir = true, mode = 0o750 }
+"dir/sub/c.txt" = { content = "sea\n", mode = 0o600 }
+"dir/sub/deep" = { dir = true, mode = 0o755 }
+"dir/sub/deep/d.txt" = { content = "deep\n", mode = 0o644 }
+"dir/empty" = { dir = true, mode = 0o700 }
+"dir/sp ace.txt" = { content = "space\n", mode = 0o644 }
+"dir/link" = { symlink = "a.txt" }

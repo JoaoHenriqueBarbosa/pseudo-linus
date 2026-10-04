@@ -1,0 +1,1002 @@
+{
+  "d3-adjacent-blocks": {
+    "stdout": "====\n1:2,3c\n  B\n  c\n2:2,3c\n  b\n  c\n3:2,3c\n  b\n  C\n====3\n1:5c\n2:5c\n  e\n3:5c\n  E\n====3\n1:7a\n2:7a\n3:8c\n  h\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "mine": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "c6ea2f182868db95641f4f9b36a43eb4915e307a3f4a2205e0fc3d133c337e33",
+        "data": "a\nB\nc\nd\ne\nf\ng\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "76c3d8038f0df31400f707579cfbe35985b3c609be3498164184ee2d4ce1d272",
+        "data": "a\nb\nc\nd\ne\nf\ng\n"
+      },
+      "yours": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "db9b2de68f31abd7a31c302530a72cb5c390aac948e16c8d85969c878293201d",
+        "data": "a\nb\nC\nd\nE\nf\ng\nh\n"
+      }
+    }
+  },
+  "d3-adjacent-blocks-merge": {
+    "stdout": "a\n<<<<<<< mine\nB\nc\n||||||| old\nb\nc\n=======\nb\nC\n>>>>>>> yours\nd\nE\nf\ng\nh\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "mine": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "c6ea2f182868db95641f4f9b36a43eb4915e307a3f4a2205e0fc3d133c337e33",
+        "data": "a\nB\nc\nd\ne\nf\ng\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "76c3d8038f0df31400f707579cfbe35985b3c609be3498164184ee2d4ce1d272",
+        "data": "a\nb\nc\nd\ne\nf\ng\n"
+      },
+      "yours": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "db9b2de68f31abd7a31c302530a72cb5c390aac948e16c8d85969c878293201d",
+        "data": "a\nb\nC\nd\nE\nf\ng\nh\n"
+      }
+    }
+  },
+  "d3-ambiguous": {
+    "stdout": "",
+    "stderr": "diff3: option '--s' is ambiguous; possibilities: '--show-all' '--show-overlap' '--strip-trailing-cr'\ndiff3: Try 'diff3 --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "d3-binary": {
+    "stdout": "",
+    "stderr": "diff3: diff failed: Binary files b1 and b2 differ\n",
+    "exit": 2,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "3a100994c4e38751871e6e8eef9adad2b20177fdeaf650daacdcd74f4c9421e3",
+        "data": "a\u0000b\n"
+      },
+      "b2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "f140fb535f5aeb6a5247ad72e3cb142fd7dbd3ae970f904e3a3e898cb05b6378",
+        "data": "a\u0000c\n"
+      }
+    }
+  },
+  "d3-binary-text": {
+    "stdout": "====1\n1:1c\n  a\u0000b\n2:1c\n3:1c\n  a\u0000c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "3a100994c4e38751871e6e8eef9adad2b20177fdeaf650daacdcd74f4c9421e3",
+        "data": "a\u0000b\n"
+      },
+      "b2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "f140fb535f5aeb6a5247ad72e3cb142fd7dbd3ae970f904e3a3e898cb05b6378",
+        "data": "a\u0000c\n"
+      }
+    }
+  },
+  "d3-deletes-and-inserts": {
+    "stdout": "====1\n1:1a\n2:2c\n3:2c\n  b\n====1\n1:4,5c\n  x\n  y\n2:4a\n3:4a\n====\n1:7,8c\n  f\n  h\n2:6,8c\n  f\n  g\n  h\n3:6,7c\n  z\n  g\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "mine": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "63563dee6bfb720d17b49cb190443c2817ce2eb706ef1e7e986d5920e9cc7a9c",
+        "data": "a\nc\nd\nx\ny\ne\nf\nh\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "a8cdd76642f0ecda0067f4d780d027935959e42dc16520220f295191b913efba",
+        "data": "a\nb\nc\nd\ne\nf\ng\nh\n"
+      },
+      "yours": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "d4aeefac32733d5bfe14a8e4243bd332020b4cc497193c2b2d37eed86a0dc9e3",
+        "data": "a\nb\nc\nd\ne\nz\ng\n"
+      }
+    }
+  },
+  "d3-deletes-and-inserts-ed": {
+    "stdout": "8a\n||||||| old\nf\ng\nh\n=======\nz\ng\n>>>>>>> yours\n.\n6a\n<<<<<<< mine\n.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "mine": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "63563dee6bfb720d17b49cb190443c2817ce2eb706ef1e7e986d5920e9cc7a9c",
+        "data": "a\nc\nd\nx\ny\ne\nf\nh\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "a8cdd76642f0ecda0067f4d780d027935959e42dc16520220f295191b913efba",
+        "data": "a\nb\nc\nd\ne\nf\ng\nh\n"
+      },
+      "yours": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "d4aeefac32733d5bfe14a8e4243bd332020b4cc497193c2b2d37eed86a0dc9e3",
+        "data": "a\nb\nc\nd\ne\nz\ng\n"
+      }
+    }
+  },
+  "d3-deletes-and-inserts-merge": {
+    "stdout": "a\nc\nd\nx\ny\ne\n<<<<<<< mine\nf\nh\n||||||| old\nf\ng\nh\n=======\nz\ng\n>>>>>>> yours\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "mine": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "63563dee6bfb720d17b49cb190443c2817ce2eb706ef1e7e986d5920e9cc7a9c",
+        "data": "a\nc\nd\nx\ny\ne\nf\nh\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "a8cdd76642f0ecda0067f4d780d027935959e42dc16520220f295191b913efba",
+        "data": "a\nb\nc\nd\ne\nf\ng\nh\n"
+      },
+      "yours": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "d4aeefac32733d5bfe14a8e4243bd332020b4cc497193c2b2d37eed86a0dc9e3",
+        "data": "a\nb\nc\nd\ne\nz\ng\n"
+      }
+    }
+  },
+  "d3-dots-ed": {
+    "stdout": "1,2c\n..x\n.\n1s/^\\.//\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e7d99a160ad24c9959713a34697f9518fd36ece5bd94f9719963c7cf5a5c7049",
+        "data": ".dot\n2\n"
+      },
+      "d2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "f8aad9bc1f5a3915e28bcae71e8ed013806f5231f07d88aaa63f3a0fe05b0ce5",
+        "data": ".x\n"
+      },
+      "d3": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      }
+    }
+  },
+  "d3-dots-show-all": {
+    "stdout": "2a\n||||||| d1\n..dot\n2\n=======\n..x\n>>>>>>> d2\n.\n4,7s/^\\.//\n0a\n<<<<<<< d3\n.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "d1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e7d99a160ad24c9959713a34697f9518fd36ece5bd94f9719963c7cf5a5c7049",
+        "data": ".dot\n2\n"
+      },
+      "d2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "f8aad9bc1f5a3915e28bcae71e8ed013806f5231f07d88aaa63f3a0fe05b0ce5",
+        "data": ".x\n"
+      },
+      "d3": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      }
+    }
+  },
+  "d3-dots-show-overlap": {
+    "stdout": "2a\n=======\n..x\n>>>>>>> d2\n.\n4,7s/^\\.//\n0a\n<<<<<<< d1\n.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "d1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "e7d99a160ad24c9959713a34697f9518fd36ece5bd94f9719963c7cf5a5c7049",
+        "data": ".dot\n2\n"
+      },
+      "d2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "f8aad9bc1f5a3915e28bcae71e8ed013806f5231f07d88aaa63f3a0fe05b0ce5",
+        "data": ".x\n"
+      },
+      "d3": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      }
+    }
+  },
+  "d3-easy-only": {
+    "stdout": "9a\nnew\n.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-ed": {
+    "stdout": "9a\nnew\n.\n2c\nB\n.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-empty-files": {
+    "stdout": "====2\n1:0a\n3:0a\n2:1,2c\n  1\n  2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "c1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "e": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "d3-extra-operand": {
+    "stdout": "",
+    "stderr": "diff3: extra operand 'z'\ndiff3: Try 'diff3 --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "d3-help": {
+    "stdout": "Usage: diff3 [OPTION]... MYFILE OLDFILE YOURFILE\nCompare three files line by line.\n\nMandatory arguments to long options are mandatory for short options too.\n  -A, --show-all              output all changes, bracketing conflicts\n\n  -e, --ed                    output ed script incorporating changes\n                                from OLDFILE to YOURFILE into MYFILE\n  -E, --show-overlap          like -e, but bracket conflicts\n  -3, --easy-only             like -e, but incorporate only nonoverlapping changes\n  -x, --overlap-only          like -e, but incorporate only overlapping changes\n  -X                          like -x, but bracket conflicts\n  -i                          append 'w' and 'q' commands to ed scripts\n\n  -m, --merge                 output actual merged file, according to\n                                -A if no other options are given\n\n  -a, --text                  treat all files as text\n      --strip-trailing-cr     strip trailing carriage return on input\n  -T, --initial-tab           make tabs line up by prepending a tab\n      --diff-program=PROGRAM  use PROGRAM to compare files\n  -L, --label=LABEL           use LABEL instead of file name\n                                (can be repeated up to three times)\n\n      --help                  display this help and exit\n  -v, --version               output version information and exit\n\nThe default output format is a somewhat human-readable representation of\nthe changes.\n\nThe -e, -E, -x, -X (and corresponding long) options cause an ed script\nto be output instead of the default.\n\nFinally, the -m (--merge) option causes diff3 to do the merge internally\nand output the actual merged file.  For unusual input, this is more\nrobust than using ed.\n\nIf a FILE is '-', read standard input.\nExit status is 0 if successful, 1 if conflicts, 2 if trouble.\n\nReport bugs to: bug-diffutils@gnu.org\nGNU diffutils home page: <https://www.gnu.org/software/diffutils/>\nGeneral help using GNU software: <https://www.gnu.org/gethelp/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "d3-identical": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "c1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      }
+    }
+  },
+  "d3-incompatible": {
+    "stdout": "",
+    "stderr": "diff3: incompatible options\ndiff3: Try 'diff3 --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "d3-incompatible-merge-i": {
+    "stdout": "",
+    "stderr": "diff3: incompatible options\ndiff3: Try 'diff3 --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "d3-initial-tab": {
+    "stdout": "====\n1:2c\n\tA\n2:2c\n\t2\n3:2c\n\tB\n====2\n1:6c\n3:6c\n\tS\n2:6c\n\t6\n====3\n1:9a\n2:9a\n3:10c\n\tnew\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-labels": {
+    "stdout": "1\n<<<<<<< L1\nA\n||||||| L2\n2\n=======\nB\n>>>>>>> L3\n3\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "516f852424057371fc0e3614c59190f43c7384ca0aa8ac2d5fee1199af9e7832",
+        "data": "1\nA\n3\n"
+      },
+      "o": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "y": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0387bf122585343448a3821c00e3a74fe0c3e186480b9bfd16690660ebb1dbca",
+        "data": "1\nB\n3\n"
+      }
+    }
+  },
+  "d3-merge": {
+    "stdout": "1\n<<<<<<< m2\nA\n||||||| old\n2\n=======\nB\n>>>>>>> y2\n3\n4\n5\n<<<<<<< old\n6\n=======\nS\n>>>>>>> y2\n7\n8\n9\nnew\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-merge-3": {
+    "stdout": "1\nA\n3\n4\n5\nS\n7\n8\n9\nnew\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-merge-E": {
+    "stdout": "1\n<<<<<<< m2\nA\n=======\nB\n>>>>>>> y2\n3\n4\n5\nS\n7\n8\n9\nnew\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-merge-clean": {
+    "stdout": "1\nX\n3\n4\nY\n6\n7\n8\nZ\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "mine": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "034b1495c7cb94b2496bd7d850c4f20b0814e64bab12b96c7dacf6500a7fcfd0",
+        "data": "1\nX\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "yours": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "a21ee1762ee35d24b45bb1df33d4430e632c241c1cc3d0e8b521a323ce6c3d44",
+        "data": "1\n2\n3\n4\nY\n6\n7\n8\nZ\n"
+      }
+    }
+  },
+  "d3-merge-e": {
+    "stdout": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-missing": {
+    "stdout": "",
+    "stderr": "diff: nope: No such file or directory\ndiff3: subsidiary program 'diff' failed (exit status 2)\n",
+    "exit": 2,
+    "files": {
+      "o": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "y": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+        "data": "2\n"
+      }
+    }
+  },
+  "d3-missing-operand": {
+    "stdout": "",
+    "stderr": "diff3: missing operand after 'o'\ndiff3: Try 'diff3 --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "d3-missing-two": {
+    "stdout": "",
+    "stderr": "diff: nope1: No such file or directory\ndiff: nope2: No such file or directory\ndiff3: subsidiary program 'diff' failed (exit status 2)\n",
+    "exit": 2,
+    "files": {
+      "m": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      }
+    }
+  },
+  "d3-nonl-ed-one": {
+    "stdout": "2c\nX\n.\n",
+    "stderr": "diff3: No newline at end of file\n",
+    "exit": 0,
+    "files": {
+      "c1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "c2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "c49fe5fb75f93dc764ab9736b39628c8a1bb9574b9bfd64ca12c9d7a6b00a86a",
+        "data": "1\nX"
+      }
+    }
+  },
+  "d3-nonl-ed-warnings": {
+    "stdout": "",
+    "stderr": "diff3: No newline at end of file\ndiff3: No newline at end of file\ndiff3: No newline at end of file\n",
+    "exit": 0,
+    "files": {
+      "c1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "c2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "c49fe5fb75f93dc764ab9736b39628c8a1bb9574b9bfd64ca12c9d7a6b00a86a",
+        "data": "1\nX"
+      },
+      "c3": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "b598b3a62a3f7cedb17e66d1cb31d53dffeebaf5c07e2c60d5e31971936fd35e",
+        "data": "1\n2"
+      }
+    }
+  },
+  "d3-nonl-merge-conflict": {
+    "stdout": "1\n<<<<<<< n1\n2=======\nX>>>>>>> n2\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "n1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "b598b3a62a3f7cedb17e66d1cb31d53dffeebaf5c07e2c60d5e31971936fd35e",
+        "data": "1\n2"
+      },
+      "n2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "c49fe5fb75f93dc764ab9736b39628c8a1bb9574b9bfd64ca12c9d7a6b00a86a",
+        "data": "1\nX"
+      }
+    }
+  },
+  "d3-nonl-normal": {
+    "stdout": "====1\n1:2c\n  X\n\\ No newline at end of file\n2:2c\n3:2c\n  2\n\\ No newline at end of file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "b598b3a62a3f7cedb17e66d1cb31d53dffeebaf5c07e2c60d5e31971936fd35e",
+        "data": "1\n2"
+      },
+      "n2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "c49fe5fb75f93dc764ab9736b39628c8a1bb9574b9bfd64ca12c9d7a6b00a86a",
+        "data": "1\nX"
+      }
+    }
+  },
+  "d3-normal-mixed": {
+    "stdout": "====\n1:2c\n  A\n2:2c\n  2\n3:2c\n  B\n====2\n1:6c\n3:6c\n  S\n2:6c\n  6\n====3\n1:9a\n2:9a\n3:10c\n  new\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-normal-separate": {
+    "stdout": "====1\n1:2c\n  X\n2:2c\n3:2c\n  2\n====3\n1:5c\n2:5c\n  5\n3:5c\n  Y\n====3\n1:9c\n2:9c\n  9\n3:9c\n  Z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "mine": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "034b1495c7cb94b2496bd7d850c4f20b0814e64bab12b96c7dacf6500a7fcfd0",
+        "data": "1\nX\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "yours": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "a21ee1762ee35d24b45bb1df33d4430e632c241c1cc3d0e8b521a323ce6c3d44",
+        "data": "1\n2\n3\n4\nY\n6\n7\n8\nZ\n"
+      }
+    }
+  },
+  "d3-one-label": {
+    "stdout": "2a\n=======\nB\n>>>>>>> y\n.\n1a\n<<<<<<< MINE\n.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "516f852424057371fc0e3614c59190f43c7384ca0aa8ac2d5fee1199af9e7832",
+        "data": "1\nA\n3\n"
+      },
+      "o": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "y": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0387bf122585343448a3821c00e3a74fe0c3e186480b9bfd16690660ebb1dbca",
+        "data": "1\nB\n3\n"
+      }
+    }
+  },
+  "d3-overlap-only": {
+    "stdout": "2c\nB\n.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-overlap-only-X": {
+    "stdout": "2c\nB\n.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-same-option-twice": {
+    "stdout": "2c\nB\n.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "516f852424057371fc0e3614c59190f43c7384ca0aa8ac2d5fee1199af9e7832",
+        "data": "1\nA\n3\n"
+      },
+      "o": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "y": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "0387bf122585343448a3821c00e3a74fe0c3e186480b9bfd16690660ebb1dbca",
+        "data": "1\nB\n3\n"
+      }
+    }
+  },
+  "d3-show-all": {
+    "stdout": "9a\nnew\n.\n6a\n>>>>>>> y2\n.\n5a\n<<<<<<< old\n6\n=======\n.\n2a\n||||||| old\n2\n=======\nB\n>>>>>>> y2\n.\n1a\n<<<<<<< m2\n.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-show-all-final-write": {
+    "stdout": "9a\nnew\n.\n6a\n>>>>>>> y2\n.\n5a\n<<<<<<< old\n6\n=======\n.\n2a\n||||||| old\n2\n=======\nB\n>>>>>>> y2\n.\n1a\n<<<<<<< m2\n.\nw\nq\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-show-overlap": {
+    "stdout": "9a\nnew\n.\n2a\n=======\nB\n>>>>>>> y2\n.\n1a\n<<<<<<< m2\n.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "168b9ec4913601465b09a454d66c26300f75830201c42f2c075084f118525892",
+        "data": "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+      },
+      "old": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "90cdaf13f564e4d2e76706f84226a554a2bbdb2542c2e48764d16bffd17bb38a",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+      },
+      "y2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "327fbf5b7dd9b3031fb27b713828d5041fe548d4e58f00afa9f6bb9532b2d46d",
+        "data": "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+      }
+    }
+  },
+  "d3-stdin-old": {
+    "stdout": "====\n1:1,2c\n  1\n  2\n2:1c\n  x\n3:1,2c\n  1\n  X\n\\ No newline at end of file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "c1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "c2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "c49fe5fb75f93dc764ab9736b39628c8a1bb9574b9bfd64ca12c9d7a6b00a86a",
+        "data": "1\nX"
+      }
+    }
+  },
+  "d3-too-many-labels": {
+    "stdout": "",
+    "stderr": "diff3: too many file label options\ndiff3: Try 'diff3 --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "d3-version": {
+    "stdout": "diff3 (GNU diffutils) 3.10\nCopyright (C) 2023 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Randy Smith.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

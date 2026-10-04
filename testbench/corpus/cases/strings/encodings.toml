@@ -1,0 +1,118 @@
+tool = "strings"
+source = "manual"
+
+# Caracteres de 16 e 32 bits (-e l/b/L/B): leitura em pares ou quádruplas, retomada um byte depois
+# do início do caractere não gráfico (o que acha cadeias em deslocamento ímpar e em dado de outra
+# ordem de bytes), caractere incompleto no fim e -w.
+
+[[case]]
+id = "strings-e-l"
+argv = ["strings", "-e", "l", "w16"]
+tags = ["encoding"]
+[case.files]
+"w16" = { content_b64 = "aABlAGwAbABvAAAA6QB0AG8AbwBvAAAAeAA=" }
+
+[[case]]
+id = "strings-e-l-radix"
+argv = ["strings", "-e", "l", "-t", "x", "w16"]
+tags = ["encoding", "radix"]
+[case.files]
+"w16" = { content_b64 = "aABlAGwAbABvAAAA6QB0AG8AbwBvAAAAeAA=" }
+
+[[case]]
+id = "strings-e-b-big-endian"
+argv = ["strings", "--encoding=b", "-t", "d", "wbe"]
+tags = ["encoding"]
+[case.files]
+"wbe" = { content_b64 = "AGgAZQBsAGwAbwAA" }
+
+[[case]]
+id = "strings-e-l-on-big-endian"
+argv = ["strings", "-e", "l", "-t", "d", "wbe"]
+tags = ["encoding"]
+[case.files]
+"wbe" = { content_b64 = "AGgAZQBsAGwAbwAA" }
+
+[[case]]
+id = "strings-e-b-on-little-endian"
+argv = ["strings", "-e", "b", "-t", "d", "w16"]
+tags = ["encoding"]
+[case.files]
+"w16" = { content_b64 = "aABlAGwAbABvAAAA6QB0AG8AbwBvAAAAeAA=" }
+
+[[case]]
+id = "strings-e-l-resync"
+argv = ["strings", "-e", "l", "-t", "d", "wx"]
+tags = ["encoding", "resync"]
+[case.files]
+"wx" = { content_b64 = "YQBiAAFYAGMAZABlAGYAAGEAYgBjAGQAAVgAYwBkAGUAZgAA" }
+
+[[case]]
+id = "strings-e-l-resync-min1"
+argv = ["strings", "-e", "l", "-n", "1", "-t", "d", "wx"]
+tags = ["encoding", "resync"]
+[case.files]
+"wx" = { content_b64 = "YQBiAAFYAGMAZABlAGYAAGEAYgBjAGQAAVgAYwBkAGUAZgAA" }
+
+[[case]]
+id = "strings-e-l-odd-tail"
+argv = ["strings", "-e", "l", "wodd"]
+tags = ["encoding"]
+[case.files]
+"wodd" = { content_b64 = "YQBiAGMAZABl" }
+
+[[case]]
+id = "strings-e-l-whitespace"
+argv = ["strings", "-e", "l", "-w", "-s", "|", "wws"]
+tags = ["encoding", "whitespace"]
+[case.files]
+"wws" = { content_b64 = "YQAKAGIADQBjAAkAZAAAAA==" }
+
+[[case]]
+id = "strings-e-l-no-whitespace"
+argv = ["strings", "-e", "l", "-n", "1", "-s", "|", "wws"]
+tags = ["encoding", "whitespace"]
+[case.files]
+"wws" = { content_b64 = "YQAKAGIADQBjAAkAZAAAAA==" }
+
+[[case]]
+id = "strings-e-L"
+argv = ["strings", "-e", "L", "-t", "x", "d32"]
+tags = ["encoding"]
+[case.files]
+"d32" = { content_b64 = "aAAAAGUAAABsAAAAbAAAAG8AAAAAAAAA" }
+
+[[case]]
+id = "strings-e-B-on-little-endian"
+argv = ["strings", "-e", "B", "-t", "d", "d32"]
+tags = ["encoding", "resync"]
+[case.files]
+"d32" = { content_b64 = "aAAAAGUAAABsAAAAbAAAAG8AAAAAAAAA" }
+
+[[case]]
+id = "strings-e-L-resync"
+argv = ["strings", "-e", "L", "-t", "d", "d32x"]
+tags = ["encoding", "resync"]
+[case.files]
+"d32x" = { content_b64 = "YQAAAGIAAAAAAQAAYwAAAGQAAABlAAAAZgAAAAAAAABhAAAAYgAAAAFYAABjAAAAZAAAAGUAAABmAAAA" }
+
+[[case]]
+id = "strings-e-L-names-separator"
+argv = ["strings", "-e", "L", "-f", "-s", ";", "d32x", "d32"]
+tags = ["encoding", "names"]
+[case.files]
+"d32x" = { content_b64 = "YQAAAGIAAAAAAQAAYwAAAGQAAABlAAAAZgAAAAAAAABhAAAAYgAAAAFYAABjAAAAZAAAAGUAAABmAAAA" }
+"d32" = { content_b64 = "aAAAAGUAAABsAAAAbAAAAG8AAAAAAAAA" }
+
+[[case]]
+id = "strings-e-l-stdin"
+argv = ["strings", "-e", "l", "-t", "o"]
+stdin_b64 = "AGgAZQBsAGwAbwAA"
+tags = ["encoding", "stdin"]
+
+[[case]]
+id = "strings-e-s-explicit"
+argv = ["strings", "-e", "s", "w16"]
+tags = ["encoding"]
+[case.files]
+"w16" = { content_b64 = "aABlAGwAbABvAAAA6QB0AG8AbwBvAAAAeAA=" }

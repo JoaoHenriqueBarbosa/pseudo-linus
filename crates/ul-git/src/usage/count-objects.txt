@@ -1,0 +1,6 @@
+usage: git count-objects [-v] [-H | --human-readable]
+
+    -v, --[no-]verbose    be verbose
+    -H, --[no-]human-readable
+                          print sizes in human readable format
+

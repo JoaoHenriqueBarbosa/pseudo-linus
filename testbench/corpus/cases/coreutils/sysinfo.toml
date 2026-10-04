@@ -1,0 +1,489 @@
+tool = "coreutils"
+source = "agent-style"
+
+# Utilitários que informam sobre o sistema e o usuário: id, whoami, groups, logname, users, who,
+# tty, uname, arch, nproc, hostid, hostname, pwd, printenv, df e dircolors. Só entra o que é
+# determinístico e igual no oráculo e no pseudo-linus: usuários root, daemon e nobody, nada de
+# hostname, release ou versão do kernel, número real de CPUs, uso de disco ou hora de boot.
+# Observações do oráculo: não há utmp (users e who saem vazios), não há terminal (tty dá "not a
+# tty"), não há login (logname falha) e o hostid é 00000000 (sem /etc/hostid e com o hostname
+# do container sem resolução, já que roda com --network none).
+
+# id
+
+[[case]]
+id = "id-default"
+argv = ["id"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-u"
+argv = ["id", "-u"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-un"
+argv = ["id", "-un"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-g"
+argv = ["id", "-g"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-gn"
+argv = ["id", "-gn"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-G"
+argv = ["id", "-G"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-Gn"
+argv = ["id", "-Gn"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-other-user"
+argv = ["id", "daemon"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-nobody"
+argv = ["id", "nobody"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-multiple-users"
+argv = ["id", "root", "daemon"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-un-other-user"
+argv = ["id", "-un", "65534"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-z"
+argv = ["id", "-Gz"]
+tags = ["id", "user"]
+
+[[case]]
+id = "id-no-such-user"
+argv = ["id", "nouser"]
+tags = ["id", "user", "errno"]
+
+[[case]]
+id = "id-n-alone"
+argv = ["id", "-n"]
+tags = ["id", "user", "errno"]
+
+[[case]]
+id = "id-conflicting"
+argv = ["id", "-u", "-g"]
+tags = ["id", "user", "errno"]
+
+# whoami
+
+[[case]]
+id = "whoami-basic"
+argv = ["whoami"]
+tags = ["whoami", "user"]
+
+[[case]]
+id = "whoami-extra-operand"
+argv = ["whoami", "extra"]
+tags = ["whoami", "user", "errno"]
+
+# groups
+
+[[case]]
+id = "groups-self"
+argv = ["groups"]
+tags = ["groups", "user"]
+
+[[case]]
+id = "groups-users"
+argv = ["groups", "root", "daemon", "nobody"]
+tags = ["groups", "user"]
+
+[[case]]
+id = "groups-no-such-user"
+argv = ["groups", "nouser"]
+tags = ["groups", "user", "errno"]
+
+# logname
+
+[[case]]
+id = "logname-no-login"
+argv = ["logname"]
+tags = ["logname", "user", "errno"]
+
+[[case]]
+id = "logname-extra-operand"
+argv = ["logname", "extra"]
+tags = ["logname", "user", "errno"]
+
+# users e who (sem utmp)
+
+[[case]]
+id = "users-empty"
+argv = ["users"]
+tags = ["users", "utmp"]
+
+[[case]]
+id = "users-nonexistent-file"
+argv = ["users", "nope"]
+tags = ["users", "utmp"]
+
+[[case]]
+id = "users-extra-operand"
+argv = ["users", "a", "b"]
+tags = ["users", "utmp", "errno"]
+
+[[case]]
+id = "who-empty"
+argv = ["who"]
+tags = ["who", "utmp"]
+
+[[case]]
+id = "who-q"
+argv = ["who", "-q"]
+tags = ["who", "utmp"]
+
+[[case]]
+id = "who-heading"
+argv = ["who", "-H"]
+tags = ["who", "utmp"]
+
+[[case]]
+id = "who-am-i"
+argv = ["who", "am", "i"]
+tags = ["who", "utmp"]
+
+[[case]]
+id = "who-extra-operand"
+argv = ["who", "a", "b", "c"]
+tags = ["who", "utmp", "errno"]
+
+# tty (stdin é um pipe, nunca terminal)
+
+[[case]]
+id = "tty-not-a-tty"
+argv = ["tty"]
+tags = ["tty"]
+
+[[case]]
+id = "tty-silent"
+argv = ["tty", "-s"]
+tags = ["tty"]
+
+[[case]]
+id = "tty-extra-operand"
+argv = ["tty", "extra"]
+tags = ["tty", "errno"]
+
+[[case]]
+id = "tty-bad-option"
+argv = ["tty", "--bogus"]
+tags = ["tty", "errno"]
+
+# uname e arch (só os campos fixos: -n, -r, -v e -a dependem da máquina)
+
+[[case]]
+id = "uname-default"
+argv = ["uname"]
+tags = ["uname", "sysinfo"]
+
+[[case]]
+id = "uname-s"
+argv = ["uname", "-s"]
+tags = ["uname", "sysinfo"]
+
+[[case]]
+id = "uname-m"
+argv = ["uname", "-m"]
+tags = ["uname", "sysinfo"]
+
+[[case]]
+id = "uname-o"
+argv = ["uname", "-o"]
+tags = ["uname", "sysinfo"]
+
+[[case]]
+id = "uname-p-i"
+argv = ["uname", "-p", "-i"]
+tags = ["uname", "sysinfo"]
+
+[[case]]
+id = "uname-combined"
+argv = ["uname", "-smo"]
+tags = ["uname", "sysinfo"]
+
+[[case]]
+id = "uname-long-options"
+argv = ["uname", "--kernel-name", "--machine", "--operating-system"]
+tags = ["uname", "sysinfo"]
+
+[[case]]
+id = "uname-extra-operand"
+argv = ["uname", "extra"]
+tags = ["uname", "sysinfo", "errno"]
+
+[[case]]
+id = "uname-bad-option"
+argv = ["uname", "-x"]
+tags = ["uname", "sysinfo", "errno"]
+
+[[case]]
+id = "arch-basic"
+argv = ["arch"]
+tags = ["arch", "sysinfo"]
+
+[[case]]
+id = "arch-extra-operand"
+argv = ["arch", "extra"]
+tags = ["arch", "sysinfo", "errno"]
+
+# nproc (o número real de CPUs varia; --ignore grande e OMP_NUM_THREADS fixam a saída)
+
+[[case]]
+id = "nproc-ignore-all"
+argv = ["nproc", "--ignore=100000"]
+tags = ["nproc", "sysinfo"]
+
+[[case]]
+id = "nproc-all-ignore-all"
+argv = ["nproc", "--all", "--ignore", "100000"]
+tags = ["nproc", "sysinfo"]
+
+[[case]]
+id = "nproc-omp-num-threads"
+argv = ["nproc"]
+tags = ["nproc", "sysinfo", "env"]
+[case.env]
+OMP_NUM_THREADS = "3"
+
+[[case]]
+id = "nproc-omp-thread-limit"
+argv = ["nproc"]
+tags = ["nproc", "sysinfo", "env"]
+[case.env]
+OMP_NUM_THREADS = "8"
+OMP_THREAD_LIMIT = "2"
+
+[[case]]
+id = "nproc-bad-ignore"
+argv = ["nproc", "--ignore=abc"]
+tags = ["nproc", "sysinfo", "errno"]
+
+[[case]]
+id = "nproc-extra-operand"
+argv = ["nproc", "extra"]
+tags = ["nproc", "sysinfo", "errno"]
+
+# hostid e hostname (o hostname do Debian vem do pacote hostname 3.25, não do coreutils)
+
+[[case]]
+id = "hostid-basic"
+argv = ["hostid"]
+tags = ["hostid", "sysinfo"]
+
+[[case]]
+id = "hostid-extra-operand"
+argv = ["hostid", "extra"]
+tags = ["hostid", "sysinfo", "errno"]
+
+[[case]]
+id = "hostname-file-missing"
+argv = ["hostname", "-F", "nope"]
+tags = ["hostname", "sysinfo", "errno"]
+
+[[case]]
+id = "hostname-too-many-args"
+argv = ["hostname", "a", "b"]
+tags = ["hostname", "sysinfo", "errno"]
+
+# pwd
+
+[[case]]
+id = "pwd-basic"
+argv = ["pwd"]
+tags = ["pwd", "fs"]
+
+[[case]]
+id = "pwd-P"
+argv = ["pwd", "-P"]
+tags = ["pwd", "fs"]
+
+# Com -L o pwd usa $PWD quando ele aponta pro diretório atual e não tem "." nem "..".
+[[case]]
+id = "pwd-L-logical"
+argv = ["pwd", "-L"]
+tags = ["pwd", "fs", "symlink", "env"]
+[case.env]
+PWD = "/work/case/lnk"
+[case.files]
+"lnk" = { symlink = "." }
+
+[[case]]
+id = "pwd-L-bogus-pwd"
+argv = ["pwd", "-L"]
+tags = ["pwd", "fs", "env"]
+[case.env]
+PWD = "/nao/existe"
+
+[[case]]
+id = "pwd-default-is-physical"
+argv = ["pwd"]
+tags = ["pwd", "fs", "symlink", "env"]
+[case.env]
+PWD = "/work/case/lnk"
+[case.files]
+"lnk" = { symlink = "." }
+
+[[case]]
+id = "pwd-extra-args"
+argv = ["pwd", "extra"]
+tags = ["pwd", "fs"]
+
+[[case]]
+id = "pwd-bad-option"
+argv = ["pwd", "-x"]
+tags = ["pwd", "fs", "errno"]
+
+# printenv (o ambiente do caso é só o fixo da bancada mais o env do caso)
+
+[[case]]
+id = "printenv-all"
+argv = ["printenv"]
+tags = ["printenv", "env"]
+
+[[case]]
+id = "printenv-all-with-extra"
+argv = ["printenv"]
+tags = ["printenv", "env"]
+[case.env]
+FOO = "bar baz"
+
+[[case]]
+id = "printenv-one"
+argv = ["printenv", "HOME"]
+tags = ["printenv", "env"]
+
+[[case]]
+id = "printenv-several"
+argv = ["printenv", "USER", "TZ", "LC_ALL"]
+tags = ["printenv", "env"]
+
+[[case]]
+id = "printenv-unset"
+argv = ["printenv", "NOPE"]
+tags = ["printenv", "env"]
+
+[[case]]
+id = "printenv-partial"
+argv = ["printenv", "HOME", "NOPE"]
+tags = ["printenv", "env"]
+
+[[case]]
+id = "printenv-null"
+argv = ["printenv", "-0", "HOME", "USER"]
+tags = ["printenv", "env"]
+
+[[case]]
+id = "printenv-bad-option"
+argv = ["printenv", "-x"]
+tags = ["printenv", "env", "errno"]
+
+# df (só erros: tamanho e uso de disco variam)
+
+[[case]]
+id = "df-missing"
+argv = ["df", "nope"]
+tags = ["df", "fs", "errno"]
+
+[[case]]
+id = "df-h-missing"
+argv = ["df", "-h", "nope"]
+tags = ["df", "fs", "errno"]
+
+[[case]]
+id = "df-type-none"
+argv = ["df", "-t", "nofs"]
+tags = ["df", "fs", "errno"]
+
+[[case]]
+id = "df-bad-output-field"
+argv = ["df", "--output=bogus"]
+tags = ["df", "fs", "errno"]
+
+[[case]]
+id = "df-bad-block-size"
+argv = ["df", "-B", "abc"]
+tags = ["df", "fs", "errno"]
+
+# dircolors (sem TERM no ambiente, nenhuma entrada TERM do banco casa e LS_COLORS sai vazio)
+
+[[case]]
+id = "dircolors-no-term"
+argv = ["dircolors", "-b"]
+tags = ["dircolors", "env"]
+
+[[case]]
+id = "dircolors-csh-no-term"
+argv = ["dircolors", "-c"]
+tags = ["dircolors", "env"]
+
+[[case]]
+id = "dircolors-bourne-xterm"
+argv = ["dircolors", "-b"]
+tags = ["dircolors", "env"]
+[case.env]
+TERM = "xterm-256color"
+
+[[case]]
+id = "dircolors-shell-from-env"
+argv = ["dircolors"]
+tags = ["dircolors", "env"]
+[case.env]
+TERM = "xterm"
+SHELL = "/bin/csh"
+
+[[case]]
+id = "dircolors-print-database"
+argv = ["dircolors", "-p"]
+tags = ["dircolors"]
+
+[[case]]
+id = "dircolors-custom-file"
+argv = ["dircolors", "-b", "colors.conf"]
+tags = ["dircolors"]
+[case.files]
+"colors.conf" = "# meu banco\nTERM *\nDIR 01;34\nLINK 01;36\nEXEC 01;32\n.txt 00;33\n*.log 00;31\n"
+
+[[case]]
+id = "dircolors-bad-line"
+argv = ["dircolors", "-b", "colors.conf"]
+tags = ["dircolors", "errno"]
+[case.files]
+"colors.conf" = "TERM *\nDIR\nFOO 01\n"
+
+[[case]]
+id = "dircolors-missing-file"
+argv = ["dircolors", "-b", "nope.conf"]
+tags = ["dircolors", "errno"]
+
+# -b e -c juntos não dão erro: vale o último.
+[[case]]
+id = "dircolors-last-shell-wins"
+argv = ["dircolors", "-b", "-c"]
+tags = ["dircolors"]
+
+[[case]]
+id = "dircolors-print-and-shell"
+argv = ["dircolors", "-p", "-b"]
+tags = ["dircolors", "errno"]

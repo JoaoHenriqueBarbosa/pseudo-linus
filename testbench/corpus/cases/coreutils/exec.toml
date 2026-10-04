@@ -1,0 +1,336 @@
+tool = "coreutils"
+source = "agent-style"
+
+# Utilitários que rodam outro programa ou controlam o tempo: timeout, nice, nohup, stdbuf, chroot,
+# yes, sleep, true e false. Os tempos são curtos (no máximo 0.2 s de espera) e o resultado não
+# depende da máquina: só exit code, sinal e mensagens. O nice não testa ajuste negativo, porque o
+# container do oráculo não tem CAP_SYS_NICE. O chroot só tem casos de erro: no pseudo-linus ele
+# sempre falha, então o caso feliz não serve de comparação. O yes só roda via script com head.
+
+# timeout
+
+[[case]]
+id = "timeout-ok"
+argv = ["timeout", "5", "echo", "oi"]
+tags = ["timeout", "exec"]
+
+[[case]]
+id = "timeout-suffix"
+argv = ["timeout", "1s", "echo", "ok"]
+tags = ["timeout", "exec"]
+
+[[case]]
+id = "timeout-zero-disables"
+argv = ["timeout", "0", "echo", "sem limite"]
+tags = ["timeout", "exec"]
+
+[[case]]
+id = "timeout-exit-passthrough"
+argv = ["timeout", "5", "false"]
+tags = ["timeout", "exec"]
+
+[[case]]
+id = "timeout-expire"
+argv = ["timeout", "0.2", "sleep", "5"]
+tags = ["timeout", "exec", "signal"]
+
+[[case]]
+id = "timeout-kill"
+argv = ["timeout", "-s", "KILL", "0.2", "sleep", "5"]
+tags = ["timeout", "exec", "signal"]
+
+[[case]]
+id = "timeout-preserve-status"
+argv = ["timeout", "--preserve-status", "0.2", "sleep", "5"]
+tags = ["timeout", "exec", "signal"]
+
+[[case]]
+id = "timeout-verbose"
+argv = ["timeout", "-v", "0.2", "sleep", "5"]
+tags = ["timeout", "exec", "signal"]
+
+[[case]]
+id = "timeout-kill-after"
+argv = ["timeout", "-k", "1", "0.2", "sleep", "5"]
+tags = ["timeout", "exec", "signal"]
+
+[[case]]
+id = "timeout-signal-number"
+argv = ["timeout", "-s", "9", "0.2", "sleep", "5"]
+tags = ["timeout", "exec", "signal"]
+
+[[case]]
+id = "timeout-not-found"
+argv = ["timeout", "5", "nope-cmd"]
+tags = ["timeout", "exec", "errno"]
+
+[[case]]
+id = "timeout-not-executable"
+argv = ["timeout", "5", "./a.txt"]
+tags = ["timeout", "exec", "errno"]
+[case.files]
+"a.txt" = "não sou programa\n"
+
+[[case]]
+id = "timeout-no-args"
+argv = ["timeout"]
+tags = ["timeout", "exec", "errno"]
+
+[[case]]
+id = "timeout-missing-command"
+argv = ["timeout", "5"]
+tags = ["timeout", "exec", "errno"]
+
+[[case]]
+id = "timeout-bad-duration"
+argv = ["timeout", "abc", "echo", "x"]
+tags = ["timeout", "exec", "errno"]
+
+[[case]]
+id = "timeout-bad-signal"
+argv = ["timeout", "-s", "NOPE", "1", "echo", "x"]
+tags = ["timeout", "exec", "errno"]
+
+# nice (o oráculo roda com niceness 0)
+
+[[case]]
+id = "nice-print"
+argv = ["nice"]
+tags = ["nice", "exec"]
+
+[[case]]
+id = "nice-default-adjustment"
+argv = ["nice", "nice"]
+tags = ["nice", "exec"]
+
+[[case]]
+id = "nice-n"
+argv = ["nice", "-n", "5", "nice"]
+tags = ["nice", "exec"]
+
+[[case]]
+id = "nice-obsolete-form"
+argv = ["nice", "-3", "nice"]
+tags = ["nice", "exec"]
+
+[[case]]
+id = "nice-clamped"
+argv = ["nice", "-n", "100", "nice"]
+tags = ["nice", "exec"]
+
+[[case]]
+id = "nice-runs-command"
+argv = ["nice", "-n", "2", "echo", "rodou"]
+tags = ["nice", "exec"]
+
+[[case]]
+id = "nice-bad-adjustment"
+argv = ["nice", "-n", "abc", "true"]
+tags = ["nice", "exec", "errno"]
+
+[[case]]
+id = "nice-adjustment-without-command"
+argv = ["nice", "-n", "5"]
+tags = ["nice", "exec", "errno"]
+
+[[case]]
+id = "nice-not-found"
+argv = ["nice", "nope-cmd"]
+tags = ["nice", "exec", "errno"]
+
+# nohup (stdin, stdout e stderr são pipes: não cria nohup.out nem avisa nada)
+
+[[case]]
+id = "nohup-run"
+argv = ["nohup", "echo", "oi"]
+tags = ["nohup", "exec"]
+
+[[case]]
+id = "nohup-exit-status"
+argv = ["nohup", "false"]
+tags = ["nohup", "exec"]
+
+[[case]]
+id = "nohup-missing-operand"
+argv = ["nohup"]
+tags = ["nohup", "exec", "errno"]
+
+[[case]]
+id = "nohup-not-found"
+argv = ["nohup", "nope-cmd"]
+tags = ["nohup", "exec", "errno"]
+
+[[case]]
+id = "nohup-not-executable"
+argv = ["nohup", "./a.txt"]
+tags = ["nohup", "exec", "errno"]
+[case.files]
+"a.txt" = "x\n"
+
+# stdbuf
+
+[[case]]
+id = "stdbuf-oL"
+argv = ["stdbuf", "-oL", "echo", "linha"]
+tags = ["stdbuf", "exec"]
+
+[[case]]
+id = "stdbuf-o0-filter"
+argv = ["stdbuf", "-o0", "tr", "a-z", "A-Z"]
+stdin = "sem buffer\n"
+tags = ["stdbuf", "exec", "stdin"]
+
+[[case]]
+id = "stdbuf-pipeline"
+script = "printf 'b\\na\\n' | stdbuf -oL sort | stdbuf -i0 -oL cat"
+tags = ["stdbuf", "exec", "pipeline"]
+
+[[case]]
+id = "stdbuf-no-mode"
+argv = ["stdbuf", "echo", "x"]
+tags = ["stdbuf", "exec", "errno"]
+
+[[case]]
+id = "stdbuf-bad-mode"
+argv = ["stdbuf", "-oX", "echo", "x"]
+tags = ["stdbuf", "exec", "errno"]
+
+[[case]]
+id = "stdbuf-line-buffered-stdin"
+argv = ["stdbuf", "-iL", "cat"]
+tags = ["stdbuf", "exec", "errno"]
+
+[[case]]
+id = "stdbuf-missing-command"
+argv = ["stdbuf", "-oL"]
+tags = ["stdbuf", "exec", "errno"]
+
+[[case]]
+id = "stdbuf-not-found"
+argv = ["stdbuf", "-oL", "nope-cmd"]
+tags = ["stdbuf", "exec", "errno"]
+
+# chroot (só erros)
+
+[[case]]
+id = "chroot-missing-dir"
+argv = ["chroot", "nope", "true"]
+tags = ["chroot", "exec", "errno"]
+
+[[case]]
+id = "chroot-not-dir"
+argv = ["chroot", "a.txt", "true"]
+tags = ["chroot", "exec", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chroot-no-operand"
+argv = ["chroot"]
+tags = ["chroot", "exec", "errno"]
+
+[[case]]
+id = "chroot-bad-option"
+argv = ["chroot", "--bogus", "d"]
+tags = ["chroot", "exec", "errno"]
+
+# yes
+
+[[case]]
+id = "yes-default"
+script = "yes | head -n 3"
+tags = ["yes", "exec", "pipeline"]
+
+[[case]]
+id = "yes-string"
+script = "yes abc def | head -n 2"
+tags = ["yes", "exec", "pipeline"]
+
+[[case]]
+id = "yes-empty-string"
+script = "yes '' | head -n 2"
+tags = ["yes", "exec", "pipeline"]
+
+[[case]]
+id = "yes-bytes"
+script = "yes | head -c 9"
+tags = ["yes", "exec", "pipeline"]
+
+[[case]]
+id = "yes-bad-option"
+argv = ["yes", "-x"]
+tags = ["yes", "exec", "errno"]
+
+# sleep
+
+[[case]]
+id = "sleep-zero"
+argv = ["sleep", "0"]
+tags = ["sleep", "time"]
+
+[[case]]
+id = "sleep-fraction"
+argv = ["sleep", "0.01"]
+tags = ["sleep", "time"]
+
+[[case]]
+id = "sleep-suffix"
+argv = ["sleep", "0.01s"]
+tags = ["sleep", "time"]
+
+[[case]]
+id = "sleep-multiple"
+argv = ["sleep", "0", "0.01", "0m"]
+tags = ["sleep", "time"]
+
+[[case]]
+id = "sleep-invalid"
+argv = ["sleep", "abc"]
+tags = ["sleep", "time", "errno"]
+
+[[case]]
+id = "sleep-bad-suffix"
+argv = ["sleep", "1x"]
+tags = ["sleep", "time", "errno"]
+
+[[case]]
+id = "sleep-negative"
+argv = ["sleep", "-1"]
+tags = ["sleep", "time", "errno"]
+
+[[case]]
+id = "sleep-missing-operand"
+argv = ["sleep"]
+tags = ["sleep", "time", "errno"]
+
+# true e false
+
+[[case]]
+id = "true-plain"
+argv = ["true"]
+tags = ["true", "exec"]
+
+[[case]]
+id = "true-ignores-args"
+argv = ["true", "-x", "--bogus", "a"]
+tags = ["true", "exec"]
+
+[[case]]
+id = "true-help"
+argv = ["true", "--help"]
+tags = ["true", "exec"]
+
+[[case]]
+id = "false-plain"
+argv = ["false"]
+tags = ["false", "exec"]
+
+[[case]]
+id = "false-ignores-args"
+argv = ["false", "--bogus"]
+tags = ["false", "exec"]
+
+[[case]]
+id = "false-help"
+argv = ["false", "--help"]
+tags = ["false", "exec"]

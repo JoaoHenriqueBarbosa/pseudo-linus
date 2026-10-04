@@ -1,0 +1,95 @@
+# Comandos rodados sobre basic.fixture (um por linha; NOME=valor no começo vira ambiente).
+ps
+ps aux
+ps ax
+ps -ef
+ps -eF
+ps -e
+ps -A
+ps -f
+ps -l
+ps -el
+ps u
+ps -ely
+ps axu
+ps auxf
+ps axjf
+ps -ejH
+ps --forest -eo pid,ppid,comm
+ps -eLf
+ps -eL
+ps -T -p 40
+ps -L -p 40 -o pid,lwp,nlwp,comm,stat,pcpu,time
+ps axms
+ps -o pid,ppid,pgid,sid,tty,stat,state,user,uid,ruser,group,comm -e
+ps -o pid,args,cmd,command -e
+ps -o pid,etime,etimes,time,cputime,start,stime,lstart,bsdstart,bsdtime -e
+ps -o pid,%cpu,pcpu,%mem,pmem,vsz,rss,rsz,sz,nice,ni,pri,priority,psr,nlwp,wchan -e
+ps -o pid,cls,rtprio,policy,f,flags,c,tpgid,euid,egid,rgid,gid,fuid,suid,euser,suser,fuser -e
+ps -o pid= -e
+ps -o pid=X,comm=NAME -e
+ps -o pid,comm= -e
+ps -o comm=,pid= -e
+ps --no-headers -e
+ps h -e
+ps -e --sort=-pid
+ps -e --sort=comm
+ps -e --sort=-%cpu -o pid,%cpu,comm
+ps aux --sort=-rss
+ps k -pid -e
+ps -e k start_time
+ps -p 1
+ps -p 1,7 -o pid,comm
+ps --pid 7 50
+ps -p 99999 -o pid,comm
+ps -C sleep
+ps -C bash,worker -o pid,comm
+ps -u root
+ps -u nobody -o pid,user,comm
+ps -U 1234
+ps --user 65534
+ps -g 7
+ps -s 40
+ps -t pts/0
+ps --ppid 1
+ps --ppid 7 -o pid,ppid,stat,comm
+ps -w aux
+ps auxww
+COLUMNS=60 ps aux
+COLUMNS=60 ps -ef
+COLUMNS=200 ps aux
+ps e
+ps -e e
+ps aux e
+ps -o pid,args e -e
+ps -fp 50
+ps -lp 40
+ps -o pid,stat,comm -p 30
+ps -F -p 1
+ps -j
+ps j
+ps -y -l
+ps -M
+ps -Z
+ps s
+ps v
+ps X
+ps -o pid,tname,tt,tty -e
+ps -o pid,pgrp,session,lwp,tid,spid,thcount -e
+ps -o pid,lstart,start_time -e
+ps -o pid,rss,vsize,drs,trs,maj_flt,min_flt -e
+ps -o pid,sgi_p,blocked,caught,ignored,pending,sig,sigmask -e
+ps -o user:12,pid:3,comm:4 -e
+ps -o pid,comm --cols 30 -e
+ps -N -p 1
+ps -e --deselect -C bash
+ps r
+ps -r
+ps T
+ps t pts/0
+ps -o pid,comm -q 7,50
+ps -q 1
+ps 7
+ps 1 7
+ps p 50
+ps U nobody

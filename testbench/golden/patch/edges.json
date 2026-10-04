@@ -1,0 +1,1700 @@
+{
+  "patch-edge-applied-force": {
+    "stdout": "patching file a.txt\nHunk #1 FAILED at 1.\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-bad-header": {
+    "stdout": "patching file m.txt\n",
+    "stderr": "patch: **** malformed patch at line 3: @@ -1,3 +1,3\n\n",
+    "exit": 2,
+    "files": {
+      "m.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "6ba4238e3616abf06d1bcb741c439aa3db4dfee23a786ad4f668401c974d5dba",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,3 +1,3\n a\n-b\n+B\n c\n"
+      }
+    }
+  },
+  "patch-edge-bad-line": {
+    "stdout": "patching file m.txt\n",
+    "stderr": "patch: **** malformed patch at line 5: xyz\n\n",
+    "exit": 2,
+    "files": {
+      "m.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "ac351e5f1ddb7e71d31bfb4cb037c81402721645d735d087a112cf111f42e666",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,3 +1,3 @@\n a\nxyz\n-b\n+B\n c\n"
+      }
+    }
+  },
+  "patch-edge-basename-default": {
+    "stdout": "patching file f.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 53,
+        "sha256": "4bdb1c787d29ff905c7ee3f50a43ffec88ce77ad6e330eddd5e4da868c59a25e",
+        "data": "--- a/b/f.txt\n+++ a/b/f.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-best-name": {
+    "stdout": "patching file x/f.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/g.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 51,
+        "sha256": "64a1b62a8dc932792abcdb5bb451b1882303b2a8426815f83b4b4e4950958e14",
+        "data": "--- a/b/g.txt\n+++ x/f.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      },
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      }
+    }
+  },
+  "patch-edge-best-name-posix": {
+    "stdout": "patching file ff.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "ff.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "71c5da683c6ec849bd18449f2480bc27c7794fb5d2733bcae1e33c73348d4241",
+        "data": "--- ff.txt\n+++ f.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-blank-and-tab-context": {
+    "stdout": "patching file m.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "04975a10d49d21fcad798ce04e4fee1d1c9b443ecc72e61542309bcd1eb401e7",
+        "data": "1\n\n\t3\nX\n5\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "e41ba6f84e27df0f8a08a64e032211cfaf0ba11c5666e55e5bd784eea820e5ad",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,5 +1,5 @@\n 1\n\n\t3\n-x\n+X\n 5\n"
+      }
+    }
+  },
+  "patch-edge-create-epoch": {
+    "stdout": "patching file new.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "new.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a4fb621495a0122493b2203591c448903c472e306a1ede54fabad829e01075c0",
+        "data": "n\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 117,
+        "sha256": "71cd97b33305ca6c2eddd08130e31b2d11dac81626c0a154df8aa6de28587bdd",
+        "data": "--- a/new.txt\t1970-01-01 00:00:00.000000000 +0000\n+++ b/new.txt\t2026-01-01 00:00:00.000000000 +0000\n@@ -0,0 +1 @@\n+n\n"
+      }
+    }
+  },
+  "patch-edge-create-exists-batch": {
+    "stdout": "The next patch would create the file a.txt,\nwhich already exists!  Assuming -R.\npatching file a.txt\nHunk #1 FAILED at 1.\nNot deleting file a.txt as content differs from patch\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4adc33bd9fe74303c344be46e5916d65182fb218e248fe80452ab3f025b06c64",
+        "data": "q\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4adc33bd9fe74303c344be46e5916d65182fb218e248fe80452ab3f025b06c64",
+        "data": "q\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "ea0f246438de1a418f17c72183d13717339622ef329878b85c02c3fd48c8ef19",
+        "data": "--- a.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "cfed56fc0f7004b43b232d1792706d4d3688ea890ae6c4f7661c0c261f27f24c",
+        "data": "--- /dev/null\n+++ a.txt\n@@ -0,0 +1,2 @@\n+x\n+y\n"
+      }
+    }
+  },
+  "patch-edge-create-exists-default": {
+    "stdout": "The next patch would create the file a.txt,\nwhich already exists!  Assume -R? [n] \nApply anyway? [n] \nSkipping patch.\n1 out of 1 hunk ignored\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "cfed56fc0f7004b43b232d1792706d4d3688ea890ae6c4f7661c0c261f27f24c",
+        "data": "--- /dev/null\n+++ a.txt\n@@ -0,0 +1,2 @@\n+x\n+y\n"
+      }
+    }
+  },
+  "patch-edge-create-exists-force": {
+    "stdout": "The next patch would create the file a.txt,\nwhich already exists!  Applying it anyway.\npatching file a.txt\nHunk #1 FAILED at 1.\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4adc33bd9fe74303c344be46e5916d65182fb218e248fe80452ab3f025b06c64",
+        "data": "q\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4adc33bd9fe74303c344be46e5916d65182fb218e248fe80452ab3f025b06c64",
+        "data": "q\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "cfed56fc0f7004b43b232d1792706d4d3688ea890ae6c4f7661c0c261f27f24c",
+        "data": "--- /dev/null\n+++ a.txt\n@@ -0,0 +1,2 @@\n+x\n+y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "cfed56fc0f7004b43b232d1792706d4d3688ea890ae6c4f7661c0c261f27f24c",
+        "data": "--- /dev/null\n+++ a.txt\n@@ -0,0 +1,2 @@\n+x\n+y\n"
+      }
+    }
+  },
+  "patch-edge-create-exists-forward": {
+    "stdout": "The next patch would create the file a.txt,\nwhich already exists!  Skipping patch.\n1 out of 1 hunk ignored\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "cfed56fc0f7004b43b232d1792706d4d3688ea890ae6c4f7661c0c261f27f24c",
+        "data": "--- /dev/null\n+++ a.txt\n@@ -0,0 +1,2 @@\n+x\n+y\n"
+      }
+    }
+  },
+  "patch-edge-create-no-devnull": {
+    "stdout": "patching file new.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "new.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a4fb621495a0122493b2203591c448903c472e306a1ede54fabad829e01075c0",
+        "data": "n\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "9b99573a0d1427b58d44f561864787a8a059c8671c22a65e7f7e431b6a7fbd33",
+        "data": "--- a/new.txt\n+++ b/new.txt\n@@ -0,0 +1 @@\n+n\n"
+      }
+    }
+  },
+  "patch-edge-create-over-empty": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a4fb621495a0122493b2203591c448903c472e306a1ede54fabad829e01075c0",
+        "data": "n\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "53d3e52f2657b8b98f705bfc28b4bf8672746e8a0515b31e6945819d1ffe8f21",
+        "data": "--- /dev/null\n+++ a.txt\n@@ -0,0 +1 @@\n+n\n"
+      }
+    }
+  },
+  "patch-edge-crlf-binary": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "72fa39f3d3bb0e2c918881aed6a6d77fc442337a8c188c2f235c45acd30dee9c",
+        "data": "alpha\r\nBETA\r\ngamma\r\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 69,
+        "sha256": "61c268d7fe22c8877b689aa0bb9377bd1fc6a03da71aac61a28b94238f754f5e",
+        "data": "--- a.txt\r\n+++ a.txt\r\n@@ -1,3 +1,3 @@\r\n alpha\r\n-beta\r\n+BETA\r\n gamma\r\n"
+      }
+    }
+  },
+  "patch-edge-crlf-body-only": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "72fa39f3d3bb0e2c918881aed6a6d77fc442337a8c188c2f235c45acd30dee9c",
+        "data": "alpha\r\nBETA\r\ngamma\r\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 66,
+        "sha256": "125a2dfc770cf09558d197b46b806f75a3a4012d1383cdae1aa6f8a03923b61c",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n alpha\r\n-beta\r\n+BETA\r\n gamma\r\n"
+      }
+    }
+  },
+  "patch-edge-crlf-first-line-of-target": {
+    "stdout": "patching file a.txt\nHunk #1 FAILED at 1 (different line endings).\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "56041dae250e4b944e84cc272258e218e93f02c205e9a6631e9e1e9b92861bce",
+        "data": "line1\r\nline2\nline3\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "56041dae250e4b944e84cc272258e218e93f02c205e9a6631e9e1e9b92861bce",
+        "data": "line1\r\nline2\nline3\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 61,
+        "sha256": "adde75720379eab2e39e6c25a86b913382a8bd27ddc4cebc67aa30516af9b600",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n line1\n-line2\n+L2\n line3\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 61,
+        "sha256": "adde75720379eab2e39e6c25a86b913382a8bd27ddc4cebc67aa30516af9b600",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n line1\n-line2\n+L2\n line3\n"
+      }
+    }
+  },
+  "patch-edge-delete-epoch": {
+    "stdout": "patching file gone.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 119,
+        "sha256": "e852e3b93c322dd94d210d9e4a5ac79df5814c4e81a43ac4517ce6a40d3ef08c",
+        "data": "--- a/gone.txt\t2026-01-01 00:00:00.000000000 +0000\n+++ b/gone.txt\t1970-01-01 00:00:00.000000000 +0000\n@@ -1 +0,0 @@\n-n\n"
+      }
+    }
+  },
+  "patch-edge-delete-leftover": {
+    "stdout": "patching file a.txt\nNot deleting file a.txt as content differs from patch\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c865f6c5ab8d1b0bcd383a5e1e3879d22681c96bf462c269b7581d523fbe70ab",
+        "data": "z\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "ea0f246438de1a418f17c72183d13717339622ef329878b85c02c3fd48c8ef19",
+        "data": "--- a.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+      }
+    }
+  },
+  "patch-edge-delete-mismatch": {
+    "stdout": "patching file a.txt\nReversed (or previously applied) patch detected!  Assume -R? [n] \nApply anyway? [n] \nSkipping patch.\n1 out of 1 hunk ignored -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "113e85bb16207599f807c8a9686dec5d572b10c6c44644192ace8e50565b4b9c",
+        "data": "x\nq\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "ea0f246438de1a418f17c72183d13717339622ef329878b85c02c3fd48c8ef19",
+        "data": "--- a.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "ea0f246438de1a418f17c72183d13717339622ef329878b85c02c3fd48c8ef19",
+        "data": "--- a.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+      }
+    }
+  },
+  "patch-edge-delete-missing": {
+    "stdout": "The next patch would delete the file a.txt,\nwhich does not exist!  Assume -R? [n] \nApply anyway? [n] \nSkipping patch.\n1 out of 1 hunk ignored\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "ea0f246438de1a418f17c72183d13717339622ef329878b85c02c3fd48c8ef19",
+        "data": "--- a.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+      }
+    }
+  },
+  "patch-edge-ed-script": {
+    "stdout": "",
+    "stderr": "sh: 1: ed: not found\npatch: **** ed FAILED\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "d7cd528637f7db5b763898be344c1799cb06325dc328976df026f73881156577",
+        "data": "2c\nTWO\n.\n"
+      }
+    }
+  },
+  "patch-edge-empty-whitespace": {
+    "stdout": "",
+    "stderr": "patch: **** Only garbage was found in the patch input.\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "60d54d1e4e576f53c924c6886040386822b79836d620f238aa36f9fc68cb6e4b",
+        "data": "\n\n  \n"
+      }
+    }
+  },
+  "patch-edge-file-nonl-patch-nl": {
+    "stdout": "patching file a.txt\nHunk #1 FAILED at 1.\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "9ab9de25768ac172235e119b76362ecddad33878fe9a7792cdddbe47236f9a87",
+        "data": "x\ny"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "9ab9de25768ac172235e119b76362ecddad33878fe9a7792cdddbe47236f9a87",
+        "data": "x\ny"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-headless-with-target": {
+    "stdout": "patching file f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "b41c8fb980b832e39d908492f464af9c817055134c54bfc7fa7b4460d6c4fb8f",
+        "data": "@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-headless-without-target": {
+    "stdout": "",
+    "stderr": "patch: **** Only garbage was found in the patch input.\n",
+    "exit": 2,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "b41c8fb980b832e39d908492f464af9c817055134c54bfc7fa7b4460d6c4fb8f",
+        "data": "@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-index-ignored": {
+    "stdout": "can't find file to patch at input line 4\nPerhaps you should have used the -p or --strip option?\nThe text leading up to this was:\n--------------------------\n|Index: idx.txt\n|--- nothere1\n|+++ nothere2\n--------------------------\nFile to patch: \nSkip this patch? [y] \nSkipping patch.\n1 out of 1 hunk ignored\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "idx.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 66,
+        "sha256": "c02a34570bbbe4f02db126e0fa8c06c7f1a10fcdf3c6ba708847895cb982bc94",
+        "data": "Index: idx.txt\n--- nothere1\n+++ nothere2\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-index-posix": {
+    "stdout": "patching file idx.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "idx.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 66,
+        "sha256": "c02a34570bbbe4f02db126e0fa8c06c7f1a10fcdf3c6ba708847895cb982bc94",
+        "data": "Index: idx.txt\n--- nothere1\n+++ nothere2\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-insert-after-nonl": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "23ae3b8f065e090a90abfbe0b2e2eff1cff6b374cb72a94123fc35538ef4e97d",
+        "data": "q\nr\nn\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "8cb6b365cc149452dab3e5e6b82fa697140faf810fc8f0196025f91a0b217824",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,0 +3 @@\n+n\n"
+      }
+    }
+  },
+  "patch-edge-insert-beyond-end": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "23ae3b8f065e090a90abfbe0b2e2eff1cff6b374cb72a94123fc35538ef4e97d",
+        "data": "q\nr\nn\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "b324dac04fa40cdfec9e415a4d4b18f028e520d05619f6182973e4125d64832e",
+        "data": "--- a.txt\n+++ a.txt\n@@ -5,0 +6 @@\n+n\n"
+      }
+    }
+  },
+  "patch-edge-misordered": {
+    "stdout": "patching file a.txt\nHunk #1 succeeded at 8 with fuzz 1.\nmisordered hunks! output would be garbled\nHunk #2 FAILED at 2.\n1 out of 2 hunks FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "b113777bcde815795bf49c90fc1b7cdc1f7f6c270eaebd04c6bb94166fed5f4c",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\nNINE\n10\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "bf794518e35d7f1ce3a50b3058c4191bb9401e568fc645d77e10b0f404cf1f22",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 49,
+        "sha256": "8a0377d6841b86ccba589a818feb5b2fe2a003c19bc9b2c8725c4701ffa497cb",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,2 +2,2 @@\n 2\n-3\n+THREE\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 77,
+        "sha256": "13cba940b0b33c12307c6e695ca2976c86fdc1aa5b81b4333841c732d35f93b3",
+        "data": "--- a.txt\n+++ a.txt\n@@ -8,2 +8,2 @@\n 8\n-9\n+NINE\n@@ -2,2 +2,2 @@\n 2\n-3\n+THREE\n"
+      }
+    }
+  },
+  "patch-edge-normal-delete-force": {
+    "stdout": "patching file a.txt\nHunk #1 FAILED at 5.\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "2338c8517a3e79838da1c02cf77a2c87be47f0275d34cb551661b4ef68c07a63",
+        "data": "1\n2\n3\n4\n5\n6\n7\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "2338c8517a3e79838da1c02cf77a2c87be47f0275d34cb551661b4ef68c07a63",
+        "data": "1\n2\n3\n4\n5\n6\n7\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 72,
+        "sha256": "f1e3243e081c84e34a7bf8444d30e9b33a5c2a4021ec7be168b65e406cad5606",
+        "data": "*** /dev/null\n--- /dev/null\n***************\n*** 5,6\n- X\n- Y\n--- 0 -----\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "d0184ba5b57067d4dc7e6d91382621af3275a3a461cdd4e675412d2c6f70fb6f",
+        "data": "5,6d4\n< X\n< Y\n"
+      }
+    }
+  },
+  "patch-edge-normal-forced-no-target": {
+    "stdout": "can't find file to patch at input line 1\nFile to patch: \nSkip this patch? [y] \nSkipping patch.\n1 out of 1 hunk ignored\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "dde87f88a256d5661f61c263d3b8f5d6ab572d9b9ad1ec78eb258e8f0b432e98",
+        "data": "2c2\n< 2\n---\n> TWO\n"
+      }
+    }
+  },
+  "patch-edge-normal-index": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "341201867b39b820b3185b24a4af7907b73d0ad935916736a6570963974b8a99",
+        "data": "1\nTWO\n3\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "7cf448fad1d2265d946f6f15af52cac939eb597445f6083dd8bde72b4827f9dd",
+        "data": "Index: a.txt\n2c2\n< 2\n---\n> TWO\n"
+      }
+    }
+  },
+  "patch-edge-normal-no-target": {
+    "stdout": "",
+    "stderr": "patch: **** Only garbage was found in the patch input.\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "dde87f88a256d5661f61c263d3b8f5d6ab572d9b9ad1ec78eb258e8f0b432e98",
+        "data": "2c2\n< 2\n---\n> TWO\n"
+      }
+    }
+  },
+  "patch-edge-normal-reject": {
+    "stdout": "patching file a.txt\nHunk #1 FAILED at 2.\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 81,
+        "sha256": "86eeb790a46a4f10988bc3ff004ae66158c9c6aa46d2f5d76e5dd44e45754460",
+        "data": "*** /dev/null\n--- /dev/null\n***************\n*** 2\n- X\n--- 2,3 -----\n+ TWO\n+ TWO2\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "f570c8571612b203c8bf5a4ac549738e84b8f1085527058893fd58c1b735250b",
+        "data": "2c2,3\n< X\n---\n> TWO\n> TWO2\n"
+      }
+    }
+  },
+  "patch-edge-normal-shifted": {
+    "stdout": "patching file a.txt\nHunk #2 FAILED at 11.\n1 out of 2 hunks FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "8887218a1d2c7123eb4ac5c4f922dabfa1ff80bb03bcf2362c4855a7c2cbad54",
+        "data": "1\n2\n3\nnew\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "67149111d45cf106eb92ab5be7ec08179bddea7426ddde7cfe0ae68a7cffce74",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 72,
+        "sha256": "5c053b98d2162f60bf6387a5ca7e8ce208a9a97a9b5d722b58fd154b29c6058b",
+        "data": "*** /dev/null\n--- /dev/null\n***************\n*** 11\n- X\n--- 12 -----\n+ Y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "09d8145476b35a5fa42c7bc87bd856af547a66ff6a42e157e71a19a996f81cfa",
+        "data": "3a4\n> new\n10c11\n< X\n---\n> Y\n"
+      }
+    }
+  },
+  "patch-edge-not-regular-dir": {
+    "stdout": "File a.txt is not a regular file -- refusing to patch\n1 out of 1 hunk ignored -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-only-context": {
+    "stdout": "patching file m.txt\n",
+    "stderr": "patch: **** malformed patch at line 5:  b\n\n",
+    "exit": 2,
+    "files": {
+      "m.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "a5763467ef38a2b2a43e8d78f72debda3142151c3a052baa8c317e3d684f2f4a",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,2 +1,2 @@\n a\n b\n"
+      }
+    }
+  },
+  "patch-edge-prereq-bad": {
+    "stdout": "This file doesn't appear to be the 1.2 version -- patch anyway? [n] \n",
+    "stderr": "patch: **** aborted\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "44e524644d1031248a1b11395e266ce8033a9e261af9175c2ccea477d306e819",
+        "data": "version 11.2\nx\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 90,
+        "sha256": "64599fa2698b0da3b7c424064dd8348fd88c9628e1b54be5483362422e628ad3",
+        "data": "Prereq: 1.2\n*** a.txt\n--- a.txt\n***************\n*** 1,2 ****\n  x\n! y\n--- 1,2 ----\n  x\n! Y\n"
+      }
+    }
+  },
+  "patch-edge-prereq-bad-batch": {
+    "stdout": "",
+    "stderr": "patch: **** This file doesn't appear to be the 1.2 version -- aborting.\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "0a6739cadab44cdefc4b26adb5e7354143e43d18c46562e40d313f870e71d72b",
+        "data": "version 1.3\nx\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "2936fcb1650a686e87c3606ed085e636951d06f8ff0d7bde1baa33e51c4f34fd",
+        "data": "Prereq: 1.2\n--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-prereq-bad-force": {
+    "stdout": "Warning: this file doesn't appear to be the 1.2 version -- patching anyway.\npatching file a.txt\nHunk #1 succeeded at 2 (offset 1 line).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "702114b7e33ab73db6b5fb46753150f1a5f367e1a27c46f36004bdc23557890d",
+        "data": "version 1.3\nx\nY\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "0a6739cadab44cdefc4b26adb5e7354143e43d18c46562e40d313f870e71d72b",
+        "data": "version 1.3\nx\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "2936fcb1650a686e87c3606ed085e636951d06f8ff0d7bde1baa33e51c4f34fd",
+        "data": "Prereq: 1.2\n--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-prereq-ok": {
+    "stdout": "patching file a.txt\nHunk #1 succeeded at 2 (offset 1 line).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "6c5aec3fbb8a5040631666e73b2abd9a45ed2c46db37095af47040152d4bee6f",
+        "data": "version 1.2\nx\nY\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "86eb7a77e14efc97687edb9b397118dc956d51dfb0bb8893ed55fdc8fb6196a6",
+        "data": "version 1.2\nx\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 90,
+        "sha256": "64599fa2698b0da3b7c424064dd8348fd88c9628e1b54be5483362422e628ad3",
+        "data": "Prereq: 1.2\n*** a.txt\n--- a.txt\n***************\n*** 1,2 ****\n  x\n! y\n--- 1,2 ----\n  x\n! Y\n"
+      }
+    }
+  },
+  "patch-edge-read-only-root": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 292,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-reverse-create-missing-batch": {
+    "stdout": "The next patch, when reversed, would delete the file added,\nwhich does not exist!  Ignoring -R.\npatching file added\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "added": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a4fb621495a0122493b2203591c448903c472e306a1ede54fabad829e01075c0",
+        "data": "n\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "51572836029572da9a6d19a257d6ceed7debda91c4622145b537c6c424fa8577",
+        "data": "--- /dev/null\n+++ added\n@@ -0,0 +1 @@\n+n\n"
+      }
+    }
+  },
+  "patch-edge-reverse-create-missing-force": {
+    "stdout": "The next patch, when reversed, would delete the file added,\nwhich does not exist!  Applying it anyway.\npatching file added\nHunk #1 FAILED at 1.\n1 out of 1 hunk FAILED -- saving rejects to file added.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "added.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "added.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "5adcfcd2eaf03223bba84d4bb0797ac25d9e46f86d1fd77ef28fede413b1d51e",
+        "data": "--- added\n+++ /dev/null\n@@ -1 +0,0 @@\n-n\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "51572836029572da9a6d19a257d6ceed7debda91c4622145b537c6c424fa8577",
+        "data": "--- /dev/null\n+++ added\n@@ -0,0 +1 @@\n+n\n"
+      }
+    }
+  },
+  "patch-edge-reverse-delete-exists": {
+    "stdout": "The next patch, when reversed, would create the file added,\nwhich already exists!  Ignore -R? [n] \nApply anyway? [n] \nSkipping patch.\n1 out of 1 hunk ignored\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "added": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4adc33bd9fe74303c344be46e5916d65182fb218e248fe80452ab3f025b06c64",
+        "data": "q\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "5adcfcd2eaf03223bba84d4bb0797ac25d9e46f86d1fd77ef28fede413b1d51e",
+        "data": "--- added\n+++ /dev/null\n@@ -1 +0,0 @@\n-n\n"
+      }
+    }
+  },
+  "patch-edge-reverse-delete-exists-batch": {
+    "stdout": "The next patch, when reversed, would create the file added,\nwhich already exists!  Ignoring -R.\npatching file added\nHunk #1 FAILED at 1.\nNot deleting file added as content differs from patch\n1 out of 1 hunk FAILED -- saving rejects to file added.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "added": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4adc33bd9fe74303c344be46e5916d65182fb218e248fe80452ab3f025b06c64",
+        "data": "q\n"
+      },
+      "added.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4adc33bd9fe74303c344be46e5916d65182fb218e248fe80452ab3f025b06c64",
+        "data": "q\n"
+      },
+      "added.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "5adcfcd2eaf03223bba84d4bb0797ac25d9e46f86d1fd77ef28fede413b1d51e",
+        "data": "--- added\n+++ /dev/null\n@@ -1 +0,0 @@\n-n\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "5adcfcd2eaf03223bba84d4bb0797ac25d9e46f86d1fd77ef28fede413b1d51e",
+        "data": "--- added\n+++ /dev/null\n@@ -1 +0,0 @@\n-n\n"
+      }
+    }
+  },
+  "patch-edge-same-file-twice": {
+    "stdout": "patching file a.txt\nHunk #1 succeeded at 1 with fuzz 1.\npatching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "8638659fa902c4394dd225a9cc320ab843153a5f38cec95c9869b82428132f57",
+        "data": "1\nTWO\n3\n4\n5\n6\n7\nEIGHT\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "fa39f85dc698e8c03824b0af3de7bc534da1cdf3905d1e8a585352854f5a7767",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 96,
+        "sha256": "384e26bf87d7b315069f465d207411020db76f429f8cd647f3e01fce478b98a1",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n 1\n-2\n+TWO\n--- a.txt\n+++ a.txt\n@@ -7,2 +7,2 @@\n 7\n-8\n+EIGHT\n"
+      }
+    }
+  },
+  "patch-edge-same-file-twice-backup": {
+    "stdout": "patching file a.txt\nHunk #1 succeeded at 1 with fuzz 1.\npatching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "8638659fa902c4394dd225a9cc320ab843153a5f38cec95c9869b82428132f57",
+        "data": "1\nTWO\n3\n4\n5\n6\n7\nEIGHT\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "fa39f85dc698e8c03824b0af3de7bc534da1cdf3905d1e8a585352854f5a7767",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 96,
+        "sha256": "384e26bf87d7b315069f465d207411020db76f429f8cd647f3e01fce478b98a1",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n 1\n-2\n+TWO\n--- a.txt\n+++ a.txt\n@@ -7,2 +7,2 @@\n 7\n-8\n+EIGHT\n"
+      }
+    }
+  },
+  "patch-edge-second-hunk-malformed": {
+    "stdout": "patching file m.txt\nHunk #1 succeeded at 1 with fuzz 1.\n",
+    "stderr": "patch: **** malformed patch at line 9: zz\n\n",
+    "exit": 2,
+    "files": {
+      "m.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "a8cdd76642f0ecda0067f4d780d027935959e42dc16520220f295191b913efba",
+        "data": "a\nb\nc\nd\ne\nf\ng\nh\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 67,
+        "sha256": "ed51088f2572477139a6b45008ab02a21c2e06ccf844fdf59b21a10374c7f406",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,2 +1,2 @@\n a\n-b\n+B\n@@ -7,2 +7,2 @@\n g\nzz\n"
+      }
+    }
+  },
+  "patch-edge-set-time-local": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 85,
+        "sha256": "2cff74889bea00bb65d021ebb2d914cd9b13bef8befc48026cafef002dfcaec5",
+        "data": "--- a.txt\t2026-01-15 09:00:00\n+++ a.txt\t2026-02-01 00:00:00\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-set-utc-match": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 117,
+        "sha256": "9a7a4b6cb90aeb60b098fe39ed7cfbd684504a5bd26cc2190c5c6730c1c310cb",
+        "data": "--- a.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ a.txt\t2026-02-01 00:00:00.000000000 +0000\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-set-utc-mismatch": {
+    "stdout": "patching file a.txt\nNot setting time of file a.txt (time mismatch)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 117,
+        "sha256": "1c4387bd542e77d68ad721b2d83f824760b76c648f502fb35eebb3352545e276",
+        "data": "--- a.txt\t2020-05-06 07:08:09.000000000 +0000\n+++ a.txt\t2021-05-06 07:08:09.123456789 +0000\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-set-utc-mismatch-silent": {
+    "stdout": "Not setting time of file a.txt (time mismatch)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 117,
+        "sha256": "1c4387bd542e77d68ad721b2d83f824760b76c648f502fb35eebb3352545e276",
+        "data": "--- a.txt\t2020-05-06 07:08:09.000000000 +0000\n+++ a.txt\t2021-05-06 07:08:09.123456789 +0000\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-short-then-next-hunk": {
+    "stdout": "patching file m.txt\n",
+    "stderr": "patch: **** malformed patch at line 7: @@ -5 +5 @@\n\n",
+    "exit": 2,
+    "files": {
+      "m.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "86dc03602dcf385217216784784a8ecf20e6400decc3208170b12fcb0afb6698",
+        "data": "a\nb\nc\nd\ne\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 63,
+        "sha256": "1055bddbbf4aa5352765fefb96900fccf2e86d61b50f122694fbf4786e754d53",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,3 +1,3 @@\n a\n-b\n+B\n@@ -5 +5 @@\n-e\n+E\n"
+      }
+    }
+  },
+  "patch-edge-silent-not-regular": {
+    "stdout": "File d is not a regular file -- refusing to patch\n1 out of 1 hunk ignored -- saving rejects to file d.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "ea50c31442a439d822ee5ec45e087c3148a277702366eab9c977909ba385463e",
+        "data": "--- d\n+++ d\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "ea50c31442a439d822ee5ec45e087c3148a277702366eab9c977909ba385463e",
+        "data": "--- d\n+++ d\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-space-before-date": {
+    "stdout": "patching file f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 77,
+        "sha256": "54d18787603fb125eb46f79515b7703dfd2a54d7ad01b6be83433764bbfd89c6",
+        "data": "--- f 2026-01-15 12:00:00\n+++ f 2026-01-15 12:00:00\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-symlink-follow": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      },
+      "t.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      }
+    }
+  },
+  "patch-edge-symlink-refused": {
+    "stdout": "File a.txt is not a regular file -- refusing to patch\n1 out of 1 hunk ignored -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "symlink",
+        "target": "t.txt"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      },
+      "t.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      }
+    }
+  },
+  "patch-edge-trunc-fill-one": {
+    "stdout": "patching file m.txt\nHunk #1 succeeded at 1 with fuzz 1.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      },
+      "m.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "86dc03602dcf385217216784784a8ecf20e6400decc3208170b12fcb0afb6698",
+        "data": "a\nb\nc\nd\ne\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "559c819987b95952d17bf1e8a2e538fdbfa0021b2f08d58a4b2acfe98f08682f",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,3 +1,3 @@\n a\n-b\n+B\n"
+      }
+    }
+  },
+  "patch-edge-trunc-fill-three": {
+    "stdout": "patching file m.txt\nHunk #1 FAILED at 1.\n1 out of 1 hunk FAILED -- saving rejects to file m.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "m.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "86dc03602dcf385217216784784a8ecf20e6400decc3208170b12fcb0afb6698",
+        "data": "a\nb\nc\nd\ne\n"
+      },
+      "m.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "86dc03602dcf385217216784784a8ecf20e6400decc3208170b12fcb0afb6698",
+        "data": "a\nb\nc\nd\ne\n"
+      },
+      "m.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 48,
+        "sha256": "7bf3266fb99f0ad8a671f74959c3c30cc1ab42ab2d12ad5b5cc426c6ad002ec3",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,4 +1,4 @@\n-a\n+A\n \n \n \n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "981b74d23ec552680be451d95030bd5db4e6a32d791c1d3bee98ca74f9133fa2",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,4 +1,4 @@\n-a\n+A\n"
+      }
+    }
+  },
+  "patch-edge-trunc-unexpected-eof": {
+    "stdout": "patching file m.txt\n",
+    "stderr": "patch: **** unexpected end of file in patch\n",
+    "exit": 2,
+    "files": {
+      "m.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "86dc03602dcf385217216784784a8ecf20e6400decc3208170b12fcb0afb6698",
+        "data": "a\nb\nc\nd\ne\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "9dad0afc3167f36d35817b94947a65995b91368c39f22918306857b753f342a6",
+        "data": "--- m.txt\n+++ m.txt\n@@ -1,5 +1,5 @@\n-a\n+A\n"
+      }
+    }
+  },
+  "patch-edge-unreversed": {
+    "stdout": "patching file a.txt\nUnreversed patch detected!  Ignore -R? [n] \nApply anyway? [n] \nSkipping patch.\n1 out of 1 hunk ignored -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "a1b6c2553d1a14ec53eb90d8bb88db2432d09e58a49c2def7b89831e5bbe4590",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-Y\n+y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-unreversed-batch": {
+    "stdout": "patching file a.txt\nUnreversed patch detected!  Ignoring -R.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-unreversed-force": {
+    "stdout": "patching file a.txt\nHunk #1 FAILED at 1.\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "a1b6c2553d1a14ec53eb90d8bb88db2432d09e58a49c2def7b89831e5bbe4590",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-Y\n+y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-edge-unreversed-forward": {
+    "stdout": "patching file a.txt\nUnreversed patch detected!  Skipping patch.\n1 out of 1 hunk ignored -- saving rejects to file a.txt.rej\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "a.txt.rej": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "a1b6c2553d1a14ec53eb90d8bb88db2432d09e58a49c2def7b89831e5bbe4590",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-Y\n+y\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  }
+}

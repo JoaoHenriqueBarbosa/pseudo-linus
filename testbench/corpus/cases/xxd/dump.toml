@@ -1,0 +1,372 @@
+tool = "xxd"
+source = "manual"
+
+# Dump normal do xxd 9.1: colunas (-c), grupos (-g), little-endian (-e), bits (-b), maiúsculas (-u),
+# endereço decimal (-d) e deslocado (-o), limite (-l), posição inicial (-s, em arquivo e em pipe),
+# EBCDIC (-E) e linhas nulas (-a). Fixtures: `txt` é texto de 55 bytes; `all` tem os 256 bytes em
+# ordem; `zz`, `z3` e `z5` exercitam o `-a` (sequências de linhas nulas no meio e no fim).
+
+[[case]]
+id = "xxd-default"
+argv = ["xxd", "txt"]
+tags = ["dump", "default"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-stdin"
+argv = ["xxd"]
+stdin = "hello world\n"
+tags = ["dump", "stdin"]
+
+[[case]]
+id = "xxd-stdin-dash"
+argv = ["xxd", "-"]
+stdin = "hello world\n"
+tags = ["dump", "stdin"]
+
+[[case]]
+id = "xxd-all-bytes"
+argv = ["xxd", "all"]
+tags = ["dump", "default"]
+[case.files]
+"all" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "xxd-cols5"
+argv = ["xxd", "-c", "5", "txt"]
+tags = ["dump", "cols"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-cols7-group3"
+argv = ["xxd", "-c", "7", "-g", "3", "txt"]
+tags = ["dump", "cols", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-group4"
+argv = ["xxd", "-g", "4", "txt"]
+tags = ["dump", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-group1"
+argv = ["xxd", "-g1", "txt"]
+tags = ["dump", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-group0"
+argv = ["xxd", "-g", "0", "txt"]
+tags = ["dump", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-group-larger-than-cols"
+argv = ["xxd", "-g", "300", "-c", "6", "txt"]
+tags = ["dump", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-group-negative-is-default"
+argv = ["xxd", "-g", "-1", "txt"]
+tags = ["dump", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-group5-cols12"
+argv = ["xxd", "-g", "5", "-c", "12", "txt"]
+tags = ["dump", "cols", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-cols33"
+argv = ["xxd", "-c", "33", "txt"]
+tags = ["dump", "cols"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-cols256"
+argv = ["xxd", "-c", "256", "-g", "0", "all"]
+tags = ["dump", "cols"]
+[case.files]
+"all" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "xxd-cols-hex-and-octal"
+argv = ["xxd", "-c", "0x8", "-l", "010", "txt"]
+tags = ["dump", "cols", "numbers"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-cols0-is-default"
+argv = ["xxd", "-c", "0", "txt"]
+tags = ["dump", "cols"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-little-endian"
+argv = ["xxd", "-e", "txt"]
+tags = ["dump", "little-endian"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-little-endian-g2"
+argv = ["xxd", "-e", "-g", "2", "txt"]
+tags = ["dump", "little-endian"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-little-endian-g8"
+argv = ["xxd", "-e", "-g", "8", "txt"]
+tags = ["dump", "little-endian"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-little-endian-cols10"
+argv = ["xxd", "-e", "-c", "10", "txt"]
+tags = ["dump", "little-endian", "cols"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-little-endian-cols3-overlap"
+argv = ["xxd", "-e", "-c", "3", "txt"]
+tags = ["dump", "little-endian", "quirk"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-little-endian-cols6-g8-overlap"
+argv = ["xxd", "-e", "-c", "6", "-g", "8", "txt"]
+tags = ["dump", "little-endian", "quirk"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-little-endian-group3-error"
+argv = ["xxd", "-e", "-g", "3", "txt"]
+tags = ["dump", "little-endian", "error"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-bits"
+argv = ["xxd", "-b", "txt"]
+tags = ["dump", "bits"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-bits-cols4-g2"
+argv = ["xxd", "-b", "-c", "4", "-g", "2", "txt"]
+tags = ["dump", "bits", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-bits-g0"
+argv = ["xxd", "-bits", "-g", "0", "-c", "3", "txt"]
+tags = ["dump", "bits", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-uppercase"
+argv = ["xxd", "-u", "-o", "0xab", "txt"]
+tags = ["dump", "upper", "offset"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-decimal"
+argv = ["xxd", "-d", "txt"]
+tags = ["dump", "decimal"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-decimal-negative-offset"
+argv = ["xxd", "-d", "-o", "-5", "txt"]
+tags = ["dump", "decimal", "offset"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-offset-wraps"
+argv = ["xxd", "-o", "-1", "txt"]
+tags = ["dump", "offset"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-offset-big"
+argv = ["xxd", "-offset", "0x7fffffff", "txt"]
+tags = ["dump", "offset"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-len"
+argv = ["xxd", "-l", "20", "txt"]
+tags = ["dump", "len"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-len-zero"
+argv = ["xxd", "-l", "0", "txt"]
+tags = ["dump", "len"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-len-negative"
+argv = ["xxd", "-len", "-1", "txt"]
+tags = ["dump", "len"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-seek-len"
+argv = ["xxd", "-s", "5", "-l", "10", "txt"]
+tags = ["dump", "seek", "len"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-seek-from-end"
+argv = ["xxd", "-s", "-2", "-o", "5", "txt"]
+tags = ["dump", "seek"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-seek-relative-twice"
+argv = ["xxd", "-s", "2", "-s", "+3", "-d", "txt"]
+tags = ["dump", "seek"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-seek-past-end"
+argv = ["xxd", "-s", "100", "txt"]
+tags = ["dump", "seek"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-seek-before-start-error"
+argv = ["xxd", "-s", "-100", "txt"]
+tags = ["dump", "seek", "error"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-seek-relative-backwards-error"
+argv = ["xxd", "-s", "+-1", "txt"]
+tags = ["dump", "seek", "error"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-seek-stdin"
+argv = ["xxd", "-s", "+3", "-o", "100"]
+stdin = "hello world\n"
+tags = ["dump", "seek", "stdin"]
+
+[[case]]
+id = "xxd-seek-stdin-exact-end"
+argv = ["xxd", "-s", "12"]
+stdin = "hello world\n"
+tags = ["dump", "seek", "stdin"]
+
+[[case]]
+id = "xxd-seek-stdin-past-end-error"
+argv = ["xxd", "-s", "13"]
+stdin = "hello world\n"
+tags = ["dump", "seek", "stdin", "error"]
+
+[[case]]
+id = "xxd-seek-stdin-from-end-error"
+argv = ["xxd", "-s", "-1"]
+stdin = "hello world\n"
+tags = ["dump", "seek", "stdin", "error"]
+
+[[case]]
+id = "xxd-ebcdic"
+argv = ["xxd", "-E", "txt"]
+tags = ["dump", "ebcdic"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-ebcdic-all"
+argv = ["xxd", "-EBCDIC", "all"]
+tags = ["dump", "ebcdic"]
+[case.files]
+"all" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "xxd-autoskip"
+argv = ["xxd", "-a", "zz"]
+tags = ["dump", "autoskip"]
+[case.files]
+"zz" = { content_b64 = "QUFBQUFBQUFBQUFBQUFBQQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCQkJCQgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
+
+[[case]]
+id = "xxd-autoskip-cols8"
+argv = ["xxd", "-autoskip", "-c", "8", "zz"]
+tags = ["dump", "autoskip"]
+[case.files]
+"zz" = { content_b64 = "QUFBQUFBQUFBQUFBQUFBQQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCQkJCQgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
+
+[[case]]
+id = "xxd-autoskip-bits"
+argv = ["xxd", "-a", "-b", "zz"]
+tags = ["dump", "autoskip", "bits"]
+[case.files]
+"zz" = { content_b64 = "QUFBQUFBQUFBQUFBQUFBQQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCQkJCQgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
+
+[[case]]
+id = "xxd-autoskip-toggled-off"
+argv = ["xxd", "-a", "-a", "zz"]
+tags = ["dump", "autoskip"]
+[case.files]
+"zz" = { content_b64 = "QUFBQUFBQUFBQUFBQUFBQQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCQkJCQgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
+
+[[case]]
+id = "xxd-autoskip-three-at-end"
+argv = ["xxd", "-a", "z3"]
+tags = ["dump", "autoskip"]
+[case.files]
+"z3" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "xxd-autoskip-partial-tail"
+argv = ["xxd", "-a", "z5"]
+tags = ["dump", "autoskip"]
+[case.files]
+"z5" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "xxd-empty-file"
+argv = ["xxd", "empty"]
+tags = ["dump", "empty"]
+[case.files]
+"empty" = ""

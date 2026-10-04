@@ -1,0 +1,572 @@
+tool = "hexdump"
+source = "manual"
+
+# O motor de formatos de -e e -f: iterações N/M, contagem de bytes por conversão, ajuste da última
+# unidade ao tamanho do bloco, espaço final que some na última iteração, conversões %d %i %o %u %x
+# %X %c %s %e %f %g %E %G com flags e largura, %_a %_A %_c %_p %_u, escapes e as mensagens de erro.
+# `b.bin` = ff fe 01 80 "abcdefgh12345678"; `f4.bin` = floats (1, 0, inf, nan, -nan, -inf, 0.1, 2);
+# `f8.bin` = doubles (1, 0.1, inf, -2.5, -0, nan, 255, 10, 1e-5).
+
+[[case]]
+id = "hexdump-e-signed-byte"
+argv = ["hexdump", "-e", '1/1 "%d "', "b.bin"]
+tags = ["e", "int"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-i-conversion"
+argv = ["hexdump", "-e", '1/1 "%i|"', "b.bin"]
+tags = ["e", "int"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-reps-nospace"
+argv = ["hexdump", "-e", '2/1 "%d "', "b.bin"]
+tags = ["e", "nospace"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-short"
+argv = ["hexdump", "-e", '1/2 "%d "', "b.bin"]
+tags = ["e", "int"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-int32"
+argv = ["hexdump", "-e", '1/4 "%d\n"', "b.bin"]
+tags = ["e", "int"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-int64-padded"
+argv = ["hexdump", "-e", '1/8 "%d\n"', "b.bin"]
+tags = ["e", "int", "partial"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-default-count"
+argv = ["hexdump", "-e", '"%x"', "b.bin"]
+tags = ["e", "int"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-reps-only"
+argv = ["hexdump", "-e", '4 "%x"', "b.bin"]
+tags = ["e", "syntax"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-slash-only"
+argv = ["hexdump", "-e", '/1 "%x"', "b.bin"]
+tags = ["e", "syntax"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-slash-space"
+argv = ["hexdump", "-e", '4/ 1 "%x"', "b.bin"]
+tags = ["e", "syntax"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-reps-space-count"
+argv = ["hexdump", "-e", '4 1 "%02x" "\n"', "b.bin"]
+tags = ["e", "syntax"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-string-precision"
+argv = ["hexdump", "-e", '"%5.3s|"', "b.bin"]
+tags = ["e", "string"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-string-count"
+argv = ["hexdump", "-e", '1/4 "%s|"', "b.bin"]
+tags = ["e", "string"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-string-reps"
+argv = ["hexdump", "-e", '2/3 "%s|" "\n"', "a"]
+tags = ["e", "string"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-string-left"
+argv = ["hexdump", "-e", '1/3 "%-5s|" "\n"', "a"]
+tags = ["e", "string"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-address-decimal"
+argv = ["hexdump", "-e", '"[%6_ad]" 4/1 "%x" "\n"', "b.bin"]
+tags = ["e", "address"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-address-forms"
+argv = ["hexdump", "-e", '"%_ao %_ad %_ax %#_ax %8_ax|" 5/1 "%02x" "\n"', "a"]
+tags = ["e", "address"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-end-address-last-wins"
+argv = ["hexdump", "-e", '"%_Ad\n"', "-e", '"%_Ax\n"', "-e", '4/1 "%02x" "\n"', "a"]
+tags = ["e", "address", "end"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-end-address-both"
+argv = ["hexdump", "-e", '"%_Ad|%_ax\n"', "-e", '4/1 "%02x" "\n"', "a"]
+tags = ["e", "address", "end"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-end-address-hides-unit"
+argv = ["hexdump", "-e", '"%_Ax" 1/1 "%x"', "a"]
+tags = ["e", "address", "end"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-end-address-partial"
+argv = ["hexdump", "-e", '"%_Ax\n"', "-e", '4/1 "%x" "\n"']
+stdin = "ab"
+tags = ["e", "address", "end", "partial"]
+
+[[case]]
+id = "hexdump-e-address-without-base"
+argv = ["hexdump", "-e", '"%_a" 1/1 "%x" "\n"', "b.bin"]
+tags = ["e", "address"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-only-text"
+argv = ["hexdump", "-e", '"abc\n"', "a"]
+tags = ["e", "text"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-escaped-char"
+argv = ["hexdump", "-e", '"%3_c|"', "b.bin"]
+tags = ["e", "char"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-printable"
+argv = ["hexdump", "-e", '"%-4_p|"', "b.bin"]
+tags = ["e", "char"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-unit-names"
+argv = ["hexdump", "-e", '16/1 "%_u " "\n"', "ctrl.bin"]
+tags = ["e", "char", "partial"]
+[case.files]
+"ctrl.bin" = { content_b64 = "AAF/gP8KCQ0HCAwLIH7DqQ==" }
+
+[[case]]
+id = "hexdump-e-unit-names-all"
+argv = ["hexdump", "-e", '"%07.7_ax " 16/1 "%4_u" "\n"', "all.bin"]
+tags = ["e", "char", "binary"]
+[case.files]
+"all.bin" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "hexdump-e-flag-plus"
+argv = ["hexdump", "-e", '1/1 "%+d "', "b.bin"]
+tags = ["e", "flags"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-flag-space"
+argv = ["hexdump", "-e", '1/1 "% d "', "b.bin"]
+tags = ["e", "flags"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-flag-left"
+argv = ["hexdump", "-e", '1/1 "%-5d|"', "b.bin"]
+tags = ["e", "flags"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-flag-zero-octal"
+argv = ["hexdump", "-e", '1/1 "%05o "', "b.bin"]
+tags = ["e", "flags"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-flag-alt-octal"
+argv = ["hexdump", "-e", '1/1 "%#o "', "b.bin"]
+tags = ["e", "flags"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-upper-hex"
+argv = ["hexdump", "-e", '1/1 "%X "', "b.bin"]
+tags = ["e", "flags"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-alt-upper-hex"
+argv = ["hexdump", "-e", '1/1 "%#X "', "b.bin"]
+tags = ["e", "flags"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-unsigned"
+argv = ["hexdump", "-e", '1/1 "%u "', "b.bin"]
+tags = ["e", "int"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-precision-hex"
+argv = ["hexdump", "-e", '1/1 "%.5x "', "b.bin"]
+tags = ["e", "flags"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-char-raw"
+argv = ["hexdump", "-e", '1/1 "%c"', "b.bin"]
+tags = ["e", "char"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-char-width"
+argv = ["hexdump", "-e", '1/1 "%5c|"', "b.bin"]
+tags = ["e", "char"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-alt-hex-word"
+argv = ["hexdump", "-e", '"%#x "', "b.bin"]
+tags = ["e", "flags"]
+[case.files]
+"b.bin" = { content_b64 = "//4BgGFiY2RlZmdoMTIzNDU2Nzg=" }
+
+[[case]]
+id = "hexdump-e-nospace-two-spaces"
+argv = ["hexdump", "-e", '4/1 "%x  " "|\n"', "a"]
+tags = ["e", "nospace"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-nospace-newline"
+argv = ["hexdump", "-e", '2/1 "%x\n"', "a"]
+tags = ["e", "nospace"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-nospace-tab"
+argv = ["hexdump", "-e", '4/1 "%x\t" "|\n"', "a"]
+tags = ["e", "nospace", "escape"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-reps-text"
+argv = ["hexdump", "-e", '2/1 "<%x>" " ." "\n"', "a"]
+tags = ["e", "text"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-adjust-last-unit"
+argv = ["hexdump", "-e", '"%07.7_ax " 4/1 "%02x " "\n"', "-e", '"%07.7_ax " 2/2 "%04x " "\n"', "a"]
+tags = ["e", "multi"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-last-unit-without-reps"
+argv = ["hexdump", "-e", '"%07.7_ax: " "%02x" "\n"', "a"]
+tags = ["e"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-smaller-format"
+argv = ["hexdump", "-e", '"%07.7_ax: " 1/1 "%02x " "\n"', "-e", '16/1 "%c" "\n"', "a"]
+tags = ["e", "multi"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-explicit-reps-not-adjusted"
+argv = ["hexdump", "-e", '"X" 1/1 "%x" "\n"', "-e", '8/1 "%c" "\n"', "a"]
+tags = ["e", "multi"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-trailing-backslash"
+argv = ["hexdump", "-e", '"abc\" 4/1 "%x" "\n"', "a"]
+tags = ["e", "escape"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-escapes"
+argv = ["hexdump", "-e", '"\a\b\f\r\t\v\\\q\0" 4/1 "%x" "\n"', "a"]
+tags = ["e", "escape"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-e-mixed-char-reps"
+argv = ["hexdump", "-e", '"%_ad: " 4 "%2_c" "\n"', "a"]
+tags = ["e", "char"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-float-f"
+argv = ["hexdump", "-e", '1/4 "%f|" "\n"', "f4.bin"]
+tags = ["e", "float"]
+[case.files]
+"f4.bin" = { content_b64 = "AACAPwAAAAAAAIB/AADAfwAAwP8AAID/zczMPQAAAEA=" }
+
+[[case]]
+id = "hexdump-float-e"
+argv = ["hexdump", "-e", '1/4 "%e|" "\n"', "f4.bin"]
+tags = ["e", "float"]
+[case.files]
+"f4.bin" = { content_b64 = "AACAPwAAAAAAAIB/AADAfwAAwP8AAID/zczMPQAAAEA=" }
+
+[[case]]
+id = "hexdump-float-g"
+argv = ["hexdump", "-e", '1/4 "%g|" "\n"', "f4.bin"]
+tags = ["e", "float"]
+[case.files]
+"f4.bin" = { content_b64 = "AACAPwAAAAAAAIB/AADAfwAAwP8AAID/zczMPQAAAEA=" }
+
+[[case]]
+id = "hexdump-float-upper"
+argv = ["hexdump", "-e", '1/4 "%E|"', "-e", '1/4 "%G|" "\n"', "f4.bin"]
+tags = ["e", "float", "multi"]
+[case.files]
+"f4.bin" = { content_b64 = "AACAPwAAAAAAAIB/AADAfwAAwP8AAID/zczMPQAAAEA=" }
+
+[[case]]
+id = "hexdump-float-flags"
+argv = ["hexdump", "-e", '1/4 "%08.2f|"', "-e", '1/4 "%-12.2e|"', "-e", '1/4 "%+g|"', "-e", '1/4 "%#g|"', "-e", '1/4 "% f|" "\n"', "f4.bin"]
+tags = ["e", "float", "flags"]
+[case.files]
+"f4.bin" = { content_b64 = "AACAPwAAAAAAAIB/AADAfwAAwP8AAID/zczMPQAAAEA=" }
+
+[[case]]
+id = "hexdump-float-precision"
+argv = ["hexdump", "-e", '1/4 "%.0f|"', "-e", '1/4 "%#.0f|"', "-e", '1/4 "%.0e|"', "-e", '1/4 "%#.0e|"', "-e", '1/4 "%.10g|" "\n"', "f4.bin"]
+tags = ["e", "float", "flags"]
+[case.files]
+"f4.bin" = { content_b64 = "AACAPwAAAAAAAIB/AADAfwAAwP8AAID/zczMPQAAAEA=" }
+
+[[case]]
+id = "hexdump-double-default"
+argv = ["hexdump", "-e", '"%f\n"', "f8.bin"]
+tags = ["e", "float"]
+[case.files]
+"f8.bin" = { content_b64 = "AAAAAAAA8D+amZmZmZm5PwAAAAAAAPB/AAAAAAAABMAAAAAAAAAAgAAAAAAAAPh/AAAAAADgb0AAAAAAAAAkQPFo44i1+OQ+" }
+
+[[case]]
+id = "hexdump-double-forms"
+argv = ["hexdump", "-e", '"%.3g|"', "-e", '"%010.4e|"', "-e", '"%+e|"', "-e", '"%#.3g|"', "-e", '"%G|"', "-e", '"%.17g|"', "-e", '"%-10g|" "\n"', "f8.bin"]
+tags = ["e", "float", "flags"]
+[case.files]
+"f8.bin" = { content_b64 = "AAAAAAAA8D+amZmZmZm5PwAAAAAAAPB/AAAAAAAABMAAAAAAAAAAgAAAAAAAAPh/AAAAAADgb0AAAAAAAAAkQPFo44i1+OQ+" }
+
+[[case]]
+id = "hexdump-double-bytes-as-text"
+argv = ["hexdump", "-e", '"%f\n"', "a"]
+tags = ["e", "float", "partial"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-format-file"
+argv = ["hexdump", "-f", "fmt", "a"]
+tags = ["f"]
+[case.files]
+"a" = "0123456789abcdefghij"
+"fmt" = "# comentário\n\n  \"%07.7_ax \" 8/1 \"%02x \" \"\\n\"\n   # outro\n\"%07.7_Ax\\n\"\n"
+
+[[case]]
+id = "hexdump-format-file-and-e"
+argv = ["hexdump", "-e", '"%_ad:"', "-f", "fmt", "a"]
+tags = ["f", "e"]
+[case.files]
+"a" = "0123456789abcdefghij"
+"fmt" = "8/1 \"%3_c\" \"\\n\"\n"
+
+[[case]]
+id = "hexdump-format-file-bad-line"
+argv = ["hexdump", "-f", "fmt", "a"]
+tags = ["f", "error"]
+[case.files]
+"a" = "0123456789abcdefghij"
+"fmt" = "4/1 \"%x\n"
+
+[[case]]
+id = "hexdump-format-file-missing"
+argv = ["hexdump", "-f", "nofile", "a"]
+tags = ["f", "error"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-format-file-directory"
+argv = ["hexdump", "-f", "d", "a"]
+tags = ["f"]
+[case.files]
+"a" = "0123456789abcdefghij"
+"d" = { dir = true }
+
+[[case]]
+id = "hexdump-format-long"
+argv = ["hexdump", "--format", '4/1 "%02X" "\n"', "--format-file", "fmt", "a"]
+tags = ["f", "e", "long"]
+[case.files]
+"a" = "0123456789abcdefghij"
+"fmt" = "\"%_Ad\\n\"\n"
+
+[[case]]
+id = "hexdump-bad-percent-percent"
+argv = ["hexdump", "-e", '"%%"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-lone-percent"
+argv = ["hexdump", "-e", '"%"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-width-only"
+argv = ["hexdump", "-e", '"%5"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-precision-only"
+argv = ["hexdump", "-e", '"%.5"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-trailing-percent"
+argv = ["hexdump", "-e", '"abc%"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-int-count"
+argv = ["hexdump", "-e", '1/3 "%d"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-float-count"
+argv = ["hexdump", "-e", '1/16 "%f\n"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-char-count"
+argv = ["hexdump", "-e", '1/2 "%c"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-escaped-char-count"
+argv = ["hexdump", "-e", '1/2 "%_c"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-missing-format"
+argv = ["hexdump", "-e", '4/1', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-count-no-space"
+argv = ["hexdump", "-e", '4/1"%x"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-reps-no-space"
+argv = ["hexdump", "-e", '4"%x "', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-unterminated"
+argv = ["hexdump", "-e", '"abc', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-no-quotes"
+argv = ["hexdump", "-e", 'x', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-string-no-precision"
+argv = ["hexdump", "-e", '"%s"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-underscore-conversion"
+argv = ["hexdump", "-e", '"%_Z"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-lone-underscore"
+argv = ["hexdump", "-e", '"%_"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-address-base"
+argv = ["hexdump", "-e", '"%_ap"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-unknown-conversion"
+argv = ["hexdump", "-e", '"%q"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-two-conversions-with-count"
+argv = ["hexdump", "-e", '1/1 "%x %x"', "a"]
+tags = ["e", "error"]
+
+[[case]]
+id = "hexdump-bad-format-before-option-error"
+argv = ["hexdump", "-e", 'x', "-Q"]
+tags = ["e", "error", "getopt"]

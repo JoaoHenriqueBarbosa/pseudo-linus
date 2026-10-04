@@ -1,0 +1,144 @@
+tool = "column"
+source = "manual"
+
+# Modo de preenchimento do column (util-linux 2.41): por colunas (padrão) e por linhas (-x), com
+# tabulação ou -S espaços, largura por -c ou COLUMNS.
+
+[[case]]
+id = "column-fill-seq"
+argv = ["column"]
+stdin = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n"
+
+[[case]]
+id = "column-fill-rows-seq"
+argv = ["column", "-x"]
+stdin = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n"
+
+[[case]]
+id = "column-fill-width-40"
+argv = ["column", "-c", "40"]
+stdin = "alpha\nbeta\ngamma\ndelta\nepsilon\nzeta\neta\ntheta\niota\nkappa\nlambda\nmu\n"
+
+[[case]]
+id = "column-fill-rows-width-40"
+argv = ["column", "-x", "-c", "40"]
+stdin = "alpha\nbeta\ngamma\ndelta\nepsilon\nzeta\neta\ntheta\niota\nkappa\nlambda\nmu\n"
+
+[[case]]
+id = "column-fill-columns-env"
+argv = ["column"]
+env = { COLUMNS = "30" }
+stdin = "alpha\nbeta\ngamma\ndelta\nepsilon\nzeta\neta\ntheta\niota\nkappa\nlambda\nmu\n"
+
+[[case]]
+id = "column-fill-columns-env-invalid"
+argv = ["column"]
+env = { COLUMNS = "abc" }
+stdin = "alpha\nbeta\ngamma\ndelta\nepsilon\nzeta\neta\ntheta\niota\nkappa\nlambda\nmu\n"
+
+[[case]]
+id = "column-fill-c-overrides-env"
+argv = ["column", "-c", "100"]
+env = { COLUMNS = "30" }
+stdin = "alpha\nbeta\ngamma\ndelta\nepsilon\nzeta\neta\ntheta\niota\nkappa\nlambda\nmu\n"
+
+[[case]]
+id = "column-fill-long-entry"
+argv = ["column", "-c", "40"]
+stdin = "a\nbb\nccccccccc\ndddd\ne\nf\ngggggggggggggggg\nh\n"
+
+[[case]]
+id = "column-fill-wider-than-terminal"
+argv = ["column", "-c", "5"]
+stdin = "abcdefghij\nk\n"
+
+[[case]]
+id = "column-fill-spaces"
+argv = ["column", "-S", "1"]
+stdin = "aaaaaaaaa\nb\nc\nd\ne\nf\ng\nh\ni\nj\n"
+
+[[case]]
+id = "column-fill-spaces-width"
+argv = ["column", "-c", "30", "-S", "2"]
+stdin = "aaaaaaaaa\nb\nc\nd\ne\nf\ng\nh\ni\nj\n"
+
+[[case]]
+id = "column-fill-rows-spaces"
+argv = ["column", "-c", "30", "-x", "-S", "2"]
+stdin = "aaaaaaaaa\nb\nc\nd\ne\nf\ng\nh\ni\nj\n"
+
+[[case]]
+id = "column-fill-blank-lines-skipped"
+argv = ["column"]
+stdin = "one two  three\nfour\n\n   \nfive\n"
+
+[[case]]
+id = "column-fill-keep-empty"
+argv = ["column", "-L"]
+stdin = "a\n\n\nb\n"
+
+[[case]]
+id = "column-fill-trailing-spaces-and-tab"
+argv = ["column"]
+stdin = "a  \nb\tc\nd\n"
+
+[[case]]
+id = "column-fill-unicode"
+argv = ["column", "-c", "30"]
+stdin = "ação\n日本語\nzz\nolá mundo\nx\ny\nw\n"
+
+[[case]]
+id = "column-fill-invalid-utf8"
+argv = ["column"]
+stdin_b64 = "//5hYgpjCg=="
+
+[[case]]
+id = "column-fill-nul-truncates"
+argv = ["column"]
+stdin_b64 = "YQBiIGMKZAo="
+
+[[case]]
+id = "column-fill-no-final-newline"
+argv = ["column"]
+stdin = "a\nb\nc"
+
+[[case]]
+id = "column-fill-empty-input"
+argv = ["column"]
+stdin = ""
+
+[[case]]
+id = "column-fill-files"
+argv = ["column", "f1", "f2"]
+[case.files]
+"f1" = "x\ny\n"
+"f2" = "z\n"
+
+[[case]]
+id = "column-fill-missing-file"
+argv = ["column", "f1", "nope", "f2"]
+[case.files]
+"f1" = "x\n"
+"f2" = "y\n"
+
+[[case]]
+id = "column-fill-directory"
+argv = ["column", "f1", "d"]
+[case.files]
+"f1" = "x\n"
+"d" = { dir = true }
+
+[[case]]
+id = "column-fill-dash-is-file"
+argv = ["column", "-"]
+stdin = "a\nb\n"
+
+[[case]]
+id = "column-fill-width-zero"
+argv = ["column", "-c", "0"]
+stdin = "a\nb\nc\n"
+
+[[case]]
+id = "column-fill-many-entries"
+argv = ["column", "-c", "60"]
+stdin = "one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\nten\neleven\ntwelve\nthirteen\nfourteen\nfifteen\nsixteen\nseventeen\neighteen\nnineteen\ntwenty\n"

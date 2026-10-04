@@ -1,0 +1,42 @@
+[package]
+name = "ul-archive"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "tar, gzip, bzip2, xz/lzma, lzip, zstd, zip e unzip do pseudo-linus, fiéis às ferramentas do Debian 13 e interoperáveis com elas"
+
+[dependencies]
+sysabi = { workspace = true }
+# Codecs, todos em Rust puro (F08/H31): deflate pelo zlib-rs, bzip2 pelo libbz2-rs-sys, xz/lzma/lzip
+# pelo lzma-rust2, zstd pelo structured-zstd.
+flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }
+bzip2 = "0.6"
+lzma-rust2 = "0.21"
+structured-zstd = "0.0.58"
+crc32fast = "1.5"
+miniz_oxide = "0.8"
+# SHA-256 da verificação do .xz (a mesma versão que o lzma-rust2 já traz).
+sha2 = "0.11"
+# Contêineres: tar 0.4 sem default features (sem xattr nem acesso ao host) e zip 8 só com os métodos
+# que o Info-ZIP 3.0/6.0 entende (store, deflate, bzip2) mais deflate64 na leitura.
+tar = { version = "0.4", default-features = false }
+zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs", "bzip2", "deflate64"] }
+# Regex POSIX do GNU pro `--transform` do tar.
+regex-posix = { workspace = true }
+# Datas no fuso do sandbox; sem `tz-system` nem `tzdb-zoneinfo`, que leem o host.
+jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing" }
+harness = { path = "../../testbench/crates/harness" }
+
+[features]
+# Conformidade também sobre o kernel real (`cargo test -p ul-archive --features kernel`). Fora do
+# padrão pra que um kernel no meio de uma edição não trave os testes sobre o testkit.
+kernel = ["pl-testing/kernel"]
+
+[lints]
+workspace = true

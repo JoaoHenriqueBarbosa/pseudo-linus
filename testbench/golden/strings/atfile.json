@@ -1,0 +1,313 @@
+{
+  "strings-atfile": {
+    "stdout": "a: abc\na: hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "opts": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "f6911c3541eb5372de55f3fcab819ea0e0448e33c03d3a8151f5f3142cf07871",
+        "data": "-n 3\n-f a"
+      }
+    }
+  },
+  "strings-atfile-after-ddash": {
+    "stdout": "hello\n",
+    "stderr": "strings: '-n': No such file\nstrings: '3': No such file\nstrings: '-f': No such file\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "opts": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "f6911c3541eb5372de55f3fcab819ea0e0448e33c03d3a8151f5f3142cf07871",
+        "data": "-n 3\n-f a"
+      }
+    }
+  },
+  "strings-atfile-after-file": {
+    "stdout": "a: abc\na: hello\na: abc\na: hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "opts": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "f6911c3541eb5372de55f3fcab819ea0e0448e33c03d3a8151f5f3142cf07871",
+        "data": "-n 3\n-f a"
+      }
+    }
+  },
+  "strings-atfile-backslash-space": {
+    "stdout": "hello a",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "q": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6f75a7a30088781336ac8a42ae44e92bc13df3d4ea8e9a8063dacca29f2ab09",
+        "data": "-s\\ a"
+      }
+    }
+  },
+  "strings-atfile-concat-quotes": {
+    "stdout": "helloab cd",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "q": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "7594e70dc1a59e84488e5019c2c076a3ff93ac6c84fe2d0650ca530d4cd2ee9d",
+        "data": "-s a\"b c\"d a"
+      }
+    }
+  },
+  "strings-atfile-directory": {
+    "stdout": "",
+    "stderr": "strings: error: @-file refers to a directory\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "strings-atfile-double-quote-literal-backslash": {
+    "stdout": "hellox\\y\\z",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "q": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "c304e8806b6701724a45114fe3dd7c2bd5017e0749745a9deaa319fe48a6d880",
+        "data": "-s \"x\\y\\\\z\" a"
+      }
+    }
+  },
+  "strings-atfile-double-quotes": {
+    "stdout": "helloq\" r",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "q": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "6ec8516e44c50d4b4aaee21c997628227d0b2d0d5ff8795a13f7b44e35d2e005",
+        "data": "-s \"q\\\" r\" a"
+      }
+    }
+  },
+  "strings-atfile-empty": {
+    "stdout": "hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "strings-atfile-empty-quotes": {
+    "stdout": "hellohello",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "q": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "607d6e55d9a07e1a8bece7b23df042dc492549800efe17843123d504e39cdfed",
+        "data": "-s '' a a"
+      }
+    }
+  },
+  "strings-atfile-loop": {
+    "stdout": "",
+    "stderr": "strings: error: too many @-files encountered\n",
+    "exit": 1,
+    "files": {
+      "loop": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "1593724f9a719c31d0e9db7c7babf930b4759c39d8178f3442dba9cf4369ac5e",
+        "data": "@loop"
+      }
+    }
+  },
+  "strings-atfile-nested": {
+    "stdout": "a: hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "inner": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "a4489236332809a2799f5bac8e21a980fd50979406acd821b41d3d3aba3ea294",
+        "data": "  \t\n a \n\n"
+      },
+      "outer": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "ec96cf91b22bde84937b02e003dac5476ec61e67d624aab25962723eae35b24b",
+        "data": "@inner"
+      }
+    }
+  },
+  "strings-atfile-nonexist": {
+    "stdout": "",
+    "stderr": "strings: '@nonexist': No such file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-atfile-single-quote-backslash": {
+    "stdout": "stdin texta\\b a",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "q": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "46b5ab93278a88ad1905ecdb1a0211d1161dd0f0600df934353c407082b56416",
+        "data": "-s 'a\\'b' a"
+      }
+    }
+  },
+  "strings-atfile-single-quotes": {
+    "stdout": "hello<> x",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "q": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "1ab55123a7b92f5d161f2412a4ef0d5d29ba995470456e25c6db27256cef04b6",
+        "data": "-s '<> x' a"
+      }
+    }
+  },
+  "strings-atfile-unterminated": {
+    "stdout": "hello<sep",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "e5bd4d467ad2b3f17668fa5284ea8b132d0de4da12b4eb6d942bf42e64877766",
+        "data": "abc\u0000hello\u0000"
+      },
+      "q": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "2b7c0ffc82c59c7e45af196ce5f116977958b8b946cb98299c73be178e6ef1b5",
+        "data": "-s \"<sep"
+      }
+    }
+  }
+}

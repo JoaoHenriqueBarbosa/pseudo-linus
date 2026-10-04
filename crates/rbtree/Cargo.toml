@@ -3,7 +3,8 @@ name = "rbtree"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+# Tradução do lib/rbtree.c (GPL-2.0-or-later); ver crates/sched/PROVENANCE.md.
+license = "GPL-2.0-or-later"
 publish.workspace = true
 description = "Árvore rubro-negra aumentada em arena (índices u32), tradução do lib/rbtree.c do Linux sem unsafe"
 

@@ -3,7 +3,8 @@ name = "sched"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+# Porte do kernel/sched/fair.c (GPL-2.0); ver PROVENANCE.md.
+license = "GPL-2.0-only"
 publish.workspace = true
 description = "Escalonador EEVDF fiel ao kernel/sched/fair.c do Linux 6.12.101, com relógio injetável e simulador de eventos discretos"
 

@@ -1,0 +1,136 @@
+{
+  "envsubst-basic": {
+    "stdout": "a foo b b a r c  d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-binary": {
+    "stdout": {
+      "b64": "/2ZvbwBiIGEgcgo="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-double-dash": {
+    "stdout": "foo $BAR\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-edge-forms": {
+    "stdout": "foox  $ ${ ${FOO $1 $$ \\foo ${FOO:-def} . ${9a}  \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-empty-input": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-help": {
+    "stdout": "Usage: envsubst [OPTION] [SHELL-FORMAT]\n\nSubstitutes the values of environment variables.\n\nOperation mode:\n  -v, --variables             output the variables occurring in SHELL-FORMAT\n\nInformative output:\n  -h, --help                  display this help and exit\n  -V, --version               output version information and exit\n\nIn normal operation mode, standard input is copied to standard output,\nwith references to environment variables of the form $VARIABLE or ${VARIABLE}\nbeing replaced with the corresponding values.  If a SHELL-FORMAT is given,\nonly those environment variables that are referenced in SHELL-FORMAT are\nsubstituted; otherwise all environment variables references occurring in\nstandard input are substituted.\n\nWhen --variables is used, standard input is ignored, and the output consists\nof the environment variables that are referenced in SHELL-FORMAT, one per line.\n\nReport bugs in the bug tracker at <https://savannah.gnu.org/projects/gettext>\nor by email to <bug-gettext@gnu.org>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-home-and-path": {
+    "stdout": "home=/root user=root lang=C.UTF-8 tz=UTC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-invalid-option": {
+    "stdout": "",
+    "stderr": "envsubst: invalid option -- 'Z'\nTry 'envsubst --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "envsubst-missing-arguments": {
+    "stdout": "",
+    "stderr": "envsubst: missing arguments\n",
+    "exit": 1,
+    "files": {}
+  },
+  "envsubst-multiline-template": {
+    "stdout": "server {\n  listen 0.0.0.0:8080;\n  server_name web;\n  root /srv/web/;\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-no-newline": {
+    "stdout": "no newline foo",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-shell-format": {
+    "stdout": "a $FOO b a r $UNDEF\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-shell-format-empty": {
+    "stdout": "a $FOO\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-shell-format-several": {
+    "stdout": "a foo ${BAR} \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-too-many-arguments": {
+    "stdout": "",
+    "stderr": "envsubst: too many arguments\n",
+    "exit": 1,
+    "files": {}
+  },
+  "envsubst-unrecognized-option": {
+    "stdout": "",
+    "stderr": "envsubst: unrecognized option '--bogus'\nTry 'envsubst --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "envsubst-value-with-dollar": {
+    "stdout": "[$B] [bee]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-variables": {
+    "stdout": "FOO\nBAR\nFOO\nY\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-variables-ignores-stdin": {
+    "stdout": "A\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-variables-long": {
+    "stdout": "A_1\n_b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-variables-prefix": {
+    "stdout": "Q\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "envsubst-version": {
+    "stdout": "envsubst (GNU gettext-runtime) 0.23.1\nCopyright (C) 2003-2024 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\nWritten by Bruno Haible.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

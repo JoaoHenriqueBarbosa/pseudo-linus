@@ -1,0 +1,22 @@
+usage: git describe [--all] [--tags] [--contains] [--abbrev=<n>] [<commit-ish>...]
+   or: git describe [--all] [--tags] [--contains] [--abbrev=<n>] --dirty[=<mark>]
+   or: git describe <blob>
+
+    --[no-]contains       find the tag that comes after the commit
+    --[no-]debug          debug search strategy on stderr
+    --[no-]all            use any ref
+    --[no-]tags           use any tag, even unannotated
+    --[no-]long           always use long format
+    --[no-]first-parent   only follow first parent
+    --[no-]abbrev[=<n>]   use <n> digits to display object names
+    --[no-]exact-match    only output exact matches
+    --[no-]candidates <n> consider <n> most recent tags (default: 10)
+    --[no-]match <pattern>
+                          only consider tags matching <pattern>
+    --[no-]exclude <pattern>
+                          do not consider tags matching <pattern>
+    --[no-]always         show abbreviated commit object as fallback
+    --[no-]dirty[=<mark>] append <mark> on dirty working tree (default: "-dirty")
+    --[no-]broken[=<mark>]
+                          append <mark> on broken working tree (default: "-broken")
+

@@ -1,0 +1,225 @@
+tool = "coreutils"
+source = "agent-style"
+
+# numfmt, ptx, tsort e shuf. O shuf é aleatório: os casos usam a tag "unordered" (a bancada compara
+# stdout como multiconjunto de linhas) ou entradas com um elemento só, em que a ordem não importa.
+
+# numfmt
+
+[[case]]
+id = "numfmt-to-iec"
+argv = ["numfmt", "--to=iec", "1048576", "1536", "999", "123456789"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-to-si"
+argv = ["numfmt", "--to=si", "1000", "1500000", "999"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-to-iec-i-suffix"
+argv = ["numfmt", "--to=iec-i", "--suffix=B", "2048", "123456789"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-from-iec"
+argv = ["numfmt", "--from=iec", "1K", "1.5M", "2G"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-from-si"
+argv = ["numfmt", "--from=si", "1K", "1.5M"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-from-auto"
+argv = ["numfmt", "--from=auto", "1Ki", "1K"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-format"
+argv = ["numfmt", "--format=%.2f", "--to=iec", "1536"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-padding"
+argv = ["numfmt", "--padding=8", "--to=si", "1500"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-round-default-up"
+argv = ["numfmt", "--to=si", "1001"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-round-down"
+argv = ["numfmt", "--to=si", "--round=down", "1999"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-round-nearest"
+argv = ["numfmt", "--to=si", "--round=nearest", "1450", "1550"]
+tags = ["numfmt", "number"]
+
+[[case]]
+id = "numfmt-field-stdin"
+argv = ["numfmt", "--field=2", "--to=iec", "--header"]
+stdin = "arquivo bytes\na.bin 1048576\nb.bin 2048\n"
+tags = ["numfmt", "number", "stdin"]
+
+[[case]]
+id = "numfmt-invalid"
+argv = ["numfmt", "abc"]
+tags = ["numfmt", "number", "errno"]
+
+[[case]]
+id = "numfmt-suffix-without-from"
+argv = ["numfmt", "1K"]
+tags = ["numfmt", "number", "errno"]
+
+[[case]]
+id = "numfmt-invalid-warn"
+argv = ["numfmt", "--invalid=warn", "--to=iec", "abc", "2048"]
+tags = ["numfmt", "number", "errno"]
+
+[[case]]
+id = "numfmt-bad-unit"
+argv = ["numfmt", "--to=foo", "1"]
+tags = ["numfmt", "number", "errno"]
+
+# ptx
+
+[[case]]
+id = "ptx-default"
+argv = ["ptx"]
+stdin = "the quick brown fox\njumps over the lazy dog\n"
+tags = ["ptx", "text", "stdin"]
+
+[[case]]
+id = "ptx-file-width"
+argv = ["ptx", "-w", "40", "in.txt"]
+tags = ["ptx", "text"]
+[case.files]
+"in.txt" = "alpha beta gamma\ndelta alpha\n"
+
+[[case]]
+id = "ptx-auto-reference"
+argv = ["ptx", "-A", "in.txt"]
+tags = ["ptx", "text"]
+[case.files]
+"in.txt" = "alpha beta\ngamma\n"
+
+[[case]]
+id = "ptx-ignore-file"
+argv = ["ptx", "-i", "stop.txt", "in.txt"]
+tags = ["ptx", "text"]
+[case.files]
+"in.txt" = "the cat and the dog\n"
+"stop.txt" = "the\nand\n"
+
+[[case]]
+id = "ptx-missing"
+argv = ["ptx", "nope.txt"]
+tags = ["ptx", "text", "errno"]
+
+# tsort
+
+[[case]]
+id = "tsort-basic"
+argv = ["tsort"]
+stdin = "a b\nb c\na d\nd c\n"
+tags = ["tsort", "text", "stdin"]
+
+[[case]]
+id = "tsort-file"
+argv = ["tsort", "deps.txt"]
+tags = ["tsort", "text"]
+[case.files]
+"deps.txt" = "libc app\nlibssl app\nlibc libssl\napp app\n"
+
+[[case]]
+id = "tsort-cycle"
+argv = ["tsort"]
+stdin = "a b\nb c\nc a\n"
+tags = ["tsort", "text", "stdin", "errno"]
+
+[[case]]
+id = "tsort-odd-tokens"
+argv = ["tsort"]
+stdin = "a b c\n"
+tags = ["tsort", "text", "stdin", "errno"]
+
+[[case]]
+id = "tsort-missing"
+argv = ["tsort", "nope.txt"]
+tags = ["tsort", "text", "errno"]
+
+# shuf
+
+[[case]]
+id = "shuf-i-single"
+argv = ["shuf", "-i", "1-1"]
+tags = ["shuf", "random"]
+
+[[case]]
+id = "shuf-n1-single"
+argv = ["shuf", "-n", "1", "-e", "único"]
+tags = ["shuf", "random"]
+
+[[case]]
+id = "shuf-e-unordered"
+argv = ["shuf", "-e", "a", "b", "c", "d"]
+tags = ["shuf", "random", "unordered"]
+
+[[case]]
+id = "shuf-file-unordered"
+argv = ["shuf", "in.txt"]
+tags = ["shuf", "random", "unordered"]
+[case.files]
+"in.txt" = "um\ndois\ntrês\nquatro\n"
+
+[[case]]
+id = "shuf-stdin-unordered"
+argv = ["shuf"]
+stdin = "x\ny\nz\n"
+tags = ["shuf", "random", "unordered", "stdin"]
+
+[[case]]
+id = "shuf-i-range-unordered"
+argv = ["shuf", "-i", "1-10"]
+tags = ["shuf", "random", "unordered"]
+
+[[case]]
+id = "shuf-n-larger-than-input"
+argv = ["shuf", "-n", "10", "-e", "a", "b"]
+tags = ["shuf", "random", "unordered"]
+
+[[case]]
+id = "shuf-n0"
+argv = ["shuf", "-n", "0", "-e", "a", "b"]
+tags = ["shuf", "random"]
+
+[[case]]
+id = "shuf-repeat"
+argv = ["shuf", "-r", "-n", "3", "-e", "x"]
+tags = ["shuf", "random"]
+
+[[case]]
+id = "shuf-output-file"
+argv = ["shuf", "-o", "out.txt", "-e", "só"]
+tags = ["shuf", "random", "fs"]
+
+[[case]]
+id = "shuf-bad-range"
+argv = ["shuf", "-i", "5-1"]
+tags = ["shuf", "random", "errno"]
+
+[[case]]
+id = "shuf-bad-count"
+argv = ["shuf", "-n", "abc", "-e", "a"]
+tags = ["shuf", "random", "errno"]
+
+[[case]]
+id = "shuf-missing"
+argv = ["shuf", "nope.txt"]
+tags = ["shuf", "random", "errno"]

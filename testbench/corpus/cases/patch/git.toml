@@ -1,0 +1,162 @@
+tool = "patch"
+source = "manual"
+
+# GNU patch 2.8 com cabeçalhos do git: renomeação, cópia, modo, arquivo novo vazio, remoção, symlink,
+# binário, nomes entre aspas.
+
+[[case]]
+id = "patch-git-pure-rename"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "rename"]
+[case.files]
+"old.txt" = "x\ny\n"
+"fix.patch" = "diff --git a/old.txt b/new.txt\nsimilarity index 100%\nrename from old.txt\nrename to new.txt\n"
+
+[[case]]
+id = "patch-git-rename-edit"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "rename"]
+[case.files]
+"old.txt" = "x\ny\n"
+"fix.patch" = "diff --git a/old.txt b/new.txt\nsimilarity index 50%\nrename from old.txt\nrename to new.txt\n--- a/old.txt\n+++ b/new.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-git-rename-subdir"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "rename"]
+[case.files]
+"d/old.txt" = "x\ny\n"
+"fix.patch" = "diff --git a/d/old.txt b/e/new.txt\nsimilarity index 100%\nrename from d/old.txt\nrename to e/new.txt\n"
+
+[[case]]
+id = "patch-git-rename-dry-run"
+argv = ["patch", "--dry-run", "-p1", "-i", "fix.patch"]
+tags = ["git", "rename", "dry-run"]
+[case.files]
+"old.txt" = "x\ny\n"
+"fix.patch" = "diff --git a/old.txt b/new.txt\nsimilarity index 100%\nrename from old.txt\nrename to new.txt\n"
+
+[[case]]
+id = "patch-git-copy"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "copy"]
+[case.files]
+"old.txt" = "x\ny\n"
+"fix.patch" = "diff --git a/old.txt b/cp.txt\nsimilarity index 100%\ncopy from old.txt\ncopy to cp.txt\n"
+
+[[case]]
+id = "patch-git-mode-only"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "mode"]
+[case.files]
+"s.sh" = "x\ny\n"
+"fix.patch" = "diff --git a/s.sh b/s.sh\nold mode 100644\nnew mode 100755\n"
+
+[[case]]
+id = "patch-git-mode-and-edit"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "mode"]
+[case.files]
+"s.sh" = "x\ny\n"
+"fix.patch" = "diff --git a/s.sh b/s.sh\nold mode 100644\nnew mode 100755\n--- a/s.sh\n+++ b/s.sh\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-git-delete"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "delete"]
+[case.files]
+"s.sh" = "x\ny\n"
+"fix.patch" = "diff --git a/s.sh b/s.sh\ndeleted file mode 100644\nindex 1111111..0000000\n--- a/s.sh\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+
+[[case]]
+id = "patch-git-delete-in-subdir"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "delete"]
+[case.files]
+"keep.txt" = "k\n"
+"d/e/gone.txt" = "n\n"
+"fix.patch" = "--- a/d/e/gone.txt\n+++ /dev/null\n@@ -1 +0,0 @@\n-n\n"
+
+[[case]]
+id = "patch-git-new-empty-file"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "create"]
+[case.files]
+"fix.patch" = "diff --git a/e.txt b/e.txt\nnew file mode 100644\nindex 0000000..e69de29\n"
+
+[[case]]
+id = "patch-git-new-empty-file-exists"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "create"]
+[case.files]
+"e.txt" = "x\n"
+"fix.patch" = "diff --git a/e.txt b/e.txt\nnew file mode 100644\nindex 0000000..e69de29\n"
+
+[[case]]
+id = "patch-git-new-symlink"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "symlink"]
+[case.files]
+"fix.patch" = "diff --git a/l b/l\nnew file mode 120000\nindex 0000000..1111111\n--- /dev/null\n+++ b/l\n@@ -0,0 +1 @@\n+target.txt\n\\ No newline at end of file\n"
+
+[[case]]
+id = "patch-git-binary-missing"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "binary"]
+[case.files]
+"fix.patch" = "diff --git a/bin.dat b/bin.dat\nindex 1111111..2222222 100644\nGIT binary patch\nliteral 3\nKcmZQzWB>pF00961\n\nliteral 0\nHcmV?d00001\n\n"
+
+[[case]]
+id = "patch-git-binary-exists"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "binary"]
+[case.files]
+"bin.dat" = { content_b64 = "YWIA" }
+"fix.patch" = "diff --git a/bin.dat b/bin.dat\nindex 1111111..2222222 100644\nGIT binary patch\nliteral 3\nKcmZQzWB>pF00961\n\nliteral 0\nHcmV?d00001\n\n"
+
+[[case]]
+id = "patch-git-binary-differ-exists"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "binary"]
+[case.files]
+"bin.dat" = { content_b64 = "YWIA" }
+"fix.patch" = "diff --git a/bin.dat b/bin.dat\nindex 1111111..2222222 100644\nBinary files a/bin.dat and b/bin.dat differ\n"
+
+[[case]]
+id = "patch-git-binary-differ-missing"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "binary"]
+[case.files]
+"fix.patch" = "diff --git a/bin.dat b/bin.dat\nindex 1111111..2222222 100644\nBinary files a/bin.dat and b/bin.dat differ\n"
+
+[[case]]
+id = "patch-git-two-files-and-rename"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "rename", "multi"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+"old.txt" = "x\n"
+"fix.patch" = "diff --git a/a.txt b/a.txt\nindex 1..2 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1,3 +1,3 @@\n 1\n-2\n+TWO\n 3\ndiff --git a/old.txt b/new.txt\nsimilarity index 100%\nrename from old.txt\nrename to new.txt\ndiff --git a/n.txt b/n.txt\nnew file mode 100755\nindex 0000000..1111111\n--- /dev/null\n+++ b/n.txt\n@@ -0,0 +1 @@\n+#!/bin/sh\n"
+
+[[case]]
+id = "patch-git-quoted-names"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "quoting"]
+[case.files]
+"a b.txt" = "x\ny\n"
+"fix.patch" = "diff --git \"a/a b.txt\" \"b/a b.txt\"\nindex 1..2 100644\n--- \"a/a b.txt\"\n+++ \"b/a b.txt\"\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-git-rename-missing-source"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["git", "rename", "missing"]
+[case.files]
+"fix.patch" = "diff --git a/old.txt b/new.txt\nsimilarity index 100%\nrename from old.txt\nrename to new.txt\n"
+
+[[case]]
+id = "patch-git-reverse-rename"
+argv = ["patch", "-R", "-p1", "-i", "fix.patch"]
+tags = ["git", "rename", "reverse"]
+[case.files]
+"new.txt" = "x\nY\n"
+"fix.patch" = "diff --git a/old.txt b/new.txt\nsimilarity index 50%\nrename from old.txt\nrename to new.txt\n--- a/old.txt\n+++ b/new.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"

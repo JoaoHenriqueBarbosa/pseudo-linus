@@ -1,0 +1,676 @@
+tool = "coreutils"
+source = "agent-style"
+
+# Filtros de texto: nl, paste, join, comm, tac, rev (util-linux), fold, fmt, expand e unexpand.
+# Cada um com o caso feliz, stdin, "-" quando faz sentido, as flags principais e os erros comuns.
+
+# nl
+
+[[case]]
+id = "nl-default"
+argv = ["nl", "in.txt"]
+tags = ["nl", "text"]
+[case.files]
+"in.txt" = "primeira\n\nterceira\n  quarta\n"
+
+[[case]]
+id = "nl-ba"
+argv = ["nl", "-ba", "in.txt"]
+tags = ["nl", "text"]
+[case.files]
+"in.txt" = "primeira\n\nterceira\n"
+
+[[case]]
+id = "nl-format-ln"
+argv = ["nl", "-n", "ln", "in.txt"]
+tags = ["nl", "text"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "nl-format-rz-width"
+argv = ["nl", "-n", "rz", "-w", "4", "in.txt"]
+tags = ["nl", "text"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "nl-separator-width"
+argv = ["nl", "-w", "2", "-s", ": ", "in.txt"]
+tags = ["nl", "text"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "nl-start-increment"
+argv = ["nl", "-v", "10", "-i", "5", "in.txt"]
+tags = ["nl", "text"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "nl-body-regex"
+argv = ["nl", "-b", "p^#", "in.txt"]
+tags = ["nl", "text", "regex"]
+[case.files]
+"in.txt" = "# um\ncódigo\n# dois\n"
+
+[[case]]
+id = "nl-sections"
+argv = ["nl", "in.txt"]
+tags = ["nl", "text"]
+[case.files]
+"in.txt" = "\\:\\:\\:\ncabeçalho\n\\:\\:\ncorpo 1\ncorpo 2\n\\:\nrodapé\n\\:\\:\ncorpo de novo\n"
+
+[[case]]
+id = "nl-stdin"
+argv = ["nl"]
+stdin = "x\ny\n"
+tags = ["nl", "text", "stdin"]
+
+[[case]]
+id = "nl-multi-files-continue"
+argv = ["nl", "a.txt", "-", "b.txt"]
+stdin = "do stdin\n"
+tags = ["nl", "text", "stdin"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\n"
+
+[[case]]
+id = "nl-missing"
+argv = ["nl", "nope.txt"]
+tags = ["nl", "text", "errno"]
+
+[[case]]
+id = "nl-bad-format"
+argv = ["nl", "-n", "xx", "in.txt"]
+tags = ["nl", "text", "errno"]
+[case.files]
+"in.txt" = "a\n"
+
+# paste
+
+[[case]]
+id = "paste-two-files"
+argv = ["paste", "a.txt", "b.txt"]
+tags = ["paste", "text"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+"b.txt" = "um\ndois\ntrês\n"
+
+[[case]]
+id = "paste-d-comma"
+argv = ["paste", "-d,", "a.txt", "b.txt"]
+tags = ["paste", "text"]
+[case.files]
+"a.txt" = "1\n2\n"
+"b.txt" = "x\ny\n"
+
+[[case]]
+id = "paste-uneven"
+argv = ["paste", "a.txt", "b.txt"]
+tags = ["paste", "text"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n"
+"b.txt" = "x\n"
+
+[[case]]
+id = "paste-s"
+argv = ["paste", "-s", "a.txt", "b.txt"]
+tags = ["paste", "text"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+"b.txt" = "x\ny\n"
+
+[[case]]
+id = "paste-sd-plus"
+argv = ["paste", "-sd+", "nums.txt"]
+tags = ["paste", "text"]
+[case.files]
+"nums.txt" = "10\n20\n30\n"
+
+[[case]]
+id = "paste-stdin-columns"
+argv = ["paste", "-", "-", "-"]
+stdin = "1\n2\n3\n4\n5\n6\n7\n"
+tags = ["paste", "text", "stdin"]
+
+[[case]]
+id = "paste-d-cycle"
+argv = ["paste", "-d", ":,", "a.txt", "b.txt", "c.txt"]
+tags = ["paste", "text"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+"c.txt" = "c\n"
+
+[[case]]
+id = "paste-no-trailing-newline"
+argv = ["paste", "a.txt", "b.txt"]
+tags = ["paste", "text"]
+[case.files]
+"a.txt" = "1\n2"
+"b.txt" = "x\ny"
+
+[[case]]
+id = "paste-missing"
+argv = ["paste", "a.txt", "nope.txt"]
+tags = ["paste", "text", "errno"]
+[case.files]
+"a.txt" = "1\n"
+
+# join
+
+[[case]]
+id = "join-basic"
+argv = ["join", "a.txt", "b.txt"]
+tags = ["join", "text"]
+[case.files]
+"a.txt" = "1 ana\n2 bia\n4 duda\n"
+"b.txt" = "1 rio\n2 sp\n3 bh\n"
+
+[[case]]
+id = "join-t-comma"
+argv = ["join", "-t,", "a.csv", "b.csv"]
+tags = ["join", "text", "csv"]
+[case.files]
+"a.csv" = "id1,ana\nid2,bia\n"
+"b.csv" = "id1,10\nid2,20\n"
+
+[[case]]
+id = "join-fields"
+argv = ["join", "-1", "2", "-2", "1", "a.txt", "b.txt"]
+tags = ["join", "text"]
+[case.files]
+"a.txt" = "ana 1\nbia 2\n"
+"b.txt" = "1 rio\n2 sp\n"
+
+[[case]]
+id = "join-a1"
+argv = ["join", "-a", "1", "a.txt", "b.txt"]
+tags = ["join", "text"]
+[case.files]
+"a.txt" = "1 ana\n2 bia\n4 duda\n"
+"b.txt" = "1 rio\n2 sp\n3 bh\n"
+
+[[case]]
+id = "join-v2"
+argv = ["join", "-v", "2", "a.txt", "b.txt"]
+tags = ["join", "text"]
+[case.files]
+"a.txt" = "1 ana\n2 bia\n4 duda\n"
+"b.txt" = "1 rio\n2 sp\n3 bh\n"
+
+[[case]]
+id = "join-o-e"
+argv = ["join", "-a", "1", "-a", "2", "-e", "NULL", "-o", "0,1.2,2.2", "a.txt", "b.txt"]
+tags = ["join", "text"]
+[case.files]
+"a.txt" = "1 ana\n2 bia\n4 duda\n"
+"b.txt" = "1 rio\n2 sp\n3 bh\n"
+
+[[case]]
+id = "join-o-auto"
+argv = ["join", "-a", "1", "-e", "-", "-o", "auto", "a.txt", "b.txt"]
+tags = ["join", "text"]
+[case.files]
+"a.txt" = "1 ana x\n2 bia y\n"
+"b.txt" = "1 rio\n"
+
+[[case]]
+id = "join-ignore-case"
+argv = ["join", "-i", "a.txt", "b.txt"]
+tags = ["join", "text"]
+[case.files]
+"a.txt" = "Ana 1\nBia 2\n"
+"b.txt" = "ana x\nbia y\n"
+
+[[case]]
+id = "join-header"
+argv = ["join", "--header", "-t,", "a.csv", "b.csv"]
+tags = ["join", "text", "csv"]
+[case.files]
+"a.csv" = "id,nome\n1,ana\n2,bia\n"
+"b.csv" = "id,cidade\n1,rio\n2,sp\n"
+
+[[case]]
+id = "join-unsorted"
+argv = ["join", "a.txt", "b.txt"]
+tags = ["join", "text", "errno"]
+[case.files]
+"a.txt" = "2 bia\n1 ana\n"
+"b.txt" = "1 rio\n2 sp\n"
+
+[[case]]
+id = "join-nocheck-order"
+argv = ["join", "--nocheck-order", "a.txt", "b.txt"]
+tags = ["join", "text"]
+[case.files]
+"a.txt" = "2 bia\n1 ana\n"
+"b.txt" = "1 rio\n2 sp\n"
+
+[[case]]
+id = "join-stdin"
+argv = ["join", "-", "b.txt"]
+stdin = "1 ana\n2 bia\n"
+tags = ["join", "text", "stdin"]
+[case.files]
+"b.txt" = "1 rio\n2 sp\n"
+
+[[case]]
+id = "join-missing"
+argv = ["join", "a.txt", "nope.txt"]
+tags = ["join", "text", "errno"]
+[case.files]
+"a.txt" = "1 ana\n"
+
+[[case]]
+id = "join-missing-operand"
+argv = ["join", "a.txt"]
+tags = ["join", "text", "errno"]
+[case.files]
+"a.txt" = "1 ana\n"
+
+# comm
+
+[[case]]
+id = "comm-basic"
+argv = ["comm", "a.txt", "b.txt"]
+tags = ["comm", "text"]
+[case.files]
+"a.txt" = "apple\nbanana\ncherry\n"
+"b.txt" = "banana\ncherry\ndate\n"
+
+[[case]]
+id = "comm-12"
+argv = ["comm", "-12", "a.txt", "b.txt"]
+tags = ["comm", "text"]
+[case.files]
+"a.txt" = "apple\nbanana\ncherry\n"
+"b.txt" = "banana\ncherry\ndate\n"
+
+[[case]]
+id = "comm-23"
+argv = ["comm", "-23", "a.txt", "b.txt"]
+tags = ["comm", "text"]
+[case.files]
+"a.txt" = "apple\nbanana\ncherry\n"
+"b.txt" = "banana\ncherry\ndate\n"
+
+[[case]]
+id = "comm-13"
+argv = ["comm", "-1", "-3", "a.txt", "b.txt"]
+tags = ["comm", "text"]
+[case.files]
+"a.txt" = "apple\nbanana\ncherry\n"
+"b.txt" = "banana\ncherry\ndate\n"
+
+[[case]]
+id = "comm-output-delimiter"
+argv = ["comm", "--output-delimiter=|", "a.txt", "b.txt"]
+tags = ["comm", "text"]
+[case.files]
+"a.txt" = "apple\nbanana\n"
+"b.txt" = "banana\ndate\n"
+
+[[case]]
+id = "comm-total"
+argv = ["comm", "--total", "a.txt", "b.txt"]
+tags = ["comm", "text"]
+[case.files]
+"a.txt" = "apple\nbanana\ncherry\n"
+"b.txt" = "banana\ncherry\ndate\n"
+
+[[case]]
+id = "comm-unsorted"
+argv = ["comm", "a.txt", "b.txt"]
+tags = ["comm", "text", "errno"]
+[case.files]
+"a.txt" = "cherry\napple\n"
+"b.txt" = "apple\n"
+
+[[case]]
+id = "comm-nocheck-order"
+argv = ["comm", "--nocheck-order", "-12", "a.txt", "b.txt"]
+tags = ["comm", "text"]
+[case.files]
+"a.txt" = "cherry\napple\n"
+"b.txt" = "cherry\n"
+
+[[case]]
+id = "comm-stdin"
+argv = ["comm", "-13", "-", "b.txt"]
+stdin = "a\nb\n"
+tags = ["comm", "text", "stdin"]
+[case.files]
+"b.txt" = "b\nc\n"
+
+[[case]]
+id = "comm-missing"
+argv = ["comm", "a.txt", "nope.txt"]
+tags = ["comm", "text", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "comm-missing-operand"
+argv = ["comm", "a.txt"]
+tags = ["comm", "text", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+# tac
+
+[[case]]
+id = "tac-file"
+argv = ["tac", "in.txt"]
+tags = ["tac", "text"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "tac-multi"
+argv = ["tac", "a.txt", "b.txt"]
+tags = ["tac", "text"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\nb2\n"
+
+[[case]]
+id = "tac-stdin"
+argv = ["tac"]
+stdin = "x\ny\nz\n"
+tags = ["tac", "text", "stdin"]
+
+[[case]]
+id = "tac-no-trailing-newline"
+argv = ["tac", "in.txt"]
+tags = ["tac", "text"]
+[case.files]
+"in.txt" = "1\n2\n3"
+
+[[case]]
+id = "tac-separator"
+argv = ["tac", "-s", ",", "in.txt"]
+tags = ["tac", "text"]
+[case.files]
+"in.txt" = "a,b,c,"
+
+[[case]]
+id = "tac-before"
+argv = ["tac", "-b", "in.txt"]
+tags = ["tac", "text"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "tac-regex-separator"
+argv = ["tac", "-r", "-s", "[0-9]+", "in.txt"]
+tags = ["tac", "text", "regex"]
+[case.files]
+"in.txt" = "a1b22c333"
+
+[[case]]
+id = "tac-missing"
+argv = ["tac", "nope.txt"]
+tags = ["tac", "text", "errno"]
+
+# rev (util-linux)
+
+[[case]]
+id = "rev-file"
+argv = ["rev", "in.txt"]
+tags = ["rev", "text"]
+[case.files]
+"in.txt" = "abc\nhello world\n\nx\n"
+
+[[case]]
+id = "rev-stdin"
+argv = ["rev"]
+stdin = "123\n456\n"
+tags = ["rev", "text", "stdin"]
+
+[[case]]
+id = "rev-utf8"
+argv = ["rev", "in.txt"]
+tags = ["rev", "text", "utf8"]
+[case.files]
+"in.txt" = "ação\nçãé\n"
+
+[[case]]
+id = "rev-multi"
+argv = ["rev", "a.txt", "b.txt"]
+tags = ["rev", "text"]
+[case.files]
+"a.txt" = "ab\n"
+"b.txt" = "cd\n"
+
+[[case]]
+id = "rev-no-trailing-newline"
+argv = ["rev", "in.txt"]
+tags = ["rev", "text"]
+[case.files]
+"in.txt" = "abc\ndef"
+
+[[case]]
+id = "rev-missing"
+argv = ["rev", "a.txt", "nope.txt"]
+tags = ["rev", "text", "errno"]
+[case.files]
+"a.txt" = "ab\n"
+
+# fold
+
+[[case]]
+id = "fold-default"
+argv = ["fold", "in.txt"]
+tags = ["fold", "text"]
+[case.files]
+"in.txt" = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\ncurta\n"
+
+[[case]]
+id = "fold-w"
+argv = ["fold", "-w", "10", "in.txt"]
+tags = ["fold", "text"]
+[case.files]
+"in.txt" = "the quick brown fox jumps over the lazy dog\n"
+
+[[case]]
+id = "fold-s"
+argv = ["fold", "-s", "-w", "10", "in.txt"]
+tags = ["fold", "text"]
+[case.files]
+"in.txt" = "the quick brown fox jumps over the lazy dog\n"
+
+# O fold do Debian conta bytes mesmo sem -b (o coreutils não tem o patch i18n): os dois casos
+# quebram "ç" ao meio.
+[[case]]
+id = "fold-utf8-columns"
+argv = ["fold", "-w", "3", "in.txt"]
+tags = ["fold", "text", "utf8"]
+[case.files]
+"in.txt" = "ççççç\n"
+
+[[case]]
+id = "fold-b-utf8"
+argv = ["fold", "-b", "-w", "3", "in.txt"]
+tags = ["fold", "text", "utf8"]
+[case.files]
+"in.txt" = "ççççç\n"
+
+[[case]]
+id = "fold-tabs"
+argv = ["fold", "-w", "10", "in.txt"]
+tags = ["fold", "text"]
+[case.files]
+"in.txt" = "a\tb\tc\td\n"
+
+[[case]]
+id = "fold-stdin"
+argv = ["fold", "-w5"]
+stdin = "abcdefghijkl\n"
+tags = ["fold", "text", "stdin"]
+
+[[case]]
+id = "fold-missing"
+argv = ["fold", "nope.txt"]
+tags = ["fold", "text", "errno"]
+
+[[case]]
+id = "fold-bad-width"
+argv = ["fold", "-w", "0x", "in.txt"]
+tags = ["fold", "text", "errno"]
+[case.files]
+"in.txt" = "a\n"
+
+# fmt
+
+[[case]]
+id = "fmt-default"
+argv = ["fmt", "in.txt"]
+tags = ["fmt", "text"]
+[case.files]
+"in.txt" = "Esta é uma linha curta.\nOutra linha curta que deve ser juntada à anterior porque o fmt preenche até setenta e cinco colunas por padrão.\n\nNovo parágrafo.\n"
+
+[[case]]
+id = "fmt-w"
+argv = ["fmt", "-w", "20", "in.txt"]
+tags = ["fmt", "text"]
+[case.files]
+"in.txt" = "the quick brown fox jumps over the lazy dog and keeps running\n"
+
+[[case]]
+id = "fmt-u"
+argv = ["fmt", "-u", "in.txt"]
+tags = ["fmt", "text"]
+[case.files]
+"in.txt" = "um    dois   três.  Quatro\n"
+
+[[case]]
+id = "fmt-s"
+argv = ["fmt", "-s", "-w", "15", "in.txt"]
+tags = ["fmt", "text"]
+[case.files]
+"in.txt" = "uma linha bem comprida aqui\ncurta\n"
+
+[[case]]
+id = "fmt-indent-preserved"
+argv = ["fmt", "-w", "30", "in.txt"]
+tags = ["fmt", "text"]
+[case.files]
+"in.txt" = "    recuado um pouco e com bastante texto pra quebrar em mais de uma linha\n"
+
+[[case]]
+id = "fmt-prefix"
+argv = ["fmt", "-p", "#", "-w", "25", "in.txt"]
+tags = ["fmt", "text"]
+[case.files]
+"in.txt" = "# comentário que é longo demais pra caber numa linha só\n# e continua aqui\ncódigo()\n"
+
+[[case]]
+id = "fmt-stdin"
+argv = ["fmt", "-w", "12"]
+stdin = "a b c d e f g h i j k l m n\n"
+tags = ["fmt", "text", "stdin"]
+
+[[case]]
+id = "fmt-bad-width"
+argv = ["fmt", "-w", "abc", "in.txt"]
+tags = ["fmt", "text", "errno"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "fmt-missing"
+argv = ["fmt", "nope.txt"]
+tags = ["fmt", "text", "errno"]
+
+# expand
+
+[[case]]
+id = "expand-default"
+argv = ["expand", "in.txt"]
+tags = ["expand", "text", "tabs"]
+[case.files]
+"in.txt" = "\tum\n12\tdois\n1234567\t8\n"
+
+[[case]]
+id = "expand-t4"
+argv = ["expand", "-t", "4", "in.txt"]
+tags = ["expand", "text", "tabs"]
+[case.files]
+"in.txt" = "\tum\n12\tdois\n\t\tfundo\n"
+
+[[case]]
+id = "expand-t-list"
+argv = ["expand", "-t", "2,6,10", "in.txt"]
+tags = ["expand", "text", "tabs"]
+[case.files]
+"in.txt" = "a\tb\tc\td\te\n"
+
+[[case]]
+id = "expand-initial"
+argv = ["expand", "-i", "-t", "4", "in.txt"]
+tags = ["expand", "text", "tabs"]
+[case.files]
+"in.txt" = "\tx\ty\n"
+
+[[case]]
+id = "expand-stdin"
+argv = ["expand", "-t2"]
+stdin = "\ta\tb\n"
+tags = ["expand", "text", "tabs", "stdin"]
+
+[[case]]
+id = "expand-missing"
+argv = ["expand", "nope.txt"]
+tags = ["expand", "text", "errno"]
+
+[[case]]
+id = "expand-bad-tab"
+argv = ["expand", "-t", "4,2", "in.txt"]
+tags = ["expand", "text", "errno"]
+[case.files]
+"in.txt" = "a\n"
+
+# unexpand
+
+[[case]]
+id = "unexpand-default"
+argv = ["unexpand", "in.txt"]
+tags = ["unexpand", "text", "tabs"]
+[case.files]
+"in.txt" = "        oito espaços\n                dezesseis    meio\n"
+
+[[case]]
+id = "unexpand-a"
+argv = ["unexpand", "-a", "in.txt"]
+tags = ["unexpand", "text", "tabs"]
+[case.files]
+"in.txt" = "        oito espaços        e mais\n"
+
+[[case]]
+id = "unexpand-t4"
+argv = ["unexpand", "-t", "4", "in.txt"]
+tags = ["unexpand", "text", "tabs"]
+[case.files]
+"in.txt" = "    um\n        dois  x       y\n"
+
+[[case]]
+id = "unexpand-first-only"
+argv = ["unexpand", "--first-only", "-t", "4", "in.txt"]
+tags = ["unexpand", "text", "tabs"]
+[case.files]
+"in.txt" = "        a       b\n"
+
+[[case]]
+id = "unexpand-stdin"
+argv = ["unexpand"]
+stdin = "        x\n"
+tags = ["unexpand", "text", "tabs", "stdin"]
+
+[[case]]
+id = "unexpand-missing"
+argv = ["unexpand", "nope.txt"]
+tags = ["unexpand", "text", "errno"]

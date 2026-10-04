@@ -1,0 +1,887 @@
+{
+ "source": "procps real no pseudo-linus-oracle:719900900623 sobre basic.fixture (capture.py)",
+ "cases": [
+  {
+   "cmd": "free",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:         8161656     1618446     5123456       34567     1456788     6543210\nSwap:        2097148       97148     2000000\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -b",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:      8357535744  1657288704  5246418944    35396608  1491750912  6700247040\nSwap:     2147479552    99479552  2048000000\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -k",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:         8161656     1618446     5123456       34567     1456788     6543210\nSwap:        2097148       97148     2000000\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -m",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:            7970        1580        5003          33        1422        6389\nSwap:           2047          94        1953\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -g",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:               7           1           4           0           1           6\nSwap:              1           0           1\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --kilo",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:         8357535     1657288     5246418       35396     1491750     6700247\nSwap:        2147479       99479     2048000\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --mega",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:            8357        1657        5246          35        1491        6700\nSwap:           2147          99        2048\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --giga",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:               8           1           5           0           1           6\nSwap:              2           0           2\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --tera",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:               0           0           0           0           0           0\nSwap:              0           0           0\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --peta",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:               0           0           0           0           0           0\nSwap:              0           0           0\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --kibi",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:         8161656     1618446     5123456       34567     1456788     6543210\nSwap:        2097148       97148     2000000\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --mebi",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:            7970        1580        5003          33        1422        6389\nSwap:           2047          94        1953\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --gibi",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:               7           1           4           0           1           6\nSwap:              1           0           1\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --tebi",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:               0           0           0           0           0           0\nSwap:              0           0           0\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --pebi",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:               0           0           0           0           0           0\nSwap:              0           0           0\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -h",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:           7.8Gi       1.5Gi       4.9Gi        33Mi       1.4Gi       6.2Gi\nSwap:          2.0Gi        94Mi       1.9Gi\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -h --si",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:            8.4G        1.7G        5.2G         35M        1.5G        6.7G\nSwap:           2.1G         99M        2.0G\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free --si",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:         8357535     1657288     5246418       35396     1491750     6700247\nSwap:        2147479       99479     2048000\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -l",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:         8161656     1618446     5123456       34567     1456788     6543210\nLow:         8161656     3038200     5123456\nHigh:              0           0           0\nSwap:        2097148       97148     2000000\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -L",
+   "stdout": "SwapUse       97148 CachUse     1456788  MemUse     1618446 MemFree     5123456 \n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -t",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:         8161656     1618446     5123456       34567     1456788     6543210\nSwap:        2097148       97148     2000000\nTotal:      10258804     1715594     7123456\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -v",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:         8161656     1618446     5123456       34567     1456788     6543210\nSwap:        2097148       97148     2000000\nComm:        6178000     3456789     2721211\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -w",
+   "stdout": "               total        used        free      shared     buffers       cache   available\nMem:         8161656     1618446     5123456       34567      123456     1333332     6543210\nSwap:        2097148       97148     2000000\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -wt",
+   "stdout": "               total        used        free      shared     buffers       cache   available\nMem:         8161656     1618446     5123456       34567      123456     1333332     6543210\nSwap:        2097148       97148     2000000\nTotal:      10258804     1715594     7123456\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -h -w",
+   "stdout": "               total        used        free      shared     buffers       cache   available\nMem:           7.8Gi       1.5Gi       4.9Gi        33Mi       120Mi       1.3Gi       6.2Gi\nSwap:          2.0Gi        94Mi       1.9Gi\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -c 2 -s 1",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:         8161656     1618446     5123456       34567     1456788     6543210\nSwap:        2097148       97148     2000000\n\n               total        used        free      shared  buff/cache   available\nMem:         8161656     1618446     5123456       34567     1456788     6543210\nSwap:        2097148       97148     2000000\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -s 1 -c 3 -L",
+   "stdout": "SwapUse       97148 CachUse     1456788  MemUse     1618446 MemFree     5123456 \nSwapUse       97148 CachUse     1456788  MemUse     1618446 MemFree     5123456 \nSwapUse       97148 CachUse     1456788  MemUse     1618446 MemFree     5123456 \n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "free -m -t -v -l",
+   "stdout": "               total        used        free      shared  buff/cache   available\nMem:            7970        1580        5003          33        1422        6389\nLow:            7970        2966        5003\nHigh:              0           0           0\nSwap:           2047          94        1953\nTotal:         10018        1675        6956\nComm:           6033        3375        2657\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "uptime",
+   "stdout": " 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "uptime -p",
+   "stdout": "up 16 minutes\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "uptime -s",
+   "stdout": "2026-01-15 11:43:20\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "uptime -r",
+   "stdout": "",
+   "stderr": "uptime: invalid option -- 'r'\n\nUsage:\n uptime [options]\n\nOptions:\n -p, --pretty   show uptime in pretty format\n -h, --help     display this help and exit\n -s, --since    system up since\n -V, --version  output version information and exit\n\nFor more details see uptime(1).\n",
+   "exit": 1
+  },
+  {
+   "cmd": "uptime -c",
+   "stdout": "",
+   "stderr": "uptime: invalid option -- 'c'\n\nUsage:\n uptime [options]\n\nOptions:\n -p, --pretty   show uptime in pretty format\n -h, --help     display this help and exit\n -s, --since    system up since\n -V, --version  output version information and exit\n\nFor more details see uptime(1).\n",
+   "exit": 1
+  },
+  {
+   "cmd": "top -b -n 1",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 2 -d 1",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n\ntop - 12:00:01 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -w 200",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker/u8:2\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -w 60",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.5\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   \n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 h\nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   14\nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   63\n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU\n      1 root      20   0    4488   3340   2048 S   0.0\n      7 root      20   0    2424   1520   1320 S   0.0\n     20 root      20   0       0      0      0 I   0.0\n     30 root      20   0       0      0      0 Z   0.0\n     40 nobody    25   5  214844  10240   3600 S   0.0\n     50 1234      15  -5   10240   4096    800 R   0.0\n    101 root      20   0    6788   3600   2800 R   0.0\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "COLUMNS=100 top -b -n 1",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker/u8:2\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -p 1,40",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   2 total,   0 running,   2 sleeping,   0 stopped,   0 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -u nobody",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -U 1234",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -o RES",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -o %MEM",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -H",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nThreads:   9 total,   3 running,   5 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:06.00 worker\n     41 nobody    25   5  214844  10240   3600 R   0.0   0.1   0:10.00 worker-+\n     42 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:01.50 worker-+\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -1",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu0  :  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -c",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep i+\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 [kworke+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 [zombie+\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 /usr/bi+\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 ./x) (y+\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps aux\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -E g",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nGiB Mem :      7.8 total,      4.9 free,      1.5 used,      1.4 buff/cache     \nGiB Swap:      2.0 total,      1.9 free,      0.1 used.      6.2 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -e m",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4.4m   3.3m   2.0m S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2.4m   1.5m   1.3m S   0.0   0.0   0:00.00 sleep\n     20 root      20   0    0.0m   0.0m   0.0m I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0    0.0m   0.0m   0.0m Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  209.8m  10.0m   3.5m S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10.0m   4.0m   0.8m R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6.6m   3.5m   2.7m R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -i",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -S",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.68 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -s",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   7 total,   2 running,   4 sleeping,   0 stopped,   1 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n      1 root      20   0    4488   3340   2048 S   0.0   0.0   0:00.17 bash\n      7 root      20   0    2424   1520   1320 S   0.0   0.0   0:00.00 sleep\n     20 root      20   0       0      0      0 I   0.0   0.0   0:00.37 kworker+\n     30 root      20   0       0      0      0 Z   0.0   0.0   0:00.04 zombie\n     40 nobody    25   5  214844  10240   3600 S   0.0   0.1   0:17.50 worker\n     50 1234      15  -5   10240   4096    800 R   0.0   0.1   8:40.00 x) (y\n    101 root      20   0    6788   3600   2800 R   0.0   0.0   0:00.03 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 1 -O",
+   "stdout": "PID\nPPID\nUID\nUSER\nRUID\nRUSER\nSUID\nSUSER\nGID\nGROUP\nPGRP\nTTY\nTPGID\nSID\nPR\nNI\nnTH\nP\n%CPU\nTIME\nTIME+\n%MEM\nVIRT\nSWAP\nRES\nCODE\nDATA\nSHR\nnMaj\nnMin\nnDRT\nS\nCOMMAND\nWCHAN\nFlags\nCGROUPS\nSUPGIDS\nSUPGRPS\nTGID\nOOMa\nOOMs\nENVIRON\nvMj\nvMn\nUSED\nnsIPC\nnsMNT\nnsNET\nnsPID\nnsUSER\nnsUTS\nLXC\nRSan\nRSfd\nRSlk\nRSsh\nCGNAME\nNU\nLOGID\nEXE\nRSS\nPSS\nPSan\nPSfd\nPSsh\nUSS\nioR\nioRop\nioW\nioWop\nAGID\nAGNI\nSTARTED\nELAPSED\n%CUU\n%CUC\nnsCGROUP\nnsTIME\n\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -n 1",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "top -b -n 1 -o BOGUS",
+   "stdout": "",
+   "stderr": "top: unrecognized field name 'BOGUS'\n",
+   "exit": 1
+  },
+  {
+   "cmd": "top -b -n 1 -p 99999",
+   "stdout": "top - 12:00:00 up 16 min,  0 users,  load average: 0.52, 0.58, 0.59\nTasks:   0 total,   0 running,   0 sleeping,   0 stopped,   0 zombie\n%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st \nMiB Mem :   7970.4 total,   5003.4 free,   1580.5 used,   1422.6 buff/cache     \nMiB Swap:   2048.0 total,   1953.1 free,     94.9 used.   6389.9 avail Mem \n\n    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "top -b -n 0",
+   "stdout": "",
+   "stderr": "top: bad iterations argument '0'\n",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep sleep",
+   "stdout": "7\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l worker",
+   "stdout": "20 kworker/u8:2\n40 worker\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -a worker",
+   "stdout": "20 [kworker/u8:2]\n40 /usr/bin/worker --threads 3\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -f threads",
+   "stdout": "40\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -x sleep",
+   "stdout": "7\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -x slee",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep -c .",
+   "stdout": "6\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -d , .",
+   "stdout": "1,7,20,30,40,50\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -d -- .",
+   "stdout": "1--7--20--30--40--50\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l .",
+   "stdout": "1 bash\n7 sleep\n20 kworker/u8:2\n30 zombie\n40 worker\n50 x) (y\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -a .",
+   "stdout": "1 bash\n7 sleep infinity\n20 [kworker/u8:2]\n30 [zombie] <defunct>\n40 /usr/bin/worker --threads 3\n50 ./x) (y --loop\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -v sleep",
+   "stdout": "1\n20\n30\n40\n50\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -n .",
+   "stdout": "40\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -o .",
+   "stdout": "20\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -u nobody",
+   "stdout": "40\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -u 0 -l",
+   "stdout": "1 bash\n7 sleep\n20 kworker/u8:2\n30 zombie\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -U 1234 -l",
+   "stdout": "50 x) (y\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -G 65534",
+   "stdout": "40\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -g 7",
+   "stdout": "7\n30\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -P 1",
+   "stdout": "7\n40\n50\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -P 7 -l",
+   "stdout": "30 zombie\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -s 40",
+   "stdout": "40\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -s 0 -l",
+   "stdout": "20 kworker/u8:2\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -t pts/0 -l",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep -t pts/1 -l",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep -r Z -l",
+   "stdout": "30 zombie\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -r R,Z -l",
+   "stdout": "30 zombie\n50 x) (y\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -r S -l",
+   "stdout": "1 bash\n7 sleep\n40 worker\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -i WORKER",
+   "stdout": "20\n40\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -w worker",
+   "stdout": "20\n40\n41\n42\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -w -l worker",
+   "stdout": "20 kworker/u8:2\n40 worker\n41 worker-io\n42 worker-gc\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -O 800 -l",
+   "stdout": "1 bash\n7 sleep\n20 kworker/u8:2\n30 zombie\n50 x) (y\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -O 999 -l",
+   "stdout": "20 kworker/u8:2\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep 'x\\) \\(y'",
+   "stdout": "50\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -f '^\\./x'",
+   "stdout": "50\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l '^[[:alpha:]]+$'",
+   "stdout": "1 bash\n7 sleep\n30 zombie\n40 worker\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l 'k[a-z]+er'",
+   "stdout": "20 kworker/u8:2\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l '\\<ps\\>'",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep -l kworker/u8:2",
+   "stdout": "20 kworker/u8:2\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -x -l kworker/u8:2",
+   "stdout": "20 kworker/u8:2\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -A -l .",
+   "stdout": "7 sleep\n20 kworker/u8:2\n30 zombie\n40 worker\n50 x) (y\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep 1234567890123456",
+   "stdout": "",
+   "stderr": "pgrep: pattern that searches for process name longer than 15 characters will result in zero matches\nTry `pgrep -f' option to match against the complete command line.\n",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep -f 1234567890123456",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep -x 1234567890123456",
+   "stdout": "",
+   "stderr": "pgrep: pattern that searches for process name longer than 15 characters will result in zero matches\nTry `pgrep -f' option to match against the complete command line.\n",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep --signal 9 sleep",
+   "stdout": "7\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -e sleep",
+   "stdout": "",
+   "stderr": "pgrep: invalid option -- 'e'\n\nUsage:\n pgrep [options] <pattern>\n\nOptions:\n -d, --delimiter <string>  specify output delimiter\n -l, --list-name           list PID and process name\n -a, --list-full           list PID and full command line\n -v, --inverse             negates the matching\n -w, --lightweight         list all TID\n -c, --count               count of matching processes\n -f, --full                use full process name to match\n -g, --pgroup <PGID,...>   match listed process group IDs\n -G, --group <GID,...>     match real group IDs\n -i, --ignore-case         match case insensitively\n -n, --newest              select most recently started\n -o, --oldest              select least recently started\n -O, --older <seconds>     select where older than seconds\n -P, --parent <PPID,...>   match only child processes of the given parent\n -s, --session <SID,...>   match session IDs\n     --signal <sig>        signal to send (either number or name)\n -t, --terminal <tty,...>  match by controlling terminal\n -u, --euid <ID,...>       match by effective IDs\n -U, --uid <ID,...>        match by real IDs\n -x, --exact               match exactly with the command name\n -F, --pidfile <file>      read PIDs from file\n -L, --logpidfile          fail if PID file is not locked\n -r, --runstates <state>   match runstates [D,S,Z,...]\n -A, --ignore-ancestors    exclude our ancestors from results\n --cgroup <grp,...>        match by cgroup v2 names\n --ns <PID>                match the processes that belong to the same\n                           namespace as <pid>\n --nslist <ns,...>         list which namespaces will be considered for\n                           the --ns option.\n                           Available namespaces: ipc, mnt, net, pid, user, uts\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see pgrep(1).\n",
+   "exit": 2
+  },
+  {
+   "cmd": "pgrep -q sleep",
+   "stdout": "",
+   "stderr": "pgrep: invalid option -- 'q'\n\nUsage:\n pgrep [options] <pattern>\n\nOptions:\n -d, --delimiter <string>  specify output delimiter\n -l, --list-name           list PID and process name\n -a, --list-full           list PID and full command line\n -v, --inverse             negates the matching\n -w, --lightweight         list all TID\n -c, --count               count of matching processes\n -f, --full                use full process name to match\n -g, --pgroup <PGID,...>   match listed process group IDs\n -G, --group <GID,...>     match real group IDs\n -i, --ignore-case         match case insensitively\n -n, --newest              select most recently started\n -o, --oldest              select least recently started\n -O, --older <seconds>     select where older than seconds\n -P, --parent <PPID,...>   match only child processes of the given parent\n -s, --session <SID,...>   match session IDs\n     --signal <sig>        signal to send (either number or name)\n -t, --terminal <tty,...>  match by controlling terminal\n -u, --euid <ID,...>       match by effective IDs\n -U, --uid <ID,...>        match by real IDs\n -x, --exact               match exactly with the command name\n -F, --pidfile <file>      read PIDs from file\n -L, --logpidfile          fail if PID file is not locked\n -r, --runstates <state>   match runstates [D,S,Z,...]\n -A, --ignore-ancestors    exclude our ancestors from results\n --cgroup <grp,...>        match by cgroup v2 names\n --ns <PID>                match the processes that belong to the same\n                           namespace as <pid>\n --nslist <ns,...>         list which namespaces will be considered for\n                           the --ns option.\n                           Available namespaces: ipc, mnt, net, pid, user, uts\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see pgrep(1).\n",
+   "exit": 2
+  },
+  {
+   "cmd": "pkill -0 -e sleep",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pkill -0 -c sleep",
+   "stdout": "1\n",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pkill -0 worker",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pkill -0 -e -l worker",
+   "stdout": "",
+   "stderr": "pkill: invalid option -- 'l'\n\nUsage:\n pkill [options] <pattern>\n\nOptions:\n -<sig>                    signal to send (either number or name)\n -H, --require-handler     match only if signal handler is present\n -q, --queue <value>       integer value to be sent with the signal\n -e, --echo                display what is killed\n -c, --count               count of matching processes\n -f, --full                use full process name to match\n -g, --pgroup <PGID,...>   match listed process group IDs\n -G, --group <GID,...>     match real group IDs\n -i, --ignore-case         match case insensitively\n -n, --newest              select most recently started\n -o, --oldest              select least recently started\n -O, --older <seconds>     select where older than seconds\n -P, --parent <PPID,...>   match only child processes of the given parent\n -s, --session <SID,...>   match session IDs\n     --signal <sig>        signal to send (either number or name)\n -t, --terminal <tty,...>  match by controlling terminal\n -u, --euid <ID,...>       match by effective IDs\n -U, --uid <ID,...>        match by real IDs\n -x, --exact               match exactly with the command name\n -F, --pidfile <file>      read PIDs from file\n -L, --logpidfile          fail if PID file is not locked\n -r, --runstates <state>   match runstates [D,S,Z,...]\n -A, --ignore-ancestors    exclude our ancestors from results\n --cgroup <grp,...>        match by cgroup v2 names\n --ns <PID>                match the processes that belong to the same\n                           namespace as <pid>\n --nslist <ns,...>         list which namespaces will be considered for\n                           the --ns option.\n                           Available namespaces: ipc, mnt, net, pid, user, uts\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see pgrep(1).\n",
+   "exit": 2
+  },
+  {
+   "cmd": "pkill --signal 0 -e -P 1,7",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pkill -SIGCONT -e -x zombie",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidwait -c nosuch",
+   "stdout": "0\n",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidwait -e -c nosuch",
+   "stdout": "0\n",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep -F /nonexistent",
+   "stdout": "",
+   "stderr": "pgrep: pidfile not valid\nTry `pgrep --help' for more information.\n",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof sleep",
+   "stdout": "7\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof bash",
+   "stdout": "1\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof ps",
+   "stdout": "101\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof worker",
+   "stdout": "40\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof zombie",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof kworker/u8:2",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof -z zombie",
+   "stdout": "30\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -s bash",
+   "stdout": "1\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -o 7 sleep bash",
+   "stdout": "1\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -d : bash sleep",
+   "stdout": "1:7\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -q bash",
+   "stdout": "",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof /usr/bin/worker",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof -x worker",
+   "stdout": "40\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof 'x) (y'",
+   "stdout": "50\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "killall -0 sleep",
+   "stdout": "",
+   "stderr": "sleep(7): Bad file descriptor\nsleep: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -v sleep",
+   "stdout": "",
+   "stderr": "sleep(7): Bad file descriptor\nsleep: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 nosuch",
+   "stdout": "",
+   "stderr": "nosuch: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -q nosuch",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -e worker",
+   "stdout": "",
+   "stderr": "worker(40): Bad file descriptor\nworker: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -u nobody worker",
+   "stdout": "",
+   "stderr": "worker(40): Bad file descriptor\nworker: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -u root worker",
+   "stdout": "",
+   "stderr": "worker: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -r 'w.*r'",
+   "stdout": "",
+   "stderr": "kworker/u8:2(20): Bad file descriptor\nworker(40): Bad file descriptor\nw.*r: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -I SLEEP",
+   "stdout": "",
+   "stderr": "sleep(7): Bad file descriptor\nSLEEP: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -g sleep",
+   "stdout": "",
+   "stderr": "killall: getpgid(7): No such process\nsleep(-1): Bad file descriptor\nsleep: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -y 1m sleep",
+   "stdout": "",
+   "stderr": "sleep: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -o 1m sleep",
+   "stdout": "",
+   "stderr": "sleep(7): Bad file descriptor\nsleep: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -v -o 10m sleep",
+   "stdout": "",
+   "stderr": "sleep(7): Bad file descriptor\nsleep: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -l",
+   "stdout": "HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "killall -0 zombie",
+   "stdout": "",
+   "stderr": "zombie(30): Bad file descriptor\nzombie: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 kworker/u8:2",
+   "stdout": "",
+   "stderr": "kworker/u8:2: No such file or directory\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 'x) (y'",
+   "stdout": "",
+   "stderr": "x) (y(50): Bad file descriptor\nx) (y: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -v sleep worker nosuch",
+   "stdout": "",
+   "stderr": "sleep(7): Bad file descriptor\nworker(40): Bad file descriptor\nsleep: no process found\nworker: no process found\nnosuch: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "kill -0 7",
+   "stdout": "",
+   "stderr": "kill: (7): No such process\n",
+   "exit": 1
+  },
+  {
+   "cmd": "kill -0 7 99999",
+   "stdout": "",
+   "stderr": "kill: (7): No such process\nkill: (99999): No such process\n",
+   "exit": 1
+  },
+  {
+   "cmd": "kill -l",
+   "stdout": "HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\n",
+   "stderr": "",
+   "exit": 0
+  }
+ ]
+}

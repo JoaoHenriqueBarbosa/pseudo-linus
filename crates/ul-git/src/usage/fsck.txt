@@ -1,0 +1,20 @@
+usage: git fsck [--tags] [--root] [--unreachable] [--cache] [--no-reflogs]
+                [--[no-]full] [--strict] [--verbose] [--lost-found]
+                [--[no-]dangling] [--[no-]progress] [--connectivity-only]
+                [--[no-]name-objects] [<object>...]
+
+    -v, --[no-]verbose    be verbose
+    --[no-]unreachable    show unreachable objects
+    --[no-]dangling       show dangling objects
+    --[no-]tags           report tags
+    --[no-]root           report root nodes
+    --[no-]cache          make index objects head nodes
+    --[no-]reflogs        make reflogs head nodes (default)
+    --[no-]full           also consider packs and alternate objects
+    --[no-]connectivity-only
+                          check only connectivity
+    --[no-]strict         enable more strict checking
+    --[no-]lost-found     write dangling objects in .git/lost-found
+    --[no-]progress       show progress
+    --[no-]name-objects   show verbose names for reachable objects
+

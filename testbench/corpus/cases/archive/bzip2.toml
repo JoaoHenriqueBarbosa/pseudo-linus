@@ -1,0 +1,253 @@
+tool = "archive"
+source = "manual"
+
+# bzip2 1.0.8 (e bunzip2, bzcat): compressão byte a byte igual, -v com estatísticas e alinhamento de
+# nomes, -t, fluxos concatenados, lixo no fim, arquivo truncado e erro de CRC (que abortam apagando a
+# saída), nomes de saída (.bz2, .bz, .tbz2, .out), conferências de entrada e flags inválidas.
+
+[[case]]
+id = "bzip2-compress-file"
+argv = ["bzip2", "a.txt"]
+tags = ["bzip2", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "bzip2-compress-verbose-keep"
+argv = ["bzip2", "-kv", "a.txt", "plain.txt"]
+tags = ["bzip2", "compress", "verbose"]
+[case.files]
+"a.txt" = "hello world\n"
+"plain.txt" = "plain text\nplain text\nplain text\n"
+
+[[case]]
+id = "bzip2-compress-levels"
+argv = ["bzip2", "-1", "-c", "a.txt"]
+tags = ["bzip2", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "bzip2-compress-empty-verbose"
+argv = ["bzip2", "-v", "e"]
+tags = ["bzip2", "compress", "verbose"]
+[case.files]
+"e" = ""
+
+[[case]]
+id = "bzip2-compress-stdin"
+argv = ["bzip2"]
+stdin = "from stdin\n"
+tags = ["bzip2", "compress", "stdin"]
+
+[[case]]
+id = "bzip2-compress-stdin-verbose"
+argv = ["bzip2", "-v", "-c"]
+stdin = "from stdin\n"
+tags = ["bzip2", "compress", "stdin", "verbose"]
+
+[[case]]
+id = "bzip2-already-suffix"
+argv = ["bzip2", "a.txt.bz2", "b.tbz"]
+tags = ["bzip2", "error"]
+[case.files]
+"a.txt.bz2" = "x\n"
+"b.tbz" = "x\n"
+
+[[case]]
+id = "bzip2-output-exists"
+argv = ["bzip2", "a.txt"]
+tags = ["bzip2", "error"]
+[case.files]
+"a.txt" = "hello world\n"
+"a.txt.bz2" = "old\n"
+
+[[case]]
+id = "bzip2-output-exists-force"
+argv = ["bzip2", "-f", "a.txt"]
+tags = ["bzip2", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+"a.txt.bz2" = "old\n"
+
+[[case]]
+id = "bzip2-missing-and-dir"
+argv = ["bzip2", "nofile", "d", "a.txt"]
+tags = ["bzip2", "error"]
+[case.files]
+"a.txt" = "hello world\n"
+"d/x" = "x\n"
+
+[[case]]
+id = "bzip2-symlink"
+argv = ["bzip2", "lnk"]
+tags = ["bzip2", "error"]
+[case.files]
+"a.txt" = "hello world\n"
+"lnk" = { symlink = "a.txt" }
+
+[[case]]
+id = "bzip2-symlink-force"
+argv = ["bzip2", "-f", "lnk"]
+tags = ["bzip2", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+"lnk" = { symlink = "a.txt" }
+
+[[case]]
+id = "bzip2-mode-preserved"
+argv = ["bzip2", "s.txt"]
+tags = ["bzip2", "compress"]
+[case.files]
+"s.txt" = { content = "secret\n", mode = 0o600 }
+
+[[case]]
+id = "bzip2-decompress-file"
+argv = ["bzip2", "-dv", "a.txt.bz2"]
+tags = ["bzip2", "decompress", "verbose"]
+[case.files]
+"a.txt.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+
+[[case]]
+id = "bzip2-decompress-names"
+argv = ["bzip2", "-d", "x.tbz2", "y.bz", "z.tbz"]
+tags = ["bzip2", "decompress"]
+[case.files]
+"x.tbz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+"y.bz" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+"z.tbz" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+
+[[case]]
+id = "bzip2-decompress-guess-name"
+argv = ["bzip2", "-d", "weird"]
+tags = ["bzip2", "decompress"]
+[case.files]
+"weird" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+
+[[case]]
+id = "bzip2-decompress-not-bzip2"
+argv = ["bzip2", "-d", "a.txt", "b.bz2"]
+tags = ["bzip2", "decompress", "error"]
+[case.files]
+"a.txt" = "hello\n"
+"b.bz2" = "not bzip2 either\n"
+
+[[case]]
+id = "bzip2-dc-multi-stream"
+argv = ["bzip2", "-dc", "multi.bz2"]
+tags = ["bzip2", "decompress"]
+[case.files]
+"multi.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsEJaaDkxQVkmU1kwN/BMAAAL0YAAEEAAIiVEQCAAIr/VQG0hADCKU06iPLRb4u5IpwoSBgb+CYA=" }
+
+[[case]]
+id = "bzip2-dc-trailing-garbage"
+argv = ["bzip2", "-dc", "trail.bz2"]
+tags = ["bzip2", "decompress", "warning"]
+[case.files]
+"trail.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsGp1bmsK" }
+
+[[case]]
+id = "bzip2-d-truncated"
+argv = ["bzip2", "-d", "trunc.bz2", "a.txt.bz2"]
+tags = ["bzip2", "decompress", "error"]
+[case.files]
+"trunc.bz2" = { content_b64 = "QlpoOTFBWSZTWenJbjMABRZIAEAQf+BgFHwAAAAAAAAQACHwCEAhAIQCEAhAIQCEAGypU0f41VMQNA0CBoGgRT0DP1SoIGgaCFP//1UiH+p+qqpt7/fTrvqtn60gFGgHhsDocBwHQ2B4aAUSAWgALRIBacAZmaAeGwOhwHAdDYHhoBRIBaAApDQC0gFGgHhsDocBwHQ2B4aAUSAWgAPINgWkAo0A8NgdDgOA6GwPDQCiQC0AB1A4C0gFGgHhsDocBwHQ2B4aAUSAWgAOIDoWkAo0A8NgdDgOA6GwPDQCiQC0ABtAPC0gFGgHhsDocBwHQ2B4aAUSAWgANIAotIBRoB4bA6HAcB0NgeGgFEgFoACUALWkAo0A8NgdDgOA6GwPDQCiQC0ABCABaQCj" }
+"a.txt.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+
+[[case]]
+id = "bzip2-d-crc-error"
+argv = ["bzip2", "-d", "crc.bz2"]
+tags = ["bzip2", "decompress", "error"]
+[case.files]
+"crc.bz2" = { content_b64 = "QlpoOTFBWSZTWenJbjMABRZIAEAQf+BgFHwAAAAAAAAQACHwCEAhAIQCEAhAIQCEAGypU0f41VMQNA0CBoGgRT0DP1SoIGgaCFP//1UiH+p+qqpt7/fTrvqtn60gFGgHhsDocBwHQ2B4aAUSAWgALRIBacAZmaAeGwOhwHAdDYHhoBRIBaAApDQC0gFGgHhsDocBwHQ2B4aAUSAWgAPINgWkAo0A8NgdDgOA6GwPDQCiQC0AB1A4C0gFGgHhsDocBwHQ2B4aAUQAWgAOIDoWkAo0A8NgdDgOA6GwPDQCiQC0ABtAPC0gFGgHhsDocBwHQ2B4aAUSAWgANIAotIBRoB4bA6HAcB0NgeGgFEgFoACUALWkAo0A8NgdDgOA6GwPDQCiQC0ABCABaQCjQDw2B0OA4DobA8NAKJALQAFPmgFpAKNAPDYHQ4DgOhsDw0AokAtAAeQbAtIBRoB4bA6HAcB0NgeGgFEgFoADqBwFpAKNAPDYHQ4DgOhsDw0AokAtAAcQHQtIBRoB4bA6HAcB0NgeGgFEgFoADaAeFpAKNAPDYHQ4DgOhsDw0AokAtAAaQBRaQCjQDw2B0OA4DobA8NAKJALQAEoAWtIBRoB4bA6HAcB0NgeGgFEgFoACEAC0gFGgHhsDocBwHQ2B4aAUSAWgAL+u7u7u1pgAWkAo0A8NgdDgOA6GwPDQCiQC1pAKNAPDYHQ4DgOhsDw0AokAtCACqqqqqq4+hMaAVVVVVVx9CYAKqqqqq4+hMAFVVVVVcfQmACqqqqquPoTABVVVVVXH0JgAqqqqqrj6EwAVVVVVVx9CYAKqqqqq4+hMAFVVVVVf30JkAsAWlAAtIBRoB4bA6HAcB0NgeGgFfszIzMzMwtIBRoB4bA6HAcB0NgeGgFMyMzMzMyqqqqqchFCKEUIoRQihFCKEWEa+ttttzMzMzN5hFCKEUIoRQihFCKEUJfS/lttt3MzMzO4IoRQihFCKEUIoRQihL6W/Lbbd3MzMzuCKEUIoRQihFCKEUIoS+lt/bbbu7mZmdwRQihFCKEUIoRQihFCX0tt/rbd3dzMzuCKEUIoRQihFCKEUIoS+ltty27u7uZncEUIoRQihFCKEUIoRQl9Lbbdt3d3dzO4IoRQihFCKEUIoRQihL6W223ru7u7udwRQihFCKEUIoRQihFCX0ttttu7u7u73BFCKEUIoRQihFCKEUJfX1tttzue7uC0ALSQALSAUaAeGwOhwHAdDYHhADMzMjMzMwWkAo0A8NgdDgOA6GwPEAGXd3d3u9/gAALn9VVVtttt3oAAFyVVWtttt3AAAXJVVa2223cAABclVVrbbbdwAAFyVVWtttt3AAAXJVVa2223cAABclVVrbbbdwAAFyVVWtttt3AAAXJVVa2223cAABcryqr73ved6CiQC0AWkQALSAUaAeGwOhwHAdCQC0AZmZmRmZmBaQCjQDw2B0OA4DokBeXd3e3cAABclVVrbbbdwAAFyVVWtttt3AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXKvaq+d73vnQeGgFEgFoBaQgAWkAo0A8NgdDgNAKJALQDMzMzIzMwFpAKNAPDYHQ4GgLvLu727+AAAuVyqra2227+AAAuVyqra2227+AAAuVyqra2227+AAAuVeVVtrbbd+gAAXKvKq21ttu/QAALlXlVba223foAAFyryqttbbbv0AAC5V5VW2ttt36AABcq8qrbW2279AAAuVXyq973ve+g6GwPDQCiQC0BaQQALSAUaAeGwNgeGgFEgFoDMzMzMjMwC0gFGgHhsGwXd5d3t36AABcq8qrbW2279AAAuVeVVtrbbd+gAAXKvKq21ttu/QAALlXlVba223foAAFyq9qttrbbvwAAC5Ve1W21tt34AABcqvarba2278AAAuVXtVttbbd+AAAXKr2q22ttu/AAALlVfavO973vehwHAdDYHhoBRIBaBaQIAFpAKNAOA6GwPDQCiQC0DMzMzMyMwBaQCjQHAu7vLvbvwAAC5Ve1W21tt34AABcqvarba2278AAAuVXtVttbbd+AAAXKr2q22ttu/AAALlV7VbbW23fgAAFyqvlW22tt30AAC5VXyrbbW276AABcqr5Vttrbd9AAAuVV8q221tu+gAAXKqv1c73ve9eGwOhwHAdDYHhoBRIBaC0gIAFpAOhwHAdDYHhoBRIBaDMzMzMzIwAtIDou7u8vbvoAAFyqvlW22tt30AAC5VXyrbbW276AABcqr5Vttrbd9AAAuVV8q221tu+gAAXKq+Vbba23fQAALlVfKtttbbvoAAFyqr7W221t3wAAC5VV9rbba274AABcqq+1tttbd8AAAuVVWne973pRoB4bA6HAcB0NgeGgFEgFoWkAgAeGwOhwHAdDYHhoBRIBaGZmZmZmZAB4u7u7zbvgAAFyqr7W221t3wAAC5VV9rbba274AABcqq+1tttbd8AAAuVVfa222tu+AAAXKqvtbbbW3fAAALlVX2tttrbvgAAFyqr7W221t3wAAC5VVfrbbbW7wAAC5VVfrbbbW7wAAD+5/XlVVuu96CjQDw2B0OA4DobA8NAKJALQAFIaAeGwOhwHAdDYHhoBRIBaAAu7u7u7pd3d3du8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAA/uXlVV+7ttttAAB/P8LuSKcKEh05LcZgA==" }
+
+[[case]]
+id = "bzip2-test-many"
+argv = ["bzip2", "-t", "a.txt.bz2", "trail.bz2", "plain", "trunc.bz2", "nofile"]
+tags = ["bzip2", "test", "error"]
+[case.files]
+"a.txt.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+"trail.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsGp1bmsK" }
+"plain" = "plain\n"
+"trunc.bz2" = { content_b64 = "QlpoOTFBWSZTWenJbjMABRZIAEAQf+BgFHwAAAAAAAAQACHwCEAhAIQCEAhAIQCEAGypU0f41VMQNA0CBoGgRT0DP1SoIGgaCFP//1UiH+p+qqpt7/fTrvqtn60gFGgHhsDocBwHQ2B4aAUSAWgALRIBacAZmaAeGwOhwHAdDYHhoBRIBaAApDQC0gFGgHhsDocBwHQ2B4aAUSAWgAPINgWkAo0A8NgdDgOA6GwPDQCiQC0AB1A4C0gFGgHhsDocBwHQ2B4aAUSAWgAOIDoWkAo0A8NgdDgOA6GwPDQCiQC0ABtAPC0gFGgHhsDocBwHQ2B4aAUSAWgANIAotIBRoB4bA6HAcB0NgeGgFEgFoACUALWkAo0A8NgdDgOA6GwPDQCiQC0ABCABaQCj" }
+
+[[case]]
+id = "bzip2-test-verbose"
+argv = ["bzip2", "-tv", "a.txt.bz2", "plain"]
+tags = ["bzip2", "test", "verbose", "error"]
+[case.files]
+"a.txt.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+"plain" = "plain\n"
+
+[[case]]
+id = "bzip2-test-quiet"
+argv = ["bzip2", "-tq", "plain"]
+tags = ["bzip2", "test", "error"]
+[case.files]
+"plain" = "plain\n"
+
+[[case]]
+id = "bzip2-dc-stdin-not-bzip2"
+argv = ["bzip2", "-dc"]
+stdin = "nope\n"
+tags = ["bzip2", "decompress", "stdin", "error"]
+
+[[case]]
+id = "bzip2-bad-flag"
+argv = ["bzip2", "-x", "a.txt"]
+tags = ["bzip2", "usage"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "bzip2-bad-long-flag"
+argv = ["bzip2", "--bogus"]
+tags = ["bzip2", "usage"]
+
+[[case]]
+id = "bzip2-help"
+argv = ["bzip2", "--help"]
+tags = ["bzip2", "usage"]
+
+[[case]]
+id = "bzip2-version"
+argv = ["bzip2", "-V"]
+tags = ["bzip2", "usage"]
+
+[[case]]
+id = "bzip2-repetitive"
+argv = ["bzip2", "--repetitive-fast", "-c", "a.txt"]
+tags = ["bzip2", "usage"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "bzip2-double-dash"
+argv = ["bzip2", "--", "-x"]
+tags = ["bzip2", "usage"]
+
+[[case]]
+id = "bunzip2-file"
+argv = ["bunzip2", "-v", "a.txt.bz2"]
+tags = ["bzip2", "bunzip2"]
+[case.files]
+"a.txt.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+
+[[case]]
+id = "bunzip2-help"
+argv = ["bunzip2", "-h"]
+tags = ["bzip2", "bunzip2", "usage"]
+
+[[case]]
+id = "bzcat-files"
+argv = ["bzcat", "a.txt.bz2", "nofile", "multi.bz2"]
+tags = ["bzip2", "bzcat"]
+[case.files]
+"a.txt.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA==" }
+"multi.bz2" = { content_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsEJaaDkxQVkmU1kwN/BMAAAL0YAAEEAAIiVEQCAAIr/VQG0hADCKU06iPLRb4u5IpwoSBgb+CYA=" }
+
+[[case]]
+id = "bzcat-stdin"
+argv = ["bzcat"]
+stdin_b64 = "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+tags = ["bzip2", "bzcat", "stdin"]

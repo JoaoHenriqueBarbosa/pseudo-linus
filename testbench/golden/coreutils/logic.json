@@ -1,0 +1,776 @@
+{
+  "bracket-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "bracket-false": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "bracket-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "bracket-int": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bracket-invalid-integer": {
+    "stdout": "",
+    "stderr": "[: invalid integer ‘x’\n",
+    "exit": 2,
+    "files": {}
+  },
+  "bracket-missing-close": {
+    "stdout": "",
+    "stderr": "[: missing ‘]’\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "bracket-string": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bracket-unknown-operator": {
+    "stdout": "",
+    "stderr": "[: ‘-bogus’: binary operator expected\n",
+    "exit": 2,
+    "files": {}
+  },
+  "expr-add": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-and": {
+    "stdout": "a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-and-zero": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "expr-bad-regex": {
+    "stdout": "",
+    "stderr": "expr: Unmatched ( or \\(\n",
+    "exit": 2,
+    "files": {}
+  },
+  "expr-bignum": {
+    "stdout": "100000000000000000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-compare-false": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "expr-compare-numeric-not-lexical": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "expr-compare-true": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-div": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-division-by-zero": {
+    "stdout": "",
+    "stderr": "expr: division by zero\n",
+    "exit": 2,
+    "files": {}
+  },
+  "expr-empty-string": {
+    "stdout": "\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "expr-index": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-length": {
+    "stdout": "9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-match-anchored": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "expr-match-count": {
+    "stdout": "4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-match-group": {
+    "stdout": "1.2.3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-match-group-fail": {
+    "stdout": "\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "expr-match-keyword": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-missing-operand": {
+    "stdout": "",
+    "stderr": "expr: missing operand\nTry 'expr --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "expr-mod": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-mul": {
+    "stdout": "42\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-negative-div": {
+    "stdout": "-3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-non-integer": {
+    "stdout": "",
+    "stderr": "expr: non-integer argument\n",
+    "exit": 2,
+    "files": {}
+  },
+  "expr-or": {
+    "stdout": "b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-precedence-parens": {
+    "stdout": "9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-string-eq": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-substr": {
+    "stdout": "ell\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "expr-syntax-missing-argument": {
+    "stdout": "",
+    "stderr": "expr: syntax error: missing argument after ‘+’\n",
+    "exit": 2,
+    "files": {}
+  },
+  "expr-syntax-unexpected": {
+    "stdout": "",
+    "stderr": "expr: syntax error: unexpected argument ‘2’\n",
+    "exit": 2,
+    "files": {}
+  },
+  "expr-zero-result": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "factor-basic": {
+    "stdout": "12: 2 2 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "factor-beyond-64-bits": {
+    "stdout": "18446744073709551617: 274177 67280421310721\n340282366920938463463374607431768211456: 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "factor-exponents": {
+    "stdout": "360: 2^3 3^2 5\n1024: 2^10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "factor-float": {
+    "stdout": "",
+    "stderr": "factor: ‘2.5’ is not a valid positive integer\n",
+    "exit": 1,
+    "files": {}
+  },
+  "factor-invalid": {
+    "stdout": "6: 2 3\n10: 2 5\n",
+    "stderr": "factor: ‘abc’ is not a valid positive integer\n",
+    "exit": 1,
+    "files": {}
+  },
+  "factor-large-prime": {
+    "stdout": "4294967291: 4294967291\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "factor-multi": {
+    "stdout": "1:\n2: 2\n97: 97\n100: 2 2 5 5\n360: 2 2 2 3 3 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "factor-negative": {
+    "stdout": "",
+    "stderr": "factor: ‘-5’ is not a valid positive integer\n",
+    "exit": 1,
+    "files": {}
+  },
+  "factor-stdin": {
+    "stdout": "6: 2 3\n15: 3 5\n21: 3 7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "factor-zero": {
+    "stdout": "0:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pathchk-P-empty": {
+    "stdout": "",
+    "stderr": "pathchk: empty file name\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pathchk-P-leading-dash": {
+    "stdout": "",
+    "stderr": "pathchk: leading '-' in a component of file name 'dir/-x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pathchk-missing-operand": {
+    "stdout": "",
+    "stderr": "pathchk: missing operand\nTry 'pathchk --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pathchk-ok": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pathchk-p-long-component": {
+    "stdout": "",
+    "stderr": "pathchk: limit 14 exceeded by length 21 of file name component ‘nome_bem_comprido.txt’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pathchk-p-nonportable-char": {
+    "stdout": "",
+    "stderr": "pathchk: non-portable character ‘ ’ in file name 'meu arquivo.txt'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pathchk-p-utf8": {
+    "stdout": "",
+    "stderr": "pathchk: non-portable character ‘ç’ in file name 'ação.txt'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pathchk-portability": {
+    "stdout": "",
+    "stderr": "pathchk: non-portable character ‘ ’ in file name 'a b'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pathchk-portable-ok": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-L-symlink": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "target.txt"
+      },
+      "target.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      }
+    }
+  },
+  "test-and": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "test-and-false": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "test-d": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "test-e-dangling": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "nope"
+      }
+    }
+  },
+  "test-e-missing": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "test-ef": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "target.txt"
+      },
+      "target.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      }
+    }
+  },
+  "test-extra-argument": {
+    "stdout": "",
+    "stderr": "test: extra argument ‘b’\n",
+    "exit": 2,
+    "files": {}
+  },
+  "test-f-dir": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "test-f-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "test-h-dangling": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "nope"
+      }
+    }
+  },
+  "test-int-eq": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-int-gt-false": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "test-int-negative-and-spaces": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-invalid-integer": {
+    "stdout": "",
+    "stderr": "test: invalid integer ‘abc’\n",
+    "exit": 2,
+    "files": {}
+  },
+  "test-missing-paren": {
+    "stdout": "",
+    "stderr": "test: missing argument after ‘a’\n",
+    "exit": 2,
+    "files": {}
+  },
+  "test-n-nonempty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-no-args": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "test-not": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-nt-missing": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "test-nt-same-mtime": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "test-one-arg": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-one-arg-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "test-one-arg-operator-like": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-or": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "test-ot-same-mtime": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "test-parens": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-r-as-root": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "locked": {
+        "kind": "file",
+        "mode": 0,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "test-s-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "test-s-nonempty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "test-string-double-eq": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-string-eq": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-string-lt": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "test-string-ne": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "test-unknown-binary-operator": {
+    "stdout": "",
+    "stderr": "test: ‘-foo’: binary operator expected\n",
+    "exit": 2,
+    "files": {}
+  },
+  "test-w-as-root": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "locked": {
+        "kind": "file",
+        "mode": 0,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "test-x-as-root-mode-000": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "locked": {
+        "kind": "file",
+        "mode": 0,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "test-x-executable": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "test-x-not-executable": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "test-z-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

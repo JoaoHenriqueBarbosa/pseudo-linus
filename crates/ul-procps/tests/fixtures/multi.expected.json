@@ -1,0 +1,797 @@
+{
+ "source": "procps real no pseudo-linus-oracle:719900900623 sobre multi.fixture (capture.py)",
+ "cases": [
+  {
+   "cmd": "pidof sleep",
+   "stdout": "14 13 12\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -s sleep",
+   "stdout": "14\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -z sleep",
+   "stdout": "14 13 12\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof sh",
+   "stdout": "11 10\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof bash",
+   "stdout": "1\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof /bin/bash",
+   "stdout": "1\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof backup.sh",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof -x backup.sh",
+   "stdout": "11\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -x tool.pl",
+   "stdout": "21\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof tool.pl",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof myworker",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof python3",
+   "stdout": "15\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof sshd",
+   "stdout": "16\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof 'sshd: alice [priv]'",
+   "stdout": "16\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof nginx",
+   "stdout": "17\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof 'nginx: worker process'",
+   "stdout": "17\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof averyveryverylongname",
+   "stdout": "18\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof averyveryverylo",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof -z defunct-kid",
+   "stdout": "19\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof kthreadd",
+   "stdout": "22\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof sleep sh bash",
+   "stdout": "14 13 12 11 10 1\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -d , sleep sh",
+   "stdout": "14,13,12,11,10\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -o 13 sleep",
+   "stdout": "14 12\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -o 12,13 sleep",
+   "stdout": "14\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -o 12 -o 13 -z sleep",
+   "stdout": "14\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -o %PPID sleep",
+   "stdout": "14 13 12\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -o %PID ps",
+   "stdout": "101\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -q sleep",
+   "stdout": "",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -n sleep",
+   "stdout": "14 13 12\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pidof -c sleep",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof nothing",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pidof",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep sleep",
+   "stdout": "12\n13\n14\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -n sleep",
+   "stdout": "12\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -o sleep",
+   "stdout": "13\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -u alice",
+   "stdout": "15 myworker\n21 tool.pl\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -u 1000,33",
+   "stdout": "15 myworker\n17 nginx\n21 tool.pl\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -U verylongusername",
+   "stdout": "18 averyveryverylo\n19 defunct-kid\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -G users",
+   "stdout": "18 averyveryverylo\n19 defunct-kid\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -P 10,15",
+   "stdout": "12 sleep\n13 sleep\n21 tool.pl\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -s 15,16",
+   "stdout": "15 myworker\n16 sshd\n21 tool.pl\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -g 10",
+   "stdout": "10 sh\n12 sleep\n13 sleep\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -r D",
+   "stdout": "14 sleep\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -r S -P 1",
+   "stdout": "10 sh\n11 backup.sh\n15 myworker\n16 sshd\n17 nginx\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -a -f perl",
+   "stdout": "21 /usr/bin/perl -w /usr/local/bin/tool.pl\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -a ''",
+   "stdout": "1 /bin/bash --login\n10 sh -c sleep 5; sleep 100\n11 /bin/sh /usr/local/bin/backup.sh --daily\n12 sleep 5\n13 sleep 100\n14 sleep 200\n15 python3 /opt/w.py\n16 sshd: alice [priv]\n17 nginx: worker process\n18 /usr/bin/averyveryverylongname --x\n19 [defunct-kid] <defunct>\n21 /usr/bin/perl -w /usr/local/bin/tool.pl\n22 [kthreadd]\n23 [kworker/0:1-events]\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -x averyveryverylo",
+   "stdout": "18 averyveryverylo\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -x averyveryverylongname",
+   "stdout": "",
+   "stderr": "pgrep: pattern that searches for process name longer than 15 characters will result in zero matches\nTry `pgrep -f' option to match against the complete command line.\n",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep -l -f averyveryverylongname",
+   "stdout": "18 averyveryverylo\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -c -v sleep",
+   "stdout": "11\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -i SLEEP",
+   "stdout": "12 sleep\n13 sleep\n14 sleep\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l 'k.*d$'",
+   "stdout": "19 defunct-kid\n22 kthreadd\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l '^(sh|bash)$'",
+   "stdout": "1 bash\n10 sh\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l 'sleep|nginx'",
+   "stdout": "12 sleep\n13 sleep\n14 sleep\n17 nginx\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -f 'sleep 5;'",
+   "stdout": "10 sh\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -f '[[:digit:]]{3}'",
+   "stdout": "10 sh\n13 sleep\n14 sleep\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -n -u root",
+   "stdout": "12 sleep\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -o -u root",
+   "stdout": "22 kthreadd\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -O 199000",
+   "stdout": "1 bash\n10 sh\n11 backup.sh\n12 sleep\n13 sleep\n14 sleep\n16 sshd\n17 nginx\n18 averyveryverylo\n19 defunct-kid\n22 kthreadd\n23 kworker/0:1-events\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -u nosuchuser sleep",
+   "stdout": "",
+   "stderr": "pgrep: invalid user name: nosuchuser\n",
+   "exit": 2
+  },
+  {
+   "cmd": "pgrep -l -g abc",
+   "stdout": "",
+   "stderr": "pgrep: invalid process group: abc\n",
+   "exit": 2
+  },
+  {
+   "cmd": "pgrep -l -P 1 -n",
+   "stdout": "15 myworker\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -d ' ' sleep",
+   "stdout": "12 13 14\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -a -x nginx",
+   "stdout": "17 nginx: worker process\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "pgrep -l -t pts/9 .",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pgrep -n -x ps",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pkill -0 -e -c sleep",
+   "stdout": "3\n",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "pkill -0 -e -n sleep",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -v sleep",
+   "stdout": "",
+   "stderr": "sleep(12): Bad file descriptor\nsleep(13): Bad file descriptor\nsleep(14): Bad file descriptor\nsleep: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 nginx",
+   "stdout": "",
+   "stderr": "nginx(17): Bad file descriptor\nnginx: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 'nginx: worker process'",
+   "stdout": "",
+   "stderr": "nginx: worker process: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 averyveryverylongname",
+   "stdout": "",
+   "stderr": "averyveryverylongname(18): Bad file descriptor\naveryveryverylongname: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -e averyveryverylongname",
+   "stdout": "",
+   "stderr": "averyveryverylongname(18): Bad file descriptor\naveryveryverylongname: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 averyveryverylo",
+   "stdout": "",
+   "stderr": "averyveryverylo: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -e averyveryverylo",
+   "stdout": "",
+   "stderr": "averyveryverylo: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -u alice -v myworker",
+   "stdout": "",
+   "stderr": "myworker(15): Bad file descriptor\nmyworker: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -u verylongusername averyveryverylongname",
+   "stdout": "",
+   "stderr": "averyveryverylongname(18): Bad file descriptor\naveryveryverylongname: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -u nosuchuser x",
+   "stdout": "",
+   "stderr": "Cannot find user nosuchuser\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -o 1h myworker",
+   "stdout": "",
+   "stderr": "myworker(15): Bad file descriptor\nmyworker: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -y 1h myworker",
+   "stdout": "",
+   "stderr": "myworker: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -y 1d myworker",
+   "stdout": "",
+   "stderr": "myworker(15): Bad file descriptor\nmyworker: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -o 2d bash",
+   "stdout": "",
+   "stderr": "bash(1): Bad file descriptor\nbash: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -o 3d bash",
+   "stdout": "",
+   "stderr": "bash: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -o 1x bash",
+   "stdout": "",
+   "stderr": "Invalid time format\nUsage: killall [OPTION]... [--] NAME...\n       killall -l, --list\n       killall -V, --version\n\n  -e,--exact          require exact match for very long names\n  -I,--ignore-case    case insensitive process name match\n  -g,--process-group  kill process group instead of process\n  -y,--younger-than   kill processes younger than TIME\n  -o,--older-than     kill processes older than TIME\n  -i,--interactive    ask for confirmation before killing\n  -l,--list           list all known signal names\n  -q,--quiet          don't print complaints\n  -r,--regexp         interpret NAME as an extended regular expression\n  -s,--signal SIGNAL  send this signal instead of SIGTERM\n  -u,--user USER      kill only process(es) running as USER\n  -v,--verbose        report if the signal was successfully sent\n  -V,--version        display version information\n  -w,--wait           wait for processes to die\n  -n,--ns PID         match processes that belong to the same namespaces\n                      as PID\n  -Z,--context REGEXP kill only process(es) having context\n                      (must precede other arguments)\n\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 backup.sh",
+   "stdout": "",
+   "stderr": "backup.sh(11): Bad file descriptor\nbackup.sh: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 sh",
+   "stdout": "",
+   "stderr": "sh(10): Bad file descriptor\nsh: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 python3",
+   "stdout": "",
+   "stderr": "python3: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 tool.pl",
+   "stdout": "",
+   "stderr": "tool.pl(21): Bad file descriptor\ntool.pl: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -r '^s'",
+   "stdout": "",
+   "stderr": "sh(10): Bad file descriptor\nsleep(12): Bad file descriptor\nsleep(13): Bad file descriptor\nsleep(14): Bad file descriptor\nsshd(16): Bad file descriptor\n^s: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -r -I '^S'",
+   "stdout": "",
+   "stderr": "sh(10): Bad file descriptor\nsleep(12): Bad file descriptor\nsleep(13): Bad file descriptor\nsleep(14): Bad file descriptor\nsshd(16): Bad file descriptor\n^S: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -r '('",
+   "stdout": "",
+   "stderr": "killall: Bad regular expression: (\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -s bogus x",
+   "stdout": "",
+   "stderr": "bogus: unknown signal; killall -l lists signals.\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -s 0 nosuch",
+   "stdout": "",
+   "stderr": "nosuch: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall --signal=0 nosuch",
+   "stdout": "",
+   "stderr": "nosuch: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -SIGKILL nosuch",
+   "stdout": "",
+   "stderr": "nosuch: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -9 nosuch",
+   "stdout": "",
+   "stderr": "nosuch: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -KILL -q nosuch",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -q nosuch",
+   "stdout": "",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 /bin/bash",
+   "stdout": "",
+   "stderr": "/bin/bash: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 /usr/bin/averyveryverylongname",
+   "stdout": "",
+   "stderr": "/usr/bin/averyveryverylongname: No such file or directory\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -w nosuch",
+   "stdout": "",
+   "stderr": "nosuch: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "killall -0 -i nosuch",
+   "stdout": "",
+   "stderr": "nosuch: no process found\n",
+   "exit": 1
+  },
+  {
+   "cmd": "ps -e",
+   "stdout": "    PID TTY          TIME CMD\n      1 ?        00:00:00 bash\n     10 ?        00:00:00 sh\n     11 ?        00:00:00 backup.sh\n     12 ?        00:00:00 sleep\n     13 ?        00:00:00 sleep\n     14 ?        00:00:00 sleep\n     15 ?        00:16:30 myworker\n     16 ?        00:00:00 sshd\n     17 ?        00:00:00 nginx\n     18 ?        01:40:10 averyveryverylo\n     19 ?        00:00:00 defunct-kid\n     21 ?        00:00:01 tool.pl\n     22 ?        00:00:00 kthreadd\n     23 ?        00:00:00 kworker/0:1-events\n    101 ?        00:00:00 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -ef",
+   "stdout": "UID          PID    PPID  C STIME TTY          TIME CMD\nroot           1       0  0 Jan15 ?        00:00:00 /bin/bash --login\nroot          10       1  0 Jan15 ?        00:00:00 sh -c sleep 5; sleep 100\nroot          11       1  0 Jan15 ?        00:00:00 /bin/sh /usr/local/bin/backup.sh --daily\nroot          12      10  0 Jan15 ?        00:00:00 sleep 5\nroot          13      10  0 Jan15 ?        00:00:00 sleep 100\nroot          14      11  0 Jan15 ?        00:00:00 sleep 200\nalice         15       1  9 16:30 ?        00:16:30 python3 /opt/w.py\nroot          16       1  0 Jan15 ?        00:00:00 sshd: alice [priv]\nwww-data      17       1  0 Jan15 ?        00:00:00 nginx: worker process\nverylon+      18      16  3 Jan15 ?        01:40:10 /usr/bin/averyveryverylongname --x\nverylon+      19      18  0 Jan15 ?        00:00:00 [defunct-kid] <defunct>\nalice         21      15  0 17:53 ?        00:00:01 /usr/bin/perl -w /usr/local/bin/tool.pl\nroot          22       0  0 Jan15 ?        00:00:00 [kthreadd]\nroot          23      22  0 Jan15 ?        00:00:00 [kworker/0:1-events]\nroot         101       1 20 19:16 ?        00:00:00 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps aux",
+   "stdout": "USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.2   8188  4800 ?        Ss   Jan15   0:00 /bin/bash --login\nroot          10  0.0  0.0   2668  1600 ?        S    Jan15   0:00 sh -c sleep 5; sleep 100\nroot          11  0.0  0.0   2668  1680 ?        S    Jan15   0:00 /bin/sh /usr/local/bin/backup.sh --daily\nroot          12  0.0  0.0   2424  1400 ?        S    Jan15   0:00 sleep 5\nroot          13  0.0  0.0   2424  1400 ?        S    Jan15   0:00 sleep 100\nroot          14  0.0  0.0   2424  1400 ?        D    Jan15   0:00 sleep 200\nalice         15  9.9  1.2  51200 24000 ?        Ss   16:30  16:30 python3 /opt/w.py\nroot          16  0.0  0.4  15360  8000 ?        Ss   Jan15   0:00 sshd: alice [priv]\nwww-data      17  0.0  0.3  56320  6000 ?        Ss   Jan15   0:00 nginx: worker process\nverylon+      18  3.0  0.0   4096  1024 ?        RNs+ Jan15 100:10 /usr/bin/averyveryverylongname --x\nverylon+      19  0.0  0.0      0     0 ?        Z+   Jan15   0:00 [defunct-kid] <defunct>\nalice         21  0.0  0.1  10240  3600 ?        S    17:53   0:01 /usr/bin/perl -w /usr/local/bin/tool.pl\nroot          22  0.0  0.0      0     0 ?        S    Jan15   0:00 [kthreadd]\nroot          23  0.0  0.0      0     0 ?        I    Jan15   0:00 [kworker/0:1-events]\nroot         101 20.0  0.1   6788  3600 ?        R    19:16   0:00 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps axf",
+   "stdout": "    PID TTY      STAT   TIME COMMAND\n      1 ?        Ss     0:00 /bin/bash --login\n     16 ?        Ss     0:00 sshd: alice [priv]\n     18 ?        RNs+ 100:10  \\_ /usr/bin/averyveryverylongname --x\n     19 ?        Z+     0:00      \\_ [defunct-kid] <defunct>\n     17 ?        Ss     0:00 nginx: worker process\n     11 ?        S      0:00 /bin/sh /usr/local/bin/backup.sh --daily\n     14 ?        D      0:00  \\_ sleep 200\n     10 ?        S      0:00 sh -c sleep 5; sleep 100\n     13 ?        S      0:00  \\_ sleep 100\n     12 ?        S      0:00  \\_ sleep 5\n     15 ?        Ss    16:30 python3 /opt/w.py\n     21 ?        S      0:01  \\_ /usr/bin/perl -w /usr/local/bin/tool.pl\n    101 ?        R      0:00 ps\n     22 ?        S      0:00 [kthreadd]\n     23 ?        I      0:00  \\_ [kworker/0:1-events]\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -ejH",
+   "stdout": "    PID    PGID     SID TTY          TIME CMD\n      1       1       1 ?        00:00:00 bash\n     16      16      16 ?        00:00:00   sshd\n     18      18      18 ?        01:40:10     averyveryverylo\n     19      18      18 ?        00:00:00       defunct-kid\n     17      17      17 ?        00:00:00   nginx\n     11      11       1 ?        00:00:00   backup.sh\n     14      11       1 ?        00:00:00     sleep\n     10      10       1 ?        00:00:00   sh\n     13      10       1 ?        00:00:00     sleep\n     12      10       1 ?        00:00:00     sleep\n     15      15      15 ?        00:16:30   myworker\n     21      15      15 ?        00:00:01     tool.pl\n    101     101       1 ?        00:00:00   ps\n     22       0       0 ?        00:00:00 kthreadd\n     23       0       0 ?        00:00:00   kworker/0:1-events\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps --forest -eo pid,ppid,user,comm",
+   "stdout": "    PID    PPID USER     COMMAND\n      1       0 root     bash\n     16       1 root     sshd\n     18      16 verylon+  \\_ averyveryverylo\n     19      18 verylon+      \\_ defunct-kid\n     17       1 www-data nginx\n     11       1 root     backup.sh\n     14      11 root      \\_ sleep\n     10       1 root     sh\n     13      10 root      \\_ sleep\n     12      10 root      \\_ sleep\n     15       1 alice    myworker\n     21      15 alice     \\_ tool.pl\n    101       1 root     ps\n     22       0 root     kthreadd\n     23      22 root      \\_ kworker/0:1-events\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,user,euser,ruser,group,egroup,rgroup,comm",
+   "stdout": "    PID USER     EUSER    RUSER    GROUP    EGROUP   RGROUP   COMMAND\n      1 root     root     root     root     root     root     bash\n     10 root     root     root     root     root     root     sh\n     11 root     root     root     root     root     root     backup.sh\n     12 root     root     root     root     root     root     sleep\n     13 root     root     root     root     root     root     sleep\n     14 root     root     root     root     root     root     sleep\n     15 alice    alice    alice    alice    alice    alice    myworker\n     16 root     root     root     root     root     root     sshd\n     17 www-data www-data www-data www-data www-data www-data nginx\n     18 verylon+ verylon+ verylon+ users    users    users    averyveryverylo\n     19 verylon+ verylon+ verylon+ users    users    users    defunct-kid\n     21 alice    alice    alice    alice    alice    alice    tool.pl\n     22 root     root     root     root     root     root     kthreadd\n     23 root     root     root     root     root     root     kworker/0:1-events\n    101 root     root     root     root     root     root     ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,start,stime,bsdstart,lstart,etime,time,comm",
+   "stdout": "    PID  STARTED STIME  START                  STARTED     ELAPSED     TIME COMMAND\n      1   Jan 15 Jan15 Jan 15 Thu Jan 15 11:43:21 2026  2-07:33:19 00:00:00 bash\n     10   Jan 15 Jan15 Jan 15 Thu Jan 15 11:44:10 2026  2-07:32:30 00:00:00 sh\n     11   Jan 15 Jan15 Jan 15 Thu Jan 15 11:44:00 2026  2-07:32:40 00:00:00 backup.sh\n     12   Jan 15 Jan15 Jan 15 Thu Jan 15 11:44:50 2026  2-07:31:50 00:00:00 sleep\n     13   Jan 15 Jan15 Jan 15 Thu Jan 15 11:44:30 2026  2-07:32:10 00:00:00 sleep\n     14   Jan 15 Jan15 Jan 15 Thu Jan 15 11:44:40 2026  2-07:32:00 00:00:00 sleep\n     15 16:30:00 16:30  16:30 Sat Jan 17 16:30:00 2026    02:46:40 00:16:30 myworker\n     16   Jan 15 Jan15 Jan 15 Thu Jan 15 11:43:22 2026  2-07:33:18 00:00:00 sshd\n     17   Jan 15 Jan15 Jan 15 Thu Jan 15 11:43:23 2026  2-07:33:17 00:00:00 nginx\n     18   Jan 15 Jan15 Jan 15 Thu Jan 15 11:44:20 2026  2-07:32:20 01:40:10 averyveryverylo\n     19   Jan 15 Jan15 Jan 15 Thu Jan 15 11:44:25 2026  2-07:32:15 00:00:00 defunct-kid\n     21 17:53:20 17:53  17:53 Sat Jan 17 17:53:20 2026    01:23:20 00:00:01 tool.pl\n     22   Jan 15 Jan15 Jan 15 Thu Jan 15 11:43:20 2026  2-07:33:19 00:00:00 kthreadd\n     23   Jan 15 Jan15 Jan 15 Thu Jan 15 11:43:20 2026  2-07:33:19 00:00:00 kworker/0:1-events\n    101 19:16:39 19:16  19:16 Sat Jan 17 19:16:39 2026       00:00 00:00:00 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,stat,wchan:20,comm",
+   "stdout": "    PID STAT WCHAN                COMMAND\n      1 Ss   do_wait              bash\n     10 S    do_wait              sh\n     11 S    do_wait              backup.sh\n     12 S    hrtimer_nanosleep    sleep\n     13 S    hrtimer_nanosleep    sleep\n     14 D    io_schedule          sleep\n     15 Ss   ep_poll              myworker\n     16 Ss   do_select            sshd\n     17 Ss   ep_poll              nginx\n     18 RNs+ -                    averyveryverylo\n     19 Z+   -                    defunct-kid\n     21 S    pipe_read            tool.pl\n     22 S    kthreadd             kthreadd\n     23 I    worker_thread        kworker/0:1-events\n    101 R    -                    ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,args",
+   "stdout": "    PID COMMAND\n      1 /bin/bash --login\n     10 sh -c sleep 5; sleep 100\n     11 /bin/sh /usr/local/bin/backup.sh --daily\n     12 sleep 5\n     13 sleep 100\n     14 sleep 200\n     15 python3 /opt/w.py\n     16 sshd: alice [priv]\n     17 nginx: worker process\n     18 /usr/bin/averyveryverylongname --x\n     19 [defunct-kid] <defunct>\n     21 /usr/bin/perl -w /usr/local/bin/tool.pl\n     22 [kthreadd]\n     23 [kworker/0:1-events]\n    101 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,cmd --sort=-start_time",
+   "stdout": "    PID CMD\n    101 ps\n     21 /usr/bin/perl -w /usr/local/bin/tool.pl\n     15 python3 /opt/w.py\n     12 sleep 5\n     14 sleep 200\n     13 sleep 100\n     19 [defunct-kid] <defunct>\n     18 /usr/bin/averyveryverylongname --x\n     10 sh -c sleep 5; sleep 100\n     11 /bin/sh /usr/local/bin/backup.sh --daily\n     17 nginx: worker process\n     16 sshd: alice [priv]\n      1 /bin/bash --login\n     23 [kworker/0:1-events]\n     22 [kthreadd]\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,cmd --sort=user,-pid",
+   "stdout": "    PID CMD\n     21 /usr/bin/perl -w /usr/local/bin/tool.pl\n     15 python3 /opt/w.py\n    101 ps\n     23 [kworker/0:1-events]\n     22 [kthreadd]\n     16 sshd: alice [priv]\n     14 sleep 200\n     13 sleep 100\n     12 sleep 5\n     11 /bin/sh /usr/local/bin/backup.sh --daily\n     10 sh -c sleep 5; sleep 100\n      1 /bin/bash --login\n     19 [defunct-kid] <defunct>\n     18 /usr/bin/averyveryverylongname --x\n     17 nginx: worker process\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo user:20,pid",
+   "stdout": "USER                     PID\nroot                       1\nroot                      10\nroot                      11\nroot                      12\nroot                      13\nroot                      14\nalice                     15\nroot                      16\nwww-data                  17\nverylongusername          18\nverylongusername          19\nalice                     21\nroot                      22\nroot                      23\nroot                     101\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo uname,pid",
+   "stdout": "USER         PID\nroot           1\nroot          10\nroot          11\nroot          12\nroot          13\nroot          14\nalice         15\nroot          16\nwww-data      17\nverylon+      18\nverylon+      19\nalice         21\nroot          22\nroot          23\nroot         101\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,comm,args --cols 50",
+   "stdout": "    PID COMMAND         COMMAND\n      1 bash            /bin/bash --login\n     10 sh              sh -c sleep 5; sleep 100\n     11 backup.sh       /bin/sh /usr/local/bin/bac\n     12 sleep           sleep 5\n     13 sleep           sleep 100\n     14 sleep           sleep 200\n     15 myworker        python3 /opt/w.py\n     16 sshd            sshd: alice [priv]\n     17 nginx           nginx: worker process\n     18 averyveryverylo /usr/bin/averyveryverylong\n     19 defunct-kid     [defunct-kid] <defunct>\n     21 tool.pl         /usr/bin/perl -w /usr/loca\n     22 kthreadd        [kthreadd]\n     23 kworker/0:1-eve [kworker/0:1-events]\n    101 ps              ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,etimes,comm --sort=etimes",
+   "stdout": "    PID ELAPSED COMMAND\n    101       0 ps\n     21    5000 tool.pl\n     15   10000 myworker\n     12  199910 sleep\n     14  199920 sleep\n     13  199930 sleep\n     19  199935 defunct-kid\n     18  199940 averyveryverylo\n     10  199950 sh\n     11  199960 backup.sh\n     17  199997 nginx\n     16  199998 sshd\n      1  199999 bash\n     23  199999 kworker/0:1-events\n     22  199999 kthreadd\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -o pid,comm -u alice",
+   "stdout": "    PID COMMAND\n     15 myworker\n     21 tool.pl\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -o pid,comm -U www-data",
+   "stdout": "    PID COMMAND\n     17 nginx\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -o pid,comm -G users",
+   "stdout": "    PID COMMAND\n     18 averyveryverylo\n     19 defunct-kid\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -o pid,comm -g 10",
+   "stdout": "    PID COMMAND\n",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "ps -o pid,comm -s 15,16",
+   "stdout": "    PID COMMAND\n     15 myworker\n     16 sshd\n     21 tool.pl\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -o pid,comm --ppid 10,16",
+   "stdout": "    PID COMMAND\n     12 sleep\n     13 sleep\n     18 averyveryverylo\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -C sleep,nginx -o pid,stat,comm",
+   "stdout": "    PID STAT COMMAND\n     12 S    sleep\n     13 S    sleep\n     14 D    sleep\n     17 Ss   nginx\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -p 14 -o pid,state,stat,wchan",
+   "stdout": "    PID S STAT WCHAN\n     14 D D    io_schedule\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps ax -o pid,tty,comm",
+   "stdout": "    PID TT       COMMAND\n      1 ?        bash\n     10 ?        sh\n     11 ?        backup.sh\n     12 ?        sleep\n     13 ?        sleep\n     14 ?        sleep\n     15 ?        myworker\n     16 ?        sshd\n     17 ?        nginx\n     18 ?        averyveryverylo\n     19 ?        defunct-kid\n     21 ?        tool.pl\n     22 ?        kthreadd\n     23 ?        kworker/0:1-events\n    101 ?        ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,rss,vsz,%mem --sort=-rss",
+   "stdout": "    PID   RSS    VSZ %MEM\n     15 24000  51200  1.2\n     16  8000  15360  0.4\n     17  6000  56320  0.3\n      1  4800   8188  0.2\n     21  3600  10240  0.1\n    101  3600   6788  0.1\n     11  1680   2668  0.0\n     10  1600   2668  0.0\n     12  1400   2424  0.0\n     13  1400   2424  0.0\n     14  1400   2424  0.0\n     18  1024   4096  0.0\n     19     0      0  0.0\n     22     0      0  0.0\n     23     0      0  0.0\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eo pid,c,pcpu,cputime,comm --sort=-pcpu",
+   "stdout": "    PID  C %CPU     TIME COMMAND\n    101 20 20.0 00:00:00 ps\n     15  9  9.9 00:16:30 myworker\n     18  3  3.0 01:40:10 averyveryverylo\n     21  0  0.0 00:00:01 tool.pl\n      1  0  0.0 00:00:00 bash\n     23  0  0.0 00:00:00 kworker/0:1-events\n     16  0  0.0 00:00:00 sshd\n     17  0  0.0 00:00:00 nginx\n     11  0  0.0 00:00:00 backup.sh\n     22  0  0.0 00:00:00 kthreadd\n     10  0  0.0 00:00:00 sh\n     12  0  0.0 00:00:00 sleep\n     13  0  0.0 00:00:00 sleep\n     14  0  0.0 00:00:00 sleep\n     19  0  0.0 00:00:00 defunct-kid\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps l",
+   "stdout": "F   UID     PID    PPID PRI  NI    VSZ   RSS WCHAN  STAT TTY        TIME COMMAND\n",
+   "stderr": "",
+   "exit": 1
+  },
+  {
+   "cmd": "ps -lf",
+   "stdout": "F S UID          PID    PPID  C PRI  NI ADDR SZ WCHAN  STIME TTY          TIME CMD\n4 S root           1       0  0  80   0 -  2047 do_wai Jan15 ?        00:00:00 /bin/bash --login\n0 S root          10       1  0  80   0 -   667 do_wai Jan15 ?        00:00:00 sh -c sleep 5; sleep 100\n0 S root          11       1  0  80   0 -   667 do_wai Jan15 ?        00:00:00 /bin/sh /usr/local/bin/backup.sh --daily\n0 S root          12      10  0  80   0 -   606 hrtime Jan15 ?        00:00:00 sleep 5\n0 S root          13      10  0  80   0 -   606 hrtime Jan15 ?        00:00:00 sleep 100\n0 D root          14      11  0  80   0 -   606 io_sch Jan15 ?        00:00:00 sleep 200\n4 S root          16       1  0  80   0 -  3840 do_sel Jan15 ?        00:00:00 sshd: alice [priv]\n1 S root          22       0  0  80   0 -     0 kthrea Jan15 ?        00:00:00 [kthreadd]\n1 I root          23      22  0  80   0 -     0 worker Jan15 ?        00:00:00 [kworker/0:1-events]\n0 R root         101       1 20  80   0 -  1697 -      19:16 ?        00:00:00 ps\n",
+   "stderr": "",
+   "exit": 0
+  },
+  {
+   "cmd": "ps -eF --forest",
+   "stdout": "UID          PID    PPID  C    SZ   RSS PSR STIME TTY          TIME CMD\nroot           1       0  0  2047  4800   0 Jan15 ?        00:00:00 /bin/bash --login\nroot          16       1  0  3840  8000   0 Jan15 ?        00:00:00 sshd: alice [priv]\nverylon+      18      16  3  1024  1024   1 Jan15 ?        01:40:10  \\_ /usr/bin/averyveryverylongname --x\nverylon+      19      18  0     0     0   0 Jan15 ?        00:00:00      \\_ [defunct-kid] <defunct>\nwww-data      17       1  0 14080  6000   1 Jan15 ?        00:00:00 nginx: worker process\nroot          11       1  0   667  1680   0 Jan15 ?        00:00:00 /bin/sh /usr/local/bin/backup.sh --daily\nroot          14      11  0   606  1400   0 Jan15 ?        00:00:00  \\_ sleep 200\nroot          10       1  0   667  1600   1 Jan15 ?        00:00:00 sh -c sleep 5; sleep 100\nroot          13      10  0   606  1400   0 Jan15 ?        00:00:00  \\_ sleep 100\nroot          12      10  0   606  1400   1 Jan15 ?        00:00:00  \\_ sleep 5\nalice         15       1  9 12800 24000   1 16:30 ?        00:16:30 python3 /opt/w.py\nalice         21      15  0  2560  3600   0 17:53 ?        00:00:01  \\_ /usr/bin/perl -w /usr/local/bin/tool.pl\nroot         101       1 20  1697  3600   0 19:16 ?        00:00:00 ps\nroot          22       0  0     0     0   0 Jan15 ?        00:00:00 [kthreadd]\nroot          23      22  0     0     0   0 Jan15 ?        00:00:00  \\_ [kworker/0:1-events]\n",
+   "stderr": "",
+   "exit": 0
+  }
+ ]
+}

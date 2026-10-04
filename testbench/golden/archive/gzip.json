@@ -1,0 +1,1258 @@
+{
+  "gunzip-bad-option": {
+    "stdout": "",
+    "stderr": "gzip: invalid option -- 'x'\nTry `gzip --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gunzip-file": {
+    "stdout": "",
+    "stderr": "a.txt.gz:\t-16.7% -- replaced with a.txt\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gunzip-help": {
+    "stdout": "Usage: /usr/bin/gunzip [OPTION]... [FILE]...\nUncompress FILEs (by default, in-place).\n\nMandatory arguments to long options are mandatory for short options too.\n\n  -c, --stdout      write on standard output, keep original files unchanged\n  -f, --force       force overwrite of output file and compress links\n  -k, --keep        keep (don't delete) input files\n  -l, --list        list compressed file contents\n  -n, --no-name     do not save or restore the original name and timestamp\n  -N, --name        save or restore the original name and timestamp\n  -q, --quiet       suppress all warnings\n  -r, --recursive   operate recursively on directories\n  -S, --suffix=SUF  use suffix SUF on compressed files\n      --synchronous synchronous output (safer if system crashes, but slower)\n  -t, --test        test compressed file integrity\n  -v, --verbose     verbose mode\n      --help        display this help and exit\n      --version     display version information and exit\n\nWith no FILE, or when FILE is -, read standard input.\n\nReport bugs to <bug-gzip@gnu.org>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gunzip-missing": {
+    "stdout": "",
+    "stderr": "gzip: nope.gz: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gzip-already-has-suffix": {
+    "stdout": "",
+    "stderr": "gzip: a.txt.gz already has .gz suffix -- unchanged\ngzip: b.tgz already has .tgz suffix -- unchanged\n",
+    "exit": 0,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      },
+      "b.tgz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-ambiguous-long": {
+    "stdout": "",
+    "stderr": "gzip: option '--s' is ambiguous; possibilities: '--stdout' '--silent' '--synchronous' '--suffix'\nTry `gzip --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gzip-ascii-warning": {
+    "stdout": {
+      "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+    },
+    "stderr": "gzip: option --ascii ignored on this system\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-bits-needs-arg": {
+    "stdout": "",
+    "stderr": "gzip: option requires an argument -- 'b'\nTry `gzip --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gzip-c-stdin-empty": {
+    "stdout": {
+      "b64": "H4sIAAAAAAAAAwMAAAAAAAAAAAA="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gzip-compress-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-compress-verbose": {
+    "stdout": "",
+    "stderr": "a.txt:\t-16.7% -- replaced with a.txt.gz\np.txt:\t 51.5% -- replaced with p.txt.gz\n",
+    "exit": 0,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      },
+      "p.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "5b52f9aef3bac26c55cf45786a2edc9cd2d653cde03eede0069e6dbc499166f2",
+        "data": {
+          "b64": "H4sICMDWaGkAA3AudHh0ACvISczMUyhJrSjhKsDKBACD/bdRIQAAAA=="
+        }
+      }
+    }
+  },
+  "gzip-d-empty-file": {
+    "stdout": "",
+    "stderr": "\ngzip: e.gz: unexpected end of file\n",
+    "exit": 1,
+    "files": {
+      "e.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "gzip-d-stdin-empty": {
+    "stdout": "",
+    "stderr": "\ngzip: stdin: unexpected end of file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gzip-d-stdin-not-gzip": {
+    "stdout": "",
+    "stderr": "\ngzip: stdin: not in gzip format\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gzip-d-truncated-removes-output": {
+    "stdout": "",
+    "stderr": "\ngzip: trunc.gz: unexpected end of file\n",
+    "exit": 1,
+    "files": {
+      "trunc.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "4b4ae310b411662ebb2c104d5de4785a4562807d2702af8db37a3974e5115ecf",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzck="
+        }
+      }
+    }
+  },
+  "gzip-data-crc-error": {
+    "stdout": "helk7 world\n",
+    "stderr": "\ngzip: crc.gz: invalid compressed data--crc error\n",
+    "exit": 1,
+    "files": {
+      "crc.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "7cd745c09d626d263211e0f686c62422524ed4ea76008beea489f85441de8e50",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzck2VyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-data-format-violated": {
+    "stdout": "",
+    "stderr": "\ngzip: fmt.gz: invalid compressed data--crc error\n",
+    "exit": 1,
+    "files": {
+      "fmt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "9ca39850dc5860ac0225f96406a76f59043a88368dee511e740971ef34a3c112",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMv//8nJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-data-length-error": {
+    "stdout": "hello world\n",
+    "stderr": "\ngzip: len.gz: invalid compressed data--length error\n",
+    "exit": 1,
+    "files": {
+      "len.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a539e90b48c73ebde22f85b6e4f7c4436315204482ddc2cb4a0904758c8f2d2b",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAE="
+        }
+      }
+    }
+  },
+  "gzip-dc-multi-and-stdin": {
+    "stdout": "hello world\nplain text\nplain text\nplain text\nhello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "multi.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "e5db6857087553cf92b6a949708cac1cab096a0240fa58b6f67cfb59dd883c2b",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgIwNZoaQADcC50eHQAK8hJzMxTKEmtKOEqwMoEAIP9t1EhAAAA"
+        }
+      }
+    }
+  },
+  "gzip-dc-trailing-garbage": {
+    "stdout": "hello world\n",
+    "stderr": "\ngzip: trail.gz: decompression OK, trailing garbage ignored\n",
+    "exit": 2,
+    "files": {
+      "trail.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "4dcc055d1540887d15c86aff51e42aa5d0b4f88a8ff9a185b6f69c053fc4354c",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAABnYXJiYWdlCg=="
+        }
+      }
+    }
+  },
+  "gzip-dc-trailing-zeros": {
+    "stdout": "hello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "zeros.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 43,
+        "sha256": "62385941462d0a186e506e0224e0c0b7fbc3755d65dd7e3a046677c056d7c1be",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAAAAAAAA=="
+        }
+      }
+    }
+  },
+  "gzip-dcv-trailing-zeros": {
+    "stdout": "hello world\n",
+    "stderr": "zeros.gz:\t\ngzip: zeros.gz: decompression OK, trailing zero bytes ignored\n-258.3% -- replaced with stdout\n",
+    "exit": 2,
+    "files": {
+      "zeros.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 43,
+        "sha256": "62385941462d0a186e506e0224e0c0b7fbc3755d65dd7e3a046677c056d7c1be",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAAAAAAAA=="
+        }
+      }
+    }
+  },
+  "gzip-decompress-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-decompress-missing": {
+    "stdout": "",
+    "stderr": "gzip: nofile.gz: No such file or directory\ngzip: x.z: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gzip-decompress-name": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-decompress-name-exists": {
+    "stdout": "",
+    "stderr": "gzip: a.txt already exists;\tnot overwritten\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "d626ed52dacc6923ae844abfdf4411ab9d2854d2b6c0a050cdcfd6db0404df0c",
+        "data": "already here\n"
+      },
+      "renamed.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-decompress-name-strips-dirs": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "inner.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-decompress-suffix-option": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-decompress-tgz": {
+    "stdout": "",
+    "stderr": "tgz.tgz:\t-16.7% -- replaced with tgz.tar\n",
+    "exit": 0,
+    "files": {
+      "tgz.tar": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-decompress-tries-suffix": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-decompress-unknown-suffix": {
+    "stdout": "",
+    "stderr": "gzip: plain.txt: unknown suffix -- ignored\n",
+    "exit": 2,
+    "files": {
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "dacf36547c7774a0a170806363b5d412991fbc0d6260b2c00b1d3a80a816c23f",
+        "data": "plain\n"
+      }
+    }
+  },
+  "gzip-decompress-verbose-keep": {
+    "stdout": "",
+    "stderr": "a.txt.gz:\t-16.7% -- created a.txt\nmulti.gz:\t-136.4% -- created multi\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      },
+      "multi": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "133d4cfebe6bf9de5877c1f14ca6248ea16fb22d5a8cfc6102bed0993239fee1",
+        "data": "hello world\nplain text\nplain text\nplain text\n"
+      },
+      "multi.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "e5db6857087553cf92b6a949708cac1cab096a0240fa58b6f67cfb59dd883c2b",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgIwNZoaQADcC50eHQAK8hJzMxTKEmtKOEqwMoEAIP9t1EhAAAA"
+        }
+      }
+    }
+  },
+  "gzip-directory": {
+    "stdout": "",
+    "stderr": "gzip: d is a directory -- ignored\n",
+    "exit": 2,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "gzip-fast-to-stdout": {
+    "stdout": {
+      "b64": "H4sICMDWaGkEA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-header-comment-and-extra": {
+    "stdout": "hello world\nhello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "cm.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "521a39511cc4de1e03ee14f0a6b02f7558112fdef4cefb70d02faa1469bed1d7",
+        "data": {
+          "b64": "H4sIGMDWaGkAA25tAGEgY29tbWVudADLSM3JyVcozy/KSeECAC07CK8MAAAA"
+        }
+      },
+      "extra.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "cbbe36b1566d6c2e75f9b3212e9809049b00f35b6d647ab5096fd77600242818",
+        "data": {
+          "b64": "H4sIBMDWaGkAAwQAYWJjZMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-header-crc-bad": {
+    "stdout": "",
+    "stderr": "gzip: hcrcbad.gz: header checksum 0x0000 != computed checksum 0xcca9\n",
+    "exit": 1,
+    "files": {
+      "hcrcbad.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "d516da7bd74fb6060943523efdcf9142fd1f8ea314b7b80ff42faf5caf2378db",
+        "data": {
+          "b64": "H4sIAsDWaGkAAwAAy0jNyclXKM8vyknhAgAtOwivDAAAAA=="
+        }
+      }
+    }
+  },
+  "gzip-header-crc-ok": {
+    "stdout": "hello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "hcrc.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "8f13d5f4a51e0305914f0cd44987f746453219dfa885417ba6feae2ea99aa7c8",
+        "data": {
+          "b64": "H4sIAsDWaGkAA6nMy0jNyclXKM8vyknhAgAtOwivDAAAAA=="
+        }
+      }
+    }
+  },
+  "gzip-header-encrypted": {
+    "stdout": "",
+    "stderr": "gzip: enc.gz is encrypted -- not supported\n",
+    "exit": 1,
+    "files": {
+      "enc.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "04ff995462ec2658f0d9f6c7e3882d4a64d6229c9a4f6aca53572901bbdda623",
+        "data": {
+          "b64": "H4sIIMDWaGkAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-header-reserved-flags": {
+    "stdout": "",
+    "stderr": "gzip: res.gz has flags 0x40 -- not supported\n",
+    "exit": 1,
+    "files": {
+      "res.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "699dfc21a36ff102b22a62bf1dd6f6618bbaf019ce8dcb7d5070024e415a5ba0",
+        "data": {
+          "b64": "H4sIQMDWaGkAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-header-unknown-method": {
+    "stdout": "",
+    "stderr": "gzip: meth.gz: unknown method 7 -- not supported\n",
+    "exit": 1,
+    "files": {
+      "meth.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "39220a7982373758613bec20410ced9ed4c924ef9c0bd496b6338303fa91aa77",
+        "data": {
+          "b64": "H4sHCMDWaGkAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-help": {
+    "stdout": "Usage: gzip [OPTION]... [FILE]...\nCompress or uncompress FILEs (by default, compress FILES in-place).\n\nMandatory arguments to long options are mandatory for short options too.\n\n  -c, --stdout      write on standard output, keep original files unchanged\n  -d, --decompress  decompress\n  -f, --force       force overwrite of output file and compress links\n  -h, --help        give this help\n  -k, --keep        keep (don't delete) input files\n  -l, --list        list compressed file contents\n  -L, --license     display software license\n  -n, --no-name     do not save or restore the original name and timestamp\n  -N, --name        save or restore the original name and timestamp\n  -q, --quiet       suppress all warnings\n  -r, --recursive   operate recursively on directories\n      --rsyncable   make rsync-friendly archive\n  -S, --suffix=SUF  use suffix SUF on compressed files\n      --synchronous synchronous output (safer if system crashes, but slower)\n  -t, --test        test compressed file integrity\n  -v, --verbose     verbose mode\n  -V, --version     display version number\n  -1, --fast        compress faster\n  -9, --best        compress better\n\nWith no FILE, or when FILE is -, read standard input.\n\nReport bugs to <bug-gzip@gnu.org>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gzip-invalid-short": {
+    "stdout": "",
+    "stderr": "gzip: invalid option -- 'x'\nTry `gzip --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-keep-verbose": {
+    "stdout": "",
+    "stderr": "p.txt:\t 51.5% -- created p.txt.gz\n",
+    "exit": 0,
+    "files": {
+      "p.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "18cd93350f1f71c261fe09767fdf67abceaf81b766c5def4a0891e4625e1dd35",
+        "data": "plain text\nplain text\nplain text\n"
+      },
+      "p.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "5b52f9aef3bac26c55cf45786a2edc9cd2d653cde03eede0069e6dbc499166f2",
+        "data": {
+          "b64": "H4sICMDWaGkAA3AudHh0ACvISczMUyhJrSjhKsDKBACD/bdRIQAAAA=="
+        }
+      }
+    }
+  },
+  "gzip-levels-to-stdout": {
+    "stdout": {
+      "b64": "H4sICMDWaGkCA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-license": {
+    "stdout": "gzip 1.13\nCopyright (C) 2023 Free Software Foundation, Inc.\nCopyright (C) 1993 Jean-loup Gailly.\nThis is free software.  You may redistribute copies of it under the terms of\nthe GNU General Public License <https://www.gnu.org/licenses/gpl.html>.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gzip-list-all-missing": {
+    "stdout": "",
+    "stderr": "gzip: x.gz: No such file or directory\ngzip: y.gz: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gzip-list-basic": {
+    "stdout": "         compressed        uncompressed  ratio uncompressed_name\n                 38                  12 -16.7% a.txt\n                 26                   0   0.0% empty\n                 64                  12 -233.3% (totals)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      },
+      "empty.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 26,
+        "sha256": "4304aa14cb21aaf14b7ed2d4b2907f0afae0c0e20a311bdb561afcdced1c299d",
+        "data": {
+          "b64": "H4sICAVzwGoAA2VtcHR5AAMAAAAAAAAAAAA="
+        }
+      }
+    }
+  },
+  "gzip-list-errors-and-totals": {
+    "stdout": "         compressed        uncompressed  ratio uncompressed_name\n                 38                  12 -16.7% a.txt\n",
+    "stderr": "gzip: nofile.gz: No such file or directory\n\ngzip: plain.txt: not in gzip format\n\ngzip: trunc.gz: unexpected end of file\n",
+    "exit": 1,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      },
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "dacf36547c7774a0a170806363b5d412991fbc0d6260b2c00b1d3a80a816c23f",
+        "data": "plain\n"
+      },
+      "trunc.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "4b4ae310b411662ebb2c104d5de4785a4562807d2702af8db37a3974e5115ecf",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzck="
+        }
+      }
+    }
+  },
+  "gzip-list-multi-member": {
+    "stdout": "method  crc     date  time           compressed        uncompressed  ratio uncompressed_name\ndefla 51b7fd83 Jan 15 12:00                  78                  33 -136.4% multi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "multi.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "e5db6857087553cf92b6a949708cac1cab096a0240fa58b6f67cfb59dd883c2b",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgIwNZoaQADcC50eHQAK8hJzMxTKEmtKOEqwMoEAIP9t1EhAAAA"
+        }
+      }
+    }
+  },
+  "gzip-list-quiet": {
+    "stdout": "                 38                  12 -16.7% a.txt\n                 38                  12 -16.7% a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-list-stdin": {
+    "stdout": "         compressed        uncompressed  ratio uncompressed_name\n                 32                  12 -16.7% stdout\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gzip-list-verbose-name": {
+    "stdout": "method  crc     date  time           compressed        uncompressed  ratio uncompressed_name\ndefla af083b2d Jan 15 12:00                  38                  12 -16.7% a.txt\ndefla af083b2d Jan 15 12:00                  45                  12 -16.7% nm\ndefla af083b2d Jan 15 12:00                  32                  12 -16.7% m0\n                                            115                  36 -169.4% (totals)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "cm.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "521a39511cc4de1e03ee14f0a6b02f7558112fdef4cefb70d02faa1469bed1d7",
+        "data": {
+          "b64": "H4sIGMDWaGkAA25tAGEgY29tbWVudADLSM3JyVcozy/KSeECAC07CK8MAAAA"
+        }
+      },
+      "m0.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "691d5610f9f7c327facbf8856c5293c7a741b8ad2c4fa31775f3cca51c62e9dd",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      },
+      "renamed.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-lzw-unsupported": {
+    "stdout": "",
+    "stderr": "gzip: -Z not supported in this version\nTry `gzip --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-missing": {
+    "stdout": "",
+    "stderr": "gzip: nofile: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-mode-preserved": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "secret.txt.gz": {
+        "kind": "file",
+        "mode": 384,
+        "size": 42,
+        "sha256": "1229fb4ad0c8c6f562d4b98404942335cef79035b50679ab786689558530b76e",
+        "data": {
+          "b64": "H4sICMDWaGkAA3NlY3JldC50eHQAK8kvUChOTS5KLeECABEDwnMLAAAA"
+        }
+      }
+    }
+  },
+  "gzip-no-name": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "691d5610f9f7c327facbf8856c5293c7a741b8ad2c4fa31775f3cca51c62e9dd",
+        "data": {
+          "b64": "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-no-time": {
+    "stdout": {
+      "b64": "H4sICAAAAAAAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-output-exists": {
+    "stdout": "",
+    "stderr": "gzip: a.txt.gz already exists;\tnot overwritten\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "1c3ef9a7c817b4642bcb3cb1456fbce92a6f992df2e1d6ad9d8a2dfb4fdf42f6",
+        "data": "new content\n"
+      },
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "01d09d19c2139a46aebfb577780d123d7396e97201bc7ead210a2ebff8239dee",
+        "data": "old\n"
+      }
+    }
+  },
+  "gzip-output-exists-force": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-recursive": {
+    "stdout": "",
+    "stderr": "d/sub/x:\t-16.7% -- replaced with d/sub/x.gz\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/sub/x.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "a5ccc2c5a2cbd6a6e4abb9993e265dc2f896c2e0651d385911b0a8abffe4b16d",
+        "data": {
+          "b64": "H4sICMDWaGkAA3gAy0jNyclXKM8vyknhAgAtOwivDAAAAA=="
+        }
+      }
+    }
+  },
+  "gzip-recursive-decompress": {
+    "stdout": "",
+    "stderr": "d/sub/a.txt.gz:\t-16.7% -- replaced with d/sub/a.txt\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/sub/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-recursive-skips-unknown-suffix": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/plain": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "522f10ca08a9b029885d9cd86c9da2908e321b5641b686ce1f6cedbed9362578",
+        "data": "not compressed\n"
+      }
+    }
+  },
+  "gzip-setuid-ignored": {
+    "stdout": "",
+    "stderr": "gzip: run is set-user-ID on execution - ignored\ngzip: grp is set-group-ID on execution - ignored\ngzip: sticky has the sticky bit set - file ignored\n",
+    "exit": 2,
+    "files": {
+      "grp": {
+        "kind": "file",
+        "mode": 1517,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "run": {
+        "kind": "file",
+        "mode": 2541,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "sticky": {
+        "kind": "file",
+        "mode": 932,
+        "size": 5,
+        "sha256": "6667b2d1aab6a00caa5aee5af8ad9f1465e567abf1c209d15727d57b3e8f6e5f",
+        "data": "data\n"
+      }
+    }
+  },
+  "gzip-stdin-dash-verbose": {
+    "stdout": {
+      "b64": "H4sIAAAAAAAAA0srys9VKC5JyczjSkMwAS3aseoWAAAA"
+    },
+    "stderr": " 31.8%\n",
+    "exit": 0,
+    "files": {}
+  },
+  "gzip-stdin-to-stdout": {
+    "stdout": {
+      "b64": "H4sIAAAAAAAAA0srys9VKC5JyczjAgAdfN5PCwAAAA=="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gzip-suffix-empty": {
+    "stdout": "",
+    "stderr": "gzip: invalid suffix ''\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "gzip-suffix-option": {
+    "stdout": "",
+    "stderr": "a.txt:\t-16.7% -- created a.txt.foo\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "a.txt.foo": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "gzip-symlink-forced": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "lnk.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "12eff3a1843e546762eea5d120bd3e08717ae556490d0ee7fba8b34a5b818f97",
+        "data": {
+          "b64": "H4sICMDWaGkAA2xuawDLSM3JyVcozy/KSeECAC07CK8MAAAA"
+        }
+      }
+    }
+  },
+  "gzip-symlink-refused": {
+    "stdout": "",
+    "stderr": "gzip: lnk: Too many levels of symbolic links\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "lnk": {
+        "kind": "symlink",
+        "target": "a.txt"
+      }
+    }
+  },
+  "gzip-symlink-to-stdout": {
+    "stdout": {
+      "b64": "H4sICMDWaGkAA2xuawDLSM3JyVcozy/KSeECAC07CK8MAAAA"
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "lnk": {
+        "kind": "symlink",
+        "target": "a.txt"
+      }
+    }
+  },
+  "gzip-t-stdin": {
+    "stdout": "",
+    "stderr": " OK\n",
+    "exit": 0,
+    "files": {}
+  },
+  "gzip-t-zeros-then-junk": {
+    "stdout": "",
+    "stderr": "\ngzip: zjunk.gz: decompression OK, trailing garbage ignored\n",
+    "exit": 2,
+    "files": {
+      "zjunk.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 44,
+        "sha256": "09c1247d859797cc67e334db9b7558a5eb697f6256e4db1572cf080c79bae66a",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAAAGp1bms="
+        }
+      }
+    }
+  },
+  "gzip-tq-trailing-garbage": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 2,
+    "files": {
+      "trail.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "4dcc055d1540887d15c86aff51e42aa5d0b4f88a8ff9a185b6f69c053fc4354c",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAABnYXJiYWdlCg=="
+        }
+      }
+    }
+  },
+  "gzip-tv-many": {
+    "stdout": "",
+    "stderr": "a.txt.gz:\t OK\nmulti.gz:\t OK\n\ngzip: plain.txt: not in gzip format\ntrunc.gz:\t\ngzip: trunc.gz: unexpected end of file\n",
+    "exit": 1,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      },
+      "multi.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 78,
+        "sha256": "e5db6857087553cf92b6a949708cac1cab096a0240fa58b6f67cfb59dd883c2b",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgIwNZoaQADcC50eHQAK8hJzMxTKEmtKOEqwMoEAIP9t1EhAAAA"
+        }
+      },
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "dacf36547c7774a0a170806363b5d412991fbc0d6260b2c00b1d3a80a816c23f",
+        "data": "plain\n"
+      },
+      "trunc.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "4b4ae310b411662ebb2c104d5de4785a4562807d2702af8db37a3974e5115ecf",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzck="
+        }
+      }
+    }
+  },
+  "gzip-two-files-to-stdout": {
+    "stdout": {
+      "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgIwNZoaQADcC50eHQAK8hJzMxTKEmtKOEqwMoEAIP9t1EhAAAA"
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "p.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "18cd93350f1f71c261fe09767fdf67abceaf81b766c5def4a0891e4625e1dd35",
+        "data": "plain text\nplain text\nplain text\n"
+      }
+    }
+  },
+  "gzip-unrecognized-long": {
+    "stdout": "",
+    "stderr": "gzip: unrecognized option '--bogus'\nTry `gzip --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gzip-version": {
+    "stdout": "gzip 1.13\nCopyright (C) 2023 Free Software Foundation, Inc.\nCopyright (C) 1993 Jean-loup Gailly.\nThis is free software.  You may redistribute copies of it under the terms of\nthe GNU General Public License <https://www.gnu.org/licenses/gpl.html>.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Jean-loup Gailly.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zcat-help": {
+    "stdout": "Usage: /usr/bin/zcat [OPTION]... [FILE]...\nUncompress FILEs to standard output.\n\n  -f, --force       force; read compressed data even from a terminal\n  -l, --list        list compressed file contents\n  -q, --quiet       suppress all warnings\n  -r, --recursive   operate recursively on directories\n  -S, --suffix=SUF  use suffix SUF on compressed files\n      --synchronous synchronous output (safer if system crashes, but slower)\n  -t, --test        test compressed file integrity\n  -v, --verbose     verbose mode\n      --help        display this help and exit\n      --version     display version information and exit\n\nWith no FILE, or when FILE is -, read standard input.\n\nReport bugs to <bug-gzip@gnu.org>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zcat-tries-suffix": {
+    "stdout": "hello world\n",
+    "stderr": "gzip: missing.gz: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "a0f092c8f98858c10908da4b0ce537a05b14db64580e41e8299c12794f965220",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+        }
+      }
+    }
+  },
+  "zcat-version": {
+    "stdout": "zcat (gzip) 1.13\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software.  You may redistribute copies of it under the terms of\nthe GNU General Public License <https://www.gnu.org/licenses/gpl.html>.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Paul Eggert.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

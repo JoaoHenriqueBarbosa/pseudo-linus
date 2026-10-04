@@ -1,0 +1,30 @@
+usage: git for-each-ref [<options>] [<pattern>]
+   or: git for-each-ref [--points-at <object>]
+   or: git for-each-ref [--merged [<commit>]] [--no-merged [<commit>]]
+   or: git for-each-ref [--contains [<commit>]] [--no-contains [<commit>]]
+
+    -s, --[no-]shell      quote placeholders suitably for shells
+    -p, --[no-]perl       quote placeholders suitably for perl
+    --[no-]python         quote placeholders suitably for python
+    --[no-]tcl            quote placeholders suitably for Tcl
+    --[no-]omit-empty     do not output a newline after empty formatted refs
+
+    --[no-]count <n>      show only <n> matched refs
+    --[no-]format <format>
+                          format to use for the output
+    --[no-]color[=<when>] respect format colors
+    --[no-]exclude <pattern>
+                          exclude refs which match pattern
+    --[no-]sort <key>     field name to sort on
+    --[no-]points-at <object>
+                          print only refs which points at the given object
+    --merged <commit>     print only refs that are merged
+    --no-merged <commit>  print only refs that are not merged
+    --contains <commit>   print only refs which contain the commit
+    --no-contains <commit>
+                          print only refs which don't contain the commit
+    --[no-]ignore-case    sorting and filtering are case insensitive
+    --[no-]stdin          read reference patterns from stdin
+    --[no-]include-root-refs
+                          also include HEAD ref and pseudorefs
+

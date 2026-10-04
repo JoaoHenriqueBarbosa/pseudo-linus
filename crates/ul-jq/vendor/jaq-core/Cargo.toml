@@ -1,0 +1,25 @@
+# Porte pseudo-linus: fork localizado do jaq-core 3.1.1 (MIT, Michael Färber), vendorizado de
+# crates.io. O manifesto original está em Cargo.toml.upstream; as alterações no código estão marcadas
+# com "Porte pseudo-linus".
+[package]
+name = "jaq-core"
+version = "3.1.1"
+authors = ["Michael Färber <michael.faerber@gedenkt.at>"]
+edition = "2021"
+license = "MIT"
+readme = "README.md"
+description = "Interpreter for the jaq language (fork do pseudo-linus)"
+publish = false
+
+[features]
+default = []
+
+[dependencies]
+dyn-clone = "1.0"
+once_cell = { version = "1.16.0", default-features = false }
+typed-arena = { version = "2.0.2", default-features = false }
+# Porte pseudo-linus: recursão do avaliador cresce a pilha no heap em vez de estourar a do processo.
+stacker = "0.1"
+
+[lints]
+workspace = true

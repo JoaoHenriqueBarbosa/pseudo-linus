@@ -1,0 +1,133 @@
+# Comandos rodados sobre multi.fixture.
+pidof sleep
+pidof -s sleep
+pidof -z sleep
+pidof sh
+pidof bash
+pidof /bin/bash
+pidof backup.sh
+pidof -x backup.sh
+pidof -x tool.pl
+pidof tool.pl
+pidof myworker
+pidof python3
+pidof sshd
+pidof 'sshd: alice [priv]'
+pidof nginx
+pidof 'nginx: worker process'
+pidof averyveryverylongname
+pidof averyveryverylo
+pidof -z defunct-kid
+pidof kthreadd
+pidof sleep sh bash
+pidof -d , sleep sh
+pidof -o 13 sleep
+pidof -o 12,13 sleep
+pidof -o 12 -o 13 -z sleep
+pidof -o %PPID sleep
+pidof -o %PID ps
+pidof -q sleep
+pidof -n sleep
+pidof -c sleep
+pidof nothing
+pidof
+pgrep sleep
+pgrep -n sleep
+pgrep -o sleep
+pgrep -l -u alice
+pgrep -l -u 1000,33
+pgrep -l -U verylongusername
+pgrep -l -G users
+pgrep -l -P 10,15
+pgrep -l -s 15,16
+pgrep -l -g 10
+pgrep -l -r D
+pgrep -l -r S -P 1
+pgrep -a -f perl
+pgrep -a ''
+pgrep -l -x averyveryverylo
+pgrep -l -x averyveryverylongname
+pgrep -l -f averyveryverylongname
+pgrep -c -v sleep
+pgrep -l -i SLEEP
+pgrep -l 'k.*d$'
+pgrep -l '^(sh|bash)$'
+pgrep -l 'sleep|nginx'
+pgrep -l -f 'sleep 5;'
+pgrep -l -f '[[:digit:]]{3}'
+pgrep -l -n -u root
+pgrep -l -o -u root
+pgrep -l -O 199000
+pgrep -l -u nosuchuser sleep
+pgrep -l -g abc
+pgrep -l -P 1 -n
+pgrep -d ' ' sleep
+pgrep -a -x nginx
+pgrep -l -t pts/9 .
+pgrep -n -x ps
+pkill -0 -e -c sleep
+pkill -0 -e -n sleep
+killall -0 -v sleep
+killall -0 nginx
+killall -0 'nginx: worker process'
+killall -0 averyveryverylongname
+killall -0 -e averyveryverylongname
+killall -0 averyveryverylo
+killall -0 -e averyveryverylo
+killall -0 -u alice -v myworker
+killall -0 -u verylongusername averyveryverylongname
+killall -0 -u nosuchuser x
+killall -0 -o 1h myworker
+killall -0 -y 1h myworker
+killall -0 -y 1d myworker
+killall -0 -o 2d bash
+killall -0 -o 3d bash
+killall -0 -o 1x bash
+killall -0 backup.sh
+killall -0 sh
+killall -0 python3
+killall -0 tool.pl
+killall -0 -r '^s'
+killall -0 -r -I '^S'
+killall -0 -r '('
+killall -0 -s bogus x
+killall -s 0 nosuch
+killall --signal=0 nosuch
+killall -SIGKILL nosuch
+killall -9 nosuch
+killall -KILL -q nosuch
+killall -q nosuch
+killall -0 /bin/bash
+killall -0 /usr/bin/averyveryverylongname
+killall -0 -w nosuch
+killall -0 -i nosuch
+ps -e
+ps -ef
+ps aux
+ps axf
+ps -ejH
+ps --forest -eo pid,ppid,user,comm
+ps -eo pid,user,euser,ruser,group,egroup,rgroup,comm
+ps -eo pid,start,stime,bsdstart,lstart,etime,time,comm
+ps -eo pid,stat,wchan:20,comm
+ps -eo pid,args
+ps -eo pid,cmd --sort=-start_time
+ps -eo pid,cmd --sort=user,-pid
+ps -eo user:20,pid
+ps -eo uname,pid
+ps -eo pid,comm,args --cols 50
+ps -eo pid,etimes,comm --sort=etimes
+ps -o pid,comm -u alice
+ps -o pid,comm -U www-data
+ps -o pid,comm -G users
+ps -o pid,comm -g 10
+ps -o pid,comm -s 15,16
+ps -o pid,comm --ppid 10,16
+ps -C sleep,nginx -o pid,stat,comm
+ps -p 14 -o pid,state,stat,wchan
+ps ax -o pid,tty,comm
+ps -eo pid,rss,vsz,%mem --sort=-rss
+ps -eo pid,c,pcpu,cputime,comm --sort=-pcpu
+ps l
+ps -lf
+ps -eF --forest

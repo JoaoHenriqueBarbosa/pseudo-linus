@@ -1,0 +1,138 @@
+tool = "coreutils"
+source = "agent-style"
+
+# dir (equivale a ls -C -b) e vdir (equivale a ls -l -b). Fora de terminal o dir continua em
+# colunas, com largura 80. O vdir usa --time-style=long-iso ou faketime, pra que a data não dependa
+# do dia em que o golden foi gerado.
+
+# dir
+
+[[case]]
+id = "dir-basic"
+argv = ["dir"]
+tags = ["dir", "ls", "fs"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+"sub" = { dir = true }
+
+[[case]]
+id = "dir-escapes"
+argv = ["dir"]
+tags = ["dir", "ls", "fs", "escape"]
+[case.files]
+"meu arquivo.txt" = "x"
+"tab\there" = "x"
+"normal" = "x"
+
+[[case]]
+id = "dir-columns"
+argv = ["dir"]
+tags = ["dir", "ls", "fs", "columns"]
+[case.files]
+"alpha.rs" = ""
+"beta_module.rs" = ""
+"gamma.toml" = ""
+"delta_very_long_name.txt" = ""
+"epsilon.md" = ""
+"zeta" = ""
+"eta.json" = ""
+"theta_config.yaml" = ""
+"iota.lock" = ""
+"kappa.sh" = ""
+"lambda_handler.py" = ""
+"mu.c" = ""
+"nu.h" = ""
+"xi_test_suite.rs" = ""
+
+[[case]]
+id = "dir-width"
+argv = ["dir", "-w", "30"]
+tags = ["dir", "ls", "fs", "columns"]
+[case.files]
+"alpha.rs" = ""
+"beta_module.rs" = ""
+"gamma.toml" = ""
+"delta.txt" = ""
+"epsilon.md" = ""
+
+[[case]]
+id = "dir-all"
+argv = ["dir", "-a"]
+tags = ["dir", "ls", "fs"]
+[case.files]
+".hidden" = ""
+"visible" = ""
+
+[[case]]
+id = "dir-one-per-line"
+argv = ["dir", "-1"]
+tags = ["dir", "ls", "fs"]
+[case.files]
+"a b" = ""
+"c" = ""
+
+[[case]]
+id = "dir-subdir-arg"
+argv = ["dir", "sub", "other"]
+tags = ["dir", "ls", "fs"]
+[case.files]
+"sub/x" = ""
+"sub/y" = ""
+"other/z" = ""
+
+[[case]]
+id = "dir-missing"
+argv = ["dir", "nope"]
+tags = ["dir", "ls", "fs", "errno"]
+
+# vdir
+
+[[case]]
+id = "vdir-long-iso"
+argv = ["vdir", "--time-style=long-iso"]
+tags = ["vdir", "ls", "fs", "long"]
+[case.files]
+"a.txt" = "conteúdo\n"
+"run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"sub" = { dir = true, mode = 0o700 }
+
+[[case]]
+id = "vdir-escape-name"
+argv = ["vdir", "--time-style=long-iso", "meu arquivo.txt"]
+tags = ["vdir", "ls", "fs", "long", "escape"]
+[case.files]
+"meu arquivo.txt" = "x"
+
+[[case]]
+id = "vdir-human"
+argv = ["vdir", "-h", "--time-style=long-iso"]
+tags = ["vdir", "ls", "fs", "long"]
+[case.files]
+"big.bin" = { content_b64 = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OQo=" }
+"small.txt" = "s\n"
+"sub" = { dir = true }
+
+[[case]]
+id = "vdir-subdir"
+argv = ["vdir", "--time-style=long-iso", "sub"]
+tags = ["vdir", "ls", "fs", "long"]
+[case.files]
+"sub/inner.txt" = "i\n"
+"sub/run.sh" = { content = "#!/bin/sh\n", mode = 0o750 }
+
+# NO_FAKE_STAT: sem ele o libfaketime desloca o mtime devolvido pelo stat.
+[[case]]
+id = "vdir-recent-default-style"
+argv = ["vdir", "a.txt"]
+faketime = "2026-01-20 08:00:00"
+tags = ["vdir", "ls", "fs", "long", "time"]
+[case.env]
+NO_FAKE_STAT = "1"
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "vdir-missing"
+argv = ["vdir", "nope"]
+tags = ["vdir", "ls", "fs", "errno"]

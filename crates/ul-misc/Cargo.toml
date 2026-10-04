@@ -1,0 +1,30 @@
+[package]
+name = "ul-misc"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Ferramentas diversas do pseudo-linus: bc, dc, file, column, tree, xxd, hexdump, strings, which, envsubst, less, more, clear, tput, iconv, getconf, locale"
+
+[dependencies]
+sysabi.workspace = true
+# Fachada com a forma do std: stdout com a bufferização da glibc, /etc/passwd do sandbox, Command.
+sysio.workspace = true
+# Fuso e calendário pro tree -D e afins; banco de fusos embutido, nada lido do host.
+jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }
+# Largura de exibição (wcwidth) pro column.
+unicode-width = "0.2"
+# Motor numérico do bc (fork do posixutils-rs).
+bigdecimal = "0.4"
+num-bigint = "0.4"
+num-traits = "0.2"
+# file: as regex das regras de magic (ERE da glibc no locale C, leftmost-longest).
+regex-automata = "0.4"
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing", features = ["kernel"] }
+
+[lints]
+workspace = true

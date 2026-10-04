@@ -1,0 +1,213 @@
+tool = "coreutils"
+source = "agent-style"
+
+# split e csplit: o que conta é a árvore final (o golden guarda os pedaços criados no retrato do
+# diretório), mais o stdout do csplit (tamanho de cada pedaço) e as mensagens de erro.
+
+# split
+
+[[case]]
+id = "split-l"
+argv = ["split", "-l", "2", "in.txt"]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "split-b"
+argv = ["split", "-b", "4", "in.txt"]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "0123456789\n"
+
+[[case]]
+id = "split-b-suffix-unit"
+argv = ["split", "-b", "1K", "in.bin", "chunk_"]
+tags = ["split", "fs"]
+[case.files]
+"in.bin" = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+
+[[case]]
+id = "split-n-chunks"
+argv = ["split", "-n", "3", "in.txt"]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "abcdefghij\n"
+
+[[case]]
+id = "split-n-lines"
+argv = ["split", "-n", "l/2", "in.txt"]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "um\ndois\ntrês\nquatro\ncinco\n"
+
+[[case]]
+id = "split-C-line-bytes"
+argv = ["split", "-C", "8", "in.txt"]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "abc\ndefgh\nij\nklmnopqrstu\n"
+
+[[case]]
+id = "split-d-prefix"
+argv = ["split", "-d", "-l", "2", "in.txt", "part_"]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "split-suffix-length-additional"
+argv = ["split", "-l", "1", "-a", "3", "--additional-suffix=.txt", "in.txt", "chunk."]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "split-numeric-from"
+argv = ["split", "-l", "1", "--numeric-suffixes=1", "in.txt", "p"]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "a\nb\nc\n"
+
+[[case]]
+id = "split-stdin"
+argv = ["split", "-l", "1", "-", "s_"]
+stdin = "x\ny\n"
+tags = ["split", "fs", "stdin"]
+
+[[case]]
+id = "split-verbose"
+argv = ["split", "--verbose", "-l", "2", "in.txt"]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "split-elide-empty"
+argv = ["split", "-e", "-n", "5", "in.txt"]
+tags = ["split", "fs"]
+[case.files]
+"in.txt" = "ab\n"
+
+[[case]]
+id = "split-bad-lines"
+argv = ["split", "-l", "0", "in.txt"]
+tags = ["split", "fs", "errno"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "split-bad-bytes"
+argv = ["split", "-b", "abc", "in.txt"]
+tags = ["split", "fs", "errno"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "split-missing"
+argv = ["split", "nope.txt"]
+tags = ["split", "fs", "errno"]
+
+[[case]]
+id = "split-extra-operand"
+argv = ["split", "in.txt", "p", "extra"]
+tags = ["split", "fs", "errno"]
+[case.files]
+"in.txt" = "a\n"
+
+# csplit
+
+[[case]]
+id = "csplit-line-number"
+argv = ["csplit", "in.txt", "3"]
+tags = ["csplit", "fs"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "csplit-regex-repeat-all"
+argv = ["csplit", "in.txt", "/^#/", "{*}"]
+tags = ["csplit", "fs", "regex"]
+[case.files]
+"in.txt" = "preâmbulo\n# um\na\n# dois\nb\n# três\nc\n"
+
+[[case]]
+id = "csplit-repeat-count"
+argv = ["csplit", "in.txt", "/^x/", "{1}"]
+tags = ["csplit", "fs", "regex"]
+[case.files]
+"in.txt" = "a\nx1\nb\nx2\nc\nx3\nd\n"
+
+[[case]]
+id = "csplit-prefix-digits"
+argv = ["csplit", "-f", "part", "-n", "3", "in.txt", "2", "4"]
+tags = ["csplit", "fs"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "csplit-suffix-format"
+argv = ["csplit", "-b", "%02d.txt", "in.txt", "2"]
+tags = ["csplit", "fs"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "csplit-silent-elide"
+argv = ["csplit", "-s", "-z", "in.txt", "/^#/", "{*}"]
+tags = ["csplit", "fs", "regex"]
+[case.files]
+"in.txt" = "# um\na\n# dois\nb\n"
+
+[[case]]
+id = "csplit-offset-and-skip"
+argv = ["csplit", "in.txt", "%^início%", "/^fim/+1"]
+tags = ["csplit", "fs", "regex"]
+[case.files]
+"in.txt" = "lixo\ninício\nmeio\nfim\ndepois\n"
+
+[[case]]
+id = "csplit-stdin"
+argv = ["csplit", "-", "2"]
+stdin = "a\nb\nc\n"
+tags = ["csplit", "fs", "stdin"]
+
+[[case]]
+id = "csplit-no-match"
+argv = ["csplit", "in.txt", "/nada/"]
+tags = ["csplit", "fs", "errno"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "csplit-keep-files-on-error"
+argv = ["csplit", "-k", "in.txt", "/x/", "{5}"]
+tags = ["csplit", "fs", "errno"]
+[case.files]
+"in.txt" = "a\nx\nb\nx\nc\n"
+
+[[case]]
+id = "csplit-out-of-range"
+argv = ["csplit", "in.txt", "99"]
+tags = ["csplit", "fs", "errno"]
+[case.files]
+"in.txt" = "a\nb\n"
+
+[[case]]
+id = "csplit-missing"
+argv = ["csplit", "nope.txt", "2"]
+tags = ["csplit", "fs", "errno"]
+
+[[case]]
+id = "csplit-missing-pattern"
+argv = ["csplit", "in.txt"]
+tags = ["csplit", "fs", "errno"]
+[case.files]
+"in.txt" = "a\n"
+
+[[case]]
+id = "csplit-bad-pattern"
+argv = ["csplit", "in.txt", "abc"]
+tags = ["csplit", "fs", "errno"]
+[case.files]
+"in.txt" = "a\n"

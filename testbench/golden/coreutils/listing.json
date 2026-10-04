@@ -1,0 +1,395 @@
+{
+  "dir-all": {
+    "stdout": ".  ..  .hidden\tvisible\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      ".hidden": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "visible": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "dir-basic": {
+    "stdout": "a.txt  b.txt  sub\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "dir-columns": {
+    "stdout": "alpha.rs\t\t  eta.json    lambda_handler.py  xi_test_suite.rs\nbeta_module.rs\t\t  gamma.toml  mu.c\t\t zeta\ndelta_very_long_name.txt  iota.lock   nu.h\nepsilon.md\t\t  kappa.sh    theta_config.yaml\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "alpha.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "beta_module.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "delta_very_long_name.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "epsilon.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "eta.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "gamma.toml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "iota.lock": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "kappa.sh": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "lambda_handler.py": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "mu.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "nu.h": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "theta_config.yaml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "xi_test_suite.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "zeta": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "dir-escapes": {
+    "stdout": "meu\\ arquivo.txt  normal  tab\\there\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "meu arquivo.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      },
+      "normal": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      },
+      "tab\there": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      }
+    }
+  },
+  "dir-missing": {
+    "stdout": "",
+    "stderr": "dir: cannot access 'nope': No such file or directory\n",
+    "exit": 2,
+    "files": {}
+  },
+  "dir-one-per-line": {
+    "stdout": "a\\ b\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "dir-subdir-arg": {
+    "stdout": "other:\nz\n\nsub:\nx  y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "other": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "other/z": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "sub/y": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "dir-width": {
+    "stdout": "alpha.rs\tepsilon.md\nbeta_module.rs\tgamma.toml\ndelta.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "alpha.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "beta_module.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "delta.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "epsilon.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "gamma.toml": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "vdir-escape-name": {
+    "stdout": "-rw-r--r-- 1 root root 1 2026-01-15 12:00 meu\\ arquivo.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "meu arquivo.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      }
+    }
+  },
+  "vdir-human": {
+    "stdout": "total 12K\n-rw-r--r-- 1 root root  491 2026-01-15 12:00 big.bin\n-rw-r--r-- 1 root root    2 2026-01-15 12:00 small.txt\ndrwxr-xr-x 2 root root 4.0K 2026-01-15 12:00 sub\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "big.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 491,
+        "sha256": "e477134b213725a94a9a18c644ab2c69118a4c04b66506bd7232b985c2250b68",
+        "data": "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+      },
+      "small.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "cbc80bb5c0c0f8944bf73b3a429505ac5cde16644978bc9a1e74c5755f8ca556",
+        "data": "s\n"
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "vdir-long-iso": {
+    "stdout": "total 12\n-rw-r--r-- 1 root root   10 2026-01-15 12:00 a.txt\n-rwxr-xr-x 1 root root   10 2026-01-15 12:00 run.sh\ndrwx------ 2 root root 4096 2026-01-15 12:00 sub\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "47df473b600ab787db630671efea6d975d19c419522fd72a9fe7cb86684aa9fe",
+        "data": "conteúdo\n"
+      },
+      "run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 448
+      }
+    }
+  },
+  "vdir-missing": {
+    "stdout": "",
+    "stderr": "vdir: cannot access 'nope': No such file or directory\n",
+    "exit": 2,
+    "files": {}
+  },
+  "vdir-recent-default-style": {
+    "stdout": "-rw-r--r-- 1 root root 2 Jan 15 12:00 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "vdir-subdir": {
+    "stdout": "total 8\n-rw-r--r-- 1 root root  2 2026-01-15 12:00 inner.txt\n-rwxr-x--- 1 root root 10 2026-01-15 12:00 run.sh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/inner.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "50c393f158c3de2db92fa9661bfb00eda5b67c3a777c88524ed3417509631625",
+        "data": "i\n"
+      },
+      "sub/run.sh": {
+        "kind": "file",
+        "mode": 488,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  }
+}

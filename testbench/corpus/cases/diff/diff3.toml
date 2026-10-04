@@ -1,0 +1,368 @@
+tool = "diff"
+source = "manual"
+
+# diff3 (GNU diffutils 3.10): formato padrão (====, ====1, ====2, ====3), scripts de ed (-e, -E, -x,
+# -X, -3, -A, -i), fusão (-m e combinações), rótulos, linhas com ponto, falta de newline final,
+# binários, stdin, erros de opção e de arquivo.
+
+[[case]]
+id = "d3-normal-mixed"
+argv = ["diff3", "m2", "old", "y2"]
+tags = ["diff3"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-normal-separate"
+argv = ["diff3", "mine", "old", "yours"]
+tags = ["diff3"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"mine" = "1\nX\n3\n4\n5\n6\n7\n8\n9\n"
+"yours" = "1\n2\n3\n4\nY\n6\n7\n8\nZ\n"
+
+[[case]]
+id = "d3-initial-tab"
+argv = ["diff3", "-T", "m2", "old", "y2"]
+tags = ["diff3"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-ed"
+argv = ["diff3", "-e", "m2", "old", "y2"]
+tags = ["diff3", "ed"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-show-overlap"
+argv = ["diff3", "-E", "m2", "old", "y2"]
+tags = ["diff3", "ed"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-easy-only"
+argv = ["diff3", "-3", "m2", "old", "y2"]
+tags = ["diff3", "ed"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-overlap-only"
+argv = ["diff3", "-x", "m2", "old", "y2"]
+tags = ["diff3", "ed"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-overlap-only-X"
+argv = ["diff3", "-X", "m2", "old", "y2"]
+tags = ["diff3", "ed"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-show-all"
+argv = ["diff3", "-A", "m2", "old", "y2"]
+tags = ["diff3", "ed"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-show-all-final-write"
+argv = ["diff3", "-A", "-i", "m2", "old", "y2"]
+tags = ["diff3", "ed"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-merge"
+argv = ["diff3", "-m", "m2", "old", "y2"]
+tags = ["diff3", "merge"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-merge-E"
+argv = ["diff3", "-m", "-E", "m2", "old", "y2"]
+tags = ["diff3", "merge"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-merge-e"
+argv = ["diff3", "-m", "-e", "m2", "old", "y2"]
+tags = ["diff3", "merge"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-merge-3"
+argv = ["diff3", "-m3", "m2", "old", "y2"]
+tags = ["diff3", "merge"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"m2" = "1\nA\n3\n4\n5\nS\n7\n8\n9\n"
+"y2" = "1\nB\n3\n4\n5\nS\n7\n8\n9\nnew\n"
+
+[[case]]
+id = "d3-merge-clean"
+argv = ["diff3", "-m", "mine", "old", "yours"]
+tags = ["diff3", "merge"]
+[case.files]
+"old" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n"
+"mine" = "1\nX\n3\n4\n5\n6\n7\n8\n9\n"
+"yours" = "1\n2\n3\n4\nY\n6\n7\n8\nZ\n"
+
+[[case]]
+id = "d3-labels"
+argv = ["diff3", "-m", "-L", "L1", "--label=L2", "-L", "L3", "m", "o", "y"]
+tags = ["diff3", "merge"]
+[case.files]
+"o" = "1\n2\n3\n"
+"m" = "1\nA\n3\n"
+"y" = "1\nB\n3\n"
+
+[[case]]
+id = "d3-one-label"
+argv = ["diff3", "-E", "-L", "MINE", "m", "o", "y"]
+tags = ["diff3", "ed"]
+[case.files]
+"o" = "1\n2\n3\n"
+"m" = "1\nA\n3\n"
+"y" = "1\nB\n3\n"
+
+[[case]]
+id = "d3-dots-ed"
+argv = ["diff3", "-e", "d3", "d1", "d2"]
+tags = ["diff3", "ed"]
+[case.files]
+"d1" = ".dot\n2\n"
+"d2" = ".x\n"
+"d3" = "1\n2\n"
+
+[[case]]
+id = "d3-dots-show-all"
+argv = ["diff3", "-A", "d3", "d1", "d2"]
+tags = ["diff3", "ed"]
+[case.files]
+"d1" = ".dot\n2\n"
+"d2" = ".x\n"
+"d3" = "1\n2\n"
+
+[[case]]
+id = "d3-dots-show-overlap"
+argv = ["diff3", "-E", "d1", "d3", "d2"]
+tags = ["diff3", "ed"]
+[case.files]
+"d1" = ".dot\n2\n"
+"d2" = ".x\n"
+"d3" = "1\n2\n"
+
+[[case]]
+id = "d3-nonl-normal"
+argv = ["diff3", "n2", "n1", "n1"]
+tags = ["diff3", "nonl"]
+[case.files]
+"n1" = "1\n2"
+"n2" = "1\nX"
+
+[[case]]
+id = "d3-nonl-merge-conflict"
+argv = ["diff3", "-m", "n2", "n1", "n2"]
+tags = ["diff3", "nonl"]
+[case.files]
+"n1" = "1\n2"
+"n2" = "1\nX"
+
+[[case]]
+id = "d3-nonl-ed-warnings"
+argv = ["diff3", "-3", "c1", "c3", "c2"]
+tags = ["diff3", "nonl"]
+[case.files]
+"c1" = "1\n2\n"
+"c2" = "1\nX"
+"c3" = "1\n2"
+
+[[case]]
+id = "d3-nonl-ed-one"
+argv = ["diff3", "-e", "c1", "c1", "c2"]
+tags = ["diff3", "nonl"]
+[case.files]
+"c1" = "1\n2\n"
+"c2" = "1\nX"
+
+[[case]]
+id = "d3-empty-files"
+argv = ["diff3", "e", "c1", "e"]
+tags = ["diff3"]
+[case.files]
+"e" = ""
+"c1" = "1\n2\n"
+
+[[case]]
+id = "d3-identical"
+argv = ["diff3", "c1", "c1", "c1"]
+tags = ["diff3"]
+[case.files]
+"c1" = "1\n2\n"
+
+[[case]]
+id = "d3-binary"
+argv = ["diff3", "b1", "b2", "b2"]
+tags = ["diff3", "binary"]
+[case.files]
+"b1" = { content_b64 = "YQBiCg==" }
+"b2" = { content_b64 = "YQBjCg==" }
+
+[[case]]
+id = "d3-binary-text"
+argv = ["diff3", "-a", "b1", "b2", "b2"]
+tags = ["diff3", "binary"]
+[case.files]
+"b1" = { content_b64 = "YQBiCg==" }
+"b2" = { content_b64 = "YQBjCg==" }
+
+[[case]]
+id = "d3-stdin-old"
+argv = ["diff3", "c1", "-", "c2"]
+stdin = "x\n"
+tags = ["diff3"]
+[case.files]
+"c1" = "1\n2\n"
+"c2" = "1\nX"
+
+[[case]]
+id = "d3-missing"
+argv = ["diff3", "-m", "nope", "o", "y"]
+tags = ["diff3", "error"]
+[case.files]
+"o" = "1\n"
+"y" = "2\n"
+
+[[case]]
+id = "d3-missing-two"
+argv = ["diff3", "m", "nope1", "nope2"]
+tags = ["diff3", "error"]
+[case.files]
+"m" = "1\n"
+
+[[case]]
+id = "d3-incompatible"
+argv = ["diff3", "-A", "-e", "m", "o", "y"]
+tags = ["diff3", "error"]
+
+[[case]]
+id = "d3-incompatible-merge-i"
+argv = ["diff3", "-m", "-i", "m", "o", "y"]
+tags = ["diff3", "error"]
+
+[[case]]
+id = "d3-same-option-twice"
+argv = ["diff3", "-e", "-e", "m", "o", "y"]
+tags = ["diff3"]
+[case.files]
+"o" = "1\n2\n3\n"
+"m" = "1\nA\n3\n"
+"y" = "1\nB\n3\n"
+
+[[case]]
+id = "d3-too-many-labels"
+argv = ["diff3", "-L", "a", "-L", "b", "-L", "c", "-L", "d", "m", "o", "y"]
+tags = ["diff3", "error"]
+
+[[case]]
+id = "d3-missing-operand"
+argv = ["diff3", "m", "o"]
+tags = ["diff3", "error"]
+
+[[case]]
+id = "d3-extra-operand"
+argv = ["diff3", "m", "o", "y", "z"]
+tags = ["diff3", "error"]
+
+[[case]]
+id = "d3-help"
+argv = ["diff3", "--help"]
+tags = ["diff3", "help"]
+
+[[case]]
+id = "d3-version"
+argv = ["diff3", "-v"]
+tags = ["diff3", "help"]
+
+[[case]]
+id = "d3-ambiguous"
+argv = ["diff3", "--s", "m", "o", "y"]
+tags = ["diff3", "error"]
+
+[[case]]
+id = "d3-adjacent-blocks"
+argv = ["diff3", "mine", "old", "yours"]
+tags = ["diff3"]
+[case.files]
+"old" = "a\nb\nc\nd\ne\nf\ng\n"
+"mine" = "a\nB\nc\nd\ne\nf\ng\n"
+"yours" = "a\nb\nC\nd\nE\nf\ng\nh\n"
+
+[[case]]
+id = "d3-adjacent-blocks-merge"
+argv = ["diff3", "-m", "mine", "old", "yours"]
+tags = ["diff3", "merge"]
+[case.files]
+"old" = "a\nb\nc\nd\ne\nf\ng\n"
+"mine" = "a\nB\nc\nd\ne\nf\ng\n"
+"yours" = "a\nb\nC\nd\nE\nf\ng\nh\n"
+
+[[case]]
+id = "d3-deletes-and-inserts"
+argv = ["diff3", "mine", "old", "yours"]
+tags = ["diff3"]
+[case.files]
+"old" = "a\nb\nc\nd\ne\nf\ng\nh\n"
+"mine" = "a\nc\nd\nx\ny\ne\nf\nh\n"
+"yours" = "a\nb\nc\nd\ne\nz\ng\n"
+
+[[case]]
+id = "d3-deletes-and-inserts-ed"
+argv = ["diff3", "-A", "mine", "old", "yours"]
+tags = ["diff3", "ed"]
+[case.files]
+"old" = "a\nb\nc\nd\ne\nf\ng\nh\n"
+"mine" = "a\nc\nd\nx\ny\ne\nf\nh\n"
+"yours" = "a\nb\nc\nd\ne\nz\ng\n"
+
+[[case]]
+id = "d3-deletes-and-inserts-merge"
+argv = ["diff3", "-m", "mine", "old", "yours"]
+tags = ["diff3", "merge"]
+[case.files]
+"old" = "a\nb\nc\nd\ne\nf\ng\nh\n"
+"mine" = "a\nc\nd\nx\ny\ne\nf\nh\n"
+"yours" = "a\nb\nc\nd\ne\nz\ng\n"

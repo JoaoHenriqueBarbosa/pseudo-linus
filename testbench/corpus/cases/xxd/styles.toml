@@ -1,0 +1,273 @@
+tool = "xxd"
+source = "manual"
+
+# Estilos de saída do xxd 9.1 que não são o dump de linhas: -p (hexa corrido) e -i (include de C,
+# com nome de variável derivado do arquivo ou de -n, -C, -b, -u, stdin sem cabeçalho). Também o
+# arquivo de saída (criado com O_TRUNC no dump; erro de abertura sai com 3) e cores com -R always.
+
+[[case]]
+id = "xxd-plain"
+argv = ["xxd", "-p", "txt"]
+tags = ["plain"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-plain-cols10"
+argv = ["xxd", "-ps", "-c", "10", "txt"]
+tags = ["plain", "cols"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-plain-cols0-one-line"
+argv = ["xxd", "-p", "-c", "0", "all"]
+tags = ["plain", "cols"]
+[case.files]
+"all" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "xxd-plain-cols300"
+argv = ["xxd", "-plain", "-c", "300", "all"]
+tags = ["plain", "cols"]
+[case.files]
+"all" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "xxd-plain-upper-seek-len"
+argv = ["xxd", "-p", "-u", "-s", "5", "-l", "7", "txt"]
+tags = ["plain", "upper", "seek"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-plain-autoskip-ignored"
+argv = ["xxd", "-p", "-a", "z5"]
+tags = ["plain", "autoskip"]
+[case.files]
+"z5" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "xxd-plain-empty"
+argv = ["xxd", "-p", "empty"]
+tags = ["plain", "empty"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "xxd-include"
+argv = ["xxd", "-i", "txt"]
+tags = ["include"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-include-cols5"
+argv = ["xxd", "-i", "-c", "5", "txt"]
+tags = ["include", "cols"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-include-capitalize-upper"
+argv = ["xxd", "-include", "-C", "-u", "txt"]
+tags = ["include", "upper"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-include-name"
+argv = ["xxd", "-i", "-n", "Ab.c", "-C", "small"]
+tags = ["include", "name"]
+[case.files]
+"small" = "abc"
+
+[[case]]
+id = "xxd-include-name-glued"
+argv = ["xxd", "-nmy_var", "-i", "small"]
+tags = ["include", "name"]
+[case.files]
+"small" = "abc"
+
+[[case]]
+id = "xxd-include-path-name"
+argv = ["xxd", "-i", "sub/my-file.v2.bin"]
+tags = ["include", "name"]
+[case.files]
+"sub" = { dir = true }
+"sub/my-file.v2.bin" = "xy"
+
+[[case]]
+id = "xxd-include-digit-name"
+argv = ["xxd", "-i", "9lives"]
+tags = ["include", "name"]
+[case.files]
+"9lives" = "xy"
+
+[[case]]
+id = "xxd-include-empty"
+argv = ["xxd", "-i", "empty"]
+tags = ["include", "empty"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "xxd-include-stdin"
+argv = ["xxd", "-i"]
+stdin = "abc"
+tags = ["include", "stdin"]
+
+[[case]]
+id = "xxd-include-stdin-named"
+argv = ["xxd", "-i", "-n", "zz", "-"]
+stdin = "abc"
+tags = ["include", "stdin", "name"]
+
+[[case]]
+id = "xxd-include-bits"
+argv = ["xxd", "-i", "-b", "txt"]
+tags = ["include", "bits"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-include-seek-len"
+argv = ["xxd", "-i", "-s", "2", "-l", "3", "txt"]
+tags = ["include", "seek", "len"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-include-multiple-of-cols"
+argv = ["xxd", "-i", "-c", "4", "-l", "8", "txt"]
+tags = ["include", "cols"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-outfile"
+argv = ["xxd", "small", "out"]
+tags = ["outfile"]
+[case.files]
+"small" = "abc"
+
+[[case]]
+id = "xxd-outfile-truncates"
+argv = ["xxd", "-p", "small", "out"]
+tags = ["outfile"]
+[case.files]
+"small" = "abc"
+"out" = "this text is longer than the new content and must disappear\n"
+
+[[case]]
+id = "xxd-outfile-dash-is-stdout"
+argv = ["xxd", "small", "-"]
+tags = ["outfile"]
+[case.files]
+"small" = "abc"
+
+[[case]]
+id = "xxd-outfile-is-directory"
+argv = ["xxd", "small", "dd"]
+tags = ["outfile", "error"]
+[case.files]
+"small" = "abc"
+"dd" = { dir = true }
+
+[[case]]
+id = "xxd-outfile-missing-dir"
+argv = ["xxd", "small", "nodir/out"]
+tags = ["outfile", "error"]
+[case.files]
+"small" = "abc"
+
+[[case]]
+id = "xxd-outfile-full"
+argv = ["xxd", "small", "/dev/full"]
+tags = ["outfile", "error"]
+[case.files]
+"small" = "abc"
+
+[[case]]
+id = "xxd-infile-is-directory"
+argv = ["xxd", "dd"]
+tags = ["error"]
+[case.files]
+"dd" = { dir = true }
+
+[[case]]
+id = "xxd-include-directory"
+argv = ["xxd", "-i", "dd"]
+tags = ["include", "error"]
+[case.files]
+"dd" = { dir = true }
+
+[[case]]
+id = "xxd-color-always"
+argv = ["xxd", "-R", "always", "ctl"]
+tags = ["color"]
+[case.files]
+"ctl" = { content_b64 = "CQoNAP8gAX+AaGk=" }
+
+[[case]]
+id = "xxd-color-always-all"
+argv = ["xxd", "-Ralways", "all"]
+tags = ["color"]
+[case.files]
+"all" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "xxd-color-little-endian"
+argv = ["xxd", "-R", "always", "-e", "-c", "8", "txt"]
+tags = ["color", "little-endian"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-color-bits"
+argv = ["xxd", "-R", "always", "-b", "-c", "4", "txt"]
+tags = ["color", "bits"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-color-group3-partial"
+argv = ["xxd", "-R", "always", "-c", "8", "-g", "3", "txt"]
+tags = ["color", "group"]
+[case.files]
+"txt" = "The quick brown fox jumps over the lazy dog.\n0123456789"
+
+[[case]]
+id = "xxd-color-ebcdic"
+argv = ["xxd", "-R", "always", "-E", "all"]
+tags = ["color", "ebcdic"]
+[case.files]
+"all" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "xxd-color-autoskip"
+argv = ["xxd", "-R", "always", "-a", "-d", "z5"]
+tags = ["color", "autoskip"]
+[case.files]
+"z5" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "xxd-color-plain-and-include-uncolored"
+argv = ["xxd", "-R", "always", "-p", "ctl"]
+tags = ["color", "plain"]
+[case.files]
+"ctl" = { content_b64 = "CQoNAP8gAX+AaGk=" }
+
+[[case]]
+id = "xxd-color-never"
+argv = ["xxd", "-R", "never", "ctl"]
+tags = ["color"]
+[case.files]
+"ctl" = { content_b64 = "CQoNAP8gAX+AaGk=" }
+
+[[case]]
+id = "xxd-color-auto-no-tty"
+argv = ["xxd", "-R", "auto", "ctl"]
+tags = ["color"]
+[case.files]
+"ctl" = { content_b64 = "CQoNAP8gAX+AaGk=" }

@@ -1,0 +1,91 @@
+[package]
+name = "host"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Lado do host do pseudo-linus: daemon multiusuário (supervisor e workers, JSON-RPC sobre HTTP), CLI osh e imagem de deploy"
+default-run = "pseudo-linusd"
+
+[[bin]]
+name = "pseudo-linusd"
+path = "src/bin/pseudo-linusd.rs"
+
+[[bin]]
+name = "osh"
+path = "src/bin/osh.rs"
+
+[[test]]
+name = "daemon"
+path = "tests/daemon.rs"
+required-features = ["fake-backend"]
+
+[[test]]
+name = "kernel"
+path = "tests/kernel.rs"
+required-features = ["kernel", "test-programs"]
+
+[features]
+default = ["kernel"]
+# O backend de produção: o kernel do pseudo-linus com a tabela completa de programas.
+kernel = ["dep:kernel", "dep:userland"]
+# O shell (`bash`/`sh`) na tabela de programas, quando o crate shell exportar `programs()`.
+shell = ["userland/shell"]
+# Programas de teste do host (`/usr/local/bin/pl-*`): laço com checkpoint, saída grande, filho em
+# segundo plano, queda do worker. Só pros testes de integração com o kernel; nunca na imagem.
+test-programs = []
+# Backend falso de processos e arquivos, só pra testar supervisor, workers, protocolo e quotas sem o
+# kernel. Nunca entra na imagem de produção (o worker recusa subir com ele sem `PL_ALLOW_FAKE_BACKEND=1`).
+fake-backend = []
+
+[dependencies]
+sysabi = { workspace = true }
+kernel = { workspace = true, optional = true }
+userland = { workspace = true, optional = true }
+
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"
+base64 = "0.22"
+hex = "0.4"
+sha2 = "0.10"
+subtle = "2"
+getrandom = "0.3"
+parking_lot = "0.12"
+crossbeam-channel = "0.5"
+clap = { version = "4", features = ["derive", "env"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+tar = { version = "0.4", default-features = false }
+
+# Servidor (só o supervisor usa tokio; worker e pseudo-processos nunca rodam em pool do tokio).
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time", "process", "signal"] }
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio", "server", "http1", "server-graceful"] }
+http-body-util = "0.1"
+bytes = "1"
+futures-util = { version = "0.3", default-features = false, features = ["std", "sink"] }
+tokio-tungstenite = { version = "0.28", default-features = false, features = ["handshake"] }
+
+# Cliente HTTP bloqueante do `osh --remote`.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
+# Isolamento em runtime (E06): API segura, unsafe interno nas syscalls.
+landlock = "0.4"
+seccompiler = "0.5"
+rustix = { version = "1", features = ["fs", "process", "stdio", "thread", "time"] }
+# Só constantes (números de syscall e flags) pro filtro seccomp.
+libc = "0.2"
+
+# Allocator global rastreado (E07): o `#[global_allocator]` fica nos binários; a tabela de grupos é do kernel.
+tracking-allocator = { version = "=0.4.0", default-features = false }
+mimalloc = { version = "=0.1.52", default-features = false }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

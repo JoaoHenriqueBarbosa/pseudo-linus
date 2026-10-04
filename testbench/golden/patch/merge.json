@@ -1,0 +1,464 @@
+{
+  "patch-merge-already-applied": {
+    "stdout": "patching file a.txt\nHunk #1 already applied at 5.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "0822e2217ab7a324dd1ef48995a5d2992efdec0cd9be93a2e473a9741ab37fc3",
+        "data": "1\n2\n3\n4\nFIVE\n6\n7\n8\n9\n10\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "0822e2217ab7a324dd1ef48995a5d2992efdec0cd9be93a2e473a9741ab37fc3",
+        "data": "1\n2\n3\n4\nFIVE\n6\n7\n8\n9\n10\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "efe284bb462b32c43f34c5e8fa2529730a64cbc338da799fe1cc5f504250e3ec",
+        "data": "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+      }
+    }
+  },
+  "patch-merge-applied-then-merged": {
+    "stdout": "patching file a.txt\nHunk #1 already applied at 4, merged at 8.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "454a69d6ac2535fa7476e3bbeb38f8df83ab0f0fde290a4cf7220f1f13510846",
+        "data": "1\ntwo\n3\nFOUR\n5\n6\n7\nEIGHT\n9\n10\n11\n12\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "c70ebaa99406cd2c13c2e08b3aa918577b3b66ab6b7033314aa0d4dead44bed7",
+        "data": "1\ntwo\n3\nFOUR\n5\n6\n7\n8\n9\n10\n11\n12\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 77,
+        "sha256": "5e54743ecaddd078d1b708081d225d9da28bb456c03ccd79de61932ae23224a7",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+      }
+    }
+  },
+  "patch-merge-clean": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "c04a422eefbc21d183f54884406ab89b0645308309e40f1b9833af2a2a0fce3a",
+        "data": "x\nY\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "1308ade3f13a0a9982d137fabff7f058b425ade28a3a25fe0d12d96ba8a66368",
+        "data": "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+      }
+    }
+  },
+  "patch-merge-conflict": {
+    "stdout": "patching file a.txt\nHunk #1 NOT MERGED at 5-9.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 53,
+        "sha256": "64fca9f332fb8481a6e501b1b976cc6d2aad4e2ac930576c6d02a8361828a715",
+        "data": "1\n2\n3\n4\n<<<<<<<\nfive\n=======\nFIVE\n>>>>>>>\n6\n7\n8\n9\n10\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "a7f9a68e0fe2554c3a850e74a3a8870833290f8529d528f75bb6320da2859011",
+        "data": "1\n2\n3\n4\nfive\n6\n7\n8\n9\n10\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "efe284bb462b32c43f34c5e8fa2529730a64cbc338da799fe1cc5f504250e3ec",
+        "data": "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+      }
+    }
+  },
+  "patch-merge-conflict-diff3": {
+    "stdout": "patching file a.txt\nHunk #1 NOT MERGED at 5-11.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 63,
+        "sha256": "5fa22a563a2a9ba437ae25ff3627d345405b28819066c3c9f96ebabe4253751f",
+        "data": "1\n2\n3\n4\n<<<<<<<\nfive\n|||||||\n5\n=======\nFIVE\n>>>>>>>\n6\n7\n8\n9\n10\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "a7f9a68e0fe2554c3a850e74a3a8870833290f8529d528f75bb6320da2859011",
+        "data": "1\n2\n3\n4\nfive\n6\n7\n8\n9\n10\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "efe284bb462b32c43f34c5e8fa2529730a64cbc338da799fe1cc5f504250e3ec",
+        "data": "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+      }
+    }
+  },
+  "patch-merge-conflict-then-merged": {
+    "stdout": "patching file a.txt\nHunk #1 NOT MERGED at 4-8, merged at 12.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 63,
+        "sha256": "11e4badd8674e9cbfda760e82a4d11ebba69fce079292e9847f3a226202c8bfd",
+        "data": "1\n2\n3\n<<<<<<<\nfour\n=======\nFOUR\n>>>>>>>\n5\n6\n7\nEIGHT\n9\n10\n11\n12\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "6dc77c10e34cadc97c3f92e1aafeeb53f98b34aed37e088b094950a38b36693d",
+        "data": "1\n2\n3\nfour\n5\n6\n7\n8\n9\n10\n11\n12\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 77,
+        "sha256": "5e54743ecaddd078d1b708081d225d9da28bb456c03ccd79de61932ae23224a7",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+      }
+    }
+  },
+  "patch-merge-context-changed-adjacent": {
+    "stdout": "patching file a.txt\nHunk #1 NOT MERGED at 4-10.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "1abcc77d54fefe4f608063ee28d3fcb9e6e856673787267e1fccf82d3d1a4ceb",
+        "data": "1\n2\n3\n<<<<<<<\nfour\n5\n=======\n4\nFIVE\n>>>>>>>\n6\n7\n8\n9\n10\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "6dae46afac0e5d358c88bccaebcaa579e7e2005d5461c7c64b378d64a9e7fa87",
+        "data": "1\n2\n3\nfour\n5\n6\n7\n8\n9\n10\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "efe284bb462b32c43f34c5e8fa2529730a64cbc338da799fe1cc5f504250e3ec",
+        "data": "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+      }
+    }
+  },
+  "patch-merge-deleted-line": {
+    "stdout": "patching file a.txt\nHunk #1 NOT MERGED at 5-8.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 48,
+        "sha256": "63ae008ae1503d547f3d4c1d1a5a6e926c00d4fd124c60536b789af453df12b7",
+        "data": "1\n2\n3\n4\n<<<<<<<\n=======\nFIVE\n>>>>>>>\n6\n7\n8\n9\n10\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "94bf7e8b29900c5966141eb25e4e3603740ca6651675bd2117aa76c15caee09c",
+        "data": "1\n2\n3\n4\n6\n7\n8\n9\n10\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "efe284bb462b32c43f34c5e8fa2529730a64cbc338da799fe1cc5f504250e3ec",
+        "data": "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+      }
+    }
+  },
+  "patch-merge-dry-run": {
+    "stdout": "checking file a.txt\nHunk #1 NOT MERGED at 5-9.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "a7f9a68e0fe2554c3a850e74a3a8870833290f8529d528f75bb6320da2859011",
+        "data": "1\n2\n3\n4\nfive\n6\n7\n8\n9\n10\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "efe284bb462b32c43f34c5e8fa2529730a64cbc338da799fe1cc5f504250e3ec",
+        "data": "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+      }
+    }
+  },
+  "patch-merge-fuzz-both-ends": {
+    "stdout": "patching file a.txt\nHunk #1 merged at 5.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "26d33be5bc210250035843310b21dea24ecf0412d095d160ed962c6b98d2bc54",
+        "data": "1\n2\nthree\n4\nFIVE\n6\nseven\n8\n9\n10\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "b89793527ed5add2857ba63c9afec29d3b74b0eb7fafe274c2b53d681f4b78c9",
+        "data": "1\n2\nthree\n4\n5\n6\nseven\n8\n9\n10\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "efe284bb462b32c43f34c5e8fa2529730a64cbc338da799fe1cc5f504250e3ec",
+        "data": "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+      }
+    }
+  },
+  "patch-merge-merged-then-conflict": {
+    "stdout": "patching file a.txt\nHunk #1 merged at 4, NOT MERGED at 10-14.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 70,
+        "sha256": "35b48666c273467372af440d2edf6f5ad2a49e8fc91b3004bd19bfaba0864ea5",
+        "data": "1\ntwo\n3\nFOUR\n5\n6\n7\n8\n<<<<<<<\nnine\n=======\nNINE\n>>>>>>>\n10\n11\n12\n13\n14\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "f15e7ce9e6e289878fe10553d32de04f077050c023ac30de06969ef83424a462",
+        "data": "1\ntwo\n3\n4\n5\n6\n7\n8\nnine\n10\n11\n12\n13\n14\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 82,
+        "sha256": "18399dc6b803a3a44d7cd7475f4051cb6b2b3279c9ce684cdcb6dc2b0f186c41",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,10 +2,10 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n 8\n-9\n+NINE\n 10\n 11\n"
+      }
+    }
+  },
+  "patch-merge-offset": {
+    "stdout": "patching file a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "2b8daff95af3d4851359d6c34c2b2a634472db9ae71763ef1d1c3c3fd4605548",
+        "data": "top\n1\n2\n3\n4\nFIVE\n6\n7\n8\n9\n10\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "32208e2f418c0363158e66dfe52e24c67d288ed434cb803da9b69d3da69751fc",
+        "data": "top\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "efe284bb462b32c43f34c5e8fa2529730a64cbc338da799fe1cc5f504250e3ec",
+        "data": "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+      }
+    }
+  },
+  "patch-merge-output": {
+    "stdout": "patching file out (read from a.txt)\nHunk #1 NOT MERGED at 4-8, merged at 12.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "6dc77c10e34cadc97c3f92e1aafeeb53f98b34aed37e088b094950a38b36693d",
+        "data": "1\n2\n3\nfour\n5\n6\n7\n8\n9\n10\n11\n12\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 384,
+        "size": 63,
+        "sha256": "11e4badd8674e9cbfda760e82a4d11ebba69fce079292e9847f3a226202c8bfd",
+        "data": "1\n2\n3\n<<<<<<<\nfour\n=======\nFOUR\n>>>>>>>\n5\n6\n7\nEIGHT\n9\n10\n11\n12\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 77,
+        "sha256": "5e54743ecaddd078d1b708081d225d9da28bb456c03ccd79de61932ae23224a7",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+      }
+    }
+  },
+  "patch-merge-silent": {
+    "stdout": "Hunk #1 NOT MERGED at 4-8.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 63,
+        "sha256": "11e4badd8674e9cbfda760e82a4d11ebba69fce079292e9847f3a226202c8bfd",
+        "data": "1\n2\n3\n<<<<<<<\nfour\n=======\nFOUR\n>>>>>>>\n5\n6\n7\nEIGHT\n9\n10\n11\n12\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "6dc77c10e34cadc97c3f92e1aafeeb53f98b34aed37e088b094950a38b36693d",
+        "data": "1\n2\n3\nfour\n5\n6\n7\n8\n9\n10\n11\n12\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 77,
+        "sha256": "5e54743ecaddd078d1b708081d225d9da28bb456c03ccd79de61932ae23224a7",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+      }
+    }
+  },
+  "patch-merge-skew-after-deletion": {
+    "stdout": "patching file a.txt\nHunk #1 merged at 4,10.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "516e038823ffc6ee3ebaafeb1959e3dc4cbf3408fab7e04ccd83b6517c66586e",
+        "data": "1\ntwo\n3\nFOUR\n6\n7\n8\nNINE\n10\n11\n12\n13\n14\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "82ac45ea69490c4cf953448fe0f73a843fb98052d04c92125b0eadd81d3787af",
+        "data": "1\ntwo\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 81,
+        "sha256": "2a722e212d8d8095e47dd2ee15618eb2ba4e6dba62c33ec90d9d12a09d84c3f4",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,10 +2,9 @@\n 2\n 3\n-4\n-5\n+FOUR\n 6\n 7\n 8\n-9\n+NINE\n 10\n 11\n"
+      }
+    }
+  },
+  "patch-merge-two-groups-merged": {
+    "stdout": "patching file a.txt\nHunk #1 merged at 4,9.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "454a69d6ac2535fa7476e3bbeb38f8df83ab0f0fde290a4cf7220f1f13510846",
+        "data": "1\ntwo\n3\nFOUR\n5\n6\n7\nEIGHT\n9\n10\n11\n12\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "7daa7c95ec6818e171c6febf7eb751bb6b1c4bf7e7c6ca899f4595abb64e1d85",
+        "data": "1\ntwo\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 77,
+        "sha256": "5e54743ecaddd078d1b708081d225d9da28bb456c03ccd79de61932ae23224a7",
+        "data": "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+      }
+    }
+  },
+  "patch-merge-unrelated": {
+    "stdout": "patching file a.txt\nHunk #1 NOT MERGED at 3-11.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 43,
+        "sha256": "29961883b56761b41e467185bdd4be7b5ebc3c4a73c920347efe2caecb7ee04e",
+        "data": "x\ny\n<<<<<<<\nz\n=======\n3\n4\nFIVE\n6\n7\n>>>>>>>\n"
+      },
+      "a.txt.orig": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "81884b5f2cb68edc6286363dcc4699a913a2d5ba05818d0fdc43ba68bb990bd8",
+        "data": "x\ny\nz\n"
+      },
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "efe284bb462b32c43f34c5e8fa2529730a64cbc338da799fe1cc5f504250e3ec",
+        "data": "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+      }
+    }
+  }
+}

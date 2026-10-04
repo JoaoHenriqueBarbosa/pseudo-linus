@@ -1,0 +1,300 @@
+tool = "coreutils"
+source = "agent-style"
+
+# Variações das flags que agentes mais usam e que ainda não estavam nos outros arquivos: formas
+# antigas de head e tail, tail -n +N com vários arquivos, sort -rn e -u com empates, cut -c sobre
+# texto multibyte (o GNU conta bytes), uniq -c com contagens largas, tr -d/-s com classes,
+# wc -l de vários arquivos, base64 -d em pipeline e date +%s/-d.
+
+# head e tail
+
+[[case]]
+id = "head-obsolete-multi"
+argv = ["head", "-1", "a.txt", "b.txt"]
+tags = ["head", "obsolete"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\nb2\n"
+
+[[case]]
+id = "head-obsolete-stdin"
+argv = ["head", "-3"]
+stdin = "1\n2\n3\n4\n5\n"
+tags = ["head", "obsolete", "stdin"]
+
+[[case]]
+id = "head-obsolete-large"
+argv = ["head", "-20", "in.txt"]
+tags = ["head", "obsolete"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n"
+
+[[case]]
+id = "head-n-plus"
+argv = ["head", "-n", "+2", "in.txt"]
+tags = ["head"]
+[case.files]
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "tail-obsolete-plus"
+argv = ["tail", "+3", "in.txt"]
+tags = ["tail", "obsolete"]
+[case.files]
+"in.txt" = "1\n2\n3\n4\n5\n"
+
+[[case]]
+id = "tail-obsolete-stdin"
+argv = ["tail", "-2"]
+stdin = "1\n2\n3\n4\n5\n"
+tags = ["tail", "obsolete", "stdin"]
+
+[[case]]
+id = "tail-n-plus-1-multi"
+argv = ["tail", "-n", "+1", "a.txt", "b.txt"]
+tags = ["tail"]
+[case.files]
+"a.txt" = "a1\na2\n"
+"b.txt" = "b1\n"
+
+[[case]]
+id = "tail-n-plus-beyond-end"
+argv = ["tail", "-n", "+10", "in.txt"]
+tags = ["tail"]
+[case.files]
+"in.txt" = "1\n2\n"
+
+[[case]]
+id = "tail-n-zero"
+argv = ["tail", "-n", "0", "in.txt"]
+tags = ["tail"]
+[case.files]
+"in.txt" = "1\n2\n"
+
+[[case]]
+id = "tail-c-plus"
+argv = ["tail", "-c", "+5", "in.txt"]
+tags = ["tail"]
+[case.files]
+"in.txt" = "0123456789\n"
+
+[[case]]
+id = "tail-n-plus-stdin"
+argv = ["tail", "-n", "+2"]
+stdin = "header\nlinha 1\nlinha 2\n"
+tags = ["tail", "stdin"]
+
+# sort
+
+[[case]]
+id = "sort-rn-ties-and-text"
+argv = ["sort", "-rn", "in.txt"]
+tags = ["sort"]
+[case.files]
+"in.txt" = "10 b\n2 a\n10 a\nx\n-3 z\n2 b\n\n"
+
+[[case]]
+id = "sort-nu"
+argv = ["sort", "-nu", "in.txt"]
+tags = ["sort"]
+[case.files]
+"in.txt" = "01\n1\n2\n02\n10\n"
+
+[[case]]
+id = "sort-u-stdin"
+argv = ["sort", "-u"]
+stdin = "b\na\nB\nb\na\n"
+tags = ["sort", "stdin"]
+
+[[case]]
+id = "sort-ru"
+argv = ["sort", "-ru", "in.txt"]
+tags = ["sort"]
+[case.files]
+"in.txt" = "a\nc\nb\nc\na\n"
+
+[[case]]
+id = "sort-t-k-rn"
+argv = ["sort", "-t,", "-k2", "-rn", "data.csv"]
+tags = ["sort", "csv"]
+[case.files]
+"data.csv" = "ana,30\nbia,5\ncaio,120\nduda,30\n"
+
+[[case]]
+id = "sort-k-rn-du-output"
+argv = ["sort", "-k1,1rn", "du.txt"]
+tags = ["sort"]
+[case.files]
+"du.txt" = "4\t./a\n128\t./b\n16\t./c\n128\t./a/x\n"
+
+# cut
+
+[[case]]
+id = "cut-c-bytes-multibyte"
+argv = ["cut", "-c1-4", "in.txt"]
+tags = ["cut", "utf8"]
+[case.files]
+"in.txt" = "ação\nabcdef\n"
+
+[[case]]
+id = "cut-c-prefix"
+argv = ["cut", "-c-3", "in.txt"]
+tags = ["cut"]
+[case.files]
+"in.txt" = "abcdef\nxy\n"
+
+[[case]]
+id = "cut-c-suffix"
+argv = ["cut", "-c5-", "in.txt"]
+tags = ["cut"]
+[case.files]
+"in.txt" = "abcdefgh\nabc\n"
+
+[[case]]
+id = "cut-c1-80-long-lines"
+argv = ["cut", "-c1-80", "in.txt"]
+tags = ["cut"]
+[case.files]
+"in.txt" = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\ncurta\n"
+
+[[case]]
+id = "cut-b-list"
+argv = ["cut", "-b1,3,5", "in.txt"]
+tags = ["cut"]
+[case.files]
+"in.txt" = "abcdef\n"
+
+[[case]]
+id = "cut-f1-space-stdin"
+argv = ["cut", "-d", " ", "-f1"]
+stdin = "GET /index.html 200\nPOST /api 500\n"
+tags = ["cut", "stdin"]
+
+# uniq
+
+[[case]]
+id = "uniq-c-wide-counts"
+argv = ["uniq", "-c", "in.txt"]
+tags = ["uniq"]
+[case.files]
+"in.txt" = "a\na\na\na\na\na\na\na\na\na\na\na\nb\nc\nc\nc\n"
+
+[[case]]
+id = "uniq-c-stdin-nonadjacent"
+argv = ["uniq", "-c"]
+stdin = "x\ny\nx\nx\n"
+tags = ["uniq", "stdin"]
+
+# tr
+
+[[case]]
+id = "tr-d-digits"
+argv = ["tr", "-d", "0-9"]
+stdin = "abc123def456\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-d-space-class"
+argv = ["tr", "-d", "[:space:]"]
+stdin = " a b\tc\nd \n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-d-newline"
+argv = ["tr", "-d", "\\n"]
+stdin = "linha 1\nlinha 2\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-d-quotes"
+argv = ["tr", "-d", "\"'"]
+stdin = "\"chave\": 'valor'\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-s-newlines"
+argv = ["tr", "-s", "\\n"]
+stdin = "a\n\n\nb\n\nc\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-s-blank-class"
+argv = ["tr", "-s", "[:blank:]"]
+stdin = "a  \t  b    c\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-ds"
+argv = ["tr", "-ds", "x", " "]
+stdin = "axxb   c x  d\n"
+tags = ["tr"]
+
+[[case]]
+id = "tr-s-to-single"
+argv = ["tr", "-s", " ", "\\n"]
+stdin = "um  dois   três\n"
+tags = ["tr"]
+
+# wc
+
+[[case]]
+id = "wc-l-three-files-wide"
+argv = ["wc", "-l", "a.txt", "b.txt", "c.txt"]
+tags = ["wc"]
+[case.files]
+"a.txt" = "1\n"
+"b.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"c.txt" = ""
+
+[[case]]
+id = "wc-l-file-and-stdin"
+argv = ["wc", "-l", "a.txt", "-"]
+stdin = "x\ny\n"
+tags = ["wc", "stdin"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "wc-c-multi"
+argv = ["wc", "-c", "a.txt", "b.txt"]
+tags = ["wc"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "0123456789\n"
+
+# base64 -d
+
+[[case]]
+id = "base64-d-pipeline"
+script = "echo aGVsbG8gd29ybGQK | base64 -d"
+tags = ["base64", "decode", "pipeline"]
+
+[[case]]
+id = "base64-d-token-payload"
+script = "printf '%s' 'eyJzdWIiOiIxMjMiLCJyb2xlIjoiYWRtaW4ifQ==' | base64 -d"
+tags = ["base64", "decode", "pipeline"]
+
+# date +%s e -d
+
+[[case]]
+id = "date-u-d-epoch-iso"
+argv = ["date", "-u", "-d", "@1768478400", "+%Y-%m-%dT%H:%M:%SZ"]
+tags = ["date", "time"]
+
+[[case]]
+id = "date-epoch-diff"
+script = "echo $(( $(date -d '2026-01-16' +%s) - $(date -d '2026-01-15' +%s) ))"
+tags = ["date", "time", "pipeline"]
+
+[[case]]
+id = "date-s-relative-hour"
+argv = ["date", "-d", "-1 hour", "+%s"]
+faketime = "2026-01-15 12:00:00"
+tags = ["date", "time"]
+[case.env]
+NO_FAKE_STAT = "1"
+
+[[case]]
+id = "date-s-at-roundtrip"
+argv = ["date", "-d", "@1768478400", "+%s %F %T"]
+tags = ["date", "time"]

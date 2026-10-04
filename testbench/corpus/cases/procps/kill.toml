@@ -1,0 +1,236 @@
+tool = "procps"
+source = "manual"
+
+# /usr/bin/kill do procps-ng 4.0.4: ajuda, versão, listas de sinais, conversões de -l, erros de
+# argumento e kill em pid que não existe. Nada aqui manda sinal pra processo vivo (os pids do
+# oráculo e do candidato não batem).
+
+[[case]]
+id = "kill-help"
+argv = ["kill", "--help"]
+tags = ["kill", "usage"]
+
+[[case]]
+id = "kill-h"
+argv = ["kill", "-h"]
+tags = ["kill", "usage"]
+
+[[case]]
+id = "kill-no-args"
+argv = ["kill"]
+tags = ["kill", "usage", "error"]
+
+[[case]]
+id = "kill-version"
+argv = ["kill", "-V"]
+tags = ["kill", "version"]
+
+[[case]]
+id = "kill-version-long"
+argv = ["kill", "--version"]
+tags = ["kill", "version"]
+
+[[case]]
+id = "kill-l"
+argv = ["kill", "-l"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-list-long"
+argv = ["kill", "--list"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-L"
+argv = ["kill", "-L"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-table"
+argv = ["kill", "--table"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-l-9"
+argv = ["kill", "-l", "9"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-l-attached"
+argv = ["kill", "-l9"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-l-hup"
+argv = ["kill", "-l", "HUP"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-l-sighup-lower"
+argv = ["kill", "-l", "sighup"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-l-leading-zero"
+argv = ["kill", "-l", "09"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-l-130"
+argv = ["kill", "-l", "130"]
+tags = ["kill", "list", "error"]
+
+[[case]]
+id = "kill-l-0"
+argv = ["kill", "-l", "0"]
+tags = ["kill", "list", "error"]
+
+[[case]]
+id = "kill-l-bogus"
+argv = ["kill", "-l", "bogus"]
+tags = ["kill", "list", "error"]
+
+[[case]]
+id = "kill-l-io-alias"
+argv = ["kill", "-l", "IO"]
+tags = ["kill", "list", "error"]
+
+[[case]]
+id = "kill-l-poll"
+argv = ["kill", "-l", "POLL"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-list-eq"
+argv = ["kill", "--list=15"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-list-sep"
+argv = ["kill", "--list", "TERM"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-l-then-sig"
+argv = ["kill", "-l", "-9"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-L-arg"
+argv = ["kill", "-L", "9"]
+tags = ["kill", "list"]
+
+[[case]]
+id = "kill-esrch"
+argv = ["kill", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-9-esrch"
+argv = ["kill", "-9", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-s-esrch"
+argv = ["kill", "-s", "KILL", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-signal-long-esrch"
+argv = ["kill", "--signal", "TERM", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-signal-eq-esrch"
+argv = ["kill", "--signal=HUP", "99999", "99998"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-sigterm-esrch"
+argv = ["kill", "-SIGTERM", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-lower-name-esrch"
+argv = ["kill", "-usr1", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-rtmin-esrch"
+argv = ["kill", "-RTMIN+2", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-0-esrch"
+argv = ["kill", "-0", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-dashdash-group"
+argv = ["kill", "--", "-99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-negative-no-dashdash"
+argv = ["kill", "-99999"]
+tags = ["kill", "quirk"]
+
+[[case]]
+id = "kill-q-esrch"
+argv = ["kill", "-q", "5", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-q-bad"
+argv = ["kill", "-q", "abc", "99999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-not-number"
+argv = ["kill", "abc"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-not-number-after"
+argv = ["kill", "99999", "abc"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-empty-arg"
+argv = ["kill", ""]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-overflow"
+argv = ["kill", "99999999999999999999"]
+tags = ["kill", "error"]
+
+[[case]]
+id = "kill-sig-no-pid"
+argv = ["kill", "-9"]
+tags = ["kill", "usage", "error"]
+
+[[case]]
+id = "kill-s-no-pid"
+argv = ["kill", "-s", "TERM"]
+tags = ["kill", "usage", "error"]
+
+[[case]]
+id = "kill-s-missing"
+argv = ["kill", "-s"]
+tags = ["kill", "usage", "error"]
+
+[[case]]
+id = "kill-bad-option"
+argv = ["kill", "-xyz", "99999"]
+tags = ["kill", "usage", "error"]
+
+[[case]]
+id = "kill-unknown-long"
+argv = ["kill", "--bogus", "99999"]
+tags = ["kill", "usage", "error"]
+
+[[case]]
+id = "kill-two-pids"
+argv = ["kill", "99999", "99998"]
+tags = ["kill", "error"]

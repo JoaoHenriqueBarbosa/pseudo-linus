@@ -1,0 +1,342 @@
+tool = "strings"
+source = "manual"
+
+# Varredura padrão do strings do binutils 2.44: mínimo de caracteres (-n, --bytes, -NUM com bases
+# do strtoul), deslocamentos (-t o/d/x, -o), nome do arquivo (-f), separador (-s), espaço em branco
+# (-w), 8 bits (-e S), stdin e vários arquivos. A fixture `a` mistura cadeias curtas, controle, tab,
+# DEL e um byte 0xff; `ws` tem \n, \r, \f e \v no meio das cadeias.
+
+[[case]]
+id = "strings-default"
+argv = ["strings", "a"]
+tags = ["scan"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-all-short"
+argv = ["strings", "-a", "a"]
+tags = ["scan"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-all-long"
+argv = ["strings", "--all", "a"]
+tags = ["scan"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-dash-before-file"
+argv = ["strings", "-", "a"]
+tags = ["scan"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-n3"
+argv = ["strings", "-n", "3", "a"]
+tags = ["min"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-n-glued"
+argv = ["strings", "-n12", "a"]
+tags = ["min"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-bytes-long"
+argv = ["strings", "--bytes=3", "a"]
+tags = ["min"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-bytes-prefix"
+argv = ["strings", "--by", "16", "a"]
+tags = ["min"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-num-opt"
+argv = ["strings", "-3", "a"]
+tags = ["min", "numeric"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-num-two-digits"
+argv = ["strings", "-12", "a"]
+tags = ["min", "numeric"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-num-octal"
+argv = ["strings", "-010", "n9"]
+tags = ["min", "numeric"]
+[case.files]
+"n9" = { content_b64 = "MTIzNDU2NzgAYWJjZGVmZ2hpAA==" }
+
+[[case]]
+id = "strings-n-hex"
+argv = ["strings", "-n", "0x9", "n9"]
+tags = ["min"]
+[case.files]
+"n9" = { content_b64 = "MTIzNDU2NzgAYWJjZGVmZ2hpAA==" }
+
+[[case]]
+id = "strings-n-octal"
+argv = ["strings", "-n", "010", "n9"]
+tags = ["min"]
+[case.files]
+"n9" = { content_b64 = "MTIzNDU2NzgAYWJjZGVmZ2hpAA==" }
+
+[[case]]
+id = "strings-n-leading-space"
+argv = ["strings", "-n", " 9", "n9"]
+tags = ["min"]
+[case.files]
+"n9" = { content_b64 = "MTIzNDU2NzgAYWJjZGVmZ2hpAA==" }
+
+[[case]]
+id = "strings-n-plus"
+argv = ["strings", "-n", "+9", "n9"]
+tags = ["min"]
+[case.files]
+"n9" = { content_b64 = "MTIzNDU2NzgAYWJjZGVmZ2hpAA==" }
+
+[[case]]
+id = "strings-n-huge-accepted"
+argv = ["strings", "-n", "2147483648", "n9"]
+tags = ["min"]
+[case.files]
+"n9" = { content_b64 = "MTIzNDU2NzgAYWJjZGVmZ2hpAA==" }
+
+[[case]]
+id = "strings-n-last-wins"
+argv = ["strings", "-n", "3", "-n", "11", "a"]
+tags = ["min"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-t-x"
+argv = ["strings", "-t", "x", "a"]
+tags = ["radix"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-t-o"
+argv = ["strings", "-t", "o", "a"]
+tags = ["radix"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-t-d"
+argv = ["strings", "-t", "d", "a"]
+tags = ["radix"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-o"
+argv = ["strings", "-o", "a"]
+tags = ["radix"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-radix-long"
+argv = ["strings", "--radix=x", "a"]
+tags = ["radix"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-radix-glued"
+argv = ["strings", "-td", "a"]
+tags = ["radix"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-radix-last-wins"
+argv = ["strings", "-o", "-t", "x", "a"]
+tags = ["radix"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-offset-past-300"
+argv = ["strings", "-t", "x", "big"]
+tags = ["radix"]
+[case.files]
+"big" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdGFpbCBzdHJpbmcAAABhbm90aGVyIG9uZSBoZXJl" }
+
+[[case]]
+id = "strings-offset-past-300-octal"
+argv = ["strings", "-o", "big"]
+tags = ["radix"]
+[case.files]
+"big" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdGFpbCBzdHJpbmcAAABhbm90aGVyIG9uZSBoZXJl" }
+
+[[case]]
+id = "strings-print-file-name"
+argv = ["strings", "-f", "a"]
+tags = ["names"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-print-file-name-long"
+argv = ["strings", "--print-file-name", "-t", "x", "a", "n9"]
+tags = ["names", "radix"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+"n9" = { content_b64 = "MTIzNDU2NzgAYWJjZGVmZ2hpAA==" }
+
+[[case]]
+id = "strings-separator"
+argv = ["strings", "-s", "|", "a"]
+tags = ["separator"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-separator-empty"
+argv = ["strings", "-s", "", "a"]
+tags = ["separator"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-separator-long"
+argv = ["strings", "--output-separator=<>\n", "a"]
+tags = ["separator"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-separator-names-radix"
+argv = ["strings", "-f", "-t", "d", "-s", "::", "a"]
+tags = ["separator", "names", "radix"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-whitespace"
+argv = ["strings", "-w", "ws"]
+tags = ["whitespace"]
+[case.files]
+"ws" = { content_b64 = "dGFiCWhlcmUAbGluZTEKbGluZTIAY3INbGYAZmYMdnQLeAAgICAKCgA=" }
+
+[[case]]
+id = "strings-whitespace-long"
+argv = ["strings", "--include-all-whitespace", "-t", "d", "-s", "|", "ws"]
+tags = ["whitespace"]
+[case.files]
+"ws" = { content_b64 = "dGFiCWhlcmUAbGluZTEKbGluZTIAY3INbGYAZmYMdnQLeAAgICAKCgA=" }
+
+[[case]]
+id = "strings-whitespace-default"
+argv = ["strings", "-t", "d", "ws"]
+tags = ["whitespace"]
+[case.files]
+"ws" = { content_b64 = "dGFiCWhlcmUAbGluZTEKbGluZTIAY3INbGYAZmYMdnQLeAAgICAKCgA=" }
+
+[[case]]
+id = "strings-eight-bit"
+argv = ["strings", "-e", "S", "hi8"]
+tags = ["encoding"]
+[case.files]
+"hi8" = { content_b64 = "Y2Fm6SBhdSBsYWl0AKChoqOkAHBsYWlugIF0ZXh0AA==" }
+
+[[case]]
+id = "strings-seven-bit-high"
+argv = ["strings", "-e", "s", "-t", "x", "hi8"]
+tags = ["encoding"]
+[case.files]
+"hi8" = { content_b64 = "Y2Fm6SBhdSBsYWl0AKChoqOkAHBsYWlugIF0ZXh0AA==" }
+
+[[case]]
+id = "strings-eight-bit-whitespace"
+argv = ["strings", "--encoding=S", "-w", "a"]
+tags = ["encoding", "whitespace"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-stdin"
+argv = ["strings"]
+stdin = "from stdin\u0000zz\u0000another stdin line"
+tags = ["stdin"]
+
+[[case]]
+id = "strings-stdin-names-radix"
+argv = ["strings", "-f", "-t", "o"]
+stdin = "x\u0000yyyyyy\u0000"
+tags = ["stdin", "names"]
+
+[[case]]
+id = "strings-data-stdin"
+argv = ["strings", "-d", "-t", "x"]
+stdin = "abcd\u0000efghij"
+tags = ["stdin", "data"]
+
+[[case]]
+id = "strings-two-files"
+argv = ["strings", "a", "n9"]
+tags = ["files"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+"n9" = { content_b64 = "MTIzNDU2NzgAYWJjZGVmZ2hpAA==" }
+
+[[case]]
+id = "strings-same-file-twice"
+argv = ["strings", "-f", "n9", "n9"]
+tags = ["files", "names"]
+[case.files]
+"n9" = { content_b64 = "MTIzNDU2NzgAYWJjZGVmZ2hpAA==" }
+
+[[case]]
+id = "strings-empty-file"
+argv = ["strings", "empty"]
+tags = ["files"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "strings-string-at-eof"
+argv = ["strings", "-t", "d", "eof"]
+tags = ["scan"]
+[case.files]
+"eof" = { content_b64 = "YWJjAGxhc3Qgc3RyaW5nIHdpdGhvdXQgbnVs" }
+
+[[case]]
+id = "strings-options-after-file"
+argv = ["strings", "a", "-n", "11", "-f"]
+tags = ["getopt"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-target-ignored"
+argv = ["strings", "-T", "bogus", "a"]
+tags = ["target"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }
+
+[[case]]
+id = "strings-target-long"
+argv = ["strings", "--target=elf64-x86-64", "-n", "11", "a"]
+tags = ["target"]
+[case.files]
+"a" = { content_b64 = "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA==" }

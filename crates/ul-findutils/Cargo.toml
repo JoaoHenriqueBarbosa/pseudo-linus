@@ -1,0 +1,16 @@
+[package]
+name = "ul-findutils"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "find e xargs do pseudo-linus (GNU findutils 4.10): fork do uutils findutils sobre o sysio"
+
+[dependencies]
+sysabi = { workspace = true }
+sysio = { workspace = true }
+findutils = { path = "vendor/findutils", package = "pl-findutils" }
+
+[lints]
+workspace = true

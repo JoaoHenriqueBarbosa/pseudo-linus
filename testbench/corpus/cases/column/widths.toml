@@ -1,0 +1,59 @@
+tool = "column"
+source = "manual"
+
+# Redução de largura do modo tabela (-T, -W, -E com -c), medida contra a libsmartcols do util-linux 2.41.
+
+[[case]]
+id = "column-t-trunc-three-148"
+argv = ["column", "-t", "-c", "148", "-T", "1,2,3"]
+stdin = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccc z\n"
+
+[[case]]
+id = "column-t-trunc-three-145"
+argv = ["column", "-t", "-c", "145", "-T", "1,2,3"]
+stdin = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccc z\n"
+
+[[case]]
+id = "column-t-trunc-three-100"
+argv = ["column", "-t", "-c", "100", "-T", "1,2,3"]
+stdin = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb cccccccccccccccccccccccccccccccccccccccc z\n"
+
+[[case]]
+id = "column-t-trunc-three-reversed"
+argv = ["column", "-t", "-c", "148", "-T", "1,2,3"]
+stdin = "cccccccccccccccccccccccccccccccccccccccc bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa z\n"
+
+[[case]]
+id = "column-t-trunc-last-only"
+argv = ["column", "-t", "-c", "73", "-T", "3"]
+stdin = "a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nbb c e\n"
+
+[[case]]
+id = "column-t-trunc-not-widest"
+argv = ["column", "-t", "-c", "77", "-T", "2"]
+stdin = "a yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\nbb c e\n"
+
+[[case]]
+id = "column-t-trunc-wide-last"
+argv = ["column", "-t", "-c", "70", "-T", "2"]
+stdin = "a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nbb c e\n"
+
+[[case]]
+id = "column-t-trunc-header-min"
+argv = ["column", "-t", "-s,", "-T", "2", "-c", "10", "-N", "A,BBBBBB,C"]
+stdin = "a,abcdefghij,z\nb,c,d\n"
+
+[[case]]
+id = "column-t-wrap-words"
+argv = ["column", "-t", "-s,", "-W", "2", "-c", "14"]
+stdin = "a,hello world foo bar,z\nb,c,d\n"
+
+[[case]]
+id = "column-t-wrap-cjk"
+argv = ["column", "-t", "-s,", "-W", "2", "-c", "10"]
+stdin = "a,日本語日本語,z\nb,c,d\n"
+
+[[case]]
+id = "column-t-noextreme-tiny"
+argv = ["column", "-t", "-c", "8", "-E", "2"]
+stdin = "a xx d\nbb xx e\ncc xx z\n"

@@ -1,0 +1,34 @@
+# Exemplo de compose do pseudo-linusd (teste local, ou referência pros campos do Dokploy).
+#
+#   docker compose -f crates/host/deploy/docker-compose.yml up -d --build
+#   docker compose -f crates/host/deploy/docker-compose.yml exec pseudo-linus pseudo-linusd admin bootstrap
+#
+services:
+  pseudo-linus:
+    image: registry.johnenrique.tech/pseudo-linus:1
+    build:
+      context: ../../..
+      dockerfile: crates/host/Dockerfile
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      PL_LOG: info
+    volumes:
+      - pl-data:/var/lib/pseudo-linus
+    # Teto do serviço inteiro. O memory_budget da configuração (2 GiB) fica abaixo da memória.
+    cpus: "1.5"
+    mem_limit: 3g
+    # Cada pseudo-processo é uma thread do host, e thread conta como pid no cgroup.
+    pids_limit: 8192
+    stop_grace_period: 40s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+
+volumes:
+  pl-data:

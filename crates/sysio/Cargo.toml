@@ -1,0 +1,18 @@
+[package]
+name = "sysio"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Fachada com a forma do std (fs, io, env, process, time, thread, os::unix) sobre as syscalls do sysabi, pra portar programas Rust pro pseudo-linus trocando só o caminho dos imports"
+
+# Só o sysabi: a fachada não pode tocar o host, e tudo que ela faz é chamar `sysabi::sys`.
+[dependencies]
+sysabi = { workspace = true }
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+
+[lints]
+workspace = true

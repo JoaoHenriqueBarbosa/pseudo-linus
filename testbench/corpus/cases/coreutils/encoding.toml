@@ -1,0 +1,345 @@
+tool = "coreutils"
+source = "agent-style"
+
+# Codificação e despejo de bytes: base64, base32, basenc e od. Cobre codificar e decodificar por
+# arquivo e por stdin, quebra de linha (-w), entrada inválida e os erros de opção mais comuns.
+
+# base64
+
+[[case]]
+id = "base64-file"
+argv = ["base64", "a.txt"]
+tags = ["base64", "encoding"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "base64-stdin"
+argv = ["base64"]
+stdin = "olá, mundo\n"
+tags = ["base64", "encoding", "stdin"]
+
+[[case]]
+id = "base64-dash"
+argv = ["base64", "-"]
+stdin = "abc"
+tags = ["base64", "encoding", "stdin"]
+
+[[case]]
+id = "base64-wrap-default"
+argv = ["base64", "long.txt"]
+tags = ["base64", "encoding", "wrap"]
+[case.files]
+"long.txt" = "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.\n"
+
+[[case]]
+id = "base64-w0"
+argv = ["base64", "-w", "0", "long.txt"]
+tags = ["base64", "encoding", "wrap"]
+[case.files]
+"long.txt" = "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.\n"
+
+[[case]]
+id = "base64-w10"
+argv = ["base64", "--wrap=10", "a.txt"]
+tags = ["base64", "encoding", "wrap"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "base64-binary"
+argv = ["base64", "bin.dat"]
+tags = ["base64", "encoding", "binary"]
+[case.files]
+"bin.dat" = { content_b64 = "AAECA/7/gIE=" }
+
+[[case]]
+id = "base64-empty"
+argv = ["base64", "empty"]
+tags = ["base64", "encoding"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "base64-decode-file"
+argv = ["base64", "-d", "enc.txt"]
+tags = ["base64", "encoding", "decode"]
+[case.files]
+"enc.txt" = "aGVsbG8gd29ybGQK\n"
+
+[[case]]
+id = "base64-decode-stdin"
+argv = ["base64", "--decode"]
+stdin = "b2zDoSwgbXVuZG8K\n"
+tags = ["base64", "encoding", "decode", "stdin"]
+
+[[case]]
+id = "base64-decode-multiline"
+argv = ["base64", "-d"]
+stdin = "VGhlIHF1aWNrIGJyb3du\nIGZveAo=\n"
+tags = ["base64", "encoding", "decode", "stdin"]
+
+[[case]]
+id = "base64-decode-invalid"
+argv = ["base64", "-d"]
+stdin = "aGVs$bG8K\n"
+tags = ["base64", "encoding", "decode", "errno"]
+
+[[case]]
+id = "base64-decode-ignore-garbage"
+argv = ["base64", "-d", "-i"]
+stdin = "aGVs$bG8K\n"
+tags = ["base64", "encoding", "decode"]
+
+[[case]]
+id = "base64-decode-no-padding"
+argv = ["base64", "-d"]
+stdin = "aGVsbG8"
+tags = ["base64", "encoding", "decode"]
+
+[[case]]
+id = "base64-missing"
+argv = ["base64", "nope.txt"]
+tags = ["base64", "encoding", "errno"]
+
+[[case]]
+id = "base64-extra-operand"
+argv = ["base64", "a.txt", "b.txt"]
+tags = ["base64", "encoding", "errno"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "base64-bad-wrap"
+argv = ["base64", "-w", "abc", "a.txt"]
+tags = ["base64", "encoding", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "base64-roundtrip"
+script = "base64 -w0 bin.dat | base64 -d | od -An -tx1"
+tags = ["base64", "encoding", "pipeline"]
+[case.files]
+"bin.dat" = { content_b64 = "AAECA/7/gIE=" }
+
+# base32
+
+[[case]]
+id = "base32-file"
+argv = ["base32", "a.txt"]
+tags = ["base32", "encoding"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "base32-stdin-wrap"
+argv = ["base32"]
+stdin = "The quick brown fox jumps over the lazy dog. 0123456789\n"
+tags = ["base32", "encoding", "stdin", "wrap"]
+
+[[case]]
+id = "base32-w0"
+argv = ["base32", "-w0"]
+stdin = "The quick brown fox jumps over the lazy dog. 0123456789\n"
+tags = ["base32", "encoding", "stdin", "wrap"]
+
+[[case]]
+id = "base32-decode"
+argv = ["base32", "-d"]
+stdin = "NBSWY3DPBI======\n"
+tags = ["base32", "encoding", "decode", "stdin"]
+
+[[case]]
+id = "base32-decode-invalid"
+argv = ["base32", "-d"]
+stdin = "NBSWY3DP1I======\n"
+tags = ["base32", "encoding", "decode", "errno"]
+
+[[case]]
+id = "base32-missing"
+argv = ["base32", "nope.txt"]
+tags = ["base32", "encoding", "errno"]
+
+# basenc
+
+[[case]]
+id = "basenc-base64url"
+argv = ["basenc", "--base64url", "bin.dat"]
+tags = ["basenc", "encoding"]
+[case.files]
+"bin.dat" = { content_b64 = "+/7/gIE+Pz8=" }
+
+[[case]]
+id = "basenc-base64"
+argv = ["basenc", "--base64"]
+stdin = "hello\n"
+tags = ["basenc", "encoding", "stdin"]
+
+[[case]]
+id = "basenc-base32hex"
+argv = ["basenc", "--base32hex"]
+stdin = "hello\n"
+tags = ["basenc", "encoding", "stdin"]
+
+[[case]]
+id = "basenc-base16"
+argv = ["basenc", "--base16"]
+stdin = "hello\n"
+tags = ["basenc", "encoding", "stdin"]
+
+[[case]]
+id = "basenc-base16-decode"
+argv = ["basenc", "--base16", "-d"]
+stdin = "68656C6C6F0A\n"
+tags = ["basenc", "encoding", "decode", "stdin"]
+
+[[case]]
+id = "basenc-base16-decode-lowercase"
+argv = ["basenc", "--base16", "-d"]
+stdin = "68656c6c6f0a\n"
+tags = ["basenc", "encoding", "decode", "stdin"]
+
+[[case]]
+id = "basenc-base2msbf"
+argv = ["basenc", "--base2msbf"]
+stdin = "AB"
+tags = ["basenc", "encoding", "stdin"]
+
+[[case]]
+id = "basenc-base2lsbf"
+argv = ["basenc", "--base2lsbf"]
+stdin = "AB"
+tags = ["basenc", "encoding", "stdin"]
+
+[[case]]
+id = "basenc-z85"
+argv = ["basenc", "--z85"]
+stdin = "hell"
+tags = ["basenc", "encoding", "stdin"]
+
+[[case]]
+id = "basenc-z85-bad-length"
+argv = ["basenc", "--z85"]
+stdin = "hello\n"
+tags = ["basenc", "encoding", "stdin", "errno"]
+
+[[case]]
+id = "basenc-missing-encoding"
+argv = ["basenc", "a.txt"]
+tags = ["basenc", "encoding", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+# od
+
+[[case]]
+id = "od-default"
+argv = ["od", "a.txt"]
+tags = ["od", "dump"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "od-c"
+argv = ["od", "-c", "a.txt"]
+tags = ["od", "dump"]
+[case.files]
+"a.txt" = "a\tb\\c\r\n\u0001é"
+
+[[case]]
+id = "od-An-tx1"
+argv = ["od", "-An", "-tx1", "a.txt"]
+tags = ["od", "dump"]
+[case.files]
+"a.txt" = "hello world, how are you?\n"
+
+[[case]]
+id = "od-Ax-tx1z"
+argv = ["od", "-A", "x", "-t", "x1z", "a.txt"]
+tags = ["od", "dump"]
+[case.files]
+"a.txt" = "hello world, how are you?\n"
+
+[[case]]
+id = "od-x"
+argv = ["od", "-x", "a.txt"]
+tags = ["od", "dump"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "od-b"
+argv = ["od", "-b", "a.txt"]
+tags = ["od", "dump"]
+[case.files]
+"a.txt" = "ABC\n"
+
+[[case]]
+id = "od-td2-tu1"
+argv = ["od", "-t", "d2", "-t", "u1", "bin.dat"]
+tags = ["od", "dump", "binary"]
+[case.files]
+"bin.dat" = { content_b64 = "AAECA/7/gIE=" }
+
+[[case]]
+id = "od-N-j"
+argv = ["od", "-j", "2", "-N", "4", "-c", "a.txt"]
+tags = ["od", "dump"]
+[case.files]
+"a.txt" = "0123456789\n"
+
+[[case]]
+id = "od-w8"
+argv = ["od", "-An", "-w8", "-tx1", "a.txt"]
+tags = ["od", "dump"]
+[case.files]
+"a.txt" = "0123456789abcdef!\n"
+
+[[case]]
+id = "od-dup-suppression"
+argv = ["od", "-tx1", "zeros.bin"]
+tags = ["od", "dump", "binary"]
+[case.files]
+"zeros.bin" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ==" }
+
+[[case]]
+id = "od-v-no-suppression"
+argv = ["od", "-v", "-tx1", "zeros.bin"]
+tags = ["od", "dump", "binary"]
+[case.files]
+"zeros.bin" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ==" }
+
+[[case]]
+id = "od-stdin"
+argv = ["od", "-c"]
+stdin = "x\ny\n"
+tags = ["od", "dump", "stdin"]
+
+[[case]]
+id = "od-multi-files"
+argv = ["od", "-An", "-c", "a.txt", "b.txt"]
+tags = ["od", "dump"]
+[case.files]
+"a.txt" = "ab"
+"b.txt" = "cd\n"
+
+[[case]]
+id = "od-empty"
+argv = ["od", "-c", "empty"]
+tags = ["od", "dump"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "od-missing"
+argv = ["od", "nope.bin"]
+tags = ["od", "dump", "errno"]
+
+[[case]]
+id = "od-bad-type"
+argv = ["od", "-t", "q", "a.txt"]
+tags = ["od", "dump", "errno"]
+[case.files]
+"a.txt" = "a\n"

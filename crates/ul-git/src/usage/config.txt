@@ -1,0 +1,9 @@
+usage: git config list [<file-option>] [<display-option>] [--includes]
+   or: git config get [<file-option>] [<display-option>] [--includes] [--all] [--regexp] [--value=<value>] [--fixed-value] [--default=<default>] <name>
+   or: git config set [<file-option>] [--type=<type>] [--all] [--value=<value>] [--fixed-value] <name> <value>
+   or: git config unset [<file-option>] [--all] [--value=<value>] [--fixed-value] <name>
+   or: git config rename-section [<file-option>] <old-name> <new-name>
+   or: git config remove-section [<file-option>] <name>
+   or: git config edit [<file-option>]
+   or: git config [<file-option>] --get-colorbool <name> [<stdout-is-tty>]
+

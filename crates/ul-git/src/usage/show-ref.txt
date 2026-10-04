@@ -1,0 +1,22 @@
+usage: git show-ref [--head] [-d | --dereference]
+                    [-s | --hash[=<n>]] [--abbrev[=<n>]] [--branches] [--tags]
+                    [--] [<pattern>...]
+   or: git show-ref --verify [-q | --quiet] [-d | --dereference]
+                    [-s | --hash[=<n>]] [--abbrev[=<n>]]
+                    [--] [<ref>...]
+   or: git show-ref --exclude-existing[=<pattern>]
+   or: git show-ref --exists <ref>
+
+    --[no-]tags           only show tags (can be combined with --branches)
+    --[no-]branches       only show branches (can be combined with --tags)
+    --[no-]exists         check for reference existence without resolving
+    --[no-]verify         stricter reference checking, requires exact ref path
+    --[no-]head           show the HEAD reference, even if it would be filtered out
+    -d, --[no-]dereference
+                          dereference tags into object IDs
+    -s, --[no-]hash[=<n>] only show SHA1 hash using <n> digits
+    --[no-]abbrev[=<n>]   use <n> digits to display object names
+    -q, --[no-]quiet      do not print results to stdout (useful with --verify)
+    --exclude-existing[=<pattern>]
+                          show refs from stdin that aren't in local repository
+

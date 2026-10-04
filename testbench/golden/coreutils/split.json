@@ -1,0 +1,777 @@
+{
+  "csplit-bad-pattern": {
+    "stdout": "",
+    "stderr": "csplit: ‘abc’: invalid pattern\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "csplit-keep-files-on-error": {
+    "stdout": "2\n4\n4\n",
+    "stderr": "csplit: ‘/x/’: match not found on repetition 2\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "46b8a12a5e920c4a8a842d65d3d33f215e17a4e1b216329835f26bab4da92000",
+        "data": "a\nx\nb\nx\nc\n"
+      },
+      "xx00": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "xx01": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "b99888fcd416c6ba96c0f72103faad28146e22a88ccb47fb702ebe962b05850f",
+        "data": "x\nb\n"
+      },
+      "xx02": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "78e7a12c27f600ff95967be04be83f7b3757ca08558602ceb5494a93bffcc409",
+        "data": "x\nc\n"
+      }
+    }
+  },
+  "csplit-line-number": {
+    "stdout": "4\n6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "f6b49467f595b1a44e442c198b3df4d221e88efcaabc26254f8e0ad4f79b6242",
+        "data": "1\n2\n3\n4\n5\n"
+      },
+      "xx00": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "xx01": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "be5e90a9f3da4d02fe339d2f5e95f9a8ad6b6f5499d9c051ca602df557253d2a",
+        "data": "3\n4\n5\n"
+      }
+    }
+  },
+  "csplit-missing": {
+    "stdout": "",
+    "stderr": "csplit: cannot open 'nope.txt' for reading: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "csplit-missing-pattern": {
+    "stdout": "",
+    "stderr": "csplit: missing operand after ‘in.txt’\nTry 'csplit --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "csplit-no-match": {
+    "stdout": "4\n",
+    "stderr": "csplit: ‘/nada/’: match not found\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "csplit-offset-and-skip": {
+    "stdout": "17\n7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "e553ca677c6ac9ffccbdccc884f36059630281b8be63aaaade55f1a3b26efef7",
+        "data": "lixo\ninício\nmeio\nfim\ndepois\n"
+      },
+      "xx00": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "323c446306a50c8f22553b4979e57c65def53f9820aaa5baf0a1fb66def53074",
+        "data": "início\nmeio\nfim\n"
+      },
+      "xx01": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "3738eef67fc08217b6868d84b118feec6f6013924851e1306dafb055f4eef250",
+        "data": "depois\n"
+      }
+    }
+  },
+  "csplit-out-of-range": {
+    "stdout": "4\n",
+    "stderr": "csplit: ‘99’: line number out of range\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "csplit-prefix-digits": {
+    "stdout": "2\n4\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "f6b49467f595b1a44e442c198b3df4d221e88efcaabc26254f8e0ad4f79b6242",
+        "data": "1\n2\n3\n4\n5\n"
+      },
+      "part000": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "part001": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+        "data": "2\n3\n"
+      },
+      "part002": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "ab2fafd33682c9e5457b36098c493a9f06572e6bd9b562f2513943b7869560a1",
+        "data": "4\n5\n"
+      }
+    }
+  },
+  "csplit-regex-repeat-all": {
+    "stdout": "11\n7\n9\n10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "cd0c860ddd73796dafa349b1aed9dfb145f6e2e98b1aff7acfcbcfc25908ee98",
+        "data": "preâmbulo\n# um\na\n# dois\nb\n# três\nc\n"
+      },
+      "xx00": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "a02f77c1c5f992bdba663bad25117947a47f2d584ffafba7c092eaa8bdb3b276",
+        "data": "preâmbulo\n"
+      },
+      "xx01": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "0a3a88aa20a97fe3a852b96a77d7d6386527f535d30a88997883b12952ccef10",
+        "data": "# um\na\n"
+      },
+      "xx02": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "a19474bf3ad3e88a1319c51dd1f38084eda3ec345b151b90196229c06d6db653",
+        "data": "# dois\nb\n"
+      },
+      "xx03": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "5738a204f742a0e3274b7f2cb0263f04ff4496c44d9d4c7cd998995284d2384c",
+        "data": "# três\nc\n"
+      }
+    }
+  },
+  "csplit-repeat-count": {
+    "stdout": "2\n5\n10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "f2f51138eff8d731a816ec36fdfd7d92341f632c2aafd9a625f4b32d1c011788",
+        "data": "a\nx1\nb\nx2\nc\nx3\nd\n"
+      },
+      "xx00": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "xx01": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "58dee1d097abf299cc25093d91f4a9608432d7e11ca7f1b76a9041d1b4bad2dd",
+        "data": "x1\nb\n"
+      },
+      "xx02": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "65473729f6458d50feea5e16d077305006c680fb2ebc725f464fcb563dfd746b",
+        "data": "x2\nc\nx3\nd\n"
+      }
+    }
+  },
+  "csplit-silent-elide": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "79acc999a1feb23b551ced366dc2fd31cee4b66388734fd20bbefc8c2228cebb",
+        "data": "# um\na\n# dois\nb\n"
+      },
+      "xx00": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "0a3a88aa20a97fe3a852b96a77d7d6386527f535d30a88997883b12952ccef10",
+        "data": "# um\na\n"
+      },
+      "xx01": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "a19474bf3ad3e88a1319c51dd1f38084eda3ec345b151b90196229c06d6db653",
+        "data": "# dois\nb\n"
+      }
+    }
+  },
+  "csplit-stdin": {
+    "stdout": "2\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "xx00": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "xx01": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "bb9ead4c391dab4c05bd498dafac47a54f8b212625f2124a911202cc6ea61d27",
+        "data": "b\nc\n"
+      }
+    }
+  },
+  "csplit-suffix-format": {
+    "stdout": "2\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "xx00.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "xx01.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "fcb9cc30b0f3e4715d032f3a0ce158e4d6bea8c618bda0f5d1f167300a087b8a",
+        "data": "2\n3\n"
+      }
+    }
+  },
+  "split-C-line-bytes": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "3c8544846bba2632b995356ef161fabef1d52b6ac7cd61f8f530133e9a6b294a",
+        "data": "abc\ndefgh\nij\nklmnopqrstu\n"
+      },
+      "xaa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      },
+      "xab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "a9c57f1731601d989c07beb36cf073182aba7deb78bcfc6abc43843bb8f554c3",
+        "data": "defgh\n"
+      },
+      "xac": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "3119395a634a5ed58d3ea4a609d9e29e3dff5224bf9d870b348c3d4b14f62ad8",
+        "data": "ij\n"
+      },
+      "xad": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ee8bf789d9f5b302022aa5f9fe01913d8efe43eb714314a478975f19c8f037d8",
+        "data": "klmnopqr"
+      },
+      "xae": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "683f53bf5c4256f3baecfc7ec9561425fb7877d866b72455b8dfd0d4946a3a7e",
+        "data": "stu\n"
+      }
+    }
+  },
+  "split-b": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      },
+      "xaa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "1be2e452b46d7a0d9656bbb1f768e8248eba1b75baed65f5d99eafa948899a6a",
+        "data": "0123"
+      },
+      "xab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "db2e7f1bd5ab9968ae76199b7cc74795ca7404d5a08d78567715ce532f9d2669",
+        "data": "4567"
+      },
+      "xac": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "69a9cd8a9e12b122cdf59392131bf6c83e7360c2f745921e76f48a16f1cc541a",
+        "data": "89\n"
+      }
+    }
+  },
+  "split-b-suffix-unit": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "chunk_aa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1024,
+        "sha256": "c349a1dae1ba9dd7e1618bc8050cd78b2422f9d1648e46dee808eb8425f18d0d",
+        "data": "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123"
+      },
+      "chunk_ab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "1d16558f3d66c2063da3fd2a5054fbdd11755520507a74c94174bd7a6ae52417",
+        "data": "456789\n"
+      },
+      "in.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1031,
+        "sha256": "58643263d99b63c5edb9b2ebdaf25a23f6743a406c98885bfd252f6e99d5f005",
+        "data": "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+      }
+    }
+  },
+  "split-bad-bytes": {
+    "stdout": "",
+    "stderr": "split: invalid number of bytes: ‘abc’\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "split-bad-lines": {
+    "stdout": "",
+    "stderr": "split: invalid number of lines: ‘0’\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "split-d-prefix": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "part_00": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "part_01": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2",
+        "data": "3\n"
+      }
+    }
+  },
+  "split-elide-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a63d8014dba891345b30174df2b2a57efbb65b4f9f09b98f245d1b3192277ece",
+        "data": "ab\n"
+      },
+      "xaa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+        "data": "a"
+      },
+      "xab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+        "data": "b"
+      },
+      "xac": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "data": "\n"
+      }
+    }
+  },
+  "split-extra-operand": {
+    "stdout": "",
+    "stderr": "split: extra operand ‘extra’\nTry 'split --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "split-l": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "f6b49467f595b1a44e442c198b3df4d221e88efcaabc26254f8e0ad4f79b6242",
+        "data": "1\n2\n3\n4\n5\n"
+      },
+      "xaa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "xab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "1ddb914da9135a2d6dfcc0ff179d68d23e7fd1e5364c088c183234d04a41bece",
+        "data": "3\n4\n"
+      },
+      "xac": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "f0b5c2c2211c8d67ed15e75e656c7862d086e9245420892a7de62cd9ec582a06",
+        "data": "5\n"
+      }
+    }
+  },
+  "split-missing": {
+    "stdout": "",
+    "stderr": "split: cannot open 'nope.txt' for reading: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "split-n-chunks": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c4f6fa010fb86ed9f99900dbf654759acd894604192042d5944f7c935ba41f2c",
+        "data": "abcdefghij\n"
+      },
+      "xaa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589",
+        "data": "abcd"
+      },
+      "xab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "e5e088a0b66163a0a26a5e053d2a4496dc16ab6e0e3dd1adf2d16aa84a078c9d",
+        "data": "efgh"
+      },
+      "xac": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "3119395a634a5ed58d3ea4a609d9e29e3dff5224bf9d870b348c3d4b14f62ad8",
+        "data": "ij\n"
+      }
+    }
+  },
+  "split-n-lines": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "cdc8abde85daac64eb1f130d3c92658738cbe6e999ab9151c2ca86fb3713125b",
+        "data": "um\ndois\ntrês\nquatro\ncinco\n"
+      },
+      "xaa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "1058c8e96b4d61c14426e45aaf572bac17d091dd3231a9716736db21a80213e9",
+        "data": "um\ndois\ntrês\n"
+      },
+      "xab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "87b912c0171727504840a6e5af09c2f45931f86b884169be35c8440c3eb80b6f",
+        "data": "quatro\ncinco\n"
+      }
+    }
+  },
+  "split-numeric-from": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      },
+      "p01": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "p02": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "p03": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a3a5e715f0cc574a73c3f9bebb6bc24f32ffd5b67b387244c2c909da779a1478",
+        "data": "c\n"
+      }
+    }
+  },
+  "split-stdin": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s_aa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "s_ab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "split-suffix-length-additional": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "chunk.aaa.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "chunk.aab.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "split-verbose": {
+    "stdout": "creating file 'xaa'\ncreating file 'xab'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "xaa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "xab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2",
+        "data": "3\n"
+      }
+    }
+  }
+}

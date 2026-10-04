@@ -1,0 +1,546 @@
+{
+  "base32-decode": {
+    "stdout": "hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "base32-decode-invalid": {
+    "stdout": "hello",
+    "stderr": "base32: invalid input\n",
+    "exit": 1,
+    "files": {}
+  },
+  "base32-file": {
+    "stdout": "NBSWY3DPBI======\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "base32-missing": {
+    "stdout": "",
+    "stderr": "base32: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "base32-stdin-wrap": {
+    "stdout": "KRUGKIDROVUWG2ZAMJZG653OEBTG66BANJ2W24DTEBXXMZLSEB2GQZJANRQXU6JAMRXWOLRAGAYT\nEMZUGU3DOOBZBI======\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "base32-w0": {
+    "stdout": "KRUGKIDROVUWG2ZAMJZG653OEBTG66BANJ2W24DTEBXXMZLSEB2GQZJANRQXU6JAMRXWOLRAGAYTEMZUGU3DOOBZBI======",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "base64-bad-wrap": {
+    "stdout": "",
+    "stderr": "base64: invalid wrap size: ‘abc’\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "base64-binary": {
+    "stdout": "AAECA/7/gIE=\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin.dat": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "d1296f418883627f56b9e436bcc75e9779ac6e4c3bfdc194bec649f7d90d2967",
+        "data": {
+          "b64": "AAECA/7/gIE="
+        }
+      }
+    }
+  },
+  "base64-dash": {
+    "stdout": "YWJj\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "base64-decode-file": {
+    "stdout": "hello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "enc.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "c6e20ed03238f28a9352fa2e80dcefb000477d2a5d3f8f374046b453b9a7747c",
+        "data": "aGVsbG8gd29ybGQK\n"
+      }
+    }
+  },
+  "base64-decode-ignore-garbage": {
+    "stdout": "hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "base64-decode-invalid": {
+    "stdout": "hel",
+    "stderr": "base64: invalid input\n",
+    "exit": 1,
+    "files": {}
+  },
+  "base64-decode-multiline": {
+    "stdout": "The quick brown fox\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "base64-decode-no-padding": {
+    "stdout": "hello",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "base64-decode-stdin": {
+    "stdout": "olá, mundo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "base64-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "base64-extra-operand": {
+    "stdout": "",
+    "stderr": "base64: extra operand ‘b.txt’\nTry 'base64 --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "base64-file": {
+    "stdout": "aGVsbG8K\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "base64-missing": {
+    "stdout": "",
+    "stderr": "base64: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "base64-roundtrip": {
+    "stdout": " 00 01 02 03 fe ff 80 81\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin.dat": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "d1296f418883627f56b9e436bcc75e9779ac6e4c3bfdc194bec649f7d90d2967",
+        "data": {
+          "b64": "AAECA/7/gIE="
+        }
+      }
+    }
+  },
+  "base64-stdin": {
+    "stdout": "b2zDoSwgbXVuZG8K\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "base64-w0": {
+    "stdout": "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4gVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4K",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 90,
+        "sha256": "3665416e36b7fdc1ded594e099b627f52780f480b19e42775536b977a0fb6e5e",
+        "data": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.\n"
+      }
+    }
+  },
+  "base64-w10": {
+    "stdout": "aGVsbG8gd2\n9ybGQK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "base64-wrap-default": {
+    "stdout": "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4gVGhlIHF1aWNrIGJy\nb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4K\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 90,
+        "sha256": "3665416e36b7fdc1ded594e099b627f52780f480b19e42775536b977a0fb6e5e",
+        "data": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.\n"
+      }
+    }
+  },
+  "basenc-base16": {
+    "stdout": "68656C6C6F0A\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basenc-base16-decode": {
+    "stdout": "hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basenc-base16-decode-lowercase": {
+    "stdout": "hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basenc-base2lsbf": {
+    "stdout": "1000001001000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basenc-base2msbf": {
+    "stdout": "0100000101000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basenc-base32hex": {
+    "stdout": "D1IMOR3F18======\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basenc-base64": {
+    "stdout": "aGVsbG8K\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basenc-base64url": {
+    "stdout": "-_7_gIE-Pz8=\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin.dat": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "fa4575c42d7c924abf3316d90c05956ab81b5716a518f5a282927117a619eff6",
+        "data": {
+          "b64": "+/7/gIE+Pz8="
+        }
+      }
+    }
+  },
+  "basenc-missing-encoding": {
+    "stdout": "",
+    "stderr": "basenc: missing encoding type\nTry 'basenc --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "basenc-z85": {
+    "stdout": "xK#0@\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basenc-z85-bad-length": {
+    "stdout": "",
+    "stderr": "basenc: invalid input (length must be multiple of 4 characters)\n",
+    "exit": 1,
+    "files": {}
+  },
+  "od-An-tx1": {
+    "stdout": " 68 65 6c 6c 6f 20 77 6f 72 6c 64 2c 20 68 6f 77\n 20 61 72 65 20 79 6f 75 3f 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 26,
+        "sha256": "9e6fc21b50609d16109d9d9d07542e75ceaa42c5d1146de2f8cb9b74d5685d5d",
+        "data": "hello world, how are you?\n"
+      }
+    }
+  },
+  "od-Ax-tx1z": {
+    "stdout": "000000 68 65 6c 6c 6f 20 77 6f 72 6c 64 2c 20 68 6f 77  >hello world, how<\n000010 20 61 72 65 20 79 6f 75 3f 0a                    > are you?.<\n00001a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 26,
+        "sha256": "9e6fc21b50609d16109d9d9d07542e75ceaa42c5d1146de2f8cb9b74d5685d5d",
+        "data": "hello world, how are you?\n"
+      }
+    }
+  },
+  "od-N-j": {
+    "stdout": "0000002   2   3   4   5\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      }
+    }
+  },
+  "od-b": {
+    "stdout": "0000000 101 102 103 012\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "8470d56547eea6236d7c81a644ce74670ca0bbda998e13c629ef6bb3f0d60b69",
+        "data": "ABC\n"
+      }
+    }
+  },
+  "od-bad-type": {
+    "stdout": "",
+    "stderr": "od: invalid character 'q' in type string ‘q’\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "od-c": {
+    "stdout": "0000000   a  \\t   b   \\   c  \\r  \\n 001 303 251\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "f54a16da8f2007b34eb4349edfe37c7a9ed2bff931c1ffc3ff6fcc686c659a59",
+        "data": "a\tb\\c\r\n\u0001é"
+      }
+    }
+  },
+  "od-default": {
+    "stdout": "0000000 062550 066154 020157 067567 066162 005144\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "od-dup-suppression": {
+    "stdout": "0000000 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n*\n0000060 00 00 00 00 00 00 00 00 00 00 00 00 01\n0000075\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "zeros.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 61,
+        "sha256": "9ec9777d4a5bb496bfe3614ac1b31e36ddb240dbb854a60d62e15880e234cb21",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001"
+      }
+    }
+  },
+  "od-empty": {
+    "stdout": "0000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "od-missing": {
+    "stdout": "",
+    "stderr": "od: nope.bin: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "od-multi-files": {
+    "stdout": "   a   b   c   d  \\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603",
+        "data": "ab"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "6ebc5b1b9edd24cc64d2303df6e78d920a4e7f948bbcda177913a9ed34b8a7f6",
+        "data": "cd\n"
+      }
+    }
+  },
+  "od-stdin": {
+    "stdout": "0000000   x  \\n   y  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "od-td2-tu1": {
+    "stdout": "0000000     256     770      -2  -32384\n          0   1   2   3 254 255 128 129\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin.dat": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "d1296f418883627f56b9e436bcc75e9779ac6e4c3bfdc194bec649f7d90d2967",
+        "data": {
+          "b64": "AAECA/7/gIE="
+        }
+      }
+    }
+  },
+  "od-v-no-suppression": {
+    "stdout": "0000000 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n0000020 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n0000040 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n0000060 00 00 00 00 00 00 00 00 00 00 00 00 01\n0000075\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "zeros.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 61,
+        "sha256": "9ec9777d4a5bb496bfe3614ac1b31e36ddb240dbb854a60d62e15880e234cb21",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001"
+      }
+    }
+  },
+  "od-w8": {
+    "stdout": " 30 31 32 33 34 35 36 37\n 38 39 61 62 63 64 65 66\n 21 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "d5f327b4626a3d87db69a255a065339ec289869b0d14fa2eaab8ab33b64f9bc3",
+        "data": "0123456789abcdef!\n"
+      }
+    }
+  },
+  "od-x": {
+    "stdout": "0000000 6568 6c6c 206f 6f77 6c72 0a64\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  }
+}

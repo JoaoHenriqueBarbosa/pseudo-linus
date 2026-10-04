@@ -1,0 +1,34 @@
+[package]
+name = "staging-text"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Preparação do grupo text do ul-coreutils: porte em andamento, fora do workspace principal"
+
+# Workspace próprio: o porte em andamento não quebra o build de ninguém.
+[workspace]
+
+[dependencies]
+sysabi = { path = "../../../sysabi" }
+sysio = { path = "../../../sysio" }
+uucore = { path = "../../vendor/src/uucore", package = "pl-uucore", features = [
+    "backup-control", "buf-copy", "checksum", "colors", "encoding", "entries", "extendedbigdecimal",
+    "fast-inc", "format", "fs", "fsext", "fsxattr", "hardware", "i18n-charmap", "i18n-collator",
+    "i18n-common", "i18n-datetime", "i18n-decimal", "lines", "mode", "parser", "parser-glob",
+    "parser-size", "perms", "pipes", "process", "quoting-style", "ranges", "ringbuffer",
+    "safe-copy", "safe-traversal", "signals", "sum", "time", "tty", "update-control", "utf8",
+    "utmpx", "version-cmp", "wide",
+] }
+pl-testing = { path = "../../../pl-testing", optional = true }
+# Utilitários do grupo (o agente do grupo acrescenta aqui, um por linha):
+# uu_tail = { path = "../../vendor/src/uu/tail", package = "pl-uu-tail" }
+
+[features]
+kernel-tests = ["dep:pl-testing", "pl-testing/kernel"]
+
+[dev-dependencies]
+sysabi = { path = "../../../sysabi", features = ["testkit"] }
+harness = { path = "../../../../testbench/crates/harness" }
+
+[lints.rust]
+unsafe_code = "forbid"

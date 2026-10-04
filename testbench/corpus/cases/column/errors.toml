@@ -1,0 +1,149 @@
+tool = "column"
+source = "manual"
+
+# Opções, mensagens de erro e códigos de saída do column (util-linux 2.41).
+
+[[case]]
+id = "column-err-unrecognized"
+argv = ["column", "--bogus"]
+
+[[case]]
+id = "column-err-unrecognized-value"
+argv = ["column", "--bogus=1"]
+
+[[case]]
+id = "column-err-invalid-short"
+argv = ["column", "-Z"]
+
+[[case]]
+id = "column-err-missing-arg"
+argv = ["column", "-s"]
+
+[[case]]
+id = "column-err-missing-arg-long"
+argv = ["column", "-t", "--separator"]
+
+[[case]]
+id = "column-err-ambiguous"
+argv = ["column", "--tab=x"]
+
+[[case]]
+id = "column-err-ambiguous-tree"
+argv = ["column", "--tr", "x"]
+
+[[case]]
+id = "column-long-prefix"
+argv = ["column", "--tabl", "--output-sep", "|"]
+stdin = "a b\nc d\n"
+
+[[case]]
+id = "column-err-json-needs-names"
+argv = ["column", "-J"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-err-table-required"
+argv = ["column", "-N", "a,b"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-err-table-required-name"
+argv = ["column", "-n", "foo"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-flags-without-table"
+argv = ["column", "-d", "-e", "-m", "-l", "2"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-err-exclusive-table-fillrows"
+argv = ["column", "-t", "-x"]
+
+[[case]]
+id = "column-err-exclusive-json-fillrows"
+argv = ["column", "-J", "-x", "-N", "a,b"]
+
+[[case]]
+id = "column-err-exclusive-C-N"
+argv = ["column", "-t", "-C", "name=X", "-N", "A,B"]
+stdin = "a 1\n"
+
+[[case]]
+id = "column-err-tree-needs-ids"
+argv = ["column", "-t", "-N", "a,b", "-r", "a"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-err-tree-before-table"
+argv = ["column", "-x", "-r", "a"]
+
+[[case]]
+id = "column-err-undefined-right"
+argv = ["column", "-t", "-R", "zz"]
+stdin = "a b c\n"
+
+[[case]]
+id = "column-err-undefined-number"
+argv = ["column", "-t", "-R", "5"]
+stdin = "a b c\n"
+
+[[case]]
+id = "column-err-undefined-case"
+argv = ["column", "-t", "-N", "X,Y", "-R", "x"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-right-zero-and-empty-items"
+argv = ["column", "-t", "-R", "0", "-H", ",1"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-err-undefined-hide"
+argv = ["column", "-t", "-H", "3", "-N", "a,b"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-err-undefined-order"
+argv = ["column", "-t", "-O", "zz", "-N", "a,b"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-err-columns-invalid"
+argv = ["column", "-c", "abc"]
+
+[[case]]
+id = "column-err-columns-negative"
+argv = ["column", "-c", "-5"]
+
+[[case]]
+id = "column-err-columns-huge"
+argv = ["column", "-c", "99999999999"]
+
+[[case]]
+id = "column-err-limit-zero"
+argv = ["column", "-t", "-l", "0"]
+
+[[case]]
+id = "column-err-limit-invalid"
+argv = ["column", "-t", "-l", "x"]
+
+[[case]]
+id = "column-err-spaces-invalid"
+argv = ["column", "-S", "x"]
+
+[[case]]
+id = "column-help"
+argv = ["column", "--help"]
+
+[[case]]
+id = "column-help-short"
+argv = ["column", "-h"]
+
+[[case]]
+id = "column-version"
+argv = ["column", "-V"]
+
+[[case]]
+id = "column-version-long"
+argv = ["column", "--version"]

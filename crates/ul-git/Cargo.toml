@@ -1,0 +1,32 @@
+[package]
+name = "ul-git"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "git do pseudo-linus: repositório, índice, refs e worktree sobre o FS do sandbox, compatível com o git 2.47.3 do Debian 13"
+
+[dependencies]
+sysabi = { workspace = true }
+# Fachada com a forma do std: `process::Command` (editor e hooks, PATH como o execvp) e `/etc/passwd`.
+sysio = { workspace = true }
+# wildmatch (`.gitignore` e pathspec).
+gix-glob = "=0.28.0"
+# Regex (git grep, log --grep, :/texto, -G): POSIX BRE/ERE traduzidas pra sintaxe do `regex`
+# (MIT/Apache) no módulo `re`, pra o crate continuar MIT.
+regex = "1"
+# Diff de linhas com a heurística de indentação do git (cópia mantida pelo gitoxide do imara-diff).
+gix-imara-diff = "=0.3.0"
+# SHA-1 dos objetos e do índice.
+sha1 = "0.10"
+# zlib dos objetos soltos e dos packs (Rust puro, forbid(unsafe_code)).
+miniz_oxide = "0.8"
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing" }
+harness = { path = "../../testbench/crates/harness" }
+
+[lints]
+workspace = true

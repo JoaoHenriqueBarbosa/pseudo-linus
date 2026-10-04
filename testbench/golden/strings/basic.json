@@ -1,0 +1,730 @@
+{
+  "strings-all-long": {
+    "stdout": "hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-all-short": {
+    "stdout": "hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-bytes-long": {
+    "stdout": "hello world\nabc\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-bytes-prefix": {
+    "stdout": "longer string here\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-dash-before-file": {
+    "stdout": "hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-data-stdin": {
+    "stdout": "      0 abcd\n      5 efghij\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "strings-default": {
+    "stdout": "hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-eight-bit": {
+    "stdout": {
+      "b64": "Y2Fm6SBhdSBsYWl0CqChoqOkCnBsYWlugIF0ZXh0Cg=="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "hi8": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "80a177e2675e4ce45198e3429c66b68a3945d88ffb6fae78dd6a491266b36b1f",
+        "data": {
+          "b64": "Y2Fm6SBhdSBsYWl0AKChoqOkAHBsYWlugIF0ZXh0AA=="
+        }
+      }
+    }
+  },
+  "strings-eight-bit-whitespace": {
+    "stdout": {
+      "b64": "aGVsbG8gd29ybGQKYWJjZApsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFiCv94eXp3Cg=="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-empty-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "strings-n-glued": {
+    "stdout": "longer string here\nsecond line\ttab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-n-hex": {
+    "stdout": "abcdefghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n9": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1e9c83add2a5a7565324514af7c3095aafe9976033984ca42408417fa1a2f6d0",
+        "data": "12345678\u0000abcdefghi\u0000"
+      }
+    }
+  },
+  "strings-n-huge-accepted": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n9": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1e9c83add2a5a7565324514af7c3095aafe9976033984ca42408417fa1a2f6d0",
+        "data": "12345678\u0000abcdefghi\u0000"
+      }
+    }
+  },
+  "strings-n-last-wins": {
+    "stdout": "hello world\nlonger string here\nsecond line\ttab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-n-leading-space": {
+    "stdout": "abcdefghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n9": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1e9c83add2a5a7565324514af7c3095aafe9976033984ca42408417fa1a2f6d0",
+        "data": "12345678\u0000abcdefghi\u0000"
+      }
+    }
+  },
+  "strings-n-octal": {
+    "stdout": "12345678\nabcdefghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n9": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1e9c83add2a5a7565324514af7c3095aafe9976033984ca42408417fa1a2f6d0",
+        "data": "12345678\u0000abcdefghi\u0000"
+      }
+    }
+  },
+  "strings-n-plus": {
+    "stdout": "abcdefghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n9": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1e9c83add2a5a7565324514af7c3095aafe9976033984ca42408417fa1a2f6d0",
+        "data": "12345678\u0000abcdefghi\u0000"
+      }
+    }
+  },
+  "strings-n3": {
+    "stdout": "hello world\nabc\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-num-octal": {
+    "stdout": "12345678\nabcdefghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n9": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1e9c83add2a5a7565324514af7c3095aafe9976033984ca42408417fa1a2f6d0",
+        "data": "12345678\u0000abcdefghi\u0000"
+      }
+    }
+  },
+  "strings-num-opt": {
+    "stdout": "hello world\nabc\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-num-two-digits": {
+    "stdout": "longer string here\nsecond line\ttab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-o": {
+    "stdout": "      0 hello world\n     20 abcd\n     27 longer string here\n     52 second line\ttab\n     73 xyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-offset-past-300": {
+    "stdout": "    12c tail string\n    13a another one here\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "big": {
+        "kind": "file",
+        "mode": 420,
+        "size": 330,
+        "sha256": "0587ed604436f0e30683afd54bc2a133addb48f5c22912844316a59a3862e927",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000tail string\u0000\u0000\u0000another one here"
+      }
+    }
+  },
+  "strings-offset-past-300-octal": {
+    "stdout": "    454 tail string\n    472 another one here\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "big": {
+        "kind": "file",
+        "mode": 420,
+        "size": 330,
+        "sha256": "0587ed604436f0e30683afd54bc2a133addb48f5c22912844316a59a3862e927",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000tail string\u0000\u0000\u0000another one here"
+      }
+    }
+  },
+  "strings-options-after-file": {
+    "stdout": "a: hello world\na: longer string here\na: second line\ttab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-print-file-name": {
+    "stdout": "a: hello world\na: abcd\na: longer string here\na: second line\ttab\na: xyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-print-file-name-long": {
+    "stdout": "a:       0 hello world\na:      10 abcd\na:      17 longer string here\na:      2a second line\ttab\na:      3b xyzw\nn9:       0 12345678\nn9:       9 abcdefghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      },
+      "n9": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1e9c83add2a5a7565324514af7c3095aafe9976033984ca42408417fa1a2f6d0",
+        "data": "12345678\u0000abcdefghi\u0000"
+      }
+    }
+  },
+  "strings-radix-glued": {
+    "stdout": "      0 hello world\n     16 abcd\n     23 longer string here\n     42 second line\ttab\n     59 xyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-radix-last-wins": {
+    "stdout": "      0 hello world\n     10 abcd\n     17 longer string here\n     2a second line\ttab\n     3b xyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-radix-long": {
+    "stdout": "      0 hello world\n     10 abcd\n     17 longer string here\n     2a second line\ttab\n     3b xyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-same-file-twice": {
+    "stdout": "n9: 12345678\nn9: abcdefghi\nn9: 12345678\nn9: abcdefghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "n9": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1e9c83add2a5a7565324514af7c3095aafe9976033984ca42408417fa1a2f6d0",
+        "data": "12345678\u0000abcdefghi\u0000"
+      }
+    }
+  },
+  "strings-separator": {
+    "stdout": "hello world|abcd|longer string here|second line\ttab|xyzw|",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-separator-empty": {
+    "stdout": "hello worldabcdlonger string heresecond line\ttabxyzw",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-separator-long": {
+    "stdout": "hello world<>\nabcd<>\nlonger string here<>\nsecond line\ttab<>\nxyzw<>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-separator-names-radix": {
+    "stdout": "a:       0 hello world::a:      16 abcd::a:      23 longer string here::a:      42 second line\ttab::a:      59 xyzw::",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-seven-bit-high": {
+    "stdout": "      4  au lait\n     13 plain\n     1a text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "hi8": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "80a177e2675e4ce45198e3429c66b68a3945d88ffb6fae78dd6a491266b36b1f",
+        "data": {
+          "b64": "Y2Fm6SBhdSBsYWl0AKChoqOkAHBsYWlugIF0ZXh0AA=="
+        }
+      }
+    }
+  },
+  "strings-stdin": {
+    "stdout": "from stdin\nanother stdin line\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "strings-stdin-names-radix": {
+    "stdout": "{standard input}:       2 yyyyyy\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "strings-string-at-eof": {
+    "stdout": "      4 last string without nul\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "eof": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "fdaf96776fdcec05632eeee5f2d136452bd2c336b214ad2b54ba85020219acee",
+        "data": "abc\u0000last string without nul"
+      }
+    }
+  },
+  "strings-t-d": {
+    "stdout": "      0 hello world\n     16 abcd\n     23 longer string here\n     42 second line\ttab\n     59 xyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-t-o": {
+    "stdout": "      0 hello world\n     20 abcd\n     27 longer string here\n     52 second line\ttab\n     73 xyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-t-x": {
+    "stdout": "      0 hello world\n     10 abcd\n     17 longer string here\n     2a second line\ttab\n     3b xyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-target-ignored": {
+    "stdout": "hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-target-long": {
+    "stdout": "hello world\nlonger string here\nsecond line\ttab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      }
+    }
+  },
+  "strings-two-files": {
+    "stdout": "hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n12345678\nabcdefghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 64,
+        "sha256": "f7103a3e407090454dee344cfd33a46287230004b8310c60082ab529faa8ab31",
+        "data": {
+          "b64": "aGVsbG8gd29ybGQAYWJjAGFiY2QAAQJsb25nZXIgc3RyaW5nIGhlcmUKc2Vjb25kIGxpbmUJdGFif/94eXp3AA=="
+        }
+      },
+      "n9": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "1e9c83add2a5a7565324514af7c3095aafe9976033984ca42408417fa1a2f6d0",
+        "data": "12345678\u0000abcdefghi\u0000"
+      }
+    }
+  },
+  "strings-whitespace": {
+    "stdout": "tab\there\nline1\nline2\ncr\rlf\nff\fvt\u000bx\n   \n\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ws": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "1978dc7200f259c6c85779d3ef0eec1ca06f7ddac77afa48ed2fde9d599f31b6",
+        "data": "tab\there\u0000line1\nline2\u0000cr\rlf\u0000ff\fvt\u000bx\u0000   \n\n\u0000"
+      }
+    }
+  },
+  "strings-whitespace-default": {
+    "stdout": "      0 tab\there\n      9 line1\n     15 line2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ws": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "1978dc7200f259c6c85779d3ef0eec1ca06f7ddac77afa48ed2fde9d599f31b6",
+        "data": "tab\there\u0000line1\nline2\u0000cr\rlf\u0000ff\fvt\u000bx\u0000   \n\n\u0000"
+      }
+    }
+  },
+  "strings-whitespace-long": {
+    "stdout": "      0 tab\there|      9 line1\nline2|     21 cr\rlf|     27 ff\fvt\u000bx|     35    \n\n|",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ws": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "1978dc7200f259c6c85779d3ef0eec1ca06f7ddac77afa48ed2fde9d599f31b6",
+        "data": "tab\there\u0000line1\nline2\u0000cr\rlf\u0000ff\fvt\u000bx\u0000   \n\n\u0000"
+      }
+    }
+  }
+}

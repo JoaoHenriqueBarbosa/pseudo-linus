@@ -1,0 +1,41 @@
+usage: git cat-file <type> <object>
+   or: git cat-file (-e | -p) <object>
+   or: git cat-file (-t | -s) [--allow-unknown-type] <object>
+   or: git cat-file (--textconv | --filters)
+                    [<rev>:<path|tree-ish> | --path=<path|tree-ish> <rev>]
+   or: git cat-file (--batch | --batch-check | --batch-command) [--batch-all-objects]
+                    [--buffer] [--follow-symlinks] [--unordered]
+                    [--textconv | --filters] [-Z]
+
+Check object existence or emit object contents
+    -e                    check if <object> exists
+    -p                    pretty-print <object> content
+
+Emit [broken] object attributes
+    -t                    show object type (one of 'blob', 'tree', 'commit', 'tag', ...)
+    -s                    show object size
+    --[no-]allow-unknown-type
+                          allow -s and -t to work with broken/corrupt objects
+    --[no-]use-mailmap    use mail map file
+    --[no-]mailmap        alias of --use-mailmap
+
+Batch objects requested on stdin (or --batch-all-objects)
+    --batch[=<format>]    show full <object> or <rev> contents
+    --batch-check[=<format>]
+                          like --batch, but don't emit <contents>
+    -Z                    stdin and stdout is NUL-terminated
+    --batch-command[=<format>]
+                          read commands from stdin
+    --batch-all-objects   with --batch[-check]: ignores stdin, batches all known objects
+
+Change or optimize batch output
+    --[no-]buffer         buffer --batch output
+    --[no-]follow-symlinks
+                          follow in-tree symlinks
+    --[no-]unordered      do not order objects before emitting them
+
+Emit object (blob or tree) with conversion or filter (stand-alone, or with batch)
+    --textconv            run textconv on object's content
+    --filters             run filters on object's content
+    --[no-]path blob|tree use a <path> for (--textconv | --filters); Not with 'batch'
+

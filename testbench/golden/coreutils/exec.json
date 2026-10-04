@@ -1,0 +1,394 @@
+{
+  "chroot-bad-option": {
+    "stdout": "",
+    "stderr": "chroot: unrecognized option '--bogus'\nTry 'chroot --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "chroot-missing-dir": {
+    "stdout": "",
+    "stderr": "chroot: cannot change root directory to 'nope': No such file or directory\n",
+    "exit": 125,
+    "files": {}
+  },
+  "chroot-no-operand": {
+    "stdout": "",
+    "stderr": "chroot: missing operand\nTry 'chroot --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "chroot-not-dir": {
+    "stdout": "",
+    "stderr": "chroot: cannot change root directory to 'a.txt': Not a directory\n",
+    "exit": 125,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "false-help": {
+    "stdout": "Usage: false [ignored command line arguments]\n  or:  false OPTION\nExit with a status code indicating failure.\n\n      --help        display this help and exit\n      --version     output version information and exit\n\nYour shell may have its own version of false, which usually supersedes\nthe version described here.  Please refer to your shell's documentation\nfor details about the options it supports.\n\nGNU coreutils online help: <https://www.gnu.org/software/coreutils/>\nReport any translation bugs to <https://translationproject.org/team/>\nFull documentation <https://www.gnu.org/software/coreutils/false>\nor available locally via: info '(coreutils) false invocation'\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "false-ignores-args": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "false-plain": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "nice-adjustment-without-command": {
+    "stdout": "",
+    "stderr": "nice: a command must be given with an adjustment\nTry 'nice --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "nice-bad-adjustment": {
+    "stdout": "",
+    "stderr": "nice: invalid adjustment ‘abc’\n",
+    "exit": 125,
+    "files": {}
+  },
+  "nice-clamped": {
+    "stdout": "19\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nice-default-adjustment": {
+    "stdout": "10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nice-n": {
+    "stdout": "5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nice-not-found": {
+    "stdout": "",
+    "stderr": "nice: ‘nope-cmd’: No such file or directory\n",
+    "exit": 127,
+    "files": {}
+  },
+  "nice-obsolete-form": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nice-print": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nice-runs-command": {
+    "stdout": "rodou\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nohup-exit-status": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "nohup-missing-operand": {
+    "stdout": "",
+    "stderr": "nohup: missing operand\nTry 'nohup --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "nohup-not-executable": {
+    "stdout": "",
+    "stderr": "nohup: failed to run command './a.txt': Permission denied\n",
+    "exit": 126,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "nohup-not-found": {
+    "stdout": "",
+    "stderr": "nohup: failed to run command 'nope-cmd': No such file or directory\n",
+    "exit": 127,
+    "files": {}
+  },
+  "nohup-run": {
+    "stdout": "oi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sleep-bad-suffix": {
+    "stdout": "",
+    "stderr": "sleep: invalid time interval ‘1x’\nTry 'sleep --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "sleep-fraction": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sleep-invalid": {
+    "stdout": "",
+    "stderr": "sleep: invalid time interval ‘abc’\nTry 'sleep --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "sleep-missing-operand": {
+    "stdout": "",
+    "stderr": "sleep: missing operand\nTry 'sleep --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "sleep-multiple": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sleep-negative": {
+    "stdout": "",
+    "stderr": "sleep: invalid option -- '1'\nTry 'sleep --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "sleep-suffix": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sleep-zero": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "stdbuf-bad-mode": {
+    "stdout": "",
+    "stderr": "stdbuf: invalid mode ‘X’\n",
+    "exit": 125,
+    "files": {}
+  },
+  "stdbuf-line-buffered-stdin": {
+    "stdout": "",
+    "stderr": "stdbuf: line buffering stdin is meaningless\nTry 'stdbuf --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "stdbuf-missing-command": {
+    "stdout": "",
+    "stderr": "stdbuf: missing operand\nTry 'stdbuf --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "stdbuf-no-mode": {
+    "stdout": "",
+    "stderr": "stdbuf: you must specify a buffering mode option\nTry 'stdbuf --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "stdbuf-not-found": {
+    "stdout": "",
+    "stderr": "stdbuf: failed to run command ‘nope-cmd’: No such file or directory\n",
+    "exit": 127,
+    "files": {}
+  },
+  "stdbuf-o0-filter": {
+    "stdout": "SEM BUFFER\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "stdbuf-oL": {
+    "stdout": "linha\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "stdbuf-pipeline": {
+    "stdout": "a\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "timeout-bad-duration": {
+    "stdout": "",
+    "stderr": "timeout: invalid time interval ‘abc’\nTry 'timeout --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "timeout-bad-signal": {
+    "stdout": "",
+    "stderr": "timeout: ‘NOPE’: invalid signal\nTry 'timeout --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "timeout-exit-passthrough": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "timeout-expire": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 124,
+    "files": {}
+  },
+  "timeout-kill": {
+    "stdout": "",
+    "stderr": "",
+    "exit": null,
+    "signal": 9,
+    "files": {}
+  },
+  "timeout-kill-after": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 124,
+    "files": {}
+  },
+  "timeout-missing-command": {
+    "stdout": "",
+    "stderr": "Try 'timeout --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "timeout-no-args": {
+    "stdout": "",
+    "stderr": "Try 'timeout --help' for more information.\n",
+    "exit": 125,
+    "files": {}
+  },
+  "timeout-not-executable": {
+    "stdout": "",
+    "stderr": "timeout: failed to run command ‘./a.txt’: Permission denied\n",
+    "exit": 126,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "1e9c42437361dd13a3a7c82baedb96d7ea15f2b21d1c04e089761fd729bd6383",
+        "data": "não sou programa\n"
+      }
+    }
+  },
+  "timeout-not-found": {
+    "stdout": "",
+    "stderr": "timeout: failed to run command ‘nope-cmd’: No such file or directory\n",
+    "exit": 127,
+    "files": {}
+  },
+  "timeout-ok": {
+    "stdout": "oi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "timeout-preserve-status": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 143,
+    "files": {}
+  },
+  "timeout-signal-number": {
+    "stdout": "",
+    "stderr": "",
+    "exit": null,
+    "signal": 9,
+    "files": {}
+  },
+  "timeout-suffix": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "timeout-verbose": {
+    "stdout": "",
+    "stderr": "timeout: sending signal TERM to command ‘sleep’\n",
+    "exit": 124,
+    "files": {}
+  },
+  "timeout-zero-disables": {
+    "stdout": "sem limite\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "true-help": {
+    "stdout": "Usage: true [ignored command line arguments]\n  or:  true OPTION\nExit with a status code indicating success.\n\n      --help        display this help and exit\n      --version     output version information and exit\n\nYour shell may have its own version of true, which usually supersedes\nthe version described here.  Please refer to your shell's documentation\nfor details about the options it supports.\n\nGNU coreutils online help: <https://www.gnu.org/software/coreutils/>\nReport any translation bugs to <https://translationproject.org/team/>\nFull documentation <https://www.gnu.org/software/coreutils/true>\nor available locally via: info '(coreutils) true invocation'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "true-ignores-args": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "true-plain": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yes-bad-option": {
+    "stdout": "",
+    "stderr": "yes: invalid option -- 'x'\nTry 'yes --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "yes-bytes": {
+    "stdout": "y\ny\ny\ny\ny",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yes-default": {
+    "stdout": "y\ny\ny\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yes-empty-string": {
+    "stdout": "\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "yes-string": {
+    "stdout": "abc def\nabc def\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

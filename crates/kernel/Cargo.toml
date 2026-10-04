@@ -1,0 +1,19 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Kernel do pseudo-linus: processos em threads do SO, fds, pipes, sinais, wait, exec, escalonador EEVDF e a imagem do sandbox"
+
+[dependencies]
+sysabi = { workspace = true }
+vfs = { workspace = true }
+sched = { workspace = true }
+parking_lot = "0.12"
+getrandom = "0.3"
+rustix = { version = "1", features = ["time", "thread", "process"] }
+
+[lints]
+workspace = true

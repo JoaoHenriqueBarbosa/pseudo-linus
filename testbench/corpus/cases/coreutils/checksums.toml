@@ -1,0 +1,551 @@
+tool = "coreutils"
+source = "agent-style"
+
+# Somas de verificação: md5sum, sha*sum, b2sum, cksum e sum. Cobre arquivo, stdin, "-", vários
+# arquivos, --tag, -c (ok, FAILED, arquivo ausente, linha malformada, --quiet, --status,
+# --ignore-missing) e os erros mais comuns. a.txt = "hello\n" e b.txt = "world\n" em quase todos.
+
+# md5sum
+
+[[case]]
+id = "md5sum-file"
+argv = ["md5sum", "a.txt"]
+tags = ["md5sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "md5sum-multi"
+argv = ["md5sum", "a.txt", "b.txt"]
+tags = ["md5sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+
+[[case]]
+id = "md5sum-stdin"
+argv = ["md5sum"]
+stdin = "hello\n"
+tags = ["md5sum", "checksum", "stdin"]
+
+[[case]]
+id = "md5sum-dash-and-file"
+argv = ["md5sum", "-", "b.txt"]
+stdin = "hello\n"
+tags = ["md5sum", "checksum", "stdin"]
+[case.files]
+"b.txt" = "world\n"
+
+[[case]]
+id = "md5sum-empty"
+argv = ["md5sum", "empty"]
+tags = ["md5sum", "checksum"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "md5sum-tag"
+argv = ["md5sum", "--tag", "a.txt"]
+tags = ["md5sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "md5sum-binary-marker"
+argv = ["md5sum", "-b", "a.txt"]
+tags = ["md5sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "md5sum-zero-terminated"
+argv = ["md5sum", "-z", "a.txt", "b.txt"]
+tags = ["md5sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+
+# Nome com barra invertida: o GNU escapa o nome e prefixa a linha com "\".
+[[case]]
+id = "md5sum-backslash-name"
+argv = ["md5sum", "a\\b.txt"]
+tags = ["md5sum", "checksum", "escape"]
+[case.files]
+"a\\b.txt" = "hello\n"
+
+[[case]]
+id = "md5sum-missing"
+argv = ["md5sum", "a.txt", "nope.txt"]
+tags = ["md5sum", "checksum", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "md5sum-dir"
+argv = ["md5sum", "d"]
+tags = ["md5sum", "checksum", "errno"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "md5sum-bad-option"
+argv = ["md5sum", "-Q", "a.txt"]
+tags = ["md5sum", "checksum", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "md5sum-check-ok"
+argv = ["md5sum", "-c", "sums.md5"]
+tags = ["md5sum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+"sums.md5" = "b1946ac92492d2347c6235b4d2611184  a.txt\n591785b794601e212b260e25925636fd  b.txt\n"
+
+[[case]]
+id = "md5sum-check-failed"
+argv = ["md5sum", "-c", "sums.md5"]
+tags = ["md5sum", "checksum", "check", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+"sums.md5" = "b1946ac92492d2347c6235b4d2611184  a.txt\n00000000000000000000000000000000  b.txt\n"
+
+[[case]]
+id = "md5sum-check-missing-file"
+argv = ["md5sum", "-c", "sums.md5"]
+tags = ["md5sum", "checksum", "check", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+"sums.md5" = "b1946ac92492d2347c6235b4d2611184  a.txt\n591785b794601e212b260e25925636fd  nope.txt\n"
+
+[[case]]
+id = "md5sum-check-ignore-missing"
+argv = ["md5sum", "-c", "--ignore-missing", "sums.md5"]
+tags = ["md5sum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"sums.md5" = "b1946ac92492d2347c6235b4d2611184  a.txt\n591785b794601e212b260e25925636fd  nope.txt\n"
+
+[[case]]
+id = "md5sum-check-quiet"
+argv = ["md5sum", "-c", "--quiet", "sums.md5"]
+tags = ["md5sum", "checksum", "check", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+"sums.md5" = "b1946ac92492d2347c6235b4d2611184  a.txt\n00000000000000000000000000000000  b.txt\n"
+
+[[case]]
+id = "md5sum-check-status"
+argv = ["md5sum", "-c", "--status", "sums.md5"]
+tags = ["md5sum", "checksum", "check", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+"sums.md5" = "b1946ac92492d2347c6235b4d2611184  a.txt\n00000000000000000000000000000000  b.txt\n"
+
+[[case]]
+id = "md5sum-check-malformed"
+argv = ["md5sum", "-c", "sums.md5"]
+tags = ["md5sum", "checksum", "check", "errno"]
+[case.files]
+"sums.md5" = "isto não é uma soma\n"
+
+[[case]]
+id = "md5sum-check-some-malformed-warn"
+argv = ["md5sum", "-c", "-w", "sums.md5"]
+tags = ["md5sum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"sums.md5" = "b1946ac92492d2347c6235b4d2611184  a.txt\nlixo\n"
+
+[[case]]
+id = "md5sum-check-stdin"
+argv = ["md5sum", "-c", "-"]
+stdin = "b1946ac92492d2347c6235b4d2611184  a.txt\n"
+tags = ["md5sum", "checksum", "check", "stdin"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "md5sum-check-tagged"
+argv = ["md5sum", "-c", "sums"]
+tags = ["md5sum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"sums" = "MD5 (a.txt) = b1946ac92492d2347c6235b4d2611184\n"
+
+[[case]]
+id = "md5sum-check-missing-list"
+argv = ["md5sum", "-c", "nope.md5"]
+tags = ["md5sum", "checksum", "check", "errno"]
+
+# sha1sum
+
+[[case]]
+id = "sha1sum-file"
+argv = ["sha1sum", "a.txt"]
+tags = ["sha1sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "sha1sum-stdin"
+argv = ["sha1sum"]
+stdin = "hello\n"
+tags = ["sha1sum", "checksum", "stdin"]
+
+[[case]]
+id = "sha1sum-tag"
+argv = ["sha1sum", "--tag", "a.txt", "b.txt"]
+tags = ["sha1sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+
+[[case]]
+id = "sha1sum-check-ok"
+argv = ["sha1sum", "-c", "sums"]
+tags = ["sha1sum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+"sums" = "f572d396fae9206628714fb2ce00f72e94f2258f  a.txt\n9591818c07e900db7e1e0bc4b884c945e6a61b24  b.txt\n"
+
+[[case]]
+id = "sha1sum-missing"
+argv = ["sha1sum", "nope.txt"]
+tags = ["sha1sum", "checksum", "errno"]
+
+# sha224sum
+
+[[case]]
+id = "sha224sum-file"
+argv = ["sha224sum", "a.txt"]
+tags = ["sha224sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "sha224sum-stdin"
+argv = ["sha224sum", "-"]
+stdin = "world\n"
+tags = ["sha224sum", "checksum", "stdin"]
+
+[[case]]
+id = "sha224sum-check-failed"
+argv = ["sha224sum", "-c", "sums"]
+tags = ["sha224sum", "checksum", "check", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+"sums" = "2d6d67d91d0badcdd06cbbba1fe11538a68a37ec9c2e26457ceff12b  a.txt\n2d6d67d91d0badcdd06cbbba1fe11538a68a37ec9c2e26457ceff12b  b.txt\n"
+
+# sha256sum
+
+[[case]]
+id = "sha256sum-file"
+argv = ["sha256sum", "a.txt"]
+tags = ["sha256sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "sha256sum-multi"
+argv = ["sha256sum", "a.txt", "b.txt"]
+tags = ["sha256sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+
+[[case]]
+id = "sha256sum-stdin"
+argv = ["sha256sum"]
+stdin = "hello\n"
+tags = ["sha256sum", "checksum", "stdin"]
+
+[[case]]
+id = "sha256sum-binary-file"
+argv = ["sha256sum", "bin.dat"]
+tags = ["sha256sum", "checksum", "binary"]
+[case.files]
+"bin.dat" = { content_b64 = "AAECA/7/gIE=" }
+
+[[case]]
+id = "sha256sum-tag"
+argv = ["sha256sum", "--tag", "a.txt"]
+tags = ["sha256sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "sha256sum-check-ok"
+argv = ["sha256sum", "-c", "SHA256SUMS"]
+tags = ["sha256sum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+"SHA256SUMS" = "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03  a.txt\ne258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317  b.txt\n"
+
+[[case]]
+id = "sha256sum-check-failed"
+argv = ["sha256sum", "--check", "SHA256SUMS"]
+tags = ["sha256sum", "checksum", "check", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "mudou\n"
+"SHA256SUMS" = "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03  a.txt\ne258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317  b.txt\n"
+
+[[case]]
+id = "sha256sum-check-binary-marker"
+argv = ["sha256sum", "-c", "SHA256SUMS"]
+tags = ["sha256sum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"SHA256SUMS" = "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03 *a.txt\n"
+
+[[case]]
+id = "sha256sum-missing"
+argv = ["sha256sum", "nope.txt"]
+tags = ["sha256sum", "checksum", "errno"]
+
+[[case]]
+id = "sha256sum-pipeline-cut"
+script = "sha256sum a.txt | cut -d' ' -f1"
+tags = ["sha256sum", "checksum", "pipeline"]
+[case.files]
+"a.txt" = "hello\n"
+
+# sha384sum
+
+[[case]]
+id = "sha384sum-file"
+argv = ["sha384sum", "a.txt"]
+tags = ["sha384sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "sha384sum-stdin"
+argv = ["sha384sum"]
+stdin = "hello\n"
+tags = ["sha384sum", "checksum", "stdin"]
+
+[[case]]
+id = "sha384sum-check-ok"
+argv = ["sha384sum", "-c", "sums"]
+tags = ["sha384sum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"sums" = "1d0f284efe3edea4b9ca3bd514fa134b17eae361ccc7a1eefeff801b9bd6604e01f21f6bf249ef030599f0c218f2ba8c  a.txt\n"
+
+# sha512sum
+
+[[case]]
+id = "sha512sum-file"
+argv = ["sha512sum", "a.txt"]
+tags = ["sha512sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "sha512sum-stdin"
+argv = ["sha512sum"]
+stdin = "world\n"
+tags = ["sha512sum", "checksum", "stdin"]
+
+[[case]]
+id = "sha512sum-tag"
+argv = ["sha512sum", "--tag", "b.txt"]
+tags = ["sha512sum", "checksum"]
+[case.files]
+"b.txt" = "world\n"
+
+[[case]]
+id = "sha512sum-check-failed"
+argv = ["sha512sum", "-c", "sums"]
+tags = ["sha512sum", "checksum", "check", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+"sums" = "e0494295cc1dfdd443d09f81913881a112745174778cc0c224ccc7137024fe41ddc73d909a7ea0f590f253a6a3c470cb9872b9e1ba06e61fbb7a5e9455eba6bb  a.txt\n"
+
+# b2sum
+
+[[case]]
+id = "b2sum-file"
+argv = ["b2sum", "a.txt"]
+tags = ["b2sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "b2sum-length"
+argv = ["b2sum", "-l", "256", "a.txt"]
+tags = ["b2sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "b2sum-length-tag"
+argv = ["b2sum", "--tag", "-l", "128", "a.txt"]
+tags = ["b2sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "b2sum-stdin"
+argv = ["b2sum"]
+stdin = "hello\n"
+tags = ["b2sum", "checksum", "stdin"]
+
+[[case]]
+id = "b2sum-bad-length"
+argv = ["b2sum", "-l", "13", "a.txt"]
+tags = ["b2sum", "checksum", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "b2sum-check-length-inferred"
+argv = ["b2sum", "-c", "sums"]
+tags = ["b2sum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"sums" = "93becc6e9882211c3ec3708c95bcd69baab7bb59c7f4bc84ce637b88a534b783  a.txt\n"
+
+# cksum
+
+[[case]]
+id = "cksum-default"
+argv = ["cksum", "a.txt"]
+tags = ["cksum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "cksum-multi"
+argv = ["cksum", "a.txt", "b.txt"]
+tags = ["cksum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+
+[[case]]
+id = "cksum-stdin"
+argv = ["cksum"]
+stdin = "hello\n"
+tags = ["cksum", "checksum", "stdin"]
+
+[[case]]
+id = "cksum-empty"
+argv = ["cksum", "empty"]
+tags = ["cksum", "checksum"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "cksum-a-md5"
+argv = ["cksum", "-a", "md5", "a.txt"]
+tags = ["cksum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "cksum-a-sha256-untagged"
+argv = ["cksum", "-a", "sha256", "--untagged", "a.txt"]
+tags = ["cksum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "cksum-a-sha256-base64"
+argv = ["cksum", "-a", "sha256", "--base64", "a.txt"]
+tags = ["cksum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "cksum-a-crc32b"
+argv = ["cksum", "-a", "crc32b", "a.txt"]
+tags = ["cksum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "cksum-a-bsd"
+argv = ["cksum", "-a", "bsd", "a.txt"]
+tags = ["cksum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "cksum-a-sysv"
+argv = ["cksum", "-a", "sysv", "a.txt"]
+tags = ["cksum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "cksum-a-blake2b-length"
+argv = ["cksum", "-a", "blake2b", "-l", "256", "a.txt"]
+tags = ["cksum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "cksum-bad-algorithm"
+argv = ["cksum", "-a", "sha3", "a.txt"]
+tags = ["cksum", "checksum", "errno"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "cksum-check-tagged"
+argv = ["cksum", "-c", "sums"]
+tags = ["cksum", "checksum", "check"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+"sums" = "SHA256 (a.txt) = 5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03\nMD5 (b.txt) = 00000000000000000000000000000000\n"
+
+[[case]]
+id = "cksum-missing"
+argv = ["cksum", "nope.txt"]
+tags = ["cksum", "checksum", "errno"]
+
+# sum
+
+[[case]]
+id = "sum-default"
+argv = ["sum", "a.txt"]
+tags = ["sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "sum-sysv"
+argv = ["sum", "-s", "a.txt"]
+tags = ["sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+
+[[case]]
+id = "sum-multi"
+argv = ["sum", "a.txt", "b.txt"]
+tags = ["sum", "checksum"]
+[case.files]
+"a.txt" = "hello\n"
+"b.txt" = "world\n"
+
+[[case]]
+id = "sum-stdin"
+argv = ["sum"]
+stdin = "hello\n"
+tags = ["sum", "checksum", "stdin"]
+
+[[case]]
+id = "sum-missing"
+argv = ["sum", "nope.txt"]
+tags = ["sum", "checksum", "errno"]

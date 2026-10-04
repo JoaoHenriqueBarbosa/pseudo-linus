@@ -1,0 +1,836 @@
+# Árvore /proc falsa "basic": um shell em pts/0 rodando ps, um sleep, uma thread de kernel, um
+# zumbi, um daemon com três threads (uid nobody), um processo com comm cheio de parênteses (uid sem
+# entrada no passwd) em pts/1 e o próprio ps. Boot em 1768477400 (1000 s antes de 2026-01-15T12:00Z),
+# HZ = 100, páginas de 4 KiB.
+#
+# Formato: "@file <caminho> [nonl]" seguido do conteúdo até a próxima diretiva; cada linha ganha um
+# \n no fim, menos com "nonl"; linhas em branco no fim do conteúdo são descartadas. Escapes: \0
+# (NUL), \t, \n, \\ e \xHH. "@link <caminho> <alvo>" e "@dir <caminho>". Linha "#" ou começando
+# com "# " é comentário em qualquer lugar (um "#" de conteúdo se escreve \x23). A saída esperada do procps real (capturada no oráculo com esta árvore montada em
+# /proc e o relógio virtual) está em basic.expected.json.
+
+@link /proc/self 101
+@link /proc/thread-self 101/task/101
+
+@file /proc/sys/kernel/pid_max
+4194304
+@file /proc/sys/kernel/osrelease
+6.12.101+deb13-amd64
+@file /proc/uptime
+1000.00 1950.00
+@file /proc/loadavg
+0.52 0.58 0.59 2/9 101
+@file /proc/stat
+cpu  55000 800 15000 126000 500 0 300 0 0 0
+cpu0 30000 500 8000 60000 300 0 200 0 0 0
+cpu1 25000 300 7000 66000 200 0 100 0 0 0
+intr 1462898 9 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0
+ctxt 4395834
+btime 1768477400
+processes 4300
+procs_running 2
+procs_blocked 0
+softirq 1023881 3 268612 120 33287 61015 0 26344 344122 18 290360
+@file /proc/meminfo
+MemTotal:        8161656 kB
+MemFree:         5123456 kB
+MemAvailable:    6543210 kB
+Buffers:          123456 kB
+Cached:          1234567 kB
+SwapCached:            0 kB
+Active:          1456789 kB
+Inactive:         987654 kB
+Active(anon):     876543 kB
+Inactive(anon):    12345 kB
+Active(file):     580246 kB
+Inactive(file):   975309 kB
+Unevictable:          80 kB
+Mlocked:              80 kB
+SwapTotal:       2097148 kB
+SwapFree:        2000000 kB
+Zswap:                 0 kB
+Zswapped:              0 kB
+Dirty:               340 kB
+Writeback:             0 kB
+AnonPages:        888888 kB
+Mapped:           234567 kB
+Shmem:             34567 kB
+KReclaimable:      98765 kB
+Slab:             187654 kB
+SReclaimable:      98765 kB
+SUnreclaim:        88889 kB
+KernelStack:       12345 kB
+PageTables:        23456 kB
+SecPageTables:         0 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:     6178000 kB
+Committed_AS:    3456789 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:       45678 kB
+VmallocChunk:          0 kB
+Percpu:             4567 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+FileHugePages:         0 kB
+FilePmdMapped:         0 kB
+Unaccepted:            0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+DirectMap4k:      234567 kB
+DirectMap2M:     8153088 kB
+DirectMap1G:           0 kB
+@file /proc/cpuinfo
+processor\t: 0
+vendor_id\t: GenuineIntel
+cpu family\t: 6
+model\t\t: 85
+model name\t: Intel(R) Xeon(R) CPU
+stepping\t: 7
+cpu MHz\t\t: 2500.000
+cache size\t: 36608 KB
+physical id\t: 0
+siblings\t: 2
+core id\t\t: 0
+cpu cores\t: 2
+apicid\t\t: 0
+flags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx lm
+bogomips\t: 5000.00
+
+processor\t: 1
+vendor_id\t: GenuineIntel
+cpu family\t: 6
+model\t\t: 85
+model name\t: Intel(R) Xeon(R) CPU
+stepping\t: 7
+cpu MHz\t\t: 2500.000
+cache size\t: 36608 KB
+physical id\t: 0
+siblings\t: 2
+core id\t\t: 1
+cpu cores\t: 2
+apicid\t\t: 1
+flags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx lm
+bogomips\t: 5000.00
+@file /proc/tty/drivers
+/dev/tty             /dev/tty        5       0 system:/dev/tty
+/dev/console         /dev/console    5       1 system:console
+/dev/ptmx            /dev/ptmx       5       2 system
+/dev/vc/0            /dev/vc/0       4       0 system:vtmaster
+serial               /dev/ttyS       4 64-95 serial
+pty_slave            /dev/pts      136 0-1048575 pty:slave
+pty_master           /dev/ptm      128 0-1048575 pty:master
+unknown              /dev/tty        4 1-63 console
+
+# ---- pid 1: bash, líder da sessão em pts/0 ----
+@file /proc/1/stat
+1 (bash) S 0 1 1 34816 101 4194560 1203 5321 2 7 12 5 30 21 20 0 1 0 500 4595712 835 18446744073709551615 94868942725120 94868943548257 140732662257184 0 0 0 65536 3686404 1266761467 1 0 0 17 0 0 0 0 0 0 94868943780432 94868943828836 94869574074368 140732662263425 140732662263434 140732662263434 140732662263786 0
+@file /proc/1/statm
+1122 835 512 201 0 180 0
+@file /proc/1/status
+Name:\tbash
+Umask:\t0022
+State:\tS (sleeping)
+Tgid:\t1
+Ngid:\t0
+Pid:\t1
+PPid:\t0
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t256
+Groups:\t0
+NStgid:\t1
+NSpid:\t1
+NSpgid:\t1
+NSsid:\t1
+Kthread:\t0
+VmPeak:\t    4552 kB
+VmSize:\t    4488 kB
+VmLck:\t       0 kB
+VmPin:\t       0 kB
+VmHWM:\t    3400 kB
+VmRSS:\t    3340 kB
+RssAnon:\t    1292 kB
+RssFile:\t    2048 kB
+RssShmem:\t       0 kB
+VmData:\t     720 kB
+VmStk:\t     132 kB
+VmExe:\t     804 kB
+VmLib:\t    1904 kB
+VmPTE:\t      52 kB
+VmSwap:\t       0 kB
+Threads:\t1
+SigQ:\t0/31760
+SigPnd:\t0000000000000000
+ShdPnd:\t0000000000000000
+SigBlk:\t0000000000010000
+SigIgn:\t0000000000384004
+SigCgt:\t000000004b813efb
+CapInh:\t0000000000000000
+CapPrm:\t00000000a80425fb
+CapEff:\t00000000a80425fb
+CapBnd:\t00000000a80425fb
+CapAmb:\t0000000000000000
+NoNewPrivs:\t0
+voluntary_ctxt_switches:\t120
+nonvoluntary_ctxt_switches:\t7
+@file /proc/1/cmdline nonl
+bash\0
+@file /proc/1/environ nonl
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\0HOSTNAME=box\0HOME=/root\0TERM=xterm\0
+@file /proc/1/comm
+bash
+@file /proc/1/wchan nonl
+do_wait
+@file /proc/1/cgroup
+0::/
+@file /proc/1/task/1/stat
+1 (bash) S 0 1 1 34816 101 4194560 1203 5321 2 7 12 5 30 21 20 0 1 0 500 4595712 835 18446744073709551615 94868942725120 94868943548257 140732662257184 0 0 0 65536 3686404 1266761467 1 0 0 17 0 0 0 0 0 0 94868943780432 94868943828836 94869574074368 140732662263425 140732662263434 140732662263434 140732662263786 0
+@file /proc/1/task/1/statm
+1122 835 512 201 0 180 0
+@file /proc/1/task/1/status
+Name:\tbash
+Umask:\t0022
+State:\tS (sleeping)
+Tgid:\t1
+Ngid:\t0
+Pid:\t1
+PPid:\t0
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t256
+Groups:\t0
+NStgid:\t1
+NSpid:\t1
+NSpgid:\t1
+NSsid:\t1
+Kthread:\t0
+VmPeak:\t    4552 kB
+VmSize:\t    4488 kB
+VmLck:\t       0 kB
+VmPin:\t       0 kB
+VmHWM:\t    3400 kB
+VmRSS:\t    3340 kB
+RssAnon:\t    1292 kB
+RssFile:\t    2048 kB
+RssShmem:\t       0 kB
+VmData:\t     720 kB
+VmStk:\t     132 kB
+VmExe:\t     804 kB
+VmLib:\t    1904 kB
+VmPTE:\t      52 kB
+VmSwap:\t       0 kB
+Threads:\t1
+@file /proc/1/task/1/cmdline nonl
+bash\0
+@file /proc/1/task/1/environ nonl
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\0HOSTNAME=box\0HOME=/root\0TERM=xterm\0
+@file /proc/1/task/1/comm
+bash
+@file /proc/1/task/1/wchan nonl
+do_wait
+
+# ---- pid 7: sleep infinity em primeiro plano? não: em segundo plano no mesmo terminal ----
+@file /proc/7/stat
+7 (sleep) S 1 7 1 34816 101 4194304 98 0 0 0 0 0 0 0 20 0 1 0 10000 2482176 380 18446744073709551615 94558001377280 94558001393633 140724350574112 0 0 0 0 0 0 1 0 0 17 1 0 0 0 0 0 94558001408880 94558001410152 94558024900608 140724350577771 140724350577786 140724350577786 140724350578665 0
+@file /proc/7/statm
+606 380 330 4 0 85 0
+@file /proc/7/status
+Name:\tsleep
+Umask:\t0022
+State:\tS (sleeping)
+Tgid:\t7
+Ngid:\t0
+Pid:\t7
+PPid:\t1
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t64
+Groups:\t0
+NStgid:\t7
+NSpid:\t7
+NSpgid:\t7
+NSsid:\t1
+Kthread:\t0
+VmPeak:\t    2424 kB
+VmSize:\t    2424 kB
+VmLck:\t       0 kB
+VmPin:\t       0 kB
+VmHWM:\t    1520 kB
+VmRSS:\t    1520 kB
+RssAnon:\t     200 kB
+RssFile:\t    1320 kB
+RssShmem:\t       0 kB
+VmData:\t     340 kB
+VmStk:\t     132 kB
+VmExe:\t      16 kB
+VmLib:\t    1588 kB
+VmPTE:\t      44 kB
+VmSwap:\t       0 kB
+Threads:\t1
+SigQ:\t0/31760
+SigPnd:\t0000000000000000
+ShdPnd:\t0000000000000000
+SigBlk:\t0000000000000000
+SigIgn:\t0000000000000000
+SigCgt:\t0000000000000000
+voluntary_ctxt_switches:\t2
+nonvoluntary_ctxt_switches:\t0
+@file /proc/7/cmdline nonl
+sleep\0infinity\0
+@file /proc/7/environ nonl
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\0HOME=/root\0
+@file /proc/7/comm
+sleep
+@file /proc/7/wchan nonl
+hrtimer_nanosleep
+@file /proc/7/cgroup
+0::/
+@file /proc/7/task/7/stat
+7 (sleep) S 1 7 1 34816 101 4194304 98 0 0 0 0 0 0 0 20 0 1 0 10000 2482176 380 18446744073709551615 94558001377280 94558001393633 140724350574112 0 0 0 0 0 0 1 0 0 17 1 0 0 0 0 0 94558001408880 94558001410152 94558024900608 140724350577771 140724350577786 140724350577786 140724350578665 0
+@file /proc/7/task/7/statm
+606 380 330 4 0 85 0
+@file /proc/7/task/7/status
+Name:\tsleep
+Umask:\t0022
+State:\tS (sleeping)
+Tgid:\t7
+Ngid:\t0
+Pid:\t7
+PPid:\t1
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t64
+Groups:\t0
+NStgid:\t7
+NSpid:\t7
+NSpgid:\t7
+NSsid:\t1
+Kthread:\t0
+VmPeak:\t    2424 kB
+VmSize:\t    2424 kB
+VmRSS:\t    1520 kB
+RssAnon:\t     200 kB
+RssFile:\t    1320 kB
+RssShmem:\t       0 kB
+VmSwap:\t       0 kB
+Threads:\t1
+@file /proc/7/task/7/cmdline nonl
+sleep\0infinity\0
+@file /proc/7/task/7/environ nonl
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\0HOME=/root\0
+@file /proc/7/task/7/comm
+sleep
+@file /proc/7/task/7/wchan nonl
+hrtimer_nanosleep
+
+# ---- pid 20: thread de kernel (cmdline vazio, sem Vm*) ----
+@file /proc/20/stat
+20 (kworker/u8:2) I 0 0 0 0 -1 69238880 0 0 0 0 0 37 0 0 20 0 1 0 7 0 0 18446744073709551615 0 0 0 0 0 0 0 2147483647 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/20/statm
+0 0 0 0 0 0 0
+@file /proc/20/status
+Name:\tkworker/u8:2
+Umask:\t0000
+State:\tI (idle)
+Tgid:\t20
+Ngid:\t0
+Pid:\t20
+PPid:\t0
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t64
+Groups:\t
+NStgid:\t20
+NSpid:\t20
+NSpgid:\t0
+NSsid:\t0
+Kthread:\t1
+Threads:\t1
+SigQ:\t0/31760
+SigPnd:\t0000000000000000
+ShdPnd:\t0000000000000000
+SigBlk:\t0000000000000000
+SigIgn:\t7fffffffffffffff
+SigCgt:\t0000000000000000
+@file /proc/20/cmdline nonl
+@file /proc/20/environ nonl
+@file /proc/20/comm
+kworker/u8:2
+@file /proc/20/wchan nonl
+worker_thread
+@file /proc/20/cgroup
+0::/
+@file /proc/20/task/20/stat
+20 (kworker/u8:2) I 0 0 0 0 -1 69238880 0 0 0 0 0 37 0 0 20 0 1 0 7 0 0 18446744073709551615 0 0 0 0 0 0 0 2147483647 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/20/task/20/statm
+0 0 0 0 0 0 0
+@file /proc/20/task/20/status
+Name:\tkworker/u8:2
+Umask:\t0000
+State:\tI (idle)
+Tgid:\t20
+Ngid:\t0
+Pid:\t20
+PPid:\t0
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t64
+Groups:\t
+NStgid:\t20
+NSpid:\t20
+NSpgid:\t0
+NSsid:\t0
+Kthread:\t1
+Threads:\t1
+@file /proc/20/task/20/cmdline nonl
+@file /proc/20/task/20/environ nonl
+@file /proc/20/task/20/comm
+kworker/u8:2
+@file /proc/20/task/20/wchan nonl
+worker_thread
+
+# ---- pid 30: zumbi, filho do sleep ----
+@file /proc/30/stat
+30 (zombie) Z 7 7 1 34816 101 4227084 50 0 0 0 3 1 0 0 20 0 1 0 20000 0 0 18446744073709551615 0 0 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/30/statm
+0 0 0 0 0 0 0
+@file /proc/30/status
+Name:\tzombie
+Umask:\t0022
+State:\tZ (zombie)
+Tgid:\t30
+Ngid:\t0
+Pid:\t30
+PPid:\t7
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t0
+Groups:\t0
+NStgid:\t30
+NSpid:\t30
+NSpgid:\t7
+NSsid:\t1
+Kthread:\t0
+Threads:\t1
+SigQ:\t0/31760
+SigPnd:\t0000000000000000
+ShdPnd:\t0000000000000000
+SigBlk:\t0000000000000000
+SigIgn:\t0000000000000000
+SigCgt:\t0000000000000000
+@file /proc/30/cmdline nonl
+@file /proc/30/environ nonl
+@file /proc/30/comm
+zombie
+@file /proc/30/wchan nonl
+0
+@file /proc/30/cgroup
+0::/
+@file /proc/30/task/30/stat
+30 (zombie) Z 7 7 1 34816 101 4227084 50 0 0 0 3 1 0 0 20 0 1 0 20000 0 0 18446744073709551615 0 0 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/30/task/30/statm
+0 0 0 0 0 0 0
+@file /proc/30/task/30/status
+Name:\tzombie
+Umask:\t0022
+State:\tZ (zombie)
+Tgid:\t30
+Ngid:\t0
+Pid:\t30
+PPid:\t7
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t0
+Groups:\t0
+NStgid:\t30
+NSpid:\t30
+NSpgid:\t7
+NSsid:\t1
+Kthread:\t0
+Threads:\t1
+@file /proc/30/task/30/cmdline nonl
+@file /proc/30/task/30/environ nonl
+@file /proc/30/task/30/comm
+zombie
+@file /proc/30/task/30/wchan nonl
+0
+
+# ---- pid 40: daemon com três threads (40, 41, 42), uid nobody, nice 5, sessão própria ----
+@file /proc/40/stat
+40 (worker) S 1 40 40 0 -1 1077936192 4500 0 12 0 1500 250 0 0 25 5 3 0 30000 220000256 2560 18446744073709551615 94000000000000 94000000100000 140700000000000 0 0 0 0 4096 16386 1 0 0 17 0 0 0 0 0 0 94000000200000 94000000300000 94000001000000 140700000001000 140700000001030 140700000001030 140700000002000 0
+@file /proc/40/statm
+53711 2560 900 25 0 50000 0
+@file /proc/40/status
+Name:\tworker
+Umask:\t0022
+State:\tS (sleeping)
+Tgid:\t40
+Ngid:\t0
+Pid:\t40
+PPid:\t1
+TracerPid:\t0
+Uid:\t65534\t65534\t65534\t65534
+Gid:\t65534\t65534\t65534\t65534
+FDSize:\t64
+Groups:\t65534
+NStgid:\t40
+NSpid:\t40
+NSpgid:\t40
+NSsid:\t40
+Kthread:\t0
+VmPeak:\t  214844 kB
+VmSize:\t  214844 kB
+VmLck:\t       0 kB
+VmPin:\t       0 kB
+VmHWM:\t   10240 kB
+VmRSS:\t   10240 kB
+RssAnon:\t    6640 kB
+RssFile:\t    3600 kB
+RssShmem:\t       0 kB
+VmData:\t  200000 kB
+VmStk:\t     132 kB
+VmExe:\t     100 kB
+VmLib:\t    2000 kB
+VmPTE:\t      80 kB
+VmSwap:\t       0 kB
+Threads:\t3
+SigQ:\t0/31760
+SigPnd:\t0000000000000000
+ShdPnd:\t0000000000000000
+SigBlk:\t0000000000000000
+SigIgn:\t0000000000001000
+SigCgt:\t0000000000004002
+voluntary_ctxt_switches:\t500
+nonvoluntary_ctxt_switches:\t20
+@file /proc/40/cmdline nonl
+/usr/bin/worker\0--threads\03\0
+@file /proc/40/environ nonl
+PATH=/usr/bin:/bin\0WORKERS=3\0
+@file /proc/40/comm
+worker
+@file /proc/40/wchan nonl
+futex_wait_queue
+@file /proc/40/cgroup
+0::/
+@file /proc/40/task/40/stat
+40 (worker) S 1 40 40 0 -1 1077936192 1500 0 4 0 500 100 0 0 25 5 3 0 30000 220000256 2560 18446744073709551615 94000000000000 94000000100000 140700000000000 0 0 0 0 4096 16386 1 0 0 17 0 0 0 0 0 0 94000000200000 94000000300000 94000001000000 140700000001000 140700000001030 140700000001030 140700000002000 0
+@file /proc/40/task/40/statm
+53711 2560 900 25 0 50000 0
+@file /proc/40/task/40/status
+Name:\tworker
+Umask:\t0022
+State:\tS (sleeping)
+Tgid:\t40
+Ngid:\t0
+Pid:\t40
+PPid:\t1
+TracerPid:\t0
+Uid:\t65534\t65534\t65534\t65534
+Gid:\t65534\t65534\t65534\t65534
+FDSize:\t64
+Groups:\t65534
+NStgid:\t40
+NSpid:\t40
+NSpgid:\t40
+NSsid:\t40
+Kthread:\t0
+VmPeak:\t  214844 kB
+VmSize:\t  214844 kB
+VmRSS:\t   10240 kB
+RssAnon:\t    6640 kB
+RssFile:\t    3600 kB
+RssShmem:\t       0 kB
+VmSwap:\t       0 kB
+Threads:\t3
+@file /proc/40/task/40/cmdline nonl
+/usr/bin/worker\0--threads\03\0
+@file /proc/40/task/40/environ nonl
+PATH=/usr/bin:/bin\0WORKERS=3\0
+@file /proc/40/task/40/comm
+worker
+@file /proc/40/task/40/wchan nonl
+futex_wait_queue
+@file /proc/40/task/41/stat
+41 (worker-io) R 1 40 40 0 -1 1077936192 2000 0 6 0 900 100 0 0 25 5 3 0 30010 220000256 2560 18446744073709551615 94000000000000 94000000100000 140700000000000 0 0 0 0 4096 16386 0 0 0 -1 1 0 0 0 0 0 94000000200000 94000000300000 94000001000000 140700000001000 140700000001030 140700000001030 140700000002000 0
+@file /proc/40/task/41/statm
+53711 2560 900 25 0 50000 0
+@file /proc/40/task/41/status
+Name:\tworker-io
+Umask:\t0022
+State:\tR (running)
+Tgid:\t40
+Ngid:\t0
+Pid:\t41
+PPid:\t1
+TracerPid:\t0
+Uid:\t65534\t65534\t65534\t65534
+Gid:\t65534\t65534\t65534\t65534
+FDSize:\t64
+Groups:\t65534
+NStgid:\t40
+NSpid:\t41
+NSpgid:\t40
+NSsid:\t40
+Kthread:\t0
+VmPeak:\t  214844 kB
+VmSize:\t  214844 kB
+VmRSS:\t   10240 kB
+RssAnon:\t    6640 kB
+RssFile:\t    3600 kB
+RssShmem:\t       0 kB
+VmSwap:\t       0 kB
+Threads:\t3
+@file /proc/40/task/41/cmdline nonl
+/usr/bin/worker\0--threads\03\0
+@file /proc/40/task/41/environ nonl
+PATH=/usr/bin:/bin\0WORKERS=3\0
+@file /proc/40/task/41/comm
+worker-io
+@file /proc/40/task/41/wchan nonl
+0
+@file /proc/40/task/42/stat
+42 (worker-gc) S 1 40 40 0 -1 1077936192 1000 0 2 0 100 50 0 0 25 5 3 0 30020 220000256 2560 18446744073709551615 94000000000000 94000000100000 140700000000000 0 0 0 0 4096 16386 1 0 0 -1 0 0 0 0 0 0 94000000200000 94000000300000 94000001000000 140700000001000 140700000001030 140700000001030 140700000002000 0
+@file /proc/40/task/42/statm
+53711 2560 900 25 0 50000 0
+@file /proc/40/task/42/status
+Name:\tworker-gc
+Umask:\t0022
+State:\tS (sleeping)
+Tgid:\t40
+Ngid:\t0
+Pid:\t42
+PPid:\t1
+TracerPid:\t0
+Uid:\t65534\t65534\t65534\t65534
+Gid:\t65534\t65534\t65534\t65534
+FDSize:\t64
+Groups:\t65534
+NStgid:\t40
+NSpid:\t42
+NSpgid:\t40
+NSsid:\t40
+Kthread:\t0
+VmPeak:\t  214844 kB
+VmSize:\t  214844 kB
+VmRSS:\t   10240 kB
+RssAnon:\t    6640 kB
+RssFile:\t    3600 kB
+RssShmem:\t       0 kB
+VmSwap:\t       0 kB
+Threads:\t3
+@file /proc/40/task/42/cmdline nonl
+/usr/bin/worker\0--threads\03\0
+@file /proc/40/task/42/environ nonl
+PATH=/usr/bin:/bin\0WORKERS=3\0
+@file /proc/40/task/42/comm
+worker-gc
+@file /proc/40/task/42/wchan nonl
+futex_wait_queue
+
+# ---- pid 50: comm com parênteses e espaço, uid 1234 sem passwd, pts/1, nice -5 ----
+@file /proc/50/stat
+50 (x) (y) R 1 50 1 34817 50 4194304 300 0 0 0 50000 2000 0 0 15 -5 1 0 20000 10485760 1024 18446744073709551615 94100000000000 94100000010000 140710000000000 0 0 0 0 0 0 0 0 0 17 1 0 0 0 0 0 94100000020000 94100000030000 94100001000000 140710000001000 140710000001020 140710000001020 140710000002000 0
+@file /proc/50/statm
+2560 1024 200 3 0 900 0
+@file /proc/50/status
+Name:\tx) (y
+Umask:\t0002
+State:\tR (running)
+Tgid:\t50
+Ngid:\t0
+Pid:\t50
+PPid:\t1
+TracerPid:\t0
+Uid:\t1234\t1234\t1234\t1234
+Gid:\t1234\t1234\t1234\t1234
+FDSize:\t64
+Groups:\t1234
+NStgid:\t50
+NSpid:\t50
+NSpgid:\t50
+NSsid:\t1
+Kthread:\t0
+VmPeak:\t   10240 kB
+VmSize:\t   10240 kB
+VmLck:\t       0 kB
+VmPin:\t       0 kB
+VmHWM:\t    4096 kB
+VmRSS:\t    4096 kB
+RssAnon:\t    3296 kB
+RssFile:\t     800 kB
+RssShmem:\t       0 kB
+VmData:\t    3600 kB
+VmStk:\t     132 kB
+VmExe:\t      12 kB
+VmLib:\t    1500 kB
+VmPTE:\t      40 kB
+VmSwap:\t       0 kB
+Threads:\t1
+SigQ:\t0/31760
+SigPnd:\t0000000000000000
+ShdPnd:\t0000000000000000
+SigBlk:\t0000000000000000
+SigIgn:\t0000000000000000
+SigCgt:\t0000000000000000
+voluntary_ctxt_switches:\t1
+nonvoluntary_ctxt_switches:\t90000
+@file /proc/50/cmdline nonl
+./x) (y\0--loop\0
+@file /proc/50/environ nonl
+PATH=/usr/bin:/bin\0HOME=/home/x\0
+@file /proc/50/comm
+x) (y
+@file /proc/50/wchan nonl
+0
+@file /proc/50/cgroup
+0::/
+@file /proc/50/task/50/stat
+50 (x) (y) R 1 50 1 34817 50 4194304 300 0 0 0 50000 2000 0 0 15 -5 1 0 20000 10485760 1024 18446744073709551615 94100000000000 94100000010000 140710000000000 0 0 0 0 0 0 0 0 0 17 1 0 0 0 0 0 94100000020000 94100000030000 94100001000000 140710000001000 140710000001020 140710000001020 140710000002000 0
+@file /proc/50/task/50/statm
+2560 1024 200 3 0 900 0
+@file /proc/50/task/50/status
+Name:\tx) (y
+Umask:\t0002
+State:\tR (running)
+Tgid:\t50
+Ngid:\t0
+Pid:\t50
+PPid:\t1
+TracerPid:\t0
+Uid:\t1234\t1234\t1234\t1234
+Gid:\t1234\t1234\t1234\t1234
+FDSize:\t64
+Groups:\t1234
+NStgid:\t50
+NSpid:\t50
+NSpgid:\t50
+NSsid:\t1
+Kthread:\t0
+VmPeak:\t   10240 kB
+VmSize:\t   10240 kB
+VmRSS:\t    4096 kB
+RssAnon:\t    3296 kB
+RssFile:\t     800 kB
+RssShmem:\t       0 kB
+VmSwap:\t       0 kB
+Threads:\t1
+@file /proc/50/task/50/cmdline nonl
+./x) (y\0--loop\0
+@file /proc/50/task/50/environ nonl
+PATH=/usr/bin:/bin\0HOME=/home/x\0
+@file /proc/50/task/50/comm
+x) (y
+@file /proc/50/task/50/wchan nonl
+0
+
+# ---- pid 101: o próprio ps, em primeiro plano em pts/0 ----
+@file /proc/101/stat
+101 (ps) R 1 101 1 34816 101 4194304 180 0 0 0 1 2 0 0 20 0 1 0 99990 6950912 900 18446744073709551615 94200000000000 94200000100000 140720000000000 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 94200000200000 94200000300000 94200001000000 140720000001000 140720000001007 140720000001007 140720000002000 0
+@file /proc/101/statm
+1697 900 700 34 0 120 0
+@file /proc/101/status
+Name:\tps
+Umask:\t0022
+State:\tR (running)
+Tgid:\t101
+Ngid:\t0
+Pid:\t101
+PPid:\t1
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t64
+Groups:\t0
+NStgid:\t101
+NSpid:\t101
+NSpgid:\t101
+NSsid:\t1
+Kthread:\t0
+VmPeak:\t    6788 kB
+VmSize:\t    6788 kB
+VmLck:\t       0 kB
+VmPin:\t       0 kB
+VmHWM:\t    3600 kB
+VmRSS:\t    3600 kB
+RssAnon:\t     800 kB
+RssFile:\t    2800 kB
+RssShmem:\t       0 kB
+VmData:\t     480 kB
+VmStk:\t     132 kB
+VmExe:\t     136 kB
+VmLib:\t    3800 kB
+VmPTE:\t      56 kB
+VmSwap:\t       0 kB
+Threads:\t1
+SigQ:\t0/31760
+SigPnd:\t0000000000000000
+ShdPnd:\t0000000000000000
+SigBlk:\t0000000000000000
+SigIgn:\t0000000000000000
+SigCgt:\t0000000000000000
+voluntary_ctxt_switches:\t0
+nonvoluntary_ctxt_switches:\t1
+@file /proc/101/cmdline nonl
+ps\0aux\0
+@file /proc/101/environ nonl
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\0HOME=/root\0TERM=xterm\0
+@file /proc/101/comm
+ps
+@file /proc/101/wchan nonl
+0
+@file /proc/101/cgroup
+0::/
+@file /proc/101/task/101/stat
+101 (ps) R 1 101 1 34816 101 4194304 180 0 0 0 1 2 0 0 20 0 1 0 99990 6950912 900 18446744073709551615 94200000000000 94200000100000 140720000000000 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 94200000200000 94200000300000 94200001000000 140720000001000 140720000001007 140720000001007 140720000002000 0
+@file /proc/101/task/101/statm
+1697 900 700 34 0 120 0
+@file /proc/101/task/101/status
+Name:\tps
+Umask:\t0022
+State:\tR (running)
+Tgid:\t101
+Ngid:\t0
+Pid:\t101
+PPid:\t1
+TracerPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+FDSize:\t64
+Groups:\t0
+NStgid:\t101
+NSpid:\t101
+NSpgid:\t101
+NSsid:\t1
+Kthread:\t0
+VmPeak:\t    6788 kB
+VmSize:\t    6788 kB
+VmRSS:\t    3600 kB
+RssAnon:\t     800 kB
+RssFile:\t    2800 kB
+RssShmem:\t       0 kB
+VmSwap:\t       0 kB
+Threads:\t1
+@file /proc/101/task/101/cmdline nonl
+ps\0aux\0
+@file /proc/101/task/101/environ nonl
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\0HOME=/root\0TERM=xterm\0
+@file /proc/101/task/101/comm
+ps
+@file /proc/101/task/101/wchan nonl
+0

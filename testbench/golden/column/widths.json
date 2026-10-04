@@ -1,0 +1,68 @@
+{
+  "column-t-noextreme-tiny": {
+    "stdout": "a   xx\n       d\nbb  xx\n       e\ncc  xx\n       z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-trunc-header-min": {
+    "stdout": "A  BBBBBB  C\na  abcdef  z\nb  c       d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-trunc-last-only": {
+    "stdout": "a   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  yyyyyyy\nbb  c                                                             e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-trunc-not-widest": {
+    "stdout": "a   yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy  wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\nbb  c                                e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-trunc-three-100": {
+    "stdout": "aaaaaaaaaaaaaaaaaaaaaaaa  bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb  ccccccccccccccccccccccccccccc  z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-trunc-three-145": {
+    "stdout": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb  cccccccccccccccccccccccccccccccccccccc  z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-trunc-three-148": {
+    "stdout": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb  ccccccccccccccccccccccccccccccccccccccc  z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-trunc-three-reversed": {
+    "stdout": "ccccccccccccccccccccccccccccccccccccccc  bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-trunc-wide-last": {
+    "stdout": "a   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nbb  c                                  e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-wrap-cjk": {
+    "stdout": "a  日   z\n   本   \n   語   \n   日   \n   本   \n   語   \nb  c    d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-wrap-words": {
+    "stdout": "a  hello w  z\n   orld fo  \n   o bar    \nb  c        d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

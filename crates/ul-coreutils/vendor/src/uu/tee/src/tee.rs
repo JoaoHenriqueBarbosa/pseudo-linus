@@ -1,0 +1,247 @@
+// This file is part of the uutils coreutils package.
+//
+// For the full copyright and license information, please view the LICENSE
+// file that was distributed with this source code.
+
+// spell-checker:ignore nopipe
+
+use std::ffi::OsString;
+use std::path::PathBuf;
+// Porte pseudo-linus: arquivos, stdin e stdout do pseudo-processo.
+use sysio::fs::OpenOptions;
+use sysio::io::{self, Error, ErrorKind, Read as _, Write};
+use uucore::display::Quotable;
+use uucore::error::{UResult, strip_errno};
+use uucore::{show_error, translate};
+
+mod cli;
+pub use crate::cli::uu_app;
+use crate::cli::{Options, OutputErrorMode, options};
+
+#[cfg(target_os = "linux")]
+use uucore::signals::ensure_stdout_not_broken;
+#[cfg(all(unix, not(target_os = "fuchsia")))]
+use uucore::signals::{disable_pipe_errors, ignore_interrupts};
+
+#[uucore::main]
+pub fn uumain(args: impl uucore::Args) -> UResult<()> {
+    let matches = uucore::clap_localization::handle_clap_result(uu_app(), args)?;
+
+    let append = matches.get_flag(options::APPEND);
+    let ignore_interrupts = matches.get_flag(options::IGNORE_INTERRUPTS);
+    let ignore_pipe_errors = matches.get_flag(options::IGNORE_PIPE_ERRORS);
+    let output_error = matches
+        .get_one::<String>(options::OUTPUT_ERROR)
+        .map(|s| match s.as_str() {
+            "warn" => OutputErrorMode::Warn,
+            "warn-nopipe" => OutputErrorMode::WarnNoPipe,
+            "exit" => OutputErrorMode::Exit,
+            "exit-nopipe" => OutputErrorMode::ExitNoPipe,
+            _ => unreachable!("clap excluded it"),
+        })
+        .or_else(|| ignore_pipe_errors.then_some(OutputErrorMode::WarnNoPipe));
+
+    let files = matches
+        .get_many::<OsString>(options::FILE)
+        .map(|v| v.cloned().collect())
+        .unwrap_or_default();
+
+    let options = Options {
+        append,
+        ignore_interrupts,
+        ignore_pipe_errors,
+        files,
+        output_error,
+    };
+
+    tee(&options).map_err(|_| 1.into())
+}
+
+fn tee(options: &Options) -> Result<(), ()> {
+    #[cfg(all(unix, not(target_os = "fuchsia")))]
+    if options.ignore_interrupts {
+        ignore_interrupts().map_err(|_| ())?;
+    }
+    #[cfg(all(unix, not(target_os = "fuchsia")))]
+    if options.output_error.is_some() {
+        disable_pipe_errors().map_err(|_| ())?;
+    }
+
+    let mut writers: Vec<NamedWriter> = options
+        .files
+        .iter()
+        .filter_map(|file| open(file, options.append, options.output_error.as_ref()))
+        .collect::<io::Result<Vec<NamedWriter>>>()
+        .map_err(|_| ())?;
+    let all_open_succeed = writers.len() == options.files.len();
+
+    writers.insert(
+        0,
+        NamedWriter {
+            name: translate!("tee-standard-output").into(),
+            // Porte pseudo-linus: o stdout do pseudo-processo, descarregado a cada bloco.
+            inner: Writer::Stdout(io::stdout()),
+        },
+    );
+
+    let mut output = MultiWriter::new(writers, options.output_error);
+
+    #[cfg(target_os = "linux")]
+    if options.ignore_pipe_errors
+        && !ensure_stdout_not_broken().map_err(|_| ())?
+        && output.writers.len() == 1
+    {
+        return Ok(());
+    }
+
+    // don't use io::copy since content of 1 read should be immediately written for posix requirement
+    output.copy_unbuffered()?;
+    if all_open_succeed && output.ignored_errors == 0 {
+        return Ok(());
+    }
+    Err(())
+}
+
+/// Tries to open the indicated file and return it. Reports an error if that's not possible.
+/// If that error should lead to program termination, this function returns Some(Err()),
+/// otherwise it returns None.
+fn open(
+    name: &OsString,
+    append: bool,
+    output_error: Option<&OutputErrorMode>,
+) -> Option<io::Result<NamedWriter>> {
+    let path = PathBuf::from(name);
+    let mut options = OpenOptions::new();
+    let mode = if append {
+        options.append(true)
+    } else {
+        options.truncate(true)
+    };
+    match mode.write(true).create(true).open(path.as_path()) {
+        Ok(file) => Some(Ok(NamedWriter {
+            inner: Writer::File(file),
+            name: name.clone(),
+        })),
+        Err(f) => {
+            show_error!("{}: {}", name.maybe_quote(), strip_errno(&f));
+            match output_error {
+                Some(OutputErrorMode::Exit | OutputErrorMode::ExitNoPipe) => Some(Err(f)),
+                _ => None,
+            }
+        }
+    }
+}
+
+struct MultiWriter {
+    writers: Vec<NamedWriter>,
+    output_error_mode: Option<OutputErrorMode>,
+    ignored_errors: usize,
+    aborted: bool,
+}
+
+impl MultiWriter {
+    /// Copies all bytes from the input buffer to the output buffer
+    /// without buffering which is POSIX requirement.
+    pub fn copy_unbuffered(&mut self) -> Result<(), ()> {
+        const BUF_SIZE: usize = 32 * 1024;
+        // Porte pseudo-linus: sem splice/tee (o caminho zero-copy do Linux com dois pipes) e sem
+        // read(2) cru no fd do host. O stdin do sysio lê direto do fd quando o pedido é maior que
+        // o buffer dele (8 KiB) e o buffer está vazio, que é sempre o caso aqui: cada `read` é um
+        // read(2) do fd 0, como no GNU.
+        let mut input = io::stdin();
+        let mut buf = vec![0u8; BUF_SIZE];
+        loop {
+            let res = input.read(&mut buf).map(|n| &buf[..n]);
+            match res {
+                Ok([]) => return Ok(()), // end of file
+                Ok(slice) => self.write_flush(slice)?,
+                Err(e) if e.kind() == ErrorKind::Interrupted => {}
+                Err(e) => {
+                    show_error!(
+                        "{}",
+                        translate!("tee-error-stdin", "error" => strip_errno(&e))
+                    );
+                    return Err(());
+                }
+            }
+            if self.writers.is_empty() {
+                // all writers exited
+                return Ok(());
+            }
+        }
+    }
+
+    fn new(writers: Vec<NamedWriter>, output_error_mode: Option<OutputErrorMode>) -> Self {
+        Self {
+            writers,
+            output_error_mode,
+            ignored_errors: 0,
+            aborted: false,
+        }
+    }
+
+    fn write_flush(&mut self, buf: &[u8]) -> Result<(), ()> {
+        let mode = self.output_error_mode;
+        self.writers
+            .retain_mut(|writer| match writer.inner.write_all(buf) {
+                Ok(()) => true,
+                Err(e) => {
+                    self.aborted |=
+                        process_error(mode, e, writer, &mut self.ignored_errors).is_err();
+                    false
+                }
+            });
+        if self.aborted {
+            return Err(());
+        }
+        Ok(())
+    }
+}
+
+fn process_error(
+    mode: Option<OutputErrorMode>,
+    e: Error,
+    writer: &NamedWriter,
+    ignored_errors: &mut usize,
+) -> Result<(), ()> {
+    let ignore_pipe = matches!(
+        mode,
+        None | Some(OutputErrorMode::WarnNoPipe) | Some(OutputErrorMode::ExitNoPipe)
+    );
+
+    if ignore_pipe && e.kind() == ErrorKind::BrokenPipe {
+        return Ok(());
+    }
+    show_error!("{}: {}", writer.name.maybe_quote(), strip_errno(&e));
+    if let Some(OutputErrorMode::Exit | OutputErrorMode::ExitNoPipe) = mode {
+        Err(())
+    } else {
+        *ignored_errors += 1;
+        Ok(())
+    }
+}
+
+enum Writer {
+    File(sysio::fs::File),
+    // Porte pseudo-linus: o stdout do sysio tem buffer (o do stdio da glibc); `flush` depois de
+    // cada `write_all` faz dele o write(2) direto que o GNU usa.
+    Stdout(io::Stdout),
+}
+
+impl Writer {
+    pub fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        match self {
+            // File does not have line buffering
+            Self::File(f) => f.write_all(buf),
+            Self::Stdout(s) => {
+                s.write_all(buf)?;
+                s.flush()
+            }
+        }
+    }
+}
+
+struct NamedWriter {
+    inner: Writer,
+    pub name: OsString,
+}

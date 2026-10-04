@@ -1,0 +1,278 @@
+{
+  "kill-0-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-9-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-L": {
+    "stdout": " 1 HUP      2 INT      3 QUIT     4 ILL      5 TRAP     6 ABRT     7 BUS\n 8 FPE      9 KILL    10 USR1    11 SEGV    12 USR2    13 PIPE    14 ALRM\n15 TERM    16 STKFLT  17 CHLD    18 CONT    19 STOP    20 TSTP    21 TTIN\n22 TTOU    23 URG     24 XCPU    25 XFSZ    26 VTALRM  27 PROF    28 WINCH\n29 POLL    30 PWR     31 SYS     \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-L-arg": {
+    "stdout": " 1 HUP      2 INT      3 QUIT     4 ILL      5 TRAP     6 ABRT     7 BUS\n 8 FPE      9 KILL    10 USR1    11 SEGV    12 USR2    13 PIPE    14 ALRM\n15 TERM    16 STKFLT  17 CHLD    18 CONT    19 STOP    20 TSTP    21 TTIN\n22 TTOU    23 URG     24 XCPU    25 XFSZ    26 VTALRM  27 PROF    28 WINCH\n29 POLL    30 PWR     31 SYS     \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-bad-option": {
+    "stdout": "",
+    "stderr": "kill: invalid argument x\n\nUsage:\n kill [options] <pid> [...]\n\nOptions:\n <pid> [...]            send signal to every <pid> listed\n -<signal>, -s, --signal <signal>\n                        specify the <signal> to be sent\n -q, --queue <value>    integer value to be sent with the signal\n -l, --list=[<signal>]  list all signal names, or convert one to a name\n -L, --table            list all signal names in a nice table\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see kill(1).\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-dashdash-group": {
+    "stdout": "",
+    "stderr": "kill: (-99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-empty-arg": {
+    "stdout": "",
+    "stderr": "kill: failed to parse argument: '': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-h": {
+    "stdout": "\nUsage:\n kill [options] <pid> [...]\n\nOptions:\n <pid> [...]            send signal to every <pid> listed\n -<signal>, -s, --signal <signal>\n                        specify the <signal> to be sent\n -q, --queue <value>    integer value to be sent with the signal\n -l, --list=[<signal>]  list all signal names, or convert one to a name\n -L, --table            list all signal names in a nice table\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see kill(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-help": {
+    "stdout": "\nUsage:\n kill [options] <pid> [...]\n\nOptions:\n <pid> [...]            send signal to every <pid> listed\n -<signal>, -s, --signal <signal>\n                        specify the <signal> to be sent\n -q, --queue <value>    integer value to be sent with the signal\n -l, --list=[<signal>]  list all signal names, or convert one to a name\n -L, --table            list all signal names in a nice table\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see kill(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l": {
+    "stdout": "HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-0": {
+    "stdout": "",
+    "stderr": "kill: unknown signal name 0\n",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-130": {
+    "stdout": "",
+    "stderr": "kill: unknown signal name 130\n",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-9": {
+    "stdout": "KILL\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-attached": {
+    "stdout": "KILL\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-bogus": {
+    "stdout": "",
+    "stderr": "kill: unknown signal name bogus\n",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-hup": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-io-alias": {
+    "stdout": "",
+    "stderr": "kill: unknown signal name IO\n",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-leading-zero": {
+    "stdout": "KILL\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-poll": {
+    "stdout": "29\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-sighup-lower": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-l-then-sig": {
+    "stdout": "HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-list-eq": {
+    "stdout": "TERM\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-list-long": {
+    "stdout": "HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-list-sep": {
+    "stdout": "15\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-lower-name-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-negative-no-dashdash": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-no-args": {
+    "stdout": "",
+    "stderr": "\nUsage:\n kill [options] <pid> [...]\n\nOptions:\n <pid> [...]            send signal to every <pid> listed\n -<signal>, -s, --signal <signal>\n                        specify the <signal> to be sent\n -q, --queue <value>    integer value to be sent with the signal\n -l, --list=[<signal>]  list all signal names, or convert one to a name\n -L, --table            list all signal names in a nice table\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see kill(1).\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-not-number": {
+    "stdout": "",
+    "stderr": "kill: failed to parse argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-not-number-after": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\nkill: failed to parse argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-overflow": {
+    "stdout": "",
+    "stderr": "kill: failed to parse argument: '99999999999999999999': Numerical result out of range\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-q-bad": {
+    "stdout": "",
+    "stderr": "kill: must be an integer value to be passed with the signal.: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-q-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-rtmin-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-s-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-s-missing": {
+    "stdout": "",
+    "stderr": "kill: invalid argument s\n\nUsage:\n kill [options] <pid> [...]\n\nOptions:\n <pid> [...]            send signal to every <pid> listed\n -<signal>, -s, --signal <signal>\n                        specify the <signal> to be sent\n -q, --queue <value>    integer value to be sent with the signal\n -l, --list=[<signal>]  list all signal names, or convert one to a name\n -L, --table            list all signal names in a nice table\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see kill(1).\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-s-no-pid": {
+    "stdout": "",
+    "stderr": "\nUsage:\n kill [options] <pid> [...]\n\nOptions:\n <pid> [...]            send signal to every <pid> listed\n -<signal>, -s, --signal <signal>\n                        specify the <signal> to be sent\n -q, --queue <value>    integer value to be sent with the signal\n -l, --list=[<signal>]  list all signal names, or convert one to a name\n -L, --table            list all signal names in a nice table\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see kill(1).\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-sig-no-pid": {
+    "stdout": "",
+    "stderr": "\nUsage:\n kill [options] <pid> [...]\n\nOptions:\n <pid> [...]            send signal to every <pid> listed\n -<signal>, -s, --signal <signal>\n                        specify the <signal> to be sent\n -q, --queue <value>    integer value to be sent with the signal\n -l, --list=[<signal>]  list all signal names, or convert one to a name\n -L, --table            list all signal names in a nice table\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see kill(1).\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-signal-eq-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\nkill: (99998): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-signal-long-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-sigterm-esrch": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-table": {
+    "stdout": " 1 HUP      2 INT      3 QUIT     4 ILL      5 TRAP     6 ABRT     7 BUS\n 8 FPE      9 KILL    10 USR1    11 SEGV    12 USR2    13 PIPE    14 ALRM\n15 TERM    16 STKFLT  17 CHLD    18 CONT    19 STOP    20 TSTP    21 TTIN\n22 TTOU    23 URG     24 XCPU    25 XFSZ    26 VTALRM  27 PROF    28 WINCH\n29 POLL    30 PWR     31 SYS     \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-two-pids": {
+    "stdout": "",
+    "stderr": "kill: (99999): No such process\nkill: (99998): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-unknown-long": {
+    "stdout": "",
+    "stderr": "kill: invalid argument \u0000\n\nUsage:\n kill [options] <pid> [...]\n\nOptions:\n <pid> [...]            send signal to every <pid> listed\n -<signal>, -s, --signal <signal>\n                        specify the <signal> to be sent\n -q, --queue <value>    integer value to be sent with the signal\n -l, --list=[<signal>]  list all signal names, or convert one to a name\n -L, --table            list all signal names in a nice table\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see kill(1).\n",
+    "exit": 1,
+    "files": {}
+  },
+  "kill-version": {
+    "stdout": "kill from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "kill-version-long": {
+    "stdout": "kill from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

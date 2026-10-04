@@ -1,0 +1,23 @@
+[package]
+name = "ul-textproc"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+# O grep é porte do grep.c do GNU grep (GPL-3.0+); ver PROVENANCE.md.
+license = "GPL-3.0-or-later"
+publish.workspace = true
+description = "grep, egrep, fgrep, rgrep e sed do pseudo-linus (GNU grep 3.11 e GNU sed 4.9), sobre o motor regex-posix"
+
+[dependencies]
+sysabi = { workspace = true }
+regex-posix = { workspace = true }
+# `grep -P`: Perl com lookaround e referências, Rust puro, sem unsafe e sem E/S de host.
+fancy-regex = "0.19.2"
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing" }
+harness = { path = "../../testbench/crates/harness" }
+
+[lints]
+workspace = true

@@ -1,0 +1,35 @@
+# Fork do brush-parser 0.4.0 (MIT, https://github.com/reubeno/brush) mantido pelo agente shell.
+#
+# Mudanças em relação ao original (detalhes em crates/shell/vendor/brush-parser/FORK.md):
+# - sem `bon`, `cached`, `insta` e `tracing` (builder, cache global, snapshots e log não são usados);
+# - correções de fidelidade ao bash 5.2 (case sem parêntese dentro de `$(...)`, `select`, extglob em
+#   `[[ ]]`, here-doc terminado pelo fim do texto).
+[package]
+name = "brush-parser"
+version = "0.4.0"
+edition = "2024"
+rust-version = "1.88.0"
+license = "MIT"
+publish = false
+description = "Fork do tokenizer e parser POSIX/bash do brush, ajustado pro shell do pseudo-linus"
+
+[lib]
+name = "brush_parser"
+path = "src/lib.rs"
+
+# Features do original que dependiam de crates removidos: ficam declaradas (vazias) só pra que os
+# `cfg_attr` do código não gerem aviso; nunca são ligadas.
+[features]
+arbitrary = []
+debug-tracing = []
+diagnostics = []
+serde = []
+
+[dependencies]
+indenter = "0.3.4"
+peg = "0.8.5"
+thiserror = "2.0.18"
+utf8-chars = "3.0.6"
+
+[lints]
+workspace = true

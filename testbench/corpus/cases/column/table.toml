@@ -1,0 +1,301 @@
+tool = "column"
+source = "manual"
+
+# Modo tabela do column (util-linux 2.41 sobre libsmartcols): separadores, cabeçalho, alinhamento,
+# colunas escondidas e reordenadas, limite de colunas, JSON e árvore.
+
+[[case]]
+id = "column-t-whitespace"
+argv = ["column", "-t"]
+stdin = "a   b c\n  dd\teee    f  \nx\n"
+
+[[case]]
+id = "column-t-ls-like"
+argv = ["column", "-t"]
+stdin = "-rw-r--r-- 1 root root 120 Jan 15 12:00 a.txt\ndrwxr-xr-x 2 root root 4096 Jan 15 12:00 dir\n-rwxr-xr-x 1 root root 9 Jan 15 12:00 run.sh\n"
+
+[[case]]
+id = "column-t-csv"
+argv = ["column", "-t", "-s", ","]
+stdin = "name,age,city\nana,30,recife\nbartolomeu,7,rio\n"
+
+[[case]]
+id = "column-t-leading-separator"
+argv = ["column", "-t", "-s,"]
+stdin = ",a,b\nc,,\n"
+
+[[case]]
+id = "column-t-multi-separators"
+argv = ["column", "-t", "-s", ",;"]
+stdin = "a;b,c\n1,2;3\n"
+
+[[case]]
+id = "column-t-tab-separator"
+argv = ["column", "-t", "-s", "\t"]
+stdin = "key\tvalue with spaces\nlonger key\tv\n"
+
+[[case]]
+id = "column-t-empty-separator"
+argv = ["column", "-t", "-s", ""]
+stdin = "a b\nc d\n"
+
+[[case]]
+id = "column-t-output-separator"
+argv = ["column", "-t", "-s,", "-o", " | "]
+stdin = "a,b,c\n1,22,333\n"
+
+[[case]]
+id = "column-t-output-separator-empty"
+argv = ["column", "-t", "-o", ""]
+stdin = "a b\nc d\n"
+
+[[case]]
+id = "column-t-names"
+argv = ["column", "-t", "-s,", "-N", "X,YY,Z"]
+stdin = "a,b,c\n1,22,333\n"
+
+[[case]]
+id = "column-t-names-long-header"
+argv = ["column", "-t", "-N", "LONGHEADER,B"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-t-names-fewer-than-data"
+argv = ["column", "-t", "-N", "x,y"]
+stdin = "a b c\n"
+
+[[case]]
+id = "column-t-names-more-than-data"
+argv = ["column", "-t", "-N", "a,b,c"]
+stdin = "1\n2 3\n"
+
+[[case]]
+id = "column-t-noheadings"
+argv = ["column", "-t", "-s,", "-N", "X,Y", "-d"]
+stdin = "a,b\n1,2\n"
+
+[[case]]
+id = "column-t-right"
+argv = ["column", "-t", "-s,", "-N", "X,YY,Z", "-R", "YY,3"]
+stdin = "a,b,c\n1,22,333\n"
+
+[[case]]
+id = "column-t-right-first"
+argv = ["column", "-t", "-N", "LONGHEADER,B", "-R", "1"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-t-right-last-empty"
+argv = ["column", "-t", "-s,", "-N", "A,B", "-R", "B"]
+stdin = "a,b\nc\n"
+
+[[case]]
+id = "column-t-right-numbers-no-names"
+argv = ["column", "-t", "-R", "2"]
+stdin = "x 1\ny 22\nz 333\n"
+
+[[case]]
+id = "column-t-hide"
+argv = ["column", "-t", "-s,", "-N", "X,YY,Z", "-H", "2"]
+stdin = "a,b,c\n1,22,333\n"
+
+[[case]]
+id = "column-t-hide-unnamed"
+argv = ["column", "-t", "-N", "x,y", "-H", "-"]
+stdin = "a b c\n"
+
+[[case]]
+id = "column-t-order"
+argv = ["column", "-t", "-s,", "-N", "X,YY,Z", "-O", "Z,X"]
+stdin = "a,b,c\n1,22,333\n"
+
+[[case]]
+id = "column-t-order-numbers"
+argv = ["column", "-t", "-O", "3,1"]
+stdin = "a b c\n"
+
+[[case]]
+id = "column-t-limit"
+argv = ["column", "-t", "-s,", "-l", "2"]
+stdin = "a,b,c,d\n1,22,333\n"
+
+[[case]]
+id = "column-t-limit-whitespace"
+argv = ["column", "-t", "-l", "2"]
+stdin = "a   b  c   d   \n"
+
+[[case]]
+id = "column-t-blank-lines"
+argv = ["column", "-t"]
+stdin = "a b\n   \n\nc d\n"
+
+[[case]]
+id = "column-t-keep-empty"
+argv = ["column", "-t", "-L"]
+stdin = "a b\n   \nc d\n"
+
+[[case]]
+id = "column-t-unicode-width"
+argv = ["column", "-t"]
+stdin = "日本 c\nd e\nação x\n"
+
+[[case]]
+id = "column-t-combining-and-control"
+argv = ["column", "-t"]
+stdin_b64 = "YcyBIGMKYRtiIGQKZSBmCg=="
+
+[[case]]
+id = "column-t-invalid-utf8"
+argv = ["column", "-t"]
+stdin_b64 = "/yBjCmQgZQo="
+
+[[case]]
+id = "column-t-crlf"
+argv = ["column", "-t", "-s,"]
+stdin = "a,b\r\nccc,d\r\n"
+
+[[case]]
+id = "column-t-maxout"
+argv = ["column", "-t", "-c", "60", "-m"]
+stdin = "a b c\nbb c d\n"
+
+[[case]]
+id = "column-t-maxout-env"
+argv = ["column", "-t", "-m"]
+env = { COLUMNS = "20" }
+stdin = "a b c\nbb c d\n"
+
+[[case]]
+id = "column-t-maxout-width-zero"
+argv = ["column", "-t", "-m", "-c", "0"]
+stdin = "a b\n"
+
+[[case]]
+id = "column-t-overflow-no-flags"
+argv = ["column", "-t", "-c", "20"]
+stdin = "a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx yyy\nbb c d\n"
+
+[[case]]
+id = "column-t-noextreme-fits"
+argv = ["column", "-t", "-c", "200", "-E", "2"]
+stdin = "a xxxxxxxxxx d\nbb c e\n"
+
+[[case]]
+id = "column-t-noextreme-reduced"
+argv = ["column", "-t", "-c", "60", "-E", "2"]
+stdin = "a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nbb c d\n"
+
+[[case]]
+id = "column-t-truncate"
+argv = ["column", "-t", "-c", "30", "-T", "2", "-N", "A,B,C"]
+stdin = "a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nbb c d\n"
+
+[[case]]
+id = "column-t-truncate-two"
+argv = ["column", "-t", "-c", "70", "-T", "2,3"]
+stdin = "a xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nbb c e\n"
+
+[[case]]
+id = "column-t-wrap"
+argv = ["column", "-t", "-s,", "-C", "name=X,wrap", "-C", "name=Y", "-c", "6"]
+stdin = "a,1\nbbbbbbbb,2\n"
+
+[[case]]
+id = "column-t-header-repeat"
+argv = ["column", "-t", "-N", "A,B", "-e"]
+stdin = "a b\n1 2\n"
+
+[[case]]
+id = "column-t-table-column-props"
+argv = ["column", "-t", "-C", "name=X,right", "-C", "name=Y"]
+stdin = "a 1\nbb 22\n"
+
+[[case]]
+id = "column-t-table-column-hidden"
+argv = ["column", "-t", "-C", "name=X,hidden", "-C", "name=Y"]
+stdin = "a 1\n"
+
+[[case]]
+id = "column-t-table-column-no-name"
+argv = ["column", "-t", "-C", "X"]
+stdin = "a 1 2 3\n"
+
+[[case]]
+id = "column-t-files-and-missing"
+argv = ["column", "-t", "f1", "nope"]
+[case.files]
+"f1" = "x y\nzz w\n"
+
+[[case]]
+id = "column-t-only-missing"
+argv = ["column", "-t", "nope"]
+
+[[case]]
+id = "column-t-empty-input"
+argv = ["column", "-t"]
+stdin = ""
+
+[[case]]
+id = "column-json"
+argv = ["column", "-J", "-s,", "-N", "X,YY,Z"]
+stdin = "a,b,c\n1,22,333\n"
+
+[[case]]
+id = "column-json-name"
+argv = ["column", "-J", "-n", "mytab", "-N", "a,b"]
+stdin = "1 2\n"
+
+[[case]]
+id = "column-json-nulls"
+argv = ["column", "-J", "-s,", "-N", "A,B,C"]
+stdin = "a,,c\n1,2,\n"
+
+[[case]]
+id = "column-json-escapes"
+argv = ["column", "-J", "-N", "My Col,X-y"]
+stdin_b64 = "YVwiYiABYy/DqQo="
+
+[[case]]
+id = "column-json-tab-in-cell"
+argv = ["column", "-J", "-s,", "-N", "x,y"]
+stdin = "a\tb,c\u007f\n"
+
+[[case]]
+id = "column-json-types"
+argv = ["column", "-J", "-C", "name=X", "-C", "name=Y,json=number", "-C", "name=Z,json=boolean"]
+stdin = "a 1 true\nbb 22 false\n"
+
+[[case]]
+id = "column-json-array"
+argv = ["column", "-J", "-C", "name=X", "-C", "name=Y,json=array-string"]
+stdin = "a x,y\n"
+
+[[case]]
+id = "column-json-empty"
+argv = ["column", "-J", "-N", "a,b"]
+stdin = ""
+
+[[case]]
+id = "column-json-ignores-output-separator"
+argv = ["column", "-J", "-N", "A,B", "-o", "XX"]
+stdin = "a b\nc d\n"
+
+[[case]]
+id = "column-json-hide-order"
+argv = ["column", "-J", "-N", "A,B,C", "-H", "B", "-O", "C"]
+stdin = "1 2 3\n"
+
+[[case]]
+id = "column-tree"
+argv = ["column", "-t", "-N", "ID,PARENT,NAME", "-r", "NAME", "-i", "ID", "-p", "PARENT"]
+stdin = "1 0 root\n2 1 child1\n3 1 child2\n4 2 grand\n"
+
+[[case]]
+id = "column-tree-orphans"
+argv = ["column", "-t", "-N", "ID,P,NAME", "-r", "NAME", "-i", "ID", "-p", "P"]
+stdin = "1 0 r\n2 1 c1\n3 2 c2\n4 0 r2\n5 9 orphan\n"
+
+[[case]]
+id = "column-tree-json"
+argv = ["column", "-J", "-N", "ID,PARENT,NAME", "-r", "NAME", "-i", "ID", "-p", "PARENT"]
+stdin = "1 0 root\n2 1 child1\n3 1 child2\n4 2 grand\n"

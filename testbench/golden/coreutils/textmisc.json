@@ -1,0 +1,291 @@
+{
+  "numfmt-bad-unit": {
+    "stdout": "",
+    "stderr": "numfmt: invalid argument ‘foo’ for ‘--to’\nValid arguments are:\n  - ‘none’\n  - ‘si’\n  - ‘iec’\n  - ‘iec-i’\nTry 'numfmt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "numfmt-field-stdin": {
+    "stdout": "arquivo bytes\na.bin    1.0M\nb.bin 2.0K\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-format": {
+    "stdout": "1.50K\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-from-auto": {
+    "stdout": "1024\n1000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-from-iec": {
+    "stdout": "1024\n1572864\n2147483648\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-from-si": {
+    "stdout": "1000\n1500000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-invalid": {
+    "stdout": "",
+    "stderr": "numfmt: invalid number: ‘abc’\n",
+    "exit": 2,
+    "files": {}
+  },
+  "numfmt-invalid-warn": {
+    "stdout": "abc\n2.0K\n",
+    "stderr": "numfmt: invalid number: ‘abc’\n",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-padding": {
+    "stdout": "    1.5k\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-round-default-up": {
+    "stdout": "1.1k\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-round-down": {
+    "stdout": "1.9k\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-round-nearest": {
+    "stdout": "1.5k\n1.6k\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-suffix-without-from": {
+    "stdout": "",
+    "stderr": "numfmt: rejecting suffix in input: ‘1K’ (consider using --from)\n",
+    "exit": 2,
+    "files": {}
+  },
+  "numfmt-to-iec": {
+    "stdout": "1.0M\n1.5K\n999\n118M\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-to-iec-i-suffix": {
+    "stdout": "2.0KiB\n118MiB\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "numfmt-to-si": {
+    "stdout": "1.0k\n1.5M\n999\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ptx-auto-reference": {
+    "stdout": "in.txt:1:                                alpha beta gamma\nin.txt:1:                        alpha   beta gamma\nin.txt:2:                   alpha beta   gamma\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "e072d151f77d5ad563d659d694aa093ba94a089e5daf25b2517d1a8c60469884",
+        "data": "alpha beta\ngamma\n"
+      }
+    }
+  },
+  "ptx-default": {
+    "stdout": "                           the quick   brown fox jumps over the lazy dog\n       brown fox jumps over the lazy   dog                        the quick\n                     the quick brown   fox jumps over the lazy dog\n                 the quick brown fox   jumps over the lazy dog\n      quick brown fox jumps over the   lazy dog                         the\n           the quick brown fox jumps   over the lazy dog\n   lazy dog                      the   quick brown fox jumps over the\n   lazy dog                            the quick brown fox jumps over the\n      the quick brown fox jumps over   the lazy dog\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ptx-file-width": {
+    "stdout": "   delta alpha         alpha beta gamma\n         gamma delta   alpha     alpha beta\n   alpha       alpha   beta gamma delta\n         /beta gamma   delta alpha\n          alpha beta   gamma delta alpha\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "764d07e1a610816893c88ffca126a1cf2061f60d693ecb65ea29dca29adce5e9",
+        "data": "alpha beta gamma\ndelta alpha\n"
+      }
+    }
+  },
+  "ptx-ignore-file": {
+    "stdout": "                                 the   cat and the dog\n                     the cat and the   dog\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "76ab1662e1938189cf1648b0778cd2d2008a8d54b07a51bb34a2709469b2fdc1",
+        "data": "the cat and the dog\n"
+      },
+      "stop.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "9746435033c1fc3da938b4b5ce8c1d5391c483d9fad5d994adf30d27597dcdcb",
+        "data": "the\nand\n"
+      }
+    }
+  },
+  "ptx-missing": {
+    "stdout": "",
+    "stderr": "ptx: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "shuf-bad-count": {
+    "stdout": "",
+    "stderr": "shuf: invalid line count: ‘abc’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "shuf-bad-range": {
+    "stdout": "",
+    "stderr": "shuf: invalid input range: ‘5-1’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "shuf-e-unordered": {
+    "stdout": "b\nc\nd\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "shuf-file-unordered": {
+    "stdout": "quatro\ntrês\ndois\num\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "f0d1eed6260f2263ceb3ec4ffc349e7d0619f6ae0eb7b1ad90c40a7668e4d6cd",
+        "data": "um\ndois\ntrês\nquatro\n"
+      }
+    }
+  },
+  "shuf-i-range-unordered": {
+    "stdout": "10\n9\n5\n4\n7\n1\n6\n8\n3\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "shuf-i-single": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "shuf-missing": {
+    "stdout": "",
+    "stderr": "shuf: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "shuf-n-larger-than-input": {
+    "stdout": "b\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "shuf-n0": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "shuf-n1-single": {
+    "stdout": "único\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "shuf-output-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "554ee9ad00c319bf98682fd1af4038faa970949651d2b8aafade45892eeb51f5",
+        "data": "só\n"
+      }
+    }
+  },
+  "shuf-repeat": {
+    "stdout": "x\nx\nx\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "shuf-stdin-unordered": {
+    "stdout": "x\nz\ny\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tsort-basic": {
+    "stdout": "a\nd\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tsort-cycle": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "tsort: -: input contains a loop:\ntsort: a\ntsort: b\ntsort: c\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tsort-file": {
+    "stdout": "libc\nlibssl\napp\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "deps.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "c15b0ebba642fd8f124488c419ad88d0b007934facdf796c0b9e55c304ce3a19",
+        "data": "libc app\nlibssl app\nlibc libssl\napp app\n"
+      }
+    }
+  },
+  "tsort-missing": {
+    "stdout": "",
+    "stderr": "tsort: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tsort-odd-tokens": {
+    "stdout": "",
+    "stderr": "tsort: -: input contains an odd number of tokens\n",
+    "exit": 1,
+    "files": {}
+  }
+}

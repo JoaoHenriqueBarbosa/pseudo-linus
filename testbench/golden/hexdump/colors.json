@@ -1,0 +1,442 @@
+{
+  "hexdump-color-address": {
+    "stdout": "\u001b[34m0000000\u001b[0m 41 42 43 44\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-address-value": {
+    "stdout": "0: 41 42 43 44\n\u001b[31m4\u001b[0m: 41 42 43 44\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-always-case-insensitive-mode": {
+    "stdout": "\u001b[32m41\u001b[0m \u001b[32m42\u001b[0m \u001b[32m43\u001b[0m \u001b[32m44\u001b[0m\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-always-plain": {
+    "stdout": "\u001b[31m41\u001b[0m \u001b[31m42\u001b[0m \u001b[31m43\u001b[0m \u001b[31m44\u001b[0m\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-auto-flag": {
+    "stdout": "41 42 43 44\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-bad-decimal-value": {
+    "stdout": "",
+    "stderr": "hexdump: bad byte count for conversion character _L\n",
+    "exit": 1,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-bad-mode": {
+    "stdout": "",
+    "stderr": "hexdump: unsupported color mode: 'foo'\n",
+    "exit": 1,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-canonical-has-none": {
+    "stdout": "00000000  41 42 43 44 41 42 43 44                           |ABCDABCD|\n00000008\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-empty-list": {
+    "stdout": "41 42 43 44\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-empty-mode": {
+    "stdout": "",
+    "stderr": "hexdump: unsupported color mode: ''\n",
+    "exit": 1,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-end-address": {
+    "stdout": "ABCD\n*\n\u001b[31m8\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-negated-offset": {
+    "stdout": "41 42 43 44 41 42 43 44\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-negated-value": {
+    "stdout": "41 \u001b[31m42\u001b[0m \u001b[31m43\u001b[0m \u001b[31m44\u001b[0m 41 \u001b[31m42\u001b[0m \u001b[31m43\u001b[0m \u001b[31m44\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-never": {
+    "stdout": "00000000  41 42 43 44 41 42 43 44                           |ABCDABCD|\n00000008\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-not-a-color-suffix": {
+    "stdout": "41_X 42_X 43_X 44_X\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-octal-value": {
+    "stdout": "\u001b[1;31m41\u001b[0m 42 43 44 \u001b[1;31m41\u001b[0m 42 43 44\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-offset": {
+    "stdout": "41 42 \u001b[35m43\u001b[0m 44 41 42 43 44\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-padding": {
+    "stdout": "\u001b[31m41\u001b[0m \u001b[31m42\u001b[0m \u001b[31m43\u001b[0m \u001b[31m  \u001b[0m|\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "hexdump-color-printable": {
+    "stdout": "A\u001b[31mB\u001b[0mCD\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-range": {
+    "stdout": "41 42 \u001b[36m43\u001b[0m \u001b[36m44\u001b[0m \u001b[36m41\u001b[0m 42 43 44\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-short-equals": {
+    "stdout": "\u001b[34m41\u001b[0m \u001b[34m42\u001b[0m \u001b[34m43\u001b[0m \u001b[34m44\u001b[0m\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-skipped-without-tty": {
+    "stdout": "41 42 43 44\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-string-range": {
+    "stdout": "\u001b[1m4241\u001b[0m 4443 4241 4443\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-trailing-comma": {
+    "stdout": "\u001b[1;37m41\u001b[0m \u001b[1;37m42\u001b[0m \u001b[1;37m43\u001b[0m \u001b[1;37m44\u001b[0m\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-two-byte-value": {
+    "stdout": "\u001b[7m4241\u001b[0m 4443 \u001b[7m4241\u001b[0m 4443\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-unclosed-always": {
+    "stdout": "",
+    "stderr": "hexdump: bad conversion character %(null)\n",
+    "exit": 1,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-unclosed-default": {
+    "stdout": "",
+    "stderr": "hexdump: bad conversion character %_L\n",
+    "exit": 1,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-unknown-name": {
+    "stdout": "41 42 43 44\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-unopened-always": {
+    "stdout": "",
+    "stderr": "hexdump: bad conversion character %] \n",
+    "exit": 1,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-unopened-default": {
+    "stdout": "41 42 43 44\n*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-value-at-offset": {
+    "stdout": "41 42 43 44 \u001b[31m41\u001b[0m 42 43 44\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  },
+  "hexdump-color-values": {
+    "stdout": "\u001b[31m41\u001b[0m \u001b[34m42\u001b[0m \u001b[32m43\u001b[0m \u001b[32m44\u001b[0m \u001b[31m41\u001b[0m \u001b[34m42\u001b[0m \u001b[32m43\u001b[0m \u001b[32m44\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "v.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "eb9651ab32840938610c6f2da4d2be34f3f70c9ebbd40e63ba49349124d1f301",
+        "data": "ABCDABCD"
+      }
+    }
+  }
+}

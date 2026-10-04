@@ -1,0 +1,131 @@
+tool = "strings"
+source = "manual"
+
+# Expansão de @arquivo (expandargv do libiberty): divisão por espaço em branco, aspas simples
+# literais, aspas duplas com \" e \\, barra invertida fora de aspas, aninhamento, laço, diretório,
+# arquivo inexistente (fica como operando) e expansão mesmo depois de `--`.
+
+[[case]]
+id = "strings-atfile"
+argv = ["strings", "@opts"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"opts" = "-n 3\n-f a"
+
+[[case]]
+id = "strings-atfile-after-file"
+argv = ["strings", "a", "@opts"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"opts" = "-n 3\n-f a"
+
+[[case]]
+id = "strings-atfile-single-quotes"
+argv = ["strings", "@q"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"q" = "-s '<> x' a"
+
+[[case]]
+id = "strings-atfile-single-quote-backslash"
+argv = ["strings", "@q"]
+stdin = "stdin text\u0000"
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"q" = "-s 'a\\'b' a"
+
+[[case]]
+id = "strings-atfile-double-quotes"
+argv = ["strings", "@q"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"q" = "-s \"q\\\" r\" a"
+
+[[case]]
+id = "strings-atfile-double-quote-literal-backslash"
+argv = ["strings", "@q"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"q" = "-s \"x\\y\\\\z\" a"
+
+[[case]]
+id = "strings-atfile-backslash-space"
+argv = ["strings", "@q", "a"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"q" = "-s\\ a"
+
+[[case]]
+id = "strings-atfile-empty-quotes"
+argv = ["strings", "@q"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"q" = "-s '' a a"
+
+[[case]]
+id = "strings-atfile-concat-quotes"
+argv = ["strings", "@q"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"q" = "-s a\"b c\"d a"
+
+[[case]]
+id = "strings-atfile-nested"
+argv = ["strings", "-f", "@outer"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"outer" = "@inner"
+"inner" = "  \t\n a \n\n"
+
+[[case]]
+id = "strings-atfile-empty"
+argv = ["strings", "@empty", "a"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"empty" = ""
+
+[[case]]
+id = "strings-atfile-loop"
+argv = ["strings", "@loop"]
+tags = ["atfile", "error"]
+[case.files]
+"loop" = "@loop"
+
+[[case]]
+id = "strings-atfile-directory"
+argv = ["strings", "@d"]
+tags = ["atfile", "error"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "strings-atfile-nonexist"
+argv = ["strings", "@nonexist"]
+tags = ["atfile", "error"]
+
+[[case]]
+id = "strings-atfile-after-ddash"
+argv = ["strings", "--", "@opts"]
+tags = ["atfile", "error"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"opts" = "-n 3\n-f a"
+
+[[case]]
+id = "strings-atfile-unterminated"
+argv = ["strings", "@q", "a"]
+tags = ["atfile"]
+[case.files]
+"a" = "abc\u0000hello\u0000"
+"q" = "-s \"<sep"

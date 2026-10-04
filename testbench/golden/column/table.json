@@ -1,0 +1,364 @@
+{
+  "column-json": {
+    "stdout": "{\n   \"table\": [\n      {\n         \"x\": \"a\",\n         \"yy\": \"b\",\n         \"z\": \"c\"\n      },{\n         \"x\": \"1\",\n         \"yy\": \"22\",\n         \"z\": \"333\"\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-json-array": {
+    "stdout": "{\n   \"table\": [\n      {\n         \"x\": \"a\",\n         \"y\": [\n             \"x,y\"\n         ]\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-json-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-json-escapes": {
+    "stdout": "{\n   \"table\": [\n      {\n         \"my col\": \"a\\\\\\\"b\",\n         \"x-y\": \"\\u0001c/é\"\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-json-hide-order": {
+    "stdout": "{\n   \"table\": [\n      {\n         \"c\": \"3\",\n         \"a\": \"1\"\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-json-ignores-output-separator": {
+    "stdout": "{\n   \"table\": [\n      {\n         \"a\": \"a\",\n         \"b\": \"b\"\n      },{\n         \"a\": \"c\",\n         \"b\": \"d\"\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-json-name": {
+    "stdout": "{\n   \"mytab\": [\n      {\n         \"a\": \"1\",\n         \"b\": \"2\"\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-json-nulls": {
+    "stdout": "{\n   \"table\": [\n      {\n         \"a\": \"a\",\n         \"b\": null,\n         \"c\": \"c\"\n      },{\n         \"a\": \"1\",\n         \"b\": \"2\",\n         \"c\": null\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-json-tab-in-cell": {
+    "stdout": "{\n   \"table\": [\n      {\n         \"x\": \"a\\tb\",\n         \"y\": \"c\"\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-json-types": {
+    "stdout": "{\n   \"table\": [\n      {\n         \"x\": \"a\",\n         \"y\": 1,\n         \"z\": true\n      },{\n         \"x\": \"bb\",\n         \"y\": 22,\n         \"z\": true\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-blank-lines": {
+    "stdout": "a  b\nc  d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-combining-and-control": {
+    "stdout": "á   c\na\u001bb  d\ne   f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-crlf": {
+    "stdout": "a    b\r\nccc  d\r\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-csv": {
+    "stdout": "name        age  city\nana         30   recife\nbartolomeu  7    rio\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-empty-input": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-empty-separator": {
+    "stdout": "a b\nc d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-files-and-missing": {
+    "stdout": "x   y\nzz  w\n",
+    "stderr": "column: nope: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "f1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "f3180b5ddb5fd5743a8e2acc8d51a682d1b6812efdcaa81d452175c854c147cc",
+        "data": "x y\nzz w\n"
+      }
+    }
+  },
+  "column-t-header-repeat": {
+    "stdout": "A  B\na  b\n1  2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-hide": {
+    "stdout": "X  Z\na  c\n1  333\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-hide-unnamed": {
+    "stdout": "x  y\na  b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-invalid-utf8": {
+    "stdout": "\\xff  c\nd     e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-keep-empty": {
+    "stdout": "a  b\n   \nc  d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-leading-separator": {
+    "stdout": "   a  b\nc     \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-limit": {
+    "stdout": "a  b,c,d\n1  22,333\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-limit-whitespace": {
+    "stdout": "a  b  c   d   \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-ls-like": {
+    "stdout": "-rw-r--r--  1  root  root  120   Jan  15  12:00  a.txt\ndrwxr-xr-x  2  root  root  4096  Jan  15  12:00  dir\n-rwxr-xr-x  1  root  root  9     Jan  15  12:00  run.sh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-maxout": {
+    "stdout": "a                     b                   c                 \nbb                    c                   d                 \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-maxout-env": {
+    "stdout": "a       b      c    \nbb      c      d    \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-maxout-width-zero": {
+    "stdout": "a  b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-multi-separators": {
+    "stdout": "a  b  c\n1  2  3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-names": {
+    "stdout": "X  YY  Z\na  b   c\n1  22  333\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-names-fewer-than-data": {
+    "stdout": "x  y  \na  b  c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-names-long-header": {
+    "stdout": "LONGHEADER  B\na           b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-names-more-than-data": {
+    "stdout": "a  b  c\n1     \n2  3  \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-noextreme-fits": {
+    "stdout": "a   xxxxxxxxxx  d\nbb  c           e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-noextreme-reduced": {
+    "stdout": "a   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n                    yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nbb  c               d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-noheadings": {
+    "stdout": "a  b\n1  2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-only-missing": {
+    "stdout": "",
+    "stderr": "column: nope: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-t-order": {
+    "stdout": "Z    X  YY\nc    a  b\n333  1  22\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-order-numbers": {
+    "stdout": "c  a  b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-output-separator": {
+    "stdout": "a | b  | c\n1 | 22 | 333\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-output-separator-empty": {
+    "stdout": "ab\ncd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-overflow-no-flags": {
+    "stdout": "a   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  yyy\nbb  c                               d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-right": {
+    "stdout": "X  YY    Z\na   b    c\n1  22  333\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-right-first": {
+    "stdout": "LONGHEADER  B\n         a  b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-right-last-empty": {
+    "stdout": "A  B\na  b\nc  \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-right-numbers-no-names": {
+    "stdout": "x    1\ny   22\nz  333\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-tab-separator": {
+    "stdout": "key         value with spaces\nlonger key  v\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-table-column-hidden": {
+    "stdout": "Y\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-table-column-no-name": {
+    "stdout": "         \na  1  2  3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-table-column-props": {
+    "stdout": " X  Y\n a  1\nbb  22\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-truncate": {
+    "stdout": "A   B                        C\na   xxxxxxxxxxxxxxxxxxxxxxx  \nbb  c                        d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-truncate-two": {
+    "stdout": "a   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nbb  c                                  e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-unicode-width": {
+    "stdout": "日本  c\nd     e\nação  x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-whitespace": {
+    "stdout": "a   b    c\ndd  eee  f\nx        \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-t-wrap": {
+    "stdout": "X   Y\na   1\nbb  2\nbb  \nbb  \nbb  \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-tree": {
+    "stdout": "ID  PARENT  NAME\n1   0       root\n2   1       ├─child1\n4   2       │ └─grand\n3   1       └─child2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-tree-json": {
+    "stdout": "{\n   \"table\": [\n      {\n         \"id\": \"1\",\n         \"parent\": \"0\",\n         \"name\": \"root\",\n         \"children\": [\n            {\n               \"id\": \"2\",\n               \"parent\": \"1\",\n               \"name\": \"child1\",\n               \"children\": [\n                  {\n                     \"id\": \"4\",\n                     \"parent\": \"2\",\n                     \"name\": \"grand\"\n                  }\n               ]\n            },{\n               \"id\": \"3\",\n               \"parent\": \"1\",\n               \"name\": \"child2\"\n            }\n         ]\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-tree-orphans": {
+    "stdout": "ID  P  NAME\n1   0  r\n2   1  └─c1\n3   2    └─c2\n4   0  r2\n5   9  orphan\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

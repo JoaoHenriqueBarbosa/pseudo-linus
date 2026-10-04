@@ -1,0 +1,555 @@
+tool = "archive"
+source = "manual"
+
+# gzip 1.13 (e os scripts gunzip e zcat do Debian): compressão e descompressão em arquivo, nomes de
+# saída e sufixos, -k/-f/-c/-v/-q/-n/-N/-S, -l com as contas de razão, -t, membros concatenados,
+# sobras no fim, cabeçalhos com flags e todos os tipos de erro de dados. As fixtures .gz foram
+# geradas pelo gzip do oráculo (e as corrompidas, a partir delas); as entradas de texto são pequenas,
+# pra que a saída comprimida seja reprodutível byte a byte.
+
+[[case]]
+id = "gzip-compress-file"
+argv = ["gzip", "a.txt"]
+tags = ["gzip", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-compress-verbose"
+argv = ["gzip", "-v", "a.txt", "p.txt"]
+tags = ["gzip", "compress", "verbose"]
+[case.files]
+"a.txt" = "hello world\n"
+"p.txt" = "plain text\nplain text\nplain text\n"
+
+[[case]]
+id = "gzip-keep-verbose"
+argv = ["gzip", "-kv", "p.txt"]
+tags = ["gzip", "compress", "verbose"]
+[case.files]
+"p.txt" = "plain text\nplain text\nplain text\n"
+
+[[case]]
+id = "gzip-mode-preserved"
+argv = ["gzip", "secret.txt"]
+tags = ["gzip", "compress", "mode"]
+[case.files]
+"secret.txt" = { content = "top secret\n", mode = 0o600 }
+
+[[case]]
+id = "gzip-no-name"
+argv = ["gzip", "-n", "a.txt"]
+tags = ["gzip", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-no-time"
+argv = ["gzip", "-m", "-c", "a.txt"]
+tags = ["gzip", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-levels-to-stdout"
+argv = ["gzip", "-9", "-c", "a.txt"]
+tags = ["gzip", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-fast-to-stdout"
+argv = ["gzip", "--fast", "-c", "a.txt"]
+tags = ["gzip", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-two-files-to-stdout"
+argv = ["gzip", "-c", "a.txt", "p.txt"]
+tags = ["gzip", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+"p.txt" = "plain text\nplain text\nplain text\n"
+
+[[case]]
+id = "gzip-stdin-to-stdout"
+argv = ["gzip"]
+stdin = "from stdin\n"
+tags = ["gzip", "compress", "stdin"]
+
+[[case]]
+id = "gzip-stdin-dash-verbose"
+argv = ["gzip", "-cv", "-"]
+stdin = "from stdin\nfrom stdin\n"
+tags = ["gzip", "compress", "stdin", "verbose"]
+
+[[case]]
+id = "gzip-already-has-suffix"
+argv = ["gzip", "a.txt.gz", "b.tgz"]
+tags = ["gzip", "warning"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+"b.tgz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-output-exists"
+argv = ["gzip", "a.txt"]
+tags = ["gzip", "warning"]
+[case.files]
+"a.txt" = "new content\n"
+"a.txt.gz" = "old\n"
+
+[[case]]
+id = "gzip-output-exists-force"
+argv = ["gzip", "-f", "a.txt"]
+tags = ["gzip", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+"a.txt.gz" = "old\n"
+
+[[case]]
+id = "gzip-missing"
+argv = ["gzip", "nofile", "a.txt"]
+tags = ["gzip", "error"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-directory"
+argv = ["gzip", "d"]
+tags = ["gzip", "warning"]
+[case.files]
+"d/x" = "x\n"
+
+[[case]]
+id = "gzip-recursive"
+argv = ["gzip", "-rv", "d"]
+tags = ["gzip", "recursive"]
+[case.files]
+"d/sub/x" = "hello world\n"
+
+[[case]]
+id = "gzip-recursive-decompress"
+argv = ["gzip", "-drv", "d"]
+tags = ["gzip", "recursive"]
+[case.files]
+"d/sub/a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-recursive-skips-unknown-suffix"
+argv = ["gzip", "-dr", "d"]
+tags = ["gzip", "recursive"]
+[case.files]
+"d/plain" = "not compressed\n"
+
+[[case]]
+id = "gzip-setuid-ignored"
+argv = ["gzip", "run", "grp", "sticky"]
+tags = ["gzip", "warning"]
+[case.files]
+"run" = { content = "#!/bin/sh\n", mode = 0o4755 }
+"grp" = { content = "#!/bin/sh\n", mode = 0o2755 }
+"sticky" = { content = "data\n", mode = 0o1644 }
+
+[[case]]
+id = "gzip-symlink-refused"
+argv = ["gzip", "lnk"]
+tags = ["gzip", "error"]
+[case.files]
+"a.txt" = "hello world\n"
+"lnk" = { symlink = "a.txt" }
+
+[[case]]
+id = "gzip-symlink-forced"
+argv = ["gzip", "-f", "lnk"]
+tags = ["gzip", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+"lnk" = { symlink = "a.txt" }
+
+[[case]]
+id = "gzip-symlink-to-stdout"
+argv = ["gzip", "-c", "lnk"]
+tags = ["gzip", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+"lnk" = { symlink = "a.txt" }
+
+[[case]]
+id = "gzip-suffix-option"
+argv = ["gzip", "-S", ".foo", "-kv", "a.txt"]
+tags = ["gzip", "suffix"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-suffix-empty"
+argv = ["gzip", "-S", "", "a.txt"]
+tags = ["gzip", "error"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-decompress-suffix-option"
+argv = ["gzip", "-d", "-S", ".foo", "a.foo"]
+tags = ["gzip", "suffix", "decompress"]
+[case.files]
+"a.foo" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-decompress-file"
+argv = ["gzip", "-d", "a.txt.gz"]
+tags = ["gzip", "decompress"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-decompress-verbose-keep"
+argv = ["gzip", "-dkv", "a.txt.gz", "multi.gz"]
+tags = ["gzip", "decompress", "verbose"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+"multi.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgIwNZoaQADcC50eHQAK8hJzMxTKEmtKOEqwMoEAIP9t1EhAAAA" }
+
+[[case]]
+id = "gzip-decompress-tries-suffix"
+argv = ["gzip", "-d", "a.txt"]
+tags = ["gzip", "decompress"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-decompress-missing"
+argv = ["gzip", "-d", "nofile", "x.z"]
+tags = ["gzip", "decompress", "error"]
+
+[[case]]
+id = "gzip-decompress-unknown-suffix"
+argv = ["gzip", "-d", "plain.txt"]
+tags = ["gzip", "decompress", "warning"]
+[case.files]
+"plain.txt" = "plain\n"
+
+[[case]]
+id = "gzip-decompress-tgz"
+argv = ["gzip", "-dv", "tgz.tgz"]
+tags = ["gzip", "decompress"]
+[case.files]
+"tgz.tgz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-decompress-name"
+argv = ["gzip", "-dN", "renamed.gz"]
+tags = ["gzip", "decompress", "name"]
+[case.files]
+"renamed.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-decompress-name-strips-dirs"
+argv = ["gzip", "-dN", "dirname.gz"]
+tags = ["gzip", "decompress", "name"]
+[case.files]
+"dirname.gz" = { content_b64 = "H4sICMDWaGkAA3N1Yi9kaXIvaW5uZXIudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-decompress-name-exists"
+argv = ["gzip", "-dN", "renamed.gz"]
+tags = ["gzip", "decompress", "warning"]
+[case.files]
+"a.txt" = "already here\n"
+"renamed.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-dc-multi-and-stdin"
+argv = ["gzip", "-dc", "multi.gz", "-"]
+stdin_b64 = "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+tags = ["gzip", "decompress", "stdin"]
+[case.files]
+"multi.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgIwNZoaQADcC50eHQAK8hJzMxTKEmtKOEqwMoEAIP9t1EhAAAA" }
+
+[[case]]
+id = "gzip-d-stdin-not-gzip"
+argv = ["gzip", "-d"]
+stdin = "this is not gzip\n"
+tags = ["gzip", "decompress", "stdin", "error"]
+
+[[case]]
+id = "gzip-d-stdin-empty"
+argv = ["gzip", "-dc"]
+tags = ["gzip", "decompress", "stdin", "error"]
+
+[[case]]
+id = "gzip-c-stdin-empty"
+argv = ["gzip", "-c"]
+tags = ["gzip", "compress", "stdin"]
+
+[[case]]
+id = "gzip-dc-trailing-garbage"
+argv = ["gzip", "-dc", "trail.gz"]
+tags = ["gzip", "decompress", "warning"]
+[case.files]
+"trail.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAABnYXJiYWdlCg==" }
+
+[[case]]
+id = "gzip-dc-trailing-zeros"
+argv = ["gzip", "-dc", "zeros.gz"]
+tags = ["gzip", "decompress"]
+[case.files]
+"zeros.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAAAAAAAA==" }
+
+[[case]]
+id = "gzip-dcv-trailing-zeros"
+argv = ["gzip", "-dcv", "zeros.gz"]
+tags = ["gzip", "decompress", "verbose", "warning"]
+[case.files]
+"zeros.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAAAAAAAA==" }
+
+[[case]]
+id = "gzip-t-zeros-then-junk"
+argv = ["gzip", "-t", "zjunk.gz"]
+tags = ["gzip", "test", "warning"]
+[case.files]
+"zjunk.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAAAGp1bms=" }
+
+[[case]]
+id = "gzip-tq-trailing-garbage"
+argv = ["gzip", "-tq", "trail.gz"]
+tags = ["gzip", "test", "warning"]
+[case.files]
+"trail.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAABnYXJiYWdlCg==" }
+
+[[case]]
+id = "gzip-tv-many"
+argv = ["gzip", "-tv", "a.txt.gz", "multi.gz", "plain.txt", "trunc.gz"]
+tags = ["gzip", "test", "verbose", "error"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+"multi.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgIwNZoaQADcC50eHQAK8hJzMxTKEmtKOEqwMoEAIP9t1EhAAAA" }
+"plain.txt" = "plain\n"
+"trunc.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzck=" }
+
+[[case]]
+id = "gzip-t-stdin"
+argv = ["gzip", "-tv"]
+stdin_b64 = "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+tags = ["gzip", "test", "stdin"]
+
+[[case]]
+id = "gzip-header-crc-ok"
+argv = ["gzip", "-dc", "hcrc.gz"]
+tags = ["gzip", "header"]
+[case.files]
+"hcrc.gz" = { content_b64 = "H4sIAsDWaGkAA6nMy0jNyclXKM8vyknhAgAtOwivDAAAAA==" }
+
+[[case]]
+id = "gzip-header-crc-bad"
+argv = ["gzip", "-dc", "hcrcbad.gz"]
+tags = ["gzip", "header", "error"]
+[case.files]
+"hcrcbad.gz" = { content_b64 = "H4sIAsDWaGkAAwAAy0jNyclXKM8vyknhAgAtOwivDAAAAA==" }
+
+[[case]]
+id = "gzip-header-encrypted"
+argv = ["gzip", "-t", "enc.gz"]
+tags = ["gzip", "header", "error"]
+[case.files]
+"enc.gz" = { content_b64 = "H4sIIMDWaGkAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-header-reserved-flags"
+argv = ["gzip", "-t", "res.gz"]
+tags = ["gzip", "header", "error"]
+[case.files]
+"res.gz" = { content_b64 = "H4sIQMDWaGkAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-header-unknown-method"
+argv = ["gzip", "-t", "meth.gz"]
+tags = ["gzip", "header", "error"]
+[case.files]
+"meth.gz" = { content_b64 = "H4sHCMDWaGkAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-header-comment-and-extra"
+argv = ["gzip", "-dc", "cm.gz", "extra.gz"]
+tags = ["gzip", "header"]
+[case.files]
+"cm.gz" = { content_b64 = "H4sIGMDWaGkAA25tAGEgY29tbWVudADLSM3JyVcozy/KSeECAC07CK8MAAAA" }
+"extra.gz" = { content_b64 = "H4sIBMDWaGkAAwQAYWJjZMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-data-crc-error"
+argv = ["gzip", "-dc", "crc.gz"]
+tags = ["gzip", "error"]
+[case.files]
+"crc.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzck2VyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-data-length-error"
+argv = ["gzip", "-dc", "len.gz"]
+tags = ["gzip", "error"]
+[case.files]
+"len.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAE=" }
+
+[[case]]
+id = "gzip-data-format-violated"
+argv = ["gzip", "-d", "fmt.gz"]
+tags = ["gzip", "error"]
+[case.files]
+"fmt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMv//8nJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-d-truncated-removes-output"
+argv = ["gzip", "-d", "trunc.gz"]
+tags = ["gzip", "error"]
+[case.files]
+"trunc.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzck=" }
+
+[[case]]
+id = "gzip-d-empty-file"
+argv = ["gzip", "-d", "e.gz"]
+tags = ["gzip", "error"]
+[case.files]
+"e.gz" = ""
+
+[[case]]
+id = "gzip-list-basic"
+argv = ["gzip", "-l", "a.txt.gz", "empty.gz"]
+tags = ["gzip", "list"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+"empty.gz" = { content_b64 = "H4sICAVzwGoAA2VtcHR5AAMAAAAAAAAAAAA=" }
+
+[[case]]
+id = "gzip-list-verbose-name"
+argv = ["gzip", "-lvN", "renamed.gz", "cm.gz", "m0.gz"]
+tags = ["gzip", "list", "verbose"]
+[case.files]
+"renamed.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+"cm.gz" = { content_b64 = "H4sIGMDWaGkAA25tAGEgY29tbWVudADLSM3JyVcozy/KSeECAC07CK8MAAAA" }
+"m0.gz" = { content_b64 = "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-list-multi-member"
+argv = ["gzip", "-lv", "multi.gz"]
+tags = ["gzip", "list", "verbose"]
+[case.files]
+"multi.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAAfiwgIwNZoaQADcC50eHQAK8hJzMxTKEmtKOEqwMoEAIP9t1EhAAAA" }
+
+[[case]]
+id = "gzip-list-errors-and-totals"
+argv = ["gzip", "-l", "a.txt.gz", "nofile", "plain.txt", "trunc.gz", "a.txt.gz"]
+tags = ["gzip", "list", "error"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+"plain.txt" = "plain\n"
+"trunc.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzck=" }
+
+[[case]]
+id = "gzip-list-quiet"
+argv = ["gzip", "-lq", "a.txt.gz", "a.txt.gz"]
+tags = ["gzip", "list"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gzip-list-stdin"
+argv = ["gzip", "-l"]
+stdin_b64 = "H4sIAAAAAAAAA8tIzcnJVyjPL8pJ4QIALTsIrwwAAAA="
+tags = ["gzip", "list", "stdin"]
+
+[[case]]
+id = "gzip-list-all-missing"
+argv = ["gzip", "-lv", "x", "y"]
+tags = ["gzip", "list", "error"]
+
+[[case]]
+id = "gzip-invalid-short"
+argv = ["gzip", "-x", "a.txt"]
+tags = ["gzip", "usage"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-unrecognized-long"
+argv = ["gzip", "--bogus"]
+tags = ["gzip", "usage"]
+
+[[case]]
+id = "gzip-ambiguous-long"
+argv = ["gzip", "--s"]
+tags = ["gzip", "usage"]
+
+[[case]]
+id = "gzip-lzw-unsupported"
+argv = ["gzip", "-Z", "a.txt"]
+tags = ["gzip", "usage"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-bits-needs-arg"
+argv = ["gzip", "-b"]
+tags = ["gzip", "usage"]
+
+[[case]]
+id = "gzip-ascii-warning"
+argv = ["gzip", "-a", "-c", "a.txt"]
+tags = ["gzip", "usage"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "gzip-help"
+argv = ["gzip", "--help"]
+tags = ["gzip", "usage"]
+
+[[case]]
+id = "gzip-version"
+argv = ["gzip", "-V"]
+tags = ["gzip", "usage"]
+
+[[case]]
+id = "gzip-license"
+argv = ["gzip", "-L"]
+tags = ["gzip", "usage"]
+
+[[case]]
+id = "gunzip-file"
+argv = ["gunzip", "-v", "a.txt.gz"]
+tags = ["gzip", "gunzip"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }
+
+[[case]]
+id = "gunzip-missing"
+argv = ["gunzip", "nope"]
+tags = ["gzip", "gunzip", "error"]
+
+[[case]]
+id = "gunzip-help"
+argv = ["gunzip", "--help"]
+tags = ["gzip", "gunzip", "usage"]
+
+[[case]]
+id = "gunzip-bad-option"
+argv = ["gunzip", "-x"]
+tags = ["gzip", "gunzip", "usage"]
+
+[[case]]
+id = "zcat-version"
+argv = ["zcat", "--version"]
+tags = ["gzip", "zcat", "usage"]
+
+[[case]]
+id = "zcat-help"
+argv = ["zcat", "--help"]
+tags = ["gzip", "zcat", "usage"]
+
+[[case]]
+id = "zcat-tries-suffix"
+argv = ["zcat", "a.txt", "missing"]
+tags = ["gzip", "zcat"]
+[case.files]
+"a.txt.gz" = { content_b64 = "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4QIALTsIrwwAAAA=" }

@@ -1,0 +1,223 @@
+tool = "diff"
+source = "manual"
+
+# sdiff (GNU diffutils 3.10): sem -o (é o diff -y com as opções traduzidas) e com -o (fusão lendo
+# comandos da entrada padrão: l, r, 1, 2, s, v, q, inválido, fim da entrada, editor ausente).
+
+[[case]]
+id = "sdiff-basic"
+argv = ["sdiff", "-w", "30", "a", "b"]
+tags = ["sdiff"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-left-column"
+argv = ["sdiff", "-w", "30", "-l", "a", "b"]
+tags = ["sdiff"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-suppress"
+argv = ["sdiff", "-w", "30", "-s", "a", "b"]
+tags = ["sdiff"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-expand-tabs"
+argv = ["sdiff", "--width=30", "-t", "a", "b"]
+tags = ["sdiff"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-ignore-all-space-W"
+argv = ["sdiff", "-W", "-w", "20", "a", "b"]
+tags = ["sdiff"]
+[case.files]
+"a" = "a b\nx\n"
+"b" = "ab\ny\n"
+
+[[case]]
+id = "sdiff-identical"
+argv = ["sdiff", "a", "a"]
+tags = ["sdiff"]
+[case.files]
+"a" = "a\nb\n"
+
+[[case]]
+id = "sdiff-dirs"
+argv = ["sdiff", "-l", "-w", "30", "-i", "-s", "d1", "d2"]
+tags = ["sdiff"]
+[case.files]
+"d1/f" = "q\n"
+"d2/f" = "r\n"
+
+[[case]]
+id = "sdiff-missing"
+argv = ["sdiff", "nope", "a"]
+tags = ["sdiff", "error"]
+[case.files]
+"a" = "a\n"
+
+[[case]]
+id = "sdiff-invalid-width"
+argv = ["sdiff", "-w", "0", "a", "b"]
+tags = ["sdiff", "error"]
+
+[[case]]
+id = "sdiff-missing-operand"
+argv = ["sdiff", "a"]
+tags = ["sdiff", "error"]
+
+[[case]]
+id = "sdiff-extra-operand"
+argv = ["sdiff", "a", "b", "c"]
+tags = ["sdiff", "error"]
+
+[[case]]
+id = "sdiff-help"
+argv = ["sdiff", "--help"]
+tags = ["sdiff", "help"]
+
+[[case]]
+id = "sdiff-version"
+argv = ["sdiff", "--version"]
+tags = ["sdiff", "help"]
+
+[[case]]
+id = "sdiff-merge-left-right"
+argv = ["sdiff", "-o", "out", "-w", "30", "a", "b"]
+stdin = "l\nr\n"
+tags = ["sdiff", "merge"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-merge-digits"
+argv = ["sdiff", "-o", "out", "-w", "30", "a", "b"]
+stdin = "2\n1\n"
+tags = ["sdiff", "merge"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-merge-silent-verbose"
+argv = ["sdiff", "-o", "out", "-w", "30", "a", "b"]
+stdin = "s\nl\nv\nr\n"
+tags = ["sdiff", "merge"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-merge-invalid-then-left"
+argv = ["sdiff", "-o", "out", "-w", "30", "a", "b"]
+stdin = "zz\n l \nr\n"
+tags = ["sdiff", "merge"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-merge-eof"
+argv = ["sdiff", "-o", "out", "a", "b"]
+tags = ["sdiff", "merge"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-merge-quit"
+argv = ["sdiff", "-o", "out", "a", "b"]
+stdin = "q\n"
+tags = ["sdiff", "merge"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-merge-no-newline-command"
+argv = ["sdiff", "-o", "out", "-w", "30", "a", "b"]
+stdin = "l"
+tags = ["sdiff", "merge"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "sdiff-merge-identical"
+argv = ["sdiff", "-o", "out", "a", "a"]
+tags = ["sdiff", "merge"]
+[case.files]
+"a" = "a\nb\n"
+
+[[case]]
+id = "sdiff-merge-ignored-blank"
+argv = ["sdiff", "-B", "-o", "out", "e", "f"]
+tags = ["sdiff", "merge"]
+[case.files]
+"e" = "a\nb\n"
+"f" = "a\n\nb\n"
+
+[[case]]
+id = "sdiff-merge-nonl"
+argv = ["sdiff", "-o", "out", "c", "d"]
+stdin = "r\n"
+tags = ["sdiff", "merge", "nonl"]
+[case.files]
+"c" = "a\nb"
+"d" = "a\nB"
+
+[[case]]
+id = "sdiff-merge-missing-input"
+argv = ["sdiff", "-o", "out", "nope", "a"]
+stdin = "l\n"
+tags = ["sdiff", "merge", "error"]
+[case.files]
+"a" = "a\n"
+
+[[case]]
+id = "sdiff-merge-bad-width"
+argv = ["sdiff", "-o", "out", "-w", "0", "a", "b"]
+stdin = "l\n"
+tags = ["sdiff", "merge", "error"]
+[case.files]
+"a" = "a\n"
+"b" = "b\n"
+
+[[case]]
+id = "sdiff-merge-dirs"
+argv = ["sdiff", "-o", "out", "d1", "d2"]
+stdin = "l\n"
+tags = ["sdiff", "merge", "error"]
+[case.files]
+"d1/f" = "q\n"
+"d2/f" = "r\n"
+
+[[case]]
+id = "sdiff-merge-editor-missing"
+argv = ["sdiff", "-o", "out", "-w", "30", "a", "b"]
+stdin = "ed\n"
+env = { EDITOR = "/nonexistent" }
+tags = ["sdiff", "merge", "error"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nC\nd\ne\n"
+
+[[case]]
+id = "sdiff-merge-binary"
+argv = ["sdiff", "-o", "out", "b1", "b2"]
+stdin = "l\n"
+tags = ["sdiff", "merge", "binary"]
+[case.files]
+"b1" = { content_b64 = "YQA=" }
+"b2" = { content_b64 = "YgA=" }

@@ -1,0 +1,142 @@
+tool = "patch"
+source = "manual"
+
+# GNU patch 2.8 --merge e --merge=diff3: aplicação limpa, deslocamento, fusão com contexto mudado,
+# conflito com marcadores, já aplicado, linha apagada no arquivo, vários grupos num hunk e a contagem
+# de linhas das mensagens.
+
+[[case]]
+id = "patch-merge-clean"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-merge-offset"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge"]
+[case.files]
+"a.txt" = "top\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+
+[[case]]
+id = "patch-merge-context-changed-adjacent"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge", "conflict"]
+[case.files]
+"a.txt" = "1\n2\n3\nfour\n5\n6\n7\n8\n9\n10\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+
+[[case]]
+id = "patch-merge-conflict"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge", "conflict"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\nfive\n6\n7\n8\n9\n10\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+
+[[case]]
+id = "patch-merge-conflict-diff3"
+argv = ["patch", "--merge=diff3", "-i", "p"]
+tags = ["merge", "conflict"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\nfive\n6\n7\n8\n9\n10\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+
+[[case]]
+id = "patch-merge-fuzz-both-ends"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge"]
+[case.files]
+"a.txt" = "1\n2\nthree\n4\n5\n6\nseven\n8\n9\n10\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+
+[[case]]
+id = "patch-merge-already-applied"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\nFIVE\n6\n7\n8\n9\n10\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+
+[[case]]
+id = "patch-merge-deleted-line"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge", "conflict"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n6\n7\n8\n9\n10\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+
+[[case]]
+id = "patch-merge-unrelated"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge", "conflict"]
+[case.files]
+"a.txt" = "x\ny\nz\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"
+
+[[case]]
+id = "patch-merge-two-groups-merged"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge"]
+[case.files]
+"a.txt" = "1\ntwo\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+
+[[case]]
+id = "patch-merge-conflict-then-merged"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge", "conflict"]
+[case.files]
+"a.txt" = "1\n2\n3\nfour\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+
+[[case]]
+id = "patch-merge-applied-then-merged"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge"]
+[case.files]
+"a.txt" = "1\ntwo\n3\nFOUR\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+
+[[case]]
+id = "patch-merge-skew-after-deletion"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge"]
+[case.files]
+"a.txt" = "1\ntwo\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -2,10 +2,9 @@\n 2\n 3\n-4\n-5\n+FOUR\n 6\n 7\n 8\n-9\n+NINE\n 10\n 11\n"
+
+[[case]]
+id = "patch-merge-merged-then-conflict"
+argv = ["patch", "--merge", "-i", "p"]
+tags = ["merge", "conflict"]
+[case.files]
+"a.txt" = "1\ntwo\n3\n4\n5\n6\n7\n8\nnine\n10\n11\n12\n13\n14\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -2,10 +2,10 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n 8\n-9\n+NINE\n 10\n 11\n"
+
+[[case]]
+id = "patch-merge-silent"
+argv = ["patch", "-s", "--merge", "-i", "p"]
+tags = ["merge", "silent"]
+[case.files]
+"a.txt" = "1\n2\n3\nfour\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+
+[[case]]
+id = "patch-merge-output"
+argv = ["patch", "-o", "out", "--merge", "-i", "p"]
+tags = ["merge", "output"]
+[case.files]
+"a.txt" = "1\n2\n3\nfour\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -2,9 +2,9 @@\n 2\n 3\n-4\n+FOUR\n 5\n 6\n 7\n-8\n+EIGHT\n 9\n 10\n"
+
+[[case]]
+id = "patch-merge-dry-run"
+argv = ["patch", "--dry-run", "--merge", "-i", "p"]
+tags = ["merge", "dry-run"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\nfive\n6\n7\n8\n9\n10\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -3,5 +3,5 @@\n 3\n 4\n-5\n+FIVE\n 6\n 7\n"

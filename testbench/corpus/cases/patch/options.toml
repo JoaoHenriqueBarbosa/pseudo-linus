@@ -1,0 +1,500 @@
+tool = "patch"
+source = "manual"
+
+# GNU patch 2.8: opções de backup (-b, -B, -Y, -z, -V, VERSION_CONTROL, SIMPLE_BACKUP_SUFFIX), saída
+# (-o, -o -, -r, -r -), formatos de rejeito, -D, -E, -d, -l, -F, --dry-run com falha, -s, --verbose,
+# citação de nomes, --version, --help e erros de opção.
+
+[[case]]
+id = "patch-opt-suffix"
+argv = ["patch", "-b", "-z", ".bak", "-i", "fix.patch"]
+tags = ["backup"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-prefix-dir"
+argv = ["patch", "-b", "-B", "pre/", "-i", "fix.patch"]
+tags = ["backup"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-basename-prefix"
+argv = ["patch", "-b", "-Y", "old_", "-p1", "-i", "fix.patch"]
+tags = ["backup"]
+[case.files]
+"d/a.txt" = "x\ny\n"
+"fix.patch" = "--- a/d/a.txt\n+++ b/d/a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-numbered"
+argv = ["patch", "-b", "-V", "numbered", "-i", "fix.patch"]
+tags = ["backup"]
+[case.files]
+"a.txt" = "x\ny\n"
+"a.txt.~1~" = "older\n"
+"a.txt.~3~" = "old\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-existing-without-numbered"
+argv = ["patch", "-b", "-V", "existing", "-i", "fix.patch"]
+tags = ["backup"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-existing-with-numbered"
+argv = ["patch", "-b", "-V", "t", "-i", "fix.patch"]
+tags = ["backup"]
+[case.files]
+"a.txt" = "x\ny\n"
+"a.txt.~1~" = "q\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-version-control-env"
+argv = ["patch", "-b", "-i", "fix.patch"]
+tags = ["backup", "env"]
+env = { VERSION_CONTROL = "numbered" }
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-simple-suffix-env"
+argv = ["patch", "-b", "-i", "fix.patch"]
+tags = ["backup", "env"]
+env = { SIMPLE_BACKUP_SUFFIX = ".sv" }
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-version-control-none"
+argv = ["patch", "-b", "-V", "none", "-i", "fix.patch"]
+tags = ["backup"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-version-control-bogus"
+argv = ["patch", "-b", "-V", "bogus", "-i", "fix.patch"]
+tags = ["backup", "error"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-backup-mode-kept"
+argv = ["patch", "-b", "-i", "fix.patch"]
+tags = ["backup"]
+[case.files]
+"a.txt" = { content = "x\ny\n", mode = 0o755 }
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-backup-on-creation"
+argv = ["patch", "-b", "-i", "fix.patch"]
+tags = ["backup", "create"]
+[case.files]
+"fix.patch" = "--- /dev/null\n+++ n.txt\n@@ -0,0 +1 @@\n+n\n"
+
+[[case]]
+id = "patch-opt-backup-if-mismatch-posix"
+argv = ["patch", "--posix", "-i", "fix.patch"]
+tags = ["backup", "offset"]
+[case.files]
+"a.txt" = "top\nx\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-backup-if-mismatch-forced-posix"
+argv = ["patch", "--posix", "--backup-if-mismatch", "-i", "fix.patch"]
+tags = ["backup", "offset"]
+[case.files]
+"a.txt" = "top\nx\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-output-stdout"
+argv = ["patch", "-o", "-", "-i", "fix.patch"]
+tags = ["output"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-output-two-files"
+argv = ["patch", "-o", "out.txt", "-i", "fix.patch"]
+tags = ["output", "multi"]
+[case.files]
+"a.txt" = "x\ny\n"
+"b.txt" = "p\nq\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n--- b.txt\n+++ b.txt\n@@ -1,2 +1,2 @@\n p\n-q\n+Q\n"
+
+[[case]]
+id = "patch-opt-output-stdout-two-files"
+argv = ["patch", "-o", "-", "-i", "fix.patch"]
+tags = ["output", "multi"]
+[case.files]
+"a.txt" = "x\ny\n"
+"b.txt" = "p\nq\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n--- b.txt\n+++ b.txt\n@@ -1,2 +1,2 @@\n p\n-q\n+Q\n"
+
+[[case]]
+id = "patch-opt-output-existing-mode"
+argv = ["patch", "-o", "out", "-i", "fix.patch"]
+tags = ["output"]
+[case.files]
+"a.txt" = "x\nY\n"
+"out" = { content = "old\n", mode = 0o755 }
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-Y\n+Z\n"
+
+[[case]]
+id = "patch-opt-output-skipped"
+argv = ["patch", "-o", "out", "-i", "fix.patch"]
+tags = ["output", "reverse"]
+[case.files]
+"a.txt" = "x\nY\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-output-failed"
+argv = ["patch", "-o", "out", "-i", "fix.patch"]
+tags = ["output", "reject"]
+[case.files]
+"a.txt" = "x\nQ\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-reject-file"
+argv = ["patch", "-r", "my.rej", "-i", "fix.patch"]
+tags = ["reject"]
+[case.files]
+"a.txt" = "x\nz\n"
+"b.txt" = "p\nz\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n--- b.txt\n+++ b.txt\n@@ -1,2 +1,2 @@\n p\n-q\n+Q\n"
+
+[[case]]
+id = "patch-opt-reject-file-dash"
+argv = ["patch", "-r", "-", "-i", "fix.patch"]
+tags = ["reject"]
+[case.files]
+"a.txt" = "x\nz\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-reject-format-context"
+argv = ["patch", "--reject-format=context", "-i", "fix.patch"]
+tags = ["reject"]
+[case.files]
+"a.txt" = "q\nq\nq\n"
+"fix.patch" = "--- a.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ a.txt\t2026-01-16 12:00:00.000000000 +0000\n@@ -1,4 +1,5 @@\n 1\n-a\n+A\n+A2\n 2\n-b\n 3\n"
+
+[[case]]
+id = "patch-opt-reject-format-unified-from-context"
+argv = ["patch", "--reject-format=unified", "-i", "fix.patch"]
+tags = ["reject", "context-format"]
+[case.files]
+"a.txt" = "q\nq\nq\n"
+"fix.patch" = "*** a.txt\n--- a.txt\n***************\n*** 1,3 ****\n  1\n! a\n  2\n--- 1,4 ----\n  1\n! A\n! A2\n  2\n"
+
+[[case]]
+id = "patch-opt-reject-nonewline"
+argv = ["patch", "-i", "fix.patch"]
+tags = ["reject", "nonl"]
+[case.files]
+"a.txt" = "q\nq\nq\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-a\n\\ No newline at end of file\n+A\n\\ No newline at end of file\n"
+
+[[case]]
+id = "patch-opt-reject-shifted"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["reject", "offset"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n"
+"fix.patch" = "--- a/a.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ b/a.txt\t2026-01-15 12:00:00.000000000 +0000\n@@ -1,3 +1,4 @@\n 1\n+new\n 2\n 3\n@@ -10,3 +11,3 @@ some func()\n 10\n-X\n+Y\n 12\n"
+
+[[case]]
+id = "patch-opt-ifdef"
+argv = ["patch", "-D", "FOO", "-i", "fix.patch"]
+tags = ["ifdef"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n5\n6\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,6 +1,6 @@\n 1\n-2\n 3\n+ins\n 4\n-5\n+FIVE\n 6\n"
+
+[[case]]
+id = "patch-opt-remove-empty"
+argv = ["patch", "-E", "-i", "fix.patch"]
+tags = ["delete"]
+[case.files]
+"a.txt" = "y\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1 +0,0 @@\n-y\n"
+
+[[case]]
+id = "patch-opt-empty-result-kept"
+argv = ["patch", "-i", "fix.patch"]
+tags = ["delete"]
+[case.files]
+"a.txt" = "y\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1 +0,0 @@\n-y\n"
+
+[[case]]
+id = "patch-opt-directory"
+argv = ["patch", "-d", "sub", "-i", "../fix.patch"]
+tags = ["directory"]
+[case.files]
+"sub/a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-directory-missing"
+argv = ["patch", "-d", "nodir", "-i", "fix.patch"]
+tags = ["directory", "error"]
+[case.files]
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-ignore-whitespace"
+argv = ["patch", "-l", "-i", "fix.patch"]
+tags = ["whitespace"]
+[case.files]
+"a.txt" = "x  \nsome  \tthing\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n x\n some thing\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-whitespace-without-l"
+argv = ["patch", "-i", "fix.patch"]
+tags = ["whitespace"]
+[case.files]
+"a.txt" = "x  \nsome  \tthing\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n x\n some thing\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-fuzz-3"
+argv = ["patch", "-F3", "-i", "fix.patch"]
+tags = ["fuzz"]
+[case.files]
+"a.txt" = "L1\nL2\nL3\nline 4\nline 5\nline 6\nL7\nL8\nL9\nline 10\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,9 +1,9 @@\n line 1\n line 2\n line 3\n line 4\n-line 5\n+line five\n line 6\n line 7\n line 8\n line 9\n"
+
+[[case]]
+id = "patch-opt-dry-run-reject"
+argv = ["patch", "--dry-run", "-i", "fix.patch"]
+tags = ["dry-run", "reject"]
+[case.files]
+"a.txt" = "x\nz\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-dry-run-reversed"
+argv = ["patch", "--dry-run", "-i", "fix.patch"]
+tags = ["dry-run", "reverse"]
+[case.files]
+"a.txt" = "x\nY\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-silent-reject"
+argv = ["patch", "-s", "-i", "fix.patch"]
+tags = ["silent", "reject"]
+[case.files]
+"a.txt" = "x\nz\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-silent-reversed"
+argv = ["patch", "-s", "-i", "fix.patch"]
+tags = ["silent", "reverse"]
+[case.files]
+"a.txt" = "x\nY\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-silent-missing"
+argv = ["patch", "-s", "-i", "fix.patch"]
+tags = ["silent", "missing"]
+[case.files]
+"fix.patch" = "--- b.txt\n+++ b.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-silent-crlf"
+argv = ["patch", "-s", "-i", "fix.patch"]
+tags = ["silent", "crlf"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = { content_b64 = "LS0tIGEudHh0DQorKysgYS50eHQNCkBAIC0xLDIgKzEsMiBAQA0KIHgNCi15DQorWQ0K" }
+
+[[case]]
+id = "patch-opt-verbose"
+argv = ["patch", "--verbose", "-i", "fix.patch"]
+tags = ["verbose"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+"fix.patch" = "some garbage\nIndex: a.txt\n===\n--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n 1\n-2\n+TWO\n 3\ntrailing junk\n"
+
+[[case]]
+id = "patch-opt-verbose-two-missing"
+argv = ["patch", "--verbose", "-i", "fix.patch"]
+tags = ["verbose", "missing"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n--- b.txt\n+++ b.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-verbose-context"
+argv = ["patch", "--verbose", "-i", "fix.patch"]
+tags = ["verbose", "context-format"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "*** a.txt\n--- a.txt\n***************\n*** 1,2 ****\n  x\n! y\n--- 1,2 ----\n  x\n! Y\n"
+
+[[case]]
+id = "patch-opt-verbose-normal"
+argv = ["patch", "--verbose", "a.txt", "fix.patch"]
+tags = ["verbose", "normal-format"]
+[case.files]
+"a.txt" = "x\ny\n"
+"fix.patch" = "2c2\n< y\n---\n> Y\n"
+
+[[case]]
+id = "patch-opt-quoted-names"
+argv = ["patch", "-i", "fix.patch"]
+tags = ["quoting"]
+[case.files]
+"a b.txt" = "x\ny\n"
+"fix.patch" = "--- \"a b.txt\"\n+++ \"a b.txt\"\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-apostrophe-name"
+argv = ["patch", "-i", "fix.patch"]
+tags = ["quoting", "reject"]
+[case.files]
+"it's.txt" = "x\ny\n"
+"fix.patch" = "--- it's.txt\n+++ it's.txt\n@@ -1,2 +1,2 @@\n x\n-z\n+Y\n"
+
+[[case]]
+id = "patch-opt-quoting-literal"
+argv = ["patch", "--quoting-style=literal", "-i", "fix.patch"]
+tags = ["quoting"]
+[case.files]
+"a b.txt" = "x\ny\n"
+"fix.patch" = "--- \"a b.txt\"\n+++ \"a b.txt\"\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-quoting-env"
+argv = ["patch", "-i", "fix.patch"]
+tags = ["quoting", "env"]
+env = { QUOTING_STYLE = "c" }
+[case.files]
+"a b.txt" = "x\ny\n"
+"fix.patch" = "--- \"a b.txt\"\n+++ \"a b.txt\"\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-c-octal-name"
+argv = ["patch", "-i", "fix.patch"]
+tags = ["quoting"]
+[case.files]
+"f" = "x\ny\n"
+"fix.patch" = "--- \"\\x66\"\n+++ \"\\146\"\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-version"
+argv = ["patch", "--version"]
+tags = ["cli"]
+
+[[case]]
+id = "patch-opt-version-short"
+argv = ["patch", "-v"]
+tags = ["cli"]
+
+[[case]]
+id = "patch-opt-help"
+argv = ["patch", "--help"]
+tags = ["cli"]
+
+[[case]]
+id = "patch-opt-ambiguous"
+argv = ["patch", "--r"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "patch-opt-unknown"
+argv = ["patch", "--bogus"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "patch-opt-invalid-short"
+argv = ["patch", "-k"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "patch-opt-strip-not-number"
+argv = ["patch", "-px"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "patch-opt-fuzz-negative"
+argv = ["patch", "-F", "-1"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "patch-opt-extra-operand"
+argv = ["patch", "a", "b", "c"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "patch-opt-bad-quoting"
+argv = ["patch", "--quoting-style=foo"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "patch-opt-bad-reject-format"
+argv = ["patch", "--reject-format=foo"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "patch-opt-strip-too-many"
+argv = ["patch", "-p9", "-i", "fix.patch"]
+tags = ["strip", "missing"]
+[case.files]
+"b/c/f" = "x\ny\n"
+"fix.patch" = "--- a/b/c/f\n+++ a/b/c/f\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-strip-double-slash"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["strip"]
+[case.files]
+"f" = "x\ny\n"
+"fix.patch" = "--- a//f\n+++ a//f\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-strip-absolute"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["strip"]
+[case.files]
+"usr/f" = "x\ny\n"
+"fix.patch" = "--- /usr/f\n+++ /usr/f\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-absolute-dangerous"
+argv = ["patch", "-p0", "-i", "fix.patch"]
+tags = ["strip", "missing"]
+[case.files]
+"f" = "x\ny\n"
+"fix.patch" = "--- /work/case/f\n+++ /work/case/f\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-opt-dotdot-name"
+argv = ["patch", "-p1", "-i", "fix.patch"]
+tags = ["strip", "missing"]
+[case.files]
+"f" = "x\ny\n"
+"fix.patch" = "--- a/../f\n+++ b/../f\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"

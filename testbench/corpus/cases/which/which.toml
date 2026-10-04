@@ -1,0 +1,147 @@
+tool = "which"
+source = "manual"
+
+# which do debianutils 5.23 (script /bin/sh). Os casos usam programas que existem dos dois lados
+# (column, which) ou executáveis da fixture com PATH próprio.
+
+[[case]]
+id = "which-found"
+argv = ["which", "column"]
+
+[[case]]
+id = "which-all"
+argv = ["which", "-a", "column"]
+
+[[case]]
+id = "which-several-one-missing"
+argv = ["which", "column", "nope-xyz", "which"]
+
+[[case]]
+id = "which-missing"
+argv = ["which", "nope-xyz"]
+
+[[case]]
+id = "which-no-args"
+argv = ["which"]
+
+[[case]]
+id = "which-silent-found"
+argv = ["which", "-s", "column"]
+
+[[case]]
+id = "which-silent-missing"
+argv = ["which", "-a", "-s", "nope-xyz", "column"]
+
+[[case]]
+id = "which-clustered"
+argv = ["which", "-as", "column"]
+
+[[case]]
+id = "which-invalid-option"
+argv = ["which", "-x", "column"]
+
+[[case]]
+id = "which-invalid-after-silent"
+argv = ["which", "-sx", "column"]
+
+[[case]]
+id = "which-double-dash"
+argv = ["which", "--", "column"]
+
+[[case]]
+id = "which-option-after-operand"
+argv = ["which", "column", "-a"]
+
+[[case]]
+id = "which-dash-operand"
+argv = ["which", "-"]
+
+[[case]]
+id = "which-empty-name"
+argv = ["which", ""]
+
+[[case]]
+id = "which-fixture-path"
+argv = ["which", "tool"]
+env = { PATH = "/work/case/bin:/usr/bin" }
+[case.files]
+"bin/tool" = { content = "#!/bin/sh\necho hi\n", mode = 0o755 }
+
+[[case]]
+id = "which-fixture-all"
+argv = ["which", "-a", "tool"]
+env = { PATH = "/work/case/bin:/work/case/bin2:/usr/bin" }
+[case.files]
+"bin/tool" = { content = "#!/bin/sh\n", mode = 0o755 }
+"bin2/tool" = { content = "#!/bin/sh\n", mode = 0o700 }
+
+[[case]]
+id = "which-not-executable"
+argv = ["which", "-a", "tool"]
+env = { PATH = "/work/case/bin:/work/case/bin2:/usr/bin" }
+[case.files]
+"bin/tool" = { content = "data\n", mode = 0o644 }
+"bin2/tool" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "which-directory-skipped"
+argv = ["which", "tool"]
+env = { PATH = "/work/case/bin:/work/case/bin2:/usr/bin" }
+[case.files]
+"bin/tool" = { dir = true }
+"bin2/tool" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "which-symlink-target"
+argv = ["which", "tool"]
+env = { PATH = "/work/case/bin:/usr/bin" }
+[case.files]
+"bin/tool" = { symlink = "../real" }
+"real" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "which-dangling-symlink"
+argv = ["which", "tool"]
+env = { PATH = "/work/case/bin:/usr/bin" }
+[case.files]
+"bin/tool" = { symlink = "../nowhere" }
+
+[[case]]
+id = "which-empty-element-is-cwd"
+argv = ["which", "-a", "tool"]
+env = { PATH = "/usr/bin::/work/case/bin" }
+[case.files]
+"tool" = { content = "#!/bin/sh\n", mode = 0o755 }
+"bin/tool" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "which-trailing-colon"
+argv = ["which", "-a", "tool"]
+env = { PATH = "/usr/bin:" }
+[case.files]
+"tool" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "which-leading-colon"
+argv = ["which", "tool"]
+env = { PATH = ":/usr/bin" }
+[case.files]
+"tool" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "which-with-slash"
+argv = ["which", "./tool", "/work/case/tool", "bin", "./nope"]
+[case.files]
+"tool" = { content = "#!/bin/sh\n", mode = 0o755 }
+"bin" = { dir = true }
+
+[[case]]
+id = "which-relative-dir-in-path"
+argv = ["which", "tool"]
+env = { PATH = "bin:/usr/bin" }
+[case.files]
+"bin/tool" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "which-full-path-invocation"
+argv = ["/usr/bin/which", "-x"]

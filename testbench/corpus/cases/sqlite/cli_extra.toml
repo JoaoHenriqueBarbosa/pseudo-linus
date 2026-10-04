@@ -1,0 +1,560 @@
+tool = "sqlite"
+source = "agent-style"
+
+# CLI do sqlite3 além da camada mínima do F12: todos os modos de saída, comandos de ponto que agentes
+# usam (.import, .dump, .read, .output, .once, .schema --indent, .show, .parameter...), opções de linha
+# de comando, mensagens de erro e as funções de data com o relógio do sandbox (faketime).
+
+[[case]]
+id = "sqlite-x-mode-box"
+argv = ["sqlite3", "-box", "db.sqlite", '''SELECT 1 AS id, 'ação' AS nome, NULL AS vazio, 2.5 AS r UNION ALL SELECT 22, 'b', 'x', -1;''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-x-mode-table"
+argv = ["sqlite3", "-table", "db.sqlite", '''SELECT 1 AS id, 'alpha' AS name UNION ALL SELECT 22, 'b' UNION ALL SELECT 333, NULL;''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-x-mode-markdown"
+argv = ["sqlite3", "-markdown", "db.sqlite", '''SELECT 1 AS id, 'alpha' AS name UNION ALL SELECT 22, 'b|c';''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-x-mode-line"
+argv = ["sqlite3", "-line", "db.sqlite", '''SELECT 1 AS a, 'x' AS long_column_name, NULL AS n UNION ALL SELECT 2, 'y', 3;''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-x-mode-column-wrap"
+stdin = '''
+.mode column --wrap 10
+SELECT 'uma frase bem comprida que passa de dez colunas' AS texto, 7 AS n;
+.mode column --wrap 12 --wordwrap on
+SELECT 'uma frase bem comprida que passa de dez colunas' AS texto, 7 AS n;
+.width 5 -8
+SELECT 'abcdefghij' AS a, 42 AS b;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "cli-mode", "stdin"]
+
+[[case]]
+id = "sqlite-x-mode-column-argv-nowrap"
+argv = ["sqlite3", "-column", "-header", "db.sqlite", '''SELECT 'este texto tem mais de sessenta caracteres para ver se o modo coluna quebra a linha' AS t;''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-x-mode-qbox"
+stdin = '''
+.mode qbox
+SELECT 'it''s' AS a, 1.5 AS b, NULL AS c, x'00ff' AS d;
+.mode
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "cli-mode", "stdin"]
+
+[[case]]
+id = "sqlite-x-mode-insert"
+stdin = '''
+.mode insert tbl
+SELECT 1, 'it''s', 'a' || char(10) || 'b', x'0102', 2.5, NULL, 1e300, 10.0;
+.headers on
+SELECT 1 AS "my col", 2 AS ok;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "cli-mode", "stdin"]
+
+[[case]]
+id = "sqlite-x-mode-quote"
+argv = ["sqlite3", "-quote", "-header", "db.sqlite", '''SELECT 1 AS a, 'x''y' AS b, NULL AS c, 0.1 AS d, x'41' AS e;''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-x-mode-misc"
+stdin = '''
+.mode tabs
+SELECT 1, 'a b', NULL;
+.mode html
+.headers on
+SELECT 1 AS "<x>", 'a&b' AS y;
+.mode tcl
+SELECT 'a"b', 'c\d', 3;
+.mode ascii
+SELECT 1, 2;
+.mode count
+SELECT 1 UNION ALL SELECT 2;
+.mode off
+SELECT 'nada';
+.mode list
+SELECT 'fim';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "cli-mode", "stdin"]
+
+[[case]]
+id = "sqlite-x-mode-json-types"
+argv = ["sqlite3", "-json", "db.sqlite", '''SELECT 1 AS i, 0.1 AS r, 'a"b\c' AS t, char(9,10) AS ctl, x'41' AS bl, NULL AS n, 1e300 AS big, 'ação' AS u; SELECT 1 WHERE 0;''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-x-mode-csv-quoting"
+argv = ["sqlite3", "-csv", "-header", "-nullvalue", "NIL", "db.sqlite", '''SELECT 'a,b' AS c1, 'x"y' AS c2, ' lead' AS c3, '' AS c4, NULL AS c5, 'line1' || char(10) || 'line2' AS c6, 42 AS c7;''']
+tags = ["cli", "cli-mode", "argv"]
+
+[[case]]
+id = "sqlite-x-import-csv-new-table"
+stdin = '''
+.import --csv dados.csv pessoas
+SELECT * FROM pessoas;
+.schema pessoas
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "import", "stdin"]
+[case.files]
+"dados.csv" = '''nome,idade,cidade
+ana,30,"São Paulo"
+bia,25,"Rio, RJ"
+"caio ""c""",40,Recife
+'''
+
+[[case]]
+id = "sqlite-x-import-existing-table"
+stdin = '''
+CREATE TABLE t(a, b, c);
+.import --csv --skip 1 dados.csv t
+SELECT count(*), group_concat(a || '/' || ifnull(b,'N') || '/' || ifnull(c,'N'), ' ') FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "import", "stdin"]
+[case.files]
+"dados.csv" = '''x,y,z
+1,2,3
+4,5
+6,7,8,9
+'''
+
+[[case]]
+id = "sqlite-x-import-mode-csv-dupes"
+stdin = '''
+.mode csv
+.import dados.csv t
+.mode list
+.headers on
+SELECT * FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "import", "stdin"]
+[case.files]
+"dados.csv" = "a,b,a,,b\r\n1,2,3,4,5\r\n"
+
+[[case]]
+id = "sqlite-x-dump-full"
+stdin = '''
+CREATE TABLE t(id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, valor REAL, dados BLOB);
+INSERT INTO t(nome, valor, dados) VALUES ('ana', 1.5, x'00ff'), ('it''s', NULL, NULL), ('a' || char(10) || 'b', 1e300, x'');
+CREATE INDEX t_nome ON t(nome);
+CREATE VIEW v AS SELECT nome FROM t;
+CREATE TRIGGER tr AFTER INSERT ON t BEGIN SELECT 1; END;
+CREATE TABLE "select"("from" INT);
+INSERT INTO "select" VALUES (7);
+.dump
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "dump", "stdin"]
+
+[[case]]
+id = "sqlite-x-dump-pattern-data-only"
+stdin = '''
+CREATE TABLE a1(x);
+CREATE TABLE b1(y);
+INSERT INTO a1 VALUES (1), (2);
+INSERT INTO b1 VALUES ('z');
+.dump a%
+.dump --data-only b1
+.dump --nosys --newlines
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "dump", "stdin"]
+
+[[case]]
+id = "sqlite-x-read-file-errors"
+stdin = '''
+SELECT 'antes';
+.read script.sql
+SELECT 'depois';
+.read nao-existe.sql
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "read", "stdin"]
+[case.files]
+"script.sql" = '''
+CREATE TABLE t(x);
+INSERT INTO t VALUES (1);
+SELECT * FROM nada;
+SELECT count(*) FROM t;
+'''
+
+[[case]]
+id = "sqlite-x-output-once"
+stdin = '''
+.output out.txt
+SELECT 'para o arquivo';
+.output
+SELECT 'na tela';
+.once once.txt
+SELECT 'uma vez';
+SELECT 'de volta';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "output", "stdin"]
+
+[[case]]
+id = "sqlite-x-cmd-flags"
+argv = ["sqlite3", "-cmd", ".mode csv", "-cmd", ".headers on", "db.sqlite", '''SELECT 1 AS a, 'b c' AS b;''']
+tags = ["cli", "argv"]
+
+[[case]]
+id = "sqlite-x-bail-argv"
+argv = ["sqlite3", "db.sqlite", "SELECT 1", "SELECT * FROM nada", "SELECT 2"]
+tags = ["cli", "error", "argv"]
+
+[[case]]
+id = "sqlite-x-echo"
+stdin = '''
+SELECT 1;
+.print oi
+-- comentario
+SELECT 2;
+'''
+argv = ["sqlite3", "-echo", "db.sqlite"]
+tags = ["cli", "stdin"]
+
+[[case]]
+id = "sqlite-x-show-settings"
+stdin = '''
+.show
+.headers on
+.mode csv
+.nullvalue NULO
+.separator ; |
+.show
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "stdin"]
+
+[[case]]
+id = "sqlite-x-separators-flags"
+argv = ["sqlite3", "-separator", ";", "-newline", "|", "db.sqlite", '''SELECT 1, 2 UNION ALL SELECT 3, 4;''']
+tags = ["cli", "argv"]
+
+[[case]]
+id = "sqlite-x-dot-errors"
+stdin = '''
+.bogus
+.mode bogus
+.headers
+.nullvalue
+.import
+.separator
+.tables a b c
+SELECT 'continua';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "error", "stdin"]
+
+[[case]]
+id = "sqlite-x-unknown-option"
+argv = ["sqlite3", "-bogus", "db.sqlite", "SELECT 1"]
+tags = ["cli", "error", "argv"]
+
+[[case]]
+id = "sqlite-x-missing-option-arg"
+argv = ["sqlite3", "db.sqlite", "-separator"]
+tags = ["cli", "error", "argv"]
+
+[[case]]
+id = "sqlite-x-parse-error-context-long"
+stdin = '''
+SELECT aaaaaaaaaa, bbbbbbbbbb, cccccccccc, dddddddddd, eeeeeeeeee FROM t WHERE;
+SELECT 1 +
+  2 +
+  FROM;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["error", "stdin"]
+
+[[case]]
+id = "sqlite-x-runtime-errors"
+stdin = '''
+SELECT abs(-9223372036854775808);
+SELECT json('{bad');
+CREATE TABLE t(x CHECK (x > 0));
+INSERT INTO t VALUES (-1);
+SELECT 'fim';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["error", "stdin"]
+
+[[case]]
+id = "sqlite-x-exit-code"
+stdin = '''
+SELECT 1;
+.exit 3
+SELECT 2;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "stdin"]
+
+[[case]]
+id = "sqlite-x-quit-midstream"
+stdin = '''
+SELECT 1;
+.quit
+SELECT 2;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "stdin"]
+
+[[case]]
+id = "sqlite-x-date-now-faketime"
+argv = ["sqlite3", "db.sqlite", '''SELECT datetime('now'), date('now','start of month'), strftime('%s','now'), unixepoch(), julianday('now'), time('now','localtime'), CURRENT_TIMESTAMP, CURRENT_DATE, CURRENT_TIME, datetime('now','subsec'), date('now','-7 days'), datetime(), strftime('%Y-%m-%dT%H:%M:%fZ', 'now');''']
+faketime = "2026-01-15 12:00:00"
+tags = ["functions", "date", "argv"]
+
+[[case]]
+id = "sqlite-x-date-default-timestamp"
+stdin = '''
+CREATE TABLE ev(id INTEGER PRIMARY KEY, em TEXT DEFAULT CURRENT_TIMESTAMP, dia TEXT DEFAULT (date('now')));
+INSERT INTO ev(id) VALUES (1), (2);
+SELECT * FROM ev;
+'''
+argv = ["sqlite3", "db.sqlite"]
+faketime = "2026-01-15 12:00:00"
+tags = ["functions", "date", "stdin"]
+
+[[case]]
+id = "sqlite-x-date-localtime-posix-tz"
+argv = ["sqlite3", "db.sqlite", '''SELECT datetime('2026-01-15 12:00:00', 'localtime'), datetime('2026-01-15 09:00:00', 'utc'), datetime('2026-07-01 00:00:00', 'localtime', 'utc');''']
+tags = ["functions", "date", "argv"]
+[case.env]
+TZ = "BRT3"
+
+[[case]]
+id = "sqlite-x-strftime-all"
+argv = ["sqlite3", "db.sqlite", '''SELECT strftime('%d|%e|%f|%F|%G|%g|%H|%I|%j|%J|%k|%l|%m|%M|%p|%P|%R|%s|%S|%T|%u|%w|%U|%V|%W|%Y|%%', '2026-03-08 07:05:09.123'), strftime('%Q', '2026-01-01'), timediff('2026-03-01', '2025-01-15 10:00:00'), date('2026-01-31', '+1 month', 'floor'), date('2026-01-15', 'weekday 0'), datetime(1768478400, 'unixepoch', 'subsec'), datetime(2461055.5), datetime('2026-01-15', '+1 year', '-2 months', '+3 days', '+04:30');''']
+tags = ["functions", "date", "argv"]
+
+[[case]]
+id = "sqlite-x-generate-series"
+argv = ["sqlite3", "db.sqlite", '''SELECT group_concat(value) FROM generate_series(1, 9, 2); SELECT value FROM generate_series(10, 1, -4); SELECT count(*) FROM generate_series(1, 1000);''']
+tags = ["functions", "series", "argv"]
+
+[[case]]
+id = "sqlite-x-eqp-flag"
+stdin = '''
+CREATE TABLE a(id INTEGER PRIMARY KEY, x);
+CREATE TABLE b(id INTEGER PRIMARY KEY, a_id, y);
+CREATE INDEX b_a ON b(a_id);
+.eqp on
+SELECT * FROM a JOIN b ON b.a_id = a.id WHERE a.x > 1;
+.eqp off
+SELECT 'ok';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "eqp", "stdin"]
+
+[[case]]
+id = "sqlite-x-explain-opcodes"
+argv = ["sqlite3", "db.sqlite", '''CREATE TABLE t(a, b); EXPLAIN SELECT a FROM t WHERE b > 1 ORDER BY a;''']
+tags = ["cli", "explain", "argv"]
+
+[[case]]
+id = "sqlite-x-changes-on"
+stdin = '''
+.changes on
+CREATE TABLE t(x);
+INSERT INTO t VALUES (1), (2), (3);
+UPDATE t SET x = x + 1 WHERE x > 1;
+SELECT count(*) FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "stdin"]
+
+[[case]]
+id = "sqlite-x-tables-indexes-databases"
+stdin = '''
+CREATE TABLE alpha(x);
+CREATE TABLE alfa2(y);
+CREATE TABLE beta(z);
+CREATE INDEX alpha_x ON alpha(x);
+CREATE INDEX beta_z ON beta(z);
+ATTACH 'outro.db' AS o;
+CREATE TABLE o.gama(w);
+.tables
+.tables al%
+.indexes
+.indexes beta
+.databases
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "stdin"]
+
+[[case]]
+id = "sqlite-x-schema-indent"
+stdin = '''
+CREATE TABLE pedidos(id INTEGER PRIMARY KEY, cliente_id INTEGER NOT NULL REFERENCES clientes(id), total REAL CHECK (total >= 0), criado TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE VIEW resumo AS SELECT cliente_id, sum(total) AS soma FROM pedidos GROUP BY cliente_id;
+.schema --indent
+.schema --nosys
+.fullschema
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "schema", "stdin"]
+
+[[case]]
+id = "sqlite-x-help"
+stdin = '''
+.help
+.help mode
+.help nada-casa
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "help", "stdin"]
+
+[[case]]
+id = "sqlite-x-version-and-options"
+argv = ["sqlite3", "db.sqlite", '''SELECT sqlite_version(), sqlite_source_id(); PRAGMA compile_options;''']
+tags = ["cli", "argv"]
+
+[[case]]
+id = "sqlite-x-version-flag"
+argv = ["sqlite3", "-version"]
+tags = ["cli", "argv"]
+
+[[case]]
+id = "sqlite-x-blob-text-nul"
+argv = ["sqlite3", "db.sqlite", '''SELECT x'610062', 'a' || char(0) || 'b', length('a' || char(0) || 'b'), hex(x'00ff'), typeof(x'00');''']
+tags = ["types", "argv"]
+
+[[case]]
+id = "sqlite-x-wal-roundtrip"
+stdin = '''
+PRAGMA journal_mode = WAL;
+CREATE TABLE t(x);
+INSERT INTO t VALUES (1), (2);
+SELECT sum(x) FROM t;
+PRAGMA journal_mode;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["pragma", "journal", "stdin"]
+
+[[case]]
+id = "sqlite-x-attach-vacuum-into"
+stdin = '''
+CREATE TABLE t(x);
+INSERT INTO t VALUES ('a'), ('b');
+ATTACH 'outro.db' AS o;
+CREATE TABLE o.u AS SELECT * FROM t;
+SELECT count(*) FROM o.u;
+DETACH o;
+VACUUM INTO 'copia.db';
+ATTACH 'file:memoria?mode=memory' AS m;
+CREATE TABLE m.v(y);
+INSERT INTO m.v VALUES (9);
+SELECT * FROM m.v;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["attach", "stdin"]
+
+[[case]]
+id = "sqlite-x-backup-restore"
+stdin = '''
+CREATE TABLE t(x);
+INSERT INTO t VALUES (1), (2), (3);
+.backup bak.db
+DELETE FROM t;
+.restore bak.db
+SELECT sum(x) FROM t;
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "backup", "stdin"]
+
+[[case]]
+id = "sqlite-x-parameters"
+stdin = '''
+.parameter set :x 5
+.parameter set @nome 'ana'
+.parameter set $txt hello
+.parameter list
+SELECT :x + 1, @nome, $txt, :nada;
+.parameter unset :x
+SELECT :x;
+.parameter clear
+.parameter list
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "parameter", "stdin"]
+
+[[case]]
+id = "sqlite-x-print-and-quotes"
+stdin = '''
+.print a "b c" 'd e' "tab\there"
+.print
+.print "fim"
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "stdin"]
+
+[[case]]
+id = "sqlite-x-limits-dbconfig"
+stdin = '''
+.limits
+.limit length 1000
+.dbconfig
+.dbconfig defensive
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "stdin"]
+
+[[case]]
+id = "sqlite-x-load-extension-blocked"
+stdin = '''
+SELECT load_extension('naoexiste');
+.load naoexiste
+SELECT 'segue';
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "error", "stdin"]
+
+[[case]]
+id = "sqlite-x-stdin-incomplete-and-go"
+stdin = '''
+SELECT 1
+go
+SELECT 2
+/
+SELECT 3
+'''
+argv = ["sqlite3", "db.sqlite"]
+tags = ["cli", "stdin"]
+
+[[case]]
+id = "sqlite-x-memory-and-noarg"
+stdin = '''
+.databases
+CREATE TABLE t(x);
+INSERT INTO t VALUES (1);
+SELECT * FROM t;
+'''
+argv = ["sqlite3"]
+tags = ["cli", "memory", "stdin"]
+
+[[case]]
+id = "sqlite-x-readonly-write-attempt"
+script = '''sqlite3 db.sqlite 'CREATE TABLE t(x); INSERT INTO t VALUES (1)' && sqlite3 -readonly db.sqlite 'INSERT INTO t VALUES (2)'; echo "exit=$?"; sqlite3 -readonly db.sqlite 'SELECT count(*) FROM t' '''
+tags = ["cli", "error", "script"]
+
+[[case]]
+id = "sqlite-x-hot-journal-abrupt-exit"
+script = '''sqlite3 db.sqlite 'CREATE TABLE t(x); INSERT INTO t VALUES (1)'; sqlite3 db.sqlite 'BEGIN; DELETE FROM t; SELECT * FROM nada'; echo "exit=$?"; ls db.sqlite*; sqlite3 db.sqlite 'SELECT count(*) FROM t'; ls db.sqlite*'''
+tags = ["cli", "journal", "script"]

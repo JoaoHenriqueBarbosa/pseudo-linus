@@ -1,0 +1,31 @@
+[package]
+name = "ul-sqlite"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "sqlite3 do pseudo-linus: CLI do sqlite3 3.46.1 sobre rusqlite, com o banco no FS do sandbox por um VFS nosso (sqlite-plugin)"
+
+[dependencies]
+sysabi = { workspace = true }
+# Sem `bundled`: o rusqlite liga na libsqlite3 3.46.1 do Debian 13 (pacote libsqlite3-dev), o mesmo
+# motor, com as mesmas opções de compilação, do sqlite3 do oráculo. Ver STATUS.md.
+rusqlite = { version = "=0.40.2", default-features = false, features = ["functions", "hooks", "limits", "series", "collation", "window", "backup", "serialize", "modern_sqlite", "cache"] }
+# VFS com trait segura (`sqlite_plugin::vfs::Vfs`) e registro seguro (`register_static`).
+sqlite-plugin = { version = "=0.11.0" }
+# Fuso do sandbox pro `localtime`/`utc` das funções de data (TZif e TZ POSIX; sem ler o host).
+jiff = { version = "0.2", default-features = false, features = ["std"] }
+
+# O sqlite-plugin roda bindgen no build.rs e precisa de libclang. O Debian só traz a libclang
+# versionada (libclang-19.so.1) sem o pacote -dev, e o clang-sys só a encontra carregando em tempo de
+# execução: a feature `runtime` declarada aqui se unifica com o bindgen do sqlite-plugin.
+[build-dependencies]
+bindgen = { version = "0.72", default-features = false, features = ["runtime"] }
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing", features = ["kernel"] }
+
+[lints]
+workspace = true

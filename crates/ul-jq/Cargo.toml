@@ -1,0 +1,28 @@
+[package]
+name = "ul-jq"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "jq 1.7.1 (jaq com fork localizado do núcleo e camada nossa) e yq 3.4.3 do pseudo-linus"
+
+[dependencies]
+sysabi = { workspace = true }
+# Fork localizado do jaq (ver vendor/*/Cargo.toml e as marcas "Porte pseudo-linus" no código).
+jaq-core = { path = "vendor/jaq-core" }
+jaq-std = { path = "vendor/jaq-std" }
+jaq-json = { path = "vendor/jaq-json" }
+# Fuso horário: TZif e POSIX TZ sem tocar o host (sem `std`, sem `tz-system`), e a base IANA embutida
+# como último recurso quando o sandbox não tem /usr/share/zoneinfo.
+jiff = { version = "0.2", default-features = false, features = ["alloc"] }
+jiff-tzdb = "0.1"
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing", features = ["kernel"] }
+harness = { path = "../../testbench/crates/harness" }
+serde_json = { version = "1", features = ["preserve_order", "arbitrary_precision"] }
+
+[lints]
+workspace = true

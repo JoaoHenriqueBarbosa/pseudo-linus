@@ -1,0 +1,586 @@
+{
+  "bunzip2-file": {
+    "stdout": "",
+    "stderr": "  a.txt.bz2: done\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "bunzip2-help": {
+    "stdout": "",
+    "stderr": "bzip2, a block-sorting file compressor.  Version 1.0.8, 13-Jul-2019.\n\n   usage: bunzip2 [flags and input files in any order]\n\n   -h --help           print this message\n   -d --decompress     force decompression\n   -z --compress       force compression\n   -k --keep           keep (don't delete) input files\n   -f --force          overwrite existing output files\n   -t --test           test compressed file integrity\n   -c --stdout         output to standard out\n   -q --quiet          suppress noncritical error messages\n   -v --verbose        be verbose (a 2nd -v gives more)\n   -L --license        display software version & license\n   -V --version        display software version & license\n   -s --small          use less memory (at most 2500k)\n   -1 .. -9            set block size to 100k .. 900k\n   --fast              alias for -1\n   --best              alias for -9\n\n   If invoked as `bzip2', default action is to compress.\n              as `bunzip2',  default action is to decompress.\n              as `bzcat', default action is to decompress to stdout.\n\n   If no file names are given, bzip2 compresses or decompresses\n   from standard input to standard output.  You can combine\n   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bzcat-files": {
+    "stdout": "hello world\nhello world\nplain text\nplain text\nplain text\n",
+    "stderr": "bzcat: Can't open input file nofile: No such file or directory.\n",
+    "exit": 1,
+    "files": {
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "449beed56a75e939f9156acb32128cf420a1a8873827d1595ddb1ff6356d7bb1",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+        }
+      },
+      "multi.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 107,
+        "sha256": "eac13156bf77a4c9f25743db7240644e4b6b0b8a5cfb1fd5de7e4925e6cdca34",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsEJaaDkxQVkmU1kwN/BMAAAL0YAAEEAAIiVEQCAAIr/VQG0hADCKU06iPLRb4u5IpwoSBgb+CYA="
+        }
+      }
+    }
+  },
+  "bzcat-stdin": {
+    "stdout": "hello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bzip2-already-suffix": {
+    "stdout": "",
+    "stderr": "bzip2: Input file a.txt.bz2 already has .bz2 suffix.\nbzip2: Input file b.tbz already has .tbz suffix.\n",
+    "exit": 1,
+    "files": {
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "b.tbz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "bzip2-bad-flag": {
+    "stdout": "",
+    "stderr": "bzip2: Bad flag `-x'\nbzip2, a block-sorting file compressor.  Version 1.0.8, 13-Jul-2019.\n\n   usage: bzip2 [flags and input files in any order]\n\n   -h --help           print this message\n   -d --decompress     force decompression\n   -z --compress       force compression\n   -k --keep           keep (don't delete) input files\n   -f --force          overwrite existing output files\n   -t --test           test compressed file integrity\n   -c --stdout         output to standard out\n   -q --quiet          suppress noncritical error messages\n   -v --verbose        be verbose (a 2nd -v gives more)\n   -L --license        display software version & license\n   -V --version        display software version & license\n   -s --small          use less memory (at most 2500k)\n   -1 .. -9            set block size to 100k .. 900k\n   --fast              alias for -1\n   --best              alias for -9\n\n   If invoked as `bzip2', default action is to compress.\n              as `bunzip2',  default action is to decompress.\n              as `bzcat', default action is to decompress to stdout.\n\n   If no file names are given, bzip2 compresses or decompresses\n   from standard input to standard output.  You can combine\n   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "bzip2-bad-long-flag": {
+    "stdout": "",
+    "stderr": "bzip2: Bad flag `--bogus'\nbzip2, a block-sorting file compressor.  Version 1.0.8, 13-Jul-2019.\n\n   usage: bzip2 [flags and input files in any order]\n\n   -h --help           print this message\n   -d --decompress     force decompression\n   -z --compress       force compression\n   -k --keep           keep (don't delete) input files\n   -f --force          overwrite existing output files\n   -t --test           test compressed file integrity\n   -c --stdout         output to standard out\n   -q --quiet          suppress noncritical error messages\n   -v --verbose        be verbose (a 2nd -v gives more)\n   -L --license        display software version & license\n   -V --version        display software version & license\n   -s --small          use less memory (at most 2500k)\n   -1 .. -9            set block size to 100k .. 900k\n   --fast              alias for -1\n   --best              alias for -9\n\n   If invoked as `bzip2', default action is to compress.\n              as `bunzip2',  default action is to decompress.\n              as `bzcat', default action is to decompress to stdout.\n\n   If no file names are given, bzip2 compresses or decompresses\n   from standard input to standard output.  You can combine\n   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n\n",
+    "exit": 1,
+    "files": {}
+  },
+  "bzip2-compress-empty-verbose": {
+    "stdout": "",
+    "stderr": "  e:        no data compressed.\n",
+    "exit": 0,
+    "files": {
+      "e.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "d3dda84eb03b9738d118eb2be78e246106900493c0ae07819ad60815134a8058",
+        "data": {
+          "b64": "QlpoORdyRThQkAAAAAA="
+        }
+      }
+    }
+  },
+  "bzip2-compress-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "449beed56a75e939f9156acb32128cf420a1a8873827d1595ddb1ff6356d7bb1",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+        }
+      }
+    }
+  },
+  "bzip2-compress-levels": {
+    "stdout": {
+      "b64": "QlpoMTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "bzip2-compress-stdin": {
+    "stdout": {
+      "b64": "QlpoOTFBWSZTWURzrpYAAAHRgAAQQAAFI5wAIAAiADEIBppo3VWAEleLuSKcKEgiOddLAA=="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "bzip2-compress-stdin-verbose": {
+    "stdout": {
+      "b64": "QlpoOTFBWSZTWURzrpYAAAHRgAAQQAAFI5wAIAAiADEIBppo3VWAEleLuSKcKEgiOddLAA=="
+    },
+    "stderr": "  (stdin):  0.212:1, 37.818 bits/byte, -372.73% saved, 11 in, 52 out.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bzip2-compress-verbose-keep": {
+    "stdout": "",
+    "stderr": "  a.txt:      0.231:1, 34.667 bits/byte, -333.33% saved, 12 in, 52 out.\n  plain.txt:  0.600:1, 13.333 bits/byte, -66.67% saved, 33 in, 55 out.\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "449beed56a75e939f9156acb32128cf420a1a8873827d1595ddb1ff6356d7bb1",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+        }
+      },
+      "plain.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "18cd93350f1f71c261fe09767fdf67abceaf81b766c5def4a0891e4625e1dd35",
+        "data": "plain text\nplain text\nplain text\n"
+      },
+      "plain.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "c22e45422d255b07cab70761734fb14753a442459a61d8b41e3620434931b16b",
+        "data": {
+          "b64": "QlpoOTFBWSZTWTA38EwAAAvRgAAQQAAiJURAIAAiv9VAbSEAMIpTTqI8tFvi7kinChIGBv4JgA=="
+        }
+      }
+    }
+  },
+  "bzip2-d-crc-error": {
+    "stdout": "",
+    "stderr": "\nbzip2: Data integrity error when decompressing.\n\tInput file = crc.bz2, output file = crc\n\nIt is possible that the compressed file(s) have become corrupted.\nYou can use the -tvv option to test integrity of such files.\n\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\nbzip2: Deleting output file crc, if it exists.\n",
+    "exit": 2,
+    "files": {
+      "crc.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2140,
+        "sha256": "dca69851cc24121064a7240b27d9a9208a1ab7aa945b196712196b0bdc3e2c9e",
+        "data": {
+          "b64": "QlpoOTFBWSZTWenJbjMABRZIAEAQf+BgFHwAAAAAAAAQACHwCEAhAIQCEAhAIQCEAGypU0f41VMQNA0CBoGgRT0DP1SoIGgaCFP//1UiH+p+qqpt7/fTrvqtn60gFGgHhsDocBwHQ2B4aAUSAWgALRIBacAZmaAeGwOhwHAdDYHhoBRIBaAApDQC0gFGgHhsDocBwHQ2B4aAUSAWgAPINgWkAo0A8NgdDgOA6GwPDQCiQC0AB1A4C0gFGgHhsDocBwHQ2B4aAUQAWgAOIDoWkAo0A8NgdDgOA6GwPDQCiQC0ABtAPC0gFGgHhsDocBwHQ2B4aAUSAWgANIAotIBRoB4bA6HAcB0NgeGgFEgFoACUALWkAo0A8NgdDgOA6GwPDQCiQC0ABCABaQCjQDw2B0OA4DobA8NAKJALQAFPmgFpAKNAPDYHQ4DgOhsDw0AokAtAAeQbAtIBRoB4bA6HAcB0NgeGgFEgFoADqBwFpAKNAPDYHQ4DgOhsDw0AokAtAAcQHQtIBRoB4bA6HAcB0NgeGgFEgFoADaAeFpAKNAPDYHQ4DgOhsDw0AokAtAAaQBRaQCjQDw2B0OA4DobA8NAKJALQAEoAWtIBRoB4bA6HAcB0NgeGgFEgFoACEAC0gFGgHhsDocBwHQ2B4aAUSAWgAL+u7u7u1pgAWkAo0A8NgdDgOA6GwPDQCiQC1pAKNAPDYHQ4DgOhsDw0AokAtCACqqqqqq4+hMaAVVVVVVx9CYAKqqqqq4+hMAFVVVVVcfQmACqqqqquPoTABVVVVVXH0JgAqqqqqrj6EwAVVVVVVx9CYAKqqqqq4+hMAFVVVVVf30JkAsAWlAAtIBRoB4bA6HAcB0NgeGgFfszIzMzMwtIBRoB4bA6HAcB0NgeGgFMyMzMzMyqqqqqchFCKEUIoRQihFCKEWEa+ttttzMzMzN5hFCKEUIoRQihFCKEUJfS/lttt3MzMzO4IoRQihFCKEUIoRQihL6W/Lbbd3MzMzuCKEUIoRQihFCKEUIoS+lt/bbbu7mZmdwRQihFCKEUIoRQihFCX0tt/rbd3dzMzuCKEUIoRQihFCKEUIoS+ltty27u7uZncEUIoRQihFCKEUIoRQl9Lbbdt3d3dzO4IoRQihFCKEUIoRQihL6W223ru7u7udwRQihFCKEUIoRQihFCX0ttttu7u7u73BFCKEUIoRQihFCKEUJfX1tttzue7uC0ALSQALSAUaAeGwOhwHAdDYHhADMzMjMzMwWkAo0A8NgdDgOA6GwPEAGXd3d3u9/gAALn9VVVtttt3oAAFyVVWtttt3AAAXJVVa2223cAABclVVrbbbdwAAFyVVWtttt3AAAXJVVa2223cAABclVVrbbbdwAAFyVVWtttt3AAAXJVVa2223cAABcryqr73ved6CiQC0AWkQALSAUaAeGwOhwHAdCQC0AZmZmRmZmBaQCjQDw2B0OA4DokBeXd3e3cAABclVVrbbbdwAAFyVVWtttt3AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXK5VVtbbbd/AAAXKvaq+d73vnQeGgFEgFoBaQgAWkAo0A8NgdDgNAKJALQDMzMzIzMwFpAKNAPDYHQ4GgLvLu727+AAAuVyqra2227+AAAuVyqra2227+AAAuVyqra2227+AAAuVeVVtrbbd+gAAXKvKq21ttu/QAALlXlVba223foAAFyryqttbbbv0AAC5V5VW2ttt36AABcq8qrbW2279AAAuVXyq973ve+g6GwPDQCiQC0BaQQALSAUaAeGwNgeGgFEgFoDMzMzMjMwC0gFGgHhsGwXd5d3t36AABcq8qrbW2279AAAuVeVVtrbbd+gAAXKvKq21ttu/QAALlXlVba223foAAFyq9qttrbbvwAAC5Ve1W21tt34AABcqvarba2278AAAuVXtVttbbd+AAAXKr2q22ttu/AAALlVfavO973vehwHAdDYHhoBRIBaBaQIAFpAKNAOA6GwPDQCiQC0DMzMzMyMwBaQCjQHAu7vLvbvwAAC5Ve1W21tt34AABcqvarba2278AAAuVXtVttbbd+AAAXKr2q22ttu/AAALlV7VbbW23fgAAFyqvlW22tt30AAC5VXyrbbW276AABcqr5Vttrbd9AAAuVV8q221tu+gAAXKqv1c73ve9eGwOhwHAdDYHhoBRIBaC0gIAFpAOhwHAdDYHhoBRIBaDMzMzMzIwAtIDou7u8vbvoAAFyqvlW22tt30AAC5VXyrbbW276AABcqr5Vttrbd9AAAuVV8q221tu+gAAXKq+Vbba23fQAALlVfKtttbbvoAAFyqr7W221t3wAAC5VV9rbba274AABcqq+1tttbd8AAAuVVWne973pRoB4bA6HAcB0NgeGgFEgFoWkAgAeGwOhwHAdDYHhoBRIBaGZmZmZmZAB4u7u7zbvgAAFyqr7W221t3wAAC5VV9rbba274AABcqq+1tttbd8AAAuVVfa222tu+AAAXKqvtbbbW3fAAALlVX2tttrbvgAAFyqr7W221t3wAAC5VVfrbbbW7wAAC5VVfrbbbW7wAAD+5/XlVVuu96CjQDw2B0OA4DobA8NAKJALQAFIaAeGwOhwHAdDYHhoBRIBaAAu7u7u7pd3d3du8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAAuVVX62221u8AAA/uXlVV+7ttttAAB/P8LuSKcKEh05LcZgA=="
+        }
+      }
+    }
+  },
+  "bzip2-d-truncated": {
+    "stdout": "",
+    "stderr": "\nbzip2: Compressed file ends unexpectedly;\n\tperhaps it is corrupted?  *Possible* reason follows.\nbzip2: No such file or directory\n\tInput file = trunc.bz2, output file = trunc\n\nIt is possible that the compressed file(s) have become corrupted.\nYou can use the -tvv option to test integrity of such files.\n\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\nbzip2: Deleting output file trunc, if it exists.\nbzip2: WARNING: some files have not been processed:\nbzip2:    2 specified on command line, 1 not processed yet.\n\n",
+    "exit": 2,
+    "files": {
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "449beed56a75e939f9156acb32128cf420a1a8873827d1595ddb1ff6356d7bb1",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+        }
+      },
+      "trunc.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 300,
+        "sha256": "ba59b3e5b152add6be20e23a4f47d153a0e59d9ef3946baf80601fadc7ad5b6b",
+        "data": {
+          "b64": "QlpoOTFBWSZTWenJbjMABRZIAEAQf+BgFHwAAAAAAAAQACHwCEAhAIQCEAhAIQCEAGypU0f41VMQNA0CBoGgRT0DP1SoIGgaCFP//1UiH+p+qqpt7/fTrvqtn60gFGgHhsDocBwHQ2B4aAUSAWgALRIBacAZmaAeGwOhwHAdDYHhoBRIBaAApDQC0gFGgHhsDocBwHQ2B4aAUSAWgAPINgWkAo0A8NgdDgOA6GwPDQCiQC0AB1A4C0gFGgHhsDocBwHQ2B4aAUSAWgAOIDoWkAo0A8NgdDgOA6GwPDQCiQC0ABtAPC0gFGgHhsDocBwHQ2B4aAUSAWgANIAotIBRoB4bA6HAcB0NgeGgFEgFoACUALWkAo0A8NgdDgOA6GwPDQCiQC0ABCABaQCj"
+        }
+      }
+    }
+  },
+  "bzip2-dc-multi-stream": {
+    "stdout": "hello world\nplain text\nplain text\nplain text\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "multi.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 107,
+        "sha256": "eac13156bf77a4c9f25743db7240644e4b6b0b8a5cfb1fd5de7e4925e6cdca34",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsEJaaDkxQVkmU1kwN/BMAAAL0YAAEEAAIiVEQCAAIr/VQG0hADCKU06iPLRb4u5IpwoSBgb+CYA="
+        }
+      }
+    }
+  },
+  "bzip2-dc-stdin-not-bzip2": {
+    "stdout": "",
+    "stderr": "bzip2: (stdin) is not a bzip2 file.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "bzip2-dc-trailing-garbage": {
+    "stdout": "hello world\n",
+    "stderr": "\nbzip2: trail.bz2: trailing garbage after EOF ignored\n",
+    "exit": 0,
+    "files": {
+      "trail.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "e81fc69bc251bca171c96f0700cf1d45a79c311aefa9c4e165e5ca8b9d7f842b",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsGp1bmsK"
+        }
+      }
+    }
+  },
+  "bzip2-decompress-file": {
+    "stdout": "",
+    "stderr": "  a.txt.bz2: done\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "bzip2-decompress-guess-name": {
+    "stdout": "",
+    "stderr": "bzip2: Can't guess original name for weird -- using weird.out\n",
+    "exit": 0,
+    "files": {
+      "weird.out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "bzip2-decompress-names": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "x.tar": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "y": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "z.tar": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "bzip2-decompress-not-bzip2": {
+    "stdout": "",
+    "stderr": "bzip2: Can't guess original name for a.txt -- using a.txt.out\nbzip2: a.txt is not a bzip2 file.\nbzip2: b.bz2 is not a bzip2 file.\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "2ce1fb40cdd75a1395fedab84fe2fb71e051a698a7ef093825ace086d978eef6",
+        "data": "not bzip2 either\n"
+      }
+    }
+  },
+  "bzip2-double-dash": {
+    "stdout": "",
+    "stderr": "bzip2: Can't open input file -x: No such file or directory.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "bzip2-help": {
+    "stdout": "",
+    "stderr": "bzip2, a block-sorting file compressor.  Version 1.0.8, 13-Jul-2019.\n\n   usage: bzip2 [flags and input files in any order]\n\n   -h --help           print this message\n   -d --decompress     force decompression\n   -z --compress       force compression\n   -k --keep           keep (don't delete) input files\n   -f --force          overwrite existing output files\n   -t --test           test compressed file integrity\n   -c --stdout         output to standard out\n   -q --quiet          suppress noncritical error messages\n   -v --verbose        be verbose (a 2nd -v gives more)\n   -L --license        display software version & license\n   -V --version        display software version & license\n   -s --small          use less memory (at most 2500k)\n   -1 .. -9            set block size to 100k .. 900k\n   --fast              alias for -1\n   --best              alias for -9\n\n   If invoked as `bzip2', default action is to compress.\n              as `bunzip2',  default action is to decompress.\n              as `bzcat', default action is to decompress to stdout.\n\n   If no file names are given, bzip2 compresses or decompresses\n   from standard input to standard output.  You can combine\n   short flags, so `-v -4' means the same as -v4 or -4v, &c.\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "bzip2-missing-and-dir": {
+    "stdout": "",
+    "stderr": "bzip2: Can't open input file nofile: No such file or directory.\nbzip2: Input file d is a directory.\n",
+    "exit": 1,
+    "files": {
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "449beed56a75e939f9156acb32128cf420a1a8873827d1595ddb1ff6356d7bb1",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+        }
+      },
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "bzip2-mode-preserved": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s.txt.bz2": {
+        "kind": "file",
+        "mode": 384,
+        "size": 45,
+        "sha256": "b2fed89930bf635eab6f329297f20eeac3f8b0ddaaa60acbb4c6ed74c705d963",
+        "data": {
+          "b64": "QlpoOTFBWSZTWSRBMHYAAALBgAAQCgAcACAAMMAIaH6o0O8XckU4UJAkQTB2"
+        }
+      }
+    }
+  },
+  "bzip2-output-exists": {
+    "stdout": "",
+    "stderr": "bzip2: Output file a.txt.bz2 already exists.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "01d09d19c2139a46aebfb577780d123d7396e97201bc7ead210a2ebff8239dee",
+        "data": "old\n"
+      }
+    }
+  },
+  "bzip2-output-exists-force": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "449beed56a75e939f9156acb32128cf420a1a8873827d1595ddb1ff6356d7bb1",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+        }
+      }
+    }
+  },
+  "bzip2-repetitive": {
+    "stdout": {
+      "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+    },
+    "stderr": "bzip2: --repetitive-fast is redundant in versions 0.9.5 and above\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "bzip2-symlink": {
+    "stdout": "",
+    "stderr": "bzip2: Input file lnk is not a normal file.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "lnk": {
+        "kind": "symlink",
+        "target": "a.txt"
+      }
+    }
+  },
+  "bzip2-symlink-force": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "lnk.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "449beed56a75e939f9156acb32128cf420a1a8873827d1595ddb1ff6356d7bb1",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+        }
+      }
+    }
+  },
+  "bzip2-test-many": {
+    "stdout": "",
+    "stderr": "bzip2: trail.bz2: trailing garbage after EOF ignored\nbzip2: plain: bad magic number (file not created by bzip2)\nbzip2: trunc.bz2: file ends unexpectedly\nbzip2: Can't open input nofile: No such file or directory.\n\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n",
+    "exit": 2,
+    "files": {
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "449beed56a75e939f9156acb32128cf420a1a8873827d1595ddb1ff6356d7bb1",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+        }
+      },
+      "plain": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "dacf36547c7774a0a170806363b5d412991fbc0d6260b2c00b1d3a80a816c23f",
+        "data": "plain\n"
+      },
+      "trail.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 57,
+        "sha256": "e81fc69bc251bca171c96f0700cf1d45a79c311aefa9c4e165e5ca8b9d7f842b",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsGp1bmsK"
+        }
+      },
+      "trunc.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 300,
+        "sha256": "ba59b3e5b152add6be20e23a4f47d153a0e59d9ef3946baf80601fadc7ad5b6b",
+        "data": {
+          "b64": "QlpoOTFBWSZTWenJbjMABRZIAEAQf+BgFHwAAAAAAAAQACHwCEAhAIQCEAhAIQCEAGypU0f41VMQNA0CBoGgRT0DP1SoIGgaCFP//1UiH+p+qqpt7/fTrvqtn60gFGgHhsDocBwHQ2B4aAUSAWgALRIBacAZmaAeGwOhwHAdDYHhoBRIBaAApDQC0gFGgHhsDocBwHQ2B4aAUSAWgAPINgWkAo0A8NgdDgOA6GwPDQCiQC0AB1A4C0gFGgHhsDocBwHQ2B4aAUSAWgAOIDoWkAo0A8NgdDgOA6GwPDQCiQC0ABtAPC0gFGgHhsDocBwHQ2B4aAUSAWgANIAotIBRoB4bA6HAcB0NgeGgFEgFoACUALWkAo0A8NgdDgOA6GwPDQCiQC0ABCABaQCj"
+        }
+      }
+    }
+  },
+  "bzip2-test-quiet": {
+    "stdout": "",
+    "stderr": "bzip2: plain: bad magic number (file not created by bzip2)\n",
+    "exit": 2,
+    "files": {
+      "plain": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "dacf36547c7774a0a170806363b5d412991fbc0d6260b2c00b1d3a80a816c23f",
+        "data": "plain\n"
+      }
+    }
+  },
+  "bzip2-test-verbose": {
+    "stdout": "",
+    "stderr": "  a.txt.bz2: ok\n  plain:     bad magic number (file not created by bzip2)\n\nYou can use the `bzip2recover' program to attempt to recover\ndata from undamaged sections of corrupted files.\n\n",
+    "exit": 2,
+    "files": {
+      "a.txt.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "449beed56a75e939f9156acb32128cf420a1a8873827d1595ddb1ff6356d7bb1",
+        "data": {
+          "b64": "QlpoOTFBWSZTWU7s6DYAAAJRgAAQQAAGRJCAIAAxBkxBAaeppYC7lDH4u5IpwoSCd2dBsA=="
+        }
+      },
+      "plain": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "dacf36547c7774a0a170806363b5d412991fbc0d6260b2c00b1d3a80a816c23f",
+        "data": "plain\n"
+      }
+    }
+  },
+  "bzip2-version": {
+    "stdout": "",
+    "stderr": "bzip2, a block-sorting file compressor.  Version 1.0.8, 13-Jul-2019.\n   \n   Copyright (C) 1996-2019 by Julian Seward.\n   \n   This program is free software; you can redistribute it and/or modify\n   it under the terms set out in the LICENSE file, which is included\n   in the bzip2 source distribution.\n   \n   This program is distributed in the hope that it will be useful,\n   but WITHOUT ANY WARRANTY; without even the implied warranty of\n   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n   LICENSE file for more details.\n   \n",
+    "exit": 0,
+    "files": {}
+  }
+}

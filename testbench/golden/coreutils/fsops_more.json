@@ -1,0 +1,1338 @@
+{
+  "dd-bad-conv": {
+    "stdout": "",
+    "stderr": "dd: invalid conversion: ‘nada’\nTry 'dd --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "dd-bad-number": {
+    "stdout": "",
+    "stderr": "dd: invalid number: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "dd-bs-count": {
+    "stdout": "01234567",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      }
+    }
+  },
+  "dd-conv-ucase": {
+    "stdout": "HELLO WORLD\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dd-copy-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      },
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      }
+    }
+  },
+  "dd-count-bytes-noxfer": {
+    "stdout": "",
+    "stderr": "2+0 records in\n2+0 records out\n",
+    "exit": 0,
+    "files": {
+      "z.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2048,
+        "sha256": "e5a00aa9991ac8a5ee3109844d84a55583bd20572ad3ffcd42792f3c36b183ad",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "dd-dev-zero": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "z.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "dd-missing-input": {
+    "stdout": "",
+    "stderr": "dd: failed to open 'nope.bin': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "dd-noxfer-records": {
+    "stdout": "",
+    "stderr": "0+1 records in\n0+1 records out\n",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      },
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      }
+    }
+  },
+  "dd-partial-records": {
+    "stdout": "0123456789\n",
+    "stderr": "2+1 records in\n2+1 records out\n",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      }
+    }
+  },
+  "dd-seek-notrunc": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "patch.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c07a3de039fbc0914689549f041eae295d621de7f7f647fd863f6d2f8db2080e",
+        "data": "XY"
+      },
+      "target.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "ab32dc48a9e6717fbfff13f6ca4e4f569fa47136817c65ec34d9f300b76b6c2a",
+        "data": "01XY456789"
+      }
+    }
+  },
+  "dd-seek-truncates": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "patch.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c07a3de039fbc0914689549f041eae295d621de7f7f647fd863f6d2f8db2080e",
+        "data": "XY"
+      },
+      "target.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "26e79ea11c04fa3fe515b7d67223b6d62e659f99217352f8b6fb85f7a2247b9a",
+        "data": "01XY"
+      }
+    }
+  },
+  "dd-skip": {
+    "stdout": "3456",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      }
+    }
+  },
+  "dd-skip-bytes-flag": {
+    "stdout": "23456",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "c67c199595622dfbdc9e415c4a0ad6166eb49cbf74c6aac7bb3e958604d5ecb8",
+        "data": "0123456789\n"
+      }
+    }
+  },
+  "dd-stdin-stdout": {
+    "stdout": "da entrada pra saída\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dd-unknown-operand": {
+    "stdout": "",
+    "stderr": "dd: unrecognized operand 'foo=bar'\nTry 'dd --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "install-D": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/y": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/y/z.txt": {
+        "kind": "file",
+        "mode": 416,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "install-d": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/c": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "install-d-m": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "private": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "private/keys": {
+        "kind": "dir",
+        "mode": 448
+      }
+    }
+  },
+  "install-default-mode": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 493,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "install-invalid-mode": {
+    "stdout": "",
+    "stderr": "install: invalid mode ‘999’\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "install-invalid-user": {
+    "stdout": "",
+    "stderr": "install: invalid user 'nouser'\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "install-m-into-dir": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "dest": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dest/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "dest/b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "install-missing-dest": {
+    "stdout": "",
+    "stderr": "install: missing destination file operand after 'a.txt'\nTry 'install --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "install-missing-dest-dir": {
+    "stdout": "",
+    "stderr": "install: cannot create regular file 'nodir/b.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "install-missing-src": {
+    "stdout": "",
+    "stderr": "install: cannot stat 'nope.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "install-omit-dir": {
+    "stdout": "",
+    "stderr": "install: omitting directory 'd'\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "install-overwrite": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "new.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "2a0adcefafd1685dd4df079b4aa5e9f3acec449cd144bbe68f748fe12a8cd2f7",
+        "data": "novo\n"
+      },
+      "old.txt": {
+        "kind": "file",
+        "mode": 384,
+        "size": 5,
+        "sha256": "2a0adcefafd1685dd4df079b4aa5e9f3acec449cd144bbe68f748fe12a8cd2f7",
+        "data": "novo\n"
+      }
+    }
+  },
+  "install-owner": {
+    "stdout": "daemon:nogroup 640\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 416,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "install-same-file": {
+    "stdout": "",
+    "stderr": "install: 'a.txt' and 'a.txt' are the same file\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "install-t": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      },
+      "run.sh": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      }
+    }
+  },
+  "install-v": {
+    "stdout": "install: creating directory 'out'\n'a.txt' -> 'out/a.txt'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/a.txt": {
+        "kind": "file",
+        "mode": 493,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "link-count": {
+    "stdout": "a.txt 2\nb.txt 2\na\nmais\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "5d6165ee99d15f541a2a975dbfea54c825b47f7b212a7cf9f062a18589d14d07",
+        "data": "a\nmais\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "5d6165ee99d15f541a2a975dbfea54c825b47f7b212a7cf9f062a18589d14d07",
+        "data": "a\nmais\n"
+      }
+    }
+  },
+  "link-dir": {
+    "stdout": "",
+    "stderr": "link: cannot create link 'e' to 'd': Operation not permitted\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "link-exists": {
+    "stdout": "",
+    "stderr": "link: cannot create link 'b.txt' to 'a.txt': File exists\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "link-extra-operand": {
+    "stdout": "",
+    "stderr": "link: extra operand ‘c.txt’\nTry 'link --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "link-missing-operand": {
+    "stdout": "",
+    "stderr": "link: missing operand after ‘a.txt’\nTry 'link --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "link-missing-src": {
+    "stdout": "",
+    "stderr": "link: cannot create link 'b.txt' to 'nope.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "link-ok": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "mkfifo-bad-mode": {
+    "stdout": "",
+    "stderr": "mkfifo: invalid mode\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mkfifo-basic": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pipe": {
+        "kind": "file",
+        "mode": 61860,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "mkfifo-exists": {
+    "stdout": "",
+    "stderr": "mkfifo: cannot create fifo 'a.txt': File exists\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "mkfifo-m": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pipe": {
+        "kind": "file",
+        "mode": 61824,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "mkfifo-missing-dir": {
+    "stdout": "",
+    "stderr": "mkfifo: cannot create fifo 'nodir/p': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mkfifo-missing-operand": {
+    "stdout": "",
+    "stderr": "mkfifo: missing operand\nTry 'mkfifo --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mkfifo-test-p": {
+    "stdout": "p1 fifo 644\np2 fifo 644\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "p1": {
+        "kind": "file",
+        "mode": 61860,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "p2": {
+        "kind": "file",
+        "mode": 61860,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "mknod-bad-type": {
+    "stdout": "",
+    "stderr": "mknod: invalid device type ‘q’\nTry 'mknod --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mknod-block-device-mode": {
+    "stdout": "blk block special file 7 0 600\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "blk": {
+        "kind": "file",
+        "mode": 61824,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "mknod-char-device": {
+    "stdout": "null2 character special file 1 3 644\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "null2": {
+        "kind": "file",
+        "mode": 61860,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "mknod-exists": {
+    "stdout": "",
+    "stderr": "mknod: a.txt: File exists\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "mknod-fifo": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pipe": {
+        "kind": "file",
+        "mode": 61860,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "mknod-fifo-with-numbers": {
+    "stdout": "",
+    "stderr": "mknod: extra operand ‘1’\nFifos do not have major and minor device numbers.\nTry 'mknod --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mknod-missing-numbers": {
+    "stdout": "",
+    "stderr": "mknod: missing operand after ‘c’\nSpecial files require major and minor device numbers.\nTry 'mknod --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mknod-missing-type": {
+    "stdout": "",
+    "stderr": "mknod: missing operand after ‘x’\nTry 'mknod --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mktemp-d-missing-parent": {
+    "stdout": "",
+    "stderr": "mktemp: failed to create directory via template ‘nodir/x.XXXXXX’: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mktemp-default-location": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mktemp-dir-ok": {
+    "stdout": "700\nok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mktemp-dry-run": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mktemp-file-ok": {
+    "stdout": "600\nok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mktemp-p-dir": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "mktemp-p-missing-dir": {
+    "stdout": "",
+    "stderr": "mktemp: failed to create file via template ‘nodir/tmp.XXXXXXXXXX’: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mktemp-suffix": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mktemp-suffix-with-slash": {
+    "stdout": "",
+    "stderr": "mktemp: invalid suffix ‘a/b’, contains directory separator\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mktemp-template-cwd": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mktemp-too-few-x": {
+    "stdout": "",
+    "stderr": "mktemp: too few X's in template ‘fooXX’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mktemp-too-many-templates": {
+    "stdout": "",
+    "stderr": "mktemp: too many templates\nTry 'mktemp --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rmdir-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "keep.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "19732980d68fbd00358a0a4d98246c960400b87e4fa2a2e155db98be2b42ed6c",
+        "data": "k\n"
+      }
+    }
+  },
+  "rmdir-ignore-fail-non-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "rmdir-missing": {
+    "stdout": "",
+    "stderr": "rmdir: failed to remove 'nope': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rmdir-multiple": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rmdir-no-operand": {
+    "stdout": "",
+    "stderr": "rmdir: missing operand\nTry 'rmdir --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rmdir-nonempty": {
+    "stdout": "",
+    "stderr": "rmdir: failed to remove 'd': Directory not empty\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "rmdir-not-dir": {
+    "stdout": "",
+    "stderr": "rmdir: failed to remove 'a.txt': Not a directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "rmdir-parents": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rmdir-parents-stops-nonempty": {
+    "stdout": "",
+    "stderr": "rmdir: failed to remove directory 'a': Directory not empty\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/other.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "7427d152005f9ed0fa31c76ef9963cf4bb47dce6e2768111d9eb0edbfe59c704",
+        "data": "o\n"
+      }
+    }
+  },
+  "rmdir-symlink-to-dir": {
+    "stdout": "",
+    "stderr": "rmdir: failed to remove 'link': Not a directory\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "d"
+      }
+    }
+  },
+  "rmdir-verbose": {
+    "stdout": "rmdir: removing directory, 'a/b'\nrmdir: removing directory, 'a'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sync-data": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sync-data-and-fs": {
+    "stdout": "",
+    "stderr": "sync: cannot specify both --data and --file-system\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sync-data-no-args": {
+    "stdout": "",
+    "stderr": "sync: --data needs at least one argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "sync-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sync-file-system": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sync-missing": {
+    "stdout": "",
+    "stderr": "sync: error opening 'nope.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "sync-plain": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "truncate-at-least": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "a60b1dd6ee72fffa7d9866bbf8fdf4445a3f73d5a71449fa9f7ac40e8fadc47b",
+        "data": "12\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "truncate-at-most": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918",
+        "data": "12"
+      }
+    }
+  },
+  "truncate-bad-size": {
+    "stdout": "",
+    "stderr": "truncate: Invalid number: ‘abc’\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "truncate-create": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "new.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "8855508aade16ec573d21e6a485dfd0a7624085c1a14b5ecdd6485de0c6839a4",
+        "data": "\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "truncate-extend": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ce3172860f253e5bfdc1556198b48076f408dd224a83bbb75bd97a5f80374efd",
+        "data": "abc\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "truncate-grow-by": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "dd0b251b2bf91037a1e4fc8416a24ae00bcb9a8c252dc7e2361f2fc015f51c16",
+        "data": "abc\u0000\u0000\u0000"
+      }
+    }
+  },
+  "truncate-missing-dir": {
+    "stdout": "",
+    "stderr": "truncate: cannot open 'nodir/x' for writing: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "truncate-missing-operand": {
+    "stdout": "",
+    "stderr": "truncate: missing file operand\nTry 'truncate --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "truncate-no-create": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "truncate-no-size": {
+    "stdout": "",
+    "stderr": "truncate: you must specify either ‘--size’ or ‘--reference’\nTry 'truncate --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "truncate-reference": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "c565fe03ca9b6242e01dfddefe9bba3d98b270e19cd02fd85ceaf75e2b25bf12",
+        "data": "01234"
+      },
+      "ref.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+        "data": "12345"
+      }
+    }
+  },
+  "truncate-round-up": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "78afdc097ea5b6c3ca0f750fbf3bac103b3f767c3ed945402eda64840b8c2557",
+        "data": "12345\u0000\u0000\u0000"
+      }
+    }
+  },
+  "truncate-shrink-by": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "c565fe03ca9b6242e01dfddefe9bba3d98b270e19cd02fd85ceaf75e2b25bf12",
+        "data": "01234"
+      }
+    }
+  },
+  "truncate-unit": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1024,
+        "sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "truncate-zero": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "unlink-dir": {
+    "stdout": "",
+    "stderr": "unlink: cannot unlink 'd': Is a directory\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "unlink-extra-operand": {
+    "stdout": "",
+    "stderr": "unlink: extra operand ‘b.txt’\nTry 'unlink --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "unlink-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "unlink-missing": {
+    "stdout": "",
+    "stderr": "unlink: cannot unlink 'nope.txt': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "unlink-missing-operand": {
+    "stdout": "",
+    "stderr": "unlink: missing operand\nTry 'unlink --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "unlink-symlink": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "target.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "fe8edeeb98cc6d3b93cf2d57000254b84bd9eba34b4df7ce4b87db8b937b7703",
+        "data": "t\n"
+      }
+    }
+  }
+}

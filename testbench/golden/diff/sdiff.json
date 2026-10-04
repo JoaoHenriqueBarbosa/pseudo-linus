@@ -1,0 +1,594 @@
+{
+  "sdiff-basic": {
+    "stdout": "a\t\ta\nb\t      |\tB\nc\t\tc\nd\t\td\n\t      >\te\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      }
+    }
+  },
+  "sdiff-dirs": {
+    "stdout": "diff --left-column -W 30 -i --suppress-common-lines -y -- d1/f d2/f\nq\t      |\tr\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "d1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d1/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4adc33bd9fe74303c344be46e5916d65182fb218e248fe80452ab3f025b06c64",
+        "data": "q\n"
+      },
+      "d2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d2/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "8e54b0ca18020275e4aef1ca0eb5e197e066c065c1864817652a8a39c55402cd",
+        "data": "r\n"
+      }
+    }
+  },
+  "sdiff-expand-tabs": {
+    "stdout": "a                a\nb             |  B\nc                c\nd                d\n              >  e\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      }
+    }
+  },
+  "sdiff-extra-operand": {
+    "stdout": "",
+    "stderr": "sdiff: extra operand 'c'\nsdiff: Try 'sdiff --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "sdiff-help": {
+    "stdout": "Usage: sdiff [OPTION]... FILE1 FILE2\nSide-by-side merge of differences between FILE1 and FILE2.\n\nMandatory arguments to long options are mandatory for short options too.\n  -o, --output=FILE            operate interactively, sending output to FILE\n\n  -i, --ignore-case            consider upper- and lower-case to be the same\n  -E, --ignore-tab-expansion   ignore changes due to tab expansion\n  -Z, --ignore-trailing-space  ignore white space at line end\n  -b, --ignore-space-change    ignore changes in the amount of white space\n  -W, --ignore-all-space       ignore all white space\n  -B, --ignore-blank-lines     ignore changes whose lines are all blank\n  -I, --ignore-matching-lines=RE  ignore changes all whose lines match RE\n      --strip-trailing-cr      strip trailing carriage return on input\n  -a, --text                   treat all files as text\n\n  -w, --width=NUM              output at most NUM (default 130) print columns\n  -l, --left-column            output only the left column of common lines\n  -s, --suppress-common-lines  do not output common lines\n\n  -t, --expand-tabs            expand tabs to spaces in output\n      --tabsize=NUM            tab stops at every NUM (default 8) print columns\n\n  -d, --minimal                try hard to find a smaller set of changes\n  -H, --speed-large-files      assume large files, many scattered small changes\n      --diff-program=PROGRAM   use PROGRAM to compare files\n\n      --help                   display this help and exit\n  -v, --version                output version information and exit\n\nIf a FILE is '-', read standard input.\nExit status is 0 if inputs are the same, 1 if different, 2 if trouble.\n\nReport bugs to: bug-diffutils@gnu.org\nGNU diffutils home page: <https://www.gnu.org/software/diffutils/>\nGeneral help using GNU software: <https://www.gnu.org/gethelp/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sdiff-identical": {
+    "stdout": "a\t\t\t\t\t\t\t\ta\nb\t\t\t\t\t\t\t\tb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "sdiff-ignore-all-space-W": {
+    "stdout": "a b\tab\nx     |\ty\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "862db8af70babcf0026d02435597459190eaa9cff91d9c19affe73169c102b2e",
+        "data": "a b\nx\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "2cec555e860407cabbadc637129ba5d315ebb2a52fb7be4176231ec1b0ee5d96",
+        "data": "ab\ny\n"
+      }
+    }
+  },
+  "sdiff-invalid-width": {
+    "stdout": "",
+    "stderr": "diff: invalid width '0'\ndiff: Try 'diff --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "sdiff-left-column": {
+    "stdout": "a\t      (\nb\t      |\tB\nc\t      (\nd\t      (\n\t      >\te\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      }
+    }
+  },
+  "sdiff-merge-bad-width": {
+    "stdout": "",
+    "stderr": "diff: invalid width '0'\ndiff: Try 'diff --help' for more information.\nsdiff: subsidiary program 'diff' failed (exit status 2)\n",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "sdiff-merge-binary": {
+    "stdout": "Binary files b1 and b2 differ\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "ffe9aaeaa2a2d5048174df0b80599ef0197ec024c4b051bc9860cff58ef7f9f3",
+        "data": "a\u0000"
+      },
+      "b2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "1e57b933b0a78203e21d41cc4b16d731b255b04058d48a4ac2731f0089312129",
+        "data": "b\u0000"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "sdiff-merge-digits": {
+    "stdout": "a\t\ta\nb\t      |\tB\n%c\t\tc\nd\t\td\n\t      >\te\n%",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "41b6f5d9e6efb065d54d362e80e0f8476626d20f70e49d78d9f1205d8fa31f17",
+        "data": "a\nB\nc\nd\n"
+      }
+    }
+  },
+  "sdiff-merge-dirs": {
+    "stdout": "",
+    "stderr": "sdiff: both files to be compared are directories\n",
+    "exit": 2,
+    "files": {
+      "d1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d1/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4adc33bd9fe74303c344be46e5916d65182fb218e248fe80452ab3f025b06c64",
+        "data": "q\n"
+      },
+      "d2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d2/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "8e54b0ca18020275e4aef1ca0eb5e197e066c065c1864817652a8a39c55402cd",
+        "data": "r\n"
+      }
+    }
+  },
+  "sdiff-merge-editor-missing": {
+    "stdout": "a\t\ta\nb\t      |\tB\nc\t      |\tC\n%",
+    "stderr": "sdiff: subsidiary program '/nonexistent' not found\n",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "678e3e5b2bd82550c5ead03a2e75352fcd7053c75af23c77e60ad3592760f37f",
+        "data": "a\nB\nC\nd\ne\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sdiff-merge-eof": {
+    "stdout": "a\t\t\t\t\t\t\t\ta\nb\t\t\t\t\t\t\t      |\tB\n%",
+    "stderr": "",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sdiff-merge-identical": {
+    "stdout": "a\t\t\t\t\t\t\t\ta\nb\t\t\t\t\t\t\t\tb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "sdiff-merge-ignored-blank": {
+    "stdout": "a\t\t\t\t\t\t\t\ta\nb\n\t\t\t\t\t\t\t      )\tb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "e": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      },
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "770423513bd0765c18e500000baec91976bcd8267a245437b32572665c6ac370",
+        "data": "a\n\nb\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "sdiff-merge-invalid-then-left": {
+    "stdout": "a\t\ta\nb\t      |\tB\n%%c\t\tc\nd\t\td\n\t      >\te\n%",
+    "stderr": "ed:\tEdit then use both versions, each decorated with a header.\neb:\tEdit then use both versions.\nel or e1:\tEdit then use the left version.\ner or e2:\tEdit then use the right version.\ne:\tDiscard both versions then edit a new one.\nl or 1:\tUse the left version.\nr or 2:\tUse the right version.\ns:\tSilently include common lines.\nv:\tVerbosely include common lines.\nq:\tQuit.\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "86dc03602dcf385217216784784a8ecf20e6400decc3208170b12fcb0afb6698",
+        "data": "a\nb\nc\nd\ne\n"
+      }
+    }
+  },
+  "sdiff-merge-left-right": {
+    "stdout": "a\t\ta\nb\t      |\tB\n%c\t\tc\nd\t\td\n\t      >\te\n%",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "86dc03602dcf385217216784784a8ecf20e6400decc3208170b12fcb0afb6698",
+        "data": "a\nb\nc\nd\ne\n"
+      }
+    }
+  },
+  "sdiff-merge-missing-input": {
+    "stdout": "",
+    "stderr": "sdiff: nope: No such file or directory\n",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sdiff-merge-no-newline-command": {
+    "stdout": "a\t\ta\nb\t      |\tB\n%%",
+    "stderr": "ed:\tEdit then use both versions, each decorated with a header.\neb:\tEdit then use both versions.\nel or e1:\tEdit then use the left version.\ner or e2:\tEdit then use the right version.\ne:\tDiscard both versions then edit a new one.\nl or 1:\tUse the left version.\nr or 2:\tUse the right version.\ns:\tSilently include common lines.\nv:\tVerbosely include common lines.\nq:\tQuit.\n",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sdiff-merge-nonl": {
+    "stdout": "a\t\t\t\t\t\t\t\ta\nb\t\t\t\t\t\t\t      |\tB%",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "7e18f737311b2dc3b2f269dd78396b0351f14fb66efa879f768cb23181883c78",
+        "data": "a\nb"
+      },
+      "d": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "109e77b10f106caf441378662d1a84e8697fa4af602a057e43891e05f5724087",
+        "data": "a\nB"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "109e77b10f106caf441378662d1a84e8697fa4af602a057e43891e05f5724087",
+        "data": "a\nB"
+      }
+    }
+  },
+  "sdiff-merge-quit": {
+    "stdout": "a\t\t\t\t\t\t\t\ta\nb\t\t\t\t\t\t\t      |\tB\n%",
+    "stderr": "",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sdiff-merge-silent-verbose": {
+    "stdout": "a\t\ta\nb\t      |\tB\n%%\t      >\te\n%%",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      },
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "86dc03602dcf385217216784784a8ecf20e6400decc3208170b12fcb0afb6698",
+        "data": "a\nb\nc\nd\ne\n"
+      }
+    }
+  },
+  "sdiff-missing": {
+    "stdout": "",
+    "stderr": "diff: nope: No such file or directory\n",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sdiff-missing-operand": {
+    "stdout": "",
+    "stderr": "sdiff: missing operand after 'a'\nsdiff: Try 'sdiff --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "sdiff-suppress": {
+    "stdout": "b\t      |\tB\n\t      >\te\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "cf2c7f63055d2e84af6e3f01ac1bb7fce598d20cf213fab2b56b8e8047b46ced",
+        "data": "a\nb\nc\nd\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "2de830c198f6325fd295fa0bbf3fbb68e75652d6d0ed2941033236428ef6066a",
+        "data": "a\nB\nc\nd\ne\n"
+      }
+    }
+  },
+  "sdiff-version": {
+    "stdout": "sdiff (GNU diffutils) 3.10\nCopyright (C) 2023 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Thomas Lord.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

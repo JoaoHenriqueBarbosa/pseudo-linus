@@ -1,0 +1,118 @@
+tool = "strings"
+source = "manual"
+
+# -U/--unicode: sequências UTF-8 (líder c0..ff, continuação 80..bf) contam como um caractere;
+# escape com as contas do original (a de quatro bytes não dá o código Unicode), hex, locale (só o
+# primeiro byte), invalid (não gráfico), highlight fora de terminal (igual ao escape) e o defeito de
+# deslocamento +2^32 da cadeia que começa no byte devolvido depois de uma sequência inválida.
+
+[[case]]
+id = "strings-unicode-escape"
+argv = ["strings", "-U", "e", "utf"]
+tags = ["unicode"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-escape-long"
+argv = ["strings", "--unicode=escape", "-n", "2", "utf"]
+tags = ["unicode"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-hex"
+argv = ["strings", "-U", "x", "utf"]
+tags = ["unicode"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-hex-names-radix"
+argv = ["strings", "--unicode=hex", "-f", "-t", "x", "utf"]
+tags = ["unicode", "radix", "defect"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-locale"
+argv = ["strings", "-U", "l", "-n", "2", "utf"]
+tags = ["unicode"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-invalid"
+argv = ["strings", "-U", "invalid", "-t", "d", "utf"]
+tags = ["unicode", "defect"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-highlight-pipe"
+argv = ["strings", "-U", "h", "utf"]
+tags = ["unicode"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-default"
+argv = ["strings", "-U", "default", "-t", "d", "utf"]
+tags = ["unicode"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-default-eight-bit"
+argv = ["strings", "-U", "d", "-e", "S", "utf"]
+tags = ["unicode", "encoding"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-forces-eight-bit"
+argv = ["strings", "-e", "l", "-U", "e", "utf"]
+tags = ["unicode", "encoding"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-before-encoding"
+argv = ["strings", "-U", "e", "-e", "b", "utf"]
+tags = ["unicode", "encoding"]
+[case.files]
+"utf" = { content_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI=" }
+
+[[case]]
+id = "strings-unicode-defect-chain"
+argv = ["strings", "-U", "x", "-t", "d", "bug1"]
+tags = ["unicode", "defect"]
+[case.files]
+"bug1" = { content_b64 = "QUJDRMNFRkdIw0lKS0zDTU5PUAA=" }
+
+[[case]]
+id = "strings-unicode-defect-mix"
+argv = ["strings", "-U", "x", "-t", "x", "bug2"]
+tags = ["unicode", "defect"]
+[case.files]
+"bug2" = { content_b64 = "QUFBQcPDqUJCQkIAQUFBQcPDQkJCQgBBQkNE4oJFRkdIAEFCQ0TiggFFRkdIAEFCw0NERUYAQUJDRMNFAUZHSEkA" }
+
+[[case]]
+id = "strings-unicode-defect-octal-min2"
+argv = ["strings", "-U", "e", "-o", "-n", "2", "bug2"]
+tags = ["unicode", "defect"]
+[case.files]
+"bug2" = { content_b64 = "QUFBQcPDqUJCQkIAQUFBQcPDQkJCQgBBQkNE4oJFRkdIAEFCQ0TiggFFRkdIAEFCw0NERUYAQUJDRMNFAUZHSEkA" }
+
+[[case]]
+id = "strings-unicode-whitespace"
+argv = ["strings", "-U", "x", "-w", "-t", "d", "-s", "|", "bug1"]
+tags = ["unicode", "whitespace"]
+[case.files]
+"bug1" = { content_b64 = "QUJDRMNFRkdIw0lKS0zDTU5PUAA=" }
+
+[[case]]
+id = "strings-unicode-stdin"
+argv = ["strings", "-U", "escape", "-f"]
+stdin_b64 = "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAA=="
+tags = ["unicode", "stdin"]

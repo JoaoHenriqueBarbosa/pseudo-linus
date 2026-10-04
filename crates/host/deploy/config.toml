@@ -1,0 +1,60 @@
+# Configuração de produção do pseudo-linusd para a VPS (2 vCPUs, ~3 GiB livres, ao lado dos apps do
+# Dokploy). Variáveis de ambiente sobrescrevem: PL_LISTEN, PL_DATA_DIR, PL_WORKERS, PL_CPUS_PER_WORKER,
+# PL_BACKEND. Tamanhos aceitam número ou texto com unidade (512MiB, 1GiB).
+
+listen = "0.0.0.0:8080"
+data_dir = "/var/lib/pseudo-linus"
+# Dois workers: uma queda (stack overflow que escapou, abort de allocator) derruba só metade dos
+# usuários. Uma CPU virtual por worker deixa folga pros outros apps da VPS; o teto do container inteiro
+# fica no limite de CPU do Dokploy.
+workers = 2
+cpus_per_worker = 1
+backend = "kernel"
+
+[service]
+# Soma dos tetos de memória de todas as sandboxes (abaixo do limite de memória do container).
+memory_budget = "2GiB"
+max_sandboxes = 32
+max_concurrent_execs = 32
+# Teto do corpo HTTP (fs.write, import em base64) e das respostas de fs.read e export.
+max_request_bytes = "64MiB"
+max_connections = 256
+
+# Quota padrão de cada usuário (sobrescrevível por usuário com `pseudo-linusd admin user update`).
+[quota]
+max_sandboxes = 4
+mem_bytes = "1GiB"
+max_procs = 512
+cpu_weight = 100
+# Uma CPU virtual por período de 100 ms: um usuário guloso não leva o worker inteiro.
+cpu_max = { quota_us = 100000, period_us = 100000 }
+max_concurrent_execs = 8
+max_sessions = 8
+max_timeout_ms = 1800000
+max_output_bytes = "16MiB"
+max_persisted_snapshots = 8
+
+[sandbox]
+mem_bytes = "256MiB"
+max_procs = 128
+fs_bytes = "256MiB"
+nofile = 1024
+exec_timeout_ms = 120000
+output_limit_bytes = "1MiB"
+max_discard_bytes = "256MiB"
+drain_grace_ms = 100
+idle_ttl_secs = 86400
+max_snapshots = 16
+
+[worker]
+restart_backoff_min_ms = 200
+restart_backoff_max_ms = 30000
+stable_after_ms = 60000
+ping_interval_ms = 5000
+ping_timeout_ms = 20000
+startup_timeout_ms = 30000
+
+[isolation]
+# A VPS tem Landlock ABI v4: regras de FS e de TCP valem, o escopo de sinais (v6) fica de fora.
+landlock = "best_effort"
+seccomp = "required"

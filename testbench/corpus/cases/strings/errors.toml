@@ -1,0 +1,321 @@
+tool = "strings"
+source = "manual"
+
+# Erros e mensagens: arquivo inexistente, diretório, caminho com componente que não é diretório,
+# validação do mínimo (-n e -NUM, inclusive o elemento do argv permutado que o original lê),
+# argumentos inválidos de -t/-e/-U (os dois primeiros imprimem o uso no stderr), opções
+# desconhecidas, --help (uso no stdout com a linha de bugs), versão e o operando `-` sozinho.
+
+[[case]]
+id = "strings-nonexist"
+argv = ["strings", "nonexist"]
+tags = ["error"]
+
+[[case]]
+id = "strings-nonexist-then-file"
+argv = ["strings", "nonexist", "a", "missing"]
+tags = ["error"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-directory"
+argv = ["strings", "d", "a"]
+tags = ["error"]
+[case.files]
+"a" = "hello\u0000"
+"d" = { dir = true }
+
+[[case]]
+id = "strings-not-a-directory"
+argv = ["strings", "a/b"]
+tags = ["error"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-empty-name"
+argv = ["strings", ""]
+tags = ["error"]
+
+[[case]]
+id = "strings-broken-symlink"
+argv = ["strings", "broken"]
+tags = ["error"]
+[case.files]
+"broken" = { symlink = "nowhere" }
+
+[[case]]
+id = "strings-symlink-to-dir"
+argv = ["strings", "dl"]
+tags = ["error"]
+[case.files]
+"d" = { dir = true }
+"dl" = { symlink = "d" }
+
+[[case]]
+id = "strings-n-zero"
+argv = ["strings", "-n", "0", "a"]
+tags = ["error", "min"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-n-double-zero"
+argv = ["strings", "-n", "00", "a"]
+tags = ["error", "min"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-n-alpha"
+argv = ["strings", "-n", "abc", "a"]
+tags = ["error", "min"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-n-negative"
+argv = ["strings", "-n", "-1", "a"]
+tags = ["error", "min"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-n-trailing-junk"
+argv = ["strings", "-n", "3x", "a"]
+tags = ["error", "min"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-n-too-big"
+argv = ["strings", "-n", "4294967296", "a"]
+tags = ["error", "min"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-n-overflow"
+argv = ["strings", "--bytes=99999999999999999999999", "a"]
+tags = ["error", "min"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-n-uint-max"
+argv = ["strings", "-n", "4294967295", "a"]
+tags = ["error", "min"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-n-empty"
+argv = ["strings", "-n", "", "a"]
+tags = ["error", "min"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-num-zero"
+argv = ["strings", "-0", "a"]
+tags = ["error", "numeric"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-num-uint-max"
+argv = ["strings", "-4294967295", "a"]
+tags = ["error", "numeric"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-num-after-file"
+argv = ["strings", "a", "-5"]
+tags = ["error", "numeric", "getopt"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-num-after-file-then-n"
+argv = ["strings", "a", "-5", "-n", "3"]
+tags = ["error", "numeric", "getopt"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-num-after-two-files"
+argv = ["strings", "ab", "-6"]
+tags = ["error", "numeric", "getopt"]
+[case.files]
+"ab" = "hello\u0000"
+
+[[case]]
+id = "strings-num-in-cluster"
+argv = ["strings", "-13a", "a"]
+tags = ["error", "numeric", "getopt"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-num-after-letter"
+argv = ["strings", "-a3", "a"]
+tags = ["error", "numeric", "getopt"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-num-then-radix"
+argv = ["strings", "a", "-9", "-t", "x"]
+tags = ["error", "numeric", "getopt"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-num-first-then-n"
+argv = ["strings", "-6", "a", "-n", "3"]
+tags = ["numeric", "getopt"]
+[case.files]
+"a" = "hello world\u0000abc\u0000xyzwvu\u0000"
+
+[[case]]
+id = "strings-num-overrides-n"
+argv = ["strings", "-3", "-n5", "a"]
+tags = ["numeric"]
+[case.files]
+"a" = "hello world\u0000abc\u0000xyzw\u0000"
+
+[[case]]
+id = "strings-num-after-ddash-file"
+argv = ["strings", "-5", "--", "a"]
+tags = ["numeric", "getopt"]
+[case.files]
+"a" = "hello world\u0000abc\u0000xyzw\u0000"
+
+[[case]]
+id = "strings-ddash-numeric-is-file"
+argv = ["strings", "a", "--", "-5"]
+tags = ["error", "getopt"]
+[case.files]
+"a" = "hello world\u0000abc\u0000xyzw\u0000"
+
+[[case]]
+id = "strings-radix-bad"
+argv = ["strings", "-t", "q", "a"]
+tags = ["error", "radix"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-radix-two-chars"
+argv = ["strings", "--radix=xx", "a"]
+tags = ["error", "radix"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-encoding-bad"
+argv = ["strings", "-e", "q", "a"]
+tags = ["error", "encoding"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-unicode-bad"
+argv = ["strings", "-U", "q", "a"]
+tags = ["error", "unicode"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-unicode-empty"
+argv = ["strings", "--unicode=", "a"]
+tags = ["error", "unicode"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-unicode-uppercase"
+argv = ["strings", "-U", "HEX", "a"]
+tags = ["error", "unicode"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-invalid-option"
+argv = ["strings", "-Q", "a"]
+tags = ["error", "getopt"]
+[case.files]
+"a" = "hello\u0000"
+
+[[case]]
+id = "strings-unrecognized-option"
+argv = ["strings", "--foo", "a"]
+tags = ["error", "getopt"]
+
+[[case]]
+id = "strings-missing-arg"
+argv = ["strings", "-n"]
+tags = ["error", "getopt"]
+
+[[case]]
+id = "strings-missing-long-arg"
+argv = ["strings", "--radix"]
+tags = ["error", "getopt"]
+
+[[case]]
+id = "strings-no-arg-allowed"
+argv = ["strings", "--all=x", "a"]
+tags = ["error", "getopt"]
+
+[[case]]
+id = "strings-errors-in-order"
+argv = ["strings", "-n", "0", "-Q", "a"]
+tags = ["error", "getopt"]
+
+[[case]]
+id = "strings-unicode-error-first"
+argv = ["strings", "-U", "q", "-n", "0", "a"]
+tags = ["error", "getopt"]
+
+[[case]]
+id = "strings-help"
+argv = ["strings", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "strings-help-H-stops"
+argv = ["strings", "-H", "-Q", "nonexist"]
+tags = ["help"]
+
+[[case]]
+id = "strings-help-h"
+argv = ["strings", "-h"]
+tags = ["help"]
+
+[[case]]
+id = "strings-version-v"
+argv = ["strings", "-v", "-Q"]
+tags = ["version"]
+
+[[case]]
+id = "strings-version-V"
+argv = ["strings", "-V"]
+tags = ["version"]
+
+[[case]]
+id = "strings-version-long"
+argv = ["strings", "--version", "nonexist"]
+tags = ["version"]
+
+[[case]]
+id = "strings-dash-only"
+argv = ["strings", "-"]
+stdin = "from stdin\u0000"
+tags = ["error"]
+
+[[case]]
+id = "strings-ddash-dash"
+argv = ["strings", "--", "-"]
+tags = ["error"]

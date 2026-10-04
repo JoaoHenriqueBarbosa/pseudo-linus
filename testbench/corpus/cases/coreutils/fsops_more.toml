@@ -1,0 +1,684 @@
+tool = "coreutils"
+source = "agent-style"
+
+# Mais operações de arquivo: rmdir, mktemp, install, truncate, link, unlink, mkfifo, mknod, sync
+# e dd. O retrato do diretório registra conteúdo e modo; FIFO e dispositivo aparecem como arquivo
+# vazio com os bits de tipo 0o170000 somados ao modo, por isso os casos de mkfifo e mknod também
+# conferem o tipo com stat. O mktemp cria nomes aleatórios: os casos felizes rodam num script que
+# não imprime o nome e apaga o que criou dentro do diretório do caso.
+
+# rmdir
+
+[[case]]
+id = "rmdir-empty"
+argv = ["rmdir", "d"]
+tags = ["rmdir", "fs"]
+[case.files]
+"d" = { dir = true }
+"keep.txt" = "k\n"
+
+[[case]]
+id = "rmdir-multiple"
+argv = ["rmdir", "a", "b"]
+tags = ["rmdir", "fs"]
+[case.files]
+"a" = { dir = true }
+"b" = { dir = true }
+
+[[case]]
+id = "rmdir-parents"
+argv = ["rmdir", "-p", "a/b/c"]
+tags = ["rmdir", "fs"]
+[case.files]
+"a/b/c" = { dir = true }
+
+[[case]]
+id = "rmdir-parents-stops-nonempty"
+argv = ["rmdir", "-p", "a/b"]
+tags = ["rmdir", "fs", "errno"]
+[case.files]
+"a/b" = { dir = true }
+"a/other.txt" = "o\n"
+
+[[case]]
+id = "rmdir-verbose"
+argv = ["rmdir", "-v", "-p", "a/b"]
+tags = ["rmdir", "fs"]
+[case.files]
+"a/b" = { dir = true }
+
+[[case]]
+id = "rmdir-nonempty"
+argv = ["rmdir", "d"]
+tags = ["rmdir", "fs", "errno"]
+[case.files]
+"d/x" = "x\n"
+
+[[case]]
+id = "rmdir-ignore-fail-non-empty"
+argv = ["rmdir", "--ignore-fail-on-non-empty", "d", "e"]
+tags = ["rmdir", "fs"]
+[case.files]
+"d/x" = "x\n"
+"e" = { dir = true }
+
+[[case]]
+id = "rmdir-missing"
+argv = ["rmdir", "nope"]
+tags = ["rmdir", "fs", "errno"]
+
+[[case]]
+id = "rmdir-not-dir"
+argv = ["rmdir", "a.txt"]
+tags = ["rmdir", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "rmdir-symlink-to-dir"
+argv = ["rmdir", "link"]
+tags = ["rmdir", "fs", "errno", "symlink"]
+[case.files]
+"d" = { dir = true }
+"link" = { symlink = "d" }
+
+[[case]]
+id = "rmdir-no-operand"
+argv = ["rmdir"]
+tags = ["rmdir", "fs", "errno"]
+
+# mktemp
+
+[[case]]
+id = "mktemp-dir-ok"
+script = "d=$(mktemp -d) && test -d \"$d\" && stat -c %a \"$d\" && rmdir \"$d\" && echo ok"
+tags = ["mktemp", "fs"]
+
+[[case]]
+id = "mktemp-file-ok"
+script = "f=$(mktemp) && test -f \"$f\" && test ! -s \"$f\" && stat -c %a \"$f\" && rm \"$f\" && echo ok"
+tags = ["mktemp", "fs"]
+
+[[case]]
+id = "mktemp-default-location"
+script = "f=$(mktemp) && case \"$f\" in /tmp/tmp.??????????) echo ok;; *) echo \"inesperado\";; esac; rm -f \"$f\""
+tags = ["mktemp", "fs"]
+
+[[case]]
+id = "mktemp-suffix"
+script = "f=$(mktemp --suffix=.txt) && case \"$f\" in /tmp/tmp.*.txt) echo ok;; *) echo inesperado;; esac; rm -f \"$f\""
+tags = ["mktemp", "fs"]
+
+[[case]]
+id = "mktemp-template-cwd"
+script = "f=$(mktemp lock.XXXXXX) && case \"$f\" in lock.??????) test -f \"$f\" && rm \"$f\" && echo ok;; esac"
+tags = ["mktemp", "fs"]
+
+[[case]]
+id = "mktemp-p-dir"
+script = "d=$(mktemp -d -p sub) && case \"$d\" in sub/tmp.*) rmdir \"$d\" && echo ok;; esac"
+tags = ["mktemp", "fs"]
+[case.files]
+"sub" = { dir = true }
+
+[[case]]
+id = "mktemp-dry-run"
+script = "f=$(mktemp -u) && test ! -e \"$f\" && echo ok"
+tags = ["mktemp", "fs"]
+
+[[case]]
+id = "mktemp-too-few-x"
+argv = ["mktemp", "fooXX"]
+tags = ["mktemp", "fs", "errno"]
+
+[[case]]
+id = "mktemp-p-missing-dir"
+argv = ["mktemp", "-p", "nodir"]
+tags = ["mktemp", "fs", "errno"]
+
+[[case]]
+id = "mktemp-d-missing-parent"
+argv = ["mktemp", "-d", "nodir/x.XXXXXX"]
+tags = ["mktemp", "fs", "errno"]
+
+[[case]]
+id = "mktemp-too-many-templates"
+argv = ["mktemp", "a.XXXXXX", "b.XXXXXX"]
+tags = ["mktemp", "fs", "errno"]
+
+[[case]]
+id = "mktemp-suffix-with-slash"
+argv = ["mktemp", "--suffix=a/b", "x.XXXXXX"]
+tags = ["mktemp", "fs", "errno"]
+
+# install
+
+[[case]]
+id = "install-default-mode"
+argv = ["install", "a.txt", "b.txt"]
+tags = ["install", "fs"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "install-m-into-dir"
+argv = ["install", "-m", "644", "a.txt", "b.txt", "dest/"]
+tags = ["install", "fs"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = { content = "b\n", mode = 0o600 }
+"dest" = { dir = true }
+
+[[case]]
+id = "install-d"
+argv = ["install", "-d", "a/b/c", "x"]
+tags = ["install", "fs"]
+
+[[case]]
+id = "install-d-m"
+argv = ["install", "-d", "-m", "700", "private/keys"]
+tags = ["install", "fs"]
+
+[[case]]
+id = "install-D"
+argv = ["install", "-D", "-m", "640", "a.txt", "x/y/z.txt"]
+tags = ["install", "fs"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "install-t"
+argv = ["install", "-t", "bin", "run.sh", "tool"]
+tags = ["install", "fs"]
+[case.files]
+"run.sh" = "#!/bin/sh\n"
+"tool" = "t\n"
+"bin" = { dir = true }
+
+[[case]]
+id = "install-v"
+argv = ["install", "-v", "-D", "a.txt", "out/a.txt"]
+tags = ["install", "fs"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "install-overwrite"
+argv = ["install", "-m", "600", "new.txt", "old.txt"]
+tags = ["install", "fs"]
+[case.files]
+"new.txt" = "novo\n"
+"old.txt" = "velho e maior\n"
+
+[[case]]
+id = "install-owner"
+script = "install -o daemon -g nogroup -m 640 a.txt b.txt && stat -c '%U:%G %a' b.txt"
+tags = ["install", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "install-missing-src"
+argv = ["install", "nope.txt", "b.txt"]
+tags = ["install", "fs", "errno"]
+
+[[case]]
+id = "install-missing-dest"
+argv = ["install", "a.txt"]
+tags = ["install", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "install-invalid-mode"
+argv = ["install", "-m", "999", "a.txt", "b.txt"]
+tags = ["install", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "install-omit-dir"
+argv = ["install", "d", "e"]
+tags = ["install", "fs", "errno"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "install-same-file"
+argv = ["install", "a.txt", "a.txt"]
+tags = ["install", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "install-invalid-user"
+argv = ["install", "-o", "nouser", "a.txt", "b.txt"]
+tags = ["install", "fs", "errno", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "install-missing-dest-dir"
+argv = ["install", "a.txt", "nodir/b.txt"]
+tags = ["install", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+# truncate
+
+[[case]]
+id = "truncate-zero"
+argv = ["truncate", "-s", "0", "log.txt"]
+tags = ["truncate", "fs"]
+[case.files]
+"log.txt" = "linhas antigas\nmais\n"
+
+[[case]]
+id = "truncate-extend"
+argv = ["truncate", "-s", "8", "a.txt"]
+tags = ["truncate", "fs"]
+[case.files]
+"a.txt" = "abc"
+
+[[case]]
+id = "truncate-create"
+argv = ["truncate", "-s", "5", "new.bin"]
+tags = ["truncate", "fs"]
+
+[[case]]
+id = "truncate-no-create"
+argv = ["truncate", "-c", "-s", "5", "new.bin"]
+tags = ["truncate", "fs"]
+
+[[case]]
+id = "truncate-grow-by"
+argv = ["truncate", "-s", "+3", "a.txt"]
+tags = ["truncate", "fs"]
+[case.files]
+"a.txt" = "abc"
+
+[[case]]
+id = "truncate-shrink-by"
+argv = ["truncate", "-s", "-5", "a.txt"]
+tags = ["truncate", "fs"]
+[case.files]
+"a.txt" = "0123456789"
+
+[[case]]
+id = "truncate-round-up"
+argv = ["truncate", "-s", "%4", "a.txt"]
+tags = ["truncate", "fs"]
+[case.files]
+"a.txt" = "12345"
+
+[[case]]
+id = "truncate-at-most"
+argv = ["truncate", "-s", "<2", "a.txt"]
+tags = ["truncate", "fs"]
+[case.files]
+"a.txt" = "123"
+
+[[case]]
+id = "truncate-at-least"
+argv = ["truncate", "-s", ">9", "a.txt"]
+tags = ["truncate", "fs"]
+[case.files]
+"a.txt" = "12"
+
+[[case]]
+id = "truncate-unit"
+argv = ["truncate", "-s", "1K", "a.bin"]
+tags = ["truncate", "fs"]
+
+[[case]]
+id = "truncate-reference"
+argv = ["truncate", "-r", "ref.txt", "a.txt"]
+tags = ["truncate", "fs"]
+[case.files]
+"ref.txt" = "12345"
+"a.txt" = "0123456789"
+
+[[case]]
+id = "truncate-no-size"
+argv = ["truncate", "a.txt"]
+tags = ["truncate", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "truncate-bad-size"
+argv = ["truncate", "-s", "abc", "a.txt"]
+tags = ["truncate", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "truncate-missing-dir"
+argv = ["truncate", "-s", "0", "nodir/x"]
+tags = ["truncate", "fs", "errno"]
+
+[[case]]
+id = "truncate-missing-operand"
+argv = ["truncate", "-s", "0"]
+tags = ["truncate", "fs", "errno"]
+
+# link e unlink
+
+[[case]]
+id = "link-ok"
+argv = ["link", "a.txt", "b.txt"]
+tags = ["link", "fs"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "link-count"
+script = "link a.txt b.txt && stat -c '%n %h' a.txt b.txt && echo mais >> b.txt && cat a.txt"
+tags = ["link", "fs"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "link-missing-src"
+argv = ["link", "nope.txt", "b.txt"]
+tags = ["link", "fs", "errno"]
+
+[[case]]
+id = "link-exists"
+argv = ["link", "a.txt", "b.txt"]
+tags = ["link", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "link-dir"
+argv = ["link", "d", "e"]
+tags = ["link", "fs", "errno"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "link-missing-operand"
+argv = ["link", "a.txt"]
+tags = ["link", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "link-extra-operand"
+argv = ["link", "a.txt", "b.txt", "c.txt"]
+tags = ["link", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "unlink-file"
+argv = ["unlink", "a.txt"]
+tags = ["unlink", "fs"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "unlink-symlink"
+argv = ["unlink", "link"]
+tags = ["unlink", "fs", "symlink"]
+[case.files]
+"target.txt" = "t\n"
+"link" = { symlink = "target.txt" }
+
+[[case]]
+id = "unlink-missing"
+argv = ["unlink", "nope.txt"]
+tags = ["unlink", "fs", "errno"]
+
+[[case]]
+id = "unlink-dir"
+argv = ["unlink", "d"]
+tags = ["unlink", "fs", "errno"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "unlink-extra-operand"
+argv = ["unlink", "a.txt", "b.txt"]
+tags = ["unlink", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "unlink-missing-operand"
+argv = ["unlink"]
+tags = ["unlink", "fs", "errno"]
+
+# mkfifo
+
+[[case]]
+id = "mkfifo-basic"
+argv = ["mkfifo", "pipe"]
+tags = ["mkfifo", "fs", "special"]
+
+[[case]]
+id = "mkfifo-m"
+argv = ["mkfifo", "-m", "600", "pipe"]
+tags = ["mkfifo", "fs", "special"]
+
+[[case]]
+id = "mkfifo-test-p"
+script = "mkfifo p1 p2 && test -p p1 && stat -c '%n %F %a' p1 p2"
+tags = ["mkfifo", "fs", "special"]
+
+[[case]]
+id = "mkfifo-exists"
+argv = ["mkfifo", "a.txt"]
+tags = ["mkfifo", "fs", "special", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "mkfifo-missing-dir"
+argv = ["mkfifo", "nodir/p"]
+tags = ["mkfifo", "fs", "special", "errno"]
+
+[[case]]
+id = "mkfifo-bad-mode"
+argv = ["mkfifo", "-m", "xyz", "p"]
+tags = ["mkfifo", "fs", "special", "errno"]
+
+[[case]]
+id = "mkfifo-missing-operand"
+argv = ["mkfifo"]
+tags = ["mkfifo", "fs", "special", "errno"]
+
+# mknod
+
+[[case]]
+id = "mknod-fifo"
+argv = ["mknod", "pipe", "p"]
+tags = ["mknod", "fs", "special"]
+
+[[case]]
+id = "mknod-char-device"
+script = "mknod null2 c 1 3 && stat -c '%n %F %t %T %a' null2"
+tags = ["mknod", "fs", "special"]
+
+[[case]]
+id = "mknod-block-device-mode"
+script = "mknod -m 600 blk b 7 0 && stat -c '%n %F %t %T %a' blk"
+tags = ["mknod", "fs", "special"]
+
+[[case]]
+id = "mknod-missing-numbers"
+argv = ["mknod", "x", "c"]
+tags = ["mknod", "fs", "special", "errno"]
+
+[[case]]
+id = "mknod-fifo-with-numbers"
+argv = ["mknod", "x", "p", "1", "2"]
+tags = ["mknod", "fs", "special", "errno"]
+
+[[case]]
+id = "mknod-bad-type"
+argv = ["mknod", "x", "q", "1", "2"]
+tags = ["mknod", "fs", "special", "errno"]
+
+[[case]]
+id = "mknod-missing-type"
+argv = ["mknod", "x"]
+tags = ["mknod", "fs", "special", "errno"]
+
+[[case]]
+id = "mknod-exists"
+argv = ["mknod", "a.txt", "p"]
+tags = ["mknod", "fs", "special", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+# sync
+
+[[case]]
+id = "sync-plain"
+argv = ["sync"]
+tags = ["sync", "fs"]
+
+[[case]]
+id = "sync-file"
+argv = ["sync", "a.txt"]
+tags = ["sync", "fs"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "sync-data"
+argv = ["sync", "-d", "a.txt"]
+tags = ["sync", "fs"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "sync-file-system"
+argv = ["sync", "-f", "a.txt"]
+tags = ["sync", "fs"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "sync-missing"
+argv = ["sync", "nope.txt"]
+tags = ["sync", "fs", "errno"]
+
+[[case]]
+id = "sync-data-no-args"
+argv = ["sync", "--data"]
+tags = ["sync", "fs", "errno"]
+
+[[case]]
+id = "sync-data-and-fs"
+argv = ["sync", "-d", "-f", "a.txt"]
+tags = ["sync", "fs", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+# dd (sempre status=none ou status=noxfer: a linha de vazão tem tempo e não é determinística)
+
+[[case]]
+id = "dd-copy-file"
+argv = ["dd", "if=in.txt", "of=out.txt", "status=none"]
+tags = ["dd", "fs"]
+[case.files]
+"in.txt" = "0123456789\n"
+
+[[case]]
+id = "dd-noxfer-records"
+argv = ["dd", "if=in.txt", "of=out.txt", "status=noxfer"]
+tags = ["dd", "fs"]
+[case.files]
+"in.txt" = "0123456789\n"
+
+[[case]]
+id = "dd-partial-records"
+argv = ["dd", "if=in.txt", "bs=4", "status=noxfer"]
+tags = ["dd", "fs"]
+[case.files]
+"in.txt" = "0123456789\n"
+
+[[case]]
+id = "dd-bs-count"
+argv = ["dd", "if=in.txt", "bs=4", "count=2", "status=none"]
+tags = ["dd", "fs"]
+[case.files]
+"in.txt" = "0123456789\n"
+
+[[case]]
+id = "dd-skip"
+argv = ["dd", "if=in.txt", "bs=1", "skip=3", "count=4", "status=none"]
+tags = ["dd", "fs"]
+[case.files]
+"in.txt" = "0123456789\n"
+
+[[case]]
+id = "dd-skip-bytes-flag"
+argv = ["dd", "if=in.txt", "iflag=skip_bytes,count_bytes", "bs=4", "skip=2", "count=5", "status=none"]
+tags = ["dd", "fs"]
+[case.files]
+"in.txt" = "0123456789\n"
+
+[[case]]
+id = "dd-stdin-stdout"
+argv = ["dd", "status=none"]
+stdin = "da entrada pra saída\n"
+tags = ["dd", "stdin"]
+
+[[case]]
+id = "dd-conv-ucase"
+argv = ["dd", "conv=ucase", "status=none"]
+stdin = "hello world\n"
+tags = ["dd", "stdin"]
+
+[[case]]
+id = "dd-seek-notrunc"
+argv = ["dd", "if=patch.bin", "of=target.bin", "bs=1", "seek=2", "conv=notrunc", "status=none"]
+tags = ["dd", "fs"]
+[case.files]
+"patch.bin" = "XY"
+"target.bin" = "0123456789"
+
+[[case]]
+id = "dd-seek-truncates"
+argv = ["dd", "if=patch.bin", "of=target.bin", "bs=1", "seek=2", "status=none"]
+tags = ["dd", "fs"]
+[case.files]
+"patch.bin" = "XY"
+"target.bin" = "0123456789"
+
+[[case]]
+id = "dd-dev-zero"
+argv = ["dd", "if=/dev/zero", "of=z.bin", "bs=4", "count=2", "status=none"]
+tags = ["dd", "fs"]
+
+[[case]]
+id = "dd-count-bytes-noxfer"
+argv = ["dd", "if=/dev/zero", "of=z.bin", "bs=1K", "count=2", "status=noxfer"]
+tags = ["dd", "fs"]
+
+[[case]]
+id = "dd-missing-input"
+argv = ["dd", "if=nope.bin", "status=none"]
+tags = ["dd", "fs", "errno"]
+
+[[case]]
+id = "dd-bad-number"
+argv = ["dd", "bs=abc", "status=none"]
+tags = ["dd", "errno"]
+
+[[case]]
+id = "dd-unknown-operand"
+argv = ["dd", "foo=bar"]
+tags = ["dd", "errno"]
+
+[[case]]
+id = "dd-bad-conv"
+argv = ["dd", "conv=nada", "status=none"]
+tags = ["dd", "errno"]

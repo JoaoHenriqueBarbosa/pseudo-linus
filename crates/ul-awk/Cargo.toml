@@ -1,0 +1,26 @@
+[package]
+name = "ul-awk"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "awk e gawk do pseudo-linus: interpretador próprio com o gawk 5.2.1 como alvo"
+
+[dependencies]
+sysabi = { workspace = true }
+regex-posix = { workspace = true }
+stacker = "0.1"
+jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing", features = ["kernel"] }
+# Os outros programas do sistema (bash, sort, cat...) pros casos que chamam comandos; sem o próprio awk.
+userland = { path = "../userland", default-features = false, features = ["shell", "coreutils", "textproc"] }
+harness = { path = "../../testbench/crates/harness" }
+serde_json = "1"
+base64 = "0.22"
+
+[lints]
+workspace = true

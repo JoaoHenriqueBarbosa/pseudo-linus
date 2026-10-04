@@ -1,0 +1,1135 @@
+{
+  "b2sum-bad-length": {
+    "stdout": "",
+    "stderr": "b2sum: invalid length: ‘13’\nb2sum: length is not a multiple of 8\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "b2sum-check-length-inferred": {
+    "stdout": "a.txt: OK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "sums": {
+        "kind": "file",
+        "mode": 420,
+        "size": 72,
+        "sha256": "a0ff6b04d6d867ea9cc16b95582697276ce262e3ef73baffa3d4f777a0fbb88e",
+        "data": "93becc6e9882211c3ec3708c95bcd69baab7bb59c7f4bc84ce637b88a534b783  a.txt\n"
+      }
+    }
+  },
+  "b2sum-file": {
+    "stdout": "f60ce482e5cc1229f39d71313171a8d9f4ca3a87d066bf4b205effb528192a75f14f3271e2c1a90e1de53f275b4d4793eef2f5e31ea90d2ce29d2e481c36435f  a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "b2sum-length": {
+    "stdout": "93becc6e9882211c3ec3708c95bcd69baab7bb59c7f4bc84ce637b88a534b783  a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "b2sum-length-tag": {
+    "stdout": "BLAKE2b-128 (a.txt) = ea41b4de6c03f13a95758b28dd75693e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "b2sum-stdin": {
+    "stdout": "f60ce482e5cc1229f39d71313171a8d9f4ca3a87d066bf4b205effb528192a75f14f3271e2c1a90e1de53f275b4d4793eef2f5e31ea90d2ce29d2e481c36435f  -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cksum-a-blake2b-length": {
+    "stdout": "BLAKE2b-256 (a.txt) = 93becc6e9882211c3ec3708c95bcd69baab7bb59c7f4bc84ce637b88a534b783\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "cksum-a-bsd": {
+    "stdout": "36979     1 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "cksum-a-crc32b": {
+    "stdout": "909783072 6 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "cksum-a-md5": {
+    "stdout": "MD5 (a.txt) = b1946ac92492d2347c6235b4d2611184\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "cksum-a-sha256-base64": {
+    "stdout": "SHA256 (a.txt) = WJG1tSLV3whtD/CxEPvZ0hu0/HFjrzTQgoai6Eb2vgM=\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "cksum-a-sha256-untagged": {
+    "stdout": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03  a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "cksum-a-sysv": {
+    "stdout": "542 1 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "cksum-bad-algorithm": {
+    "stdout": "",
+    "stderr": "cksum: invalid argument ‘sha3’ for ‘--algorithm’\nValid arguments are:\n  - ‘bsd’\n  - ‘sysv’\n  - ‘crc’\n  - ‘crc32b’\n  - ‘md5’\n  - ‘sha1’\n  - ‘sha224’\n  - ‘sha256’\n  - ‘sha384’\n  - ‘sha512’\n  - ‘blake2b’\n  - ‘sm3’\nTry 'cksum --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "cksum-check-tagged": {
+    "stdout": "a.txt: OK\nb.txt: FAILED\n",
+    "stderr": "cksum: WARNING: 1 computed checksum did NOT match\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      },
+      "sums": {
+        "kind": "file",
+        "mode": 420,
+        "size": 129,
+        "sha256": "93e1058195a528a1ce3670b87879c7c378b8c0f998defce9deccec0a5e0fcc7b",
+        "data": "SHA256 (a.txt) = 5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03\nMD5 (b.txt) = 00000000000000000000000000000000\n"
+      }
+    }
+  },
+  "cksum-default": {
+    "stdout": "3015617425 6 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "cksum-empty": {
+    "stdout": "4294967295 0 empty\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "cksum-missing": {
+    "stdout": "",
+    "stderr": "cksum: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "cksum-multi": {
+    "stdout": "3015617425 6 a.txt\n1576634217 6 b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      }
+    }
+  },
+  "cksum-stdin": {
+    "stdout": "3015617425 6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "md5sum-backslash-name": {
+    "stdout": "\\b1946ac92492d2347c6235b4d2611184  a\\\\b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a\\b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "md5sum-bad-option": {
+    "stdout": "",
+    "stderr": "md5sum: invalid option -- 'Q'\nTry 'md5sum --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "md5sum-binary-marker": {
+    "stdout": "b1946ac92492d2347c6235b4d2611184 *a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "md5sum-check-failed": {
+    "stdout": "a.txt: OK\nb.txt: FAILED\n",
+    "stderr": "md5sum: WARNING: 1 computed checksum did NOT match\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      },
+      "sums.md5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 80,
+        "sha256": "eeb9a00d4c8d6b25dbd453605e61714b57aec94e15374303aa4a97928f2d2ff6",
+        "data": "b1946ac92492d2347c6235b4d2611184  a.txt\n00000000000000000000000000000000  b.txt\n"
+      }
+    }
+  },
+  "md5sum-check-ignore-missing": {
+    "stdout": "a.txt: OK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "sums.md5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 83,
+        "sha256": "9cbf133cbbf2af277c0f0d92bf5c40fb63c44d2c1a538ccc69c3571b87987621",
+        "data": "b1946ac92492d2347c6235b4d2611184  a.txt\n591785b794601e212b260e25925636fd  nope.txt\n"
+      }
+    }
+  },
+  "md5sum-check-malformed": {
+    "stdout": "",
+    "stderr": "md5sum: sums.md5: no properly formatted checksum lines found\n",
+    "exit": 1,
+    "files": {
+      "sums.md5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "0f17a684235408d7384d197148e4a4f955311c1e01125c960559e9cff3ce025c",
+        "data": "isto não é uma soma\n"
+      }
+    }
+  },
+  "md5sum-check-missing-file": {
+    "stdout": "a.txt: OK\nnope.txt: FAILED open or read\n",
+    "stderr": "md5sum: nope.txt: No such file or directory\nmd5sum: WARNING: 1 listed file could not be read\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "sums.md5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 83,
+        "sha256": "9cbf133cbbf2af277c0f0d92bf5c40fb63c44d2c1a538ccc69c3571b87987621",
+        "data": "b1946ac92492d2347c6235b4d2611184  a.txt\n591785b794601e212b260e25925636fd  nope.txt\n"
+      }
+    }
+  },
+  "md5sum-check-missing-list": {
+    "stdout": "",
+    "stderr": "md5sum: nope.md5: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "md5sum-check-ok": {
+    "stdout": "a.txt: OK\nb.txt: OK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      },
+      "sums.md5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 80,
+        "sha256": "18c1dc4d9f3fc6a003c127367126d60cdf1b3757a465a5c0a7964fa4dce5e285",
+        "data": "b1946ac92492d2347c6235b4d2611184  a.txt\n591785b794601e212b260e25925636fd  b.txt\n"
+      }
+    }
+  },
+  "md5sum-check-quiet": {
+    "stdout": "b.txt: FAILED\n",
+    "stderr": "md5sum: WARNING: 1 computed checksum did NOT match\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      },
+      "sums.md5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 80,
+        "sha256": "eeb9a00d4c8d6b25dbd453605e61714b57aec94e15374303aa4a97928f2d2ff6",
+        "data": "b1946ac92492d2347c6235b4d2611184  a.txt\n00000000000000000000000000000000  b.txt\n"
+      }
+    }
+  },
+  "md5sum-check-some-malformed-warn": {
+    "stdout": "a.txt: OK\n",
+    "stderr": "md5sum: sums.md5: 2: improperly formatted MD5 checksum line\nmd5sum: WARNING: 1 line is improperly formatted\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "sums.md5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 45,
+        "sha256": "d9395a349a7598e5ccaea416ce45099685ac93d41bd72ed79ffa25fa38fa842b",
+        "data": "b1946ac92492d2347c6235b4d2611184  a.txt\nlixo\n"
+      }
+    }
+  },
+  "md5sum-check-status": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      },
+      "sums.md5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 80,
+        "sha256": "eeb9a00d4c8d6b25dbd453605e61714b57aec94e15374303aa4a97928f2d2ff6",
+        "data": "b1946ac92492d2347c6235b4d2611184  a.txt\n00000000000000000000000000000000  b.txt\n"
+      }
+    }
+  },
+  "md5sum-check-stdin": {
+    "stdout": "a.txt: OK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "md5sum-check-tagged": {
+    "stdout": "a.txt: OK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "sums": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "4ae8cdcba2bb9869320625ff34545f6370cfaf1fbee9073a1873160608f345b4",
+        "data": "MD5 (a.txt) = b1946ac92492d2347c6235b4d2611184\n"
+      }
+    }
+  },
+  "md5sum-dash-and-file": {
+    "stdout": "b1946ac92492d2347c6235b4d2611184  -\n591785b794601e212b260e25925636fd  b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      }
+    }
+  },
+  "md5sum-dir": {
+    "stdout": "",
+    "stderr": "md5sum: d: Is a directory\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "md5sum-empty": {
+    "stdout": "d41d8cd98f00b204e9800998ecf8427e  empty\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "md5sum-file": {
+    "stdout": "b1946ac92492d2347c6235b4d2611184  a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "md5sum-missing": {
+    "stdout": "b1946ac92492d2347c6235b4d2611184  a.txt\n",
+    "stderr": "md5sum: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "md5sum-multi": {
+    "stdout": "b1946ac92492d2347c6235b4d2611184  a.txt\n591785b794601e212b260e25925636fd  b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      }
+    }
+  },
+  "md5sum-stdin": {
+    "stdout": "b1946ac92492d2347c6235b4d2611184  -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "md5sum-tag": {
+    "stdout": "MD5 (a.txt) = b1946ac92492d2347c6235b4d2611184\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "md5sum-zero-terminated": {
+    "stdout": "b1946ac92492d2347c6235b4d2611184  a.txt\u0000591785b794601e212b260e25925636fd  b.txt\u0000",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      }
+    }
+  },
+  "sha1sum-check-ok": {
+    "stdout": "a.txt: OK\nb.txt: OK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      },
+      "sums": {
+        "kind": "file",
+        "mode": 420,
+        "size": 96,
+        "sha256": "7980e03e6c5b99f4759495507803ff24b6e732afae496618b33ed0ce317d4578",
+        "data": "f572d396fae9206628714fb2ce00f72e94f2258f  a.txt\n9591818c07e900db7e1e0bc4b884c945e6a61b24  b.txt\n"
+      }
+    }
+  },
+  "sha1sum-file": {
+    "stdout": "f572d396fae9206628714fb2ce00f72e94f2258f  a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "sha1sum-missing": {
+    "stdout": "",
+    "stderr": "sha1sum: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "sha1sum-stdin": {
+    "stdout": "f572d396fae9206628714fb2ce00f72e94f2258f  -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sha1sum-tag": {
+    "stdout": "SHA1 (a.txt) = f572d396fae9206628714fb2ce00f72e94f2258f\nSHA1 (b.txt) = 9591818c07e900db7e1e0bc4b884c945e6a61b24\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      }
+    }
+  },
+  "sha224sum-check-failed": {
+    "stdout": "a.txt: OK\nb.txt: FAILED\n",
+    "stderr": "sha224sum: WARNING: 1 computed checksum did NOT match\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      },
+      "sums": {
+        "kind": "file",
+        "mode": 420,
+        "size": 128,
+        "sha256": "804ec73694340bc3d6a1ae071174146a8d99f6cf5e6eea68fb442f8cb487ff31",
+        "data": "2d6d67d91d0badcdd06cbbba1fe11538a68a37ec9c2e26457ceff12b  a.txt\n2d6d67d91d0badcdd06cbbba1fe11538a68a37ec9c2e26457ceff12b  b.txt\n"
+      }
+    }
+  },
+  "sha224sum-file": {
+    "stdout": "2d6d67d91d0badcdd06cbbba1fe11538a68a37ec9c2e26457ceff12b  a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "sha224sum-stdin": {
+    "stdout": "c5ae6e4ed4d8c0aec0f671978451411c37c765b76cda4050152e85a0  -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sha256sum-binary-file": {
+    "stdout": "d1296f418883627f56b9e436bcc75e9779ac6e4c3bfdc194bec649f7d90d2967  bin.dat\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin.dat": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "d1296f418883627f56b9e436bcc75e9779ac6e4c3bfdc194bec649f7d90d2967",
+        "data": {
+          "b64": "AAECA/7/gIE="
+        }
+      }
+    }
+  },
+  "sha256sum-check-binary-marker": {
+    "stdout": "a.txt: OK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "SHA256SUMS": {
+        "kind": "file",
+        "mode": 420,
+        "size": 72,
+        "sha256": "b871b6ffdd1f5011181c209d2efb839d5a0690a758b3c0b6ee1890952a9a0b2a",
+        "data": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03 *a.txt\n"
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "sha256sum-check-failed": {
+    "stdout": "a.txt: OK\nb.txt: FAILED\n",
+    "stderr": "sha256sum: WARNING: 1 computed checksum did NOT match\n",
+    "exit": 1,
+    "files": {
+      "SHA256SUMS": {
+        "kind": "file",
+        "mode": 420,
+        "size": 144,
+        "sha256": "6ddb4c079eb5ca951069c4237b11308889f4ae7e3486d0794fccfbcbf716eb6f",
+        "data": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03  a.txt\ne258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317  b.txt\n"
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "44992fe8098435b1fb55b8e8c946faf0f231fb05d426d20e3e8c1d5e64680bb2",
+        "data": "mudou\n"
+      }
+    }
+  },
+  "sha256sum-check-ok": {
+    "stdout": "a.txt: OK\nb.txt: OK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "SHA256SUMS": {
+        "kind": "file",
+        "mode": 420,
+        "size": 144,
+        "sha256": "6ddb4c079eb5ca951069c4237b11308889f4ae7e3486d0794fccfbcbf716eb6f",
+        "data": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03  a.txt\ne258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317  b.txt\n"
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      }
+    }
+  },
+  "sha256sum-file": {
+    "stdout": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03  a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "sha256sum-missing": {
+    "stdout": "",
+    "stderr": "sha256sum: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "sha256sum-multi": {
+    "stdout": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03  a.txt\ne258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317  b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      }
+    }
+  },
+  "sha256sum-pipeline-cut": {
+    "stdout": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "sha256sum-stdin": {
+    "stdout": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03  -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sha256sum-tag": {
+    "stdout": "SHA256 (a.txt) = 5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "sha384sum-check-ok": {
+    "stdout": "a.txt: OK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "sums": {
+        "kind": "file",
+        "mode": 420,
+        "size": 104,
+        "sha256": "68c141c6aace888cd1b9ea9cca81bddf02243e1adc029a78ec2338112a36996d",
+        "data": "1d0f284efe3edea4b9ca3bd514fa134b17eae361ccc7a1eefeff801b9bd6604e01f21f6bf249ef030599f0c218f2ba8c  a.txt\n"
+      }
+    }
+  },
+  "sha384sum-file": {
+    "stdout": "1d0f284efe3edea4b9ca3bd514fa134b17eae361ccc7a1eefeff801b9bd6604e01f21f6bf249ef030599f0c218f2ba8c  a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "sha384sum-stdin": {
+    "stdout": "1d0f284efe3edea4b9ca3bd514fa134b17eae361ccc7a1eefeff801b9bd6604e01f21f6bf249ef030599f0c218f2ba8c  -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sha512sum-check-failed": {
+    "stdout": "a.txt: FAILED\n",
+    "stderr": "sha512sum: WARNING: 1 computed checksum did NOT match\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "sums": {
+        "kind": "file",
+        "mode": 420,
+        "size": 136,
+        "sha256": "8529820150e12f1d6c197183de52a8d34c8e13a019a526158c99a0d26fa21357",
+        "data": "e0494295cc1dfdd443d09f81913881a112745174778cc0c224ccc7137024fe41ddc73d909a7ea0f590f253a6a3c470cb9872b9e1ba06e61fbb7a5e9455eba6bb  a.txt\n"
+      }
+    }
+  },
+  "sha512sum-file": {
+    "stdout": "e7c22b994c59d9cf2b48e549b1e24666636045930d3da7c1acb299d1c3b7f931f94aae41edda2c2b207a36e10f8bcb8d45223e54878f5b316e7ce3b6bc019629  a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "sha512sum-stdin": {
+    "stdout": "e0494295cc1dfdd443d09f81913881a112745174778cc0c224ccc7137024fe41ddc73d909a7ea0f590f253a6a3c470cb9872b9e1ba06e61fbb7a5e9455eba6bb  -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sha512sum-tag": {
+    "stdout": "SHA512 (b.txt) = e0494295cc1dfdd443d09f81913881a112745174778cc0c224ccc7137024fe41ddc73d909a7ea0f590f253a6a3c470cb9872b9e1ba06e61fbb7a5e9455eba6bb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      }
+    }
+  },
+  "sum-default": {
+    "stdout": "36979     1 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "sum-missing": {
+    "stdout": "",
+    "stderr": "sum: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "sum-multi": {
+    "stdout": "36979     1 a.txt\n59503     1 b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317",
+        "data": "world\n"
+      }
+    }
+  },
+  "sum-stdin": {
+    "stdout": "36979     1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sum-sysv": {
+    "stdout": "542 1 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  }
+}

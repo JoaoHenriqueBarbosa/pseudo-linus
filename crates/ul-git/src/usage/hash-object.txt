@@ -1,0 +1,13 @@
+usage: git hash-object [-t <type>] [-w] [--path=<file> | --no-filters]
+                       [--stdin [--literally]] [--] <file>...
+   or: git hash-object [-t <type>] [-w] --stdin-paths [--no-filters]
+
+    -t <type>             object type
+    -w                    write the object into the object database
+    --[no-]stdin          read the object from stdin
+    --[no-]stdin-paths    read file names from stdin
+    --no-filters          store file as is without filters
+    --filters             opposite of --no-filters
+    --[no-]literally      just hash any random garbage to create corrupt objects for debugging Git
+    --[no-]path <file>    process file as it were from this path
+

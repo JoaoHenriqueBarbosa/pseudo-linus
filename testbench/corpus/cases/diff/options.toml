@@ -1,0 +1,676 @@
+tool = "diff"
+source = "manual"
+
+# Opções do diff 3.10 além do básico: apresentação (-t, -T, --tabsize, --suppress-blank-empty, cores),
+# formatos ed, RCS, -D e formatos de grupo/linha, seleção de arquivos em diretórios (-x, -X, -S,
+# --from-file, --to-file, --no-dereference, --ignore-file-name-case, -N, -P), regras de contexto,
+# conflitos e erros de opção, ajuda e versão.
+
+[[case]]
+id = "opt-help"
+argv = ["diff", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "opt-version"
+argv = ["diff", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "opt-v-short"
+argv = ["diff", "-v"]
+tags = ["help"]
+
+[[case]]
+id = "opt-help-after-bogus"
+argv = ["diff", "--bogus", "--help"]
+tags = ["help", "error"]
+
+[[case]]
+id = "opt-ambiguous"
+argv = ["diff", "--s", "a", "b"]
+tags = ["error"]
+
+[[case]]
+id = "opt-conflict-u-c"
+argv = ["diff", "-u", "-c", "a", "b"]
+tags = ["error"]
+[case.files]
+"a" = "1\n"
+"b" = "2\n"
+
+[[case]]
+id = "opt-conflict-y-D"
+argv = ["diff", "-DX", "-y", "a", "b"]
+tags = ["error"]
+[case.files]
+"a" = "1\n"
+"b" = "2\n"
+
+[[case]]
+id = "opt-invalid-width"
+argv = ["diff", "-y", "-W", "0", "a", "b"]
+tags = ["error"]
+
+[[case]]
+id = "opt-invalid-tabsize"
+argv = ["diff", "--tabsize=x", "a", "b"]
+tags = ["error"]
+
+[[case]]
+id = "opt-invalid-color"
+argv = ["diff", "--color=sometimes", "a", "b"]
+tags = ["error"]
+
+[[case]]
+id = "opt-invalid-context"
+argv = ["diff", "-C", "x", "a", "b"]
+tags = ["error"]
+
+[[case]]
+id = "opt-invalid-horizon"
+argv = ["diff", "--horizon-lines=-1", "a", "b"]
+tags = ["error"]
+
+[[case]]
+id = "opt-too-many-labels"
+argv = ["diff", "--label=a", "--label=b", "--label=c", "a", "b"]
+tags = ["error"]
+
+[[case]]
+id = "opt-extra-operand"
+argv = ["diff", "a", "b", "c"]
+tags = ["error"]
+
+[[case]]
+id = "opt-no-operands"
+argv = ["diff"]
+tags = ["error"]
+
+[[case]]
+id = "opt-dash-vs-dir"
+argv = ["diff", "-", "d"]
+stdin = "x\n"
+tags = ["error"]
+[case.files]
+"d/x" = "x\n"
+
+[[case]]
+id = "ctx-max-of-explicit"
+argv = ["diff", "-U1", "-U4", "a", "b"]
+tags = ["context"]
+[case.files]
+"a" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"b" = "1\n2\n3\n4\n5\n6\nX\n8\n9\n10\n11\n12\n"
+
+[[case]]
+id = "ctx-obsolete-number"
+argv = ["diff", "-u", "-1", "a", "b"]
+tags = ["context"]
+[case.files]
+"a" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"b" = "1\n2\n3\n4\n5\n6\nX\n8\n9\n10\n11\n12\n"
+
+[[case]]
+id = "ctx-obsolete-cluster"
+argv = ["diff", "-2c", "a", "b"]
+tags = ["context"]
+[case.files]
+"a" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"b" = "1\n2\n3\n4\n5\n6\nX\n8\n9\n10\n11\n12\n"
+
+[[case]]
+id = "ctx-bare-raises-to-three"
+argv = ["diff", "-U1", "-u", "a", "b"]
+tags = ["context"]
+[case.files]
+"a" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"b" = "1\n2\n3\n4\n5\n6\nX\n8\n9\n10\n11\n12\n"
+
+[[case]]
+id = "ctx-zero-unified"
+argv = ["diff", "-U0", "a", "b"]
+tags = ["context"]
+[case.files]
+"a" = "1\n2\n3\n4\n5\n"
+"b" = "1\nX\n3\n5\n6\n"
+
+[[case]]
+id = "ctx-zero-context"
+argv = ["diff", "-C0", "a", "b"]
+tags = ["context"]
+[case.files]
+"a" = "1\n2\n3\n4\n5\n"
+"b" = "1\nX\n3\n5\n6\n"
+
+[[case]]
+id = "fmt-forward-ed"
+argv = ["diff", "-f", "a", "b"]
+tags = ["ed"]
+[case.files]
+"a" = "a\nb\nc\nd\ne\nf\n"
+"b" = "a\nB\nc\ne\nf\ng\nh\n"
+
+[[case]]
+id = "fmt-rcs"
+argv = ["diff", "-n", "a", "b"]
+tags = ["rcs"]
+[case.files]
+"a" = "a\nb\nc\nd\ne\nf\n"
+"b" = "a\nB\nc\ne\nf\ng\nh\n"
+
+[[case]]
+id = "fmt-rcs-nonl"
+argv = ["diff", "-n", "a", "b"]
+tags = ["rcs", "nonl"]
+[case.files]
+"a" = "a\nb"
+"b" = "a\nc"
+
+[[case]]
+id = "fmt-ed-dots"
+argv = ["diff", "-e", "a", "b"]
+tags = ["ed"]
+[case.files]
+"a" = "x\nz\n"
+"b" = "q\n.\n.\nw\n.\nz\n"
+
+[[case]]
+id = "fmt-ed-nonl"
+argv = ["diff", "-e", "a", "b"]
+tags = ["ed", "nonl"]
+[case.files]
+"a" = "a\nb"
+"b" = "x\nb"
+
+[[case]]
+id = "fmt-ed-nonl-equal"
+argv = ["diff", "-e", "a", "b"]
+tags = ["ed", "nonl"]
+[case.files]
+"a" = "a\nb\n"
+"b" = "a\nb"
+
+[[case]]
+id = "fmt-ifdef"
+argv = ["diff", "-DFOO", "a", "b"]
+tags = ["ifdef"]
+[case.files]
+"a" = "a\nb\nc\nd\ne\nf\n"
+"b" = "a\nB\nc\ne\nf\ng\nh\n"
+
+[[case]]
+id = "fmt-ifdef-identical"
+argv = ["diff", "--ifdef=X", "a", "b"]
+tags = ["ifdef"]
+[case.files]
+"a" = "a\nb\n"
+"b" = "a\nb\n"
+
+[[case]]
+id = "fmt-ifdef-nonl"
+argv = ["diff", "-DX", "a", "b"]
+tags = ["ifdef", "nonl"]
+[case.files]
+"a" = "a\nb"
+"b" = "a\nc"
+
+[[case]]
+id = "fmt-group-formats"
+argv = ["diff", "--old-group-format=OLD %df-%dl (%dN)\n%<", "--new-group-format=NEW %dF-%dL %(N=1?one:many)\n%>", "--changed-group-format=CH %de %dE %dm %dM %c'X'%c'\\101'\n%<--\n%>", "--unchanged-group-format=", "a", "b"]
+tags = ["ifdef"]
+[case.files]
+"a" = "a\nb\nc\nd\ne\nf\n"
+"b" = "a\nB\nc\ne\nf\ng\nh\n"
+
+[[case]]
+id = "fmt-line-format"
+argv = ["diff", "--line-format=L%5dn|%-3xn|%L", "a", "b"]
+tags = ["ifdef"]
+[case.files]
+"a" = "a\nb\nc\nd\ne\nf\n"
+"b" = "a\nB\nc\ne\nf\ng\nh\n"
+
+[[case]]
+id = "fmt-line-types"
+argv = ["diff", "--old-line-format=-%l\n", "--new-line-format=+%l\n", "--unchanged-line-format= %l\n", "a", "b"]
+tags = ["ifdef"]
+[case.files]
+"a" = "a\nb\nc\n"
+"b" = "a\nB\nc\n"
+
+[[case]]
+id = "fmt-invalid-directive"
+argv = ["diff", "--line-format=%Q|%L", "a", "b"]
+tags = ["ifdef"]
+[case.files]
+"a" = "a\nb\n"
+"b" = "a\nc\n"
+
+[[case]]
+id = "look-initial-tab-normal"
+argv = ["diff", "-T", "a", "b"]
+tags = ["look"]
+[case.files]
+"a" = "a\n\tx y\n\nq\n"
+"b" = "a\n\tx  y\nz\n\nq\n"
+
+[[case]]
+id = "look-initial-tab-context"
+argv = ["diff", "-c", "-T", "a", "b"]
+tags = ["look"]
+[case.files]
+"a" = "a\n\tx y\n\nq\n"
+"b" = "a\n\tx  y\nz\n\nq\n"
+
+[[case]]
+id = "look-initial-tab-unified"
+argv = ["diff", "-u", "-T", "a", "b"]
+tags = ["look"]
+[case.files]
+"a" = "a\n\tx y\n\nq\n"
+"b" = "a\n\tx  y\nz\n\nq\n"
+
+[[case]]
+id = "look-expand-tabs"
+argv = ["diff", "-t", "--tabsize=4", "a", "b"]
+tags = ["look"]
+[case.files]
+"a" = "a\n\tx\ty\n"
+"b" = "a\nab\tx\ty\n"
+
+[[case]]
+id = "look-suppress-blank-empty-u"
+argv = ["diff", "-u", "--suppress-blank-empty", "a", "b"]
+tags = ["look"]
+[case.files]
+"a" = "x\n\ny\n\n"
+"b" = "X\n\nY\n"
+
+[[case]]
+id = "look-suppress-blank-empty-c-T"
+argv = ["diff", "-c", "-T", "--suppress-blank-empty", "a", "b"]
+tags = ["look"]
+[case.files]
+"a" = "a\n\nb\nc\n"
+"b" = "a\n\nB\nc\n"
+
+[[case]]
+id = "look-suppress-blank-empty-normal"
+argv = ["diff", "--suppress-blank-empty", "a", "b"]
+tags = ["look"]
+[case.files]
+"a" = "\nx\n"
+"b" = "z\ny\n"
+
+[[case]]
+id = "look-color-unified"
+argv = ["diff", "--color=always", "-u", "a", "b"]
+tags = ["color"]
+[case.files]
+"a" = "a\n\nb\nc"
+"b" = "a\n\nB\nd"
+
+[[case]]
+id = "look-color-context"
+argv = ["diff", "--color=always", "-c", "a", "b"]
+tags = ["color"]
+[case.files]
+"a" = "a\n\nb\nc\n"
+"b" = "a\n\nB\nc\n"
+
+[[case]]
+id = "look-color-normal-palette"
+argv = ["diff", "--color=always", "--palette=ad=1;32:de=1;31:ln=35:hd=4", "a", "b"]
+tags = ["color"]
+[case.files]
+"a" = "a\nb"
+"b" = "a\nc"
+
+[[case]]
+id = "look-color-auto-not-tty"
+argv = ["diff", "--color", "-u", "a", "b"]
+tags = ["color"]
+[case.files]
+"a" = "a\n"
+"b" = "b\n"
+
+[[case]]
+id = "side-left-column"
+argv = ["diff", "-y", "-W", "30", "--left-column", "a", "b"]
+tags = ["side-by-side"]
+[case.files]
+"a" = "a\nb\nc\nd\n"
+"b" = "a\nB\nc\nd\ne\n"
+
+[[case]]
+id = "side-ignore-blank"
+argv = ["diff", "-y", "-W", "30", "-B", "a", "b"]
+tags = ["side-by-side"]
+[case.files]
+"a" = "a\n\n\nc\nz\n"
+"b" = "a\nc\n\nz\nw\n"
+
+[[case]]
+id = "side-expand-tabs"
+argv = ["diff", "-y", "-t", "-W", "50", "a", "b"]
+tags = ["side-by-side"]
+[case.files]
+"a" = "x\tlong\ttabs here\nsame\n"
+"b" = "y\tlong\ttabs\nsame\n"
+
+[[case]]
+id = "side-utf8-wide"
+argv = ["diff", "-y", "-W", "30", "a", "b"]
+tags = ["side-by-side"]
+[case.files]
+"a" = "ação\tx\n日本語の文字列はとても長いです\nb\n"
+"b" = "ação\ty\nx\nb\n"
+
+[[case]]
+id = "side-nonl"
+argv = ["diff", "-y", "a", "b"]
+tags = ["side-by-side", "nonl"]
+[case.files]
+"a" = "a\nb"
+"b" = "a\nb\n"
+
+[[case]]
+id = "side-identical-s"
+argv = ["diff", "-y", "-s", "-W", "20", "a", "b"]
+tags = ["side-by-side"]
+[case.files]
+"a" = "a\nb\n"
+"b" = "a\nb\n"
+
+[[case]]
+id = "side-tabsize"
+argv = ["diff", "-y", "--tabsize=4", "-W", "41", "a", "b"]
+tags = ["side-by-side"]
+[case.files]
+"a" = "a\tb\tc\nkeep\n"
+"b" = "a\tB\tc\nkeep\n"
+
+[[case]]
+id = "ws-tab-expansion"
+argv = ["diff", "-E", "a", "b"]
+tags = ["ignore"]
+[case.files]
+"a" = "a\tb\nc\td\n"
+"b" = "a       b\nc d\n"
+
+[[case]]
+id = "ws-trailing"
+argv = ["diff", "-Z", "a", "b"]
+tags = ["ignore"]
+[case.files]
+"a" = "a \nb\t\nc\n"
+"b" = "a\nb\n c\n"
+
+[[case]]
+id = "ws-ignore-blank-with-b"
+argv = ["diff", "-B", "-b", "a", "b"]
+tags = ["ignore"]
+[case.files]
+"a" = "a\n  \nb\n"
+"b" = "a\nb\n"
+
+[[case]]
+id = "ws-ignore-blank-spaces-only"
+argv = ["diff", "-B", "a", "b"]
+tags = ["ignore"]
+[case.files]
+"a" = "a\n  \nb\n"
+"b" = "a\nb\n"
+
+[[case]]
+id = "ws-ignore-blank-mixed-hunk-u"
+argv = ["diff", "-u", "-B", "a", "b"]
+tags = ["ignore"]
+[case.files]
+"a" = "1\n2\n\n4\n5\n6\n7\n8\n9\n10\n"
+"b" = "1\n2\n4\n5\nX\n6\n7\n8\n9\n10\n"
+
+[[case]]
+id = "ws-brief-ignore-case"
+argv = ["diff", "-q", "-i", "a", "b"]
+tags = ["ignore", "brief"]
+[case.files]
+"a" = "Hello\n"
+"b" = "hello\n"
+
+[[case]]
+id = "ws-nonl-with-w"
+argv = ["diff", "-w", "a", "b"]
+tags = ["ignore", "nonl"]
+[case.files]
+"a" = "a\nb"
+"b" = "a\nb\n"
+
+[[case]]
+id = "bin-boundary-4095"
+argv = ["diff", "a", "b"]
+tags = ["binary"]
+[case.files]
+"a" = { content_b64 = "eA==" }
+"b" = { content_b64 = "AA==" }
+
+[[case]]
+id = "names-quoted-headers"
+argv = ["diff", "-u", "s p", "t\tq"]
+tags = ["names"]
+[case.files]
+"s p" = "x\n"
+"t\tq" = "y\n"
+
+[[case]]
+id = "names-quoted-utf8"
+argv = ["diff", "-c", "ação", "b\"c"]
+tags = ["names"]
+[case.files]
+"ação" = "x\n"
+"b\"c" = "y\n"
+
+[[case]]
+id = "dirs-recursive-spaces"
+argv = ["diff", "-r", "d 1", "d 2"]
+tags = ["dirs", "names"]
+[case.files]
+"d 1/a b" = "x\n"
+"d 2/a b" = "y\n"
+"d 1/o p" = "q\n"
+
+[[case]]
+id = "dirs-switch-quoting"
+argv = ["diff", "-r", "--unified=1", "--", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/x" = "1\n"
+"b/x" = "2\n"
+
+[[case]]
+id = "dirs-switch-order-permuted"
+argv = ["diff", "a", "b", "-r", "-U", "1", "--label", "L1", "--label", "L2"]
+tags = ["dirs"]
+[case.files]
+"a/x" = "1\n"
+"b/x" = "2\n"
+
+[[case]]
+id = "dirs-exclude"
+argv = ["diff", "-r", "-x", "*.o", "--exclude=skip*", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/x.o" = "1\n"
+"b/x.o" = "2\n"
+"a/skipme" = "1\n"
+"a/keep.c" = "1\n"
+"b/keep.c" = "2\n"
+"a/sub/y.o" = "q\n"
+
+[[case]]
+id = "dirs-exclude-from"
+argv = ["diff", "-r", "-X", "pats", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"pats" = "*.tmp\nbuild\n"
+"a/x.tmp" = "1\n"
+"a/build/out" = "1\n"
+"a/keep" = "1\n"
+"b/keep" = "2\n"
+
+[[case]]
+id = "dirs-starting-file"
+argv = ["diff", "-r", "-S", "m", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/a.txt" = "1\n"
+"b/a.txt" = "2\n"
+"a/m.txt" = "1\n"
+"b/m.txt" = "2\n"
+"a/z.txt" = "1\n"
+"b/z.txt" = "2\n"
+"a/sub/a.txt" = "1\n"
+"b/sub/a.txt" = "2\n"
+
+[[case]]
+id = "dirs-unidirectional"
+argv = ["diff", "-r", "-P", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/only-a" = "1\n"
+"b/only-b" = "2\n"
+
+[[case]]
+id = "dirs-new-file-subdir"
+argv = ["diff", "-rN", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/x" = "1\n"
+"b/x" = "1\n"
+"a/sub/deep" = "d\n"
+"b/other/e" = "e\n"
+
+[[case]]
+id = "dirs-no-dereference"
+argv = ["diff", "-r", "--no-dereference", "a", "b"]
+tags = ["dirs", "symlink"]
+[case.files]
+"a/x" = "1\n"
+"b/x" = "1\n"
+"a/l" = { symlink = "x" }
+"b/l" = "1\n"
+"a/m" = { symlink = "x" }
+"b/m" = { symlink = "y" }
+"a/n" = { symlink = "x" }
+"b/n" = { symlink = "x" }
+
+[[case]]
+id = "dirs-follow-symlinks"
+argv = ["diff", "-r", "a", "b"]
+tags = ["dirs", "symlink"]
+[case.files]
+"a/x" = "1\n"
+"b/x" = "1\n"
+"a/l" = { symlink = "x" }
+"b/l" = "1\n"
+
+[[case]]
+id = "dirs-empty-file-vs-dir"
+argv = ["diff", "-r", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/e" = ""
+"b/e" = { dir = true }
+
+[[case]]
+id = "dirs-ignore-file-name-case"
+argv = ["diff", "-r", "--ignore-file-name-case", "a", "b"]
+tags = ["dirs"]
+[case.files]
+"a/README" = "1\n"
+"b/readme" = "2\n"
+"a/X" = "x\n"
+
+[[case]]
+id = "dirs-from-file"
+argv = ["diff", "--from-file=base", "x", "y"]
+tags = ["dirs"]
+[case.files]
+"base" = "1\n2\n"
+"x" = "1\n3\n"
+"y" = "1\n2\n"
+
+[[case]]
+id = "dirs-to-file-dir"
+argv = ["diff", "-u", "--to-file=d", "x", "y"]
+tags = ["dirs"]
+[case.files]
+"d/x" = "1\n"
+"d/y" = "2\n"
+"x" = "1\n"
+"y" = "3\n"
+
+[[case]]
+id = "dirs-from-and-to"
+argv = ["diff", "--from-file=a", "--to-file=b", "c"]
+tags = ["dirs", "error"]
+
+[[case]]
+id = "top-new-file"
+argv = ["diff", "-N", "nope", "a"]
+tags = ["new-file"]
+[case.files]
+"a" = "1\n"
+
+[[case]]
+id = "top-new-file-u"
+argv = ["diff", "-u", "-N", "a", "nope"]
+tags = ["new-file"]
+[case.files]
+"a" = "1\n"
+
+[[case]]
+id = "top-new-file-both-missing"
+argv = ["diff", "-N", "nope1", "nope2"]
+tags = ["new-file", "error"]
+
+[[case]]
+id = "top-unidirectional-wrong-side"
+argv = ["diff", "-P", "a", "nope"]
+tags = ["new-file", "error"]
+[case.files]
+"a" = "1\n"
+
+[[case]]
+id = "top-same-file"
+argv = ["diff", "-s", "a", "a"]
+tags = ["identical"]
+[case.files]
+"a" = "1\n"
+
+[[case]]
+id = "top-same-file-side"
+argv = ["diff", "-y", "-W", "20", "a", "./a"]
+tags = ["identical", "side-by-side"]
+[case.files]
+"a" = "1\n2\n"
+
+[[case]]
+id = "paginate-unified"
+argv = ["diff", "-l", "-u", "a", "b"]
+faketime = "2026-01-15 12:00:00"
+tags = ["paginate"]
+[case.files]
+"a" = "a\nb\nc\n"
+"b" = "a\nB\nc\n"
+
+[[case]]
+id = "paginate-recursive"
+argv = ["diff", "-rl", "a", "b"]
+faketime = "2026-01-15 12:00:00"
+tags = ["paginate", "dirs"]
+[case.files]
+"a/x" = "1\n"
+"b/x" = "2\n"
+"a/y" = "1\n"

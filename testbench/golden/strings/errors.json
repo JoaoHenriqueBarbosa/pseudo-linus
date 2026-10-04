@@ -1,0 +1,562 @@
+{
+  "strings-broken-symlink": {
+    "stdout": "",
+    "stderr": "strings: 'broken': No such file\n",
+    "exit": 1,
+    "files": {
+      "broken": {
+        "kind": "symlink",
+        "target": "nowhere"
+      }
+    }
+  },
+  "strings-dash-only": {
+    "stdout": "",
+    "stderr": "Usage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-ddash-dash": {
+    "stdout": "",
+    "stderr": "Usage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-ddash-numeric-is-file": {
+    "stdout": "hello world\nxyzw\n",
+    "stderr": "strings: '-5': No such file\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "1732e07c0abe37f6b8bf0849c75df88db36ab9d4fecaa2815a1e4e520b39be33",
+        "data": "hello world\u0000abc\u0000xyzw\u0000"
+      }
+    }
+  },
+  "strings-directory": {
+    "stdout": "hello\n",
+    "stderr": "strings: Warning: 'd' is a directory\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      },
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "strings-empty-name": {
+    "stdout": "",
+    "stderr": "strings: '': No such file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-encoding-bad": {
+    "stdout": "",
+    "stderr": "Usage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-errors-in-order": {
+    "stdout": "",
+    "stderr": "strings: minimum string length is too small: 0\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-help": {
+    "stdout": "Usage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "strings-help-H-stops": {
+    "stdout": "Usage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "strings-help-h": {
+    "stdout": "Usage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "strings-invalid-option": {
+    "stdout": "",
+    "stderr": "strings: invalid option -- 'Q'\nUsage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-missing-arg": {
+    "stdout": "",
+    "stderr": "strings: option requires an argument -- 'n'\nUsage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-missing-long-arg": {
+    "stdout": "",
+    "stderr": "strings: option '--radix' requires an argument\nUsage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-n-alpha": {
+    "stdout": "",
+    "stderr": "strings: invalid integer argument abc\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-n-double-zero": {
+    "stdout": "",
+    "stderr": "strings: minimum string length is too small: 00\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-n-empty": {
+    "stdout": "",
+    "stderr": "strings: minimum string length is too small: \n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-n-negative": {
+    "stdout": "",
+    "stderr": "strings: minimum string length is too big: -1\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-n-overflow": {
+    "stdout": "",
+    "stderr": "strings: minimum string length is too big: 99999999999999999999999\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-n-too-big": {
+    "stdout": "",
+    "stderr": "strings: minimum string length is too big: 4294967296\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-n-trailing-junk": {
+    "stdout": "",
+    "stderr": "strings: invalid integer argument 3x\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-n-uint-max": {
+    "stdout": "",
+    "stderr": "strings: minimum string length 4294967295 is too big\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-n-zero": {
+    "stdout": "",
+    "stderr": "strings: minimum string length is too small: 0\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-no-arg-allowed": {
+    "stdout": "",
+    "stderr": "strings: option '--all' doesn't allow an argument\nUsage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-nonexist": {
+    "stdout": "",
+    "stderr": "strings: 'nonexist': No such file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-nonexist-then-file": {
+    "stdout": "hello\n",
+    "stderr": "strings: 'nonexist': No such file\nstrings: 'missing': No such file\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-not-a-directory": {
+    "stdout": "",
+    "stderr": "strings: Warning: could not locate 'a/b'.  reason: Not a directory\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-num-after-ddash-file": {
+    "stdout": "hello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "1732e07c0abe37f6b8bf0849c75df88db36ab9d4fecaa2815a1e4e520b39be33",
+        "data": "hello world\u0000abc\u0000xyzw\u0000"
+      }
+    }
+  },
+  "strings-num-after-file": {
+    "stdout": "",
+    "stderr": "strings: minimum string length is too small: \n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-num-after-file-then-n": {
+    "stdout": "",
+    "stderr": "strings: invalid integer argument n\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-num-after-letter": {
+    "stdout": "",
+    "stderr": "strings: invalid integer argument a3\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-num-after-two-files": {
+    "stdout": "",
+    "stderr": "strings: invalid integer argument b\n",
+    "exit": 1,
+    "files": {
+      "ab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-num-first-then-n": {
+    "stdout": "hello world\nxyzwvu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "58175f3daf9b7fd3916d8222e8aa153e493a19d91e9633ad99eedf5052c23af1",
+        "data": "hello world\u0000abc\u0000xyzwvu\u0000"
+      }
+    }
+  },
+  "strings-num-in-cluster": {
+    "stdout": "",
+    "stderr": "strings: invalid integer argument trings\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-num-overrides-n": {
+    "stdout": "hello world\nabc\nxyzw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "1732e07c0abe37f6b8bf0849c75df88db36ab9d4fecaa2815a1e4e520b39be33",
+        "data": "hello world\u0000abc\u0000xyzw\u0000"
+      }
+    }
+  },
+  "strings-num-then-radix": {
+    "stdout": "",
+    "stderr": "strings: invalid integer argument t\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-num-uint-max": {
+    "stdout": "",
+    "stderr": "strings: minimum string length 4294967295 is too big\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-num-zero": {
+    "stdout": "",
+    "stderr": "strings: minimum string length is too small: 0\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-radix-bad": {
+    "stdout": "",
+    "stderr": "Usage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-radix-two-chars": {
+    "stdout": "",
+    "stderr": "Usage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-symlink-to-dir": {
+    "stdout": "",
+    "stderr": "strings: Warning: 'dl' is a directory\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dl": {
+        "kind": "symlink",
+        "target": "d"
+      }
+    }
+  },
+  "strings-unicode-bad": {
+    "stdout": "",
+    "stderr": "strings: invalid argument to -U/--unicode: q\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-unicode-empty": {
+    "stdout": "",
+    "stderr": "strings: invalid argument to -U/--unicode: \n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-unicode-error-first": {
+    "stdout": "",
+    "stderr": "strings: invalid argument to -U/--unicode: q\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-unicode-uppercase": {
+    "stdout": "",
+    "stderr": "strings: invalid argument to -U/--unicode: HEX\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f3aefe62965a91903610f0e23cc8a69d5b87cea6d28e75489b0d2ca02ed7993c",
+        "data": "hello\u0000"
+      }
+    }
+  },
+  "strings-unrecognized-option": {
+    "stdout": "",
+    "stderr": "strings: unrecognized option '--foo'\nUsage: strings [option(s)] [file(s)]\n Display printable strings in [file(s)] (stdin by default)\n The options are:\n  -a - --all                Scan the entire file, not just the data section [default]\n  -d --data                 Only scan the data sections in the file\n  -f --print-file-name      Print the name of the file before each string\n  -n <number>               Locate & print any sequence of at least <number>\n    --bytes=<number>         displayable characters.  (The default is 4).\n  -t --radix={o,d,x}        Print the location of the string in base 8, 10 or 16\n  -w --include-all-whitespace Include all whitespace as valid string characters\n  -o                        An alias for --radix=o\n  -T --target=<BFDNAME>     Specify the binary file format\n  -e --encoding={s,S,b,l,B,L} Select character size and endianness:\n                            s = 7-bit, S = 8-bit, {b,l} = 16-bit, {B,L} = 32-bit\n  --unicode={default|locale|invalid|hex|escape|highlight}\n  -U {d|l|i|x|e|h}          Specify how to treat UTF-8 encoded unicode characters\n  -s --output-separator=<string> String used to separate strings in output.\n  @<file>                   Read options from <file>\n  -h --help                 Display this information\n  -v -V --version           Print the program's version number\nstrings: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "strings-version-V": {
+    "stdout": "GNU strings (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "strings-version-long": {
+    "stdout": "GNU strings (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "strings-version-v": {
+    "stdout": "GNU strings (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

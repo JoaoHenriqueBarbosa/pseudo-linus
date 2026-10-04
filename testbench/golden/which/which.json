@@ -1,0 +1,320 @@
+{
+  "which-all": {
+    "stdout": "/usr/bin/column\n/bin/column\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "which-clustered": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "which-dangling-symlink": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "../nowhere"
+      }
+    }
+  },
+  "which-dash-operand": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "which-directory-skipped": {
+    "stdout": "/work/case/bin2/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2/tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "which-double-dash": {
+    "stdout": "/usr/bin/column\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "which-empty-element-is-cwd": {
+    "stdout": "./tool\n/work/case/bin/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "which-empty-name": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "which-fixture-all": {
+    "stdout": "/work/case/bin/tool\n/work/case/bin2/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2/tool": {
+        "kind": "file",
+        "mode": 448,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "which-fixture-path": {
+    "stdout": "/work/case/bin/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 18,
+        "sha256": "299001868fb8c02fd431c336c6d058f5558c5dff5b5af5e6fe04b870a6a9cbba",
+        "data": "#!/bin/sh\necho hi\n"
+      }
+    }
+  },
+  "which-found": {
+    "stdout": "/usr/bin/column\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "which-full-path-invocation": {
+    "stdout": "Usage: /usr/bin/which [-as] args\n",
+    "stderr": "Illegal option -x\n",
+    "exit": 2,
+    "files": {}
+  },
+  "which-invalid-after-silent": {
+    "stdout": "",
+    "stderr": "Illegal option -x\n",
+    "exit": 2,
+    "files": {}
+  },
+  "which-invalid-option": {
+    "stdout": "Usage: /usr/bin/which [-as] args\n",
+    "stderr": "Illegal option -x\n",
+    "exit": 2,
+    "files": {}
+  },
+  "which-leading-colon": {
+    "stdout": "./tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "which-missing": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "which-no-args": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "which-not-executable": {
+    "stdout": "/work/case/bin2/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "6667b2d1aab6a00caa5aee5af8ad9f1465e567abf1c209d15727d57b3e8f6e5f",
+        "data": "data\n"
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2/tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "which-option-after-operand": {
+    "stdout": "/usr/bin/column\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "which-relative-dir-in-path": {
+    "stdout": "bin/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "which-several-one-missing": {
+    "stdout": "/usr/bin/column\n/usr/bin/which\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "which-silent-found": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "which-silent-missing": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "which-symlink-target": {
+    "stdout": "/work/case/bin/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "../real"
+      },
+      "real": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "which-trailing-colon": {
+    "stdout": "./tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "which-with-slash": {
+    "stdout": "./tool\n/work/case/tool\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "tool": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  }
+}

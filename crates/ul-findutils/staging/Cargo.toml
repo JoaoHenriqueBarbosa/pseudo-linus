@@ -1,0 +1,34 @@
+[package]
+name = "staging-findutils"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Preparação do ul-findutils (find e xargs): porte em andamento, fora do workspace principal"
+
+# Workspace próprio: o porte em andamento não quebra o build de ninguém, e um manifesto quebrado de
+# outro agente no workspace principal não trava este.
+[workspace]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+sysabi = { path = "../../sysabi" }
+sysio = { path = "../../sysio" }
+findutils = { path = "../vendor/findutils", package = "pl-findutils" }
+pl-testing = { path = "../../pl-testing", optional = true }
+
+[features]
+kernel-tests = ["dep:pl-testing", "pl-testing/kernel"]
+
+[dev-dependencies]
+sysabi = { path = "../../sysabi", features = ["testkit"] }
+harness = { path = "../../../testbench/crates/harness" }
+ul-coreutils = { path = "../../ul-coreutils" }
+# Programas ainda não integrados no `ul_coreutils::programs()`, só pra medir os casos que dependem
+# deles (o porte é o do agente coreutils, em crates/ul-coreutils/vendor).
+uucore = { path = "../../ul-coreutils/vendor/src/uucore", package = "pl-uucore" }
+uu_echo = { path = "../../ul-coreutils/vendor/src/uu/echo", package = "pl-uu-echo" }
+
+[lints.rust]
+unsafe_code = "forbid"

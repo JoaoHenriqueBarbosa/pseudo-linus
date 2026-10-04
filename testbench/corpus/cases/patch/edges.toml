@@ -1,0 +1,544 @@
+tool = "patch"
+source = "manual"
+
+# GNU patch 2.8: hunks malformados e truncados (linhas em branco completadas no fim), criação e
+# remoção em conflito (cada variante de -N, -t, -f, -R), patch invertido com -R, hunks fora de ordem,
+# rejeitos do formato normal e de contexto, alvo que não é arquivo regular, symlink com
+# --follow-symlinks, Index:, hunks sem cabeçalho, CRLF, linha sem newline final e script do ed.
+
+[[case]]
+id = "patch-edge-trunc-fill-one"
+argv = ["patch", "-i", "p"]
+tags = ["malformed"]
+[case.files]
+"m.txt" = "a\nb\nc\nd\ne\n"
+"p" = "--- m.txt\n+++ m.txt\n@@ -1,3 +1,3 @@\n a\n-b\n+B\n"
+
+[[case]]
+id = "patch-edge-trunc-fill-three"
+argv = ["patch", "-i", "p"]
+tags = ["malformed"]
+[case.files]
+"m.txt" = "a\nb\nc\nd\ne\n"
+"p" = "--- m.txt\n+++ m.txt\n@@ -1,4 +1,4 @@\n-a\n+A\n"
+
+[[case]]
+id = "patch-edge-trunc-unexpected-eof"
+argv = ["patch", "-i", "p"]
+tags = ["malformed"]
+[case.files]
+"m.txt" = "a\nb\nc\nd\ne\n"
+"p" = "--- m.txt\n+++ m.txt\n@@ -1,5 +1,5 @@\n-a\n+A\n"
+
+[[case]]
+id = "patch-edge-only-context"
+argv = ["patch", "-i", "p"]
+tags = ["malformed"]
+[case.files]
+"m.txt" = "a\nb\nc\n"
+"p" = "--- m.txt\n+++ m.txt\n@@ -1,2 +1,2 @@\n a\n b\n"
+
+[[case]]
+id = "patch-edge-bad-line"
+argv = ["patch", "-i", "p"]
+tags = ["malformed"]
+[case.files]
+"m.txt" = "a\nb\nc\n"
+"p" = "--- m.txt\n+++ m.txt\n@@ -1,3 +1,3 @@\n a\nxyz\n-b\n+B\n c\n"
+
+[[case]]
+id = "patch-edge-bad-header"
+argv = ["patch", "-i", "p"]
+tags = ["malformed"]
+[case.files]
+"m.txt" = "a\nb\nc\n"
+"p" = "--- m.txt\n+++ m.txt\n@@ -1,3 +1,3\n a\n-b\n+B\n c\n"
+
+[[case]]
+id = "patch-edge-short-then-next-hunk"
+argv = ["patch", "-i", "p"]
+tags = ["malformed"]
+[case.files]
+"m.txt" = "a\nb\nc\nd\ne\n"
+"p" = "--- m.txt\n+++ m.txt\n@@ -1,3 +1,3 @@\n a\n-b\n+B\n@@ -5 +5 @@\n-e\n+E\n"
+
+[[case]]
+id = "patch-edge-second-hunk-malformed"
+argv = ["patch", "-i", "p"]
+tags = ["malformed", "multi-hunk"]
+[case.files]
+"m.txt" = "a\nb\nc\nd\ne\nf\ng\nh\n"
+"p" = "--- m.txt\n+++ m.txt\n@@ -1,2 +1,2 @@\n a\n-b\n+B\n@@ -7,2 +7,2 @@\n g\nzz\n"
+
+[[case]]
+id = "patch-edge-blank-and-tab-context"
+argv = ["patch", "-i", "p"]
+tags = ["context-lines"]
+[case.files]
+"m.txt" = "1\n\n\t3\nx\n5\n"
+"p" = "--- m.txt\n+++ m.txt\n@@ -1,5 +1,5 @@\n 1\n\n\t3\n-x\n+X\n 5\n"
+
+[[case]]
+id = "patch-edge-create-exists-batch"
+argv = ["patch", "-t", "-i", "p"]
+tags = ["create", "reverse"]
+[case.files]
+"a.txt" = "q\n"
+"p" = "--- /dev/null\n+++ a.txt\n@@ -0,0 +1,2 @@\n+x\n+y\n"
+
+[[case]]
+id = "patch-edge-create-exists-force"
+argv = ["patch", "-f", "-i", "p"]
+tags = ["create"]
+[case.files]
+"a.txt" = "q\n"
+"p" = "--- /dev/null\n+++ a.txt\n@@ -0,0 +1,2 @@\n+x\n+y\n"
+
+[[case]]
+id = "patch-edge-create-exists-forward"
+argv = ["patch", "-N", "-i", "p"]
+tags = ["create"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- /dev/null\n+++ a.txt\n@@ -0,0 +1,2 @@\n+x\n+y\n"
+
+[[case]]
+id = "patch-edge-create-exists-default"
+argv = ["patch", "-i", "p"]
+tags = ["create"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- /dev/null\n+++ a.txt\n@@ -0,0 +1,2 @@\n+x\n+y\n"
+
+[[case]]
+id = "patch-edge-create-over-empty"
+argv = ["patch", "-i", "p"]
+tags = ["create"]
+[case.files]
+"a.txt" = ""
+"p" = "--- /dev/null\n+++ a.txt\n@@ -0,0 +1 @@\n+n\n"
+
+[[case]]
+id = "patch-edge-create-epoch"
+argv = ["patch", "-p1", "-i", "p"]
+tags = ["create"]
+[case.files]
+"p" = "--- a/new.txt\t1970-01-01 00:00:00.000000000 +0000\n+++ b/new.txt\t2026-01-01 00:00:00.000000000 +0000\n@@ -0,0 +1 @@\n+n\n"
+
+[[case]]
+id = "patch-edge-create-no-devnull"
+argv = ["patch", "-i", "p"]
+tags = ["create"]
+[case.files]
+"p" = "--- a/new.txt\n+++ b/new.txt\n@@ -0,0 +1 @@\n+n\n"
+
+[[case]]
+id = "patch-edge-delete-epoch"
+argv = ["patch", "-p1", "-i", "p"]
+tags = ["delete"]
+[case.files]
+"gone.txt" = "n\n"
+"p" = "--- a/gone.txt\t2026-01-01 00:00:00.000000000 +0000\n+++ b/gone.txt\t1970-01-01 00:00:00.000000000 +0000\n@@ -1 +0,0 @@\n-n\n"
+
+[[case]]
+id = "patch-edge-delete-missing"
+argv = ["patch", "-i", "p"]
+tags = ["delete"]
+[case.files]
+"p" = "--- a.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+
+[[case]]
+id = "patch-edge-delete-leftover"
+argv = ["patch", "-i", "p"]
+tags = ["delete"]
+[case.files]
+"a.txt" = "x\ny\nz\n"
+"p" = "--- a.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+
+[[case]]
+id = "patch-edge-delete-mismatch"
+argv = ["patch", "-i", "p"]
+tags = ["delete", "reverse"]
+[case.files]
+"a.txt" = "x\nq\n"
+"p" = "--- a.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+
+[[case]]
+id = "patch-edge-reverse-create-missing-batch"
+argv = ["patch", "-R", "-t", "-i", "p"]
+tags = ["reverse", "create"]
+[case.files]
+"p" = "--- /dev/null\n+++ added\n@@ -0,0 +1 @@\n+n\n"
+
+[[case]]
+id = "patch-edge-reverse-create-missing-force"
+argv = ["patch", "-R", "-f", "-i", "p"]
+tags = ["reverse", "create"]
+[case.files]
+"p" = "--- /dev/null\n+++ added\n@@ -0,0 +1 @@\n+n\n"
+
+[[case]]
+id = "patch-edge-reverse-delete-exists"
+argv = ["patch", "-R", "-i", "p"]
+tags = ["reverse", "delete"]
+[case.files]
+"added" = "q\n"
+"p" = "--- added\n+++ /dev/null\n@@ -1 +0,0 @@\n-n\n"
+
+[[case]]
+id = "patch-edge-reverse-delete-exists-batch"
+argv = ["patch", "-R", "-t", "-i", "p"]
+tags = ["reverse", "delete"]
+[case.files]
+"added" = "q\n"
+"p" = "--- added\n+++ /dev/null\n@@ -1 +0,0 @@\n-n\n"
+
+[[case]]
+id = "patch-edge-unreversed"
+argv = ["patch", "-R", "-i", "p"]
+tags = ["reverse"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-unreversed-forward"
+argv = ["patch", "-R", "-N", "-i", "p"]
+tags = ["reverse"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-unreversed-batch"
+argv = ["patch", "-R", "-t", "-i", "p"]
+tags = ["reverse"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-unreversed-force"
+argv = ["patch", "-R", "-f", "-i", "p"]
+tags = ["reverse"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-applied-force"
+argv = ["patch", "-f", "-i", "p"]
+tags = ["reverse"]
+[case.files]
+"a.txt" = "x\nY\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-misordered"
+argv = ["patch", "-i", "p"]
+tags = ["misordered"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -8,2 +8,2 @@\n 8\n-9\n+NINE\n@@ -2,2 +2,2 @@\n 2\n-3\n+THREE\n"
+
+[[case]]
+id = "patch-edge-insert-beyond-end"
+argv = ["patch", "-i", "p"]
+tags = ["offset"]
+[case.files]
+"a.txt" = "q\nr\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -5,0 +6 @@\n+n\n"
+
+[[case]]
+id = "patch-edge-insert-after-nonl"
+argv = ["patch", "-i", "p"]
+tags = ["nonl"]
+[case.files]
+"a.txt" = "q\nr"
+"p" = "--- a.txt\n+++ a.txt\n@@ -2,0 +3 @@\n+n\n"
+
+[[case]]
+id = "patch-edge-file-nonl-patch-nl"
+argv = ["patch", "-i", "p"]
+tags = ["nonl", "reject"]
+[case.files]
+"a.txt" = "x\ny"
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-normal-reject"
+argv = ["patch", "a.txt", "p"]
+tags = ["normal-format", "reject"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+"p" = "2c2,3\n< X\n---\n> TWO\n> TWO2\n"
+
+[[case]]
+id = "patch-edge-normal-delete-force"
+argv = ["patch", "-f", "a.txt", "p"]
+tags = ["normal-format", "reject"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n5\n6\n7\n"
+"p" = "5,6d4\n< X\n< Y\n"
+
+[[case]]
+id = "patch-edge-normal-shifted"
+argv = ["patch", "a.txt", "p"]
+tags = ["normal-format", "reject"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+"p" = "3a4\n> new\n10c11\n< X\n---\n> Y\n"
+
+[[case]]
+id = "patch-edge-normal-no-target"
+argv = ["patch", "-i", "p"]
+tags = ["normal-format", "error"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+"p" = "2c2\n< 2\n---\n> TWO\n"
+
+[[case]]
+id = "patch-edge-normal-forced-no-target"
+argv = ["patch", "-n", "-i", "p"]
+tags = ["normal-format", "missing"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+"p" = "2c2\n< 2\n---\n> TWO\n"
+
+[[case]]
+id = "patch-edge-normal-index"
+argv = ["patch", "-i", "p"]
+tags = ["normal-format"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+"p" = "Index: a.txt\n2c2\n< 2\n---\n> TWO\n"
+
+[[case]]
+id = "patch-edge-index-ignored"
+argv = ["patch", "-i", "p"]
+tags = ["names", "missing"]
+[case.files]
+"idx.txt" = "x\ny\n"
+"p" = "Index: idx.txt\n--- nothere1\n+++ nothere2\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-index-posix"
+argv = ["patch", "--posix", "-i", "p"]
+tags = ["names"]
+[case.files]
+"idx.txt" = "x\ny\n"
+"p" = "Index: idx.txt\n--- nothere1\n+++ nothere2\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-best-name"
+argv = ["patch", "-p0", "-i", "p"]
+tags = ["names"]
+[case.files]
+"x/f.txt" = "x\ny\n"
+"a/b/g.txt" = "x\ny\n"
+"p" = "--- a/b/g.txt\n+++ x/f.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-best-name-posix"
+argv = ["patch", "--posix", "-p0", "-i", "p"]
+tags = ["names"]
+[case.files]
+"f.txt" = "x\ny\n"
+"ff.txt" = "x\ny\n"
+"p" = "--- ff.txt\n+++ f.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-basename-default"
+argv = ["patch", "-i", "p"]
+tags = ["names"]
+[case.files]
+"f.txt" = "x\ny\n"
+"a/b/f.txt" = "x\ny\n"
+"p" = "--- a/b/f.txt\n+++ a/b/f.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-headless-with-target"
+argv = ["patch", "f", "p"]
+tags = ["names"]
+[case.files]
+"f" = "x\ny\n"
+"p" = "@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-headless-without-target"
+argv = ["patch", "-i", "p"]
+tags = ["names", "error"]
+[case.files]
+"f" = "x\ny\n"
+"p" = "@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-space-before-date"
+argv = ["patch", "-i", "p"]
+tags = ["names"]
+[case.files]
+"f" = "x\ny\n"
+"p" = "--- f 2026-01-15 12:00:00\n+++ f 2026-01-15 12:00:00\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-not-regular-dir"
+argv = ["patch", "-i", "p"]
+tags = ["not-regular"]
+[case.files]
+"a.txt" = { dir = true }
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-symlink-refused"
+argv = ["patch", "-i", "p"]
+tags = ["not-regular", "symlink"]
+[case.files]
+"t.txt" = "x\ny\n"
+"a.txt" = { symlink = "t.txt" }
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-symlink-follow"
+argv = ["patch", "--follow-symlinks", "-i", "p"]
+tags = ["symlink"]
+[case.files]
+"t.txt" = "x\ny\n"
+"a.txt" = { symlink = "t.txt" }
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-read-only-root"
+argv = ["patch", "-i", "p"]
+tags = ["read-only"]
+[case.files]
+"a.txt" = { content = "x\ny\n", mode = 0o444 }
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-crlf-body-only"
+argv = ["patch", "-i", "p"]
+tags = ["crlf"]
+[case.files]
+"a.txt" = { content_b64 = "YWxwaGENCmJldGENCmdhbW1hDQo=" }
+"p" = { content_b64 = "LS0tIGEudHh0CisrKyBhLnR4dApAQCAtMSwzICsxLDMgQEAKIGFscGhhDQotYmV0YQ0KK0JFVEENCiBnYW1tYQ0K" }
+
+[[case]]
+id = "patch-edge-crlf-binary"
+argv = ["patch", "--binary", "-i", "p"]
+tags = ["crlf"]
+[case.files]
+"a.txt" = { content_b64 = "YWxwaGENCmJldGENCmdhbW1hDQo=" }
+"p" = { content_b64 = "LS0tIGEudHh0DQorKysgYS50eHQNCkBAIC0xLDMgKzEsMyBAQA0KIGFscGhhDQotYmV0YQ0KK0JFVEENCiBnYW1tYQ0K" }
+
+[[case]]
+id = "patch-edge-crlf-first-line-of-target"
+argv = ["patch", "-F0", "-i", "p"]
+tags = ["crlf", "reject"]
+[case.files]
+"a.txt" = { content_b64 = "bGluZTENCmxpbmUyCmxpbmUzCg==" }
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,3 +1,3 @@\n line1\n-line2\n+L2\n line3\n"
+
+[[case]]
+id = "patch-edge-ed-script"
+argv = ["patch", "a.txt", "p"]
+tags = ["ed"]
+[case.files]
+"a.txt" = "1\n2\n3\n"
+"p" = "2c\nTWO\n.\n"
+
+[[case]]
+id = "patch-edge-empty-whitespace"
+argv = ["patch", "-i", "p"]
+tags = ["error"]
+[case.files]
+"a.txt" = "a\n"
+"p" = "\n\n  \n"
+
+[[case]]
+id = "patch-edge-same-file-twice"
+argv = ["patch", "-i", "p"]
+tags = ["multi"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n 1\n-2\n+TWO\n--- a.txt\n+++ a.txt\n@@ -7,2 +7,2 @@\n 7\n-8\n+EIGHT\n"
+
+[[case]]
+id = "patch-edge-prereq-ok"
+argv = ["patch", "-i", "p"]
+tags = ["prereq"]
+[case.files]
+"a.txt" = "version 1.2\nx\ny\n"
+"p" = "Prereq: 1.2\n*** a.txt\n--- a.txt\n***************\n*** 1,2 ****\n  x\n! y\n--- 1,2 ----\n  x\n! Y\n"
+
+[[case]]
+id = "patch-edge-prereq-bad"
+argv = ["patch", "-i", "p"]
+tags = ["prereq", "error"]
+[case.files]
+"a.txt" = "version 11.2\nx\ny\n"
+"p" = "Prereq: 1.2\n*** a.txt\n--- a.txt\n***************\n*** 1,2 ****\n  x\n! y\n--- 1,2 ----\n  x\n! Y\n"
+
+[[case]]
+id = "patch-edge-prereq-bad-batch"
+argv = ["patch", "-t", "-i", "p"]
+tags = ["prereq", "error"]
+[case.files]
+"a.txt" = "version 1.3\nx\ny\n"
+"p" = "Prereq: 1.2\n--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-prereq-bad-force"
+argv = ["patch", "-f", "-i", "p"]
+tags = ["prereq"]
+[case.files]
+"a.txt" = "version 1.3\nx\ny\n"
+"p" = "Prereq: 1.2\n--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-set-utc-mismatch"
+argv = ["patch", "-Z", "-i", "p"]
+tags = ["time"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- a.txt\t2020-05-06 07:08:09.000000000 +0000\n+++ a.txt\t2021-05-06 07:08:09.123456789 +0000\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-set-utc-mismatch-silent"
+argv = ["patch", "-s", "-Z", "-i", "p"]
+tags = ["time", "silent"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- a.txt\t2020-05-06 07:08:09.000000000 +0000\n+++ a.txt\t2021-05-06 07:08:09.123456789 +0000\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-set-utc-match"
+argv = ["patch", "-Z", "-i", "p"]
+tags = ["time"]
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- a.txt\t2026-01-15 12:00:00.000000000 +0000\n+++ a.txt\t2026-02-01 00:00:00.000000000 +0000\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-set-time-local"
+argv = ["patch", "-T", "-i", "p"]
+tags = ["time"]
+env = { TZ = "America/Sao_Paulo" }
+[case.files]
+"a.txt" = "x\ny\n"
+"p" = "--- a.txt\t2026-01-15 09:00:00\n+++ a.txt\t2026-02-01 00:00:00\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-silent-not-regular"
+argv = ["patch", "-s", "-i", "p"]
+tags = ["silent", "not-regular"]
+[case.files]
+"d" = { dir = true }
+"p" = "--- d\n+++ d\n@@ -1,2 +1,2 @@\n x\n-y\n+Y\n"
+
+[[case]]
+id = "patch-edge-same-file-twice-backup"
+argv = ["patch", "-b", "-i", "p"]
+tags = ["multi", "backup"]
+[case.files]
+"a.txt" = "1\n2\n3\n4\n5\n6\n7\n8\n"
+"p" = "--- a.txt\n+++ a.txt\n@@ -1,2 +1,2 @@\n 1\n-2\n+TWO\n--- a.txt\n+++ a.txt\n@@ -7,2 +7,2 @@\n 7\n-8\n+EIGHT\n"

@@ -1,0 +1,42 @@
+[package]
+name = "ul-coreutils"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Coreutils 9.7 do pseudo-linus: fork por utilitário do uutils 0.12 sobre o uucore portado, sobre o sysio"
+
+[dependencies]
+sysabi = { workspace = true }
+sysio = { workspace = true }
+uucore = { path = "vendor/src/uucore", package = "pl-uucore", features = [
+    "backup-control", "buf-copy", "checksum", "colors", "encoding", "entries", "extendedbigdecimal",
+    "fast-inc", "format", "fs", "fsext", "fsxattr", "hardware", "i18n-charmap", "i18n-collator",
+    "i18n-common", "i18n-datetime", "i18n-decimal", "lines", "mode", "parser", "parser-glob",
+    "parser-size", "perms", "pipes", "process", "quoting-style", "ranges", "ringbuffer",
+    "safe-copy", "safe-traversal", "signals", "sum", "time", "tty", "update-control", "utf8",
+    "utmpx", "version-cmp", "wide",
+] }
+
+# --- grupo core (agente coreutils) ---
+uu_cat = { path = "vendor/src/uu/cat", package = "pl-uu-cat" }
+uu_head = { path = "vendor/src/uu/head", package = "pl-uu-head" }
+uu_wc = { path = "vendor/src/uu/wc", package = "pl-uu-wc" }
+uu_sort = { path = "vendor/src/uu/sort", package = "pl-uu-sort" }
+uu_ls = { path = "vendor/src/uu/ls", package = "pl-uu-ls" }
+# --- fim do grupo core ---
+
+# Conformidade no kernel real: `cargo test -p ul-coreutils --features kernel-tests` com
+# `CONF_KERNEL=1`. Fora disso os testes só dependem do testkit (o kernel pode estar em obra).
+pl-testing = { path = "../pl-testing", optional = true }
+
+[features]
+kernel-tests = ["dep:pl-testing", "pl-testing/kernel"]
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+harness = { path = "../../testbench/crates/harness" }
+
+[lints]
+workspace = true

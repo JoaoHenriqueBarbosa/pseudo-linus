@@ -1,0 +1,230 @@
+tool = "hexdump"
+source = "manual"
+
+# Unidades de cor `_L[...]`: sem terminal (o padrão e `-L`/`--color=auto`) elas são lidas e puladas;
+# com `--color=always` as sequências saem. Condições por valor (hex, octal), texto, deslocamento e
+# faixa, negação, nomes desconhecidos, listas vazias e os erros do original.
+# `v.bin` = "ABCDABCD".
+
+[[case]]
+id = "hexdump-color-skipped-without-tty"
+argv = ["hexdump", "-e", '4/1 "%02x_L[red] " "\n"', "v.bin"]
+tags = ["color"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-auto-flag"
+argv = ["hexdump", "-L", "-e", '4/1 "%02x_L[red] " "\n"', "v.bin"]
+tags = ["color"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-never"
+argv = ["hexdump", "--color=never", "-C", "v.bin"]
+tags = ["color"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-always-plain"
+argv = ["hexdump", "--color=always", "-e", '4/1 "%02x_L[red] " "\n"', "v.bin"]
+tags = ["color", "always"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-always-case-insensitive-mode"
+argv = ["hexdump", "--color=ALWAYS", "-e", '4/1 "%02x_L[green] " "\n"', "v.bin"]
+tags = ["color", "always"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-short-equals"
+argv = ["hexdump", "-L=always", "-e", '4/1 "%02x_L[blue] " "\n"', "v.bin"]
+tags = ["color", "always"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-values"
+argv = ["hexdump", "--color=always", "-e", '8/1 "%02x_L[red:0x41,blue:0x42,green] " "\n"', "v.bin"]
+tags = ["color", "always", "value"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-octal-value"
+argv = ["hexdump", "--color=always", "-e", '8/1 "%02x_L[lightred:0101] " "\n"', "v.bin"]
+tags = ["color", "always", "value"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-offset"
+argv = ["hexdump", "--color=always", "-e", '8/1 "%02x_L[magenta@2] " "\n"', "v.bin"]
+tags = ["color", "always", "offset"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-range"
+argv = ["hexdump", "--color=always", "-e", '8/1 "%02x_L[cyan@2-4] " "\n"', "v.bin"]
+tags = ["color", "always", "offset"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-value-at-offset"
+argv = ["hexdump", "--color=always", "-e", '8/1 "%02x_L[red:0x41@4] " "\n"', "v.bin"]
+tags = ["color", "always", "offset"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-negated-value"
+argv = ["hexdump", "--color=always", "-e", '8/1 "%02x_L[!red:0x41] " "\n"', "v.bin"]
+tags = ["color", "always", "invert"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-negated-offset"
+argv = ["hexdump", "--color=always", "-e", '8/1 "%02x_L[!yellow:0x42@1] " "\n"', "v.bin"]
+tags = ["color", "always", "invert"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-string-range"
+argv = ["hexdump", "--color=always", "-e", '4/2 "%04x_L[bold:AB@0-1] " "\n"', "v.bin"]
+tags = ["color", "always", "string"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-two-byte-value"
+argv = ["hexdump", "--color=always", "-e", '4/2 "%04x_L[reverse:0x4241] " "\n"', "v.bin"]
+tags = ["color", "always", "value"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-unknown-name"
+argv = ["hexdump", "--color=always", "-e", '4/1 "%02x_L[nocolor,red] " "\n"', "v.bin"]
+tags = ["color", "always"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-empty-list"
+argv = ["hexdump", "--color=always", "-e", '4/1 "%02x_L[] " "\n"', "v.bin"]
+tags = ["color", "always"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-trailing-comma"
+argv = ["hexdump", "--color=always", "-e", '4/1 "%02x_L[white,] " "\n"', "v.bin"]
+tags = ["color", "always"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-address"
+argv = ["hexdump", "--color=always", "-e", '"%07.7_ad_L[blue]" 4/1 " %02x" "\n"', "v.bin"]
+tags = ["color", "always", "address"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-address-value"
+argv = ["hexdump", "--color=always", "-v", "-e", '"%_ad_L[red:04]: " 4/1 "%02x " "\n"', "v.bin"]
+tags = ["color", "always", "address"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-end-address"
+argv = ["hexdump", "--color=always", "-e", '"%_Ad_L[red]\n"', "-e", '4/1 "%_c" "\n"', "v.bin"]
+tags = ["color", "always", "end"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-padding"
+argv = ["hexdump", "--color=always", "-e", '4/1 "%02x_L[red] " "|\n"']
+stdin = "ABC"
+tags = ["color", "always", "partial"]
+
+[[case]]
+id = "hexdump-color-printable"
+argv = ["hexdump", "--color=always", "-e", '4/1 "%_p_L[red:0x42]" "\n"', "v.bin"]
+tags = ["color", "always", "char"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-canonical-has-none"
+argv = ["hexdump", "--color=always", "-C", "v.bin"]
+tags = ["color", "always"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-bad-decimal-value"
+argv = ["hexdump", "--color=always", "-e", '8/1 "%02x_L[red:65] " "\n"', "v.bin"]
+tags = ["color", "always", "error"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-unclosed-always"
+argv = ["hexdump", "--color=always", "-e", '4/1 "%02x_L[red " "\n"', "v.bin"]
+tags = ["color", "always", "error"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-unclosed-default"
+argv = ["hexdump", "-e", '4/1 "%02x_L[red " "\n"', "v.bin"]
+tags = ["color", "error"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-unopened-always"
+argv = ["hexdump", "--color=always", "-e", '4/1 "%02x_Lred] " "\n"', "v.bin"]
+tags = ["color", "always", "error"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-unopened-default"
+argv = ["hexdump", "-e", '4/1 "%02x_Lred] " "\n"', "v.bin"]
+tags = ["color"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-not-a-color-suffix"
+argv = ["hexdump", "-e", '4/1 "%02x_X " "\n"', "v.bin"]
+tags = ["color"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-bad-mode"
+argv = ["hexdump", "--color=foo", "v.bin"]
+tags = ["color", "error"]
+[case.files]
+"v.bin" = "ABCDABCD"
+
+[[case]]
+id = "hexdump-color-empty-mode"
+argv = ["hexdump", "--color=", "v.bin"]
+tags = ["color", "error"]
+[case.files]
+"v.bin" = "ABCDABCD"

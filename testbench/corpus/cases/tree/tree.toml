@@ -1,0 +1,2092 @@
+tool = "tree"
+source = "manual"
+
+# tree 2.2.1 do Debian 13. Fixture com mtime fixo nos diretórios declarados (pro -D), sem
+# depender de tamanho de diretório nem de inode (que mudam de um sistema de arquivos pro outro).
+
+[[case]]
+id = "tree-plain"
+argv = ["tree", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-cwd"
+argv = ["tree"]
+[case.files]
+"src" = { dir = true }
+"src/sub" = { dir = true }
+"docs" = { dir = true }
+"empty" = { dir = true }
+".hidden" = { dir = true }
+"a.txt" = "hi\n"
+"B.md" = "# t\n"
+"run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"file10" = ""
+"file9" = ""
+"build.log" = "log\n"
+".dotfile" = ""
+".hidden/h" = ""
+"src/main.rs" = "fn main() {}\n"
+"src/lib.rs" = ""
+"src/sub/z.c" = ""
+"docs/readme.md" = ""
+"link" = { symlink = "a.txt" }
+"broken" = { symlink = "nowhere" }
+"srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-all"
+argv = ["tree", "-a", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-dirs-only"
+argv = ["tree", "-d", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-level-1"
+argv = ["tree", "-L", "1", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-level-2-attached"
+argv = ["tree", "-L2", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-level-cluster"
+argv = ["tree", "-dL", "1", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-full-path"
+argv = ["tree", "-f", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-no-indent"
+argv = ["tree", "-i", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-classify"
+argv = ["tree", "-F", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-classify-dirs-only"
+argv = ["tree", "-dF", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-quote"
+argv = ["tree", "-Q", "proj/docs"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-noreport"
+argv = ["tree", "--noreport", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-dirsfirst"
+argv = ["tree", "--dirsfirst", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-filesfirst"
+argv = ["tree", "--filesfirst", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-reverse"
+argv = ["tree", "-r", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-dirsfirst-reverse"
+argv = ["tree", "--dirsfirst", "-r", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-version-sort"
+argv = ["tree", "-v", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-sort-name"
+argv = ["tree", "--sort=name", "-L", "1", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-sort-mtime"
+argv = ["tree", "--sort", "mtime", "-L", "1", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-pattern"
+argv = ["tree", "-P", "*.rs", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-pattern-prune"
+argv = ["tree", "-P", "*.rs", "--prune", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-pattern-alternatives"
+argv = ["tree", "-P", "*.c|*.md", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-pattern-bracket"
+argv = ["tree", "-P", "[ab]*", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-pattern-matchdirs"
+argv = ["tree", "-P", "sr*", "--matchdirs", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-pattern-ignore-case"
+argv = ["tree", "-P", "b*", "--ignore-case", "-L", "1", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-ignore"
+argv = ["tree", "-I", "src|docs", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-ignore-glob"
+argv = ["tree", "-I", "*.log", "-L", "1", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-prune"
+argv = ["tree", "--prune", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-follow-links"
+argv = ["tree", "-l", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-follow-links-json"
+argv = ["tree", "-l", "-J", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-perms"
+argv = ["tree", "-p", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-perms-user-group"
+argv = ["tree", "-pug", "proj/docs"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-metafirst"
+argv = ["tree", "-p", "--metafirst", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-date"
+argv = ["tree", "-D", "proj/src"]
+faketime = "2026-01-15 12:00:00"
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-date-old"
+argv = ["tree", "-D", "proj/src"]
+faketime = "2026-09-01 12:00:00"
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-timefmt"
+argv = ["tree", "--timefmt", "%Y-%m-%d %H:%M", "proj/src"]
+faketime = "2026-01-15 12:00:00"
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-charset-ascii"
+argv = ["tree", "--charset", "ascii", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-charset-equals"
+argv = ["tree", "--charset=US-ASCII", "-L", "1", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-ansi-lines"
+argv = ["tree", "-A", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-cp437-lines"
+argv = ["tree", "-S", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-locale-c"
+argv = ["tree", "proj/src"]
+env = { LC_ALL = "C" }
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-json"
+argv = ["tree", "-J", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-json-level"
+argv = ["tree", "-J", "-L", "1", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-json-perms"
+argv = ["tree", "-J", "-pug", "proj/docs"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-json-compact"
+argv = ["tree", "-J", "-i", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-json-dirs"
+argv = ["tree", "-J", "-d", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-json-noreport"
+argv = ["tree", "-J", "--noreport", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-json-full-path"
+argv = ["tree", "-J", "-f", "-L", "1", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-xml"
+argv = ["tree", "-X", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-xml-perms"
+argv = ["tree", "-X", "-p", "proj/docs"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-xml-compact"
+argv = ["tree", "-X", "-i", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-xml-noreport"
+argv = ["tree", "-X", "--noreport", "proj/docs"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-two-roots"
+argv = ["tree", "proj/docs", "proj/src"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-missing-root"
+argv = ["tree", "nope"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-missing-among"
+argv = ["tree", "proj/docs", "nope"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-file-root"
+argv = ["tree", "proj/a.txt"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-json-missing"
+argv = ["tree", "-J", "nope"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-json-file-root"
+argv = ["tree", "-J", "proj/a.txt"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-filelimit"
+argv = ["tree", "--filelimit", "3", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-filelimit-json"
+argv = ["tree", "-J", "--filelimit=3", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-output-file"
+argv = ["tree", "-o", "out.txt", "proj/docs"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-color"
+argv = ["tree", "-C", "proj"]
+env = { TERM = "xterm" }
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-color-ls-colors"
+argv = ["tree", "-C", "proj"]
+env = { TERM = "xterm", LS_COLORS = "di=01;34:ln=01;36:ex=01;32:*.rs=01;31:or=40;31;01" }
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-color-no-term"
+argv = ["tree", "-C", "proj"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-color-never"
+argv = ["tree", "-n", "proj/src"]
+env = { TERM = "xterm" }
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-invalid-short"
+argv = ["tree", "-Z"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-invalid-long"
+argv = ["tree", "--bogus"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-prefix-long"
+argv = ["tree", "--dirs"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-level-missing"
+argv = ["tree", "-L"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-level-zero"
+argv = ["tree", "-L", "0"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-level-text"
+argv = ["tree", "-L", "x"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-sort"
+argv = ["tree", "--sort=bogus"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-sort-missing"
+argv = ["tree", "--sort"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-charset-missing"
+argv = ["tree", "--charset"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-output-missing"
+argv = ["tree", "-o"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-err-pattern-missing"
+argv = ["tree", "-P"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-help"
+argv = ["tree", "--help"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-version"
+argv = ["tree", "--version"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+
+[[case]]
+id = "tree-double-dash"
+argv = ["tree", "--", "proj/docs"]
+[case.files]
+"proj" = { dir = true }
+"proj/src" = { dir = true }
+"proj/src/sub" = { dir = true }
+"proj/docs" = { dir = true }
+"proj/empty" = { dir = true }
+"proj/.hidden" = { dir = true }
+"proj/a.txt" = "hi\n"
+"proj/B.md" = "# t\n"
+"proj/run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+"proj/file10" = ""
+"proj/file9" = ""
+"proj/build.log" = "log\n"
+"proj/.dotfile" = ""
+"proj/.hidden/h" = ""
+"proj/src/main.rs" = "fn main() {}\n"
+"proj/src/lib.rs" = ""
+"proj/src/sub/z.c" = ""
+"proj/docs/readme.md" = ""
+"proj/link" = { symlink = "a.txt" }
+"proj/broken" = { symlink = "nowhere" }
+"proj/srcl" = { symlink = "src" }
+

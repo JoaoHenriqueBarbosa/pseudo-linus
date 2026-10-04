@@ -1,0 +1,115 @@
+tool = "envsubst"
+source = "manual"
+
+# envsubst do gettext-base 0.23.1.
+
+[[case]]
+id = "envsubst-basic"
+argv = ["envsubst"]
+env = { FOO = "foo", BAR = "b a r" }
+stdin = "a $FOO b ${BAR} c $UNDEF d\n"
+
+[[case]]
+id = "envsubst-edge-forms"
+argv = ["envsubst"]
+env = { FOO = "foo", EMPTY = "" }
+stdin = "${FOO}x $FOOx $ ${ ${FOO $1 $$ \\$FOO ${FOO:-def} $EMPTY. ${9a} $_x ${_y}\n"
+
+[[case]]
+id = "envsubst-home-and-path"
+argv = ["envsubst"]
+stdin = "home=$HOME user=$USER lang=${LC_ALL} tz=$TZ\n"
+
+[[case]]
+id = "envsubst-shell-format"
+argv = ["envsubst", "$BAR"]
+env = { FOO = "foo", BAR = "b a r" }
+stdin = "a $FOO ${BAR} $UNDEF\n"
+
+[[case]]
+id = "envsubst-shell-format-several"
+argv = ["envsubst", "${FOO} text $UNDEF"]
+env = { FOO = "foo", BAR = "b a r" }
+stdin = "a $FOO ${BAR} $UNDEF\n"
+
+[[case]]
+id = "envsubst-shell-format-empty"
+argv = ["envsubst", ""]
+env = { FOO = "foo" }
+stdin = "a $FOO\n"
+
+[[case]]
+id = "envsubst-variables"
+argv = ["envsubst", "-v", "$FOO ${BAR} $FOO x$Y"]
+
+[[case]]
+id = "envsubst-variables-long"
+argv = ["envsubst", "--variables", "none ${A_1} $_b ${2x}"]
+
+[[case]]
+id = "envsubst-variables-prefix"
+argv = ["envsubst", "--var", "$Q"]
+
+[[case]]
+id = "envsubst-variables-ignores-stdin"
+argv = ["envsubst", "-v", "$A"]
+stdin = "$B\n"
+
+[[case]]
+id = "envsubst-no-newline"
+argv = ["envsubst"]
+env = { FOO = "foo" }
+stdin = "no newline $FOO"
+
+[[case]]
+id = "envsubst-binary"
+argv = ["envsubst"]
+env = { FOO = "foo", BAR = "b a r" }
+stdin_b64 = "/yRGT08AJEJBUgo="
+
+[[case]]
+id = "envsubst-multiline-template"
+argv = ["envsubst"]
+env = { NAME = "web", PORT = "8080", HOST = "0.0.0.0" }
+stdin = "server {\n  listen ${HOST}:${PORT};\n  server_name $NAME;\n  root /srv/$NAME/$UNSET;\n}\n"
+
+[[case]]
+id = "envsubst-value-with-dollar"
+argv = ["envsubst"]
+env = { A = "$B", B = "bee" }
+stdin = "[$A] [$B]\n"
+
+[[case]]
+id = "envsubst-empty-input"
+argv = ["envsubst"]
+stdin = ""
+
+[[case]]
+id = "envsubst-missing-arguments"
+argv = ["envsubst", "-v"]
+
+[[case]]
+id = "envsubst-too-many-arguments"
+argv = ["envsubst", "a", "b"]
+
+[[case]]
+id = "envsubst-invalid-option"
+argv = ["envsubst", "-Z"]
+
+[[case]]
+id = "envsubst-unrecognized-option"
+argv = ["envsubst", "--bogus"]
+
+[[case]]
+id = "envsubst-help"
+argv = ["envsubst", "--help"]
+
+[[case]]
+id = "envsubst-version"
+argv = ["envsubst", "-V"]
+
+[[case]]
+id = "envsubst-double-dash"
+argv = ["envsubst", "--", "$FOO"]
+env = { FOO = "foo", BAR = "bar" }
+stdin = "$FOO $BAR\n"

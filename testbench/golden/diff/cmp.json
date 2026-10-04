@@ -1,0 +1,527 @@
+{
+  "cmp-ambiguous": {
+    "stdout": "",
+    "stderr": "cmp: option '--v' is ambiguous; possibilities: '--verbose' '--version'\ncmp: Try 'cmp --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "cmp-binary-verbose-width": {
+    "stdout": "256 377   0\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 256,
+        "sha256": "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880",
+        "data": {
+          "b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w=="
+        }
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 256,
+        "sha256": "4f374557bf44bb12ba2663f8a84e9515165a2332c1f3059d6d81dfe1379eb77b",
+        "data": {
+          "b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+AA=="
+        }
+      }
+    }
+  },
+  "cmp-bytes-specials-first": {
+    "stdout": "c d differ: byte 3, line 2 is   1 ^A   2 ^B\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "4c861c4751b06486a0617525d07340ae94572ac6ecbc0167d445d72f36bcd021",
+        "data": {
+          "b64": "YQoBf4D/IA=="
+        }
+      },
+      "d": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "c770c67c2c93b2f6659d275e0a03cebbd0d9ffbe5fa3179aa8ce7d6fe2fd038b",
+        "data": {
+          "b64": "YQoCfoH+IQ=="
+        }
+      }
+    }
+  },
+  "cmp-directory": {
+    "stdout": "",
+    "stderr": "cmp: d: Is a directory\n",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "cmp-eof-empty": {
+    "stdout": "",
+    "stderr": "cmp: EOF on e which is empty\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      },
+      "e": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "cmp-eof-in-line": {
+    "stdout": "",
+    "stderr": "cmp: EOF on c after byte 5, in line 2\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      },
+      "c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "4f0ef76b5a15634e3956ccb30dc53c7368f30c7c3153f8e2dbbf7a3e0fbd0e94",
+        "data": "abc\nd"
+      }
+    }
+  },
+  "cmp-eof-line": {
+    "stdout": "",
+    "stderr": "cmp: EOF on d after byte 4, line 1\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      },
+      "d": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "cmp-eof-verbose": {
+    "stdout": "4  12 130\n5 144  12\n",
+    "stderr": "cmp: EOF on f after byte 5\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      },
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "18671fab5cb4ff6888f668b56051f775e46ef1dfb62780cd38e46ceb19c2ed77",
+        "data": "abcX\n"
+      }
+    }
+  },
+  "cmp-extra-operand": {
+    "stdout": "",
+    "stderr": "cmp: extra operand '3'\ncmp: Try 'cmp --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "cmp-first-diff": {
+    "stdout": "a b differ: byte 5, line 2\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "daf1fb6b163254a7241999821789c85522e31f8fbd2b273d391ac74d8cf150eb",
+        "data": "abc\nxef\n"
+      }
+    }
+  },
+  "cmp-help": {
+    "stdout": "Usage: cmp [OPTION]... FILE1 [FILE2 [SKIP1 [SKIP2]]]\nCompare two files byte by byte.\n\nThe optional SKIP1 and SKIP2 specify the number of bytes to skip\nat the beginning of each file (zero by default).\n\nMandatory arguments to long options are mandatory for short options too.\n  -b, --print-bytes          print differing bytes\n  -i, --ignore-initial=SKIP         skip first SKIP bytes of both inputs\n  -i, --ignore-initial=SKIP1:SKIP2  skip first SKIP1 bytes of FILE1 and\n                                      first SKIP2 bytes of FILE2\n  -l, --verbose              output byte numbers and differing byte values\n  -n, --bytes=LIMIT          compare at most LIMIT bytes\n  -s, --quiet, --silent      suppress all normal output\n      --help                 display this help and exit\n  -v, --version              output version information and exit\n\nSKIP values may be followed by the following multiplicative suffixes:\nkB 1000, K 1024, MB 1,000,000, M 1,048,576,\nGB 1,000,000,000, G 1,073,741,824, and so on for T, P, E, Z, Y.\n\nIf a FILE is '-' or missing, read standard input.\nExit status is 0 if inputs are the same, 1 if different, 2 if trouble.\n\nReport bugs to: bug-diffutils@gnu.org\nGNU diffutils home page: <https://www.gnu.org/software/diffutils/>\nGeneral help using GNU software: <https://www.gnu.org/gethelp/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cmp-identical": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "a6328afc76e9db71da297ebff4b0d3e7a7eb3b01d917c05a6573fef121b6ecb6",
+        "data": "same\n"
+      }
+    }
+  },
+  "cmp-invalid-bytes": {
+    "stdout": "",
+    "stderr": "cmp: invalid --bytes value '-1'\ncmp: Try 'cmp --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "cmp-invalid-skip": {
+    "stdout": "",
+    "stderr": "cmp: invalid --ignore-initial value '1m'\ncmp: Try 'cmp --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "cmp-invalid-skip-operand": {
+    "stdout": "",
+    "stderr": "cmp: invalid --ignore-initial value 'x'\ncmp: Try 'cmp --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "cmp-l-and-s": {
+    "stdout": "",
+    "stderr": "cmp: options -l and -s are incompatible\ncmp: Try 'cmp --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "cmp-limit": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "daf1fb6b163254a7241999821789c85522e31f8fbd2b273d391ac74d8cf150eb",
+        "data": "abc\nxef\n"
+      }
+    }
+  },
+  "cmp-missing": {
+    "stdout": "",
+    "stderr": "cmp: nope: No such file or directory\n",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "cmp-no-operand": {
+    "stdout": "",
+    "stderr": "cmp: missing operand after 'cmp'\ncmp: Try 'cmp --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "cmp-one-operand-stdin": {
+    "stdout": "a - differ: byte 5, line 2\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      }
+    }
+  },
+  "cmp-print-bytes": {
+    "stdout": "a b differ: byte 5, line 2 is 144 d 170 x\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "daf1fb6b163254a7241999821789c85522e31f8fbd2b273d391ac74d8cf150eb",
+        "data": "abc\nxef\n"
+      }
+    }
+  },
+  "cmp-print-chars-alias": {
+    "stdout": "a b differ: byte 5, line 2 is 144 d 170 x\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "daf1fb6b163254a7241999821789c85522e31f8fbd2b273d391ac74d8cf150eb",
+        "data": "abc\nxef\n"
+      }
+    }
+  },
+  "cmp-silent": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "b10bd3130c1c0c13552e64356445290992346ad995cc5c1388a1e6150bc21c07",
+        "data": "abd\n"
+      }
+    }
+  },
+  "cmp-silent-missing": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 2,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "cmp-skip-both": {
+    "stdout": "a b differ: byte 1, line 1\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "daf1fb6b163254a7241999821789c85522e31f8fbd2b273d391ac74d8cf150eb",
+        "data": "abc\nxef\n"
+      }
+    }
+  },
+  "cmp-skip-operands": {
+    "stdout": "a b differ: byte 1, line 1\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "a2192eeb9b7585151f53f0baf01f577d46936ffe0f97e38988506e01c07906a3",
+        "data": "0123456789abcdef\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "be0c7090712061063fd4c6c89225ce1042aea971e00b4de0de8aa2a94845e101",
+        "data": "xxxxxxx789abcdeg\n"
+      }
+    }
+  },
+  "cmp-skip-pair": {
+    "stdout": "a b differ: byte 4, line 2\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "daf1fb6b163254a7241999821789c85522e31f8fbd2b273d391ac74d8cf150eb",
+        "data": "abc\nxef\n"
+      }
+    }
+  },
+  "cmp-skip-suffix": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "c962fa1be311981f0f965857e89b000707f9cea07a069d073461308f3019200f",
+        "data": "short\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "7e4fa2eb8c7ac089739d5defc4489fad68a100d92082ca35c6b40a4524821f87",
+        "data": "other\n"
+      }
+    }
+  },
+  "cmp-stdin": {
+    "stdout": "- a differ: byte 7, line 2\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "924d391c158a46409fdff363063d718ea0bc00b14556f129984942af91233bbe",
+        "data": "abc\ndef\n"
+      }
+    }
+  },
+  "cmp-verbose": {
+    "stdout": "13  67 170\n22  61 171\n23  61 171\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "67149111d45cf106eb92ab5be7ec08179bddea7426ddde7cfe0ae68a7cffce74",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "570345717497da2b1d5215b91c55eb8f2f61d5749c3115cd1a691c7c5d417294",
+        "data": "1\n2\n3\n4\n5\n6\nx\n8\n9\n10\nyy\n12\n"
+      }
+    }
+  },
+  "cmp-verbose-bytes-specials": {
+    "stdout": "3   1 ^A     2 ^B\n4 177 ^?   176 ~\n5 200 M-^@ 201 M-^A\n6 377 M-^? 376 M-~\n7  40       41 !\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "4c861c4751b06486a0617525d07340ae94572ac6ecbc0167d445d72f36bcd021",
+        "data": {
+          "b64": "YQoBf4D/IA=="
+        }
+      },
+      "d": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "c770c67c2c93b2f6659d275e0a03cebbd0d9ffbe5fa3179aa8ce7d6fe2fd038b",
+        "data": {
+          "b64": "YQoCfoH+IQ=="
+        }
+      }
+    }
+  },
+  "cmp-version": {
+    "stdout": "cmp (GNU diffutils) 3.10\nCopyright (C) 2023 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Torbjörn Granlund and David MacKenzie.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

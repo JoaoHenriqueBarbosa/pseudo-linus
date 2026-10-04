@@ -12,6 +12,8 @@ pub fn all_programs() -> Vec<Program> {
     all.extend(shell::programs());
     #[cfg(feature = "coreutils")]
     all.extend(ul_coreutils::programs());
+    #[cfg(feature = "findutils")]
+    all.extend(ul_findutils::programs());
     #[cfg(feature = "textproc")]
     all.extend(ul_textproc::programs());
     #[cfg(feature = "awk")]
@@ -26,6 +28,8 @@ pub fn all_programs() -> Vec<Program> {
     all.extend(ul_misc::programs());
     #[cfg(feature = "procps")]
     all.extend(ul_procps::programs());
+    #[cfg(feature = "net")]
+    all.extend(ul_net::programs());
     #[cfg(feature = "sqlite")]
     all.extend(ul_sqlite::programs());
     #[cfg(feature = "git")]

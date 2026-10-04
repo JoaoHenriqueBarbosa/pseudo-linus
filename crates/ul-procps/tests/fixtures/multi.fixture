@@ -1,0 +1,393 @@
+# Árvore /proc falsa "multi": vários processos com o mesmo nome (pra ordem do pidof e do pgrep -n/-o),
+# script rodando por shell (pidof -x), argv[0] reescrito com espaço (sshd, nginx), comm diferente do
+# argv[0] (python), nome maior que 15 caracteres, estado D, zumbi, threads de kernel, usuários com
+# nome longo e uid sem nome, e uma árvore de vários níveis pro --forest. Boot em 1768477400 e agora
+# 200000 s depois (2026-01-17T19:16:40Z): quase todos começaram há mais de 24 h, dois há poucas horas.
+# Formato descrito em basic.fixture.
+
+@clock 1768677400 200000
+
+@file /etc/passwd
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+alice:x:1000:1000:Alice:/home/alice:/bin/bash
+verylongusername:x:1001:100::/home/v:/bin/bash
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+@file /etc/group
+root:x:0:
+daemon:x:1:
+www-data:x:33:
+users:x:100:
+alice:x:1000:
+nogroup:x:65534:
+
+@link /proc/self 101
+@link /proc/thread-self 101/task/101
+@file /proc/sys/kernel/pid_max
+4194304
+@file /proc/sys/kernel/osrelease
+6.12.101+deb13-amd64
+@file /proc/uptime
+200000.00 390000.00
+@file /proc/loadavg
+1.25 0.80 0.40 3/16 101
+@file /proc/stat
+cpu  1200000 30000 400000 38000000 20000 0 5000 0 0 0
+cpu0 600000 15000 200000 19000000 10000 0 2500 0 0 0
+cpu1 600000 15000 200000 19000000 10000 0 2500 0 0 0
+intr 9 0
+ctxt 99999
+btime 1768477400
+processes 9000
+procs_running 3
+procs_blocked 1
+@file /proc/meminfo
+MemTotal:        2000000 kB
+MemFree:          500000 kB
+MemAvailable:    1200000 kB
+Buffers:           50000 kB
+Cached:           600000 kB
+SwapCached:            0 kB
+Shmem:             10000 kB
+SReclaimable:      40000 kB
+SUnreclaim:        20000 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+CommitLimit:     1000000 kB
+Committed_AS:    1500000 kB
+@file /proc/cpuinfo
+processor\t: 0
+model name\t: Virtual CPU
+
+processor\t: 1
+model name\t: Virtual CPU
+
+# ---- 1: bash de login ----
+@file /proc/1/stat
+1 (bash) S 0 1 1 0 -1 4194560 100 0 0 0 30 20 0 0 20 0 1 0 100 8384512 1200 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/1/status
+Name:\tbash
+State:\tS (sleeping)
+Tgid:\t1
+Pid:\t1
+PPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+VmSize:\t    8188 kB
+VmRSS:\t    4800 kB
+RssFile:\t    3000 kB
+Threads:\t1
+@file /proc/1/statm
+2047 1200 750 200 0 400 0
+@file /proc/1/cmdline nonl
+/bin/bash\0--login\0
+@file /proc/1/environ nonl
+HOME=/root\0
+@file /proc/1/wchan nonl
+do_wait
+
+# ---- 10: sh -c ----
+@file /proc/10/stat
+10 (sh) S 1 10 1 0 -1 4194304 50 0 0 0 1 1 0 0 20 0 1 0 5000 2732032 400 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/10/status
+Name:\tsh
+State:\tS (sleeping)
+Tgid:\t10
+Pid:\t10
+PPid:\t1
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+VmSize:\t    2668 kB
+VmRSS:\t    1600 kB
+RssFile:\t    1200 kB
+Threads:\t1
+@file /proc/10/statm
+667 400 300 20 0 80 0
+@file /proc/10/cmdline nonl
+sh\0-c\0sleep 5; sleep 100\0
+@file /proc/10/wchan nonl
+do_wait
+
+# ---- 11: script por shell (comm é o nome do script) ----
+@file /proc/11/stat
+11 (backup.sh) S 1 11 1 0 -1 4194304 50 0 0 0 2 1 0 0 20 0 1 0 4000 2732032 420 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/11/status
+Name:\tbackup.sh
+State:\tS (sleeping)
+Tgid:\t11
+Pid:\t11
+PPid:\t1
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+VmSize:\t    2668 kB
+VmRSS:\t    1680 kB
+RssFile:\t    1200 kB
+Threads:\t1
+@file /proc/11/statm
+667 420 300 20 0 80 0
+@file /proc/11/cmdline nonl
+/bin/sh\0/usr/local/bin/backup.sh\0--daily\0
+@file /proc/11/wchan nonl
+do_wait
+
+# ---- 12 e 13: dois sleep filhos do sh (o 13 começou antes do 12) ----
+@file /proc/12/stat
+12 (sleep) S 10 10 1 0 -1 4194304 30 0 0 0 0 0 0 0 20 0 1 0 9000 2482176 350 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/12/status
+Name:\tsleep
+State:\tS (sleeping)
+Tgid:\t12
+Pid:\t12
+PPid:\t10
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+VmSize:\t    2424 kB
+VmRSS:\t    1400 kB
+RssFile:\t    1300 kB
+Threads:\t1
+@file /proc/12/statm
+606 350 325 4 0 85 0
+@file /proc/12/cmdline nonl
+sleep\05\0
+@file /proc/12/wchan nonl
+hrtimer_nanosleep
+@file /proc/13/stat
+13 (sleep) S 10 10 1 0 -1 4194304 30 0 0 0 0 0 0 0 20 0 1 0 7000 2482176 350 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/13/status
+Name:\tsleep
+State:\tS (sleeping)
+Tgid:\t13
+Pid:\t13
+PPid:\t10
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+VmSize:\t    2424 kB
+VmRSS:\t    1400 kB
+RssFile:\t    1300 kB
+Threads:\t1
+@file /proc/13/statm
+606 350 325 4 0 85 0
+@file /proc/13/cmdline nonl
+sleep\0100\0
+@file /proc/13/wchan nonl
+hrtimer_nanosleep
+
+# ---- 14: sleep em estado D, filho do script ----
+@file /proc/14/stat
+14 (sleep) D 11 11 1 0 -1 4194304 30 0 0 0 0 0 0 0 20 0 1 0 8000 2482176 350 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/14/status
+Name:\tsleep
+State:\tD (disk sleep)
+Tgid:\t14
+Pid:\t14
+PPid:\t11
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+VmSize:\t    2424 kB
+VmRSS:\t    1400 kB
+RssFile:\t    1300 kB
+Threads:\t1
+@file /proc/14/statm
+606 350 325 4 0 85 0
+@file /proc/14/cmdline nonl
+sleep\0200\0
+@file /proc/14/wchan nonl
+io_schedule
+
+# ---- 15: python com comm próprio, de alice, começou há poucas horas ----
+@file /proc/15/stat
+15 (myworker) S 1 15 15 0 -1 4194560 5000 0 10 0 90000 9000 0 0 20 0 1 0 19000000 52428800 6000 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/15/status
+Name:\tmyworker
+State:\tS (sleeping)
+Tgid:\t15
+Pid:\t15
+PPid:\t1
+Uid:\t1000\t1000\t1000\t1000
+Gid:\t1000\t1000\t1000\t1000
+VmSize:\t   51200 kB
+VmRSS:\t   24000 kB
+RssFile:\t    8000 kB
+Threads:\t1
+@file /proc/15/statm
+12800 6000 2000 900 0 5000 0
+@file /proc/15/cmdline nonl
+python3\0/opt/w.py\0
+@file /proc/15/wchan nonl
+ep_poll
+
+# ---- 16: sshd com argv reescrito ----
+@file /proc/16/stat
+16 (sshd) S 1 16 16 0 -1 4194560 300 0 0 0 5 5 0 0 20 0 1 0 200 15728640 2000 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/16/status
+Name:\tsshd
+State:\tS (sleeping)
+Tgid:\t16
+Pid:\t16
+PPid:\t1
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+VmSize:\t   15360 kB
+VmRSS:\t    8000 kB
+RssFile:\t    6000 kB
+Threads:\t1
+@file /proc/16/statm
+3840 2000 1500 200 0 600 0
+@file /proc/16/cmdline nonl
+sshd: alice [priv]\0
+@file /proc/16/wchan nonl
+do_select
+
+# ---- 17: nginx com argv reescrito e preenchido de NUL, uid www-data ----
+@file /proc/17/stat
+17 (nginx) S 1 17 17 0 -1 4194624 100 0 0 0 3 2 0 0 20 0 1 0 300 57671680 1500 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/17/status
+Name:\tnginx
+State:\tS (sleeping)
+Tgid:\t17
+Pid:\t17
+PPid:\t1
+Uid:\t33\t33\t33\t33
+Gid:\t33\t33\t33\t33
+VmSize:\t   56320 kB
+VmRSS:\t    6000 kB
+RssFile:\t    4000 kB
+Threads:\t1
+@file /proc/17/statm
+14080 1500 1000 300 0 900 0
+@file /proc/17/cmdline nonl
+nginx: worker process\0\0\0\0\0
+@file /proc/17/wchan nonl
+ep_poll
+
+# ---- 18: nome com mais de 15 caracteres, usuário de nome longo, filho do sshd ----
+@file /proc/18/stat
+18 (averyveryverylo) R 16 18 18 34816 18 4194304 20 0 0 0 600000 1000 0 0 30 10 1 0 6000 4194304 256 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/18/status
+Name:\taveryveryverylo
+State:\tR (running)
+Tgid:\t18
+Pid:\t18
+PPid:\t16
+Uid:\t1001\t1001\t1001\t1001
+Gid:\t100\t100\t100\t100
+VmSize:\t    4096 kB
+VmRSS:\t    1024 kB
+RssFile:\t     512 kB
+Threads:\t1
+@file /proc/18/statm
+1024 256 128 10 0 100 0
+@file /proc/18/cmdline nonl
+/usr/bin/averyveryverylongname\0--x\0
+@file /proc/18/wchan nonl
+0
+
+# ---- 19: zumbi, filho do 18 ----
+@file /proc/19/stat
+19 (defunct-kid) Z 18 18 18 34816 18 4227084 0 0 0 0 0 0 0 0 20 0 1 0 6500 0 0 18446744073709551615 0 0 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/19/status
+Name:\tdefunct-kid
+State:\tZ (zombie)
+Tgid:\t19
+Pid:\t19
+PPid:\t18
+Uid:\t1001\t1001\t1001\t1001
+Gid:\t100\t100\t100\t100
+Threads:\t1
+@file /proc/19/statm
+0 0 0 0 0 0 0
+@file /proc/19/cmdline nonl
+@file /proc/19/wchan nonl
+0
+
+# ---- 21: perl rodando script, filho do python, começou há pouco ----
+@file /proc/21/stat
+21 (tool.pl) S 15 15 15 0 -1 4194304 200 0 0 0 100 50 0 0 20 0 1 0 19500000 10485760 900 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/21/status
+Name:\ttool.pl
+State:\tS (sleeping)
+Tgid:\t21
+Pid:\t21
+PPid:\t15
+Uid:\t1000\t1000\t1000\t1000
+Gid:\t1000\t1000\t1000\t1000
+VmSize:\t   10240 kB
+VmRSS:\t    3600 kB
+RssFile:\t    2000 kB
+Threads:\t1
+@file /proc/21/statm
+2560 900 500 100 0 300 0
+@file /proc/21/cmdline nonl
+/usr/bin/perl\0-w\0/usr/local/bin/tool.pl\0
+@file /proc/21/wchan nonl
+pipe_read
+
+# ---- 22 e 23: threads de kernel ----
+@file /proc/22/stat
+22 (kthreadd) S 0 0 0 0 -1 2129984 0 0 0 0 0 3 0 0 20 0 1 0 1 0 0 18446744073709551615 0 0 0 0 0 0 0 2147483647 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/22/status
+Name:\tkthreadd
+State:\tS (sleeping)
+Tgid:\t22
+Pid:\t22
+PPid:\t0
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+Kthread:\t1
+Threads:\t1
+@file /proc/22/statm
+0 0 0 0 0 0 0
+@file /proc/22/cmdline nonl
+@file /proc/22/wchan nonl
+kthreadd
+@file /proc/23/stat
+23 (kworker/0:1-events) I 22 0 0 0 -1 69238880 0 0 0 0 0 45 0 0 20 0 1 0 2 0 0 18446744073709551615 0 0 0 0 0 0 0 2147483647 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/23/status
+Name:\tkworker/0:1-events
+State:\tI (idle)
+Tgid:\t23
+Pid:\t23
+PPid:\t22
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+Kthread:\t1
+Threads:\t1
+@file /proc/23/statm
+0 0 0 0 0 0 0
+@file /proc/23/cmdline nonl
+@file /proc/23/wchan nonl
+worker_thread
+
+# ---- 101: a própria ferramenta ----
+@file /proc/101/stat
+101 (ps) R 1 101 1 0 -1 4194304 180 0 0 0 1 1 0 0 20 0 1 0 19999990 6950912 900 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/101/status
+Name:\tps
+State:\tR (running)
+Tgid:\t101
+Pid:\t101
+PPid:\t1
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+VmSize:\t    6788 kB
+VmRSS:\t    3600 kB
+RssFile:\t    2800 kB
+Threads:\t1
+@file /proc/101/statm
+1697 900 700 34 0 120 0
+@file /proc/101/cmdline nonl
+ps\0
+@file /proc/101/wchan nonl
+0
+@file /proc/101/task/101/stat
+101 (ps) R 1 101 1 0 -1 4194304 180 0 0 0 1 1 0 0 20 0 1 0 19999990 6950912 900 18446744073709551615 1 1 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+@file /proc/101/task/101/status
+Name:\tps
+State:\tR (running)
+Tgid:\t101
+Pid:\t101
+PPid:\t1
+Uid:\t0\t0\t0\t0
+Gid:\t0\t0\t0\t0
+Threads:\t1

@@ -1,0 +1,13 @@
+usage: git gc [<options>]
+
+    -q, --[no-]quiet      suppress progress reporting
+    --[no-]prune[=<date>] prune unreferenced objects
+    --[no-]cruft          pack unreferenced objects separately
+    --max-cruft-size <n>  with --cruft, limit the size of new cruft packs
+    --[no-]aggressive     be more thorough (increased runtime)
+    --[no-]auto           enable auto-gc mode
+    --[no-]detach         perform garbage collection in the background
+    --[no-]force          force running gc even if there may be another gc running
+    --[no-]keep-largest-pack
+                          repack all other packs except the largest pack
+

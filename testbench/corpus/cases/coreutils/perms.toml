@@ -1,0 +1,298 @@
+tool = "coreutils"
+source = "agent-style"
+
+# chmod, chown e chgrp. O retrato do diretório guarda o modo de cada entrada, mas não o dono: o
+# chmod se confere pelo retrato, e chown/chgrp pela saída de -v/-c ou por um stat num script curto.
+# Usuários e grupos usados: root, daemon, nobody e nogroup, que existem no oráculo e no pseudo-linus.
+
+# chmod
+
+[[case]]
+id = "chmod-octal"
+argv = ["chmod", "755", "a.txt"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chmod-plus-x"
+argv = ["chmod", "+x", "run.sh"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"run.sh" = "#!/bin/sh\n"
+
+[[case]]
+id = "chmod-plus-w-respects-umask"
+argv = ["chmod", "+w", "ro.txt"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"ro.txt" = { content = "r\n", mode = 0o444 }
+
+[[case]]
+id = "chmod-symbolic-multi"
+argv = ["chmod", "u+x,g-r,o=", "a.txt"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chmod-equals"
+argv = ["chmod", "a=r", "a.txt"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chmod-copy-perms"
+argv = ["chmod", "g=u,o=g", "a.txt"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"a.txt" = { content = "a\n", mode = 0o740 }
+
+[[case]]
+id = "chmod-zero"
+argv = ["chmod", "0", "a.txt"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chmod-special-bits"
+argv = ["chmod", "4755", "a.bin"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"a.bin" = "x"
+
+[[case]]
+id = "chmod-sticky-symbolic"
+argv = ["chmod", "+t", "shared"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"shared" = { dir = true, mode = 0o777 }
+
+[[case]]
+id = "chmod-recursive"
+argv = ["chmod", "-R", "go-w", "d"]
+tags = ["chmod", "fs", "perms", "recursive"]
+[case.files]
+"d" = { dir = true, mode = 0o777 }
+"d/f.txt" = { content = "f\n", mode = 0o666 }
+"d/sub" = { dir = true, mode = 0o777 }
+"d/sub/g.txt" = { content = "g\n", mode = 0o666 }
+
+[[case]]
+id = "chmod-capital-x"
+argv = ["chmod", "-R", "a+X", "d"]
+tags = ["chmod", "fs", "perms", "recursive"]
+[case.files]
+"d" = { dir = true, mode = 0o700 }
+"d/plain.txt" = { content = "p\n", mode = 0o600 }
+"d/tool" = { content = "t\n", mode = 0o700 }
+"d/sub" = { dir = true, mode = 0o700 }
+
+[[case]]
+id = "chmod-verbose"
+argv = ["chmod", "-v", "600", "a.txt"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"a.txt" = { content = "a\n", mode = 0o755 }
+
+[[case]]
+id = "chmod-changes-only"
+argv = ["chmod", "-c", "644", "a.txt", "b.txt"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = { content = "b\n", mode = 0o600 }
+
+[[case]]
+id = "chmod-reference"
+argv = ["chmod", "--reference=ref", "a.txt"]
+tags = ["chmod", "fs", "perms"]
+[case.files]
+"ref" = { content = "r\n", mode = 0o640 }
+"a.txt" = "a\n"
+
+[[case]]
+id = "chmod-through-symlink"
+argv = ["chmod", "600", "link"]
+tags = ["chmod", "fs", "perms", "symlink"]
+[case.files]
+"target.txt" = "t\n"
+"link" = { symlink = "target.txt" }
+
+[[case]]
+id = "chmod-invalid-mode"
+argv = ["chmod", "999", "a.txt"]
+tags = ["chmod", "fs", "perms", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chmod-invalid-symbolic"
+argv = ["chmod", "u+q", "a.txt"]
+tags = ["chmod", "fs", "perms", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chmod-missing-file"
+argv = ["chmod", "644", "a.txt", "nope.txt"]
+tags = ["chmod", "fs", "perms", "errno"]
+[case.files]
+"a.txt" = { content = "a\n", mode = 0o600 }
+
+[[case]]
+id = "chmod-missing-operand"
+argv = ["chmod", "755"]
+tags = ["chmod", "fs", "perms", "errno"]
+
+[[case]]
+id = "chmod-no-args"
+argv = ["chmod"]
+tags = ["chmod", "fs", "perms", "errno"]
+
+# chown
+
+[[case]]
+id = "chown-v-user"
+argv = ["chown", "-v", "daemon", "a.txt"]
+tags = ["chown", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-v-user-group"
+argv = ["chown", "-v", "daemon:daemon", "a.txt"]
+tags = ["chown", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-v-numeric"
+argv = ["chown", "-v", "65534:65534", "a.txt"]
+tags = ["chown", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-v-group-only"
+argv = ["chown", "-v", ":daemon", "a.txt"]
+tags = ["chown", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-login-group"
+script = "chown nobody: a.txt && stat -c '%U:%G' a.txt"
+tags = ["chown", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-v-retained"
+argv = ["chown", "-v", "root", "a.txt"]
+tags = ["chown", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-c-no-change"
+argv = ["chown", "-c", "root:root", "a.txt"]
+tags = ["chown", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-recursive"
+script = "chown -R nobody:nogroup d && stat -c '%n %U:%G' d d/x d/sub d/sub/y"
+tags = ["chown", "fs", "owner", "recursive"]
+[case.files]
+"d/x" = "x\n"
+"d/sub/y" = "y\n"
+
+[[case]]
+id = "chown-h-symlink"
+argv = ["chown", "-hv", "daemon", "link"]
+tags = ["chown", "fs", "owner", "symlink"]
+[case.files]
+"target.txt" = "t\n"
+"link" = { symlink = "target.txt" }
+
+[[case]]
+id = "chown-dot-separator"
+argv = ["chown", "-v", "daemon.daemon", "a.txt"]
+tags = ["chown", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-invalid-user"
+argv = ["chown", "nouser", "a.txt"]
+tags = ["chown", "fs", "owner", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-invalid-group"
+argv = ["chown", "root:nogroupx", "a.txt"]
+tags = ["chown", "fs", "owner", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chown-missing-file"
+argv = ["chown", "daemon", "nope.txt"]
+tags = ["chown", "fs", "owner", "errno"]
+
+[[case]]
+id = "chown-missing-operand"
+argv = ["chown", "daemon"]
+tags = ["chown", "fs", "owner", "errno"]
+
+# chgrp
+
+[[case]]
+id = "chgrp-v"
+argv = ["chgrp", "-v", "daemon", "a.txt"]
+tags = ["chgrp", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chgrp-v-numeric"
+argv = ["chgrp", "-v", "65534", "a.txt"]
+tags = ["chgrp", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chgrp-v-retained"
+argv = ["chgrp", "-v", "root", "a.txt"]
+tags = ["chgrp", "fs", "owner"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chgrp-recursive"
+script = "chgrp -R nogroup d && stat -c '%n %U:%G' d d/x"
+tags = ["chgrp", "fs", "owner", "recursive"]
+[case.files]
+"d/x" = "x\n"
+
+[[case]]
+id = "chgrp-invalid-group"
+argv = ["chgrp", "nogroupx", "a.txt"]
+tags = ["chgrp", "fs", "owner", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "chgrp-missing-file"
+argv = ["chgrp", "daemon", "nope.txt"]
+tags = ["chgrp", "fs", "owner", "errno"]
+
+[[case]]
+id = "chgrp-missing-operand"
+argv = ["chgrp", "daemon"]
+tags = ["chgrp", "fs", "owner", "errno"]

@@ -1,0 +1,432 @@
+tool = "hexdump"
+source = "manual"
+
+# Formatos prontos (-b -c -C -d -o -x -X e o padrão), `hd`, compressão de linhas repetidas com `*`,
+# -v, vários arquivos como um fluxo só, -n e -s com sufixos e bases, stdin, ajuda e versão.
+# Fixtures: `a` é texto de 20 bytes; `all.bin` tem os 256 bytes em ordem; `ctrl.bin` tem controles,
+# bytes altos e UTF-8; `sq*.bin` exercitam a compressão (zeros, bloco parcial igual ao anterior).
+
+[[case]]
+id = "hexdump-default"
+argv = ["hexdump", "a"]
+tags = ["format", "default"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-canonical"
+argv = ["hexdump", "-C", "a"]
+tags = ["format", "canonical"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hd-default"
+argv = ["hd", "a"]
+tags = ["format", "hd"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hd-octal"
+argv = ["hd", "-b", "a"]
+tags = ["format", "hd"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-one-byte-octal"
+argv = ["hexdump", "-b", "a"]
+tags = ["format"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-one-byte-char"
+argv = ["hexdump", "-c", "ctrl.bin"]
+tags = ["format", "char"]
+[case.files]
+"ctrl.bin" = { content_b64 = "AAF/gP8KCQ0HCAwLIH7DqQ==" }
+
+[[case]]
+id = "hexdump-two-bytes-decimal"
+argv = ["hexdump", "-d", "a"]
+tags = ["format"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-two-bytes-octal"
+argv = ["hexdump", "-o", "a"]
+tags = ["format"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-two-bytes-hex"
+argv = ["hexdump", "-x", "a"]
+tags = ["format"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-one-byte-hex"
+argv = ["hexdump", "-X", "a"]
+tags = ["format"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-canonical-all-bytes"
+argv = ["hexdump", "-C", "all.bin"]
+tags = ["format", "canonical", "binary"]
+[case.files]
+"all.bin" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "hexdump-char-all-bytes"
+argv = ["hexdump", "-c", "all.bin"]
+tags = ["format", "char", "binary"]
+[case.files]
+"all.bin" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "hexdump-default-all-bytes"
+argv = ["hexdump", "all.bin"]
+tags = ["format", "default", "binary"]
+[case.files]
+"all.bin" = { content_b64 = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==" }
+
+[[case]]
+id = "hexdump-stdin"
+argv = ["hexdump", "-C"]
+stdin = "hello world\n"
+tags = ["stdin", "canonical"]
+
+[[case]]
+id = "hexdump-stdin-empty"
+argv = ["hexdump"]
+tags = ["stdin", "empty"]
+
+[[case]]
+id = "hexdump-empty-file"
+argv = ["hexdump", "-C", "empty"]
+tags = ["empty"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "hexdump-squeeze-zeros"
+argv = ["hexdump", "z.bin"]
+tags = ["squeeze"]
+[case.files]
+"z.bin" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "hexdump-squeeze-middle"
+argv = ["hexdump", "-C", "sq.bin"]
+tags = ["squeeze", "canonical"]
+[case.files]
+"sq.bin" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABhYmMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" }
+
+[[case]]
+id = "hexdump-squeeze-partial-tail"
+argv = ["hexdump", "-C", "sq3.bin"]
+tags = ["squeeze", "partial"]
+[case.files]
+"sq3.bin" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "hexdump-partial-equal-prefix"
+argv = ["hexdump", "-C", "sq2.bin"]
+tags = ["squeeze", "partial"]
+[case.files]
+"sq2.bin" = "aaaaaaaaaaaaaaaaaaaaaaaa"
+
+[[case]]
+id = "hexdump-no-squeezing"
+argv = ["hexdump", "-v", "-C", "z.bin"]
+tags = ["squeeze", "v"]
+[case.files]
+"z.bin" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "hexdump-no-squeezing-long"
+argv = ["hexdump", "--no-squeezing", "z.bin"]
+tags = ["squeeze", "v", "long"]
+[case.files]
+"z.bin" = { content_b64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "hexdump-squeeze-repeated-text"
+argv = ["hexdump", "-C", "rep.txt"]
+tags = ["squeeze"]
+[case.files]
+"rep.txt" = "0123456789abcdef0123456789abcdef0123456789abcdefXYZ0123456789abcdef0123456789abcdef"
+
+[[case]]
+id = "hexdump-two-files"
+argv = ["hexdump", "-C", "a", "a"]
+tags = ["files"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-canonical-twice"
+argv = ["hexdump", "-C", "-C", "a"]
+tags = ["format", "multi"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-octal-and-char"
+argv = ["hexdump", "-b", "-c", "a"]
+tags = ["format", "multi"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-length"
+argv = ["hexdump", "-n", "5", "-C", "a"]
+tags = ["length"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-length-hex"
+argv = ["hexdump", "-n", "0x5", "-C", "a"]
+tags = ["length", "size"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-length-octal"
+argv = ["hexdump", "-n", "010", "-C", "a"]
+tags = ["length", "size"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-length-suffix"
+argv = ["hexdump", "-n", "1K", "-C", "a"]
+tags = ["length", "size"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-length-fraction"
+argv = ["hexdump", "-n", "0.01KB", "-C", "a"]
+tags = ["length", "size"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-length-zero-missing-file"
+argv = ["hexdump", "-n", "0", "nonexist"]
+tags = ["length", "error"]
+
+[[case]]
+id = "hexdump-length-across-files"
+argv = ["hexdump", "-n", "25", "-C", "a", "a"]
+tags = ["length", "files"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-length-block-boundary"
+argv = ["hexdump", "-n", "16", "a"]
+tags = ["length"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-skip"
+argv = ["hexdump", "-s", "5", "-C", "a"]
+tags = ["skip"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-skip-equal-size"
+argv = ["hexdump", "-s", "20", "a"]
+tags = ["skip"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-skip-past-end"
+argv = ["hexdump", "-s", "21", "a"]
+tags = ["skip"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-skip-into-second-file"
+argv = ["hexdump", "-s", "30", "-C", "a", "a"]
+tags = ["skip", "files"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-skip-and-length"
+argv = ["hexdump", "-s", "3", "-n", "6", "-C", "a"]
+tags = ["skip", "length"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-skip-suffix-b"
+argv = ["hexdump", "-s", "0x2", "-x", "a"]
+tags = ["skip", "size"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-skip-stdin"
+argv = ["hexdump", "-s", "2"]
+stdin = "hello\n"
+tags = ["skip", "stdin", "error"]
+
+[[case]]
+id = "hexdump-skip-dash-file"
+argv = ["hexdump", "-s", "2", "-"]
+stdin = "hello\n"
+tags = ["skip", "error"]
+
+[[case]]
+id = "hexdump-long-options"
+argv = ["hexdump", "--canonical", "--length=3", "--skip", "2", "a"]
+tags = ["long"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-long-prefix"
+argv = ["hexdump", "--len", "3", "--one-byte-c", "a"]
+tags = ["long"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-long-ambiguous"
+argv = ["hexdump", "--one", "a"]
+tags = ["long", "error"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-permuted-operands"
+argv = ["hexdump", "a", "-C"]
+tags = ["getopt"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-help"
+argv = ["hexdump", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "hd-help"
+argv = ["hd", "-h"]
+tags = ["help", "hd"]
+
+[[case]]
+id = "hexdump-version"
+argv = ["hexdump", "-V"]
+tags = ["version"]
+
+[[case]]
+id = "hd-version"
+argv = ["hd", "--version"]
+tags = ["version", "hd"]
+
+[[case]]
+id = "hexdump-missing-file"
+argv = ["hexdump", "nonexist"]
+tags = ["error"]
+
+[[case]]
+id = "hexdump-missing-then-file"
+argv = ["hexdump", "-C", "nonexist", "a"]
+tags = ["error", "files"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-file-then-missing"
+argv = ["hexdump", "-C", "a", "nonexist"]
+tags = ["error", "files"]
+[case.files]
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-directory"
+argv = ["hexdump", "d"]
+tags = ["error"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "hexdump-directory-then-file"
+argv = ["hexdump", "-C", "d", "a"]
+tags = ["error", "files"]
+[case.files]
+"d" = { dir = true }
+"a" = "0123456789abcdefghij"
+
+[[case]]
+id = "hexdump-dash-is-a-file"
+argv = ["hexdump", "-"]
+stdin = "abc"
+tags = ["error"]
+
+[[case]]
+id = "hexdump-invalid-option"
+argv = ["hexdump", "-Q", "a"]
+tags = ["error", "getopt"]
+
+[[case]]
+id = "hexdump-unrecognized-option"
+argv = ["hexdump", "--foo", "a"]
+tags = ["error", "getopt"]
+
+[[case]]
+id = "hexdump-missing-argument"
+argv = ["hexdump", "-e"]
+tags = ["error", "getopt"]
+
+[[case]]
+id = "hd-invalid-option"
+argv = ["hd", "-Z"]
+tags = ["error", "getopt", "hd"]
+
+[[case]]
+id = "hexdump-length-invalid"
+argv = ["hexdump", "-n", "abc", "a"]
+tags = ["error", "size"]
+
+[[case]]
+id = "hexdump-length-negative"
+argv = ["hexdump", "-n", "-1", "a"]
+tags = ["error", "size"]
+
+[[case]]
+id = "hexdump-length-overflow"
+argv = ["hexdump", "-n", "99999999999999999999999", "a"]
+tags = ["error", "size"]
+
+[[case]]
+id = "hexdump-length-suffix-overflow"
+argv = ["hexdump", "-n", "1Y", "a"]
+tags = ["error", "size"]
+
+[[case]]
+id = "hexdump-length-bad-suffix"
+argv = ["hexdump", "-n", "1R", "a"]
+tags = ["error", "size"]
+
+[[case]]
+id = "hexdump-skip-invalid"
+argv = ["hexdump", "-s", "5x", "a"]
+tags = ["error", "size"]

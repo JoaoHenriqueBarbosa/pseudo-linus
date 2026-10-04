@@ -1,0 +1,28 @@
+[package]
+name = "ul-procps"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "procps do pseudo-linus: ps, top, free, uptime, pgrep, pkill, pidof, kill, killall, watch"
+
+[dependencies]
+sysabi.workspace = true
+# Fachada com a forma do std: stdout com a bufferização da glibc, /etc/passwd do sandbox, Command.
+sysio.workspace = true
+# getopt_long da glibc, E/S sobre sysabi e hora local (módulo util do ul-misc).
+ul-misc = { path = "../ul-misc" }
+jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }
+# Backend provisório das ERE do pgrep/pkill/killall -r (src/matcher.rs), até o regex-posix publicar
+# a API.
+regex = "1"
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing" }
+# Leitura das saídas esperadas capturadas do procps real (tests/fixtures/*.expected.json).
+serde_json = "1"
+
+[lints]
+workspace = true

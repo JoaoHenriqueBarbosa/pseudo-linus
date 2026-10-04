@@ -1,0 +1,148 @@
+# Comandos (fora o ps) rodados sobre basic.fixture.
+free
+free -b
+free -k
+free -m
+free -g
+free --kilo
+free --mega
+free --giga
+free --tera
+free --peta
+free --kibi
+free --mebi
+free --gibi
+free --tebi
+free --pebi
+free -h
+free -h --si
+free --si
+free -l
+free -L
+free -t
+free -v
+free -w
+free -wt
+free -h -w
+free -c 2 -s 1
+free -s 1 -c 3 -L
+free -m -t -v -l
+uptime
+uptime -p
+uptime -s
+uptime -r
+uptime -c
+top -b -n 1
+top -b -n 2 -d 1
+top -b -n 1 -w 200
+top -b -n 1 -w 60
+COLUMNS=100 top -b -n 1
+top -b -n 1 -p 1,40
+top -b -n 1 -u nobody
+top -b -n 1 -U 1234
+top -b -n 1 -o RES
+top -b -n 1 -o %MEM
+top -b -n 1 -H
+top -b -n 1 -1
+top -b -n 1 -c
+top -b -n 1 -E g
+top -b -n 1 -e m
+top -b -n 1 -i
+top -b -n 1 -S
+top -b -n 1 -s
+top -b -n 1 -O
+top -n 1
+top -b -n 1 -o BOGUS
+top -b -n 1 -p 99999
+top -b -n 0
+pgrep sleep
+pgrep -l worker
+pgrep -a worker
+pgrep -f threads
+pgrep -x sleep
+pgrep -x slee
+pgrep -c .
+pgrep -d , .
+pgrep -d -- .
+pgrep -l .
+pgrep -a .
+pgrep -v sleep
+pgrep -n .
+pgrep -o .
+pgrep -u nobody
+pgrep -u 0 -l
+pgrep -U 1234 -l
+pgrep -G 65534
+pgrep -g 7
+pgrep -P 1
+pgrep -P 7 -l
+pgrep -s 40
+pgrep -s 0 -l
+pgrep -t pts/0 -l
+pgrep -t pts/1 -l
+pgrep -r Z -l
+pgrep -r R,Z -l
+pgrep -r S -l
+pgrep -i WORKER
+pgrep -w worker
+pgrep -w -l worker
+pgrep -O 800 -l
+pgrep -O 999 -l
+pgrep 'x\) \(y'
+pgrep -f '^\./x'
+pgrep -l '^[[:alpha:]]+$'
+pgrep -l 'k[a-z]+er'
+pgrep -l '\<ps\>'
+pgrep -l kworker/u8:2
+pgrep -x -l kworker/u8:2
+pgrep -A -l .
+pgrep 1234567890123456
+pgrep -f 1234567890123456
+pgrep -x 1234567890123456
+pgrep --signal 9 sleep
+pgrep -e sleep
+pgrep -q sleep
+pkill -0 -e sleep
+pkill -0 -c sleep
+pkill -0 worker
+pkill -0 -e -l worker
+pkill --signal 0 -e -P 1,7
+pkill -SIGCONT -e -x zombie
+pidwait -c nosuch
+pidwait -e -c nosuch
+pgrep -F /nonexistent
+pidof sleep
+pidof bash
+pidof ps
+pidof worker
+pidof zombie
+pidof kworker/u8:2
+pidof -z zombie
+pidof -s bash
+pidof -o 7 sleep bash
+pidof -d : bash sleep
+pidof -q bash
+pidof /usr/bin/worker
+pidof -x worker
+pidof 'x) (y'
+killall -0 sleep
+killall -0 -v sleep
+killall -0 nosuch
+killall -0 -q nosuch
+killall -0 -e worker
+killall -0 -u nobody worker
+killall -0 -u root worker
+killall -0 -r 'w.*r'
+killall -0 -I SLEEP
+killall -0 -g sleep
+killall -0 -y 1m sleep
+killall -0 -o 1m sleep
+killall -0 -v -o 10m sleep
+killall -l
+killall -0 zombie
+killall -0 kworker/u8:2
+killall -0 'x) (y'
+killall -0 -v sleep worker nosuch
+kill -0 7
+kill -0 7 99999
+kill -l

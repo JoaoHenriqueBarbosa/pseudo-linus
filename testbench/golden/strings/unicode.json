@@ -1,0 +1,252 @@
+{
+  "strings-unicode-before-encoding": {
+    "stdout": "caf\\u00e9 au lait\neuro \\u20ac sign\nsmile \\u07c600 face\nbad \n byte here\nover \\u002f long\nsurr \\ud800 gate\nfive \\u020000\n byte\n\\u00e9\\u00e9\\u00e9\\u00e9\ntrunc \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-default": {
+    "stdout": "      5  au lait\n     14 euro \n     22  sign\n     28 smile \n     38  face\n     44 bad \n     49  byte here\n     60 over \n     67  long\n     73 surr \n     81  gate\n     87 five \n     97  byte\n    123 trunc \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-default-eight-bit": {
+    "stdout": {
+      "b64": "Y2Fmw6kgYXUgbGFpdApldXJvIOKCrCBzaWduCnNtaWxlIPCfmIAgZmFjZQpiYWQgwyBieXRlIGhlcmUKb3ZlciDAryBsb25nCnN1cnIg7aCAIGdhdGUKZml2ZSD4iICAgCBieXRlCsOpw6kKw6nDqcOpw6kKeOKCrHkKdHJ1bmMg4oIK"
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-defect-chain": {
+    "stdout": "      0 ABCD\n4294967301 EFGH\n4294967306 IJKL\n4294967311 MNOP\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bug1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "9ecb1a4e959ffb6d1f783841c28a711dd831e87dd1c47803805b9d9ca1c7e18f",
+        "data": {
+          "b64": "QUJDRMNFRkdIw0lKS0zDTU5PUAA="
+        }
+      }
+    }
+  },
+  "strings-unicode-defect-mix": {
+    "stdout": "      0 AAAA\n100000005 <0xc3a9>BBBB\n      c AAAA\n     12 BBBB\n     17 ABCD\n10000001d EFGH\n     22 ABCD\n     29 EFGH\n     31 CDEF\n     36 ABCD\n     3d FGHI\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bug2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 66,
+        "sha256": "ed9169191585ef99a4dbe1b2e98c5323fdbb81211b74c47df540d91ac1b5c2a1",
+        "data": {
+          "b64": "QUFBQcPDqUJCQkIAQUFBQcPDQkJCQgBBQkNE4oJFRkdIAEFCQ0TiggFFRkdIAEFCw0NERUYAQUJDRMNFAUZHSEkA"
+        }
+      }
+    }
+  },
+  "strings-unicode-defect-octal-min2": {
+    "stdout": "      0 AAAA\n40000000005 \\u00e9BBBB\n     14 AAAA\n     22 BBBB\n     27 ABCD\n40000000035 EFGH\n     42 ABCD\n     51 EFGH\n     56 AB\n40000000061 CDEF\n     66 ABCD\n     75 FGHI\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bug2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 66,
+        "sha256": "ed9169191585ef99a4dbe1b2e98c5323fdbb81211b74c47df540d91ac1b5c2a1",
+        "data": {
+          "b64": "QUFBQcPDqUJCQkIAQUFBQcPDQkJCQgBBQkNE4oJFRkdIAEFCQ0TiggFFRkdIAEFCw0NERUYAQUJDRMNFAUZHSEkA"
+        }
+      }
+    }
+  },
+  "strings-unicode-escape": {
+    "stdout": "caf\\u00e9 au lait\neuro \\u20ac sign\nsmile \\u07c600 face\nbad \n byte here\nover \\u002f long\nsurr \\ud800 gate\nfive \\u020000\n byte\n\\u00e9\\u00e9\\u00e9\\u00e9\ntrunc \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-escape-long": {
+    "stdout": "caf\\u00e9 au lait\neuro \\u20ac sign\nsmile \\u07c600 face\nbad \n byte here\nover \\u002f long\nsurr \\ud800 gate\nfive \\u020000\n byte\n\\u00e9\\u00e9\n\\u00e9\\u00e9\\u00e9\\u00e9\nx\\u20acy\ntrunc \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-forces-eight-bit": {
+    "stdout": "caf\\u00e9 au lait\neuro \\u20ac sign\nsmile \\u07c600 face\nbad \n byte here\nover \\u002f long\nsurr \\ud800 gate\nfive \\u020000\n byte\n\\u00e9\\u00e9\\u00e9\\u00e9\ntrunc \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-hex": {
+    "stdout": "caf<0xc3a9> au lait\neuro <0xe282ac> sign\nsmile <0xf09f9880> face\nbad \n byte here\nover <0xc0af> long\nsurr <0xeda080> gate\nfive <0xf8888080>\n byte\n<0xc3a9><0xc3a9><0xc3a9><0xc3a9>\ntrunc \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-hex-names-radix": {
+    "stdout": "utf:       0 caf<0xc3a9> au lait\nutf:       e euro <0xe282ac> sign\nutf:      1c smile <0xf09f9880> face\nutf:      2c bad \nutf: 100000031  byte here\nutf:      3c over <0xc0af> long\nutf:      49 surr <0xeda080> gate\nutf:      57 five <0xf8888080>\nutf:      61  byte\nutf:      6c <0xc3a9><0xc3a9><0xc3a9><0xc3a9>\nutf:      7b trunc \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-highlight-pipe": {
+    "stdout": "caf\\u00e9 au lait\neuro \\u20ac sign\nsmile \\u07c600 face\nbad \n byte here\nover \\u002f long\nsurr \\ud800 gate\nfive \\u020000\n byte\n\\u00e9\\u00e9\\u00e9\\u00e9\ntrunc \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-invalid": {
+    "stdout": "      5  au lait\n     14 euro \n     22  sign\n     28 smile \n     38  face\n     44 bad \n4294967345  byte here\n     60 over \n     67  long\n     73 surr \n     81  gate\n     87 five \n     97  byte\n    123 trunc \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-locale": {
+    "stdout": {
+      "b64": "Y2FmwyBhdSBsYWl0CmV1cm8g4iBzaWduCnNtaWxlIPAgZmFjZQpiYWQgCiBieXRlIGhlcmUKb3ZlciDAIGxvbmcKc3VyciDtIGdhdGUKZml2ZSD4CiBieXRlCsPDCsPDw8MKeOJ5CnRydW5jIAo="
+    },
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "utf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "1baa4d041f74b79e9f62fa521fa3ea50a8af9fbe149af8017e29d00433f996e0",
+        "data": {
+          "b64": "Y2Fmw6kgYXUgbGFpdABldXJvIOKCrCBzaWduAHNtaWxlIPCfmIAgZmFjZQBiYWQgwyBieXRlIGhlcmUAb3ZlciDAryBsb25nAHN1cnIg7aCAIGdhdGUAZml2ZSD4iICAgCBieXRlAMOpw6kAw6nDqcOpw6kAeOKCrHkAdHJ1bmMg4oI="
+        }
+      }
+    }
+  },
+  "strings-unicode-stdin": {
+    "stdout": "{standard input}: caf\\u00e9 au lait\n{standard input}: euro \\u20ac sign\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "strings-unicode-whitespace": {
+    "stdout": "      0 ABCD|4294967301 EFGH|4294967306 IJKL|4294967311 MNOP|",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bug1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "9ecb1a4e959ffb6d1f783841c28a711dd831e87dd1c47803805b9d9ca1c7e18f",
+        "data": {
+          "b64": "QUJDRMNFRkdIw0lKS0zDTU5PUAA="
+        }
+      }
+    }
+  }
+}

@@ -18,6 +18,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloc-no-stdlib"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc7bb162ec39d46ab1ca8c77bf72e890535becd1751bb45f64c597edb4c8c6b3"
+
+[[package]]
+name = "alloc-stdlib"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e76a019e91224d279006ff972f1e984179a6e9feb050adba6ce8274aef23195"
+dependencies = [
+ "alloc-no-stdlib",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -192,26 +207,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bincode"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36eaf5d7b090263e8150820482d5d93cd964a81e4019913c972f4edcc6edb740"
-dependencies = [
- "bincode_derive",
- "serde",
- "unty",
-]
-
-[[package]]
-name = "bincode_derive"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf95709a440f45e986983918d0e8a1f30a9b1df04918fc828670606804ac3c09"
-dependencies = [
- "virtue",
-]
-
-[[package]]
 name = "bindgen"
 version = "0.72.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -316,6 +311,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa"
 dependencies = [
  "hybrid-array",
+]
+
+[[package]]
+name = "brotli-decompressor"
+version = "5.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a32acac15fe1967bc3986b2a6347dffc965602354ea6f450ad07e8bfd253583"
+dependencies = [
+ "alloc-no-stdlib",
+ "alloc-stdlib",
 ]
 
 [[package]]
@@ -428,9 +433,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aa79e62e7697b8e29b513a68abacf485adcd1fe8284a4316c5ae868e6633327"
 dependencies = [
  "iana-time-zone",
- "js-sys",
  "num-traits",
- "wasm-bindgen",
  "windows-link",
 ]
 
@@ -652,27 +655,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "csv"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52cd9d68cf7efc6ddfaaee42e7288d3a99d613d4b50f76ce9827ae0c6e14f938"
-dependencies = [
- "csv-core",
- "itoa",
- "ryu",
- "serde_core",
-]
-
-[[package]]
-name = "csv-core"
-version = "0.1.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "704a3c26996a80471189265814dbc2c257598b96b8a7feae2d31ace646bb9782"
-dependencies = [
- "memchr",
-]
-
-[[package]]
 name = "data-encoding"
 version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -831,18 +813,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
-name = "dyf"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "211269620e9ef07af6595fadc0ba45e55c841540e1c426616d06240148d8fcb3"
-dependencies = [
- "pest",
- "pest_derive",
- "serde",
- "thiserror 2.0.21",
-]
-
-[[package]]
 name = "dyn-clone"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -959,17 +929,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flaglet"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16d007108685021290baa749dca70158f919e8fbc9e54753a8052b0c10e983c2"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
 name = "flate2"
 version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1057,15 +1016,6 @@ name = "foreign-types-shared"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
-
-[[package]]
-name = "fs-walk"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "746935557bc3cc8ee58275bb0209f7515bc09a8f58037ae9816bd231bfcc920e"
-dependencies = [
- "blake3",
-]
 
 [[package]]
 name = "fs_extra"
@@ -1311,6 +1261,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
+ "kernel",
  "landlock",
  "libc",
  "mimalloc",
@@ -1332,6 +1283,7 @@ dependencies = [
  "tracing-subscriber",
  "tracking-allocator",
  "ureq",
+ "userland",
 ]
 
 [[package]]
@@ -2074,29 +2026,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "magic-db"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5733f71e8b369ae0936d1a40fa17aea9261166436ed38281c6c89feb4a573f12"
-dependencies = [
- "magic-embed",
- "pure-magic",
-]
-
-[[package]]
-name = "magic-embed"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "546e353f65f02a77f895d9b38bb50a1bd623e198c7b4cdd5e69870d89b264029"
-dependencies = [
- "fs-walk",
- "proc-macro2",
- "pure-magic",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2120,15 +2049,6 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
-
-[[package]]
-name = "memmap2"
-version = "0.9.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0"
-dependencies = [
- "libc",
-]
 
 [[package]]
 name = "mimalloc"
@@ -2388,48 +2308,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
-name = "pest"
-version = "2.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45d3aca230fad2e6f6317ca0a72724338c4960cb97168a85cdee66df4a9a21a8"
-dependencies = [
- "memchr",
- "ucd-trie",
-]
-
-[[package]]
-name = "pest_derive"
-version = "2.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "284b60557f2c4a2e72ad3f2d34d42685a2fa4a6a61d0d2a10c0ae2a5e916c2cf"
-dependencies = [
- "pest",
- "pest_generator",
-]
-
-[[package]]
-name = "pest_generator"
-version = "2.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d9d1f08a115309ee99268cf85e5228e0e56aa9caf8841ec12866b6be07c3109"
-dependencies = [
- "pest",
- "pest_meta",
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "pest_meta"
-version = "2.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed93ba1a9ffcca32130a5188701c81c0c49cf00d4b7c5007d5148951d743adcb"
-dependencies = [
- "pest",
-]
-
-[[package]]
 name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2449,6 +2327,18 @@ dependencies = [
  "pl-testing",
  "sysabi",
  "userland",
+]
+
+[[package]]
+name = "pl-findutils"
+version = "0.10.0"
+dependencies = [
+ "chrono",
+ "pl-uucore",
+ "pl-walkdir",
+ "regex",
+ "regex-posix",
+ "sysio",
 ]
 
 [[package]]
@@ -2614,6 +2504,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pl-walkdir"
+version = "2.5.0"
+dependencies = [
+ "sysio",
+]
+
+[[package]]
 name = "portable-atomic"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2734,31 +2631,6 @@ checksum = "4dcd034599e63b970727f70d79e02d62390a4a84f7c6b827c27c46d5ac3fa622"
 dependencies = [
  "ar_archive_writer",
  "cc",
-]
-
-[[package]]
-name = "pure-magic"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41ada465d7ee72ebb09a4f3281cb54669dc4ef83a4b002c1d799d3878f65def5"
-dependencies = [
- "bincode",
- "chrono",
- "csv",
- "dyf",
- "flaglet",
- "flate2",
- "memchr",
- "memmap2",
- "pest",
- "pest_derive",
- "regex",
- "serde",
- "serde_json",
- "tar",
- "thiserror 2.0.21",
- "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -2990,10 +2862,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "ryu"
-version = "1.0.23"
+name = "ruzstd"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
+checksum = "e5ff0cc5e135c8870a775d3320910cd9b564ec036b4dc0b8741629020be63f01"
+dependencies = [
+ "twox-hash",
+]
 
 [[package]]
 name = "safe_arch"
@@ -3202,6 +3077,7 @@ version = "0.1.0"
 dependencies = [
  "brush-parser",
  "pl-testing",
+ "regex-posix",
  "stacker",
  "sysabi",
 ]
@@ -3404,7 +3280,6 @@ checksum = "3f6221d9a6003c78398e3b239969f352578258df48c8eb051caadae0015bc840"
 dependencies = [
  "filetime",
  "libc",
- "xattr",
 ]
 
 [[package]]
@@ -3714,12 +3589,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
 
 [[package]]
-name = "ucd-trie"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2896d95c02a80c6d6a5d6e953d479f5ddf2dfdb6a244441010e373ac0fb88971"
-
-[[package]]
 name = "ul-archive"
 version = "0.1.0"
 dependencies = [
@@ -3751,6 +3620,7 @@ dependencies = [
  "serde_json",
  "stacker",
  "sysabi",
+ "userland",
 ]
 
 [[package]]
@@ -3784,6 +3654,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ul-findutils"
+version = "0.1.0"
+dependencies = [
+ "pl-findutils",
+ "sysabi",
+ "sysio",
+]
+
+[[package]]
 name = "ul-git"
 version = "0.1.0"
 dependencies = [
@@ -3806,6 +3685,8 @@ dependencies = [
  "jaq-core",
  "jaq-json",
  "jaq-std",
+ "jiff",
+ "jiff-tzdb",
  "pl-testing",
  "serde_json",
  "sysabi",
@@ -3817,14 +3698,27 @@ version = "0.1.0"
 dependencies = [
  "bigdecimal",
  "jiff",
- "magic-db",
  "num-bigint",
  "num-traits",
  "pl-testing",
- "pure-magic",
+ "regex-automata",
  "sysabi",
  "sysio",
  "unicode-width 0.2.2",
+]
+
+[[package]]
+name = "ul-net"
+version = "0.1.0"
+dependencies = [
+ "brotli-decompressor",
+ "flate2",
+ "httparse",
+ "pl-testing",
+ "rustls",
+ "rustls-pki-types",
+ "ruzstd",
+ "sysabi",
 ]
 
 [[package]]
@@ -3833,6 +3727,7 @@ version = "0.1.0"
 dependencies = [
  "jiff",
  "pl-testing",
+ "regex",
  "serde_json",
  "sysabi",
  "sysio",
@@ -3932,12 +3827,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
-name = "unty"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
-
-[[package]]
 name = "ureq"
 version = "3.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3981,9 +3870,11 @@ dependencies = [
  "ul-awk",
  "ul-coreutils",
  "ul-diff",
+ "ul-findutils",
  "ul-git",
  "ul-jq",
  "ul-misc",
+ "ul-net",
  "ul-procps",
  "ul-sqlite",
  "ul-textproc",
@@ -4053,16 +3944,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "uuid"
-version = "1.26.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ef6dac1e96601b4fb3acccccff2139741fcb757cb9a36089bf5be91cfb285ce"
-dependencies = [
- "js-sys",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "uutils_term_grid"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4100,12 +3981,6 @@ dependencies = [
  "rustix",
  "sysabi",
 ]
-
-[[package]]
-name = "virtue"
-version = "0.0.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 
 [[package]]
 name = "vsimd"

@@ -1,0 +1,140 @@
+tool = "archive"
+source = "manual"
+
+# Linha de comando do GNU tar 1.35: mensagens do argp e do tar, códigos 64 e 2, --help, --usage,
+# --version.
+
+[[case]]
+id = "tar-arg-no-mode"
+argv = ["tar"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-empty-create"
+argv = ["tar", "-cf", "x.tar"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-two-modes"
+argv = ["tar", "-ct"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-conflicting-compression"
+argv = ["tar", "-czjf", "x", "a"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-unrecognized"
+argv = ["tar", "--bogus"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-ambiguous"
+argv = ["tar", "--s"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-invalid-short"
+argv = ["tar", "-k", "-y"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-needs-arg"
+argv = ["tar", "-tf"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-long-needs-arg"
+argv = ["tar", "--file"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-no-arg-allowed"
+argv = ["tar", "--verbose=3"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-old-style-missing"
+argv = ["tar", "cvbf", "20"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-bad-sort"
+argv = ["tar", "-x", "--sort=foo"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-bad-blocking"
+argv = ["tar", "-x", "-b", "0"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-bad-format"
+argv = ["tar", "-x", "--format=foo"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-bad-quoting"
+argv = ["tar", "--quoting-style=foo", "-t"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-bad-strip"
+argv = ["tar", "-x", "--strip-components=x"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-bad-record"
+argv = ["tar", "-x", "--record-size=1000"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-bad-warning"
+argv = ["tar", "-x", "--warning=foo"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-bad-backup"
+argv = ["tar", "-x", "--backup=foo"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-bad-checkpoint"
+argv = ["tar", "-x", "--checkpoint=x"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-version"
+argv = ["tar", "--version"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-usage"
+argv = ["tar", "--usage"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-help"
+argv = ["tar", "--help"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-show-defaults"
+argv = ["tar", "--show-defaults"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-missing-archive"
+argv = ["tar", "-tf", "nope.tar"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-update-compressed"
+argv = ["tar", "-rzf", "x.tgz", "a"]
+tags = ["tar", "args"]
+
+[[case]]
+id = "tar-arg-help-first"
+argv = ["tar", "--help", "--bogus"]
+tags = ["tar", "args"]

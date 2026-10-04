@@ -1,0 +1,556 @@
+tool = "coreutils"
+source = "agent-style"
+
+# test, [, expr, factor e pathchk: o que importa é o exit code (0 verdadeiro, 1 falso, 2 erro; no
+# expr, 1 também quando o resultado é zero ou vazio) e a mensagem de erro exata. Todos rodam como
+# programa do coreutils (argv), não como builtin do bash.
+
+# test
+
+[[case]]
+id = "test-f-file"
+argv = ["test", "-f", "a.txt"]
+tags = ["test", "logic"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "test-f-dir"
+argv = ["test", "-f", "d"]
+tags = ["test", "logic"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "test-d"
+argv = ["test", "-d", "d"]
+tags = ["test", "logic"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "test-e-missing"
+argv = ["test", "-e", "nope"]
+tags = ["test", "logic"]
+
+[[case]]
+id = "test-s-empty"
+argv = ["test", "-s", "empty"]
+tags = ["test", "logic"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "test-s-nonempty"
+argv = ["test", "-s", "a.txt"]
+tags = ["test", "logic"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "test-x-executable"
+argv = ["test", "-x", "run.sh"]
+tags = ["test", "logic", "perms"]
+[case.files]
+"run.sh" = { content = "#!/bin/sh\n", mode = 0o755 }
+
+[[case]]
+id = "test-x-not-executable"
+argv = ["test", "-x", "a.txt"]
+tags = ["test", "logic", "perms"]
+[case.files]
+"a.txt" = "a\n"
+
+# Como root, -r e -w dão verdadeiro mesmo com modo 000; -x exige algum bit x.
+[[case]]
+id = "test-r-as-root"
+argv = ["test", "-r", "locked"]
+tags = ["test", "logic", "perms"]
+[case.files]
+"locked" = { content = "x\n", mode = 0o000 }
+
+[[case]]
+id = "test-w-as-root"
+argv = ["test", "-w", "locked"]
+tags = ["test", "logic", "perms"]
+[case.files]
+"locked" = { content = "x\n", mode = 0o000 }
+
+[[case]]
+id = "test-x-as-root-mode-000"
+argv = ["test", "-x", "locked"]
+tags = ["test", "logic", "perms"]
+[case.files]
+"locked" = { content = "x\n", mode = 0o000 }
+
+[[case]]
+id = "test-L-symlink"
+argv = ["test", "-L", "link"]
+tags = ["test", "logic", "symlink"]
+[case.files]
+"target.txt" = "t\n"
+"link" = { symlink = "target.txt" }
+
+[[case]]
+id = "test-h-dangling"
+argv = ["test", "-h", "link"]
+tags = ["test", "logic", "symlink"]
+[case.files]
+"link" = { symlink = "nope" }
+
+[[case]]
+id = "test-e-dangling"
+argv = ["test", "-e", "link"]
+tags = ["test", "logic", "symlink"]
+[case.files]
+"link" = { symlink = "nope" }
+
+[[case]]
+id = "test-z-empty"
+argv = ["test", "-z", ""]
+tags = ["test", "logic", "string"]
+
+[[case]]
+id = "test-n-nonempty"
+argv = ["test", "-n", "x"]
+tags = ["test", "logic", "string"]
+
+[[case]]
+id = "test-string-eq"
+argv = ["test", "abc", "=", "abc"]
+tags = ["test", "logic", "string"]
+
+[[case]]
+id = "test-string-ne"
+argv = ["test", "abc", "!=", "abc"]
+tags = ["test", "logic", "string"]
+
+[[case]]
+id = "test-string-double-eq"
+argv = ["test", "a", "==", "a"]
+tags = ["test", "logic", "string"]
+
+[[case]]
+id = "test-string-lt"
+argv = ["test", "abc", "<", "abd"]
+tags = ["test", "logic", "string"]
+
+[[case]]
+id = "test-int-eq"
+argv = ["test", "10", "-eq", "10"]
+tags = ["test", "logic", "integer"]
+
+[[case]]
+id = "test-int-gt-false"
+argv = ["test", "2", "-gt", "10"]
+tags = ["test", "logic", "integer"]
+
+[[case]]
+id = "test-int-negative-and-spaces"
+argv = ["test", " -3", "-lt", "+2 "]
+tags = ["test", "logic", "integer"]
+
+[[case]]
+id = "test-not"
+argv = ["test", "!", "-e", "nope"]
+tags = ["test", "logic"]
+
+[[case]]
+id = "test-and"
+argv = ["test", "-f", "a.txt", "-a", "-d", "d"]
+tags = ["test", "logic"]
+[case.files]
+"a.txt" = "a\n"
+"d" = { dir = true }
+
+[[case]]
+id = "test-or"
+argv = ["test", "-f", "nope", "-o", "-d", "d"]
+tags = ["test", "logic"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "test-and-false"
+argv = ["test", "-f", "nope", "-a", "-d", "d"]
+tags = ["test", "logic"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "test-parens"
+argv = ["test", "(", "a", "=", "b", ")", "-o", "x"]
+tags = ["test", "logic"]
+
+# As fixtures têm todas o mesmo mtime: nem -nt nem -ot; arquivo existente é mais novo que inexistente.
+[[case]]
+id = "test-nt-same-mtime"
+argv = ["test", "a.txt", "-nt", "b.txt"]
+tags = ["test", "logic", "time"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "test-ot-same-mtime"
+argv = ["test", "a.txt", "-ot", "b.txt"]
+tags = ["test", "logic", "time"]
+[case.files]
+"a.txt" = "a\n"
+"b.txt" = "b\n"
+
+[[case]]
+id = "test-nt-missing"
+argv = ["test", "a.txt", "-nt", "nope"]
+tags = ["test", "logic", "time"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "test-ef"
+argv = ["test", "link", "-ef", "target.txt"]
+tags = ["test", "logic", "symlink"]
+[case.files]
+"target.txt" = "t\n"
+"link" = { symlink = "target.txt" }
+
+[[case]]
+id = "test-no-args"
+argv = ["test"]
+tags = ["test", "logic"]
+
+# Com um argumento só, o test checa se a string é não vazia (até "-f" sozinho dá verdadeiro).
+[[case]]
+id = "test-one-arg"
+argv = ["test", "x"]
+tags = ["test", "logic"]
+
+[[case]]
+id = "test-one-arg-empty"
+argv = ["test", ""]
+tags = ["test", "logic"]
+
+[[case]]
+id = "test-one-arg-operator-like"
+argv = ["test", "-f"]
+tags = ["test", "logic"]
+
+[[case]]
+id = "test-invalid-integer"
+argv = ["test", "abc", "-eq", "1"]
+tags = ["test", "logic", "integer", "errno"]
+
+[[case]]
+id = "test-unknown-binary-operator"
+argv = ["test", "a", "-foo", "b"]
+tags = ["test", "logic", "errno"]
+
+[[case]]
+id = "test-extra-argument"
+argv = ["test", "a", "b", "c", "d", "e"]
+tags = ["test", "logic", "errno"]
+
+[[case]]
+id = "test-missing-paren"
+argv = ["test", "(", "a"]
+tags = ["test", "logic", "errno"]
+
+# [
+
+[[case]]
+id = "bracket-file"
+argv = ["[", "-f", "a.txt", "]"]
+tags = ["bracket", "test", "logic"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "bracket-false"
+argv = ["[", "-d", "a.txt", "]"]
+tags = ["bracket", "test", "logic"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "bracket-int"
+argv = ["[", "1", "-lt", "2", "]"]
+tags = ["bracket", "test", "logic", "integer"]
+
+[[case]]
+id = "bracket-string"
+argv = ["[", "abc", "=", "abc", "]"]
+tags = ["bracket", "test", "logic", "string"]
+
+[[case]]
+id = "bracket-empty"
+argv = ["[", "]"]
+tags = ["bracket", "test", "logic"]
+
+[[case]]
+id = "bracket-missing-close"
+argv = ["[", "-f", "a.txt"]
+tags = ["bracket", "test", "logic", "errno"]
+[case.files]
+"a.txt" = "a\n"
+
+[[case]]
+id = "bracket-invalid-integer"
+argv = ["[", "x", "-eq", "1", "]"]
+tags = ["bracket", "test", "logic", "integer", "errno"]
+
+[[case]]
+id = "bracket-unknown-operator"
+argv = ["[", "a", "-bogus", "b", "]"]
+tags = ["bracket", "test", "logic", "errno"]
+
+# expr
+
+[[case]]
+id = "expr-add"
+argv = ["expr", "1", "+", "2"]
+tags = ["expr", "logic", "arith"]
+
+[[case]]
+id = "expr-mul"
+argv = ["expr", "6", "*", "7"]
+tags = ["expr", "logic", "arith"]
+
+[[case]]
+id = "expr-div"
+argv = ["expr", "10", "/", "3"]
+tags = ["expr", "logic", "arith"]
+
+[[case]]
+id = "expr-mod"
+argv = ["expr", "10", "%", "3"]
+tags = ["expr", "logic", "arith"]
+
+[[case]]
+id = "expr-negative-div"
+argv = ["expr", "-7", "/", "2"]
+tags = ["expr", "logic", "arith"]
+
+[[case]]
+id = "expr-precedence-parens"
+argv = ["expr", "(", "1", "+", "2", ")", "*", "3"]
+tags = ["expr", "logic", "arith"]
+
+[[case]]
+id = "expr-zero-result"
+argv = ["expr", "5", "-", "5"]
+tags = ["expr", "logic", "arith"]
+
+[[case]]
+id = "expr-bignum"
+argv = ["expr", "99999999999999999999", "+", "1"]
+tags = ["expr", "logic", "arith"]
+
+[[case]]
+id = "expr-compare-true"
+argv = ["expr", "3", ">", "2"]
+tags = ["expr", "logic"]
+
+[[case]]
+id = "expr-compare-false"
+argv = ["expr", "3", "<", "2"]
+tags = ["expr", "logic"]
+
+[[case]]
+id = "expr-compare-numeric-not-lexical"
+argv = ["expr", "10", "<", "9"]
+tags = ["expr", "logic"]
+
+[[case]]
+id = "expr-string-eq"
+argv = ["expr", "abc", "=", "abc"]
+tags = ["expr", "logic", "string"]
+
+[[case]]
+id = "expr-or"
+argv = ["expr", "", "|", "b"]
+tags = ["expr", "logic"]
+
+[[case]]
+id = "expr-and-zero"
+argv = ["expr", "a", "&", "0"]
+tags = ["expr", "logic"]
+
+[[case]]
+id = "expr-and"
+argv = ["expr", "a", "&", "b"]
+tags = ["expr", "logic"]
+
+[[case]]
+id = "expr-length"
+argv = ["expr", "length", "olá mundo"]
+tags = ["expr", "logic", "string"]
+
+[[case]]
+id = "expr-substr"
+argv = ["expr", "substr", "hello", "2", "3"]
+tags = ["expr", "logic", "string"]
+
+[[case]]
+id = "expr-index"
+argv = ["expr", "index", "abcdef", "dc"]
+tags = ["expr", "logic", "string"]
+
+[[case]]
+id = "expr-match-group"
+argv = ["expr", "version-1.2.3", ":", "version-\\([0-9.]*\\)"]
+tags = ["expr", "logic", "regex"]
+
+[[case]]
+id = "expr-match-count"
+argv = ["expr", "hello", ":", "h.*l"]
+tags = ["expr", "logic", "regex"]
+
+[[case]]
+id = "expr-match-anchored"
+argv = ["expr", "xhello", ":", "hello"]
+tags = ["expr", "logic", "regex"]
+
+[[case]]
+id = "expr-match-keyword"
+argv = ["expr", "match", "abc", "a."]
+tags = ["expr", "logic", "regex"]
+
+[[case]]
+id = "expr-match-group-fail"
+argv = ["expr", "abc", ":", "x\\(.\\)"]
+tags = ["expr", "logic", "regex"]
+
+[[case]]
+id = "expr-empty-string"
+argv = ["expr", ""]
+tags = ["expr", "logic"]
+
+[[case]]
+id = "expr-syntax-missing-argument"
+argv = ["expr", "1", "+"]
+tags = ["expr", "logic", "errno"]
+
+[[case]]
+id = "expr-syntax-unexpected"
+argv = ["expr", "1", "2"]
+tags = ["expr", "logic", "errno"]
+
+[[case]]
+id = "expr-division-by-zero"
+argv = ["expr", "1", "/", "0"]
+tags = ["expr", "logic", "arith", "errno"]
+
+[[case]]
+id = "expr-non-integer"
+argv = ["expr", "a", "+", "1"]
+tags = ["expr", "logic", "arith", "errno"]
+
+[[case]]
+id = "expr-bad-regex"
+argv = ["expr", "abc", ":", "\\("]
+tags = ["expr", "logic", "regex", "errno"]
+
+[[case]]
+id = "expr-missing-operand"
+argv = ["expr"]
+tags = ["expr", "logic", "errno"]
+
+# factor
+
+[[case]]
+id = "factor-basic"
+argv = ["factor", "12"]
+tags = ["factor", "arith"]
+
+[[case]]
+id = "factor-multi"
+argv = ["factor", "1", "2", "97", "100", "360"]
+tags = ["factor", "arith"]
+
+[[case]]
+id = "factor-zero"
+argv = ["factor", "0"]
+tags = ["factor", "arith"]
+
+[[case]]
+id = "factor-stdin"
+argv = ["factor"]
+stdin = "6\n  15 21\n"
+tags = ["factor", "arith", "stdin"]
+
+[[case]]
+id = "factor-large-prime"
+argv = ["factor", "4294967291"]
+tags = ["factor", "arith"]
+
+[[case]]
+id = "factor-beyond-64-bits"
+argv = ["factor", "18446744073709551617", "340282366920938463463374607431768211456"]
+tags = ["factor", "arith", "bignum"]
+
+[[case]]
+id = "factor-exponents"
+argv = ["factor", "-h", "360", "1024"]
+tags = ["factor", "arith"]
+
+[[case]]
+id = "factor-invalid"
+argv = ["factor", "6", "abc", "10"]
+tags = ["factor", "arith", "errno"]
+
+[[case]]
+id = "factor-negative"
+argv = ["factor", "--", "-5"]
+tags = ["factor", "arith", "errno"]
+
+[[case]]
+id = "factor-float"
+argv = ["factor", "2.5"]
+tags = ["factor", "arith", "errno"]
+
+# pathchk
+
+[[case]]
+id = "pathchk-ok"
+argv = ["pathchk", "a/b/c.txt", "nodir/x"]
+tags = ["pathchk", "path"]
+
+[[case]]
+id = "pathchk-portable-ok"
+argv = ["pathchk", "-p", "src/main_v2.rs"]
+tags = ["pathchk", "path"]
+
+[[case]]
+id = "pathchk-p-nonportable-char"
+argv = ["pathchk", "-p", "meu arquivo.txt"]
+tags = ["pathchk", "path", "errno"]
+
+[[case]]
+id = "pathchk-p-utf8"
+argv = ["pathchk", "-p", "ação.txt"]
+tags = ["pathchk", "path", "errno"]
+
+[[case]]
+id = "pathchk-p-long-component"
+argv = ["pathchk", "-p", "nome_bem_comprido.txt"]
+tags = ["pathchk", "path", "errno"]
+
+[[case]]
+id = "pathchk-P-leading-dash"
+argv = ["pathchk", "-P", "--", "dir/-x"]
+tags = ["pathchk", "path", "errno"]
+
+[[case]]
+id = "pathchk-P-empty"
+argv = ["pathchk", "-P", ""]
+tags = ["pathchk", "path", "errno"]
+
+[[case]]
+id = "pathchk-portability"
+argv = ["pathchk", "--portability", "a b", "ok.txt"]
+tags = ["pathchk", "path", "errno"]
+
+[[case]]
+id = "pathchk-missing-operand"
+argv = ["pathchk"]
+tags = ["pathchk", "path", "errno"]

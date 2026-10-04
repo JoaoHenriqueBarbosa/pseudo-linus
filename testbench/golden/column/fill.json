@@ -1,0 +1,200 @@
+{
+  "column-fill-blank-lines-skipped": {
+    "stdout": "one two  three\tfour\t\tfive\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-c-overrides-env": {
+    "stdout": "alpha\tbeta\tgamma\tdelta\tepsilon\tzeta\teta\ttheta\tiota\tkappa\tlambda\tmu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-columns-env": {
+    "stdout": "alpha\tepsilon\tiota\nbeta\tzeta\tkappa\ngamma\teta\tlambda\ndelta\ttheta\tmu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-columns-env-invalid": {
+    "stdout": "alpha\tgamma\tepsilon\teta\tiota\tlambda\nbeta\tdelta\tzeta\ttheta\tkappa\tmu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-dash-is-file": {
+    "stdout": "",
+    "stderr": "column: -: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-fill-directory": {
+    "stdout": "",
+    "stderr": "column: read failed: Is a directory\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "f1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "column-fill-empty-input": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-files": {
+    "stdout": "x\ty\tz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "f2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c865f6c5ab8d1b0bcd383a5e1e3879d22681c96bf462c269b7581d523fbe70ab",
+        "data": "z\n"
+      }
+    }
+  },
+  "column-fill-invalid-utf8": {
+    "stdout": "\\xff\\xfeab\tc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-keep-empty": {
+    "stdout": "a\t\t\tb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-long-entry": {
+    "stdout": "a\nbb\nccccccccc\ndddd\ne\nf\ngggggggggggggggg\nh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-many-entries": {
+    "stdout": "one\t\teight\t\tfifteen\ntwo\t\tnine\t\tsixteen\nthree\t\tten\t\tseventeen\nfour\t\televen\t\teighteen\nfive\t\ttwelve\t\tnineteen\nsix\t\tthirteen\ttwenty\nseven\t\tfourteen\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-missing-file": {
+    "stdout": "x\ty\n",
+    "stderr": "column: nope: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "f1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "f2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "column-fill-no-final-newline": {
+    "stdout": "a\tb\tc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-nul-truncates": {
+    "stdout": "a\td\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-rows-seq": {
+    "stdout": "1\t2\t3\t4\t5\t6\t7\t8\t9\t10\n11\t12\t13\t14\t15\t16\t17\t18\t19\t20\n21\t22\t23\t24\t25\t26\t27\t28\t29\t30\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-rows-spaces": {
+    "stdout": "aaaaaaaaa  b\nc          d\ne          f\ng          h\ni          j\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-rows-width-40": {
+    "stdout": "alpha\tbeta\tgamma\tdelta\tepsilon\nzeta\teta\ttheta\tiota\tkappa\nlambda\tmu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-seq": {
+    "stdout": "1\t4\t7\t10\t13\t16\t19\t22\t25\t28\n2\t5\t8\t11\t14\t17\t20\t23\t26\t29\n3\t6\t9\t12\t15\t18\t21\t24\t27\t30\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-spaces": {
+    "stdout": "aaaaaaaaa c         e         g         i\nb         d         f         h         j\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-spaces-width": {
+    "stdout": "aaaaaaaaa  f\nb          g\nc          h\nd          i\ne          j\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-trailing-spaces-and-tab": {
+    "stdout": "a  \tb\tc\td\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-unicode": {
+    "stdout": "ação\n日本語\nzz\nolá mundo\nx\ny\nw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-wider-than-terminal": {
+    "stdout": "abcdefghij\nk\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-width-40": {
+    "stdout": "alpha\tdelta\teta\tkappa\nbeta\tepsilon\ttheta\tlambda\ngamma\tzeta\tiota\tmu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-fill-width-zero": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,349 @@
+tool = "archive"
+source = "manual"
+
+# xz 5.8.1 (e unxz, xzcat, lzma, unlzma, lzcat): compressão e descompressão em arquivo, -v com as
+# unidades do xz, -l/-lv/--robot, fluxos concatenados, enchimento, lixo no fim (fim inesperado ou
+# dado corrompido), .lzma e .lz lidos pelo modo automático, conferências de entrada, sufixos e erros.
+# Fixtures geradas pelo xz e pelo lzip do oráculo.
+
+[[case]]
+id = "xz-compress-file"
+argv = ["xz", "a.txt"]
+tags = ["xz", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "xz-compress-verbose-keep"
+argv = ["xz", "-kv", "a.txt"]
+tags = ["xz", "compress", "verbose"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "xz-compress-check-crc32"
+argv = ["xz", "-C", "crc32", "-c", "a.txt"]
+tags = ["xz", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "xz-compress-check-none"
+argv = ["xz", "--check=none", "-c", "a.txt"]
+tags = ["xz", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "xz-compress-lzma-format"
+argv = ["xz", "--format=lzma", "-k", "a.txt"]
+tags = ["xz", "compress", "lzma"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "lzma-compress"
+argv = ["lzma", "-v", "a.txt"]
+tags = ["xz", "compress", "lzma"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "xz-compress-stdin"
+argv = ["xz"]
+stdin = "from stdin\n"
+tags = ["xz", "compress", "stdin"]
+
+[[case]]
+id = "xz-compress-empty-verbose"
+argv = ["xz", "-v", "-c", "e"]
+tags = ["xz", "compress", "verbose"]
+[case.files]
+"e" = ""
+
+[[case]]
+id = "xz-already-suffix"
+argv = ["xz", "a.txt.xz", "b.txz"]
+tags = ["xz", "warning"]
+[case.files]
+"a.txt.xz" = "x\n"
+"b.txz" = "x\n"
+
+[[case]]
+id = "xz-output-exists"
+argv = ["xz", "a.txt"]
+tags = ["xz", "error"]
+[case.files]
+"a.txt" = "hello world\n"
+"a.txt.xz" = "old\n"
+
+[[case]]
+id = "xz-output-exists-force"
+argv = ["xz", "-f", "a.txt"]
+tags = ["xz", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+"a.txt.xz" = "old\n"
+
+[[case]]
+id = "xz-missing-dir-symlink"
+argv = ["xz", "nofile", "d", "lnk", "a.txt"]
+tags = ["xz", "error", "warning"]
+[case.files]
+"a.txt" = "hello world\n"
+"d/x" = "x\n"
+"lnk" = { symlink = "a.txt" }
+
+[[case]]
+id = "xz-symlink-force"
+argv = ["xz", "-f", "lnk"]
+tags = ["xz", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+"lnk" = { symlink = "a.txt" }
+
+[[case]]
+id = "xz-setuid-sticky"
+argv = ["xz", "run", "sticky"]
+tags = ["xz", "warning"]
+[case.files]
+"run" = { content = "#!/bin/sh\n", mode = 0o4755 }
+"sticky" = { content = "data\n", mode = 0o1644 }
+
+[[case]]
+id = "xz-decompress-file"
+argv = ["xz", "-dv", "a.txt.xz"]
+tags = ["xz", "decompress", "verbose"]
+[case.files]
+"a.txt.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWg==" }
+
+[[case]]
+id = "xz-decompress-names"
+argv = ["xz", "-d", "x.txz", "y.lzma", "z.lz"]
+tags = ["xz", "decompress"]
+[case.files]
+"x.txz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWg==" }
+"y.lzma" = { content_b64 = "XQAAgAD//////////wA0GUnujekXiTozX/yyCYIv//3igAA=" }
+"z.lz" = { content_b64 = "TFpJUAEMADQZSe6N6ReJOjNf/LIJgi///eKAAC07CK8MAAAAAAAAADAAAAAAAAAA" }
+
+[[case]]
+id = "xz-decompress-unknown-suffix"
+argv = ["xz", "-d", "noext"]
+tags = ["xz", "decompress", "warning"]
+[case.files]
+"noext" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWg==" }
+
+[[case]]
+id = "xz-decompress-not-xz"
+argv = ["xz", "-d", "plain.txt", "p.xz"]
+tags = ["xz", "decompress", "error"]
+[case.files]
+"plain.txt" = "plain\n"
+"p.xz" = "not xz at all\n"
+
+[[case]]
+id = "xz-dc-multi-and-padding"
+argv = ["xz", "-dc", "multi.xz", "pad.xz"]
+tags = ["xz", "decompress"]
+[case.files]
+"multi.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWv03elhaAAAE5ta0RgTAGiEhARYAAAAAAAAAAABrQTEO4AAgABJdADgbCEeCspz+OEcp6FIsbGiAAAAAAEoJRcdcYIXAAAE2IQA08+UftvN9AQAAAAAEWVo=" }
+"pad.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWgAAAAAAAAAA" }
+
+[[case]]
+id = "xz-dc-checks"
+argv = ["xz", "-dc", "nocheck.xz", "sha.xz", "crc32.xz"]
+tags = ["xz", "decompress"]
+[case.files]
+"nocheck.xz" = { content_b64 = "/Td6WFoAAAD/EtlBBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAAAEkDKYY2NgGcp56AQAAAAAAWVo=" }
+"sha.xz" = { content_b64 = "/Td6WFoAAArh+wyhBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAqUiQTy8PR5uPgZdpSzAYSw0u0cHNKh7A+4XSmaGSpEcAAUQMAXMlvRibS5oBAAAAAApZWg==" }
+"crc32.xz" = { content_b64 = "/Td6WFoAAAFpIt42BMD8Br1FIQEWAAAAAAAAAOU3lB/gIrwDdF0AGIKCjyJO+KZV9/CZpSUNkEWRWlG0m8qs3AUy7IVSn7FIbe/c6Eu5YbrgnFN/mMipVA78PSrTBtdmRD1WZKbNPdfHH0T0GN8CCz/ixsZ74ed/eUQcebdCrmW4G7UOhOGaggYjOVp/cqpD+qWaH5LAvkVxeUrVk8aQCjmtnGWHKrYaOMfhkxfK0D4J6rBS8BBgJsBeXxCRDbl5eH2XQmDQpjh34SPouyhPiFItdVgmP2b94pzr069h2TV6//tisTx8kxzyZLhNHIUqsVwABjYBSuu8BUjvXGi1PHGBnixs5GcGz4UqdQkZjLwXRA3NPGnGNsSenNLuOzUSPpNSl52R4U1WMV7K5ZaCr0AMhaNJVsiRakA1+RTkVS1RNSRShIAXIC1cA4zB6HotdXpchMTpN/6HGntFxJQA4Bhtn7cnwo/YzCtNgGyoI33GvTjvZ9QR4jCY4/9DIRI9ZaOXYSyn5o+R5xqmS1MjYzBYoXA+sZEDaU+KNphtRKxyRKB+1relBv/tPPdt6d2i/B/segwnYfD129/gZr/BUPtgVmYyqHgYxu6BQpHJ1J5AkpkqfuNnzwOjIMDDkEA5yM0WrMClbx5TTA/WeUqwh9dXI0iVZSFOibKFhCy8ELHZenZjLawmVZ75lFGNifCgr7EOtNZR7QDUsUOz63i7QvG/V3lwDzp7J6+ERryevwG1+4gMdxXyqsbzLOZm9hxgb9No76zPaRAa53gg32h/+ry2380Y3gkDOD9QQHR6qQ6iUwOjvy6ZkrH8dCpMActMivE0I8YKbOGvHfH/Kd/UUxIwj6PAOVVnuMhp9oSOeX6Yt74vg9H49YFmlxhZ24XOc3zjlIjlHLv3IDqtQEPbzk850+VaS+uXlDlYJAtHdPvEDErqpItWfeox2QntLWmW3D1sdNSaVDojFojXROG9AGag1WKKbfe1lG3ten7uRGolFl1FHB3KRiRHcBaTyzBe1gXZZaXEJPalUbeLbTjWsswHbCylTaWE0ZznsPYbIvV8I289Crd5q1MmD5wbc5JKiy9obzrvZd77MZuZHOASJjE01OimFenFSpxT9eR3R7mWltbGHXMNmPeGPwQ5tRdZOnym9yUSX6+FoBrIPJP8apzd1LuYcHseefP4x5bBLuIa0DJDYgXD0CSxczsfNnHRD3wYOYxuWqFCOgAAqZ35WgABlAe9RQAA9IXLbj4wDYsCAAAAAAFZWg==" }
+
+[[case]]
+id = "xz-t-trailing-junk"
+argv = ["xz", "-t", "trail.xz"]
+tags = ["xz", "test", "error"]
+[case.files]
+"trail.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWmp1bmsK" }
+
+[[case]]
+id = "xz-t-truncated-and-bad"
+argv = ["xz", "-t", "trunc.xz", "bad.xz", "pad.xz"]
+tags = ["xz", "test", "error"]
+[case.files]
+"trunc.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMD8Br1FIQEWAAAAAAAAAOU3lB/gIrwDdF0AGIKCjyJO+KZV9/CZpSUNkEWRWlG0m8qs3AUy7IVSn7FIbe/c6Eu5YbrgnFN/mMipVA78PSrTBtdmRD1WZKbNPdfHH0T0GN8CCz/ixsZ74ed/eUQcebdCrmW4G7UOhOGaggYjOVp/cqpD+qWaH5LAvkVxeUrVk8aQCjmtnGWHKrYaOMfhkxfK0D4J6rBS8BBgJsBeXxCRDbl5eH2XQmDQpjg=" }
+"bad.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVSgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWg==" }
+"pad.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWgAAAAAAAAAA" }
+
+[[case]]
+id = "xz-tv"
+argv = ["xz", "-tv", "a.txt.xz", "crc32.xz"]
+tags = ["xz", "test", "verbose"]
+[case.files]
+"a.txt.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWg==" }
+"crc32.xz" = { content_b64 = "/Td6WFoAAAFpIt42BMD8Br1FIQEWAAAAAAAAAOU3lB/gIrwDdF0AGIKCjyJO+KZV9/CZpSUNkEWRWlG0m8qs3AUy7IVSn7FIbe/c6Eu5YbrgnFN/mMipVA78PSrTBtdmRD1WZKbNPdfHH0T0GN8CCz/ixsZ74ed/eUQcebdCrmW4G7UOhOGaggYjOVp/cqpD+qWaH5LAvkVxeUrVk8aQCjmtnGWHKrYaOMfhkxfK0D4J6rBS8BBgJsBeXxCRDbl5eH2XQmDQpjh34SPouyhPiFItdVgmP2b94pzr069h2TV6//tisTx8kxzyZLhNHIUqsVwABjYBSuu8BUjvXGi1PHGBnixs5GcGz4UqdQkZjLwXRA3NPGnGNsSenNLuOzUSPpNSl52R4U1WMV7K5ZaCr0AMhaNJVsiRakA1+RTkVS1RNSRShIAXIC1cA4zB6HotdXpchMTpN/6HGntFxJQA4Bhtn7cnwo/YzCtNgGyoI33GvTjvZ9QR4jCY4/9DIRI9ZaOXYSyn5o+R5xqmS1MjYzBYoXA+sZEDaU+KNphtRKxyRKB+1relBv/tPPdt6d2i/B/segwnYfD129/gZr/BUPtgVmYyqHgYxu6BQpHJ1J5AkpkqfuNnzwOjIMDDkEA5yM0WrMClbx5TTA/WeUqwh9dXI0iVZSFOibKFhCy8ELHZenZjLawmVZ75lFGNifCgr7EOtNZR7QDUsUOz63i7QvG/V3lwDzp7J6+ERryevwG1+4gMdxXyqsbzLOZm9hxgb9No76zPaRAa53gg32h/+ry2380Y3gkDOD9QQHR6qQ6iUwOjvy6ZkrH8dCpMActMivE0I8YKbOGvHfH/Kd/UUxIwj6PAOVVnuMhp9oSOeX6Yt74vg9H49YFmlxhZ24XOc3zjlIjlHLv3IDqtQEPbzk850+VaS+uXlDlYJAtHdPvEDErqpItWfeox2QntLWmW3D1sdNSaVDojFojXROG9AGag1WKKbfe1lG3ten7uRGolFl1FHB3KRiRHcBaTyzBe1gXZZaXEJPalUbeLbTjWsswHbCylTaWE0ZznsPYbIvV8I289Crd5q1MmD5wbc5JKiy9obzrvZd77MZuZHOASJjE01OimFenFSpxT9eR3R7mWltbGHXMNmPeGPwQ5tRdZOnym9yUSX6+FoBrIPJP8apzd1LuYcHseefP4x5bBLuIa0DJDYgXD0CSxczsfNnHRD3wYOYxuWqFCOgAAqZ35WgABlAe9RQAA9IXLbj4wDYsCAAAAAAFZWg==" }
+
+[[case]]
+id = "xz-single-stream"
+argv = ["xz", "-dc", "--single-stream", "multi.xz"]
+tags = ["xz", "decompress"]
+[case.files]
+"multi.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWv03elhaAAAE5ta0RgTAGiEhARYAAAAAAAAAAABrQTEO4AAgABJdADgbCEeCspz+OEcp6FIsbGiAAAAAAEoJRcdcYIXAAAE2IQA08+UftvN9AQAAAAAEWVo=" }
+
+[[case]]
+id = "xz-list"
+argv = ["xz", "-l", "multi.xz", "sha.xz", "nocheck.xz", "pad.xz"]
+tags = ["xz", "list"]
+[case.files]
+"multi.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWv03elhaAAAE5ta0RgTAGiEhARYAAAAAAAAAAABrQTEO4AAgABJdADgbCEeCspz+OEcp6FIsbGiAAAAAAEoJRcdcYIXAAAE2IQA08+UftvN9AQAAAAAEWVo=" }
+"sha.xz" = { content_b64 = "/Td6WFoAAArh+wyhBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAqUiQTy8PR5uPgZdpSzAYSw0u0cHNKh7A+4XSmaGSpEcAAUQMAXMlvRibS5oBAAAAAApZWg==" }
+"nocheck.xz" = { content_b64 = "/Td6WFoAAAD/EtlBBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAAAEkDKYY2NgGcp56AQAAAAAAWVo=" }
+"pad.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWgAAAAAAAAAA" }
+
+[[case]]
+id = "xz-list-verbose"
+argv = ["xz", "-lv", "multi.xz", "crc32.xz"]
+tags = ["xz", "list", "verbose"]
+[case.files]
+"multi.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWv03elhaAAAE5ta0RgTAGiEhARYAAAAAAAAAAABrQTEO4AAgABJdADgbCEeCspz+OEcp6FIsbGiAAAAAAEoJRcdcYIXAAAE2IQA08+UftvN9AQAAAAAEWVo=" }
+"crc32.xz" = { content_b64 = "/Td6WFoAAAFpIt42BMD8Br1FIQEWAAAAAAAAAOU3lB/gIrwDdF0AGIKCjyJO+KZV9/CZpSUNkEWRWlG0m8qs3AUy7IVSn7FIbe/c6Eu5YbrgnFN/mMipVA78PSrTBtdmRD1WZKbNPdfHH0T0GN8CCz/ixsZ74ed/eUQcebdCrmW4G7UOhOGaggYjOVp/cqpD+qWaH5LAvkVxeUrVk8aQCjmtnGWHKrYaOMfhkxfK0D4J6rBS8BBgJsBeXxCRDbl5eH2XQmDQpjh34SPouyhPiFItdVgmP2b94pzr069h2TV6//tisTx8kxzyZLhNHIUqsVwABjYBSuu8BUjvXGi1PHGBnixs5GcGz4UqdQkZjLwXRA3NPGnGNsSenNLuOzUSPpNSl52R4U1WMV7K5ZaCr0AMhaNJVsiRakA1+RTkVS1RNSRShIAXIC1cA4zB6HotdXpchMTpN/6HGntFxJQA4Bhtn7cnwo/YzCtNgGyoI33GvTjvZ9QR4jCY4/9DIRI9ZaOXYSyn5o+R5xqmS1MjYzBYoXA+sZEDaU+KNphtRKxyRKB+1relBv/tPPdt6d2i/B/segwnYfD129/gZr/BUPtgVmYyqHgYxu6BQpHJ1J5AkpkqfuNnzwOjIMDDkEA5yM0WrMClbx5TTA/WeUqwh9dXI0iVZSFOibKFhCy8ELHZenZjLawmVZ75lFGNifCgr7EOtNZR7QDUsUOz63i7QvG/V3lwDzp7J6+ERryevwG1+4gMdxXyqsbzLOZm9hxgb9No76zPaRAa53gg32h/+ry2380Y3gkDOD9QQHR6qQ6iUwOjvy6ZkrH8dCpMActMivE0I8YKbOGvHfH/Kd/UUxIwj6PAOVVnuMhp9oSOeX6Yt74vg9H49YFmlxhZ24XOc3zjlIjlHLv3IDqtQEPbzk850+VaS+uXlDlYJAtHdPvEDErqpItWfeox2QntLWmW3D1sdNSaVDojFojXROG9AGag1WKKbfe1lG3ten7uRGolFl1FHB3KRiRHcBaTyzBe1gXZZaXEJPalUbeLbTjWsswHbCylTaWE0ZznsPYbIvV8I289Crd5q1MmD5wbc5JKiy9obzrvZd77MZuZHOASJjE01OimFenFSpxT9eR3R7mWltbGHXMNmPeGPwQ5tRdZOnym9yUSX6+FoBrIPJP8apzd1LuYcHseefP4x5bBLuIa0DJDYgXD0CSxczsfNnHRD3wYOYxuWqFCOgAAqZ35WgABlAe9RQAA9IXLbj4wDYsCAAAAAAFZWg==" }
+
+[[case]]
+id = "xz-list-robot"
+argv = ["xz", "--robot", "-lv", "multi.xz"]
+tags = ["xz", "list"]
+[case.files]
+"multi.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWv03elhaAAAE5ta0RgTAGiEhARYAAAAAAAAAAABrQTEO4AAgABJdADgbCEeCspz+OEcp6FIsbGiAAAAAAEoJRcdcYIXAAAE2IQA08+UftvN9AQAAAAAEWVo=" }
+
+[[case]]
+id = "xz-list-errors"
+argv = ["xz", "-l", "nofile", "small", "plain.txt", "trail.xz", "a.lzma"]
+tags = ["xz", "list", "error"]
+[case.files]
+"small" = "tiny\n"
+"plain.txt" = "this is a plain text file that is long enough\n"
+"trail.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWmp1bmsK" }
+"a.lzma" = { content_b64 = "XQAAgAD//////////wA0GUnujekXiTozX/yyCYIv//3igAA=" }
+
+[[case]]
+id = "xz-list-stdin"
+argv = ["xz", "-l"]
+tags = ["xz", "list", "error"]
+
+[[case]]
+id = "xz-stdin-not-xz"
+argv = ["xz", "-dc"]
+stdin = "not compressed\n"
+tags = ["xz", "decompress", "stdin", "error"]
+
+[[case]]
+id = "xz-quiet-levels"
+argv = ["xz", "-qq", "-d", "plain.txt"]
+tags = ["xz", "error"]
+[case.files]
+"plain.txt" = "plain\n"
+
+[[case]]
+id = "xz-no-warn"
+argv = ["xz", "-Q", "a.txt.xz"]
+tags = ["xz", "warning"]
+[case.files]
+"a.txt.xz" = "x\n"
+
+[[case]]
+id = "xz-suffix-option"
+argv = ["xz", "-S", ".foo", "-k", "a.txt"]
+tags = ["xz", "compress"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "xzcat-files"
+argv = ["xzcat", "a.txt.xz", "nofile", "y.lzma"]
+tags = ["xz", "xzcat"]
+[case.files]
+"a.txt.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWg==" }
+"y.lzma" = { content_b64 = "XQAAgAD//////////wA0GUnujekXiTozX/yyCYIv//3igAA=" }
+
+[[case]]
+id = "unxz-file"
+argv = ["unxz", "-v", "a.txt.xz"]
+tags = ["xz", "unxz"]
+[case.files]
+"a.txt.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWg==" }
+
+[[case]]
+id = "unlzma-file"
+argv = ["unlzma", "y.lzma"]
+tags = ["xz", "lzma"]
+[case.files]
+"y.lzma" = { content_b64 = "XQAAgAD//////////wA0GUnujekXiTozX/yyCYIv//3igAA=" }
+
+[[case]]
+id = "unlzma-rejects-xz"
+argv = ["unlzma", "a.txt.xz"]
+tags = ["xz", "lzma", "error"]
+[case.files]
+"a.txt.xz" = { content_b64 = "/Td6WFoAAATm1rRGBMAQDCEBFgAAAAAAAAAAAHuwVCgBAAtoZWxsbyB3b3JsZAoAofL/xGp/v88AASwMrpIBEB+2830BAAAAAARZWg==" }
+
+[[case]]
+id = "lzcat-file"
+argv = ["lzcat", "y.lzma"]
+tags = ["xz", "lzma"]
+[case.files]
+"y.lzma" = { content_b64 = "XQAAgAD//////////wA0GUnujekXiTozX/yyCYIv//3igAA=" }
+
+[[case]]
+id = "xz-invalid-option"
+argv = ["xz", "-x"]
+tags = ["xz", "usage"]
+
+[[case]]
+id = "xz-ambiguous-option"
+argv = ["xz", "--f"]
+tags = ["xz", "usage"]
+
+[[case]]
+id = "xz-bad-format"
+argv = ["xz", "-F", "zip", "a.txt"]
+tags = ["xz", "usage"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "xz-bad-check"
+argv = ["xz", "-C", "md5", "a.txt"]
+tags = ["xz", "usage"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "xz-lzip-compress-unsupported"
+argv = ["xz", "-F", "lzip", "a.txt"]
+tags = ["xz", "usage"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "xz-help"
+argv = ["xz", "--help"]
+tags = ["xz", "usage"]
+
+[[case]]
+id = "xz-long-help"
+argv = ["xz", "-H"]
+tags = ["xz", "usage"]
+
+[[case]]
+id = "xz-version"
+argv = ["xz", "--version"]
+tags = ["xz", "usage"]
+
+[[case]]
+id = "xz-version-robot"
+argv = ["xz", "--robot", "-V"]
+tags = ["xz", "usage"]
+
+[[case]]
+id = "lzma-help"
+argv = ["lzma", "-h"]
+tags = ["xz", "usage"]

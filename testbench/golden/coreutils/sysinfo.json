@@ -1,0 +1,538 @@
+{
+  "arch-basic": {
+    "stdout": "x86_64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-extra-operand": {
+    "stdout": "",
+    "stderr": "arch: extra operand ‘extra’\nTry 'arch --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "df-bad-block-size": {
+    "stdout": "",
+    "stderr": "df: invalid -B argument 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "df-bad-output-field": {
+    "stdout": "",
+    "stderr": "df: option --output: field ‘bogus’ unknown\nTry 'df --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "df-h-missing": {
+    "stdout": "",
+    "stderr": "df: nope: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "df-missing": {
+    "stdout": "",
+    "stderr": "df: nope: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "df-type-none": {
+    "stdout": "",
+    "stderr": "df: no file systems processed\n",
+    "exit": 1,
+    "files": {}
+  },
+  "dircolors-bad-line": {
+    "stdout": "",
+    "stderr": "dircolors: colors.conf:2: invalid line;  missing second token\ndircolors: colors.conf:3: unrecognized keyword FOO\n",
+    "exit": 1,
+    "files": {
+      "colors.conf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "dd4def228b76249c14e8234cf5631ba7cf9303dd87a46cab91c152112647454b",
+        "data": "TERM *\nDIR\nFOO 01\n"
+      }
+    }
+  },
+  "dircolors-bourne-xterm": {
+    "stdout": "LS_COLORS='rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=00:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.7z=01;31:*.ace=01;31:*.alz=01;31:*.apk=01;31:*.arc=01;31:*.arj=01;31:*.bz=01;31:*.bz2=01;31:*.cab=01;31:*.cpio=01;31:*.crate=01;31:*.deb=01;31:*.drpm=01;31:*.dwm=01;31:*.dz=01;31:*.ear=01;31:*.egg=01;31:*.esd=01;31:*.gz=01;31:*.jar=01;31:*.lha=01;31:*.lrz=01;31:*.lz=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.lzo=01;31:*.pyz=01;31:*.rar=01;31:*.rpm=01;31:*.rz=01;31:*.sar=01;31:*.swm=01;31:*.t7z=01;31:*.tar=01;31:*.taz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tgz=01;31:*.tlz=01;31:*.txz=01;31:*.tz=01;31:*.tzo=01;31:*.tzst=01;31:*.udeb=01;31:*.war=01;31:*.whl=01;31:*.wim=01;31:*.xz=01;31:*.z=01;31:*.zip=01;31:*.zoo=01;31:*.zst=01;31:*.avif=01;35:*.jpg=01;35:*.jpeg=01;35:*.jxl=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.crdownload=00;90:*.dpkg-dist=00;90:*.dpkg-new=00;90:*.dpkg-old=00;90:*.dpkg-tmp=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:*.swp=00;90:*.tmp=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:';\nexport LS_COLORS\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dircolors-csh-no-term": {
+    "stdout": "setenv LS_COLORS ''\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dircolors-custom-file": {
+    "stdout": "LS_COLORS='di=01;34:ln=01;36:ex=01;32:*.txt=00;33:*.log=00;31:';\nexport LS_COLORS\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "colors.conf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 74,
+        "sha256": "8c4d3dcdf32683c1a6a96516d370a3e975ed06d4e4400f10a748d50f5ee90f2a",
+        "data": "# meu banco\nTERM *\nDIR 01;34\nLINK 01;36\nEXEC 01;32\n.txt 00;33\n*.log 00;31\n"
+      }
+    }
+  },
+  "dircolors-last-shell-wins": {
+    "stdout": "setenv LS_COLORS ''\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dircolors-missing-file": {
+    "stdout": "",
+    "stderr": "dircolors: nope.conf: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "dircolors-no-term": {
+    "stdout": "LS_COLORS='';\nexport LS_COLORS\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dircolors-print-and-shell": {
+    "stdout": "",
+    "stderr": "dircolors: the options to output non shell syntax,\nand to select a shell syntax are mutually exclusive\nTry 'dircolors --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "dircolors-print-database": {
+    "stdout": "# Configuration file for dircolors, a utility to help you set the\n# LS_COLORS environment variable used by GNU ls with the --color option.\n# Copyright (C) 1996-2025 Free Software Foundation, Inc.\n# Copying and distribution of this file, with or without modification,\n# are permitted provided the copyright notice and this notice are preserved.\n#\n# The keywords COLOR, OPTIONS, and EIGHTBIT (honored by the\n# slackware version of dircolors) are recognized but ignored.\n# Global config options can be specified before TERM or COLORTERM entries\n# ===================================================================\n# Terminal filters\n# ===================================================================\n# Below are TERM or COLORTERM entries, which can be glob patterns, which\n# restrict following config to systems with matching environment variables.\nCOLORTERM ?*\nTERM Eterm\nTERM ansi\nTERM *color*\nTERM con[0-9]*x[0-9]*\nTERM cons25\nTERM console\nTERM cygwin\nTERM *direct*\nTERM dtterm\nTERM gnome\nTERM hurd\nTERM jfbterm\nTERM konsole\nTERM kterm\nTERM linux\nTERM linux-c\nTERM mlterm\nTERM putty\nTERM rxvt*\nTERM screen*\nTERM st\nTERM terminator\nTERM tmux*\nTERM vt100\nTERM vt220\nTERM xterm*\n# ===================================================================\n# Basic file attributes\n# ===================================================================\n# Below are the color init strings for the basic file types.\n# One can use codes for 256 or more colors supported by modern terminals.\n# The default color codes use the capabilities of an 8 color terminal\n# with some additional attributes as per the following codes:\n# Attribute codes:\n# 00=none 01=bold 04=underscore 05=blink 07=reverse 08=concealed\n# Text color codes:\n# 30=black 31=red 32=green 33=yellow 34=blue 35=magenta 36=cyan 37=white\n# Background color codes:\n# 40=black 41=red 42=green 43=yellow 44=blue 45=magenta 46=cyan 47=white\n#NORMAL 00 # no color code at all\n#FILE 00 # regular file: use no color at all\nRESET 0 # reset to \"normal\" color\nDIR 01;34 # directory\nLINK 01;36 # symbolic link. (If you set this to 'target' instead of a\n # numerical value, the color is as for the file pointed to.)\nMULTIHARDLINK 00 # regular file with more than one link\nFIFO 40;33 # pipe\nSOCK 01;35 # socket\nDOOR 01;35 # door\nBLK 40;33;01 # block device driver\nCHR 40;33;01 # character device driver\nORPHAN 40;31;01 # symlink to nonexistent file, or non-stat'able file ...\nMISSING 00 # ... and the files they point to\nSETUID 37;41 # regular file that is setuid (u+s)\nSETGID 30;43 # regular file that is setgid (g+s)\nCAPABILITY 00 # regular file with capability (very expensive to lookup)\nSTICKY_OTHER_WRITABLE 30;42 # dir that is sticky and other-writable (+t,o+w)\nOTHER_WRITABLE 34;42 # dir that is other-writable (o+w) and not sticky\nSTICKY 37;44 # dir with the sticky bit set (+t) and not other-writable\n# This is for regular files with execute permission:\nEXEC 01;32\n# ===================================================================\n# File extension attributes\n# ===================================================================\n# List any file extensions like '.gz' or '.tar' that you would like ls\n# to color below. Put the suffix, a space, and the color init string.\n# (and any comments you want to add after a '#').\n# Suffixes are matched case insensitively, but if you define different\n# init strings for separate cases, those will be honored.\n#\n# If you use DOS-style suffixes, you may want to uncomment the following:\n#.cmd 01;32 # executables (bright green)\n#.exe 01;32\n#.com 01;32\n#.btm 01;32\n#.bat 01;32\n# Or if you want to color scripts even if they do not have the\n# executable bit actually set.\n#.sh 01;32\n#.csh 01;32\n# archives or compressed (bright red)\n.7z 01;31\n.ace 01;31\n.alz 01;31\n.apk 01;31\n.arc 01;31\n.arj 01;31\n.bz 01;31\n.bz2 01;31\n.cab 01;31\n.cpio 01;31\n.crate 01;31\n.deb 01;31\n.drpm 01;31\n.dwm 01;31\n.dz 01;31\n.ear 01;31\n.egg 01;31\n.esd 01;31\n.gz 01;31\n.jar 01;31\n.lha 01;31\n.lrz 01;31\n.lz 01;31\n.lz4 01;31\n.lzh 01;31\n.lzma 01;31\n.lzo 01;31\n.pyz 01;31\n.rar 01;31\n.rpm 01;31\n.rz 01;31\n.sar 01;31\n.swm 01;31\n.t7z 01;31\n.tar 01;31\n.taz 01;31\n.tbz 01;31\n.tbz2 01;31\n.tgz 01;31\n.tlz 01;31\n.txz 01;31\n.tz 01;31\n.tzo 01;31\n.tzst 01;31\n.udeb 01;31\n.war 01;31\n.whl 01;31\n.wim 01;31\n.xz 01;31\n.z 01;31\n.zip 01;31\n.zoo 01;31\n.zst 01;31\n# image formats\n.avif 01;35\n.jpg 01;35\n.jpeg 01;35\n.jxl 01;35\n.mjpg 01;35\n.mjpeg 01;35\n.gif 01;35\n.bmp 01;35\n.pbm 01;35\n.pgm 01;35\n.ppm 01;35\n.tga 01;35\n.xbm 01;35\n.xpm 01;35\n.tif 01;35\n.tiff 01;35\n.png 01;35\n.svg 01;35\n.svgz 01;35\n.mng 01;35\n.pcx 01;35\n.mov 01;35\n.mpg 01;35\n.mpeg 01;35\n.m2v 01;35\n.mkv 01;35\n.webm 01;35\n.webp 01;35\n.ogm 01;35\n.mp4 01;35\n.m4v 01;35\n.mp4v 01;35\n.vob 01;35\n.qt 01;35\n.nuv 01;35\n.wmv 01;35\n.asf 01;35\n.rm 01;35\n.rmvb 01;35\n.flc 01;35\n.avi 01;35\n.fli 01;35\n.flv 01;35\n.gl 01;35\n.dl 01;35\n.xcf 01;35\n.xwd 01;35\n.yuv 01;35\n.cgm 01;35\n.emf 01;35\n# https://wiki.xiph.org/MIME_Types_and_File_Extensions\n.ogv 01;35\n.ogx 01;35\n# audio formats\n.aac 00;36\n.au 00;36\n.flac 00;36\n.m4a 00;36\n.mid 00;36\n.midi 00;36\n.mka 00;36\n.mp3 00;36\n.mpc 00;36\n.ogg 00;36\n.ra 00;36\n.wav 00;36\n# https://wiki.xiph.org/MIME_Types_and_File_Extensions\n.oga 00;36\n.opus 00;36\n.spx 00;36\n.xspf 00;36\n# backup files\n*~ 00;90\n*# 00;90\n.bak 00;90\n.crdownload 00;90\n.dpkg-dist 00;90\n.dpkg-new 00;90\n.dpkg-old 00;90\n.dpkg-tmp 00;90\n.old 00;90\n.orig 00;90\n.part 00;90\n.rej 00;90\n.rpmnew 00;90\n.rpmorig 00;90\n.rpmsave 00;90\n.swp 00;90\n.tmp 00;90\n.ucf-dist 00;90\n.ucf-new 00;90\n.ucf-old 00;90\n#\n# Subsequent TERM or COLORTERM entries, can be used to add / override\n# config specific to those matching environment variables.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dircolors-shell-from-env": {
+    "stdout": "setenv LS_COLORS 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=00:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.7z=01;31:*.ace=01;31:*.alz=01;31:*.apk=01;31:*.arc=01;31:*.arj=01;31:*.bz=01;31:*.bz2=01;31:*.cab=01;31:*.cpio=01;31:*.crate=01;31:*.deb=01;31:*.drpm=01;31:*.dwm=01;31:*.dz=01;31:*.ear=01;31:*.egg=01;31:*.esd=01;31:*.gz=01;31:*.jar=01;31:*.lha=01;31:*.lrz=01;31:*.lz=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.lzo=01;31:*.pyz=01;31:*.rar=01;31:*.rpm=01;31:*.rz=01;31:*.sar=01;31:*.swm=01;31:*.t7z=01;31:*.tar=01;31:*.taz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tgz=01;31:*.tlz=01;31:*.txz=01;31:*.tz=01;31:*.tzo=01;31:*.tzst=01;31:*.udeb=01;31:*.war=01;31:*.whl=01;31:*.wim=01;31:*.xz=01;31:*.z=01;31:*.zip=01;31:*.zoo=01;31:*.zst=01;31:*.avif=01;35:*.jpg=01;35:*.jpeg=01;35:*.jxl=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.crdownload=00;90:*.dpkg-dist=00;90:*.dpkg-new=00;90:*.dpkg-old=00;90:*.dpkg-tmp=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:*.swp=00;90:*.tmp=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groups-no-such-user": {
+    "stdout": "",
+    "stderr": "groups: ‘nouser’: no such user\n",
+    "exit": 1,
+    "files": {}
+  },
+  "groups-self": {
+    "stdout": "root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groups-users": {
+    "stdout": "root : root\ndaemon : daemon\nnobody : nogroup\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "hostid-basic": {
+    "stdout": "00000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "hostid-extra-operand": {
+    "stdout": "",
+    "stderr": "hostid: extra operand ‘extra’\nTry 'hostid --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "hostname-file-missing": {
+    "stdout": "",
+    "stderr": "hostname: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "hostname-too-many-args": {
+    "stdout": "",
+    "stderr": "Usage: hostname [-b] {hostname|-F file}         set host name (from file)\n       hostname [-a|-A|-d|-f|-i|-I|-s|-y]       display formatted name\n       hostname                                 display host name\n\n       {yp,nis,}domainname {nisdomain|-F file}  set NIS domain name (from file)\n       {yp,nis,}domainname                      display NIS domain name\n\n       dnsdomainname                            display dns domain name\n\n       hostname -V|--version|-h|--help          print info and exit\n\nProgram name:\n       {yp,nis,}domainname=hostname -y\n       dnsdomainname=hostname -d\n\nProgram options:\n    -a, --alias            alias names\n    -A, --all-fqdns        all long host names (FQDNs)\n    -b, --boot             set default hostname if none available\n    -d, --domain           DNS domain name\n    -f, --fqdn, --long     long host name (FQDN)\n    -F, --file             read host name or NIS domain name from given file\n    -i, --ip-address       addresses for the host name\n    -I, --all-ip-addresses all addresses for the host\n    -s, --short            short host name\n    -y, --yp, --nis        NIS/YP domain name\n\nDescription:\n   This command can get or set the host name or the NIS domain name. You can\n   also get the DNS domain or the FQDN (fully qualified domain name).\n   Unless you are using bind or NIS for host lookups you can change the\n   FQDN (Fully Qualified Domain Name) and the DNS domain name (which is\n   part of the FQDN) in the /etc/hosts file.\n",
+    "exit": 255,
+    "files": {}
+  },
+  "id-G": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-Gn": {
+    "stdout": "root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-conflicting": {
+    "stdout": "",
+    "stderr": "id: cannot print \"only\" of more than one choice\n",
+    "exit": 1,
+    "files": {}
+  },
+  "id-default": {
+    "stdout": "uid=0(root) gid=0(root) groups=0(root)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-g": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-gn": {
+    "stdout": "root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-multiple-users": {
+    "stdout": "uid=0(root) gid=0(root) groups=0(root)\nuid=1(daemon) gid=1(daemon) groups=1(daemon)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-n-alone": {
+    "stdout": "",
+    "stderr": "id: printing only names or real IDs requires -u, -g, or -G\n",
+    "exit": 1,
+    "files": {}
+  },
+  "id-no-such-user": {
+    "stdout": "",
+    "stderr": "id: ‘nouser’: no such user\n",
+    "exit": 1,
+    "files": {}
+  },
+  "id-nobody": {
+    "stdout": "uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-other-user": {
+    "stdout": "uid=1(daemon) gid=1(daemon) groups=1(daemon)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-u": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-un": {
+    "stdout": "root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-un-other-user": {
+    "stdout": "nobody\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "id-z": {
+    "stdout": "0\u0000",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "logname-extra-operand": {
+    "stdout": "",
+    "stderr": "logname: extra operand ‘extra’\nTry 'logname --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "logname-no-login": {
+    "stdout": "",
+    "stderr": "logname: no login name\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nproc-all-ignore-all": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nproc-bad-ignore": {
+    "stdout": "",
+    "stderr": "nproc: invalid number: ‘abc’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nproc-extra-operand": {
+    "stdout": "",
+    "stderr": "nproc: extra operand ‘extra’\nTry 'nproc --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nproc-ignore-all": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nproc-omp-num-threads": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nproc-omp-thread-limit": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "printenv-all": {
+    "stdout": "HOME=/root\nLC_ALL=C.UTF-8\nLOGNAME=root\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\nSHELL=/bin/bash\nTZ=UTC\nUSER=root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "printenv-all-with-extra": {
+    "stdout": "FOO=bar baz\nHOME=/root\nLC_ALL=C.UTF-8\nLOGNAME=root\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\nSHELL=/bin/bash\nTZ=UTC\nUSER=root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "printenv-bad-option": {
+    "stdout": "",
+    "stderr": "printenv: invalid option -- 'x'\nTry 'printenv --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "printenv-null": {
+    "stdout": "/root\u0000root\u0000",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "printenv-one": {
+    "stdout": "/root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "printenv-partial": {
+    "stdout": "/root\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "printenv-several": {
+    "stdout": "root\nUTC\nC.UTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "printenv-unset": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "pwd-L-bogus-pwd": {
+    "stdout": "/work/case\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwd-L-logical": {
+    "stdout": "/work/case/lnk\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lnk": {
+        "kind": "symlink",
+        "target": "."
+      }
+    }
+  },
+  "pwd-P": {
+    "stdout": "/work/case\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwd-bad-option": {
+    "stdout": "",
+    "stderr": "pwd: invalid option -- 'x'\nTry 'pwd --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pwd-basic": {
+    "stdout": "/work/case\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwd-default-is-physical": {
+    "stdout": "/work/case\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lnk": {
+        "kind": "symlink",
+        "target": "."
+      }
+    }
+  },
+  "pwd-extra-args": {
+    "stdout": "/work/case\n",
+    "stderr": "pwd: ignoring non-option arguments\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tty-bad-option": {
+    "stdout": "",
+    "stderr": "tty: unrecognized option '--bogus'\nTry 'tty --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tty-extra-operand": {
+    "stdout": "",
+    "stderr": "tty: extra operand ‘extra’\nTry 'tty --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tty-not-a-tty": {
+    "stdout": "not a tty\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "tty-silent": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "uname-bad-option": {
+    "stdout": "",
+    "stderr": "uname: invalid option -- 'x'\nTry 'uname --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "uname-combined": {
+    "stdout": "Linux x86_64 GNU/Linux\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "uname-default": {
+    "stdout": "Linux\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "uname-extra-operand": {
+    "stdout": "",
+    "stderr": "uname: extra operand ‘extra’\nTry 'uname --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "uname-long-options": {
+    "stdout": "Linux x86_64 GNU/Linux\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "uname-m": {
+    "stdout": "x86_64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "uname-o": {
+    "stdout": "GNU/Linux\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "uname-p-i": {
+    "stdout": "unknown unknown\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "uname-s": {
+    "stdout": "Linux\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "users-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "users-extra-operand": {
+    "stdout": "",
+    "stderr": "users: extra operand ‘b’\nTry 'users --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "users-nonexistent-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "who-am-i": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "who-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "who-extra-operand": {
+    "stdout": "",
+    "stderr": "who: extra operand ‘c’\nTry 'who --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "who-heading": {
+    "stdout": "NAME     LINE         TIME             COMMENT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "who-q": {
+    "stdout": "\n# users=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whoami-basic": {
+    "stdout": "root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whoami-extra-operand": {
+    "stdout": "",
+    "stderr": "whoami: extra operand ‘extra’\nTry 'whoami --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  }
+}

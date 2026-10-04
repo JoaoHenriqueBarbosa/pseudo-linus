@@ -1,0 +1,200 @@
+{
+  "column-err-ambiguous": {
+    "stdout": "",
+    "stderr": "column: option '--tab=x' is ambiguous; possibilities: '--table' '--table-columns' '--table-column' '--table-columns-limit' '--table-hide' '--table-name' '--table-maxout' '--table-noextreme' '--table-noheadings' '--table-order' '--table-right' '--table-truncate' '--table-wrap' '--table-empty-lines' '--table-header-repeat'\nTry 'column --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-ambiguous-tree": {
+    "stdout": "",
+    "stderr": "column: option '--tr' is ambiguous; possibilities: '--tree' '--tree-id' '--tree-parent'\nTry 'column --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-columns-huge": {
+    "stdout": "",
+    "stderr": "column: invalid columns argument: '99999999999': Numerical result out of range\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-columns-invalid": {
+    "stdout": "",
+    "stderr": "column: invalid columns argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-columns-negative": {
+    "stdout": "",
+    "stderr": "column: invalid columns argument: '-5': Numerical result out of range\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-exclusive-C-N": {
+    "stdout": "",
+    "stderr": "column: mutually exclusive arguments: --table-column --table-columns\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-exclusive-json-fillrows": {
+    "stdout": "",
+    "stderr": "column: mutually exclusive arguments: --json --fillrows\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-exclusive-table-fillrows": {
+    "stdout": "",
+    "stderr": "column: mutually exclusive arguments: --table --fillrows\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-invalid-short": {
+    "stdout": "",
+    "stderr": "column: invalid option -- 'Z'\nTry 'column --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-json-needs-names": {
+    "stdout": "",
+    "stderr": "column: option --table-columns or --table-column required for --json\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-limit-invalid": {
+    "stdout": "",
+    "stderr": "column: invalid columns limit argument: 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-limit-zero": {
+    "stdout": "",
+    "stderr": "column: columns limit must be greater than zero\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-missing-arg": {
+    "stdout": "",
+    "stderr": "column: option requires an argument -- 's'\nTry 'column --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-missing-arg-long": {
+    "stdout": "",
+    "stderr": "column: option '--separator' requires an argument\nTry 'column --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-spaces-invalid": {
+    "stdout": "",
+    "stderr": "column: invalid spaces argument: 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-table-required": {
+    "stdout": "",
+    "stderr": "column: option --table required for all --table-*\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-table-required-name": {
+    "stdout": "",
+    "stderr": "column: option --table required for all --table-*\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-tree-before-table": {
+    "stdout": "",
+    "stderr": "column: options --tree-id and --tree-parent are required for tree formatting\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-tree-needs-ids": {
+    "stdout": "",
+    "stderr": "column: options --tree-id and --tree-parent are required for tree formatting\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-undefined-case": {
+    "stdout": "",
+    "stderr": "column: undefined column name 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-undefined-hide": {
+    "stdout": "",
+    "stderr": "column: undefined column name '3'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-undefined-number": {
+    "stdout": "",
+    "stderr": "column: undefined column name '5'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-undefined-order": {
+    "stdout": "",
+    "stderr": "column: undefined column name 'zz'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-undefined-right": {
+    "stdout": "",
+    "stderr": "column: undefined column name 'zz'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-unrecognized": {
+    "stdout": "",
+    "stderr": "column: unrecognized option '--bogus'\nTry 'column --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-err-unrecognized-value": {
+    "stdout": "",
+    "stderr": "column: unrecognized option '--bogus=1'\nTry 'column --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-flags-without-table": {
+    "stdout": "a b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-help": {
+    "stdout": "\nUsage:\n column [options] [<file>...]\n\nColumnate lists.\n\nOptions:\n -t, --table                      create a table\n -n, --table-name <name>          table name for JSON output\n -O, --table-order <columns>      specify order of output columns\n -C, --table-column <properties>  define column\n -N, --table-columns <names>      comma separated columns names\n -l, --table-columns-limit <num>  maximal number of input columns\n -E, --table-noextreme <columns>  don't count long text from the columns to column width\n -d, --table-noheadings           don't print header\n -m, --table-maxout               fill all available space\n -e, --table-header-repeat        repeat header for each page\n -H, --table-hide <columns>       don't print the columns\n -R, --table-right <columns>      right align text in these columns\n -T, --table-truncate <columns>   truncate text in the columns when necessary\n -W, --table-wrap <columns>       wrap text in the columns when necessary\n -L, --keep-empty-lines           don't ignore empty lines\n -J, --json                       use JSON output format for table\n\n -r, --tree <column>              column to use tree-like output for the table\n -i, --tree-id <column>           line ID to specify child-parent relation\n -p, --tree-parent <column>       parent to specify child-parent relation\n\n -c, --output-width <width>       width of output in number of characters\n -o, --output-separator <string>  columns separator for table output (default is two spaces)\n -s, --separator <string>         possible table delimiters\n -x, --fillrows                   fill rows before columns\n -S, --use-spaces <number>        minimal whitespaces between columns (no tabs)\n\n -h, --help                       display this help\n -V, --version                    display version\n\nFor more details see column(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-help-short": {
+    "stdout": "\nUsage:\n column [options] [<file>...]\n\nColumnate lists.\n\nOptions:\n -t, --table                      create a table\n -n, --table-name <name>          table name for JSON output\n -O, --table-order <columns>      specify order of output columns\n -C, --table-column <properties>  define column\n -N, --table-columns <names>      comma separated columns names\n -l, --table-columns-limit <num>  maximal number of input columns\n -E, --table-noextreme <columns>  don't count long text from the columns to column width\n -d, --table-noheadings           don't print header\n -m, --table-maxout               fill all available space\n -e, --table-header-repeat        repeat header for each page\n -H, --table-hide <columns>       don't print the columns\n -R, --table-right <columns>      right align text in these columns\n -T, --table-truncate <columns>   truncate text in the columns when necessary\n -W, --table-wrap <columns>       wrap text in the columns when necessary\n -L, --keep-empty-lines           don't ignore empty lines\n -J, --json                       use JSON output format for table\n\n -r, --tree <column>              column to use tree-like output for the table\n -i, --tree-id <column>           line ID to specify child-parent relation\n -p, --tree-parent <column>       parent to specify child-parent relation\n\n -c, --output-width <width>       width of output in number of characters\n -o, --output-separator <string>  columns separator for table output (default is two spaces)\n -s, --separator <string>         possible table delimiters\n -x, --fillrows                   fill rows before columns\n -S, --use-spaces <number>        minimal whitespaces between columns (no tabs)\n\n -h, --help                       display this help\n -V, --version                    display version\n\nFor more details see column(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-long-prefix": {
+    "stdout": "",
+    "stderr": "column: option '--tabl' is ambiguous; possibilities: '--table' '--table-columns' '--table-column' '--table-columns-limit' '--table-hide' '--table-name' '--table-maxout' '--table-noextreme' '--table-noheadings' '--table-order' '--table-right' '--table-truncate' '--table-wrap' '--table-empty-lines' '--table-header-repeat'\nTry 'column --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "column-right-zero-and-empty-items": {
+    "stdout": "b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-version": {
+    "stdout": "column from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "column-version-long": {
+    "stdout": "column from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
