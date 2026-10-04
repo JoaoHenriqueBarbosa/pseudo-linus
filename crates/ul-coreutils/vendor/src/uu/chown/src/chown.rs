@@ -214,7 +214,7 @@ fn parse_spec(spec: &str, sep: char) -> UResult<(Option<u32>, Option<u32>)> {
         }
         show_warning!(
             "{}",
-            translate!("chown-warning-dot-separator", "spec" => spec.quote())
+            translate!("chown-warning-dot-separator", "spec" => uucore::display::locale_quote(spec))
         );
         return parse_spec(spec, '.');
     }

@@ -98,7 +98,7 @@ dd-error-multiple-block = cannot combine block and unblock
 dd-error-multiple-excl = cannot combine excl and nocreat
 dd-error-invalid-flag = invalid input flag: '{ $flag }'
 dd-error-invalid-output-flag = invalid output flag: '{ $flag }'
-dd-error-conv-flag-no-match = invalid conversion: '{ $flag }'
+dd-error-conv-flag-no-match = invalid conversion: ‘{ $flag }’
 dd-error-multiplier-parse-failure = invalid number: '{ $input }'
 dd-error-multiplier-overflow = Multiplier string would overflow on current system -> { $input }
 dd-error-block-without-cbs = conv=block or conv=unblock specified without cbs=N

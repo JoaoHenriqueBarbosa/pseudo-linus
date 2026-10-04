@@ -33,19 +33,19 @@ pub struct PatternProblem {
 pub enum CsplitError {
     #[error("{}", strip_errno(_0))]
     IoError(#[from] io::Error),
-    #[error("{}", translate!("csplit-error-line-out-of-range", "pattern" => _0.quote()))]
+    #[error("{}", translate!("csplit-error-line-out-of-range", "pattern" => uucore::display::locale_quote(_0)))]
     LineOutOfRange(String),
-    #[error("{}", translate!("csplit-error-line-out-of-range-on-repetition", "pattern" => _0.quote(), "repetition" => _1))]
+    #[error("{}", translate!("csplit-error-line-out-of-range-on-repetition", "pattern" => uucore::display::locale_quote(_0), "repetition" => _1))]
     LineOutOfRangeOnRepetition(String, usize),
-    #[error("{}", translate!("csplit-error-match-not-found", "pattern" => _0.quote()))]
+    #[error("{}", translate!("csplit-error-match-not-found", "pattern" => uucore::display::locale_quote(_0)))]
     MatchNotFound(String),
-    #[error("{}", translate!("csplit-error-match-not-found-on-repetition", "pattern" => _0.quote(), "repetition" => _1))]
+    #[error("{}", translate!("csplit-error-match-not-found-on-repetition", "pattern" => uucore::display::locale_quote(_0), "repetition" => _1))]
     MatchNotFoundOnRepetition(String, usize),
     #[error("{}", translate!("csplit-error-line-number-is-zero"))]
     LineNumberIsZero,
     #[error("{}", translate!("csplit-error-line-number-smaller-than-previous", "current" => _0, "previous" => _1))]
     LineNumberSmallerThanPrevious(usize, usize),
-    #[error("{}", translate!("csplit-error-invalid-pattern", "pattern" => _0.quote()))]
+    #[error("{}", translate!("csplit-error-invalid-pattern", "pattern" => uucore::display::locale_quote(_0)))]
     InvalidPattern(String, Option<PatternProblem>),
     #[error("{}", translate!("csplit-error-invalid-number", "number" => _0.quote()))]
     InvalidNumber(String),

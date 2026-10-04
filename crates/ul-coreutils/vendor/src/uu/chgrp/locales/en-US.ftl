@@ -15,6 +15,6 @@ chgrp-help-recursive = operate on files and directories recursively
 
 # Error messages
 chgrp-error-invalid-group-id = invalid group id: '{ $gid_str }'
-chgrp-error-invalid-group = invalid group: '{ $group }'
+chgrp-error-invalid-group = invalid group: ‘{ $group }’
 chgrp-error-failed-to-get-attributes = failed to get attributes of { $file }
 chgrp-error-invalid-user = invalid user: '{ $from_group }'

@@ -386,6 +386,57 @@ impl<'a> ErrorFormatter<'a> {
 ///
 /// seguidos de `Try 'prog --help' for more information.`. Devolve `None` pros erros que não são de
 /// `getopt` (valor inválido, ajuda, versão), que seguem o tratamento do uucore.
+// Porte pseudo-linus: as opções que levam valor (curtas e longas) do comando em análise, pra contar
+// os operandos como o getopt. Uma por thread: cada pseudo-processo roda na sua.
+thread_local! {
+    static VALUE_OPTIONS: std::cell::RefCell<(Vec<char>, Vec<String>)> =
+        const { std::cell::RefCell::new((Vec::new(), Vec::new())) };
+}
+
+fn remember_value_options(cmd: &Command) {
+    let mut shorts = Vec::new();
+    let mut longs = Vec::new();
+    for arg in cmd.get_arguments() {
+        if arg.is_positional() || !arg.get_action().takes_values() {
+            continue;
+        }
+        shorts.extend(arg.get_short());
+        longs.extend(arg.get_long().map(|l| format!("--{l}")));
+    }
+    VALUE_OPTIONS.with(|v| *v.borrow_mut() = (shorts, longs));
+}
+
+/// Se o argv tem algum operando (o que o getopt deixaria depois das opções).
+fn has_operand(args: &[String]) -> bool {
+    VALUE_OPTIONS.with(|v| {
+        let (shorts, longs) = &*v.borrow();
+        let mut i = 0;
+        while i < args.len() {
+            let a = &args[i];
+            i += 1;
+            if a == "-" || !a.starts_with('-') {
+                return true;
+            }
+            if let Some(body) = a.strip_prefix("--") {
+                if !body.contains('=') && longs.iter().any(|l| l == a) {
+                    i += 1;
+                }
+                continue;
+            }
+            let chars: Vec<char> = a[1..].chars().collect();
+            for (k, c) in chars.iter().enumerate() {
+                if shorts.contains(c) {
+                    if k + 1 == chars.len() {
+                        i += 1;
+                    }
+                    break;
+                }
+            }
+        }
+        false
+    })
+}
+
 fn gnu_getopt_error(err: &Error, exit_code: i32) -> Option<i32> {
     let prog = crate::program_name();
     let args: Vec<String> = crate::args_os()
@@ -438,7 +489,32 @@ fn gnu_getopt_error(err: &Error, exit_code: i32) -> Option<i32> {
             let name = invalid_arg.as_deref().and_then(long_name)?;
             format!("{prog}: option '{name}' doesn't allow an argument")
         }
-        ErrorKind::MissingRequiredArgument => format!("{prog}: missing operand"),
+        // Porte pseudo-linus: com algum operando já dado, o GNU cita o último argumento
+        // (`missing operand after ‘x’`).
+        ErrorKind::MissingRequiredArgument => match args.last() {
+            Some(last) if has_operand(&args) => {
+                format!("{prog}: missing operand after {}", crate::display::locale_quote(last))
+            }
+            _ => format!("{prog}: missing operand"),
+        },
+        // Porte pseudo-linus: valor fora de uma lista fechada, no formato do `argmatch` do gnulib.
+        ErrorKind::InvalidValue
+            if err.get(ContextKind::ValidValue).is_some()
+                && err.get(ContextKind::InvalidValue).is_some_and(|v| !v.to_string().is_empty()) =>
+        {
+            let value = err.get(ContextKind::InvalidValue)?.to_string();
+            let name = invalid_arg.as_deref().and_then(long_name)?;
+            let valid: Vec<String> = match err.get(ContextKind::ValidValue)? {
+                clap::error::ContextValue::Strings(v) => v.clone(),
+                other => vec![other.to_string()],
+            };
+            let q = |s: &str| crate::display::locale_quote(s);
+            let mut text = format!("{prog}: invalid argument {} for {}\nValid arguments are:", q(&value), q(&name));
+            for v in &valid {
+                text.push_str(&format!("\n  - {}", q(v)));
+            }
+            text
+        }
         _ => return None,
     };
     let try_line = format!("Try '{} --help' for more information.", crate::execution_phrase());
@@ -553,6 +629,7 @@ where
     I: IntoIterator<Item = T>,
     T: Into<OsString> + Clone,
 {
+    remember_value_options(&cmd);
     cmd.try_get_matches_from(itr).map_err(|e| {
         if e.exit_code() == 0 {
             e.into() // Preserve help/version

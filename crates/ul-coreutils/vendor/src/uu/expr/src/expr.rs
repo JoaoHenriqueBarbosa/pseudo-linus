@@ -30,9 +30,9 @@ pub type ExprResult<T> = Result<T, ExprError>;
 
 #[derive(Error, Clone, Debug, PartialEq, Eq)]
 pub enum ExprError {
-    #[error("{}", translate!("expr-error-unexpected-argument", "arg" => _0.quote()))]
+    #[error("{}", translate!("expr-error-unexpected-argument", "arg" => uucore::display::locale_quote(_0)))]
     UnexpectedArgument(String),
-    #[error("{}", translate!("expr-error-missing-argument", "arg" => _0.quote()))]
+    #[error("{}", translate!("expr-error-missing-argument", "arg" => uucore::display::locale_quote(_0)))]
     MissingArgument(String),
     // The offending operand is carried for diagnostics only; GNU prints the bare
     // message, so it is deliberately absent from `Display`. Raw bytes, so that a

@@ -84,7 +84,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             Err(_) => {
                 return Err(USimpleError::new(
                     1,
-                    translate!("fold-error-illegal-width", "width" => inp_width.quote()),
+                    translate!("fold-error-illegal-width", "width" => uucore::display::locale_quote(&inp_width)),
                 ));
             }
         },

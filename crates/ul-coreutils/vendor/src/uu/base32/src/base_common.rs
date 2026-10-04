@@ -75,7 +75,7 @@ impl Config {
                 num.parse::<usize>().map_err(|_| {
                     USimpleError::new(
                         BASE_CMD_PARSE_ERROR,
-                        translate!("base-common-invalid-wrap-size", "size" => num.quote()),
+                        translate!("base-common-invalid-wrap-size", "size" => uucore::display::locale_quote(num)),
                     )
                 })
             })
