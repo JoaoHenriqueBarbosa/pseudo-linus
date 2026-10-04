@@ -9,10 +9,10 @@
 #   checkpoint do escalonador seja chamado a cada elemento);
 # - `pow10` existe como no jq do Debian (a glibc não tem `pow10`).
 def empty: {}[] as $x | .;
-def not: if . then false else true end;
 def true: 0 == 0;
 def false: 0 != 0;
 def null: {}.a;
+def not: if . then false else true end;
 def halt_error: halt_error(5);
 def error(msg): msg|error;
 def map(f): [.[] | f];
@@ -215,3 +215,16 @@ def JOIN($idx; stream; idx_expr; join_expr):
 def IN(s): any(s == .; .);
 def IN(src; s): any(src == s; .);
 def pow10: "Error: pow10/0 not found at build time"|error;
+# Formatos (`@csv`, `@sh`...): no jq são o opcode FORMAT; aqui, a nativa `format`, que dá as mesmas
+# mensagens (inclusive "base32 is not a valid format" do jq 1.7.1 do Debian).
+def @text: format("text");
+def @json: format("json");
+def @html: format("html");
+def @uri: format("uri");
+def @csv: format("csv");
+def @tsv: format("tsv");
+def @sh: format("sh");
+def @base64: format("base64");
+def @base64d: format("base64d");
+def @base32: format("base32");
+def @base32d: format("base32d");
