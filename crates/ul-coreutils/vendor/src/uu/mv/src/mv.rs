@@ -17,7 +17,35 @@ use sysio::{println};
 use clap::builder::ValueParser;
 use clap::error::ErrorKind;
 use clap::{Arg, ArgAction, ArgMatches, Command};
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
+
+/// Porte pseudo-linus: sem `-g`/`--progress` (extensão do uutils que o GNU mv não tem; o indicatif
+/// desenhava no terminal do host). Os tipos ficam, sem valores, pra que as assinaturas com
+/// `Option<&...>` continuem iguais às do upstream; nunca existe um.
+pub enum ProgressBar {}
+
+impl ProgressBar {
+    fn inc(&self, _delta: u64) {
+        match *self {}
+    }
+
+    fn set_message(&self, _msg: String) {
+        match *self {}
+    }
+
+    fn suspend<R>(&self, _f: impl FnOnce() -> R) -> R {
+        match *self {}
+    }
+}
+
+/// Ver [`ProgressBar`].
+pub enum MultiProgress {}
+
+impl MultiProgress {
+    fn suspend<R>(&self, _f: impl FnOnce() -> R) -> R {
+        match *self {}
+    }
+}
 
 #[cfg(all(unix, not(any(target_vendor = "apple", target_os = "redox"))))]
 use rustc_hash::FxHashMap;
@@ -26,13 +54,16 @@ use sysio::env;
 use std::ffi::OsString;
 use sysio::fs;
 use sysio::io::{self, IsTerminal};
+// Porte pseudo-linus: `unix::fs::symlink` do pseudo-processo (o std criava o link no host).
 #[cfg(unix)]
-use std::os::unix;
+use sysio::os::unix;
 #[cfg(unix)]
 use sysio::os::unix::fs::{FileTypeExt, PermissionsExt};
 #[cfg(windows)]
 use std::os::windows;
-use std::path::{Path, PathBuf, absolute};
+use std::path::{Path, PathBuf};
+// Porte pseudo-linus: relativo ao diretório corrente do pseudo-processo.
+use sysio::path::absolute;
 
 #[cfg(unix)]
 use crate::hardlink::{
@@ -201,7 +232,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         .map(OsString::from);
 
     if let Some(ref maybe_dir) = target_dir
-        && !Path::new(&maybe_dir).is_dir()
+        && !Path::new(&maybe_dir).sys_is_dir()
     {
         return Err(MvError::TargetNotADirectory(maybe_dir.quote().to_string()).into());
     }
@@ -224,7 +255,8 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         no_target_dir: matches.get_flag(OPT_NO_TARGET_DIRECTORY),
         verbose: matches.get_flag(OPT_VERBOSE) || matches.get_flag(OPT_DEBUG),
         strip_slashes: matches.get_flag(OPT_STRIP_TRAILING_SLASHES),
-        progress_bar: matches.get_flag(OPT_PROGRESS),
+        // Porte pseudo-linus: a opção não existe (ver `ProgressBar`).
+        progress_bar: false,
         debug: matches.get_flag(OPT_DEBUG),
         context,
         exchange: matches.get_flag(OPT_EXCHANGE),
@@ -304,13 +336,7 @@ pub fn uu_app() -> Command {
                 .help(translate!("mv-help-verbose"))
                 .action(ArgAction::SetTrue),
         )
-        .arg(
-            Arg::new(OPT_PROGRESS)
-                .short('g')
-                .long(OPT_PROGRESS)
-                .help(translate!("mv-help-progress"))
-                .action(ArgAction::SetTrue),
-        )
+        // Porte pseudo-linus: sem `-g`/`--progress` (ver `ProgressBar`).
         .arg(
             Arg::new(OPT_SELINUX)
                 .short('Z')
@@ -387,7 +413,7 @@ fn handle_two_paths(source: &Path, target: &Path, opts: &Options) -> UResult<()>
         )
         .into());
     }
-    let Ok(source_metadata) = source.symlink_metadata() else {
+    let Ok(source_metadata) = source.sys_symlink_metadata() else {
         return Err(if path_ends_with_terminator(source) {
             MvError::CannotStatNotADirectory(source.quote().to_string()).into()
         } else {
@@ -398,8 +424,8 @@ fn handle_two_paths(source: &Path, target: &Path, opts: &Options) -> UResult<()>
     // `symlink_metadata` does not follow symlinks, so this is equivalent to
     // `source.is_dir() && !source.is_symlink()` without the extra `stat` calls.
     let source_is_dir = source_metadata.is_dir();
-    let target_is_dir = match target.symlink_metadata() {
-        Ok(metadata) if metadata.is_symlink() => fs::canonicalize(target).is_ok_and(|p| p.is_dir()),
+    let target_is_dir = match target.sys_symlink_metadata() {
+        Ok(metadata) if metadata.is_symlink() => fs::canonicalize(target).is_ok_and(|p| p.sys_is_dir()),
         Ok(metadata) => metadata.is_dir(),
         Err(_) => false,
     };
@@ -416,7 +442,7 @@ fn handle_two_paths(source: &Path, target: &Path, opts: &Options) -> UResult<()>
 
     if target_is_dir {
         if opts.no_target_dir {
-            if source.is_dir() {
+            if source.sys_is_dir() {
                 #[cfg(unix)]
                 let (mut hardlink_tracker, hardlink_scanner) = create_hardlink_context();
                 #[cfg(unix)]
@@ -453,7 +479,7 @@ fn handle_two_paths(source: &Path, target: &Path, opts: &Options) -> UResult<()>
         } else {
             move_files_into_dir(&[source.to_path_buf()], target, opts)
         }
-    } else if source_is_dir && target.exists() {
+    } else if source_is_dir && target.sys_exists() {
         match opts.overwrite {
             OverwriteMode::NoClobber => return Ok(()),
             OverwriteMode::Interactive => prompt_overwrite(target, None)?,
@@ -502,7 +528,7 @@ fn assert_not_same_file(
         MissingHandling::Normal,
         ResolveMode::Logical,
     ) {
-        Ok(source) if source.exists() => source,
+        Ok(source) if source.sys_exists() => source,
         _ => absolute(source)?, // file or symlink target doesn't exist but its absolute path is still used for comparison
     };
 
@@ -559,12 +585,12 @@ fn assert_not_same_file(
         && (canonicalized_source.eq(&canonicalized_target)
             || source.eq(Path::new("."))
             || source.ends_with("/.")
-            || source.is_file())
+            || source.sys_is_file())
     {
         return Err(MvError::SameFile(source.quote().to_string(), target_display()).into());
     } else if (same_file || canonicalized_target.starts_with(canonicalized_source))
         // don't error if we're moving a symlink of a directory into itself
-        && !source.is_symlink()
+        && !source.sys_is_symlink()
     {
         return Err(
             MvError::SelfTargetSubdirectory(source.quote().to_string(), target_display()).into(),
@@ -626,7 +652,7 @@ fn exchange_paths(paths: &[PathBuf], opts: &Options) -> UResult<()> {
         )),
         [from, to] => exchange_two_paths(from, to, opts),
         [sources @ .., target_dir] => {
-            if !target_dir.is_dir() {
+            if !target_dir.sys_is_dir() {
                 return Err(MvError::TargetNotADirectory(target_dir.quote().to_string()).into());
             }
             for source in sources {
@@ -643,7 +669,16 @@ fn exchange_paths(paths: &[PathBuf], opts: &Options) -> UResult<()> {
 /// Atomically exchange the two given paths (renameat2 `RENAME_EXCHANGE`).
 #[cfg(any(target_os = "linux", target_os = "android"))]
 fn exchange_two_paths(from: &Path, to: &Path, opts: &Options) -> UResult<()> {
-    use rustix::fs::{CWD, RenameFlags, renameat_with};
+    // Porte pseudo-linus: renameat2(RENAME_EXCHANGE) do pseudo-kernel.
+    let renameat_exchange = |a: &Path, b: &Path| {
+        sysio::errno::cvt(sysabi::sys::current().renameat2(
+            sysabi::Fd::CWD,
+            a.as_os_str().as_encoded_bytes(),
+            sysabi::Fd::CWD,
+            b.as_os_str().as_encoded_bytes(),
+            sysabi::RenameFlags::EXCHANGE,
+        ))
+    };
 
     let canonicalize_or_absolute = |p: &Path| {
         canonicalize(absolute(p)?, MissingHandling::Normal, ResolveMode::Logical)
@@ -655,8 +690,7 @@ fn exchange_two_paths(from: &Path, to: &Path, opts: &Options) -> UResult<()> {
         return Err(MvError::SameFile(from.quote().to_string(), to.quote().to_string()).into());
     }
 
-    renameat_with(CWD, from, CWD, to, RenameFlags::EXCHANGE)
-        .map_err(io::Error::from)
+    renameat_exchange(from, to)
         .map_err_context(
             || translate!("mv-error-cannot-move", "source" => from.quote(), "target" => to.quote()),
         )?;
@@ -690,34 +724,16 @@ fn move_files_into_dir(files: &[PathBuf], target_dir: &Path, options: &Options) 
         (tracker, scanner)
     };
 
-    if !target_dir.is_dir() {
+    if !target_dir.sys_is_dir() {
         return Err(MvError::NotADirectory(target_dir.quote().to_string()).into());
     }
 
-    let display_manager = options.progress_bar.then(MultiProgress::new);
-
-    let count_progress = if let Some(ref display_manager) = display_manager {
-        if files.len() > 1 {
-            Some(
-                display_manager.add(
-                    ProgressBar::new(files.len().try_into().unwrap()).with_style(
-                        ProgressStyle::with_template(&format!(
-                            "{} {{msg}} {{wide_bar}} {{pos}}/{{len}}",
-                            translate!("mv-progress-moving")
-                        ))
-                        .unwrap(),
-                    ),
-                ),
-            )
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+    // Porte pseudo-linus: nunca há barra (ver `ProgressBar`).
+    let display_manager: Option<MultiProgress> = None;
+    let count_progress: Option<ProgressBar> = None;
 
     for sourcepath in files {
-        if sourcepath.symlink_metadata().is_err() {
+        if sourcepath.sys_symlink_metadata().is_err() {
             show!(MvError::NoSuchFile(sourcepath.quote().to_string()));
             continue;
         }
@@ -807,7 +823,7 @@ fn rename(
 ) -> io::Result<()> {
     let mut backup_path = None;
 
-    if to.exists() {
+    if to.sys_exists() {
         if opts.update == UpdateMode::None {
             if opts.debug {
                 println!("{}", translate!("mv-debug-skipped", "target" => to.quote()));
@@ -856,11 +872,11 @@ fn rename(
     // is not reported as a directory, as with the previous
     // `to.exists() && to.is_dir() && !to.is_symlink()` check
     if to
-        .symlink_metadata()
+        .sys_symlink_metadata()
         .is_ok_and(|metadata| metadata.is_dir())
     {
         // normalize behavior between *nix and windows
-        if from.is_dir() {
+        if from.sys_is_dir() {
             if is_empty_dir(to) {
                 fs::remove_dir(to)?;
             } else {
@@ -941,7 +957,7 @@ fn rename_with_fallback(
         #[cfg(windows)]
         const EXDEV: i32 = windows_sys::Win32::Foundation::ERROR_NOT_SAME_DEVICE as _;
         #[cfg(unix)]
-        const EXDEV: i32 = libc::EXDEV as _;
+        const EXDEV: i32 = sysio::errno::EXDEV;
         #[cfg(target_os = "wasi")]
         const EXDEV: i32 = 18; // POSIX EXDEV value
 
@@ -950,12 +966,12 @@ fn rename_with_fallback(
         // 2. On Windows, if the target file exists and source file is opened by another process
         //    (MoveFileExW fails with "Access Denied" even if the source file has FILE_SHARE_DELETE permission)
         let should_fallback =
-            matches!(err.raw_os_error(), Some(EXDEV)) || (from.is_file() && can_delete_file(from));
+            matches!(err.raw_os_error(), Some(EXDEV)) || (from.sys_is_file() && can_delete_file(from));
         if !should_fallback {
             return Err(err);
         }
         // Get metadata without following symlinks
-        let metadata = from.symlink_metadata()?;
+        let metadata = from.sys_symlink_metadata()?;
         let file_type = metadata.file_type();
         if file_type.is_symlink() {
             rename_symlink_fallback(from, to)
@@ -1003,11 +1019,11 @@ fn rename_with_fallback(
 /// Replace the destination with a new pipe with the same name as the source.
 #[cfg(unix)]
 fn rename_fifo_fallback(from: &Path, to: &Path) -> io::Result<()> {
-    if to.try_exists()? {
+    if to.sys_try_exists()? {
         fs::remove_file(to)?;
     }
     // rustix::fs::mkfifoat is linux only
-    nix::unistd::mkfifo(to, nix::sys::stat::Mode::from_bits_truncate(0o666))?;
+    sysio::fs::mkfifo(to, 0o666)?;
     fs::remove_file(from)
 }
 
@@ -1051,8 +1067,8 @@ fn rename_symlink_fallback(from: &Path, to: &Path) -> io::Result<()> {
 #[cfg(windows)]
 fn rename_symlink_fallback(from: &Path, to: &Path) -> io::Result<()> {
     let path_symlink_points_to = fs::read_link(from)?;
-    if path_symlink_points_to.exists() {
-        if path_symlink_points_to.is_dir() {
+    if path_symlink_points_to.sys_exists() {
+        if path_symlink_points_to.sys_is_dir() {
             windows::fs::symlink_dir(&path_symlink_points_to, to)?;
         } else {
             windows::fs::symlink_file(&path_symlink_points_to, to)?;
@@ -1081,7 +1097,7 @@ fn rename_dir_fallback(
 ) -> io::Result<()> {
     // We remove the destination directory if it exists to match the
     // behavior of `fs::rename`.
-    if to.exists() {
+    if to.sys_exists() {
         fs::remove_dir_all(to)?;
     }
 
@@ -1090,17 +1106,8 @@ fn rename_dir_fallback(
     //    If finding the total size fails for whatever reason,
     //    the progress bar wont be shown for this file / dir.
     //    (Move will probably fail due to permission error later?)
-    let total_size = display_manager.and_then(|_| get_dir_size(from).ok());
-
-    let progress_bar = match (display_manager, total_size) {
-        (Some(display_manager), Some(total_size)) => {
-            let template = "{msg}: [{elapsed_precise}] {wide_bar} {bytes:>7}/{total_bytes:7}";
-            let style = ProgressStyle::with_template(template).unwrap();
-            let bar = ProgressBar::new(total_size).with_style(style);
-            Some(display_manager.add(bar))
-        }
-        (_, _) => None,
-    };
+    // Porte pseudo-linus: nunca há barra (ver `ProgressBar`).
+    let progress_bar: Option<ProgressBar> = None;
 
     // Retrieve xattrs through a file descriptor so a concurrent renamer cannot
     // redirect the list/get calls to a different inode.
@@ -1162,24 +1169,6 @@ fn create_dir_fail_closed(path: &Path) -> io::Result<()> {
             e
         }
     })
-}
-
-fn get_dir_size(path: &Path) -> io::Result<u64> {
-    let metadata = path.symlink_metadata()?;
-
-    if !metadata.is_dir() {
-        return Ok(metadata.len());
-    }
-
-    let mut size = 0;
-    for entry in fs::read_dir(path)? {
-        let entry = entry?;
-        size += entry.metadata()?.len();
-        if entry.file_type()?.is_dir() {
-            size += get_dir_size(&entry.path())?;
-        }
-    }
-    Ok(size)
 }
 
 fn copy_dir_contents(
@@ -1254,7 +1243,7 @@ fn copy_dir_contents_recursive(
             pb.set_message(from_path.to_string_lossy().to_string());
         }
 
-        if from_path.is_symlink() {
+        if from_path.sys_is_symlink() {
             // Handle symlinks first, before checking is_dir() which follows symlinks.
             // This prevents symlinks to directories from being expanded into full copies.
             #[cfg(unix)]
@@ -1272,7 +1261,7 @@ fn copy_dir_contents_recursive(
             }
 
             print_verbose(&from_path, &to_path);
-        } else if from_path.is_dir() {
+        } else if from_path.sys_is_dir() {
             // Recursively copy subdirectory (only real directories, not symlinks)
             create_dir_fail_closed(&to_path)?;
 
@@ -1316,7 +1305,7 @@ fn copy_dir_contents_recursive(
         }
 
         if let Some(pb) = progress_bar
-            && let Ok(metadata) = from_path.metadata()
+            && let Ok(metadata) = from_path.sys_metadata()
         {
             pb.inc(metadata.len());
         }
@@ -1343,13 +1332,13 @@ fn copy_file_with_hardlinks_helper(
         return Ok(());
     }
 
-    if from.is_symlink() {
+    if from.sys_is_symlink() {
         // Copy a symlink file (no-follow).
         // rename_symlink_fallback already preserves ownership and removes the source.
         rename_symlink_fallback(from, to)?;
-    } else if is_fifo(from.symlink_metadata()?.file_type()) {
+    } else if is_fifo(from.sys_symlink_metadata()?.file_type()) {
         // rustix::fs::mkfifoat is linux only
-        nix::unistd::mkfifo(to, nix::sys::stat::Mode::from_bits_truncate(0o666))?;
+        sysio::fs::mkfifo(to, 0o666)?;
         // Preserve ownership (uid/gid) from the source
         let _ = preserve_ownership(from, to);
     } else {
@@ -1374,12 +1363,12 @@ fn rename_file_fallback(
     #[cfg(unix)] hardlink_scanner: Option<&HardlinkGroupScanner>,
 ) -> io::Result<()> {
     // Remove existing target file if it exists
-    if to.is_symlink() {
+    if to.sys_is_symlink() {
         fs::remove_file(to).map_err(|err| {
             let inter_device_msg = translate!("mv-error-inter-device-move-failed", "from" => from.quote(), "to" => to.quote(), "err" => err);
             io::Error::new(err.kind(), inter_device_msg)
         })?;
-    } else if to.exists() {
+    } else if to.sys_exists() {
         // For non-symlinks, just remove the file without special error handling
         fs::remove_file(to)?;
     }
@@ -1465,11 +1454,11 @@ fn rename_file_fallback(
 fn preserve_ownership(from: &Path, to: &Path) -> io::Result<bool> {
     use sysio::os::unix::fs::MetadataExt;
 
-    let source_meta = from.symlink_metadata()?;
+    let source_meta = from.sys_symlink_metadata()?;
     let uid = source_meta.uid();
     let gid = source_meta.gid();
 
-    let dest_meta = to.symlink_metadata()?;
+    let dest_meta = to.sys_symlink_metadata()?;
     let dest_uid = dest_meta.uid();
     let dest_gid = dest_meta.gid();
 
@@ -1506,7 +1495,7 @@ fn is_empty_dir(path: &Path) -> bool {
 /// Check if file is writable, returning the mode for potential reuse.
 #[cfg(unix)]
 fn is_writable(path: &Path) -> (bool, Option<u32>) {
-    if let Ok(metadata) = path.metadata() {
+    if let Ok(metadata) = path.sys_metadata() {
         let mode = metadata.permissions().mode();
         // Check if user write bit is set
         ((mode & 0o200) != 0, Some(mode))
@@ -1518,7 +1507,7 @@ fn is_writable(path: &Path) -> (bool, Option<u32>) {
 /// Check if file is writable.
 #[cfg(not(unix))]
 fn is_writable(path: &Path) -> (bool, Option<u32>) {
-    if let Ok(metadata) = path.metadata() {
+    if let Ok(metadata) = path.sys_metadata() {
         (!metadata.permissions().readonly(), None)
     } else {
         (false, None) // If we can't get metadata, prompt user to be safe
@@ -1528,7 +1517,7 @@ fn is_writable(path: &Path) -> (bool, Option<u32>) {
 #[cfg(unix)]
 fn get_interactive_prompt(to: &Path, cached_mode: Option<u32>) -> String {
     // Use cached mode if available, otherwise fetch it
-    let mode = cached_mode.or_else(|| to.metadata().ok().map(|m| m.permissions().mode()));
+    let mode = cached_mode.or_else(|| to.sys_metadata().ok().map(|m| m.permissions().mode()));
     if let Some(mode) = mode {
         let file_mode = mode & 0o777;
         // Check if file is not writable by user

@@ -86,3 +86,26 @@ impl PathExt for PathBuf {
         self.as_path().sys_read_dir()
     }
 }
+
+/// `std::path::absolute` sobre o diretório corrente do pseudo-processo (o do std usa o do host).
+/// Mesma normalização: separadores repetidos e componentes `.` saem, `..` fica (sem resolver
+/// links), e a barra final de um caminho que termina em diretório se mantém.
+pub fn absolute<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
+    let path = path.as_ref();
+    if path.as_os_str().is_empty() {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "cannot make an empty path absolute"));
+    }
+    let base = if path.is_absolute() { PathBuf::new() } else { crate::env::current_dir()? };
+    let mut out = base;
+    for comp in path.components() {
+        match comp {
+            std::path::Component::CurDir => {}
+            other => out.push(other.as_os_str()),
+        }
+    }
+    let bytes = path.as_os_str().as_encoded_bytes();
+    if bytes.ends_with(b"/") && !out.as_os_str().as_encoded_bytes().ends_with(b"/") {
+        out.as_mut_os_string().push("/");
+    }
+    Ok(out)
+}

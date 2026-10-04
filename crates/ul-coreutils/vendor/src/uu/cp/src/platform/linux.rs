@@ -6,8 +6,36 @@
 // spell-checker:ignore reflink ftruncate fiemap lseek nofollow
 
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
-use rustix::fs::{SeekFrom, ftruncate, ioctl_ficlone, seek};
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use sysio::fs::File;
+use sysio::os::fd::AsRawFd;
+
+/// Porte pseudo-linus: o lseek(2), o ftruncate(2) e o FICLONE do rustix, sobre o pseudo-kernel e
+/// com a mesma interface.
+enum SeekFrom {
+    Start(u64),
+    Data(u64),
+    Hole(u64),
+}
+
+fn seek(f: &impl AsRawFd, pos: SeekFrom) -> io::Result<u64> {
+    let (off, whence) = match pos {
+        SeekFrom::Start(o) => (o, sysabi::Whence::Set),
+        SeekFrom::Data(o) => (o, sysabi::Whence::Data),
+        SeekFrom::Hole(o) => (o, sysabi::Whence::Hole),
+    };
+    let off = i64::try_from(off).map_err(|_| io::Error::from_raw_os_error(sysio::errno::EINVAL))?;
+    sysio::errno::cvt(sysabi::sys::current().lseek(sysabi::Fd(f.as_raw_fd()), off, whence))
+}
+
+fn ftruncate(f: &impl AsRawFd, size: u64) -> io::Result<()> {
+    sysio::errno::cvt(sysabi::sys::current().ftruncate(sysabi::Fd(f.as_raw_fd()), size))
+}
+
+/// O FS do pseudo-kernel não tem reflink: o FICLONE dá EOPNOTSUPP, como num FS sem suporte.
+fn ioctl_ficlone(_dst: &impl AsRawFd, _src: &impl AsRawFd) -> io::Result<()> {
+    Err(io::Error::from_raw_os_error(sysio::errno::EOPNOTSUPP))
+}
 use sysio::io::{self, Read};
 use sysio::os::unix::fs::FileExt;
 use sysio::os::unix::fs::FileTypeExt;
@@ -79,7 +107,7 @@ fn clone(
 ) -> CopyResult<()> {
     // Only needed to decide whether a failed --reflink=always clone should
     // clean up the dest, so skip the lstat for the other fallbacks.
-    let dest_existed = matches!(fallback, CloneFallback::Error) && dest.symlink_metadata().is_ok();
+    let dest_existed = matches!(fallback, CloneFallback::Error) && dest.sys_symlink_metadata().is_ok();
     let mut dst_file = create_dest(dest)?;
     if let Err(err) = ioctl_ficlone(&dst_file, &*src_file) {
         // Reuse the already-open descriptors: the dest was just created with
@@ -110,7 +138,8 @@ fn clone(
 
 /// Whether `path` still resolves to the inode behind `file`.
 fn path_still_refers_to(path: &Path, file: &File) -> bool {
-    let (Ok(current), Ok(opened)) = (path.symlink_metadata(), file.metadata()) else {
+    // Porte pseudo-linus: lstat no FS do pseudo-processo.
+    let (Ok(current), Ok(opened)) = (sysio::path::PathExt::sys_symlink_metadata(path), file.metadata()) else {
         return false;
     };
     current.dev() == opened.dev() && current.ino() == opened.ino()

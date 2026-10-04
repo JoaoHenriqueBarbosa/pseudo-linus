@@ -120,7 +120,9 @@ uu_vdir = { path = "vendor/src/uu/vdir", package = "pl-uu-vdir" }
 uu_who = { path = "vendor/src/uu/who", package = "pl-uu-who" }
 uu_whoami = { path = "vendor/src/uu/whoami", package = "pl-uu-whoami" }
 uu_yes = { path = "vendor/src/uu/yes", package = "pl-uu-yes" }
-# cp, mv e dd: porte em andamento (fora até compilarem sobre o sysio).
+uu_cp = { path = "vendor/src/uu/cp", package = "pl-uu-cp" }
+uu_mv = { path = "vendor/src/uu/mv", package = "pl-uu-mv" }
+uu_dd = { path = "vendor/src/uu/dd", package = "pl-uu-dd" }
 # --- fim dos demais grupos ---
 
 # Conformidade no kernel real: `cargo test -p ul-coreutils --features kernel-tests` com

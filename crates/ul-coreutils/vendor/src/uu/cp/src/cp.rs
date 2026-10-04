@@ -16,9 +16,8 @@ use std::fmt::Display;
 use sysio::fs::{self, Metadata, OpenOptions, Permissions};
 #[cfg(unix)]
 use sysio::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
-#[cfg(unix)]
-use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf, StripPrefixError};
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use std::{fmt};
 use sysio::{io};
 #[cfg(all(unix, not(target_os = "android")))]
@@ -27,10 +26,44 @@ use uucore::translate;
 
 use clap::{Arg, ArgAction, ArgMatches, Command, builder::ValueParser, value_parser};
 use filetime::FileTime;
-use indicatif::{ProgressBar, ProgressStyle};
-#[cfg(unix)]
-use nix::sys::stat::{Mode, SFlag, dev_t, mknod as nix_mknod, mode_t};
 use thiserror::Error;
+
+/// Porte pseudo-linus: os nomes da libc que o arquivo usa, sem a libc.
+#[allow(non_camel_case_types, dead_code)]
+mod libc {
+    pub use sysio::sysabi::mode::*;
+    pub type mode_t = u32;
+    pub const S_IRWXU: mode_t = 0o700;
+    pub const S_IRUSR: mode_t = 0o400;
+    pub const S_IWUSR: mode_t = 0o200;
+    pub const S_IRWXG: mode_t = 0o070;
+    pub const S_IRGRP: mode_t = 0o040;
+    pub const S_IWGRP: mode_t = 0o020;
+    pub const S_IRWXO: mode_t = 0o007;
+    pub const S_IROTH: mode_t = 0o004;
+    pub const S_IWOTH: mode_t = 0o002;
+    pub const EOPNOTSUPP: i32 = sysio::errno::EOPNOTSUPP;
+    pub const ENOSYS: i32 = sysio::errno::ENOSYS;
+}
+
+/// Porte pseudo-linus: sem `-g`/`--progress` (extensão do uutils que o GNU cp não tem; a barra do
+/// indicatif desenhava no terminal do host). O tipo fica, sem valores, pra que as assinaturas com
+/// `Option<&ProgressBar>` continuem iguais às do upstream; nunca existe um.
+pub enum ProgressBar {}
+
+impl ProgressBar {
+    fn inc(&self, _delta: u64) {
+        match *self {}
+    }
+
+    fn finish(&self) {
+        match *self {}
+    }
+
+    fn suspend<R>(&self, _f: impl FnOnce() -> R) -> R {
+        match *self {}
+    }
+}
 
 use platform::copy_on_write;
 use uucore::backup_control::backup_would_destroy_source;
@@ -53,6 +86,8 @@ use uucore::{
 use crate::copydir::copy_directory;
 
 mod copydir;
+// Porte pseudo-linus: utimensat/futimens do pseudo-kernel (o crate `filetime` falava com o host).
+mod filetime;
 mod platform;
 
 #[derive(Debug, Error)]
@@ -780,15 +815,7 @@ pub fn uu_app() -> Command {
                 .require_equals(true)
                 .default_missing_value(""),
         )
-        .arg(
-            // The 'g' short flag is modeled after advcpmv
-            // See this repo: https://github.com/jarun/advcpmv
-            Arg::new(options::PROGRESS_BAR)
-                .long(options::PROGRESS_BAR)
-                .short('g')
-                .action(ArgAction::SetTrue)
-                .help(translate!("cp-help-progress")),
-        )
+        // Porte pseudo-linus: sem `-g`/`--progress` (ver `ProgressBar`).
         // TODO: implement the following args
         .arg(
             Arg::new(options::COPY_CONTENTS)
@@ -1116,7 +1143,7 @@ impl Options {
             .cloned();
 
         if let Some(dir) = &target_dir
-            && !dir.is_dir()
+            && !dir.sys_is_dir()
         {
             return Err(CpError::NotADirectory(dir.clone()));
         }
@@ -1289,7 +1316,8 @@ impl Options {
             attributes,
             recursive,
             target_dir,
-            progress_bar: matches.get_flag(options::PROGRESS_BAR),
+            // Porte pseudo-linus: a opção não existe (ver `ProgressBar`).
+            progress_bar: false,
             set_selinux_context: set_selinux_context || context.is_some(),
             context,
         };
@@ -1334,7 +1362,7 @@ impl TargetType {
     /// Treat target as a dir if we have multiple sources or the target
     /// exists and already is a directory
     fn determine(sources: &[PathBuf], target: &Path) -> Self {
-        if sources.len() > 1 || target.is_dir() {
+        if sources.len() > 1 || target.sys_is_dir() {
             Self::Directory
         } else {
             Self::File
@@ -1463,25 +1491,13 @@ pub fn copy(sources: &[PathBuf], target: &Path, options: &Options) -> CopyResult
     let mut copied_destinations: HashSet<PathBuf> = HashSet::with_capacity(sources.len());
     let mut created_parent_dirs: HashSet<PathBuf> = HashSet::new();
 
-    let progress_bar = if options.progress_bar {
-        let pb = ProgressBar::new(disk_usage(sources, options.recursive)?)
-            .with_style(
-                ProgressStyle::with_template(
-                    "{msg}: [{elapsed_precise}] {wide_bar} {bytes:>7}/{total_bytes:7}",
-                )
-                .unwrap(),
-            )
-            .with_message("cp");
-        pb.tick();
-        Some(pb)
-    } else {
-        None
-    };
+    // Porte pseudo-linus: nunca há barra (ver `ProgressBar`).
+    let progress_bar: Option<ProgressBar> = None;
 
     for source in sources {
         let normalized_source = normalize_path(source);
         if options.backup == BackupMode::None && seen_sources.contains(&normalized_source) {
-            let file_type = if source.symlink_metadata()?.file_type().is_dir() {
+            let file_type = if source.sys_symlink_metadata()?.file_type().is_dir() {
                 "directory"
             } else {
                 "file"
@@ -1556,7 +1572,7 @@ fn construct_dest_path(
     target_type: TargetType,
     options: &Options,
 ) -> CopyResult<PathBuf> {
-    if options.no_target_dir && target.is_dir() {
+    if options.no_target_dir && target.sys_is_dir() {
         return Err(
             translate!("cp-error-cannot-overwrite-directory-with-non-directory",
                               "dir" => target.quote())
@@ -1564,7 +1580,7 @@ fn construct_dest_path(
         );
     }
 
-    if options.parents && !target.is_dir() {
+    if options.parents && !target.sys_is_dir() {
         return Err(translate!("cp-error-with-parents-dest-must-be-dir").into());
     }
 
@@ -1577,7 +1593,7 @@ fn construct_dest_path(
                     Path::new("")
                 }
             } else {
-                if source_path == Path::new(".") && target.is_dir() {
+                if source_path == Path::new(".") && target.sys_is_dir() {
                     // Special case: when copying current directory (.) to an existing directory,
                     // return the target path directly instead of trying to construct a path
                     // relative to the source's parent. This ensures we copy the contents of
@@ -1604,7 +1620,7 @@ fn copy_source(
     created_parent_dirs: &mut HashSet<PathBuf>,
 ) -> CopyResult<()> {
     let source_path = Path::new(&source);
-    if source_path.is_dir() && (options.dereference || !source_path.is_symlink()) {
+    if source_path.sys_is_dir() && (options.dereference || !source_path.sys_is_symlink()) {
         // Copy as directory
         copy_directory(
             progress_bar,
@@ -1663,9 +1679,8 @@ fn copy_source(
 #[cfg(unix)]
 fn file_mode_for_interactive_overwrite(path: &Path) -> Option<(String, String)> {
     use libc::{S_IWUSR, mode_t};
-    use std::os::unix::prelude::MetadataExt;
 
-    match path.metadata() {
+    match path.sys_metadata() {
         Ok(me) => {
             // Cast is necessary on some platforms
             #[allow(clippy::unnecessary_cast)]
@@ -1895,7 +1910,6 @@ pub(crate) fn copy_attributes(
     // Ownership must be changed first to avoid interfering with mode change.
     #[cfg(unix)]
     handle_preserve(attributes.ownership, || -> CopyResult<()> {
-        use std::os::unix::prelude::MetadataExt;
         use uucore::perms::Verbosity;
         use uucore::perms::VerbosityLevel;
         use uucore::perms::wrap_chown;
@@ -1903,7 +1917,7 @@ pub(crate) fn copy_attributes(
         let dest_uid = source_metadata.uid();
         let dest_gid = source_metadata.gid();
         let meta = &dest
-            .symlink_metadata()
+            .sys_symlink_metadata()
             .map_err(|e| CpError::IoErrContext(e, context.to_owned()))?;
 
         let try_chown = {
@@ -1936,7 +1950,7 @@ pub(crate) fn copy_attributes(
         // permissions of a symbolic link. In that case, we just
         // do nothing, since every symbolic link has the same
         // permissions.
-        if !dest.is_symlink() {
+        if !dest.sys_is_symlink() {
             #[cfg(unix)]
             let source_perms = {
                 use sysio::os::unix::fs::PermissionsExt;
@@ -1978,7 +1992,7 @@ pub(crate) fn copy_attributes(
         #[cfg(unix)]
         let no_open = {
             let ft = source_metadata.file_type();
-            dest.is_symlink()
+            dest.sys_is_symlink()
                 || ft.is_fifo()
                 || ft.is_socket()
                 || ft.is_char_device()
@@ -2136,8 +2150,8 @@ fn is_forbidden_to_copy_to_same_file(
 ) -> bool {
     // TODO To match the behavior of GNU cp, we also need to check
     // that the file is a regular file.
-    let source_is_symlink = source.is_symlink();
-    let dest_is_symlink = dest.is_symlink();
+    let source_is_symlink = source.sys_is_symlink();
+    let dest_is_symlink = dest.sys_is_symlink();
     // only disable dereference if both source and dest is symlink and dereference flag is disabled
     let dereference_to_compare =
         options.dereference(source_in_command_line) || (!source_is_symlink || !dest_is_symlink);
@@ -2207,7 +2221,7 @@ fn handle_existing_dest(
             return Err(translate!("cp-error-backing-up-destroy-source", "dest" => dest.quote(), "source" => source.quote())
             .into());
         }
-        is_dest_removed = dest.is_symlink();
+        is_dest_removed = dest.sys_is_symlink();
         backup_dest(dest, &backup_path, is_dest_removed)?;
     }
     if !is_dest_removed {
@@ -2414,16 +2428,16 @@ fn handle_copy_mode(
     match options.copy_mode {
         CopyMode::Link => {
             let mut force = false;
-            if dest.exists() {
+            if dest.sys_exists() {
                 let backup_path =
                     backup_control::get_backup_path(options.backup, dest, &options.backup_suffix);
                 if let Some(backup_path) = backup_path {
-                    backup_dest(dest, &backup_path, dest.is_symlink())?;
+                    backup_dest(dest, &backup_path, dest.sys_is_symlink())?;
                     fs::remove_file(dest)?;
                 }
                 force = options.overwrite == OverwriteMode::Clobber(ClobberMode::Force);
             }
-            let src = if options.dereference(source_in_command_line) && source.is_symlink() {
+            let src = if options.dereference(source_in_command_line) && source.sys_is_symlink() {
                 canonicalize(source, MissingHandling::Missing, ResolveMode::Physical).unwrap()
             } else {
                 source.to_path_buf()
@@ -2456,7 +2470,7 @@ fn handle_copy_mode(
         }
         CopyMode::SymLink => {
             // Atomic replace, for the same reason as CopyMode::Link above.
-            if dest.exists() && options.overwrite == OverwriteMode::Clobber(ClobberMode::Force) {
+            if dest.sys_exists() && options.overwrite == OverwriteMode::Clobber(ClobberMode::Force) {
                 replace_link(source, dest, true)?;
                 symlinked_files.insert(FileInformation::from_path(dest, false)?);
             } else {
@@ -2464,7 +2478,7 @@ fn handle_copy_mode(
             }
         }
         CopyMode::Update => {
-            if dest.exists() {
+            if dest.sys_exists() {
                 match options.update {
                     UpdateMode::All => {
                         copy_helper(
@@ -2628,12 +2642,12 @@ fn copy_file(
     created_parent_dirs: &mut HashSet<PathBuf>,
     source_in_command_line: bool,
 ) -> CopyResult<()> {
-    let source_is_symlink = source.is_symlink();
-    let initial_dest_metadata = dest.symlink_metadata().ok();
+    let source_is_symlink = source.sys_is_symlink();
+    let initial_dest_metadata = dest.sys_symlink_metadata().ok();
     let dest_is_symlink = initial_dest_metadata
         .as_ref()
         .is_some_and(|md| md.file_type().is_symlink());
-    let dest_target_exists = dest.try_exists().unwrap_or(false);
+    let dest_target_exists = dest.sys_try_exists().unwrap_or(false);
     // Fail if dest is a dangling symlink or a symlink this program created previously
     if dest_is_symlink {
         if FileInformation::from_path(dest, false).is_ok_and(|info| symlinked_files.contains(&info))
@@ -2790,7 +2804,7 @@ fn copy_file(
         })?
     };
 
-    let dest_metadata = dest.symlink_metadata().ok();
+    let dest_metadata = dest.sys_symlink_metadata().ok();
 
     let dest_permissions = calculate_dest_permissions(
         dest_metadata.as_ref(),
@@ -2824,7 +2838,7 @@ fn copy_file(
     // and chmod() would follow it and change the mode of the link target,
     // which can live outside the copied tree. Conversely, --remove-destination
     // replaces a symlink with a regular file that still needs its mode set.
-    if !dest.is_symlink() {
+    if !dest.sys_is_symlink() {
         // Here, to match GNU semantics, we quietly ignore an error
         // if a user does not have the correct ownership to modify
         // the permissions of a file.
@@ -2839,7 +2853,7 @@ fn copy_file(
         // fall back to the original source path
         let src_for_attrs = canonicalize(source, MissingHandling::Normal, ResolveMode::Physical)
             .ok()
-            .filter(|p| p.exists())
+            .filter(|p| p.sys_exists())
             .unwrap_or_else(|| source.to_path_buf());
         copy_attributes(
             &src_for_attrs,
@@ -2848,7 +2862,7 @@ fn copy_file(
             false,
             options.set_selinux_context,
         )
-    } else if source_is_stream && !source.exists() {
+    } else if source_is_stream && !source.sys_exists() {
         // Some stream files may not exist after we have copied it,
         // like anonymous pipes. Thus, we can't really copy its
         // attributes. However, this is already handled in the stream
@@ -2989,7 +3003,7 @@ fn copy_helper(
         }
     }
 
-    if path_ends_with_terminator(dest) && !dest.is_dir() {
+    if path_ends_with_terminator(dest) && !dest.sys_is_dir() {
         return Err(CpError::NotADirectory(dest.to_path_buf()));
     }
 
@@ -3043,23 +3057,25 @@ fn copy_helper(
 // built-in fs::copy does not handle FIFOs (see rust-lang/rust/issues/79390).
 #[cfg(unix)]
 fn copy_fifo(dest: &Path, overwrite: OverwriteMode, debug: bool) -> CopyResult<()> {
-    if dest.exists() {
+    if dest.sys_exists() {
         overwrite.verify(dest, debug)?;
         fs::remove_file(dest)?;
     }
-    // rustix::fs::mkfifoat is linux only
-    nix::unistd::mkfifo(dest, Mode::from_bits_truncate(0o666))
+    // Porte pseudo-linus: mkfifo(3) do pseudo-processo.
+    sysio::fs::mkfifo(dest, 0o666)
         .map_err(|_| translate!("cp-error-cannot-create-fifo", "path" => dest.quote()).into())
 }
 
 #[cfg(unix)]
 fn copy_socket(dest: &Path, overwrite: OverwriteMode, debug: bool) -> CopyResult<()> {
-    if dest.exists() {
+    if dest.sys_exists() {
         overwrite.verify(dest, debug)?;
         fs::remove_file(dest)?;
     }
 
-    UnixListener::bind(dest)?;
+    // Porte pseudo-linus: o nó de socket pelo mknod(2) do pseudo-kernel (o `UnixListener::bind`
+    // criava o socket no host). O GNU também recria o nó com mknod.
+    sysio::fs::mknod(dest, libc::S_IFSOCK | 0o777, 0)?;
     Ok(())
 }
 
@@ -3070,18 +3086,15 @@ fn copy_node(
     overwrite: OverwriteMode,
     debug: bool,
 ) -> CopyResult<()> {
-    if dest.exists() {
+    if dest.sys_exists() {
         overwrite.verify(dest, debug)?;
         fs::remove_file(dest)?;
     }
-    let sflag = if source_metadata.file_type().is_char_device() {
-        SFlag::S_IFCHR
-    } else {
-        SFlag::S_IFBLK
-    };
-    let mode = Mode::from_bits_truncate(source_metadata.mode() as mode_t);
-    nix_mknod(dest, sflag, mode, source_metadata.rdev() as dev_t)
-        .map_err(|e| translate!("cp-error-cannot-create-special-file", "path" => dest.quote(), "error" => e.desc()).into())
+    // Porte pseudo-linus: mknod(2) do pseudo-kernel.
+    let sflag = if source_metadata.file_type().is_char_device() { libc::S_IFCHR } else { libc::S_IFBLK };
+    let mode = source_metadata.mode() & 0o7777;
+    sysio::fs::mknod(dest, sflag | mode, source_metadata.rdev())
+        .map_err(|e| translate!("cp-error-cannot-create-special-file", "path" => dest.quote(), "error" => strip_errno(&e)).into())
 }
 
 fn copy_link(
@@ -3094,7 +3107,7 @@ fn copy_link(
     let link = fs::read_link(source)?;
     // we always need to remove the file to be able to create a symlink,
     // even if it is writeable.
-    if dest.is_symlink() || dest.is_file() {
+    if dest.sys_is_symlink() || dest.sys_is_file() {
         delete_path(dest, options)?;
     }
     symlink_file(&link, dest, symlinked_files)?;
@@ -3109,7 +3122,7 @@ fn copy_link(
 
 /// Generate an error message if `target` is not the correct `target_type`
 pub fn verify_target_type(target: &Path, target_type: TargetType) -> CopyResult<()> {
-    match (target_type, target.is_dir()) {
+    match (target_type, target.sys_is_dir()) {
         (TargetType::Directory, false) => Err(translate!("cp-error-target-not-directory", "target" => target.quote())
         .into()),
         (TargetType::File, true) => Err(translate!("cp-error-cannot-overwrite-directory-with-non-directory", "dir" => target.quote())
@@ -3134,41 +3147,6 @@ pub fn localize_to_target(root: &Path, source: &Path, target: &Path) -> CopyResu
     Ok(target.join(local_to_root))
 }
 
-/// Get the total size of a slice of files and directories.
-///
-/// This function is much like the `du` utility, by recursively getting the sizes of files in directories.
-/// Files are not deduplicated when appearing in multiple sources. If `recursive` is set to `false`, the
-/// directories in `paths` will be ignored.
-fn disk_usage(paths: &[PathBuf], recursive: bool) -> io::Result<u64> {
-    let mut total = 0;
-    for p in paths {
-        let md = fs::metadata(p)?;
-        if md.file_type().is_dir() {
-            if recursive {
-                total += disk_usage_directory(p)?;
-            }
-        } else {
-            total += md.len();
-        }
-    }
-    Ok(total)
-}
-
-/// A helper for `disk_usage` specialized for directories.
-fn disk_usage_directory(p: &Path) -> io::Result<u64> {
-    let mut total = 0;
-
-    for entry in fs::read_dir(p)? {
-        let entry = entry?;
-        if entry.file_type()?.is_dir() {
-            total += disk_usage_directory(&entry.path())?;
-        } else {
-            total += entry.metadata()?.len();
-        }
-    }
-
-    Ok(total)
-}
 
 #[cfg(test)]
 mod tests {

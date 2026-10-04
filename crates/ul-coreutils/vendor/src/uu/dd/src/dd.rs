@@ -15,6 +15,7 @@ mod parseargs;
 mod progress;
 
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use crate::bufferedoutput::BufferedOutput;
 use blocks::conv_block_unblock_helper;
 use datastructures::{ConversionMode, IConvFlags, IFlags, OConvFlags, OFlags, options};
@@ -23,7 +24,6 @@ use progress::ProgUpdateType;
 use progress::{ProgUpdate, ReadStat, StatusLevel, WriteStat, gen_prog_updater};
 #[cfg(target_os = "linux")]
 use progress::{check_and_reset_sigusr1, install_sigusr1_handler};
-use uucore::io::OwnedFileDescriptorOrHandle;
 use uucore::translate;
 
 use std::cmp;
@@ -35,18 +35,70 @@ use sysio::fs::{File, OpenOptions};
 use sysio::io::{self, Read, Seek, SeekFrom, Write};
 #[cfg(any(target_os = "linux", target_os = "android"))]
 use sysio::os::unix::fs::OpenOptionsExt;
+// Porte pseudo-linus: os traits de fd do sysio (o `from_raw_fd` é seguro: o fd é do pseudo-processo).
 #[cfg(unix)]
-use std::os::unix::{
+use sysio::os::unix::{
     fs::FileTypeExt,
     io::{AsRawFd, FromRawFd},
 };
+
+/// Porte pseudo-linus: os nomes da libc que o arquivo usa (flags do open(2) e errno do Linux
+/// x86_64), sem a libc.
+#[allow(dead_code)]
+mod libc {
+    pub const O_APPEND: i32 = 0o2000;
+    pub const O_DIRECT: i32 = 0o40000;
+    pub const O_DIRECTORY: i32 = 0o200000;
+    pub const O_DSYNC: i32 = 0o10000;
+    pub const O_NOATIME: i32 = 0o1000000;
+    pub const O_NOCTTY: i32 = 0o400;
+    pub const O_NOFOLLOW: i32 = 0o400000;
+    pub const O_NONBLOCK: i32 = 0o4000;
+    pub const O_SYNC: i32 = 0o4010000;
+    pub const ESPIPE: i32 = sysio::errno::ESPIPE;
+    pub const EINVAL: i32 = sysio::errno::EINVAL;
+}
+
+/// Porte pseudo-linus: o `uucore::io::OwnedFileDescriptorOrHandle` saiu do uucore portado; aqui,
+/// o mesmo papel (um dup do stdout do pseudo-processo, como um `File` dono do fd).
+struct OwnedFileDescriptorOrHandle(File);
+
+impl OwnedFileDescriptorOrHandle {
+    fn from(_stdout: io::Stdout) -> io::Result<Self> {
+        let _ = sysio::io::flush_stdout();
+        let fd = sysio::errno::cvt(sysabi::sys::current().dup(sysabi::Fd::STDOUT))?;
+        let _ = sysabi::sys::current().set_cloexec(fd, true);
+        Ok(Self(File::from_raw_fd(fd.0)))
+    }
+
+    fn as_raw(&self) -> i32 {
+        self.0.as_raw_fd()
+    }
+
+    fn into_file(self) -> File {
+        self.0
+    }
+}
+
+/// Porte pseudo-linus: F_GETFL e F_SETFL do pseudo-kernel, com flags cruas do Linux.
+fn fcntl_getfl(fd: i32) -> io::Result<i32> {
+    sysio::errno::cvt(sysabi::sys::current().get_status_flags(sysabi::Fd(fd))).map(|f| f.bits() as i32)
+}
+
+fn fcntl_setfl(fd: i32, flags: i32) -> io::Result<()> {
+    sysio::errno::cvt(
+        sysabi::sys::current().set_status_flags(sysabi::Fd(fd), sysabi::OFlags::from_bits_retain(flags as u32)),
+    )
+}
 #[cfg(windows)]
 use std::os::windows::{fs::MetadataExt, io::AsHandle};
 use std::path::Path;
 use std::sync::atomic::AtomicU8;
 use std::sync::{Arc, atomic::Ordering::Relaxed, mpsc};
 use sysio::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+// Porte pseudo-linus: o CLOCK_MONOTONIC do pseudo-kernel.
+use sysio::time::Instant;
 
 use clap::{Arg, Command};
 use gcd::Gcd;
@@ -240,7 +292,7 @@ impl Source {
     #[cfg(unix)]
     fn stdin_as_file() -> Self {
         let fd = io::stdin().as_raw_fd();
-        let f = unsafe { File::from_raw_fd(fd) };
+        let f = File::from_raw_fd(fd);
         Self::StdinFile(f)
     }
 
@@ -322,13 +374,14 @@ impl Source {
     fn discard_cache(&self, offset: u64, len: u64) -> io::Result<()> {
         #[allow(clippy::match_wildcard_for_single_variants)]
         match self {
-            Self::File(f) => {
-                use rustix::fs::{Advice::DontNeed, fadvise};
-                fadvise(f, offset, std::num::NonZeroU64::new(len), DontNeed)?;
+            // Porte pseudo-linus: o pseudo-kernel não tem cache de páginas, então o
+            // posix_fadvise(DONTNEED) não tem o que descartar e dá certo (como no Linux).
+            Self::File(_) => {
+                let _ = (offset, len);
                 Ok(())
             }
             // fadvise for nonseekable returns this error. We manually do that...
-            _ => Err(rustix::io::Errno::SPIPE.into()),
+            _ => Err(io::Error::from_raw_os_error(libc::ESPIPE)),
         }
     }
 }
@@ -718,13 +771,13 @@ impl Dest {
     #[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
     fn discard_cache(&self, offset: u64, len: u64) -> io::Result<()> {
         match self {
-            Self::File(f, _) => {
-                use rustix::fs::{Advice::DontNeed, fadvise};
-                fadvise(f, offset, std::num::NonZeroU64::new(len), DontNeed)?;
+            // Porte pseudo-linus: ver o `discard_cache` da origem.
+            Self::File(_, _) => {
+                let _ = (offset, len);
                 Ok(())
             }
             // fadvise for nonseekable returns this error. We manually do that...
-            _ => Err(rustix::io::Errno::SPIPE.into()),
+            _ => Err(io::Error::from_raw_os_error(libc::ESPIPE)),
         }
     }
 }
@@ -738,26 +791,27 @@ fn is_sparse(buf: &[u8]) -> bool {
 /// This follows GNU dd behavior for partial block writes with O_DIRECT.
 #[cfg(any(target_os = "linux", target_os = "android"))]
 fn handle_o_direct_write(f: &mut File, buf: &[u8], original_error: io::Error) -> io::Result<usize> {
-    use rustix::fs::{OFlags, fcntl_getfl, fcntl_setfl};
+    // Porte pseudo-linus: F_GETFL/F_SETFL do pseudo-kernel (ver `fcntl_getfl`).
+    let fd = f.as_raw_fd();
 
     // Get current flags
-    let Ok(oflags) = fcntl_getfl(&*f) else {
+    let Ok(oflags) = fcntl_getfl(fd) else {
         return Err(original_error);
     };
 
     // If O_DIRECT is set, try removing it temporarily
-    if oflags.contains(OFlags::DIRECT) {
-        let flags_without_direct = oflags & !OFlags::DIRECT;
+    if oflags & libc::O_DIRECT != 0 {
+        let flags_without_direct = oflags & !libc::O_DIRECT;
 
         // Remove O_DIRECT flag
-        fcntl_setfl(&*f, flags_without_direct).map_err(|_| original_error)?;
+        fcntl_setfl(fd, flags_without_direct).map_err(|_| original_error)?;
 
         // Retry the write without O_DIRECT
         let write_result = f.write(buf);
 
         // Restore O_DIRECT flag (GNU doesn't restore it, but we'll be safer)
         // Log any restoration errors without failing the operation
-        if let Err(e) = fcntl_setfl(&*f, oflags).map_err(io::Error::from) {
+        if let Err(e) = fcntl_setfl(fd, oflags) {
             // Just log the error, don't fail the whole operation
             show_error!("Failed to restore O_DIRECT flag: {e}");
         }
@@ -906,11 +960,7 @@ impl<'a> Output<'a> {
         let fx = OwnedFileDescriptorOrHandle::from(io::stdout())?;
         #[cfg(any(target_os = "linux", target_os = "android"))]
         if let Some(libc_flags) = make_linux_oflags(&settings.oflags) {
-            rustix::fs::fcntl_setfl(
-                fx.as_raw(),
-                rustix::fs::OFlags::from_bits_retain(libc_flags as _),
-            )
-            .map_err(|e| uucore::error::UIoError::from(io::Error::from(e)))?;
+            fcntl_setfl(fx.as_raw(), libc_flags).map_err(uucore::error::UIoError::from)?;
         }
 
         Self::prepare_file(fx.into_file(), settings)
@@ -1505,7 +1555,7 @@ fn below_count_limit(count: Option<Num>, rstat: &ReadStat) -> bool {
 /// outfile`, then this function returns the canonicalized path to
 /// `outfile`, something like `"/path/to/outfile"`.
 fn stdout_canonicalized() -> OsString {
-    match Path::new("/dev/stdout").canonicalize() {
+    match Path::new("/dev/stdout").sys_canonicalize() {
         Ok(p) => p.into_os_string(),
         Err(_) => OsString::from("/dev/stdout"),
     }

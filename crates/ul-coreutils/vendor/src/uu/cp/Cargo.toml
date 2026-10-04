@@ -136,6 +136,11 @@ path = "../../../../../sysio"
 [dependencies.sysabi]
 path = "../../../../../sysabi"
 
+# Porte pseudo-linus: o walkdir portado pro sysio (o do crates.io lê o FS do host).
+[dependencies.walkdir]
+path = "../../../../../ul-findutils/vendor/walkdir"
+package = "pl-walkdir"
+
 [lints.rust.unexpected_cfgs]
 level = "warn"
 priority = 0

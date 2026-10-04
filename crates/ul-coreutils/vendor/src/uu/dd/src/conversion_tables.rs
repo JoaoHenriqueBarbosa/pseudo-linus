@@ -11,42 +11,22 @@
 
 pub type ConversionTable = [u8; 256];
 
-/// Builds a lowercase conversion table using locale-aware libc::tolower
-/// This function builds the table dynamically based on the current locale.
-/// The nix crate doesn't provide safe wrappers for locale functions, so we use libc directly.
+/// Builds a lowercase conversion table.
+/// Porte pseudo-linus: o `tolower` da glibc nos locales que o pseudo-linus tem (C, POSIX e
+/// C.UTF-8) só mexe em A-Z quando o argumento é um byte.
 pub fn build_lcase_table() -> ConversionTable {
-    // Initialize locale from environment if not already done
-    // SAFETY: setlocale is called with a valid C string and is used to initialize
-    // the locale for character conversion functions
-    #[cfg(not(target_os = "wasi"))]
-    unsafe {
-        libc::setlocale(libc::LC_CTYPE, c"".as_ptr())
-    };
-
     let mut table = [0u8; 256];
     for (i, item) in table.iter_mut().enumerate() {
-        // SAFETY: tolower is called with a valid byte value and returns a valid byte
-        *item = unsafe { libc::tolower(i as core::ffi::c_int) } as u8;
+        *item = (i as u8).to_ascii_lowercase();
     }
     table
 }
 
-/// Builds an uppercase conversion table using locale-aware libc::toupper
-/// This function builds the table dynamically based on the current locale.
-/// The nix crate doesn't provide safe wrappers for locale functions, so we use libc directly.
+/// Builds an uppercase conversion table (ver [`build_lcase_table`]).
 pub fn build_ucase_table() -> ConversionTable {
-    // Initialize locale from environment if not already done
-    // SAFETY: setlocale is called with a valid C string and is used to initialize
-    // the locale for character conversion functions
-    #[cfg(not(target_os = "wasi"))]
-    unsafe {
-        libc::setlocale(libc::LC_CTYPE, c"".as_ptr())
-    };
-
     let mut table = [0u8; 256];
     for (i, item) in table.iter_mut().enumerate() {
-        // SAFETY: toupper is called with a valid byte value and returns a valid byte
-        *item = unsafe { libc::toupper(i as core::ffi::c_int) } as u8;
+        *item = (i as u8).to_ascii_uppercase();
     }
     table
 }

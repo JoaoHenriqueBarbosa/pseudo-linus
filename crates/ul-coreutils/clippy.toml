@@ -37,6 +37,7 @@ disallowed-methods = [
     { path = "std::path::Path::canonicalize", reason = "use sysio::path::PathExt" },
     { path = "std::path::Path::read_link", reason = "use sysio::path::PathExt" },
     { path = "std::path::Path::read_dir", reason = "use sysio::path::PathExt" },
+    { path = "std::path::absolute", reason = "use sysio::path::absolute (cwd do pseudo-processo)" },
     { path = "std::env::var", reason = "use sysio::env" },
     { path = "std::env::var_os", reason = "use sysio::env" },
     { path = "std::env::vars", reason = "use sysio::env" },

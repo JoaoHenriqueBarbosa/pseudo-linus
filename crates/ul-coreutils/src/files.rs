@@ -1,13 +1,14 @@
 //! Grupo "files": operações no sistema de arquivos (cp, mv, rm, mkdir, rmdir, ln, link, unlink, touch,
 //! install, chmod, chown, chgrp, mktemp, truncate, sync, mkfifo, mknod, dd, du, df, stat, readlink,
 //! realpath, basename, dirname, pathchk, dircolors, dir, vdir).
-//!
-//! cp, mv e dd ainda não estão aqui: o porte deles pro sysio está em andamento.
 
 use sysabi::Program;
 
 use crate::run::uu_main;
 
+uu_main!(cp_main, "cp", uu_cp);
+uu_main!(mv_main, "mv", uu_mv);
+uu_main!(dd_main, "dd", uu_dd);
 uu_main!(mkdir_main, "mkdir", uu_mkdir);
 uu_main!(rmdir_main, "rmdir", uu_rmdir);
 uu_main!(rm_main, "rm", uu_rm);
@@ -38,6 +39,9 @@ uu_main!(vdir_main, "vdir", uu_vdir);
 
 pub(crate) fn programs() -> Vec<Program> {
     vec![
+        Program::bin("cp", cp_main),
+        Program::bin("mv", mv_main),
+        Program::bin("dd", dd_main),
         Program::bin("mkdir", mkdir_main),
         Program::bin("rmdir", rmdir_main),
         Program::bin("rm", rm_main),

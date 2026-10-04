@@ -12,6 +12,7 @@
 #[cfg(windows)]
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 #[allow(unused_imports)]
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use sysio::{println, eprintln};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
@@ -21,7 +22,9 @@ use sysio::fs::{self, exists};
 use sysio::io;
 use std::path::{Path, PathBuf, StripPrefixError};
 
-use indicatif::ProgressBar;
+// Porte pseudo-linus: a barra vazia e o shim da libc do cp.rs.
+use crate::{ProgressBar, libc};
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use uucore::display::Quotable;
 use uucore::error::UIoError;
 use uucore::fs::{
@@ -140,8 +143,8 @@ impl<'a> Context<'a> {
             env::current_dir()?
         };
         let root_path = current_dir.join(root);
-        let target_is_file = target.is_file();
-        let root_parent = if target.exists() && !ends_with_curdir(root) {
+        let target_is_file = target.sys_is_file();
+        let root_parent = if target.sys_exists() && !ends_with_curdir(root) {
             root_path.parent().map(ToOwned::to_owned)
         } else {
             Some(root_path)
@@ -217,10 +220,10 @@ impl Entry {
         let mut descendant =
             get_local_to_root_parent(&source_absolute, context.root_parent.as_deref())?;
         if no_target_dir {
-            let source_is_dir = source.is_dir();
+            let source_is_dir = source.sys_is_dir();
             if path_ends_with_terminator(context.target)
                 && source_is_dir
-                && !exists(context.target).is_ok_and(identity)
+                && !exists(context.target)
             {
                 if let Err(e) = fs::create_dir_all(context.target) {
                     eprintln!(
@@ -273,7 +276,7 @@ fn copy_direntry(
     let source_is_dir = if source_is_symlink && !options.dereference {
         false
     } else if source_is_symlink {
-        entry.source_absolute.is_dir()
+        entry.source_absolute.sys_is_dir()
     } else {
         entry_is_dir_no_follow
     };
@@ -284,11 +287,11 @@ fn copy_direntry(
     // of the destination tree. GNU refuses this ("cannot overwrite
     // non-directory ... with directory"), so treat a symlink at the destination
     // as the non-directory it is.
-    let dest_is_symlink = entry.local_to_target.is_symlink();
+    let dest_is_symlink = entry.local_to_target.sys_is_symlink();
 
     // If the source is a directory and the destination does not
     // exist, ...
-    if source_is_dir && (dest_is_symlink || !entry.local_to_target.exists()) {
+    if source_is_dir && (dest_is_symlink || !entry.local_to_target.sys_exists()) {
         return if entry.target_is_file || dest_is_symlink {
             Err(translate!("cp-error-cannot-overwrite-non-directory-with-directory").into())
         } else {
@@ -375,7 +378,7 @@ pub(crate) fn copy_directory(
     source_in_command_line: bool,
 ) -> CopyResult<()> {
     // if no-dereference is enabled and this is a symlink, copy it as a file
-    if !options.dereference(source_in_command_line) && root.is_symlink() {
+    if !options.dereference(source_in_command_line) && root.sys_is_symlink() {
         return copy_file(
             progress_bar,
             root,
@@ -475,7 +478,7 @@ pub(crate) fn copy_directory(
                 let direntry_type = direntry.file_type();
                 let direntry_path = direntry.path();
                 let (entry_is_symlink, entry_is_dir_no_follow) =
-                    match direntry_path.symlink_metadata() {
+                    match direntry_path.sys_symlink_metadata() {
                         Ok(metadata) => {
                             let file_type = metadata.file_type();
                             (file_type.is_symlink(), file_type.is_dir())
@@ -509,7 +512,7 @@ pub(crate) fn copy_directory(
                 // `./a/b/c` into `./a/`, in which case we'll need to fix the
                 // permissions of both `./a/b/c` and `./a/b`, in that order.)
                 let is_dir_for_permissions =
-                    entry_is_dir_no_follow || (options.dereference && direntry_path.is_dir());
+                    entry_is_dir_no_follow || (options.dereference && direntry_path.sys_is_dir());
                 if is_dir_for_permissions {
                     // For --link mode, copy attributes immediately to avoid O(n) memory
                     if options.copy_mode == CopyMode::Link {

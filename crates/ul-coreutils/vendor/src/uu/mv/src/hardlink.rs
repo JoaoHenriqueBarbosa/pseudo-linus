@@ -13,6 +13,7 @@
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use rustc_hash::FxHashMap;
 use sysio::io::{self, Write as _};
+use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use std::path::{Path, PathBuf};
 
 use uucore::display::Quotable;
@@ -123,7 +124,7 @@ impl HardlinkTracker {
     ) -> Option<PathBuf> {
         use sysio::os::unix::fs::MetadataExt;
 
-        let metadata = match source.symlink_metadata() {
+        let metadata = match source.sys_symlink_metadata() {
             Ok(meta) => meta,
             Err(e) => {
                 // Gracefully handle metadata errors by logging and continuing without hardlink tracking
@@ -217,11 +218,11 @@ impl HardlinkGroupScanner {
     fn scan_single_path(&mut self, path: &Path) -> io::Result<()> {
         use sysio::os::unix::fs::MetadataExt;
 
-        if path.is_dir() {
+        if path.sys_is_dir() {
             // Recursively scan directory contents
             self.scan_directory_recursive(path)?;
         } else {
-            let metadata = path.symlink_metadata()?;
+            let metadata = path.sys_symlink_metadata()?;
             if metadata.is_file() && metadata.nlink() > 1 {
                 let key = (metadata.dev(), metadata.ino());
                 self.hardlink_groups
@@ -242,10 +243,10 @@ impl HardlinkGroupScanner {
             let entry = entry?;
             let path = entry.path();
 
-            if path.is_dir() {
+            if path.sys_is_dir() {
                 self.scan_directory_recursive(&path)?;
             } else {
-                let metadata = path.symlink_metadata()?;
+                let metadata = path.sys_symlink_metadata()?;
                 if metadata.is_file() && metadata.nlink() > 1 {
                     let key = (metadata.dev(), metadata.ino());
                     self.hardlink_groups.entry(key).or_default().push(path);

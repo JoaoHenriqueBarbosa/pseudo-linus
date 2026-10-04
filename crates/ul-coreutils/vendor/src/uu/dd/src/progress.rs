@@ -449,22 +449,17 @@ pub(crate) fn gen_prog_updater(
     }
 }
 
-#[cfg(target_os = "linux")]
-static SIGUSR1_RECEIVED: AtomicBool = AtomicBool::new(false);
-
+// Porte pseudo-linus: o SIGUSR1 fica com disposição "capturar" no pseudo-kernel e a consulta pega a
+// fila de sinais capturados do próprio processo (um `AtomicBool` estático seria compartilhado entre
+// todos os pseudo-processos).
 #[cfg(target_os = "linux")]
 pub(crate) fn check_and_reset_sigusr1() -> bool {
-    SIGUSR1_RECEIVED.swap(false, Ordering::Relaxed)
-}
-
-#[cfg(target_os = "linux")]
-extern "C" fn sigusr1_handler(_: core::ffi::c_int) {
-    SIGUSR1_RECEIVED.store(true, Ordering::Relaxed);
+    sysio::unistd::take_caught_signals().contains(&sysabi::Signal::SIGUSR1)
 }
 
 #[cfg(target_os = "linux")]
 pub(crate) fn install_sigusr1_handler() -> sysio::io::Result<()> {
-    uucore::signals::install_signal_handler(libc::SIGUSR1, sigusr1_handler)?;
+    sysio::unistd::signal(sysabi::Signal::SIGUSR1, sysabi::SigDisposition::Catch)?;
     Ok(())
 }
 
