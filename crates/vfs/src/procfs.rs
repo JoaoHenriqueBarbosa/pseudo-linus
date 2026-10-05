@@ -357,7 +357,7 @@ impl Procfs {
     fn static_content(&self, n: u32) -> SysResult<Vec<u8>> {
         match n {
             S_PID_MAX => Ok(format!("{}\n", self.provider.pid_max()).into_bytes()),
-            S_MEMINFO => Ok(render::meminfo(&self.provider.system().mem)),
+            S_MEMINFO => Ok(render::meminfo(&self.provider.mem())),
             S_CPUINFO => Ok(render::cpuinfo(self.provider.ncpus())),
             S_STAT => Ok(render::stat_global(&self.provider.system())),
             S_UPTIME => Ok(render::uptime(&self.provider.system())),

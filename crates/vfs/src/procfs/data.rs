@@ -151,7 +151,7 @@ pub struct MemSystem {
     pub committed: u64,
 }
 
-/// Estado global da máquina: o que `meminfo`, `stat`, `uptime` e `loadavg` mostram.
+/// Estado global da máquina: o que `stat`, `uptime` e `loadavg` mostram.
 #[derive(Clone, Debug, Default)]
 pub struct SysData {
     pub ncpus: u32,
@@ -172,7 +172,6 @@ pub struct SysData {
     pub last_pid: Pid,
     /// `avenrun` em ponto fixo (`FSHIFT` = 11).
     pub load: [u64; 3],
-    pub mem: MemSystem,
 }
 
 /// Fonte de dados do procfs: o kernel implementa.
@@ -202,6 +201,8 @@ pub trait ProcProvider: Send + Sync {
     fn fdinfo(&self, cx: &Caller, pid: Pid, fd: i32) -> Option<FdInfo>;
     /// Estado global da máquina.
     fn system(&self) -> SysData;
+    /// Memória da máquina (separada de `system` porque somar os processos custa mais).
+    fn mem(&self) -> MemSystem;
     /// CPUs virtuais do sandbox.
     fn ncpus(&self) -> u32;
     /// `/proc/version`, com a quebra de linha.
