@@ -1,0 +1,38 @@
+{
+  "lsipc-bad-long-option": {
+    "stdout": "",
+    "stderr": "lsipc: unrecognized option '--nope'\nTry 'lsipc --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lsipc-bad-option": {
+    "stdout": "",
+    "stderr": "lsipc: invalid option -- 'Z'\nTry 'lsipc --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lsipc-bad-usage": {
+    "stdout": "RESOURCE DESCRIPTION                                               LIMIT USED  USE%\nMSGMNI   Number of System V message queues                         32000    0 0.00%\nMSGMAX   Max size of System V message (bytes)                         8K    -     -\nMSGMNB   Default max size of System V queue (bytes)                  16K    -     -\nMQUMNI   Number of POSIX message queues                              256    0 0.00%\nMQUMAX   Max size of POSIX message (bytes)                            8K    -     -\nMQUMNB   Number of messages in POSIX message queue                    10    -     -\nSHMMNI   Shared memory segments                                     4096    0 0.00%\nSHMALL   Shared memory pages                        18446744073692774399    0 0.00%\nSHMMAX   Max size of shared memory segment (bytes)                   16E    -     -\nSHMMIN   Min size of shared memory segment (bytes)                    1B    -     -\nSEMMNI   Number of semaphore identifiers                           32000    0 0.00%\nSEMMNS   Total number of semaphores                           1024000000    0 0.00%\nSEMMSL   Max semaphores per semaphore set.                         32000    -     -\nSEMOPM   Max number of operations per semop(2)                       500    -     -\nSEMVMX   Semaphore max value                                       32767    -     -\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lsipc-help": {
+    "stdout": "\nUsage:\n lsipc [options]\n\nShow information on IPC facilities.\n\nResource options:\n -m, --shmems             shared memory segments\n -M, --posix-shmems       POSIX shared memory segments\n -q, --queues             message queues\n -Q, --posix-mqueues      POSIX message queues\n -s, --semaphores         semaphores\n -S, --posix-semaphores   POSIX semaphores\n -g, --global             info about system-wide usage\n                            (may be used with -m, -q and -s)\n -i, --id <id>            System V resource identified by <id>\n -N, --name <name>        POSIX resource identified by <name>\n\nOptions:\n     --noheadings         don't print headings\n     --notruncate         don't truncate output\n     --time-format=<type> display dates in short, full or iso format\n -b, --bytes              print SIZE in bytes rather\n -c, --creator            show creator and owner\n -e, --export             display in an export-able output format\n -J, --json               use the JSON output format\n -n, --newline            display each piece of information on a new line\n -l, --list               force list output format (for example with --id)\n -o, --output[=<list>]    define the columns to output\n -P, --numeric-perms      print numeric permissions (PERMS column)\n -r, --raw                display in raw mode\n -t, --time               show attach, detach and change times\n -y, --shell              use column names to be usable as shell variables\n\n -h, --help               display this help\n -V, --version            display version\n\nGeneric System V columns:\n            KEY  Resource key\n             ID  Resource ID\n          OWNER  Owner's username or UID\n          PERMS  Permissions\n           CUID  Creator UID\n          CUSER  Creator user\n           CGID  Creator GID\n         CGROUP  Creator group\n            UID  User ID\n           USER  User name\n            GID  Group ID\n          GROUP  Group name\n          CTIME  Time of the last change\n\nGeneric POSIX columns:\n           NAME  POSIX resource name\n          OWNER  Owner's username or UID\n          PERMS  Permissions\n           CUID  Creator UID\n          CUSER  Creator user\n           CGID  Creator GID\n         CGROUP  Creator group\n          MTIME  Time of last action\n\nSystem V Shared-memory columns (--shmems):\n           SIZE  Segment size\n         NATTCH  Number of attached processes\n         STATUS  Status\n         ATTACH  Attach time\n         DETACH  Detach time\n        COMMAND  Creator command line\n           CPID  PID of the creator\n           LPID  PID of last user\n\nSystem V Message-queue columns (--queues):\n      USEDBYTES  Bytes used\n           MSGS  Number of messages\n           SEND  Time of last msg sent\n           RECV  Time of last msg received\n          LSPID  PID of the last msg sender\n          LRPID  PID of the last msg receiver\n\nSystem V Semaphore columns (--semaphores):\n          NSEMS  Number of semaphores\n          OTIME  Time of the last operation\n\nPOSIX Semaphore columns (--posix-semaphores):\n           SVAL  Semaphore value\n\nSummary columns (--global):\n       RESOURCE  Resource name\n    DESCRIPTION  Resource description\n          LIMIT  System-wide limit\n           USED  Currently used\n           USE%  Currently use percentage\n\nFor more details see lsipc(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lsipc-unknown-column": {
+    "stdout": "",
+    "stderr": "lsipc: unknown column: FOO\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lsipc-version": {
+    "stdout": "lsipc from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

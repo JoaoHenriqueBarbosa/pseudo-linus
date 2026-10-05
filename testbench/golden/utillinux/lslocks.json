@@ -1,0 +1,44 @@
+{
+  "lslocks-bad-long-option": {
+    "stdout": "",
+    "stderr": "lslocks: unrecognized option '--nope'\nTry 'lslocks --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lslocks-bad-option": {
+    "stdout": "",
+    "stderr": "lslocks: invalid option -- 'Z'\nTry 'lslocks --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lslocks-bad-usage": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lslocks-help": {
+    "stdout": "\nUsage:\n lslocks [options]\n\nList local system locks.\n\nOptions:\n -b, --bytes            print SIZE in bytes rather than in human readable format\n -J, --json             use JSON output format\n -i, --noinaccessible   ignore locks without read permissions\n -n, --noheadings       don't print headings\n -o, --output <list>    output columns (see --list-columns)\n     --output-all       output all columns\n -p, --pid <pid>        display only locks held by this process\n -r, --raw              use the raw output format\n -u, --notruncate       don't truncate text in columns\n\n -H, --list-columns     list the available columns\n -h, --help             display this help\n -V, --version          display version\n\nFor more details see lslocks(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lslocks-list-columns": {
+    "stdout": "COMMAND <string>        command of the process holding the lock\n    PID <integer>       PID of the process holding the lock\n   TYPE <string>        kind of lock\n   SIZE <string|number> size of the lock, use <number> if --bytes is given\n  INODE <integer>       inode number\nMAJ:MIN <string>        major:minor device number\n   MODE <string>        lock access mode\n      M <boolean>       mandatory state of the lock: 0 (none), 1 (set)\n  START <integer>       relative byte offset of the lock\n    END <integer>       ending offset of the lock\n   PATH <string>        path of the locked file\nBLOCKER <integer>       PID of the process blocking the lock\nHOLDERS <string>        holders of the lock\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lslocks-unknown-column": {
+    "stdout": "",
+    "stderr": "lslocks: unknown column: FOO\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lslocks-version": {
+    "stdout": "lslocks from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
