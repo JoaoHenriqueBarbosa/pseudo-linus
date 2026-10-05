@@ -1,0 +1,44 @@
+tool = "utillinux"
+source = "manual"
+
+# blkdiscard do util-linux 2.41: ajuda, versão, erros de argumento e alvos que não são de bloco.
+
+[[case]]
+id = "blkdiscard-help"
+argv = ["blkdiscard", "--help"]
+tags = ["blkdiscard", "usage"]
+
+[[case]]
+id = "blkdiscard-version"
+argv = ["blkdiscard", "-V"]
+tags = ["blkdiscard", "version"]
+
+[[case]]
+id = "blkdiscard-bad-option"
+argv = ["blkdiscard", "-Z"]
+tags = ["blkdiscard", "usage", "error"]
+
+[[case]]
+id = "blkdiscard-no-device"
+argv = ["blkdiscard"]
+tags = ["blkdiscard", "error"]
+
+[[case]]
+id = "blkdiscard-too-many"
+argv = ["blkdiscard", "a", "b"]
+tags = ["blkdiscard", "usage", "error"]
+
+[[case]]
+id = "blkdiscard-missing-device"
+argv = ["blkdiscard", "/nonexistent/device"]
+tags = ["blkdiscard", "error"]
+
+[[case]]
+id = "blkdiscard-bad-offset"
+argv = ["blkdiscard", "-o", "abc", "/dev/null"]
+tags = ["blkdiscard", "error"]
+
+[[case]]
+id = "blkdiscard-not-block"
+argv = ["blkdiscard", "/dev/null"]
+tags = ["blkdiscard", "error"]

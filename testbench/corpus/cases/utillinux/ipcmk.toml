@@ -1,0 +1,39 @@
+tool = "utillinux"
+source = "manual"
+
+# ipcmk do util-linux 2.41: ajuda, versão e validações de argumento.
+
+[[case]]
+id = "ipcmk-help"
+argv = ["ipcmk", "--help"]
+tags = ["ipcmk", "usage"]
+
+[[case]]
+id = "ipcmk-version"
+argv = ["ipcmk", "-V"]
+tags = ["ipcmk", "version"]
+
+[[case]]
+id = "ipcmk-bad-option"
+argv = ["ipcmk", "-Z"]
+tags = ["ipcmk", "usage", "error"]
+
+[[case]]
+id = "ipcmk-no-args"
+argv = ["ipcmk"]
+tags = ["ipcmk", "usage", "error"]
+
+[[case]]
+id = "ipcmk-posix-without-name"
+argv = ["ipcmk", "-m", "5"]
+tags = ["ipcmk", "usage", "error"]
+
+[[case]]
+id = "ipcmk-bad-size"
+argv = ["ipcmk", "-M", "abc"]
+tags = ["ipcmk", "error"]
+
+[[case]]
+id = "ipcmk-bad-elements"
+argv = ["ipcmk", "-S", "x"]
+tags = ["ipcmk", "error"]

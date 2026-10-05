@@ -1,0 +1,44 @@
+tool = "utillinux"
+source = "manual"
+
+# ipcrm do util-linux 2.41: ajuda, versão, erros de argumento e ids inexistentes.
+
+[[case]]
+id = "ipcrm-help"
+argv = ["ipcrm", "--help"]
+tags = ["ipcrm", "usage"]
+
+[[case]]
+id = "ipcrm-version"
+argv = ["ipcrm", "-V"]
+tags = ["ipcrm", "version"]
+
+[[case]]
+id = "ipcrm-bad-option"
+argv = ["ipcrm", "--bogus"]
+tags = ["ipcrm", "usage", "error"]
+
+[[case]]
+id = "ipcrm-no-args"
+argv = ["ipcrm"]
+tags = ["ipcrm", "usage", "error"]
+
+[[case]]
+id = "ipcrm-shm-no-id"
+argv = ["ipcrm", "shm"]
+tags = ["ipcrm", "usage", "error"]
+
+[[case]]
+id = "ipcrm-unknown-argument"
+argv = ["ipcrm", "foo", "1"]
+tags = ["ipcrm", "usage", "error"]
+
+[[case]]
+id = "ipcrm-id-not-number"
+argv = ["ipcrm", "-m", "abc"]
+tags = ["ipcrm", "error"]
+
+[[case]]
+id = "ipcrm-posix-missing-name"
+argv = ["ipcrm", "--posix-shmem", "/nonexistent-ipcrm-case"]
+tags = ["ipcrm", "error"]

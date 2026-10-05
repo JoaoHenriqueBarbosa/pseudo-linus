@@ -1,0 +1,34 @@
+tool = "utillinux"
+source = "manual"
+
+# swaplabel do util-linux 2.41: ajuda, versão, erros de argumento e alvos sem área de swap.
+
+[[case]]
+id = "swaplabel-help"
+argv = ["swaplabel", "--help"]
+tags = ["swaplabel", "usage"]
+
+[[case]]
+id = "swaplabel-version"
+argv = ["swaplabel", "-V"]
+tags = ["swaplabel", "version"]
+
+[[case]]
+id = "swaplabel-bad-option"
+argv = ["swaplabel", "-Z"]
+tags = ["swaplabel", "usage", "error"]
+
+[[case]]
+id = "swaplabel-no-device"
+argv = ["swaplabel"]
+tags = ["swaplabel", "usage", "error"]
+
+[[case]]
+id = "swaplabel-missing-device"
+argv = ["swaplabel", "/nonexistent/device"]
+tags = ["swaplabel", "error"]
+
+[[case]]
+id = "swaplabel-empty-file"
+argv = ["swaplabel", "/dev/null"]
+tags = ["swaplabel", "error"]

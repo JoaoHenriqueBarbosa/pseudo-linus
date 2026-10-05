@@ -11,7 +11,9 @@
 //! Tudo passa por `sysabi`; nada toca o host.
 
 pub mod bc;
+pub mod blkdiscard;
 pub mod blkid;
+pub mod blockdev;
 pub mod bzip2recover;
 pub mod choom;
 pub mod chrt;
@@ -37,6 +39,9 @@ pub mod hardlink;
 pub mod hexdump;
 pub mod iconv;
 pub mod ionice;
+pub mod ipcmk;
+pub mod ipcrm;
+pub mod ipcs;
 pub mod ischroot;
 pub mod isosize;
 pub mod lessecho;
@@ -71,6 +76,7 @@ pub mod shadowconv;
 pub mod shadowmisc;
 pub mod start_stop_daemon;
 pub mod strings;
+pub mod swaplabel;
 pub mod taskset;
 pub mod tempfile;
 pub mod term;
@@ -124,6 +130,9 @@ pub fn programs() -> Vec<Program> {
         Program::bin("infocmp", term::infocmp::main),
         Program::bin("infotocap", term::tic::main),
         Program::bin("ionice", ionice::main),
+        Program::bin("ipcmk", ipcmk::main),
+        Program::bin("ipcrm", ipcrm::main),
+        Program::bin("ipcs", ipcs::main),
         Program::bin("ischroot", ischroot::main),
         Program::bin("isosize", isosize::main),
         Program::bin("less", pager::less_main),
@@ -178,7 +187,10 @@ pub fn programs() -> Vec<Program> {
         Program::bin("xxd", xxd::main),
         Program::bin("zdump", zdump::main),
         Program::sbin("add-shell", debscripts::add_shell_main),
+        Program::sbin("blkdiscard", blkdiscard::main),
         Program::sbin("blkid", blkid::main),
+        Program::sbin("blockdev", blockdev::main),
+        Program::sbin("swaplabel", swaplabel::main),
         Program::sbin("wipefs", wipefs::main),
         Program::sbin("chgpasswd", shadowconv::chgpasswd_main),
         Program::sbin("chpasswd", shadowconv::chpasswd_main),

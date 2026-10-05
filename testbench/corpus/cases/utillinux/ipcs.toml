@@ -1,0 +1,29 @@
+tool = "utillinux"
+source = "manual"
+
+# ipcs do util-linux 2.41: ajuda, versão, opção inválida e validações de -i.
+
+[[case]]
+id = "ipcs-help"
+argv = ["ipcs", "--help"]
+tags = ["ipcs", "usage"]
+
+[[case]]
+id = "ipcs-version"
+argv = ["ipcs", "-V"]
+tags = ["ipcs", "version"]
+
+[[case]]
+id = "ipcs-bad-option"
+argv = ["ipcs", "-Z"]
+tags = ["ipcs", "usage", "error"]
+
+[[case]]
+id = "ipcs-id-without-resource"
+argv = ["ipcs", "-i", "1"]
+tags = ["ipcs", "error"]
+
+[[case]]
+id = "ipcs-id-not-number"
+argv = ["ipcs", "-m", "-i", "abc"]
+tags = ["ipcs", "error"]

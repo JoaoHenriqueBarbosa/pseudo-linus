@@ -1,0 +1,49 @@
+tool = "utillinux"
+source = "manual"
+
+# blockdev do util-linux 2.41: ajuda, versão, erros de argumento e alvos que não são de bloco.
+
+[[case]]
+id = "blockdev-help"
+argv = ["blockdev", "--help"]
+tags = ["blockdev", "usage"]
+
+[[case]]
+id = "blockdev-version"
+argv = ["blockdev", "-V"]
+tags = ["blockdev", "version"]
+
+[[case]]
+id = "blockdev-no-args"
+argv = ["blockdev"]
+tags = ["blockdev", "usage", "error"]
+
+[[case]]
+id = "blockdev-no-device"
+argv = ["blockdev", "--getsz"]
+tags = ["blockdev", "usage", "error"]
+
+[[case]]
+id = "blockdev-missing-device"
+argv = ["blockdev", "--getsz", "/nonexistent/device"]
+tags = ["blockdev", "error"]
+
+[[case]]
+id = "blockdev-bad-command-argument"
+argv = ["blockdev", "--setbsz", "abc", "/dev/null"]
+tags = ["blockdev", "error"]
+
+[[case]]
+id = "blockdev-not-block-getss"
+argv = ["blockdev", "--getss", "/dev/null"]
+tags = ["blockdev", "error"]
+
+[[case]]
+id = "blockdev-not-block-getsz"
+argv = ["blockdev", "--getsz", "/dev/null"]
+tags = ["blockdev", "error"]
+
+[[case]]
+id = "blockdev-report-missing"
+argv = ["blockdev", "--report", "/nonexistent/device"]
+tags = ["blockdev", "error"]
