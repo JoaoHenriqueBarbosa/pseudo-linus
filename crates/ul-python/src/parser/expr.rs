@@ -42,7 +42,7 @@ impl Parser {
     }
 
     /// `','.item+ [',']`.
-    fn comma_list(&mut self, item: RuleFn) -> PResult<Vec<Expr>> {
+    pub(super) fn comma_list(&mut self, item: RuleFn) -> PResult<Vec<Expr>> {
         self.attempt(|p| {
             let mut out = vec![req!(item(p))];
             while p.eat_op(T::Comma)? {
@@ -61,7 +61,7 @@ impl Parser {
     }
 
     /// `star_expressions`.
-    fn star_expressions(&mut self) -> PResult<Expr> {
+    pub(super) fn star_expressions(&mut self) -> PResult<Expr> {
         self.tuple_of(Parser::star_expression)
     }
 
@@ -69,7 +69,7 @@ impl Parser {
     // expression, yield, starred, named
 
     /// `expression (memo): disjunction 'if' disjunction 'else' expression | disjunction | lambdef`.
-    fn expression(&mut self) -> PResult<Expr> {
+    pub(super) fn expression(&mut self) -> PResult<Expr> {
         self.memo(Rule::Expression, Parser::expression_raw)
     }
 
@@ -91,7 +91,7 @@ impl Parser {
     }
 
     /// `yield_expr: 'yield' 'from' expression | 'yield' [star_expressions]`.
-    fn yield_expr(&mut self) -> PResult<Expr> {
+    pub(super) fn yield_expr(&mut self) -> PResult<Expr> {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw("yield"));
@@ -118,7 +118,7 @@ impl Parser {
     }
 
     /// `star_expression: '*' bitwise_or | expression`.
-    fn star_expression(&mut self) -> PResult<Expr> {
+    pub(super) fn star_expression(&mut self) -> PResult<Expr> {
         if let Some(e) = self.starred_with(Parser::bitwise_or)? {
             return Ok(Some(e));
         }
@@ -126,7 +126,7 @@ impl Parser {
     }
 
     /// `star_named_expression: '*' bitwise_or | named_expression`.
-    fn star_named_expression(&mut self) -> PResult<Expr> {
+    pub(super) fn star_named_expression(&mut self) -> PResult<Expr> {
         if let Some(e) = self.starred_with(Parser::bitwise_or)? {
             return Ok(Some(e));
         }
@@ -173,7 +173,7 @@ impl Parser {
     }
 
     /// `named_expression: assignment_expression | expression !':='`.
-    fn named_expression(&mut self) -> PResult<Expr> {
+    pub(super) fn named_expression(&mut self) -> PResult<Expr> {
         self.memo(Rule::NamedExpression, Parser::walrus_or_expression)
     }
 
@@ -391,7 +391,7 @@ impl Parser {
 
     /// `primary: primary '.' NAME | primary genexp | primary '(' [arguments] ')' |
     /// primary '[' slices ']' | atom`.
-    fn primary(&mut self) -> PResult<Expr> {
+    pub(super) fn primary(&mut self) -> PResult<Expr> {
         self.memo(Rule::Primary, Parser::primary_raw)
     }
 
@@ -530,7 +530,7 @@ impl Parser {
     }
 
     /// `strings (memo): (fstring | string)+`, concatenados (`_PyPegen_concatenate_strings`).
-    fn strings(&mut self) -> PResult<Expr> {
+    pub(super) fn strings(&mut self) -> PResult<Expr> {
         let start = self.mark;
         let mut parts: Vec<Token> = Vec::new();
         while self.peek_kind(0)? == T::String {
@@ -738,7 +738,7 @@ impl Parser {
 
     /// `arguments: args [','] &')'`, com `args` e `kwargs`. Os `*x` vão para `args` na ordem em que
     /// aparecem, como o `_PyPegen_collect_call_seqs`. `None` se a lista não casar.
-    fn call_arguments(&mut self) -> Result<Option<CallArgs>, ParseError> {
+    pub(super) fn call_arguments(&mut self) -> Result<Option<CallArgs>, ParseError> {
         self.attempt(|p| {
             let (mut args, mut keywords) = (Vec::new(), Vec::new());
             // 0: posicionais; 1: depois de `nome=`; 2: depois de `**`.
@@ -780,7 +780,7 @@ impl Parser {
     // Alvos (comprehensions)
 
     /// `star_targets: star_target !',' | star_target (',' star_target)* [',']`.
-    fn star_targets(&mut self) -> PResult<Expr> {
+    pub(super) fn star_targets(&mut self) -> PResult<Expr> {
         self.attempt(|p| {
             let start = p.mark;
             let first = req!(p.star_target());
@@ -799,7 +799,7 @@ impl Parser {
     }
 
     /// `star_target: '*' (!'*' star_target) | target_with_star_atom`.
-    fn star_target(&mut self) -> PResult<Expr> {
+    pub(super) fn star_target(&mut self) -> PResult<Expr> {
         self.attempt(|p| {
             let start = p.mark;
             if p.eat_op(T::Star)? {

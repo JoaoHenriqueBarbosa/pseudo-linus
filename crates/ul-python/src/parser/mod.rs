@@ -2,8 +2,9 @@
 //! (regra, posição) como o gerador do `Parser/parser.c` faz para as regras marcadas `(memo)` e para
 //! as recursivas à esquerda.
 //!
-//! Esta etapa (fatia 6 de `docs/python3-port.md`) cobre as expressões; `parse_expression` equivale a
-//! `ast.parse(src, mode='eval').body`. As regras recursivas à esquerda (`bitwise_or`, `sum`, `term`,
+//! A fatia 6 de `docs/python3-port.md` cobre as expressões (`parse_expression` equivale a
+//! `ast.parse(src, mode='eval').body`) e a fatia 7 os comandos (`parse_module` equivale a
+//! `ast.parse(src)`, em `stmt`). As regras recursivas à esquerda (`bitwise_or`, `sum`, `term`,
 //! `primary` e as demais) viram laços que constroem a árvore associando à esquerda, o mesmo resultado
 //! do "crescimento da semente" do CPython. As regras `invalid_*` (mensagens específicas de erro) são a
 //! fatia 8; até lá toda falha vira `invalid syntax` no token mais distante que o parser examinou, que
@@ -43,6 +44,9 @@ macro_rules! need {
 }
 
 mod expr;
+mod stmt;
+
+pub use stmt::parse_module;
 
 /// Palavras-chave rígidas do 3.13 (`keyword.kwlist`); as suaves (`match`, `case`, `type`, `_`)
 /// continuam sendo nomes.
