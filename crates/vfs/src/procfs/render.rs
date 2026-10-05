@@ -458,4 +458,231 @@ nodev\thugetlbfs\nnodev\tdevpts\n\tfuseblk\nnodev\tfuse\nnodev\tfusectl\nnodev\t
 nodev\tresctrl\nnodev\tpstore\nnodev\tefivarfs\n\tbtrfs\n\text3\n\text2\n\text4\nnodev\tautofs\nnodev\tconfigfs\n\
 \tvfat\nnodev\tbinfmt_misc\nnodev\toverlay\n";
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const GOLDEN_LIMITS: &str = include_str!("../../../../testbench/golden/linux-facts/proc/limits.txt");
+    const GOLDEN_STATUS: &str = include_str!("../../../../testbench/golden/linux-facts/proc/status.txt");
+    const GOLDEN_CPUINFO: &str = include_str!("../../../../testbench/golden/linux-facts/proc/cpuinfo.txt");
+    const GOLDEN_FILESYSTEMS_FIRST: &str = "nodev\tsysfs\nnodev\ttmpfs\nnodev\tproc\n";
+
+    /// Os rlimits do container Debian da bancada.
+    fn container_rlimits() -> [(u64, u64); 16] {
+        let inf = u64::MAX;
+        let mut r = [(inf, inf); 16];
+        r[Resource::Stack as usize] = (8 << 20, inf);
+        r[Resource::Nofile as usize] = (1_073_741_816, 1_073_741_816);
+        r[Resource::Memlock as usize] = (8 << 20, 8 << 20);
+        r[Resource::Sigpending as usize] = (127_077, 127_077);
+        r[Resource::Msgqueue as usize] = (819_200, 819_200);
+        r[Resource::Nice as usize] = (0, 0);
+        r[Resource::Rtprio as usize] = (0, 0);
+        r
+    }
+
+    /// O `cat` do `status.txt` dourado.
+    fn golden_cat() -> ProcData {
+        ProcData {
+            pid: 59,
+            tid: 59,
+            ppid: 7,
+            pgid: 1,
+            sid: 1,
+            state: 'R',
+            comm: b"cat".to_vec(),
+            groups: vec![0],
+            umask: 0o022,
+            num_threads: 1,
+            mem: Some(MemData {
+                vm_peak: 3280,
+                vm_size: 3280,
+                vm_hwm: 1768,
+                vm_rss: 1768,
+                rss_anon: 116,
+                rss_file: 1652,
+                vm_data: 488,
+                vm_stk: 132,
+                vm_exe: 24,
+                vm_lib: 1588,
+                vm_pte: 48,
+                ..MemData::default()
+            }),
+            rlimits: container_rlimits(),
+            sigq: 1,
+            fdsize: 64,
+            ncpus: 16,
+            ..ProcData::default()
+        }
+    }
+
+    #[test]
+    fn limits_match_the_oracle() {
+        assert_eq!(String::from_utf8(limits(&golden_cat())).unwrap(), GOLDEN_LIMITS);
+    }
+
+    #[test]
+    fn status_matches_the_oracle() {
+        assert_eq!(String::from_utf8(status(&golden_cat())).unwrap(), GOLDEN_STATUS);
+    }
+
+    #[test]
+    fn zombie_status_has_no_umask_and_no_vm_block() {
+        let z = ProcData { state: 'Z', mem: None, fdsize: 0, ..golden_cat() };
+        let s = String::from_utf8(status(&z)).unwrap();
+        assert!(s.contains("State:\tZ (zombie)\n"));
+        assert!(s.contains("FDSize:\t0\n"));
+        assert!(!s.contains("Umask:") && !s.contains("VmSize:") && !s.contains("untag_mask:"));
+        assert_eq!(statm(&z), b"0 0 0 0 0 0 0\n".to_vec());
+    }
+
+    #[test]
+    fn stat_has_52_fields_and_the_kernel_layout() {
+        let p = ProcData {
+            utime_ns: 12_345_678_901,
+            start_ns: 4_000_000_000,
+            nice: 5,
+            last_cpu: 3,
+            ..golden_cat()
+        };
+        let line = String::from_utf8(stat(&p)).unwrap();
+        let f: Vec<&str> = line.trim_end().split(' ').collect();
+        assert_eq!(f.len(), 52, "{line}");
+        assert_eq!(&f[..8], ["59", "(cat)", "R", "7", "1", "1", "0", "-1"]);
+        assert_eq!(f[8], "4194304", "flags: PF_RANDOMIZE");
+        assert_eq!(f[13], "1234", "utime em ticks de 100 Hz");
+        assert_eq!(f[17], "25", "priority = 20 + nice");
+        assert_eq!(f[18], "5");
+        assert_eq!(f[21], "400", "starttime em ticks");
+        assert_eq!(f[22], "3358720", "vsize em bytes");
+        assert_eq!(f[23], "442", "rss em páginas");
+        assert_eq!(f[24], "18446744073709551615", "rsslim ilimitado");
+        assert_eq!(f[34], "0", "wchan de um processo rodando");
+        assert_eq!(f[37], "17", "exit_signal");
+        assert_eq!(f[38], "3", "processor");
+        assert_eq!(f[51], "0", "exit_code");
+    }
+
+    #[test]
+    fn zombie_stat_matches_the_oracle_layout() {
+        let z = ProcData {
+            pid: 10,
+            tid: 10,
+            ppid: 9,
+            state: 'Z',
+            comm: b"perl".to_vec(),
+            mem: None,
+            fork_noexec: true,
+            exit_code: 3 << 8,
+            last_cpu: 12,
+            start_ns: 22_749_010_000_000,
+            rlimits: container_rlimits(),
+            ..ProcData::default()
+        };
+        let line = String::from_utf8(stat(&z)).unwrap();
+        assert_eq!(
+            line,
+            "10 (perl) Z 9 0 0 0 -1 4227148 0 0 0 0 0 0 0 0 20 0 0 0 2274901 0 0 18446744073709551615 0 0 0 0 0 0 0 0 0 1 0 0 17 12 0 0 0 0 0 0 0 0 0 0 0 0 768\n"
+        );
+    }
+
+    #[test]
+    fn statm_is_in_pages() {
+        assert_eq!(statm(&golden_cat()), b"820 442 413 6 0 155 0\n".to_vec());
+    }
+
+    #[test]
+    fn cpumask_formats() {
+        assert_eq!(cpumask_hex(16), "ffff");
+        assert_eq!(cpumask_hex(2), "3");
+        assert_eq!(cpumask_hex(32), "ffffffff");
+        assert_eq!(cpumask_hex(40), "ff,ffffffff");
+        assert_eq!(cpumask_list(1), "0");
+        assert_eq!(cpumask_list(16), "0-15");
+    }
+
+    #[test]
+    fn fdinfo_flags_are_octal_with_a_leading_zero() {
+        let i = FdInfo { pos: 2, flags: 0o100000, mnt_id: 644, ino: 2 };
+        assert_eq!(fdinfo(&i), b"pos:\t2\nflags:\t0100000\nmnt_id:\t644\nino:\t2\n".to_vec());
+        let p = FdInfo { pos: 0, flags: 0, mnt_id: 16, ino: 3_072_732 };
+        assert!(String::from_utf8(fdinfo(&p)).unwrap().contains("flags:\t00\n"));
+    }
+
+    #[test]
+    fn loadavg_rounds_like_the_kernel() {
+        // 6,60 em ponto fixo, mais o FIXED_1 / 200 do arredondamento.
+        assert_eq!(load_text(13_517), "6.60");
+        assert_eq!(load_text(0), "0.00");
+        let s = SysData { procs_running: 3, nr_threads: 2185, last_pid: 62, load: [13_517, 11_856, 9_540], ..SysData::default() };
+        assert_eq!(String::from_utf8(loadavg(&s)).unwrap(), "6.60 5.79 4.66 3/2185 62\n");
+    }
+
+    #[test]
+    fn uptime_has_two_decimals_and_sums_the_idle_of_every_cpu() {
+        let s = SysData {
+            ncpus: 2,
+            uptime_ns: 123_606_670_000_000,
+            cpu: vec![CpuTimes { user_ns: 1_000_000_000, ..CpuTimes::default() }, CpuTimes::default()],
+            ..SysData::default()
+        };
+        assert_eq!(String::from_utf8(uptime(&s)).unwrap(), "123606.67 247212.34\n");
+    }
+
+    #[test]
+    fn global_stat_lists_one_line_per_cpu() {
+        let s = SysData {
+            ncpus: 2,
+            uptime_ns: 10_000_000_000,
+            btime: 1_791_198_929,
+            cpu: vec![
+                CpuTimes { user_ns: 1_000_000_000, nice_ns: 20_000_000, system_ns: 0 },
+                CpuTimes { user_ns: 2_000_000_000, nice_ns: 0, system_ns: 0 },
+            ],
+            ctxt: 7,
+            forks: 42,
+            procs_running: 2,
+            ..SysData::default()
+        };
+        let t = String::from_utf8(stat_global(&s)).unwrap();
+        let lines: Vec<&str> = t.lines().collect();
+        assert_eq!(lines[0], "cpu  300 2 0 1698 0 0 0 0 0 0");
+        assert_eq!(lines[1], "cpu0 100 2 0 898 0 0 0 0 0 0");
+        assert_eq!(lines[2], "cpu1 200 0 0 800 0 0 0 0 0 0");
+        assert!(t.contains("\nctxt 7\nbtime 1791198929\nprocesses 42\nprocs_running 2\nprocs_blocked 0\n"));
+    }
+
+    #[test]
+    fn meminfo_columns_match_the_kernel() {
+        let m = MemSystem { total: 32_735_068, anon: 1000, mapped: 2000, shmem: 80, ..MemSystem::default() };
+        let t = String::from_utf8(meminfo(&m)).unwrap();
+        assert!(t.starts_with("MemTotal:       32735068 kB\nMemFree:        32731988 kB\n"), "{t}");
+        assert!(t.contains("\nActive(anon):       1080 kB\n"));
+        assert!(t.contains("\nUnevictable:           0 kB\n"));
+        assert!(t.contains("\nHugePages_Total:       0\n"));
+        assert!(t.contains("\nHugepagesize:       2048 kB\n"));
+        assert!(t.ends_with("DirectMap1G:           0 kB\n"));
+    }
+
+    #[test]
+    fn cpuinfo_blocks_follow_the_oracle() {
+        let ours = String::from_utf8(cpuinfo(16)).unwrap();
+        let first = ours.split("\n\n").next().unwrap().replace("cpu cores\t: 16", "cpu cores\t: 8");
+        assert_eq!(format!("{first}\n"), GOLDEN_CPUINFO);
+        assert_eq!(ours.matches("processor\t:").count(), 16);
+        assert!(ours.ends_with("[13] [14]\n\n"));
+    }
+
+    #[test]
+    fn filesystems_start_like_the_oracle() {
+        assert!(FILESYSTEMS.starts_with(GOLDEN_FILESYSTEMS_FIRST));
+        assert!(FILESYSTEMS.ends_with("\tvfat\nnodev\tbinfmt_misc\nnodev\toverlay\n"));
+    }
+
+    #[test]
+    fn comm_is_escaped_in_status() {
+        assert_eq!(escape_comm(b"a\nb\\c"), b"a\\nb\\\\c".to_vec());
+    }
+}
+
 const CPU_FLAGS: &str = "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip pku ospke vaes vpclmulqdq rdpid overflow_recov succor smca fsrm debug_swap";
