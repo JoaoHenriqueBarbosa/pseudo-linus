@@ -63,6 +63,7 @@ pub mod rev;
 pub mod run_parts;
 pub mod scriptreplay;
 pub mod setarch;
+pub mod setpriv;
 pub mod setsid;
 pub mod shadowconv;
 pub mod shadowmisc;
@@ -73,6 +74,7 @@ pub mod tempfile;
 pub mod term;
 pub mod tree;
 pub mod underline;
+pub mod unshare;
 pub mod update_alternatives;
 pub mod usermgmt;
 pub mod util;
@@ -152,6 +154,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("i386", setarch::main),
         Program::bin("x86_64", setarch::main),
         Program::bin("uname26", setarch::main),
+        Program::bin("setpriv", setpriv::main),
         Program::bin("setsid", setsid::main),
         Program::bin("strings", strings::main),
         Program::bin("tabs", term::tabs::main),
@@ -163,6 +166,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("tree", tree::main),
         Program::bin("tset", term::tset::main),
         Program::bin("ul", underline::main),
+        Program::bin("unshare", unshare::main),
         Program::bin("update-alternatives", update_alternatives::main),
         Program::bin("whereis", whereis::main),
         Program::bin("which", which::main),

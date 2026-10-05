@@ -1,0 +1,64 @@
+tool = "setpriv"
+source = "manual"
+
+# setpriv do util-linux 2.41: só os casos determinísticos (ajuda, versão e erros de argumento).
+
+[[case]]
+id = "setpriv-help"
+argv = ["setpriv", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "setpriv-version"
+argv = ["setpriv", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "setpriv-no-args"
+argv = ["setpriv"]
+tags = ["error"]
+
+[[case]]
+id = "setpriv-bad-option"
+argv = ["setpriv", "-x"]
+tags = ["error"]
+
+[[case]]
+id = "setpriv-bad-long-option"
+argv = ["setpriv", "--bogus", "true"]
+tags = ["error"]
+
+[[case]]
+id = "setpriv-missing-argument"
+argv = ["setpriv", "--ruid"]
+tags = ["error"]
+
+[[case]]
+id = "setpriv-bad-ruid"
+argv = ["setpriv", "--ruid", "abc", "true"]
+tags = ["error"]
+
+[[case]]
+id = "setpriv-bad-capability"
+argv = ["setpriv", "--bounding-set", "-bogus_cap", "true"]
+tags = ["error"]
+
+[[case]]
+id = "setpriv-bad-securebits"
+argv = ["setpriv", "--securebits", "bogus", "true"]
+tags = ["error"]
+
+[[case]]
+id = "setpriv-bad-pdeathsig"
+argv = ["setpriv", "--pdeathsig", "NOTASIGNAL", "true"]
+tags = ["error"]
+
+[[case]]
+id = "setpriv-init-groups-without-ruid"
+argv = ["setpriv", "--init-groups", "true"]
+tags = ["error"]
+
+[[case]]
+id = "setpriv-groups-exclusive"
+argv = ["setpriv", "--clear-groups", "--keep-groups", "true"]
+tags = ["error"]

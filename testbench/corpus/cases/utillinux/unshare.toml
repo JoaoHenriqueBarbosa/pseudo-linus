@@ -1,0 +1,74 @@
+tool = "unshare"
+source = "manual"
+
+# unshare do util-linux 2.41: só os casos determinísticos (ajuda, versão e erros de argumento).
+
+[[case]]
+id = "unshare-help"
+argv = ["unshare", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "unshare-version"
+argv = ["unshare", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "unshare-bad-option"
+argv = ["unshare", "-x"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-bad-long-option"
+argv = ["unshare", "--bogus", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-bad-propagation"
+argv = ["unshare", "--propagation", "bogus", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-bad-setgroups"
+argv = ["unshare", "--setgroups", "bogus", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-setgroups-without-user"
+argv = ["unshare", "--setgroups", "deny", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-bad-kill-signal"
+argv = ["unshare", "--kill-child=NOTASIGNAL", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-bad-setuid"
+argv = ["unshare", "-S", "abc", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-bad-setgid"
+argv = ["unshare", "-G", "abc", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-bad-monotonic"
+argv = ["unshare", "-T", "--monotonic", "abc", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-monotonic-without-time"
+argv = ["unshare", "--monotonic", "10", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-keep-caps-without-user"
+argv = ["unshare", "--keep-caps", "true"]
+tags = ["error"]
+
+[[case]]
+id = "unshare-bad-map-uid"
+argv = ["unshare", "--map-user=abc_no_such_user", "true"]
+tags = ["error"]
