@@ -1,0 +1,48 @@
+tool = "dpkg-realpath"
+source = "manual"
+
+# dpkg-realpath do dpkg 1.22 (Debian 13): resolve links simbólicos, com e sem --root, e os erros de uso.
+
+[[case]]
+id = "realpath-help"
+script = '''dpkg-realpath --help; echo "rc=$?"'''
+
+[[case]]
+id = "realpath-version"
+script = '''dpkg-realpath --version; echo "rc=$?"'''
+
+[[case]]
+id = "realpath-no-argument"
+script = '''dpkg-realpath 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "realpath-unknown-option"
+script = '''dpkg-realpath --bogus /x 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "realpath-plain-file"
+script = '''mkdir -p a/b; touch a/b/f; dpkg-realpath $PWD/a/b/f | sed "s#$PWD#PWD#"; echo "rc=$?"'''
+
+[[case]]
+id = "realpath-symlink-chain"
+script = '''mkdir -p a/b; touch a/b/f; ln -s b a/l; ln -s l/f a/m; dpkg-realpath $PWD/a/m | sed "s#$PWD#PWD#"; dpkg-realpath $PWD/a/l/../l/f | sed "s#$PWD#PWD#"'''
+
+[[case]]
+id = "realpath-relative"
+script = '''mkdir -p a/b; touch a/b/f; ln -s b a/l; dpkg-realpath a/l/f | sed "s#$PWD#PWD#"; echo "rc=$?"'''
+
+[[case]]
+id = "realpath-missing"
+script = '''dpkg-realpath $PWD/nope 2>&1 | sed "s#$PWD#PWD#"; echo "rc=${PIPESTATUS:-$?}"'''
+
+[[case]]
+id = "realpath-loop"
+script = '''ln -s b a; ln -s a b; dpkg-realpath $PWD/a >/dev/null 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "realpath-root-option"
+script = '''mkdir -p r/usr/bin r/bin; touch r/usr/bin/real; ln -s /usr/bin/real r/bin/link; dpkg-realpath --root $PWD/r /bin/link | sed "s#$PWD#PWD#"; echo "rc=$?"'''
+
+[[case]]
+id = "realpath-root-env"
+script = '''mkdir -p r/usr/bin r/bin; touch r/usr/bin/real; ln -s ../usr/bin/real r/bin/link; DPKG_ROOT=$PWD/r dpkg-realpath /bin/link | sed "s#$PWD#PWD#"; echo "rc=$?"'''

@@ -1,0 +1,191 @@
+tool = "dpkg-deb"
+source = "manual"
+
+# dpkg-deb do dpkg 1.22 (Debian 13): ajuda, versão, erros de opção e fluxos completos de arquivo.
+# Cada caso monta um pacote pequeno em pkg/, constrói com --root-owner-group (dono estável) e
+# SOURCE_DATE_EPOCH (datas estáveis), inspeciona com -I/-c/-f/-W, extrai com -x/-X/-R/-e e apaga o
+# .deb no fim (os bytes comprimidos do arquivo não entram na comparação).
+
+[[case]]
+id = "deb-help"
+script = '''dpkg-deb --help; echo "rc=$?"'''
+
+[[case]]
+id = "deb-help-short"
+script = '''dpkg-deb -\? | head -3; echo "rc=$?"'''
+
+[[case]]
+id = "deb-version"
+script = '''dpkg-deb --version; echo "rc=$?"'''
+
+[[case]]
+id = "deb-no-action"
+script = '''dpkg-deb 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "deb-unknown-long-option"
+script = '''dpkg-deb --bogus 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "deb-unknown-short-option"
+script = '''dpkg-deb -k 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "deb-conflicting-actions"
+script = '''dpkg-deb -b -c 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "deb-build-no-argument"
+script = '''dpkg-deb -b 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "deb-contents-no-argument"
+script = '''dpkg-deb -c 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "deb-extract-no-directory"
+script = '''dpkg-deb -x some.deb 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "deb-contents-missing-file"
+script = '''dpkg-deb -c nope.deb 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "deb-not-a-deb"
+script = '''echo hello > f.deb; dpkg-deb -c f.deb 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "deb-build-no-control"
+script = '''mkdir pkg; dpkg-deb -b pkg 2>&1; echo "rc=$?"; ls'''
+
+[[case]]
+id = "deb-build-basic"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n a longer line\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; chmod 755 pkg/usr/bin/hello; dpkg-deb --root-owner-group -b pkg out.deb; echo "rc=$?"; ls; rm -f out.deb'''
+
+[[case]]
+id = "deb-build-default-name"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg; echo "rc=$?"; ls; rm -f pkg.deb'''
+
+[[case]]
+id = "deb-build-into-directory"
+script = '''mkdir -p pkg/DEBIAN out; printf 'Package: hello\nVersion: 2:1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out; echo "rc=$?"; ls out; rm -rf out'''
+
+[[case]]
+id = "deb-build-missing-version"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb -b pkg out.deb 2>&1; echo "rc=$?"; ls'''
+
+[[case]]
+id = "deb-build-missing-maintainer-warning"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1\nArchitecture: all\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb 2>&1; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-build-bad-package-name"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: Hello_World\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n' > pkg/DEBIAN/control; dpkg-deb -b pkg out.deb 2>&1; echo "rc=$?"; ls'''
+
+[[case]]
+id = "deb-build-bad-control-dir-perms"
+script = '''mkdir -p pkg/DEBIAN; chmod 700 pkg/DEBIAN; printf 'Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n' > pkg/DEBIAN/control; dpkg-deb -b pkg out.deb 2>&1; echo "rc=$?"; ls'''
+
+[[case]]
+id = "deb-build-bad-script-perms"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n' > pkg/DEBIAN/control; printf '#!/bin/sh\nexit 0\n' > pkg/DEBIAN/postinst; chmod 644 pkg/DEBIAN/postinst; dpkg-deb -b pkg out.deb 2>&1; echo "rc=$?"; ls'''
+
+[[case]]
+id = "deb-build-conffile-missing"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n' > pkg/DEBIAN/control; printf '/etc/hello.conf\n' > pkg/DEBIAN/conffiles; dpkg-deb -b pkg out.deb 2>&1; echo "rc=$?"; ls'''
+
+[[case]]
+id = "deb-build-conffile-ok"
+script = '''mkdir -p pkg/DEBIAN pkg/etc; printf 'Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n' > pkg/DEBIAN/control; printf '/etc/hello.conf\n' > pkg/DEBIAN/conffiles; echo c > pkg/etc/hello.conf; dpkg-deb --root-owner-group -b pkg out.deb; echo "rc=$?"; dpkg-deb --ctrl-tarfile out.deb | tar -tf - | sort; rm -f out.deb'''
+
+[[case]]
+id = "deb-build-bad-compression-type"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n' > pkg/DEBIAN/control; dpkg-deb -Zbogus -b pkg out.deb 2>&1; echo "rc=$?"; ls'''
+
+[[case]]
+id = "deb-build-nocheck"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nDescription: x\n' > pkg/DEBIAN/control; dpkg-deb --nocheck --root-owner-group -b pkg out.deb 2>&1; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-contents"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin pkg/usr/share/doc/hello; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; chmod 755 pkg/usr/bin/hello; ln -s hello pkg/usr/bin/hi; printf 'doc\n' > pkg/usr/share/doc/hello/README; SOURCE_DATE_EPOCH=86400 dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -c out.deb; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-contents-gzip"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; chmod 755 pkg/usr/bin/hello; SOURCE_DATE_EPOCH=86400 dpkg-deb -Zgzip -z3 --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -c out.deb; ar t out.deb; rm -f out.deb'''
+
+[[case]]
+id = "deb-contents-zstd"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; chmod 755 pkg/usr/bin/hello; SOURCE_DATE_EPOCH=86400 dpkg-deb -Zzstd --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -c out.deb; ar t out.deb; rm -f out.deb'''
+
+[[case]]
+id = "deb-contents-none"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; chmod 755 pkg/usr/bin/hello; SOURCE_DATE_EPOCH=86400 dpkg-deb -Znone --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -c out.deb; ar t out.deb; ls -l out.deb | awk '{print $5}'; rm -f out.deb'''
+
+[[case]]
+id = "deb-info"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n a longer line\n' > pkg/DEBIAN/control; printf '#!/bin/sh\nexit 0\n' > pkg/DEBIAN/postinst; chmod 755 pkg/DEBIAN/postinst; printf 'echo hi\n' > pkg/usr/bin/hello; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -I out.deb | grep -v ' size '; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-info-component"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -I out.deb control; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-info-missing-component"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -I out.deb postinst 2>&1; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-field-all"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n a longer line\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -f out.deb; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-field-one"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n a longer line\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -f out.deb Package; dpkg-deb -f out.deb description; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-field-two"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -f out.deb Package version Homepage; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-field-missing"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -f out.deb Homepage; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-show-default"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -W out.deb; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-show-format"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -W --showformat='${Package}_${Version}_${Architecture}\n${Package;10}|${Version;-10}|\n' out.deb; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-extract"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; chmod 755 pkg/usr/bin/hello; ln -s hello pkg/usr/bin/hi; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -x out.deb x; echo "rc=$?"; find x | sort; cat x/usr/bin/hello; readlink x/usr/bin/hi; rm -f out.deb'''
+
+[[case]]
+id = "deb-vextract"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; chmod 755 pkg/usr/bin/hello; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -X out.deb x; echo "rc=$?"; ls -l x/usr/bin | awk '{print $1}'; rm -f out.deb'''
+
+[[case]]
+id = "deb-raw-extract"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -R out.deb r; echo "rc=$?"; find r | sort; cat r/DEBIAN/control; rm -f out.deb'''
+
+[[case]]
+id = "deb-control-extract"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf '#!/bin/sh\nexit 0\n' > pkg/DEBIAN/postinst; chmod 755 pkg/DEBIAN/postinst; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb -e out.deb; echo "rc=$?"; ls DEBIAN; dpkg-deb -e out.deb ctl; ls ctl; rm -f out.deb'''
+
+[[case]]
+id = "deb-ctrl-tarfile"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb --ctrl-tarfile out.deb | tar -tf -; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-fsys-tarfile"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; dpkg-deb --fsys-tarfile out.deb | tar -tf -; echo "rc=$?"; rm -f out.deb'''
+
+[[case]]
+id = "deb-ar-members"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg out.deb >/dev/null; ar t out.deb; ar p out.deb debian-binary; rm -f out.deb'''
+
+[[case]]
+id = "deb-roundtrip-extract-rebuild"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; chmod 755 pkg/usr/bin/hello; dpkg-deb --root-owner-group -b pkg a.deb >/dev/null; dpkg-deb -R a.deb r; dpkg-deb --root-owner-group -b r b.deb; dpkg-deb -c a.deb | awk '{print $1,$2,$3,$6}' > a.txt; dpkg-deb -c b.deb | awk '{print $1,$2,$3,$6}' > b.txt; cmp a.txt b.txt && echo same; rm -f a.deb b.deb a.txt b.txt'''

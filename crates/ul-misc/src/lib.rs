@@ -50,6 +50,11 @@ pub mod debscripts;
 pub mod envsubst;
 pub mod faketime;
 pub mod dmesg;
+pub mod dpkg_architecture;
+pub mod dpkg_divert;
+pub mod dpkg_realpath;
+pub mod dpkg_statoverride;
+pub mod dpkg_vendor;
 pub mod fallocate;
 pub mod file;
 pub mod fsfreeze;
@@ -234,6 +239,11 @@ pub fn programs() -> Vec<Program> {
         Program::bin("colrm", colrm::main),
         Program::bin("dc", dc::main),
         Program::bin("dmesg", dmesg::main),
+        Program::bin("dpkg-architecture", dpkg_architecture::main),
+        Program::bin("dpkg-divert", dpkg_divert::main),
+        Program::bin("dpkg-realpath", dpkg_realpath::main),
+        Program::bin("dpkg-statoverride", dpkg_statoverride::main),
+        Program::bin("dpkg-vendor", dpkg_vendor::main),
         Program::bin("mount", mount::main),
         Program::bin("script", script::main),
         Program::bin("scriptlive", scriptlive::main),

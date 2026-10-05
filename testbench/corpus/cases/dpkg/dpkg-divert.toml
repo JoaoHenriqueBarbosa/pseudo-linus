@@ -1,0 +1,113 @@
+tool = "dpkg-divert"
+source = "manual"
+
+# dpkg-divert do dpkg 1.22 (Debian 13): --add, --remove, --list, --listpackage, --truename, --rename,
+# --test e as mensagens de erro. Cada caso usa --admindir num diretório local e confere o banco com cat.
+
+[[case]]
+id = "divert-help"
+script = '''dpkg-divert --help; echo "rc=$?"'''
+
+[[case]]
+id = "divert-version"
+script = '''dpkg-divert --version; echo "rc=$?"'''
+
+[[case]]
+id = "divert-no-arguments"
+script = '''dpkg-divert 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "divert-unknown-option"
+script = '''dpkg-divert --bogus 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "divert-not-absolute"
+script = '''mkdir adm; dpkg-divert --admindir $PWD/adm foo 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "divert-divert-not-absolute"
+script = '''mkdir adm; dpkg-divert --admindir $PWD/adm --divert bar /foo 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "divert-to-itself"
+script = '''mkdir adm; dpkg-divert --admindir $PWD/adm --divert /foo --add /foo 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "divert-local-and-package"
+script = '''mkdir adm; dpkg-divert --admindir $PWD/adm --local --package foo --add /x 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "divert-add-local"
+script = '''mkdir adm; dpkg-divert --admindir $PWD/adm --add /usr/bin/tool; echo "rc=$?"; cat adm/diversions'''
+
+[[case]]
+id = "divert-add-package"
+script = '''mkdir adm; dpkg-divert --admindir $PWD/adm --package mypkg --divert /usr/bin/tool.real --add /usr/bin/tool; echo "rc=$?"; cat adm/diversions'''
+
+[[case]]
+id = "divert-add-quiet"
+script = '''mkdir adm; dpkg-divert --quiet --admindir $PWD/adm --add /usr/bin/tool; echo "rc=$?"; cat adm/diversions'''
+
+[[case]]
+id = "divert-add-twice-leaving"
+script = '''mkdir adm; D="dpkg-divert --admindir $PWD/adm"; $D --add /usr/bin/tool; $D --add /usr/bin/tool; echo "rc=$?"; cat adm/diversions'''
+
+[[case]]
+id = "divert-add-clash"
+script = '''mkdir adm; D="dpkg-divert --admindir $PWD/adm"; $D --quiet --add /usr/bin/tool; $D --package other --divert /usr/bin/tool.x --add /usr/bin/tool 2>&1; echo "rc=$?"; cat adm/diversions'''
+
+[[case]]
+id = "divert-list"
+script = '''mkdir adm; D="dpkg-divert --admindir $PWD/adm"; $D --quiet --add /usr/bin/a; $D --quiet --package p --divert /usr/bin/b.real --add /usr/bin/b; $D --list; echo "rc=$?"'''
+
+[[case]]
+id = "divert-list-pattern"
+script = '''mkdir adm; D="dpkg-divert --admindir $PWD/adm"; $D --quiet --add /usr/bin/a; $D --quiet --package p --divert /usr/bin/b.real --add /usr/bin/b; $D --list '*/b'; echo "--"; $D --list p; echo "--"; $D --list '/nothing*'; echo "rc=$?"'''
+
+[[case]]
+id = "divert-list-empty"
+script = '''mkdir adm; dpkg-divert --admindir $PWD/adm --list; echo "rc=$?"'''
+
+[[case]]
+id = "divert-listpackage"
+script = '''mkdir adm; D="dpkg-divert --admindir $PWD/adm"; $D --quiet --add /usr/bin/a; $D --quiet --package p --divert /usr/bin/b.real --add /usr/bin/b; $D --listpackage /usr/bin/a; $D --listpackage /usr/bin/b; $D --listpackage /usr/bin/c; echo "rc=$?"'''
+
+[[case]]
+id = "divert-truename"
+script = '''mkdir adm; D="dpkg-divert --admindir $PWD/adm"; $D --quiet --add /usr/bin/a; $D --truename /usr/bin/a; $D --truename /usr/bin/other; echo "rc=$?"'''
+
+[[case]]
+id = "divert-remove"
+script = '''mkdir adm; D="dpkg-divert --admindir $PWD/adm"; $D --quiet --add /usr/bin/a; $D --remove /usr/bin/a; echo "rc=$?"; cat adm/diversions; $D --list'''
+
+[[case]]
+id = "divert-remove-missing"
+script = '''mkdir adm; dpkg-divert --admindir $PWD/adm --remove /usr/bin/a; echo "rc=$?"'''
+
+[[case]]
+id = "divert-remove-missing-quiet"
+script = '''mkdir adm; dpkg-divert --quiet --admindir $PWD/adm --remove /usr/bin/a; echo "rc=$?"'''
+
+[[case]]
+id = "divert-remove-package-mismatch"
+script = '''mkdir adm; D="dpkg-divert --admindir $PWD/adm"; $D --quiet --package p --divert /usr/bin/a.x --add /usr/bin/a; $D --package q --remove /usr/bin/a 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "divert-remove-divert-mismatch"
+script = '''mkdir adm; D="dpkg-divert --admindir $PWD/adm"; $D --quiet --package p --divert /usr/bin/a.x --add /usr/bin/a; $D --package p --divert /usr/bin/a.y --remove /usr/bin/a 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "divert-rename-add-remove"
+script = '''mkdir adm bin; echo orig > bin/tool; D="dpkg-divert --admindir $PWD/adm"; $D --rename --divert $PWD/bin/tool.real --add $PWD/bin/tool | sed "s#$PWD#PWD#g"; ls bin; cat bin/tool.real; $D --rename --divert $PWD/bin/tool.real --remove $PWD/bin/tool | sed "s#$PWD#PWD#g"; ls bin; cat bin/tool'''
+
+[[case]]
+id = "divert-rename-with-root"
+script = '''mkdir -p r/var/lib/dpkg r/usr/bin; echo orig > r/usr/bin/tool; dpkg-divert --root $PWD/r --rename --add /usr/bin/tool; ls r/usr/bin; cat r/var/lib/dpkg/diversions'''
+
+[[case]]
+id = "divert-rename-target-exists"
+script = '''mkdir adm bin; echo a > bin/tool; echo b > bin/tool.real; dpkg-divert --admindir $PWD/adm --rename --divert $PWD/bin/tool.real --add $PWD/bin/tool 2>&1 | sed "s#$PWD#PWD#g"; echo "rc=$?"; ls bin'''
+
+[[case]]
+id = "divert-test-mode"
+script = '''mkdir adm bin; echo a > bin/tool; dpkg-divert --test --admindir $PWD/adm --rename --add $PWD/bin/tool | sed "s#$PWD#PWD#g"; ls bin adm'''

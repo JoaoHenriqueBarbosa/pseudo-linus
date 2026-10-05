@@ -1,0 +1,86 @@
+tool = "dpkg-split"
+source = "manual"
+
+# dpkg-split do dpkg 1.22 (Debian 13): --split, --join, --info, --auto, --listq, --discard e os erros de
+# uso. O .deb é construído sem compressão e com SOURCE_DATE_EPOCH (tamanhos estáveis); os pedaços são
+# apagados no fim e o MD5 nunca é impresso, porque os bytes do tar dependem do GNU tar.
+
+[[case]]
+id = "split-help"
+script = '''dpkg-split --help; echo "rc=$?"'''
+
+[[case]]
+id = "split-version"
+script = '''dpkg-split --version; echo "rc=$?"'''
+
+[[case]]
+id = "split-no-action"
+script = '''dpkg-split 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "split-unknown-option"
+script = '''dpkg-split --bogus 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "split-split-no-argument"
+script = '''dpkg-split --split 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "split-bad-part-size"
+script = '''dpkg-split -S 0 --split x.deb 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "split-not-a-deb"
+script = '''echo hello > f.deb; dpkg-split --split f.deb 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "split-basic"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; SOURCE_DATE_EPOCH=1 dpkg-deb -Znone --root-owner-group -b pkg a.deb >/dev/null; dpkg-split -S 8 --split a.deb out; echo "rc=$?"; ls | grep '^out'; rm -f out.*of*.deb a.deb'''
+
+[[case]]
+id = "split-default-prefix"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; SOURCE_DATE_EPOCH=1 dpkg-deb -Znone --root-owner-group -b pkg hello_1.0-1_all.deb >/dev/null; dpkg-split -S 8 --split hello_1.0-1_all.deb; ls | grep 'of'; rm -f hello_1.0-1_all*.deb'''
+
+[[case]]
+id = "split-single-part"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; SOURCE_DATE_EPOCH=1 dpkg-deb -Znone --root-owner-group -b pkg a.deb >/dev/null; dpkg-split --split a.deb out; echo "rc=$?"; ls | grep '^out'; rm -f out.*of*.deb a.deb'''
+
+[[case]]
+id = "split-info"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; SOURCE_DATE_EPOCH=1 dpkg-deb -Znone --root-owner-group -b pkg a.deb >/dev/null; dpkg-split -S 8 --split a.deb out >/dev/null; dpkg-split --info out.2of3.deb | grep -v MD5; echo "rc=$?"; rm -f out.*of*.deb a.deb'''
+
+[[case]]
+id = "split-info-not-a-part"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg a.deb >/dev/null; dpkg-split --info a.deb; echo "rc=$?"; rm -f a.deb'''
+
+[[case]]
+id = "split-join"
+script = '''mkdir -p pkg/DEBIAN pkg/usr/bin; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; printf 'echo hi\n' > pkg/usr/bin/hello; SOURCE_DATE_EPOCH=1 dpkg-deb -Znone --root-owner-group -b pkg a.deb >/dev/null; dpkg-split -S 8 --split a.deb out >/dev/null; dpkg-split -o b.deb --join out.1of3.deb out.2of3.deb out.3of3.deb 2>&1; echo "rc=$?"; cmp a.deb b.deb && echo identical; rm -f out.*of*.deb a.deb b.deb'''
+
+[[case]]
+id = "split-join-default-name"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1:1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; SOURCE_DATE_EPOCH=1 dpkg-deb -Znone --root-owner-group -b pkg a.deb >/dev/null; dpkg-split -S 8 --split a.deb out >/dev/null; rm a.deb; dpkg-split --join out.*of3.deb; echo "rc=$?"; ls | grep '\.deb$' | grep -v '^out'; rm -f out.*of*.deb *.deb'''
+
+[[case]]
+id = "split-join-missing-part"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; SOURCE_DATE_EPOCH=1 dpkg-deb -Znone --root-owner-group -b pkg a.deb >/dev/null; dpkg-split -S 8 --split a.deb out >/dev/null; dpkg-split -o b.deb --join out.1of3.deb out.3of3.deb 2>&1; echo "rc=$?"; ls | grep -c '^b.deb'; rm -f out.*of*.deb a.deb'''
+
+[[case]]
+id = "split-join-not-a-part"
+script = '''mkdir -p pkg/DEBIAN; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg a.deb >/dev/null; dpkg-split -o b.deb --join a.deb 2>&1; echo "rc=$?"; rm -f a.deb'''
+
+[[case]]
+id = "split-auto-not-a-part"
+script = '''mkdir -p pkg/DEBIAN depot; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; dpkg-deb --root-owner-group -b pkg a.deb >/dev/null; dpkg-split --depotdir $PWD/depot --auto -o full.deb a.deb; echo "rc=$?"; dpkg-split --npquiet --depotdir $PWD/depot --auto -o full.deb a.deb; echo "rc=$?"; rm -f a.deb'''
+
+[[case]]
+id = "split-auto-requires-output"
+script = '''dpkg-split --auto x.deb 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "split-auto-accumulate"
+script = '''mkdir -p pkg/DEBIAN depot; printf 'Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n' > pkg/DEBIAN/control; SOURCE_DATE_EPOCH=1 dpkg-deb -Znone --root-owner-group -b pkg a.deb >/dev/null; dpkg-split -S 8 --split a.deb out >/dev/null; U="dpkg-split --depotdir $PWD/depot --auto -o full.deb"; $U out.2of3.deb; echo "rc=$?"; $U out.1of3.deb; echo "rc=$?"; $U out.3of3.deb | sed 's/ done.*/ done/'; echo "rc=$?"; cmp a.deb full.deb && echo identical; ls depot | wc -l; rm -f out.*of*.deb a.deb full.deb'''
+
+[[case]]
+id = "split-discard-empty"
+script = '''mkdir depot; dpkg-split --depotdir $PWD/depot --discard; echo "rc=$?"; dpkg-split --depotdir $PWD/depot --listq; echo "rc=$?"'''

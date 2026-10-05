@@ -14,6 +14,8 @@ pub mod tz;
 
 // Os módulos dos CLIs não se chamam `tar` e `zip` pra não esconder as crates de mesmo nome.
 pub mod compress;
+pub mod dpkg_deb;
+pub mod dpkg_split;
 pub mod tar_cli;
 pub mod zip_cli;
 
@@ -23,6 +25,8 @@ use sysabi::Program;
 pub fn programs() -> Vec<Program> {
     vec![
         Program::bin("tar", tar_cli::main),
+        Program::bin("dpkg-deb", dpkg_deb::main),
+        Program::bin("dpkg-split", dpkg_split::main),
         Program::bin("gzip", compress::gzip_main),
         Program::bin("gunzip", compress::gunzip_main),
         Program::bin("zcat", compress::zcat_main),

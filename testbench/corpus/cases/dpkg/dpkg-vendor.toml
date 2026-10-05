@@ -1,0 +1,53 @@
+tool = "dpkg-vendor"
+source = "manual"
+
+# dpkg-vendor do dpkg 1.22 (Debian 13): --is, --derives-from, --query, --vendor-info, --vendor e os
+# erros de uso. DEB_VENDOR é limpa pra o resultado depender só de /etc/dpkg/origins.
+
+[[case]]
+id = "vendor-help"
+script = '''dpkg-vendor --help; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-version"
+script = '''dpkg-vendor --version; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-no-action"
+script = '''dpkg-vendor 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-unknown-option"
+script = '''dpkg-vendor --bogus 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-two-actions"
+script = '''dpkg-vendor --is debian --derives-from debian 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-is-debian"
+script = '''unset DEB_VENDOR; dpkg-vendor --is debian; echo "rc=$?"; dpkg-vendor --is Debian; echo "rc=$?"; dpkg-vendor --is ubuntu; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-derives-from"
+script = '''unset DEB_VENDOR; dpkg-vendor --derives-from debian; echo "rc=$?"; dpkg-vendor --derives-from ubuntu; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-query"
+script = '''unset DEB_VENDOR; dpkg-vendor --query Vendor; dpkg-vendor --query vendor-url; dpkg-vendor --query Bugs; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-query-missing-field"
+script = '''unset DEB_VENDOR; dpkg-vendor --query Nope; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-vendor-info"
+script = '''unset DEB_VENDOR; dpkg-vendor --vendor-info; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-vendor-option"
+script = '''unset DEB_VENDOR; dpkg-vendor --vendor debian --is debian; echo "rc=$?"; dpkg-vendor --vendor Nonexistent --is debian; echo "rc=$?"'''
+
+[[case]]
+id = "vendor-env"
+script = '''DEB_VENDOR=debian dpkg-vendor --is debian; echo "rc=$?"; DEB_VENDOR=Nonexistent dpkg-vendor --is debian; echo "rc=$?"'''

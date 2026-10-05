@@ -1,0 +1,85 @@
+tool = "dpkg-statoverride"
+source = "manual"
+
+# dpkg-statoverride do dpkg 1.22 (Debian 13): --add, --remove, --list, --update, --force e as mensagens de
+# erro. Cada caso usa --admindir num diretório local.
+
+[[case]]
+id = "so-help"
+script = '''dpkg-statoverride --help; echo "rc=$?"'''
+
+[[case]]
+id = "so-version"
+script = '''dpkg-statoverride --version; echo "rc=$?"'''
+
+[[case]]
+id = "so-no-action"
+script = '''dpkg-statoverride 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "so-unknown-option"
+script = '''dpkg-statoverride --bogus 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "so-add-wrong-arity"
+script = '''mkdir adm; dpkg-statoverride --admindir $PWD/adm --add root root 755 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "so-add-list"
+script = '''mkdir adm; S="dpkg-statoverride --admindir $PWD/adm"; $S --add root root 4755 /usr/bin/foo; echo "rc=$?"; $S --list; echo "rc=$?"; cat adm/statoverride'''
+
+[[case]]
+id = "so-add-numeric-ids"
+script = '''mkdir adm; S="dpkg-statoverride --admindir $PWD/adm"; $S --add '#1000' '#1001' 0644 /etc/secret; echo "rc=$?"; $S --list'''
+
+[[case]]
+id = "so-add-bad-user"
+script = '''mkdir adm; dpkg-statoverride --admindir $PWD/adm --add nosuchuser root 755 /x 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "so-add-bad-group"
+script = '''mkdir adm; dpkg-statoverride --admindir $PWD/adm --add root nosuchgroup 755 /x 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "so-add-bad-mode"
+script = '''mkdir adm; dpkg-statoverride --admindir $PWD/adm --add root root 9z9 /x 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "so-add-duplicate"
+script = '''mkdir adm; S="dpkg-statoverride --admindir $PWD/adm"; $S --add root root 755 /x; $S --add root root 700 /x 2>&1; echo "rc=$?"; cat adm/statoverride'''
+
+[[case]]
+id = "so-add-duplicate-force"
+script = '''mkdir adm; S="dpkg-statoverride --admindir $PWD/adm"; $S --add root root 755 /x; $S --force --add root root 700 /x 2>&1; echo "rc=$?"; cat adm/statoverride'''
+
+[[case]]
+id = "so-add-update-missing-file"
+script = '''mkdir adm; dpkg-statoverride --admindir $PWD/adm --update --add root root 755 /nonexistent-file 2>&1; echo "rc=$?"; cat adm/statoverride'''
+
+[[case]]
+id = "so-add-update-existing-file"
+script = '''mkdir adm; touch f; chmod 644 f; dpkg-statoverride --admindir $PWD/adm --update --add root root 750 $PWD/f; echo "rc=$?"; ls -l f | cut -c1-10'''
+
+[[case]]
+id = "so-list-pattern"
+script = '''mkdir adm; S="dpkg-statoverride --admindir $PWD/adm"; $S --add root root 755 /usr/bin/a; $S --add root root 700 /etc/b; $S --list '/usr/*'; echo "rc=$?"; $S --list '/nothing*'; echo "rc=$?"'''
+
+[[case]]
+id = "so-list-empty"
+script = '''mkdir adm; dpkg-statoverride --admindir $PWD/adm --list; echo "rc=$?"'''
+
+[[case]]
+id = "so-remove"
+script = '''mkdir adm; S="dpkg-statoverride --admindir $PWD/adm"; $S --add root root 755 /x; $S --remove /x; echo "rc=$?"; $S --list; echo "rc=$?"'''
+
+[[case]]
+id = "so-remove-missing"
+script = '''mkdir adm; dpkg-statoverride --admindir $PWD/adm --remove /x 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "so-remove-missing-quiet"
+script = '''mkdir adm; dpkg-statoverride --quiet --admindir $PWD/adm --remove /x 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "so-trailing-slash-normalized"
+script = '''mkdir adm; S="dpkg-statoverride --admindir $PWD/adm"; $S --add root root 755 /usr/lib/; $S --list'''

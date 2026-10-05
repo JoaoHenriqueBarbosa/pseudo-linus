@@ -1,0 +1,102 @@
+tool = "dpkg-architecture"
+source = "manual"
+
+# dpkg-architecture do dpkg 1.22 (Debian 13): lista de variáveis, -a/-t/-A/-T, -q, -s, -u, -e, -i,
+# -c e as mensagens de erro. A máquina de construção é amd64; DEB_HOST_* e DEB_TARGET_* do ambiente
+# são limpas pra os casos não dependerem do ambiente do runner.
+
+[[case]]
+id = "arch-help"
+script = '''dpkg-architecture --help; echo "rc=$?"'''
+
+[[case]]
+id = "arch-version"
+script = '''dpkg-architecture --version; echo "rc=$?"'''
+
+[[case]]
+id = "arch-default-list"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture; echo "rc=$?"'''
+
+[[case]]
+id = "arch-list-explicit"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -l | head -3; echo "rc=$?"'''
+
+[[case]]
+id = "arch-host-arm64"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -a arm64 | grep HOST'''
+
+[[case]]
+id = "arch-host-armhf"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -aarmhf | grep HOST'''
+
+[[case]]
+id = "arch-host-i386"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture --host-arch i386 | grep HOST'''
+
+[[case]]
+id = "arch-host-mips64el"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -a mips64el | grep HOST'''
+
+[[case]]
+id = "arch-host-riscv64"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -a riscv64 | grep HOST'''
+
+[[case]]
+id = "arch-host-kfreebsd"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -a kfreebsd-amd64 | grep HOST'''
+
+[[case]]
+id = "arch-host-hurd"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -a hurd-i386 | grep HOST'''
+
+[[case]]
+id = "arch-host-type"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -t aarch64-linux-gnu | grep HOST'''
+
+[[case]]
+id = "arch-target-arch"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -A s390x | grep TARGET'''
+
+[[case]]
+id = "arch-query"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -q DEB_HOST_ARCH; dpkg-architecture -qDEB_HOST_MULTIARCH; dpkg-architecture -a armel -q DEB_HOST_GNU_TYPE; dpkg-architecture --query DEB_BUILD_ARCH_BITS'''
+
+[[case]]
+id = "arch-query-unknown"
+script = '''dpkg-architecture -q DEB_NOPE 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "arch-print-set"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -a i386 -s'''
+
+[[case]]
+id = "arch-print-unset"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -u'''
+
+[[case]]
+id = "arch-equal"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -e amd64; echo "rc=$?"; dpkg-architecture -e i386; echo "rc=$?"; dpkg-architecture -a arm64 -e arm64; echo "rc=$?"'''
+
+[[case]]
+id = "arch-is-wildcard"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; for w in any linux-any any-amd64 any-i386 kfreebsd-any gnu-linux-any musl-linux-any; do dpkg-architecture -i $w; echo "$w rc=$?"; done'''
+
+[[case]]
+id = "arch-command"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -a arm64 -c sh -c 'echo $DEB_HOST_ARCH $DEB_HOST_MULTIARCH $DEB_BUILD_ARCH' '''
+
+[[case]]
+id = "arch-env-host"
+script = '''unset DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; DEB_HOST_ARCH=arm64 dpkg-architecture -q DEB_HOST_GNU_TYPE; DEB_HOST_ARCH=arm64 dpkg-architecture -f -q DEB_HOST_ARCH'''
+
+[[case]]
+id = "arch-unknown-arch"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -a nosucharch 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "arch-unknown-gnu-type"
+script = '''unset DEB_HOST_ARCH DEB_HOST_GNU_TYPE DEB_TARGET_ARCH DEB_TARGET_GNU_TYPE; dpkg-architecture -t nosuch-type-gnu 2>&1; echo "rc=$?"'''
+
+[[case]]
+id = "arch-unknown-option"
+script = '''dpkg-architecture --bogus 2>&1; echo "rc=$?"'''
