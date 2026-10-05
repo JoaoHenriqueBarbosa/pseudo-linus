@@ -70,6 +70,8 @@ pub struct Caller {
     pub now: TimeSpec,
     /// pid do processo (pra `/proc/self`).
     pub pid: Pid,
+    /// tid da thread (pra `/proc/thread-self`); igual ao pid na thread principal.
+    pub tid: Pid,
     /// `RLIMIT_FSIZE` corrente, em bytes.
     pub fsize_limit: u64,
 }

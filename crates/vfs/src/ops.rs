@@ -67,6 +67,7 @@ pub fn kernel_caller(root: Loc) -> Caller {
         umask: 0,
         now: TimeSpec::default(),
         pid: 0,
+        tid: 0,
         fsize_limit: u64::MAX,
     }
 }

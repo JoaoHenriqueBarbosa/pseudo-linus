@@ -708,6 +708,7 @@ impl Ours {
             umask: 0o022,
             now: t,
             pid: 1,
+            tid: 1,
             fsize_limit: u64::MAX,
         };
         let mut root_cx = root_cx;
