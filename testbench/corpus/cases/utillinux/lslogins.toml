@@ -1,0 +1,97 @@
+tool = "lslogins"
+source = "manual"
+
+# lslogins do util-linux 2.41 sobre um /etc/passwd e um /etc/group montados no caso
+# (--passwd-path e --group-path). As colunas de último login ficam de fora ou sem wtmp.
+
+[[case]]
+id = "output-basic"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000:Bob Builder:/home/bob:/bin/sh\\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\\n' > passwd; printf 'root:x:0:\\nbob:x:1000:\\ndaemon:x:1:\\n' > group; lslogins --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID,GID,GROUP,GECOS,HOMEDIR,SHELL,NOLOGIN; echo \"rc=$?\""
+
+[[case]]
+id = "user-accs"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000::/home/bob:/bin/sh\\nalice:x:1001:1001::/home/alice:/bin/sh\\n' > passwd; printf 'root:x:0:\\n' > group; lslogins -u --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID; echo \"rc=$?\""
+
+[[case]]
+id = "system-accs"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000::/home/bob:/bin/sh\\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\\n' > passwd; printf 'root:x:0:\\n' > group; lslogins -s --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID; echo \"rc=$?\""
+
+[[case]]
+id = "group-filter"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000::/home/bob:/bin/sh\\nalice:x:1001:1001::/home/alice:/bin/sh\\n' > passwd; printf 'root:x:0:\\nbob:x:1000:\\nalice:x:1001:\\ndev:x:50:alice\\n' > group; lslogins -g dev --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID,SUPP-GROUPS,SUPP-GIDS; echo \"rc=$?\""
+
+[[case]]
+id = "supp-groups"
+script = "printf 'bob:x:1000:1000::/home/bob:/bin/sh\\n' > passwd; printf 'bob:x:1000:\\ndev:x:50:bob\\nops:x:51:bob,alice\\n' > group; lslogins --passwd-path $PWD/passwd --group-path $PWD/group -o USER,GROUP,SUPP-GROUPS,SUPP-GIDS; echo \"rc=$?\""
+
+[[case]]
+id = "password-flags"
+script = "printf 'a:!hash:1000:1000::/h:/bin/sh\\nb:*:1001:1001::/h:/bin/sh\\nc::1002:1002::/h:/bin/sh\\nd:hash:1003:1003::/h:/bin/sh\\n' > passwd; : > group; lslogins -p --passwd-path $PWD/passwd --group-path $PWD/group; echo \"rc=$?\""
+
+[[case]]
+id = "raw-noheadings"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000:Bob Builder:/home/bob:/bin/sh\\n' > passwd; : > group; lslogins -r --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID,GECOS; lslogins -rn --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID,GECOS"
+
+[[case]]
+id = "colon-separate"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000:Bob:/home/bob:/bin/sh\\n' > passwd; : > group; lslogins -c --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID,SHELL"
+
+[[case]]
+id = "export"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000:Bob Builder:/home/bob:/bin/sh\\n' > passwd; : > group; lslogins -e --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID,GECOS"
+
+[[case]]
+id = "json"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000:Bob Builder:/home/bob:/usr/sbin/nologin\\n' > passwd; : > group; lslogins --json --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID,NOLOGIN,SUPP-GROUPS"
+
+[[case]]
+id = "newline"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000:Bob:/home/bob:/bin/sh\\n' > passwd; : > group; lslogins -n --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID,SHELL"
+
+[[case]]
+id = "single-user"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000:Bob:/home/bob:/bin/sh\\n' > passwd; : > group; lslogins --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID,HOMEDIR bob; echo \"rc=$?\""
+
+[[case]]
+id = "logins-list"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000:Bob:/home/bob:/bin/sh\\nalice:x:1001:1001::/h:/bin/sh\\n' > passwd; : > group; lslogins --passwd-path $PWD/passwd --group-path $PWD/group -o USER,UID -l root,1001; echo \"rc=$?\""
+
+[[case]]
+id = "last-login-no-wtmp"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\n' > passwd; : > group; lslogins -L --passwd-path $PWD/passwd --group-path $PWD/group --wtmp-file $PWD/nowtmp; echo \"rc=$?\""
+
+[[case]]
+id = "failed-no-btmp"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\n' > passwd; : > group; lslogins -f --passwd-path $PWD/passwd --group-path $PWD/group --btmp-file $PWD/nobtmp; echo \"rc=$?\""
+
+[[case]]
+id = "unknown-user"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\n' > passwd; : > group; lslogins --passwd-path $PWD/passwd --group-path $PWD/group nosuch 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "unknown-group"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\n' > passwd; : > group; lslogins -g nosuch --passwd-path $PWD/passwd --group-path $PWD/group 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "unknown-column"
+script = "printf 'root:x:0:0:root:/root:/bin/bash\\n' > passwd; : > group; lslogins --passwd-path $PWD/passwd --group-path $PWD/group -o USER,BOGUS 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "two-operands"
+script = "lslogins root bob 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "bad-time-format"
+script = "lslogins --time-format=bogus 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "invalid-option"
+script = "lslogins -Q 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "help"
+script = "lslogins -h; echo \"rc=$?\""
+
+[[case]]
+id = "version"
+script = "lslogins -V; echo \"rc=$?\""

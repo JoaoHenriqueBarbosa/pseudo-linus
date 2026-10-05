@@ -46,6 +46,7 @@ pub mod look;
 pub mod lscpu;
 pub mod lsipc;
 pub mod lslocks;
+pub mod lslogins;
 pub mod lsmem;
 pub mod lsns;
 pub mod mcookie;
@@ -128,6 +129,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("lscpu", lscpu::main),
         Program::bin("lsipc", lsipc::main),
         Program::bin("lslocks", lslocks::main),
+        Program::bin("lslogins", lslogins::main),
         Program::bin("lsmem", lsmem::main),
         Program::bin("lsns", lsns::main),
         Program::bin("mcookie", mcookie::main),
