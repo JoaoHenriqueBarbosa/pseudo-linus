@@ -36,7 +36,7 @@ use winnow::{
 };
 
 use super::{
-    primitive::{colon, ctx_err, dec_uint, dec_uint_str, plus_or_minus, s},
+    primitive::{colon, ctx_err, dec_uint, dec_uint_str, keyword, plus_or_minus, s},
     relative,
 };
 
@@ -220,6 +220,27 @@ fn timezone_name_offset(input: &mut &str) -> ModalResult<Offset> {
     let nextword = s(take_while(1..=MAX_TZ_SIZE, AsChar::is_alpha)).parse_next(input)?;
     let tz = timezone_name_to_offset(nextword)?;
 
+    // A daylight saving time zone name (`tDAYZONE` in the GNU grammar, e.g.
+    // `edt`) is complete: no rule lets a correction or `dst` follow it.
+    if is_daylight_saving_zone(nextword) {
+        return Ok(tz);
+    }
+
+    // `tZONE tDST`: `dst` in a separate word turns a standard time zone name
+    // into the daylight saving one, an hour ahead (`utc dst` is `+01:00`).
+    let start = input.checkpoint();
+    if keyword::<ErrMode<ContextError>>("dst")
+        .parse_next(input)
+        .is_ok()
+    {
+        return Ok(tz.merge(Offset {
+            negative: false,
+            hours: 1,
+            minutes: 0,
+        }));
+    }
+    input.reset(&start);
+
     // Strings like "UTC +8 years" are ambiguous, they can either be parsed as
     // "UTC+8" and "years", or "UTC" and "+8 years". GNU date parses them the
     // second way, so we do the same here.
@@ -236,6 +257,31 @@ fn timezone_name_offset(input: &mut &str) -> ModalResult<Offset> {
     }
 
     Ok(tz)
+}
+
+/// Is `name` a daylight saving time zone (`tDAYZONE` in the GNU table)?
+fn is_daylight_saving_zone(name: &str) -> bool {
+    matches!(
+        name,
+        "west"
+            | "bst"
+            | "brst"
+            | "ndt"
+            | "adt"
+            | "clst"
+            | "edt"
+            | "cdt"
+            | "mdt"
+            | "pdt"
+            | "akdt"
+            | "hadt"
+            | "cest"
+            | "mest"
+            | "mesz"
+            | "eest"
+            | "msd"
+            | "nzdt"
+    )
 }
 
 /// Parse a timezone offset with a colon separating hours and minutes, e.g.,
@@ -310,7 +356,7 @@ fn timezone_name_to_offset(input: &str) -> ModalResult<Offset> {
         "ut" => Ok("+0"),
         "u" => Ok("-8"),
         "t" => Ok("-7"),
-        "sst" => Ok("-11"),
+        "sst" => Ok("-12"),
         "sgt" => Ok("+8"),
         "sast" => Ok("+2"),
         "s" => Ok("-6"),
@@ -329,6 +375,7 @@ fn timezone_name_to_offset(input: &str) -> ModalResult<Offset> {
         "msk" => Ok("+3"),
         "msd" => Ok("+4"),
         "mez" => Ok("+1"),
+        "met" => Ok("+1"),
         "mesz" => Ok("+2"),
         "mest" => Ok("+2"),
         "mdt" => Ok("-6"),
@@ -340,8 +387,10 @@ fn timezone_name_to_offset(input: &str) -> ModalResult<Offset> {
         "ist" => Ok("+5:30"),
         "i" => Ok("+9"),
         "hst" => Ok("-10"),
+        "hast" => Ok("-10"),
+        "hadt" => Ok("-9"),
         "h" => Ok("+8"),
-        "gst" => Ok("+4"),
+        "gst" => Ok("+10"),
         "gmt" => Ok("+0"),
         "g" => Ok("+7"),
         "f" => Ok("+6"),
@@ -360,15 +409,15 @@ fn timezone_name_to_offset(input: &str) -> ModalResult<Offset> {
         "cdt" => Ok("-5"),
         "cat" => Ok("+2"),
         "c" => Ok("+3"),
-        "bst" => Ok("+6"),
+        "bst" => Ok("+1"),
         "brt" => Ok("-3"),
         "brst" => Ok("-2"),
         "b" => Ok("+2"),
-        "ast" => Ok("-3"),
+        "ast" => Ok("-4"),
         "art" => Ok("-3"),
         "akst" => Ok("-9"),
         "akdt" => Ok("-8"),
-        "adt" => Ok("+4"),
+        "adt" => Ok("-3"),
         "a" => Ok("+1"),
         _ => Err(ErrMode::Backtrack(ContextError::new())),
     }?;
@@ -467,6 +516,18 @@ mod tests {
             ("mesz", off(false, 2, 0)),
             ("mest", off(false, 2, 0)),
             ("kst", off(false, 9, 0)),
+            ("bst", off(false, 1, 0)),
+            ("ast", off(true, 4, 0)),
+            ("adt", off(true, 3, 0)),
+            ("gst", off(false, 10, 0)),
+            ("sst", off(true, 12, 0)),
+            ("met", off(false, 1, 0)),
+            ("hast", off(true, 10, 0)),
+            ("hadt", off(true, 9, 0)),
+            // `dst` in a separate word moves a standard time zone an hour ahead.
+            ("utc dst", off(false, 1, 0)),
+            ("est dst", off(true, 4, 0)),
+            ("z dst", off(false, 1, 0)),
             ("z123", off(false, 0, 0)), // space separator can be ignored if immediately followed by digits (GNU date behavior)
         ] {
             let mut s = input;
@@ -504,6 +565,9 @@ mod tests {
             "abc+08:00",   // invalid: non-existent timezone
             "utc+25",      // invalid: invalid offset
             "utc+23 days", // invalid: ambiguous with relative time parsing
+            "edt +3",      // invalid: a daylight saving zone takes no correction
+            "edt dst",     // invalid: nor `dst`
+            "utc dst dst", // invalid: `dst` only once
         ] {
             let mut s = input;
             assert!(
