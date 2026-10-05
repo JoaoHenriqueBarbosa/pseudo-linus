@@ -1,0 +1,194 @@
+$ git cherry-pick feat~1
+[out]
+Auto-merging f.txt
+CONFLICT (content): Merge conflict in f.txt
+[err]
+error: could not apply a10c855... feat edits f
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm <pathspec>", then run
+hint: "git cherry-pick --continue".
+hint: You can instead skip this commit with "git cherry-pick --skip".
+hint: To abort and get back to the state before "git cherry-pick",
+hint: run "git cherry-pick --abort".
+hint: Disable this message with "git config advice.mergeConflict false"
+[exit=1]
+On branch main
+You are currently cherry-picking commit a10c855.
+  (fix conflicts and run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+	both modified:   f.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+UU f.txt
+l1
+<<<<<<< HEAD
+main
+=======
+feat
+>>>>>>> a10c855 (feat edits f)
+l3
+AUTO_MERGE
+CHERRY_PICK_HEAD
+MERGE_MSG
+a10c8555027f1b72f031d5a15ce5e710e908c81e
+feat edits f
+
+# Conflicts:
+#	f.txt
+100644 f0f23074642919bb50ab5b6e4ec489706127f061 1	f.txt
+100644 8ba843d09fcc5b21c0df757d61cfd13879bb3f18 2	f.txt
+100644 da911e4317f5f568dda2d2112dd82093a1564cba 3	f.txt
+$ git commit -m resolved
+[out]
+U	f.txt
+[err]
+error: Committing is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: Exiting because of an unresolved conflict.
+[exit=128]
+$ git cherry-pick --continue
+[out]
+U	f.txt
+[err]
+error: Committing is not possible because you have unmerged files.
+hint: Fix them up in the work tree, and then use 'git add/rm <file>'
+hint: as appropriate to mark resolution and make a commit.
+fatal: Exiting because of an unresolved conflict.
+[exit=128]
+$ git cherry-pick --skip
+[out]
+[err]
+[exit=0]
+$ git cherry-pick --abort
+[out]
+[err]
+error: no cherry-pick or revert in progress
+fatal: cherry-pick failed
+[exit=128]
+On branch main
+nothing to commit, working tree clean
+d571c18 main edits f
+adebd2a add f
+110d11a add c
+f742ed7 add b
+1d512c3 add a
+ORIG_HEAD
+--- again: resolve and continue
+$ git cherry-pick feat~1
+[out]
+Auto-merging f.txt
+CONFLICT (content): Merge conflict in f.txt
+[err]
+error: could not apply a10c855... feat edits f
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm <pathspec>", then run
+hint: "git cherry-pick --continue".
+hint: You can instead skip this commit with "git cherry-pick --skip".
+hint: To abort and get back to the state before "git cherry-pick",
+hint: run "git cherry-pick --abort".
+hint: Disable this message with "git config advice.mergeConflict false"
+[exit=1]
+$ git cherry-pick --continue
+[out]
+[main 11f593a] feat edits f
+ Date: Thu Jan 15 12:05:00 2026 +0000
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[err]
+[exit=0]
+11f593a Agent feat edits f
+
+d571c18 Agent main edits f
+
+feat edits f
+
+
+ f.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+--- multi with conflict on first, continue
+$ git cherry-pick feat~1 feat
+[out]
+Auto-merging f.txt
+CONFLICT (content): Merge conflict in f.txt
+[err]
+error: could not apply a10c855... feat edits f
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm <pathspec>", then run
+hint: "git cherry-pick --continue".
+hint: You can instead skip this commit with "git cherry-pick --skip".
+hint: To abort and get back to the state before "git cherry-pick",
+hint: run "git cherry-pick --abort".
+hint: Disable this message with "git config advice.mergeConflict false"
+[exit=1]
+abort-safety
+head
+todo
+pick a10c855 feat edits f
+pick ddf44d6 feat adds g
+d571c187a39546402e42cab360875e0f1d95ff2d
+cat: .git/sequencer/opts: No such file or directory
+On branch main
+You are currently cherry-picking commit a10c855.
+  (fix conflicts and run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+Unmerged paths:
+  (use "git add <file>..." to mark resolution)
+$ git cherry-pick --continue
+[out]
+[main 11f593a] feat edits f
+ Date: Thu Jan 15 12:05:00 2026 +0000
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[main 6c848b2] feat adds g
+ Date: Thu Jan 15 12:06:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 g.txt
+[err]
+[exit=0]
+6c848b2 feat adds g
+11f593a feat edits f
+d571c18 main edits f
+adebd2a add f
+110d11a add c
+f742ed7 add b
+1d512c3 add a
+AUTO_MERGE
+ORIG_HEAD
+--- multi: abort
+$ git cherry-pick --abort
+[out]
+[err]
+[exit=0]
+On branch main
+nothing to commit, working tree clean
+d571c18 main edits f
+adebd2a add f
+ORIG_HEAD
+--- multi: skip
+$ git cherry-pick --skip
+[out]
+[main 0068d80] feat adds g
+ Date: Thu Jan 15 12:06:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 g.txt
+[err]
+[exit=0]
+0068d80 feat adds g
+d571c18 main edits f
+adebd2a add f
+On branch main
+nothing to commit, working tree clean
+--- multi: quit
+$ git cherry-pick --quit
+[out]
+[err]
+[exit=0]
+On branch main
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+ORIG_HEAD

@@ -1,0 +1,119 @@
+{
+  "tail-c": {
+    "stdout": "fgh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "97c68304cee2c147cb62886e928048554c46a302b10aea98312b83dd41a76890",
+        "data": "abcdefgh\n"
+      }
+    }
+  },
+  "tail-default": {
+    "stdout": "3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "67149111d45cf106eb92ab5be7ec08179bddea7426ddde7cfe0ae68a7cffce74",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n"
+      }
+    }
+  },
+  "tail-missing": {
+    "stdout": "",
+    "stderr": "tail: cannot open 'nope.txt' for reading: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tail-multi": {
+    "stdout": "==> a.txt <==\na2\n\n==> b.txt <==\nb2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "65454a5200a827c042e1379e1f2698d151699e4d76466a3b0e4ebd348f4f131b",
+        "data": "a1\na2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "60f7d20526ca5e01cb32632d83777bf8bed06baeb7a53bce9e86fecaac0e3f6d",
+        "data": "b1\nb2\n"
+      }
+    }
+  },
+  "tail-n-plus": {
+    "stdout": "l1\nl2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "5ec03aa3749e5338a80fda7faf43b1bf98c70343bb676fc5c450cd51153ac22e",
+        "data": "cabeçalho\nl1\nl2\n"
+      }
+    }
+  },
+  "tail-n3": {
+    "stdout": "3\n4\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "f6b49467f595b1a44e442c198b3df4d221e88efcaabc26254f8e0ad4f79b6242",
+        "data": "1\n2\n3\n4\n5\n"
+      }
+    }
+  },
+  "tail-no-trailing-newline": {
+    "stdout": "2\n3",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "ad53e8806d17c82d38902738d1d47d96bddaade27513466322efa0f793149dd0",
+        "data": "1\n2\n3"
+      }
+    }
+  },
+  "tail-obsolete-dash-number": {
+    "stdout": "b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "tail-stdin": {
+    "stdout": "b\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

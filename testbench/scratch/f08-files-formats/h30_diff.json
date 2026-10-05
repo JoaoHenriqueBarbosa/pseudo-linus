@@ -1,0 +1,6138 @@
+{
+  "key": "h30_diff",
+  "hypotheses": [
+    {
+      "id": "H30",
+      "verdict": "refuted",
+      "summary": "Refutada: o unified_diff do similar formata como o GNU (acerta 63/64 casos de -u do corpus manual), mas só 640/800 pares aleatórios cheios de empate saem iguais ao `diff -u`, porque o alinhamento Myers dele desempata diferente (no formato normal, 642/800). Nenhuma crate reproduz o desempate do GNU (diffseq.h, GPLv3): o melhor é imara-diff Myers (postprocess_no_heuristic), 756/800 no aleatório e 106/107 no corpus, sempre com script de mesmo custo. Normal, -c, -e, -y, cabeçalhos, binário e -r ficam com a gente. Patch: localizador nosso sobre o parser do diffy faz 41/41 no corpus (leniente) e 500/500 no aleatório; diffy e flickzeug não informam posição nem deslocamento.",
+      "evidence": {
+        "similar_own_unified": {
+          "strict": 63,
+          "unified_cases": 64,
+          "total": 107,
+          "fuzz_unified_identical": 640,
+          "fuzz_total": 800
+        },
+        "similar_myers_with_our_formatter": {
+          "corpus_strict": 101,
+          "corpus_total": 107,
+          "fuzz_identical": 642,
+          "fuzz_total": 800
+        },
+        "best_engine": {
+          "engine": "imara-diff Myers (postprocess_no_heuristic)",
+          "fuzz_identical": 756,
+          "fuzz_total": 800,
+          "corpus_strict": 106,
+          "corpus_total": 107
+        },
+        "patch_ours": {
+          "corpus_lenient": 41,
+          "corpus_strict": 40,
+          "corpus_total": 41,
+          "random_lenient": 500,
+          "random_total": 500
+        }
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "name": "similar Myers + formatador GNU nosso",
+      "version": "similar 3.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "similar Myers + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 101,
+        "lenient_pass": 101,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            6,
+            6,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            17,
+            17,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            15,
+            15,
+            21
+          ],
+          "unified": [
+            45,
+            45,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-blank-lines-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (158 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-swap-two",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< first\\n2a2\\n> first\\n\" obtido \"0a1\\n> second\\n2d2\\n< second\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-reverse",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1,4d0\\n< 1\\n< 2\\n< 3\\n< 4\\n5a2,5\\n> 4\\n> 3\\n> 2\\n> 1\\n\" obtido \"0a1,4\\n> 5\\n> 4\\n> 3\\n> 2\\n2,5d5\\n< 2\\n< 3\\n< 4\\n< 5\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-interleaved",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2d1\\n< 2\\n3a3\\n> 2\\n5d4\\n< 5\\n6a6\\n> 5\\n\" obtido \"1a2\\n> 3\\n3d3\\n< 3\\n4a5\\n> 6\\n6d6\\n< 6\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-abab-baba",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< a\\n4a4\\n> a\\n\" obtido \"0a1\\n> b\\n4d4\\n< b\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"3a4,5\\n> - outro\\n> - item\\n5d6\\n< - outro\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 101/107 estrito; corpus aleatório 642/800 idêntico ao GNU no formato normal (158 com o mesmo custo e outro alinhamento, 0 com script mais longo, 0 inválidos) e 640/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.944,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-blank-lines-u",
+            "diff-tie-swap-two",
+            "diff-tie-reverse",
+            "diff-tie-interleaved",
+            "diff-tie-abab-baba",
+            "diff-tie-markdown-list"
+          ]
+        },
+        "fuzz": {
+          "engine": "similar Myers + formatador GNU nosso",
+          "total": 800,
+          "identical": 642,
+          "same_cost_other_alignment": 158,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              166,
+              200
+            ],
+            "Medium": [
+              42,
+              100
+            ],
+            "Text": [
+              196,
+              200
+            ],
+            "Tiny": [
+              238,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            5
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "similar Myers + formatador GNU nosso",
+          "total": 800,
+          "identical": 640,
+          "same_cost_other_alignment": 160,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              162,
+              200
+            ],
+            "Medium": [
+              41,
+              100
+            ],
+            "Text": [
+              196,
+              200
+            ],
+            "Tiny": [
+              241,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            5
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": 1.83,
+          "repetitivo-3k-linhas": 0.204
+        },
+        "depscan": {
+          "package": "similar",
+          "version": "3.2.0",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 11,
+          "tree_unsafe": 648,
+          "host_touching_deps": {
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "similar RawMyers + formatador GNU nosso",
+      "version": "similar 3.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "similar RawMyers + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 101,
+        "lenient_pass": 101,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            6,
+            6,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            17,
+            17,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            15,
+            15,
+            21
+          ],
+          "unified": [
+            45,
+            45,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-blank-lines-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (158 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-swap-two",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< first\\n2a2\\n> first\\n\" obtido \"0a1\\n> second\\n2d2\\n< second\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-reverse",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1,4d0\\n< 1\\n< 2\\n< 3\\n< 4\\n5a2,5\\n> 4\\n> 3\\n> 2\\n> 1\\n\" obtido \"0a1,4\\n> 5\\n> 4\\n> 3\\n> 2\\n2,5d5\\n< 2\\n< 3\\n< 4\\n< 5\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-interleaved",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2d1\\n< 2\\n3a3\\n> 2\\n5d4\\n< 5\\n6a6\\n> 5\\n\" obtido \"1a2\\n> 3\\n3d3\\n< 3\\n4a5\\n> 6\\n6d6\\n< 6\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-abab-baba",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< a\\n4a4\\n> a\\n\" obtido \"0a1\\n> b\\n4d4\\n< b\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"3a4,5\\n> - outro\\n> - item\\n5d6\\n< - outro\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 101/107 estrito; corpus aleatório 642/800 idêntico ao GNU no formato normal (158 com o mesmo custo e outro alinhamento, 0 com script mais longo, 0 inválidos) e 640/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.944,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-blank-lines-u",
+            "diff-tie-swap-two",
+            "diff-tie-reverse",
+            "diff-tie-interleaved",
+            "diff-tie-abab-baba",
+            "diff-tie-markdown-list"
+          ]
+        },
+        "fuzz": {
+          "engine": "similar RawMyers + formatador GNU nosso",
+          "total": 800,
+          "identical": 642,
+          "same_cost_other_alignment": 158,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              166,
+              200
+            ],
+            "Medium": [
+              42,
+              100
+            ],
+            "Text": [
+              196,
+              200
+            ],
+            "Tiny": [
+              238,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            5
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "similar RawMyers + formatador GNU nosso",
+          "total": 800,
+          "identical": 640,
+          "same_cost_other_alignment": 160,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              162,
+              200
+            ],
+            "Medium": [
+              41,
+              100
+            ],
+            "Text": [
+              196,
+              200
+            ],
+            "Tiny": [
+              241,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            5
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": 0.402,
+          "repetitivo-3k-linhas": 0.218
+        },
+        "depscan": {
+          "package": "similar",
+          "version": "3.2.0",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 11,
+          "tree_unsafe": 648,
+          "host_touching_deps": {
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "similar Patience + formatador GNU nosso",
+      "version": "similar 3.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "similar Patience + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 101,
+        "lenient_pass": 101,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            5,
+            5,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            17,
+            17,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            15,
+            15,
+            21
+          ],
+          "unified": [
+            45,
+            45,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-swap-two",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< first\\n2a2\\n> first\\n\" obtido \"0a1\\n> second\\n2d2\\n< second\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-reverse",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1,4d0\\n< 1\\n< 2\\n< 3\\n< 4\\n5a2,5\\n> 4\\n> 3\\n> 2\\n> 1\\n\" obtido \"0a1,4\\n> 5\\n> 4\\n> 3\\n> 2\\n2,5d5\\n< 2\\n< 3\\n< 4\\n< 5\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-interleaved",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2d1\\n< 2\\n3a3\\n> 2\\n5d4\\n< 5\\n6a6\\n> 5\\n\" obtido \"1a2\\n> 3\\n3d3\\n< 3\\n4a5\\n> 6\\n6d6\\n< 6\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-abab-baba",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< a\\n4a4\\n> a\\n\" obtido \"0a1\\n> b\\n4d4\\n< b\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"4d3\\n< - item\\n6a6,7\\n> - item\\n> - item\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-shell-script-u2",
+            "tags": [
+              "ties",
+              "unified",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.sh\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.sh\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,8 @@\\n #!/bin/sh\\n-se\"... (194 bytes) obtido \"--- a.sh\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.sh\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,8 @@\\n #!/bin/sh\\n-se\"... (185 bytes)"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 101/107 estrito; corpus aleatório 623/800 idêntico ao GNU no formato normal (152 com o mesmo custo e outro alinhamento, 25 com script mais longo, 0 inválidos) e 630/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.944,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-swap-two",
+            "diff-tie-reverse",
+            "diff-tie-interleaved",
+            "diff-tie-abab-baba",
+            "diff-tie-markdown-list",
+            "diff-tie-shell-script-u2"
+          ]
+        },
+        "fuzz": {
+          "engine": "similar Patience + formatador GNU nosso",
+          "total": 800,
+          "identical": 623,
+          "same_cost_other_alignment": 152,
+          "longer": 25,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              145,
+              200
+            ],
+            "Medium": [
+              42,
+              100
+            ],
+            "Text": [
+              196,
+              200
+            ],
+            "Tiny": [
+              240,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            5
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "similar Patience + formatador GNU nosso",
+          "total": 800,
+          "identical": 630,
+          "same_cost_other_alignment": 145,
+          "longer": 25,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              148,
+              200
+            ],
+            "Medium": [
+              41,
+              100
+            ],
+            "Text": [
+              196,
+              200
+            ],
+            "Tiny": [
+              245,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            5
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": 15.123,
+          "repetitivo-3k-linhas": 0.702
+        },
+        "depscan": {
+          "package": "similar",
+          "version": "3.2.0",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 11,
+          "tree_unsafe": 648,
+          "host_touching_deps": {
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "similar Histogram + formatador GNU nosso",
+      "version": "similar 3.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "similar Histogram + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 99,
+        "lenient_pass": 99,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            5,
+            5,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            17,
+            17,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            13,
+            13,
+            21
+          ],
+          "unified": [
+            43,
+            43,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-blank-lines-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (158 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-swap-two",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< first\\n2a2\\n> first\\n\" obtido \"0a1\\n> second\\n2d2\\n< second\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-reverse",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1,4d0\\n< 1\\n< 2\\n< 3\\n< 4\\n5a2,5\\n> 4\\n> 3\\n> 2\\n> 1\\n\" obtido \"0a1,4\\n> 5\\n> 4\\n> 3\\n> 2\\n2,5d5\\n< 2\\n< 3\\n< 4\\n< 5\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-interleaved",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2d1\\n< 2\\n3a3\\n> 2\\n5d4\\n< 5\\n6a6\\n> 5\\n\" obtido \"1a2\\n> 3\\n3d3\\n< 3\\n4a5\\n> 6\\n6d6\\n< 6\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-abab-baba",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< a\\n4a4\\n> a\\n\" obtido \"0a1\\n> b\\n4d4\\n< b\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-abc-cab-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (135 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n+c\\n+b\\n a\\n b\\n\"... (138 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"3a4,5\\n> - outro\\n> - item\\n5d6\\n< - outro\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-shell-script-u2",
+            "tags": [
+              "ties",
+              "unified",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.sh\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.sh\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,8 @@\\n #!/bin/sh\\n-se\"... (194 bytes) obtido \"--- a.sh\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.sh\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,8 @@\\n #!/bin/sh\\n-se\"... (191 bytes)"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 99/107 estrito; corpus aleatório 614/800 idêntico ao GNU no formato normal (166 com o mesmo custo e outro alinhamento, 20 com script mais longo, 0 inválidos) e 612/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.925,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-blank-lines-u",
+            "diff-tie-swap-two",
+            "diff-tie-reverse",
+            "diff-tie-interleaved",
+            "diff-tie-abab-baba",
+            "diff-tie-abc-cab-u",
+            "diff-tie-markdown-list",
+            "diff-tie-shell-script-u2"
+          ]
+        },
+        "fuzz": {
+          "engine": "similar Histogram + formatador GNU nosso",
+          "total": 800,
+          "identical": 614,
+          "same_cost_other_alignment": 166,
+          "longer": 20,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              149,
+              200
+            ],
+            "Medium": [
+              49,
+              100
+            ],
+            "Text": [
+              194,
+              200
+            ],
+            "Tiny": [
+              222,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            3,
+            4
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "similar Histogram + formatador GNU nosso",
+          "total": 800,
+          "identical": 612,
+          "same_cost_other_alignment": 168,
+          "longer": 20,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              147,
+              200
+            ],
+            "Medium": [
+              46,
+              100
+            ],
+            "Text": [
+              194,
+              200
+            ],
+            "Tiny": [
+              225,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            3,
+            4
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": 82.055,
+          "repetitivo-3k-linhas": 46.589
+        },
+        "depscan": {
+          "package": "similar",
+          "version": "3.2.0",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 11,
+          "tree_unsafe": 648,
+          "host_touching_deps": {
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "imara-diff Myers (sem pós-processamento) + formatador GNU nosso",
+      "version": "imara-diff 0.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "imara-diff Myers (sem pós-processamento) + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 106,
+        "lenient_pass": 106,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            6,
+            6,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            22,
+            22,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            20,
+            20,
+            21
+          ],
+          "unified": [
+            45,
+            45,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-blank-lines-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes)"
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 106/107 estrito; corpus aleatório 656/800 idêntico ao GNU no formato normal (143 com o mesmo custo e outro alinhamento, 1 com script mais longo, 0 inválidos) e 630/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.991,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-blank-lines-u"
+          ]
+        },
+        "fuzz": {
+          "engine": "imara-diff Myers (sem pós-processamento) + formatador GNU nosso",
+          "total": 800,
+          "identical": 656,
+          "same_cost_other_alignment": 143,
+          "longer": 1,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              173,
+              200
+            ],
+            "Medium": [
+              26,
+              100
+            ],
+            "Text": [
+              200,
+              200
+            ],
+            "Tiny": [
+              257,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            7,
+            15
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "imara-diff Myers (sem pós-processamento) + formatador GNU nosso",
+          "total": 800,
+          "identical": 630,
+          "same_cost_other_alignment": 169,
+          "longer": 1,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              169,
+              200
+            ],
+            "Medium": [
+              24,
+              100
+            ],
+            "Text": [
+              200,
+              200
+            ],
+            "Tiny": [
+              237,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            7,
+            15
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": 0.39,
+          "repetitivo-3k-linhas": 0.128
+        },
+        "depscan": {
+          "package": "imara-diff",
+          "version": "0.2.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 1,
+          "own_unsafe": 10,
+          "tree_deps": 3,
+          "tree_unsafe": 628,
+          "host_touching_deps": {}
+        }
+      }
+    },
+    {
+      "name": "imara-diff Myers (postprocess_no_heuristic) + formatador GNU nosso",
+      "version": "imara-diff 0.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "imara-diff Myers (postprocess_no_heuristic) + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 106,
+        "lenient_pass": 106,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            6,
+            6,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            21,
+            21,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            20,
+            20,
+            21
+          ],
+          "unified": [
+            46,
+            46,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"4d3\\n< - item\\n6a6,7\\n> - item\\n> - item\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 106/107 estrito; corpus aleatório 756/800 idêntico ao GNU no formato normal (43 com o mesmo custo e outro alinhamento, 1 com script mais longo, 0 inválidos) e 790/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.991,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-markdown-list"
+          ]
+        },
+        "fuzz": {
+          "engine": "imara-diff Myers (postprocess_no_heuristic) + formatador GNU nosso",
+          "total": 800,
+          "identical": 756,
+          "same_cost_other_alignment": 43,
+          "longer": 1,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              189,
+              200
+            ],
+            "Medium": [
+              94,
+              100
+            ],
+            "Text": [
+              200,
+              200
+            ],
+            "Tiny": [
+              273,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            19,
+            32
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "imara-diff Myers (postprocess_no_heuristic) + formatador GNU nosso",
+          "total": 800,
+          "identical": 790,
+          "same_cost_other_alignment": 9,
+          "longer": 1,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              198,
+              200
+            ],
+            "Medium": [
+              99,
+              100
+            ],
+            "Text": [
+              200,
+              200
+            ],
+            "Tiny": [
+              293,
+              300
+            ]
+          },
+          "examples": [
+            26,
+            164,
+            231
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": 0.49,
+          "repetitivo-3k-linhas": 0.133
+        },
+        "depscan": {
+          "package": "imara-diff",
+          "version": "0.2.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 1,
+          "own_unsafe": 10,
+          "tree_deps": 3,
+          "tree_unsafe": 628,
+          "host_touching_deps": {}
+        }
+      }
+    },
+    {
+      "name": "imara-diff MyersMinimal (postprocess_no_heuristic) + formatador GNU nosso",
+      "version": "imara-diff 0.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "imara-diff MyersMinimal (postprocess_no_heuristic) + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 106,
+        "lenient_pass": 106,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            6,
+            6,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            21,
+            21,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            20,
+            20,
+            21
+          ],
+          "unified": [
+            46,
+            46,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"4d3\\n< - item\\n6a6,7\\n> - item\\n> - item\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 106/107 estrito; corpus aleatório 756/800 idêntico ao GNU no formato normal (43 com o mesmo custo e outro alinhamento, 1 com script mais longo, 0 inválidos) e 790/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.991,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-markdown-list"
+          ]
+        },
+        "fuzz": {
+          "engine": "imara-diff MyersMinimal (postprocess_no_heuristic) + formatador GNU nosso",
+          "total": 800,
+          "identical": 756,
+          "same_cost_other_alignment": 43,
+          "longer": 1,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              189,
+              200
+            ],
+            "Medium": [
+              94,
+              100
+            ],
+            "Text": [
+              200,
+              200
+            ],
+            "Tiny": [
+              273,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            19,
+            32
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "imara-diff MyersMinimal (postprocess_no_heuristic) + formatador GNU nosso",
+          "total": 800,
+          "identical": 790,
+          "same_cost_other_alignment": 9,
+          "longer": 1,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              198,
+              200
+            ],
+            "Medium": [
+              99,
+              100
+            ],
+            "Text": [
+              200,
+              200
+            ],
+            "Tiny": [
+              293,
+              300
+            ]
+          },
+          "examples": [
+            26,
+            164,
+            231
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": 0.624,
+          "repetitivo-3k-linhas": 0.145
+        },
+        "depscan": {
+          "package": "imara-diff",
+          "version": "0.2.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 1,
+          "own_unsafe": 10,
+          "tree_deps": 3,
+          "tree_unsafe": 628,
+          "host_touching_deps": {}
+        }
+      }
+    },
+    {
+      "name": "imara-diff Histogram (postprocess_lines) + formatador GNU nosso",
+      "version": "imara-diff 0.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "imara-diff Histogram (postprocess_lines) + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 105,
+        "lenient_pass": 105,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            6,
+            6,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            21,
+            21,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            19,
+            19,
+            21
+          ],
+          "unified": [
+            45,
+            45,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-abc-cab-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (135 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (138 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"3d2\\n< - item\\n6a6,7\\n> - item\\n> - item\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 105/107 estrito; corpus aleatório 667/800 idêntico ao GNU no formato normal (58 com o mesmo custo e outro alinhamento, 75 com script mais longo, 0 inválidos) e 689/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.981,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-abc-cab-u",
+            "diff-tie-markdown-list"
+          ]
+        },
+        "fuzz": {
+          "engine": "imara-diff Histogram (postprocess_lines) + formatador GNU nosso",
+          "total": 800,
+          "identical": 667,
+          "same_cost_other_alignment": 58,
+          "longer": 75,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              161,
+              200
+            ],
+            "Medium": [
+              72,
+              100
+            ],
+            "Text": [
+              199,
+              200
+            ],
+            "Tiny": [
+              235,
+              300
+            ]
+          },
+          "examples": [
+            0,
+            1,
+            3
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "imara-diff Histogram (postprocess_lines) + formatador GNU nosso",
+          "total": 800,
+          "identical": 689,
+          "same_cost_other_alignment": 36,
+          "longer": 75,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              163,
+              200
+            ],
+            "Medium": [
+              76,
+              100
+            ],
+            "Text": [
+              199,
+              200
+            ],
+            "Tiny": [
+              251,
+              300
+            ]
+          },
+          "examples": [
+            0,
+            3,
+            7
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": 1.099,
+          "repetitivo-3k-linhas": 0.224
+        },
+        "depscan": {
+          "package": "imara-diff",
+          "version": "0.2.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 1,
+          "own_unsafe": 10,
+          "tree_deps": 3,
+          "tree_unsafe": 628,
+          "host_touching_deps": {}
+        }
+      }
+    },
+    {
+      "name": "diffy Myers + formatador GNU nosso",
+      "version": "diffy 0.5.2",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "diffy Myers + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 101,
+        "lenient_pass": 101,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            6,
+            6,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            17,
+            17,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            15,
+            15,
+            21
+          ],
+          "unified": [
+            45,
+            45,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-blank-lines-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (158 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-swap-two",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< first\\n2a2\\n> first\\n\" obtido \"0a1\\n> second\\n2d2\\n< second\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-reverse",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1,4d0\\n< 1\\n< 2\\n< 3\\n< 4\\n5a2,5\\n> 4\\n> 3\\n> 2\\n> 1\\n\" obtido \"0a1,4\\n> 5\\n> 4\\n> 3\\n> 2\\n2,5d5\\n< 2\\n< 3\\n< 4\\n< 5\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-interleaved",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2d1\\n< 2\\n3a3\\n> 2\\n5d4\\n< 5\\n6a6\\n> 5\\n\" obtido \"1a2\\n> 3\\n3d3\\n< 3\\n4a5\\n> 6\\n6d6\\n< 6\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-abab-baba",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< a\\n4a4\\n> a\\n\" obtido \"0a1\\n> b\\n4d4\\n< b\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"3a4,5\\n> - outro\\n> - item\\n5d6\\n< - outro\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 101/107 estrito; corpus aleatório 635/800 idêntico ao GNU no formato normal (165 com o mesmo custo e outro alinhamento, 0 com script mais longo, 0 inválidos) e 658/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.944,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-blank-lines-u",
+            "diff-tie-swap-two",
+            "diff-tie-reverse",
+            "diff-tie-interleaved",
+            "diff-tie-abab-baba",
+            "diff-tie-markdown-list"
+          ]
+        },
+        "fuzz": {
+          "engine": "diffy Myers + formatador GNU nosso",
+          "total": 800,
+          "identical": 635,
+          "same_cost_other_alignment": 165,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              163,
+              200
+            ],
+            "Medium": [
+              49,
+              100
+            ],
+            "Text": [
+              196,
+              200
+            ],
+            "Tiny": [
+              227,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            5
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "diffy Myers + formatador GNU nosso",
+          "total": 800,
+          "identical": 658,
+          "same_cost_other_alignment": 142,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              169,
+              200
+            ],
+            "Medium": [
+              52,
+              100
+            ],
+            "Text": [
+              196,
+              200
+            ],
+            "Tiny": [
+              241,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            5
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": 9.895,
+          "repetitivo-3k-linhas": 1.715
+        },
+        "depscan": {
+          "package": "diffy",
+          "version": "0.5.2",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 2,
+          "tree_unsafe": 443,
+          "host_touching_deps": {
+            "hashbrown 0.17.1": 11
+          }
+        }
+      }
+    },
+    {
+      "name": "diff (LCS do diffutils) + formatador GNU nosso",
+      "version": "diff 0.1.13",
+      "role": "diff",
+      "category": "a",
+      "conformance": {
+        "candidate": "diff (LCS do diffutils) + formatador GNU nosso",
+        "total": 107,
+        "strict_pass": 105,
+        "lenient_pass": 105,
+        "unsupported": 0,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            6,
+            6,
+            6
+          ],
+          "context": [
+            8,
+            8,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            1,
+            1,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            7,
+            7,
+            7
+          ],
+          "ignore": [
+            6,
+            6,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            10,
+            10,
+            10
+          ],
+          "normal": [
+            22,
+            22,
+            22
+          ],
+          "side-by-side": [
+            2,
+            2,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            19,
+            19,
+            21
+          ],
+          "unified": [
+            44,
+            44,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-blank-lines-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-abc-cab-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (135 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n+b\\n\"... (135 bytes)"
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Alinhamento da crate com front-end e formatador GNU nossos. Corpus manual 105/107 estrito; corpus aleatório 656/800 idêntico ao GNU no formato normal (144 com o mesmo custo e outro alinhamento, 0 com script mais longo, 0 inválidos) e 631/800 no -u.",
+      "metrics": {
+        "kind": "alinhamento da crate + formatador nosso",
+        "strict_rate": 0.981,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-blank-lines-u",
+            "diff-tie-abc-cab-u"
+          ]
+        },
+        "fuzz": {
+          "engine": "diff (LCS do diffutils) + formatador GNU nosso",
+          "total": 800,
+          "identical": 656,
+          "same_cost_other_alignment": 144,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              166,
+              200
+            ],
+            "Medium": [
+              32,
+              100
+            ],
+            "Text": [
+              200,
+              200
+            ],
+            "Tiny": [
+              258,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            7
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "diff (LCS do diffutils) + formatador GNU nosso",
+          "total": 800,
+          "identical": 631,
+          "same_cost_other_alignment": 169,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              162,
+              200
+            ],
+            "Medium": [
+              30,
+              100
+            ],
+            "Text": [
+              200,
+              200
+            ],
+            "Tiny": [
+              239,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            7
+          ]
+        },
+        "speed_ms": {
+          "texto-20k-linhas-1pct": "não medido: tabela LCS de até 1.5 GiB",
+          "repetitivo-3k-linhas": 23.68
+        },
+        "depscan": {
+          "package": "diff",
+          "version": "0.1.13",
+          "own_category": "a",
+          "tree_category": "a",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 0,
+          "tree_unsafe": 0,
+          "host_touching_deps": {}
+        }
+      }
+    },
+    {
+      "name": "similar unified_diff próprio (Myers)",
+      "version": "similar 3.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "similar unified_diff próprio (Myers)",
+        "total": 107,
+        "strict_pass": 63,
+        "lenient_pass": 63,
+        "unsupported": 43,
+        "by_tag": {
+          "binary": [
+            5,
+            5,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            1,
+            1,
+            2
+          ],
+          "code": [
+            5,
+            5,
+            6
+          ],
+          "context": [
+            0,
+            0,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            0,
+            0,
+            1
+          ],
+          "dirs": [
+            7,
+            7,
+            11
+          ],
+          "ed": [
+            0,
+            0,
+            1
+          ],
+          "empty": [
+            3,
+            3,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            6,
+            6,
+            7
+          ],
+          "ignore": [
+            1,
+            1,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            7,
+            7,
+            10
+          ],
+          "normal": [
+            0,
+            0,
+            22
+          ],
+          "side-by-side": [
+            0,
+            0,
+            2
+          ],
+          "stdin": [
+            1,
+            1,
+            2
+          ],
+          "ties": [
+            8,
+            8,
+            21
+          ],
+          "unified": [
+            43,
+            43,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-repeated-pair-delete",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-insert-in-run",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-delete-from-run",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-blank-lines-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (158 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-braces-delete-function",
+            "tags": [
+              "ties",
+              "normal",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-moved-block",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-swap-two",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-reverse",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-interleaved",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-duplicate-anchor",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-abab-baba",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-many-blank-insert-c",
+            "tags": [
+              "ties",
+              "context"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Context(3) não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Context(3) não suportado"
+            ]
+          },
+          {
+            "id": "diff-dirs-no-r",
+            "tags": [
+              "dirs"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-dirs-r",
+            "tags": [
+              "dirs"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "similar unified_diff próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: similar unified_diff próprio (Myers): estilo Normal não suportado"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Formatador da própria crate com o front-end nosso: 63/107 estrito no corpus, 63/64 nos casos que o formatador suporta; 640/800 pares aleatórios iguais ao `diff -u` do GNU. Só tem -u. A formatação (faixas, \"\\ No newline at end of file\", agrupamento de hunks) bate com o GNU; o que diverge é o alinhamento Myers do similar nos empates (prefere inserir antes de apagar). Sem -i/-w/-b, sem normal/contexto/ed.",
+      "metrics": {
+        "kind": "formatador próprio da crate, front-end nosso",
+        "strict_rate": 0.589,
+        "supported_cases": 64,
+        "strict_rate_on_supported": 0.984,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-blank-lines-u"
+          ],
+          "unsupported:binary": [
+            "diff-binary-text-flag"
+          ],
+          "unsupported:bytes": [
+            "diff-latin1-bytes"
+          ],
+          "unsupported:context": [
+            "diff-c-basic",
+            "diff-c-add-only",
+            "diff-c-delete-only",
+            "diff-c-mixed-two-hunks",
+            "diff-C1"
+          ],
+          "unsupported:dir": [
+            "diff-file-vs-dir"
+          ],
+          "unsupported:dirs": [
+            "diff-dirs-no-r",
+            "diff-dirs-r",
+            "diff-dirs-binary-inside",
+            "diff-dirs-trailing-slash"
+          ],
+          "unsupported:ed": [
+            "diff-e-ed-script"
+          ],
+          "unsupported:empty": [
+            "diff-empty-vs-content-normal",
+            "diff-content-vs-empty-c"
+          ],
+          "unsupported:ignore": [
+            "diff-i-ignore-case",
+            "diff-i-ignore-case-u",
+            "diff-w-ignore-all-space",
+            "diff-b-ignore-space-change-u",
+            "diff-B-ignore-blank-lines"
+          ],
+          "unsupported:nonl": [
+            "diff-nonl-normal",
+            "diff-nonl-only-newline-normal",
+            "diff-nonl-c"
+          ],
+          "unsupported:normal": [
+            "diff-normal-change",
+            "diff-normal-add",
+            "diff-normal-delete",
+            "diff-normal-mixed",
+            "diff-normal-explicit-flag"
+          ],
+          "unsupported:side-by-side": [
+            "diff-y-side-by-side",
+            "diff-y-suppress-common"
+          ],
+          "unsupported:stdin": [
+            "diff-stdin-normal"
+          ],
+          "unsupported:ties": [
+            "diff-tie-repeated-pair-delete",
+            "diff-tie-insert-in-run",
+            "diff-tie-delete-from-run",
+            "diff-tie-braces-delete-function",
+            "diff-tie-moved-block",
+            "diff-tie-swap-two",
+            "diff-tie-reverse",
+            "diff-tie-interleaved",
+            "diff-tie-duplicate-anchor",
+            "diff-tie-abab-baba",
+            "diff-tie-markdown-list",
+            "diff-tie-many-blank-insert-c"
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "similar unified_diff próprio (Myers)",
+          "total": 800,
+          "identical": 640,
+          "same_cost_other_alignment": 160,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              162,
+              200
+            ],
+            "Medium": [
+              41,
+              100
+            ],
+            "Text": [
+              196,
+              200
+            ],
+            "Tiny": [
+              241,
+              300
+            ]
+          },
+          "examples": [
+            1,
+            4,
+            5
+          ]
+        },
+        "depscan": {
+          "package": "similar",
+          "version": "3.2.0",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 11,
+          "tree_unsafe": 648,
+          "host_touching_deps": {
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "diffy create_patch próprio (Myers)",
+      "version": "diffy 0.5.2",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "diffy create_patch próprio (Myers)",
+        "total": 107,
+        "strict_pass": 60,
+        "lenient_pass": 60,
+        "unsupported": 43,
+        "by_tag": {
+          "binary": [
+            5,
+            5,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            1,
+            1,
+            2
+          ],
+          "code": [
+            3,
+            3,
+            6
+          ],
+          "context": [
+            0,
+            0,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            0,
+            0,
+            1
+          ],
+          "dirs": [
+            7,
+            7,
+            11
+          ],
+          "ed": [
+            0,
+            0,
+            1
+          ],
+          "empty": [
+            3,
+            3,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            5,
+            5,
+            7
+          ],
+          "ignore": [
+            1,
+            1,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            7,
+            7,
+            10
+          ],
+          "normal": [
+            0,
+            0,
+            22
+          ],
+          "side-by-side": [
+            0,
+            0,
+            2
+          ],
+          "stdin": [
+            1,
+            1,
+            2
+          ],
+          "ties": [
+            6,
+            6,
+            21
+          ],
+          "unified": [
+            40,
+            40,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-repeated-pair-delete",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-insert-in-run",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-delete-from-run",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-blank-lines-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n\\n+\"... (155 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-braces-insert-function",
+            "tags": [
+              "ties",
+              "unified",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.c\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.c\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -3,6 +3,11 @@\\n     return 1;\\n\"... (198 bytes) obtido \"--- a.c\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.c\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -3,6 +3,11 @@\\n     return 1;\\n\"... (197 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-braces-delete-function",
+            "tags": [
+              "ties",
+              "normal",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-moved-block",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-swap-two",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-reverse",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-interleaved",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-duplicate-anchor",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-abab-baba",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-python-return",
+            "tags": [
+              "ties",
+              "unified",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.py\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.py\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -4,10 +4,12 @@\\n     value =\"... (373 bytes) obtido \"--- a.py\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.py\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -4,6 +4,8 @@\\n     value = v\"... (387 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-many-blank-insert-c",
+            "tags": [
+              "ties",
+              "context"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "diffy create_patch próprio (Myers): estilo Context(3) não suportado",
+            "detail": [
+              "unsupported: diffy create_patch próprio (Myers): estilo Context(3) não suportado"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Formatador da própria crate com o front-end nosso: 60/107 estrito no corpus, 60/64 nos casos que o formatador suporta; 534/800 pares aleatórios iguais ao `diff -u` do GNU. Só tem -u. Põe o nome entre aspas e escapa o tab quando o rótulo tem data (cabeçalho trocado pelo nosso na medição); o corpo diverge pelo alinhamento nos empates. Sem -i/-w/-b, sem normal/contexto/ed.",
+      "metrics": {
+        "kind": "formatador próprio da crate, front-end nosso",
+        "strict_rate": 0.561,
+        "supported_cases": 64,
+        "strict_rate_on_supported": 0.938,
+        "failures_by_tag": {
+          "ties": [
+            "diff-tie-blank-lines-u",
+            "diff-tie-braces-insert-function",
+            "diff-tie-python-return"
+          ],
+          "unified": [
+            "diff-u-gap-six-merges"
+          ],
+          "unsupported:binary": [
+            "diff-binary-text-flag"
+          ],
+          "unsupported:bytes": [
+            "diff-latin1-bytes"
+          ],
+          "unsupported:context": [
+            "diff-c-basic",
+            "diff-c-add-only",
+            "diff-c-delete-only",
+            "diff-c-mixed-two-hunks",
+            "diff-C1"
+          ],
+          "unsupported:dir": [
+            "diff-file-vs-dir"
+          ],
+          "unsupported:dirs": [
+            "diff-dirs-no-r",
+            "diff-dirs-r",
+            "diff-dirs-binary-inside",
+            "diff-dirs-trailing-slash"
+          ],
+          "unsupported:ed": [
+            "diff-e-ed-script"
+          ],
+          "unsupported:empty": [
+            "diff-empty-vs-content-normal",
+            "diff-content-vs-empty-c"
+          ],
+          "unsupported:ignore": [
+            "diff-i-ignore-case",
+            "diff-i-ignore-case-u",
+            "diff-w-ignore-all-space",
+            "diff-b-ignore-space-change-u",
+            "diff-B-ignore-blank-lines"
+          ],
+          "unsupported:nonl": [
+            "diff-nonl-normal",
+            "diff-nonl-only-newline-normal",
+            "diff-nonl-c"
+          ],
+          "unsupported:normal": [
+            "diff-normal-change",
+            "diff-normal-add",
+            "diff-normal-delete",
+            "diff-normal-mixed",
+            "diff-normal-explicit-flag"
+          ],
+          "unsupported:side-by-side": [
+            "diff-y-side-by-side",
+            "diff-y-suppress-common"
+          ],
+          "unsupported:stdin": [
+            "diff-stdin-normal"
+          ],
+          "unsupported:ties": [
+            "diff-tie-repeated-pair-delete",
+            "diff-tie-insert-in-run",
+            "diff-tie-delete-from-run",
+            "diff-tie-braces-delete-function",
+            "diff-tie-moved-block",
+            "diff-tie-swap-two",
+            "diff-tie-reverse",
+            "diff-tie-interleaved",
+            "diff-tie-duplicate-anchor",
+            "diff-tie-abab-baba",
+            "diff-tie-markdown-list",
+            "diff-tie-many-blank-insert-c"
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "diffy create_patch próprio (Myers)",
+          "total": 800,
+          "identical": 534,
+          "same_cost_other_alignment": 266,
+          "longer": 0,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              84,
+              200
+            ],
+            "Medium": [
+              40,
+              100
+            ],
+            "Text": [
+              176,
+              200
+            ],
+            "Tiny": [
+              234,
+              300
+            ]
+          },
+          "examples": [
+            0,
+            1,
+            4
+          ]
+        },
+        "depscan": {
+          "package": "diffy",
+          "version": "0.5.2",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 2,
+          "tree_unsafe": 443,
+          "host_touching_deps": {
+            "hashbrown 0.17.1": 11
+          }
+        }
+      }
+    },
+    {
+      "name": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side)",
+      "version": "diffutils 0.5.0",
+      "role": "diff",
+      "category": "c",
+      "conformance": {
+        "candidate": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side)",
+        "total": 107,
+        "strict_pass": 83,
+        "lenient_pass": 83,
+        "unsupported": 6,
+        "by_tag": {
+          "binary": [
+            7,
+            7,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            2,
+            2,
+            2
+          ],
+          "code": [
+            4,
+            4,
+            6
+          ],
+          "context": [
+            7,
+            7,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            1,
+            1,
+            1
+          ],
+          "dirs": [
+            11,
+            11,
+            11
+          ],
+          "ed": [
+            0,
+            0,
+            1
+          ],
+          "empty": [
+            5,
+            5,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            16,
+            16,
+            16
+          ],
+          "hunks": [
+            6,
+            6,
+            7
+          ],
+          "ignore": [
+            1,
+            1,
+            6
+          ],
+          "labels": [
+            3,
+            3,
+            3
+          ],
+          "newfile": [
+            1,
+            1,
+            1
+          ],
+          "nonl": [
+            9,
+            9,
+            10
+          ],
+          "normal": [
+            13,
+            13,
+            22
+          ],
+          "side-by-side": [
+            0,
+            0,
+            2
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            10,
+            10,
+            21
+          ],
+          "unified": [
+            38,
+            38,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-insert-in-run",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3a4\\n> x\\n\" obtido \"3a4,4\\n> x\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-blank-lines-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-moved-block-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,5 +1,5 @@\\n-m1\\n-m2\\n k1\\n\"... (136 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,5 +1,3 @@\\n-m1\\n-m2\\n k1\\n\"... (152 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-swap-two",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< first\\n2a2\\n> first\\n\" obtido \"1,1d0\\n< first\\n2a2,2\\n> first\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-interleaved",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2d1\\n< 2\\n3a3\\n> 2\\n5d4\\n< 5\\n6a6\\n> 5\\n\" obtido \"2,2d1\\n< 2\\n3a3,3\\n> 2\\n5,5d4\\n< 5\\n6a6,6\\n> 5\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-duplicate-anchor",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2d1\\n< X\\n\" obtido \"2,2d1\\n< X\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-abab-baba",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1d0\\n< a\\n4a4\\n> a\\n\" obtido \"1,1d0\\n< a\\n4a4,4\\n> a\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-abc-cab-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (135 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n+b\\n\"... (135 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-python-return",
+            "tags": [
+              "ties",
+              "unified",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.py\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.py\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -4,10 +4,12 @@\\n     value =\"... (373 bytes) obtido \"--- a.py\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.py\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -4,6 +4,8 @@\\n     value = v\"... (389 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-markdown-list",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"4,4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\""
+            ]
+          },
+          {
+            "id": "diff-tie-shell-script-u2",
+            "tags": [
+              "ties",
+              "unified",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.sh\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.sh\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,8 @@\\n #!/bin/sh\\n-se\"... (194 bytes) obtido \"--- a.sh\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.sh\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,4 +1,4 @@\\n #!/bin/sh\\n-se\"... (210 bytes)"
+            ]
+          },
+          {
+            "id": "diff-nonl-c",
+            "tags": [
+              "nonl",
+              "context"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"*** a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n--- b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n***************\\n*** 1,2 ****\"... (182 bytes) obtido \"*** a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n--- b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n***************\\n*** 1,2 ****\"... (182 bytes)"
+            ]
+          },
+          {
+            "id": "diff-i-ignore-case",
+            "tags": [
+              "ignore"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado",
+            "detail": [
+              "unsupported: uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-i-ignore-case-u",
+            "tags": [
+              "ignore",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Unified(3) não suportado",
+            "detail": [
+              "unsupported: uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Unified(3) não suportado"
+            ]
+          },
+          {
+            "id": "diff-w-ignore-all-space",
+            "tags": [
+              "ignore"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado",
+            "detail": [
+              "unsupported: uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Formatador da própria crate com o front-end nosso: 83/107 estrito no corpus, 83/101 nos casos que o formatador suporta; 420/800 pares aleatórios iguais ao `diff -u` do GNU. Tem normal, -u, -c, -e e -y, mas o cabeçalho lê o mtime do disco do host (std::fs + chrono::Local; as duas linhas foram trocadas pelas nossas), o formato normal escreve faixa redundante (\"3a4,4\"), e o alinhamento é LCS da crate `diff` (tabela O(N·M)).",
+      "metrics": {
+        "kind": "formatador próprio da crate, front-end nosso",
+        "strict_rate": 0.776,
+        "supported_cases": 101,
+        "strict_rate_on_supported": 0.822,
+        "failures_by_tag": {
+          "ed": [
+            "diff-e-ed-script"
+          ],
+          "nonl": [
+            "diff-nonl-c"
+          ],
+          "normal": [
+            "diff-normal-add",
+            "diff-normal-delete",
+            "diff-normal-mixed"
+          ],
+          "side-by-side": [
+            "diff-y-side-by-side"
+          ],
+          "ties": [
+            "diff-tie-insert-in-run",
+            "diff-tie-blank-lines-u",
+            "diff-tie-moved-block-u",
+            "diff-tie-swap-two",
+            "diff-tie-interleaved",
+            "diff-tie-duplicate-anchor",
+            "diff-tie-abab-baba",
+            "diff-tie-abc-cab-u",
+            "diff-tie-python-return",
+            "diff-tie-markdown-list",
+            "diff-tie-shell-script-u2"
+          ],
+          "unified": [
+            "diff-u-gap-six-merges"
+          ],
+          "unsupported:ignore": [
+            "diff-i-ignore-case",
+            "diff-i-ignore-case-u",
+            "diff-w-ignore-all-space",
+            "diff-b-ignore-space-change-u",
+            "diff-B-ignore-blank-lines"
+          ],
+          "unsupported:side-by-side": [
+            "diff-y-suppress-common"
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side)",
+          "total": 800,
+          "identical": 420,
+          "same_cost_other_alignment": 374,
+          "longer": 6,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              91,
+              200
+            ],
+            "Medium": [
+              20,
+              100
+            ],
+            "Text": [
+              114,
+              200
+            ],
+            "Tiny": [
+              195,
+              300
+            ]
+          },
+          "examples": [
+            0,
+            1,
+            2
+          ]
+        },
+        "depscan": {
+          "package": "diffutils",
+          "version": "0.5.0",
+          "own_category": "b",
+          "tree_category": "c",
+          "c_deps": [
+            "iana-time-zone-haiku 0.1.2",
+            "wasm-bindgen-shared 0.2.129"
+          ],
+          "own_host_touch": 39,
+          "own_unsafe": 3,
+          "tree_deps": 43,
+          "tree_unsafe": 11754,
+          "host_touching_deps": {
+            "android_system_properties 0.1.6": 4,
+            "chrono 0.4.45": 6,
+            "iana-time-zone 0.1.65": 9,
+            "libc 0.2.190": 1,
+            "same-file 1.0.6": 13,
+            "wasm-bindgen 0.2.129": 2,
+            "wasm-bindgen-macro 0.2.129": 4,
+            "wasm-bindgen-macro-support 0.2.129": 4,
+            "winapi-util 0.1.11": 8,
+            "windows-implement 0.60.2": 7
+          }
+        }
+      }
+    },
+    {
+      "name": "imara-diff unified_diff próprio (Histogram)",
+      "version": "imara-diff 0.2.0",
+      "role": "diff",
+      "category": "b",
+      "conformance": {
+        "candidate": "imara-diff unified_diff próprio (Histogram)",
+        "total": 107,
+        "strict_pass": 38,
+        "lenient_pass": 38,
+        "unsupported": 43,
+        "by_tag": {
+          "binary": [
+            5,
+            5,
+            7
+          ],
+          "brief": [
+            6,
+            6,
+            6
+          ],
+          "bytes": [
+            1,
+            1,
+            2
+          ],
+          "code": [
+            2,
+            2,
+            6
+          ],
+          "context": [
+            0,
+            0,
+            8
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "dir": [
+            0,
+            0,
+            1
+          ],
+          "dirs": [
+            4,
+            4,
+            11
+          ],
+          "ed": [
+            0,
+            0,
+            1
+          ],
+          "empty": [
+            1,
+            1,
+            5
+          ],
+          "error": [
+            5,
+            5,
+            5
+          ],
+          "exit": [
+            15,
+            15,
+            16
+          ],
+          "hunks": [
+            2,
+            2,
+            7
+          ],
+          "ignore": [
+            1,
+            1,
+            6
+          ],
+          "labels": [
+            2,
+            2,
+            3
+          ],
+          "newfile": [
+            0,
+            0,
+            1
+          ],
+          "nonl": [
+            1,
+            1,
+            10
+          ],
+          "normal": [
+            0,
+            0,
+            22
+          ],
+          "side-by-side": [
+            0,
+            0,
+            2
+          ],
+          "stdin": [
+            1,
+            1,
+            2
+          ],
+          "ties": [
+            4,
+            4,
+            21
+          ],
+          "unified": [
+            18,
+            18,
+            46
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "diff-tie-repeated-pair-delete",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-repeated-pair-delete-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,5 +2,3 @@\\n b\\n a\\n b\\n-a\\n\"... (123 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,6 +2,4 @@\\n a\\n b\\n a\\n b\\n\"... (126 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-insert-in-run",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-delete-from-run",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-braces-insert-function",
+            "tags": [
+              "ties",
+              "unified",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.c\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.c\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -3,6 +3,11 @@\\n     return 1;\\n\"... (198 bytes) obtido \"--- a.c\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.c\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -3,8 +3,13 @@\\n int one(void)\\n\"... (216 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-braces-delete-function",
+            "tags": [
+              "ties",
+              "normal",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-moved-block",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-swap-two",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-reverse",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-interleaved",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-duplicate-anchor",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-abab-baba",
+            "tags": [
+              "ties",
+              "normal"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "imara-diff unified_diff próprio (Histogram): estilo Normal não suportado",
+            "detail": [
+              "unsupported: imara-diff unified_diff próprio (Histogram): estilo Normal não suportado"
+            ]
+          },
+          {
+            "id": "diff-tie-abc-cab-u",
+            "tags": [
+              "ties",
+              "unified"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (135 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (138 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-python-return",
+            "tags": [
+              "ties",
+              "unified",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.py\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.py\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -4,10 +4,12 @@\\n     value =\"... (373 bytes) obtido \"--- a.py\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.py\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -4,13 +4,15 @@\\n def parse(v\"... (436 bytes)"
+            ]
+          },
+          {
+            "id": "diff-tie-json-closing",
+            "tags": [
+              "ties",
+              "unified",
+              "code"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"--- a.json\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.json\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,10 +2,10 @@\\n   \\\"a\\\": \"... (226 bytes) obtido \"--- a.json\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.json\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,11 +2,11 @@\\n {\\n   \\\"a\"... (229 bytes)"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Formatador da própria crate com o front-end nosso: 38/107 estrito no corpus, 38/64 nos casos que o formatador suporta; 438/800 pares aleatórios iguais ao `diff -u` do GNU. Só -u, só UTF-8; o BasicLineDiffPrinter escreve a faixa sempre com contagem, não emite \"\\ No newline at end of file\" nem cabeçalho; a própria doc manda escrever um printer por cima de `hunks()`.",
+      "metrics": {
+        "kind": "formatador próprio da crate, front-end nosso",
+        "strict_rate": 0.355,
+        "supported_cases": 64,
+        "strict_rate_on_supported": 0.594,
+        "failures_by_tag": {
+          "dirs": [
+            "diff-dirs-ru",
+            "diff-dirs-r-u-separate",
+            "diff-dirs-ruN"
+          ],
+          "empty": [
+            "diff-empty-vs-content-u",
+            "diff-content-vs-empty-u"
+          ],
+          "nonl": [
+            "diff-nonl-old-u",
+            "diff-nonl-new-u",
+            "diff-nonl-both-differ-u",
+            "diff-nonl-near-change-u",
+            "diff-nonl-append-u",
+            "diff-single-line-nonl"
+          ],
+          "ties": [
+            "diff-tie-repeated-pair-delete-u",
+            "diff-tie-braces-insert-function",
+            "diff-tie-abc-cab-u",
+            "diff-tie-python-return",
+            "diff-tie-json-closing"
+          ],
+          "unified": [
+            "diff-u-last-line",
+            "diff-u-append",
+            "diff-u-pure-delete-middle",
+            "diff-u-gap-six-merges",
+            "diff-u-gap-seven-splits",
+            "diff-U0",
+            "diff-U5",
+            "diff-unified-long-option",
+            "diff-u-label-equals",
+            "diff-s-differ-u"
+          ],
+          "unsupported:binary": [
+            "diff-binary-text-flag"
+          ],
+          "unsupported:bytes": [
+            "diff-latin1-bytes"
+          ],
+          "unsupported:context": [
+            "diff-c-basic",
+            "diff-c-add-only",
+            "diff-c-delete-only",
+            "diff-c-mixed-two-hunks",
+            "diff-C1"
+          ],
+          "unsupported:dir": [
+            "diff-file-vs-dir"
+          ],
+          "unsupported:dirs": [
+            "diff-dirs-no-r",
+            "diff-dirs-r",
+            "diff-dirs-binary-inside",
+            "diff-dirs-trailing-slash"
+          ],
+          "unsupported:ed": [
+            "diff-e-ed-script"
+          ],
+          "unsupported:empty": [
+            "diff-empty-vs-content-normal",
+            "diff-content-vs-empty-c"
+          ],
+          "unsupported:ignore": [
+            "diff-i-ignore-case",
+            "diff-i-ignore-case-u",
+            "diff-w-ignore-all-space",
+            "diff-b-ignore-space-change-u",
+            "diff-B-ignore-blank-lines"
+          ],
+          "unsupported:nonl": [
+            "diff-nonl-normal",
+            "diff-nonl-only-newline-normal",
+            "diff-nonl-c"
+          ],
+          "unsupported:normal": [
+            "diff-normal-change",
+            "diff-normal-add",
+            "diff-normal-delete",
+            "diff-normal-mixed",
+            "diff-normal-explicit-flag"
+          ],
+          "unsupported:side-by-side": [
+            "diff-y-side-by-side",
+            "diff-y-suppress-common"
+          ],
+          "unsupported:stdin": [
+            "diff-stdin-normal"
+          ],
+          "unsupported:ties": [
+            "diff-tie-repeated-pair-delete",
+            "diff-tie-insert-in-run",
+            "diff-tie-delete-from-run",
+            "diff-tie-braces-delete-function",
+            "diff-tie-moved-block",
+            "diff-tie-swap-two",
+            "diff-tie-reverse",
+            "diff-tie-interleaved",
+            "diff-tie-duplicate-anchor",
+            "diff-tie-abab-baba",
+            "diff-tie-markdown-list",
+            "diff-tie-many-blank-insert-c"
+          ]
+        },
+        "fuzz_unified": {
+          "engine": "imara-diff unified_diff próprio (Histogram)",
+          "total": 800,
+          "identical": 438,
+          "same_cost_other_alignment": 287,
+          "longer": 75,
+          "shorter": 0,
+          "invalid": 0,
+          "by_family": {
+            "Code": [
+              103,
+              200
+            ],
+            "Medium": [
+              53,
+              100
+            ],
+            "Text": [
+              127,
+              200
+            ],
+            "Tiny": [
+              155,
+              300
+            ]
+          },
+          "examples": [
+            0,
+            2,
+            3
+          ]
+        },
+        "depscan": {
+          "package": "imara-diff",
+          "version": "0.2.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 1,
+          "own_unsafe": 10,
+          "tree_deps": 3,
+          "tree_unsafe": 628,
+          "host_touching_deps": {}
+        }
+      }
+    },
+    {
+      "name": "diffy apply_bytes (estrito) + front-end GNU nosso",
+      "version": "diffy 0.5.2",
+      "role": "patch",
+      "category": "b",
+      "conformance": {
+        "candidate": "diffy apply_bytes (estrito) + front-end GNU nosso",
+        "total": 41,
+        "strict_pass": 29,
+        "lenient_pass": 30,
+        "unsupported": 0,
+        "by_tag": {
+          "backup": [
+            1,
+            1,
+            2
+          ],
+          "clean": [
+            6,
+            6,
+            6
+          ],
+          "context-format": [
+            1,
+            1,
+            1
+          ],
+          "create": [
+            3,
+            3,
+            3
+          ],
+          "crlf": [
+            0,
+            0,
+            2
+          ],
+          "delete": [
+            1,
+            1,
+            1
+          ],
+          "dry-run": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            4,
+            5,
+            5
+          ],
+          "fuzz": [
+            1,
+            1,
+            4
+          ],
+          "git": [
+            2,
+            2,
+            2
+          ],
+          "missing": [
+            2,
+            2,
+            2
+          ],
+          "multi": [
+            1,
+            1,
+            1
+          ],
+          "multi-hunk": [
+            0,
+            0,
+            2
+          ],
+          "nonl": [
+            2,
+            2,
+            2
+          ],
+          "normal-format": [
+            1,
+            1,
+            1
+          ],
+          "offset": [
+            1,
+            1,
+            7
+          ],
+          "output": [
+            1,
+            1,
+            1
+          ],
+          "reject": [
+            3,
+            3,
+            5
+          ],
+          "reverse": [
+            4,
+            4,
+            4
+          ],
+          "stdin": [
+            1,
+            1,
+            1
+          ],
+          "strip": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            0,
+            0,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "patch-malformed-hunk",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"patch: **** malformed patch at line 5:  \\n\\n\" obtido \"patch: **** malformed patch at line 5: -b\\n\""
+            ]
+          },
+          {
+            "id": "patch-offset-positive",
+            "tags": [
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 4 (offset 2 lines).\\n\" obtido \"patching file a.txt\\n\"",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-offset-negative",
+            "tags": [
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 1 (offset -1 lines).\\n\" obtido \"patching file a.txt\\n\"",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-offset-two-hunks",
+            "tags": [
+              "offset",
+              "multi-hunk"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 with fuzz 1 (offset 1 line).\\nHunk #2 succeeded at 15 (offset 1 line).\\n\" obtido \"patching file a.txt\\n\"",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-offset-no-backup",
+            "tags": [
+              "offset",
+              "backup"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 (offset 1 line).\\n\" obtido \"patching file a.txt\\n\""
+            ]
+          },
+          {
+            "id": "patch-ambiguous-offset",
+            "tags": [
+              "offset",
+              "ties"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 5 (offset 2 lines).\\n\" obtido \"patching file a.txt\\n\"",
+              "files: ~a.txt: file 644 14B c1c7bebf3b4d != file 644 14B 24363b88db4a",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-fuzz-1",
+            "tags": [
+              "fuzz"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 with fuzz 1.\\n\" obtido \"patching file a.txt\\nHunk #1 FAILED at 2.\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None",
+              "files: ~a.txt: file 644 74B 15c4fc1e38b2 != file 644 71B 744d7b12748b",
+              "files: +a.txt.rej"
+            ]
+          },
+          {
+            "id": "patch-fuzz-2",
+            "tags": [
+              "fuzz"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 with fuzz 2.\\n\" obtido \"patching file a.txt\\nHunk #1 FAILED at 2.\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None",
+              "files: ~a.txt: file 644 74B 343023f1e724 != file 644 71B 19b9447d25db",
+              "files: +a.txt.rej"
+            ]
+          },
+          {
+            "id": "patch-fuzz-with-offset",
+            "tags": [
+              "fuzz",
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 3 with fuzz 1 (offset 1 line).\\n\" obtido \"patching file a.txt\\nHunk #1 FAILED at 2.\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None",
+              "files: ~a.txt: file 644 78B b9b8979bb941 != file 644 75B 292cb6814c97",
+              "files: +a.txt.rej"
+            ]
+          },
+          {
+            "id": "patch-reject-partial",
+            "tags": [
+              "reject",
+              "multi-hunk"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #2 FAILED at 14.\\n1 out of 2 hunks FAILED -- saving rejects to file a.txt.rej\\n\" obtido \"patching file a.txt\\nHunk #2 FAILED at 14.\\n2 out of 2 hunks FAILED -- saving rejects to file a.txt.rej\\n\"",
+              "files: ~a.txt: file 644 87B 4039fe5ed945 != file 644 87B bfdd72f7c5a6",
+              "files: ~a.txt.rej: file 644 78B 3cf3c1c51d01 != file 644 119B ad60eb52f7c3"
+            ]
+          },
+          {
+            "id": "patch-crlf-target-lf-patch",
+            "tags": [
+              "crlf",
+              "reject"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 FAILED at 1 (different line endings).\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt\"... (125 bytes) obtido \"patching file a.txt\\nHunk #1 FAILED at 1.\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\\n\""
+            ]
+          },
+          {
+            "id": "patch-crlf-both",
+            "tags": [
+              "crlf"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"(Stripping trailing CRs from patch; use --binary to disable.)\\npatching file a.txt\\nHunk #1 FAILED at 1 (different line en\"... (187 bytes) obtido \"(Stripping trailing CRs from patch; use --binary to disable.)\\npatching file a.txt\\nHunk #1 FAILED at 1.\\n1 out of 1 hunk F\"... (162 bytes)"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Corpus 29/41 estrito, 30/41 leniente; aleatório 343/500 leniente, 421/500 no conteúdo final. Aplica tudo ou nada (um hunk ruim derruba o arquivo), não tem fuzz, desempata pra trás (o GNU tenta pra frente primeiro) e não informa posição nem deslocamento, então mensagens e .orig não saem.",
+      "metrics": {
+        "strict_rate": 0.707,
+        "lenient_rate": 0.732,
+        "failures_by_tag": {
+          "crlf": [
+            "patch-crlf-target-lf-patch",
+            "patch-crlf-both"
+          ],
+          "error": [
+            "patch-malformed-hunk"
+          ],
+          "fuzz": [
+            "patch-fuzz-1",
+            "patch-fuzz-2",
+            "patch-fuzz-with-offset"
+          ],
+          "offset": [
+            "patch-offset-positive",
+            "patch-offset-negative",
+            "patch-offset-two-hunks",
+            "patch-offset-no-backup",
+            "patch-ambiguous-offset"
+          ],
+          "reject": [
+            "patch-reject-partial"
+          ]
+        },
+        "random_trials": {
+          "engine": "diffy apply_bytes (estrito) + front-end GNU nosso",
+          "total": 500,
+          "lenient": 343,
+          "content": 421,
+          "by_drift": {
+            "Applied": [
+              99,
+              99,
+              100
+            ],
+            "Both": [
+              32,
+              69,
+              100
+            ],
+            "Clean": [
+              100,
+              100,
+              100
+            ],
+            "Edited": [
+              84,
+              85,
+              100
+            ],
+            "Offset": [
+              28,
+              68,
+              100
+            ]
+          }
+        },
+        "depscan": {
+          "package": "diffy",
+          "version": "0.5.2",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 2,
+          "tree_unsafe": 443,
+          "host_touching_deps": {
+            "hashbrown 0.17.1": 11
+          }
+        }
+      }
+    },
+    {
+      "name": "flickzeug apply_bytes_partial (fuzz) + front-end GNU nosso",
+      "version": "flickzeug 0.6.0",
+      "role": "patch",
+      "category": "b",
+      "conformance": {
+        "candidate": "flickzeug apply_bytes_partial (fuzz) + front-end GNU nosso",
+        "total": 41,
+        "strict_pass": 30,
+        "lenient_pass": 31,
+        "unsupported": 0,
+        "by_tag": {
+          "backup": [
+            1,
+            1,
+            2
+          ],
+          "clean": [
+            6,
+            6,
+            6
+          ],
+          "context-format": [
+            1,
+            1,
+            1
+          ],
+          "create": [
+            3,
+            3,
+            3
+          ],
+          "crlf": [
+            0,
+            0,
+            2
+          ],
+          "delete": [
+            1,
+            1,
+            1
+          ],
+          "dry-run": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            4,
+            5,
+            5
+          ],
+          "fuzz": [
+            1,
+            1,
+            4
+          ],
+          "git": [
+            2,
+            2,
+            2
+          ],
+          "missing": [
+            2,
+            2,
+            2
+          ],
+          "multi": [
+            1,
+            1,
+            1
+          ],
+          "multi-hunk": [
+            1,
+            1,
+            2
+          ],
+          "nonl": [
+            2,
+            2,
+            2
+          ],
+          "normal-format": [
+            1,
+            1,
+            1
+          ],
+          "offset": [
+            1,
+            1,
+            7
+          ],
+          "output": [
+            1,
+            1,
+            1
+          ],
+          "reject": [
+            4,
+            4,
+            5
+          ],
+          "reverse": [
+            4,
+            4,
+            4
+          ],
+          "stdin": [
+            1,
+            1,
+            1
+          ],
+          "strip": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            0,
+            0,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "patch-malformed-hunk",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"patch: **** malformed patch at line 5:  \\n\\n\" obtido \"patch: **** malformed patch at line 5: -b\\n\""
+            ]
+          },
+          {
+            "id": "patch-offset-positive",
+            "tags": [
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 4 (offset 2 lines).\\n\" obtido \"patching file a.txt\\n\"",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-offset-negative",
+            "tags": [
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 1 (offset -1 lines).\\n\" obtido \"patching file a.txt\\n\"",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-offset-two-hunks",
+            "tags": [
+              "offset",
+              "multi-hunk"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 with fuzz 1 (offset 1 line).\\nHunk #2 succeeded at 15 (offset 1 line).\\n\" obtido \"patching file a.txt\\n\"",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-offset-no-backup",
+            "tags": [
+              "offset",
+              "backup"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 (offset 1 line).\\n\" obtido \"patching file a.txt\\n\""
+            ]
+          },
+          {
+            "id": "patch-ambiguous-offset",
+            "tags": [
+              "offset",
+              "ties"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 5 (offset 2 lines).\\n\" obtido \"patching file a.txt\\n\"",
+              "files: ~a.txt: file 644 14B c1c7bebf3b4d != file 644 14B 24363b88db4a",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-fuzz-1",
+            "tags": [
+              "fuzz"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 with fuzz 1.\\n\" obtido \"patching file a.txt\\n\"",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-fuzz-2",
+            "tags": [
+              "fuzz"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 with fuzz 2.\\n\" obtido \"patching file a.txt\\n\"",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-fuzz-with-offset",
+            "tags": [
+              "fuzz",
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 3 with fuzz 1 (offset 1 line).\\n\" obtido \"patching file a.txt\\n\"",
+              "files: -a.txt.orig"
+            ]
+          },
+          {
+            "id": "patch-crlf-target-lf-patch",
+            "tags": [
+              "crlf",
+              "reject"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"patching file a.txt\\nHunk #1 FAILED at 1 (different line endings).\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt\"... (125 bytes) obtido \"patching file a.txt\\n\"",
+              "exit: esperado Some(1)/None obtido Some(0)/None",
+              "files: ~a.txt: file 644 20B c8dba6894524 != file 644 20B 72fa39f3d3bb",
+              "files: -a.txt.orig",
+              "files: -a.txt.rej"
+            ]
+          },
+          {
+            "id": "patch-crlf-both",
+            "tags": [
+              "crlf"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"(Stripping trailing CRs from patch; use --binary to disable.)\\npatching file a.txt\\nHunk #1 FAILED at 1 (different line en\"... (187 bytes) obtido \"(Stripping trailing CRs from patch; use --binary to disable.)\\npatching file a.txt\\n\"",
+              "exit: esperado Some(1)/None obtido Some(0)/None",
+              "files: ~a.txt: file 644 20B c8dba6894524 != file 644 20B 72fa39f3d3bb",
+              "files: -a.txt.orig",
+              "files: -a.txt.rej"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Corpus 30/41 estrito, 31/41 leniente; aleatório 332/500 leniente, 480/500 no conteúdo final. Aplica parcial e tem fuzz, mas não informa posição, deslocamento nem fuzz usado; desempata pra trás; aplica patch LF em arquivo CRLF (o GNU recusa).",
+      "metrics": {
+        "strict_rate": 0.732,
+        "lenient_rate": 0.756,
+        "failures_by_tag": {
+          "crlf": [
+            "patch-crlf-target-lf-patch",
+            "patch-crlf-both"
+          ],
+          "error": [
+            "patch-malformed-hunk"
+          ],
+          "fuzz": [
+            "patch-fuzz-1",
+            "patch-fuzz-2",
+            "patch-fuzz-with-offset"
+          ],
+          "offset": [
+            "patch-offset-positive",
+            "patch-offset-negative",
+            "patch-offset-two-hunks",
+            "patch-offset-no-backup",
+            "patch-ambiguous-offset"
+          ]
+        },
+        "random_trials": {
+          "engine": "flickzeug apply_bytes_partial (fuzz) + front-end GNU nosso",
+          "total": 500,
+          "lenient": 332,
+          "content": 480,
+          "by_drift": {
+            "Applied": [
+              93,
+              93,
+              100
+            ],
+            "Both": [
+              30,
+              97,
+              100
+            ],
+            "Clean": [
+              100,
+              100,
+              100
+            ],
+            "Edited": [
+              82,
+              95,
+              100
+            ],
+            "Offset": [
+              27,
+              95,
+              100
+            ]
+          }
+        },
+        "depscan": {
+          "package": "flickzeug",
+          "version": "0.6.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 23,
+          "own_unsafe": 0,
+          "tree_deps": 8,
+          "tree_unsafe": 416,
+          "host_touching_deps": {}
+        }
+      }
+    },
+    {
+      "name": "localizador estilo GNU nosso sobre o parser do diffy + front-end GNU nosso",
+      "version": "diffy 0.5.2",
+      "role": "patch",
+      "category": "b",
+      "conformance": {
+        "candidate": "localizador estilo GNU nosso sobre o parser do diffy + front-end GNU nosso",
+        "total": 41,
+        "strict_pass": 40,
+        "lenient_pass": 41,
+        "unsupported": 0,
+        "by_tag": {
+          "backup": [
+            2,
+            2,
+            2
+          ],
+          "clean": [
+            6,
+            6,
+            6
+          ],
+          "context-format": [
+            1,
+            1,
+            1
+          ],
+          "create": [
+            3,
+            3,
+            3
+          ],
+          "crlf": [
+            2,
+            2,
+            2
+          ],
+          "delete": [
+            1,
+            1,
+            1
+          ],
+          "dry-run": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            4,
+            5,
+            5
+          ],
+          "fuzz": [
+            4,
+            4,
+            4
+          ],
+          "git": [
+            2,
+            2,
+            2
+          ],
+          "missing": [
+            2,
+            2,
+            2
+          ],
+          "multi": [
+            1,
+            1,
+            1
+          ],
+          "multi-hunk": [
+            2,
+            2,
+            2
+          ],
+          "nonl": [
+            2,
+            2,
+            2
+          ],
+          "normal-format": [
+            1,
+            1,
+            1
+          ],
+          "offset": [
+            7,
+            7,
+            7
+          ],
+          "output": [
+            1,
+            1,
+            1
+          ],
+          "reject": [
+            5,
+            5,
+            5
+          ],
+          "reverse": [
+            4,
+            4,
+            4
+          ],
+          "stdin": [
+            1,
+            1,
+            1
+          ],
+          "strip": [
+            2,
+            2,
+            2
+          ],
+          "ties": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "patch-malformed-hunk",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"patch: **** malformed patch at line 5:  \\n\\n\" obtido \"patch: **** malformed patch at line 5: -b\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Corpus 40/41 estrito, 41/41 leniente; aleatório 500/500 leniente, 500/500 no conteúdo final. Parser do diffy (unificado e git; contexto e normal convertidos pelo front-end) + localização e aplicação nossas. Única divergência no corpus: o texto do erro de patch malformado.",
+      "metrics": {
+        "strict_rate": 0.976,
+        "lenient_rate": 1.0,
+        "failures_by_tag": {
+          "error": [
+            "patch-malformed-hunk"
+          ]
+        },
+        "random_trials": {
+          "engine": "localizador estilo GNU nosso sobre o parser do diffy + front-end GNU nosso",
+          "total": 500,
+          "lenient": 500,
+          "content": 500,
+          "by_drift": {
+            "Applied": [
+              100,
+              100,
+              100
+            ],
+            "Both": [
+              100,
+              100,
+              100
+            ],
+            "Clean": [
+              100,
+              100,
+              100
+            ],
+            "Edited": [
+              100,
+              100,
+              100
+            ],
+            "Offset": [
+              100,
+              100,
+              100
+            ]
+          }
+        },
+        "depscan": {
+          "package": "diffy",
+          "version": "0.5.2",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 2,
+          "tree_unsafe": 443,
+          "host_touching_deps": {
+            "hashbrown 0.17.1": 11
+          }
+        }
+      }
+    }
+  ],
+  "roles": [],
+  "metrics": {
+    "diff_cases": 107,
+    "patch_cases": 41,
+    "fuzz": {
+      "seed": 30,
+      "pairs": 800,
+      "families": "Tiny 3/8, Code 2/8, Text 2/8, Medium 1/8"
+    },
+    "patch_random": {
+      "seed": 31,
+      "trials": 500,
+      "drifts": "Clean, Offset, Edited, Both, Applied (1/5 cada)"
+    },
+    "engines": [
+      {
+        "engine": "similar Myers",
+        "corpus_strict": 101,
+        "corpus_total": 107,
+        "fuzz_identical": 642,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 158,
+        "fuzz_longer_script": 0,
+        "fuzz_unified_identical": 640
+      },
+      {
+        "engine": "similar RawMyers",
+        "corpus_strict": 101,
+        "corpus_total": 107,
+        "fuzz_identical": 642,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 158,
+        "fuzz_longer_script": 0,
+        "fuzz_unified_identical": 640
+      },
+      {
+        "engine": "similar Patience",
+        "corpus_strict": 101,
+        "corpus_total": 107,
+        "fuzz_identical": 623,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 152,
+        "fuzz_longer_script": 25,
+        "fuzz_unified_identical": 630
+      },
+      {
+        "engine": "similar Histogram",
+        "corpus_strict": 99,
+        "corpus_total": 107,
+        "fuzz_identical": 614,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 166,
+        "fuzz_longer_script": 20,
+        "fuzz_unified_identical": 612
+      },
+      {
+        "engine": "imara-diff Myers (sem pós-processamento)",
+        "corpus_strict": 106,
+        "corpus_total": 107,
+        "fuzz_identical": 656,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 143,
+        "fuzz_longer_script": 1,
+        "fuzz_unified_identical": 630
+      },
+      {
+        "engine": "imara-diff Myers (postprocess_no_heuristic)",
+        "corpus_strict": 106,
+        "corpus_total": 107,
+        "fuzz_identical": 756,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 43,
+        "fuzz_longer_script": 1,
+        "fuzz_unified_identical": 790
+      },
+      {
+        "engine": "imara-diff MyersMinimal (postprocess_no_heuristic)",
+        "corpus_strict": 106,
+        "corpus_total": 107,
+        "fuzz_identical": 756,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 43,
+        "fuzz_longer_script": 1,
+        "fuzz_unified_identical": 790
+      },
+      {
+        "engine": "imara-diff Histogram (postprocess_lines)",
+        "corpus_strict": 105,
+        "corpus_total": 107,
+        "fuzz_identical": 667,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 58,
+        "fuzz_longer_script": 75,
+        "fuzz_unified_identical": 689
+      },
+      {
+        "engine": "diffy Myers",
+        "corpus_strict": 101,
+        "corpus_total": 107,
+        "fuzz_identical": 635,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 165,
+        "fuzz_longer_script": 0,
+        "fuzz_unified_identical": 658
+      },
+      {
+        "engine": "diff (LCS do diffutils)",
+        "corpus_strict": 105,
+        "corpus_total": 107,
+        "fuzz_identical": 656,
+        "fuzz_total": 800,
+        "fuzz_same_cost_other_alignment": 144,
+        "fuzz_longer_script": 0,
+        "fuzz_unified_identical": 631
+      }
+    ],
+    "own_formatters": [
+      {
+        "formatter": "similar unified_diff próprio (Myers)",
+        "strict": 63,
+        "total": 107,
+        "supported": 64,
+        "fuzz_unified_identical": 640,
+        "fuzz_total": 800
+      },
+      {
+        "formatter": "diffy create_patch próprio (Myers)",
+        "strict": 60,
+        "total": 107,
+        "supported": 64,
+        "fuzz_unified_identical": 534,
+        "fuzz_total": 800
+      },
+      {
+        "formatter": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side)",
+        "strict": 83,
+        "total": 107,
+        "supported": 101,
+        "fuzz_unified_identical": 420,
+        "fuzz_total": 800
+      },
+      {
+        "formatter": "imara-diff unified_diff próprio (Histogram)",
+        "strict": 38,
+        "total": 107,
+        "supported": 64,
+        "fuzz_unified_identical": 438,
+        "fuzz_total": 800
+      }
+    ],
+    "patch": [
+      {
+        "engine": "diffy apply_bytes (estrito) + front-end GNU nosso",
+        "corpus_strict": 29,
+        "corpus_lenient": 30,
+        "corpus_total": 41,
+        "random_lenient": 343,
+        "random_content": 421,
+        "random_total": 500
+      },
+      {
+        "engine": "flickzeug apply_bytes_partial (fuzz) + front-end GNU nosso",
+        "corpus_strict": 30,
+        "corpus_lenient": 31,
+        "corpus_total": 41,
+        "random_lenient": 332,
+        "random_content": 480,
+        "random_total": 500
+      },
+      {
+        "engine": "localizador estilo GNU nosso sobre o parser do diffy + front-end GNU nosso",
+        "corpus_strict": 40,
+        "corpus_lenient": 41,
+        "corpus_total": 41,
+        "random_lenient": 500,
+        "random_content": 500,
+        "random_total": 500
+      }
+    ],
+    "speed": {
+      "inputs": [
+        {
+          "name": "texto-20k-linhas-1pct",
+          "lines_a": 20000,
+          "lines_b": 20001
+        },
+        {
+          "name": "repetitivo-3k-linhas",
+          "lines_a": 3000,
+          "lines_b": 2997
+        }
+      ],
+      "gnu_diff_ms": {
+        "texto-20k-linhas-1pct": 4.086,
+        "repetitivo-3k-linhas": 1.48
+      }
+    },
+    "lines_of_code_ours": {
+      "diff_front_end_cli_rs": 507,
+      "diff_formatter_gnu_format_rs": 358,
+      "diff_text_rs": 79,
+      "patch_front_end_and_locator_patch_rs": 980
+    },
+    "flickzeug_depscan": {
+      "package": "flickzeug",
+      "version": "0.6.0",
+      "own_category": "b",
+      "tree_category": "b",
+      "c_deps": [],
+      "own_host_touch": 23,
+      "own_unsafe": 0,
+      "tree_deps": 8,
+      "tree_unsafe": 416,
+      "host_touching_deps": {}
+    }
+  },
+  "notes": [
+    "H30: o GNU diff alinha com o compareseq do gnulib (diffseq.h) e depois desliza os blocos (shift_boundaries); os dois são GPLv3. Pra sair byte a byte igual em todo empate seria preciso reproduzir esse desempate; o que medimos com crates Apache/MIT chega a 94,5% dos pares aleatórios, sempre com script de mesmo custo.",
+    "H30: o localizador de patch nosso reproduz o comportamento observável do GNU patch 2.8 (deslocamento pra frente antes de pra trás, fuzz cortando contexto das pontas, âncora no começo ou fim quando o contexto é assimétrico, detecção de patch invertido por nível de fuzz, .rej com faixas deslocadas). Pra produção, escrever a partir dessa especificação de comportamento e dos testes, não do código GPL."
+  ]
+}

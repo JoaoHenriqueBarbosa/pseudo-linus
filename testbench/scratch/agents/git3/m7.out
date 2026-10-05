@@ -1,0 +1,102 @@
+--- modify/delete
+$ git merge other
+[out]
+CONFLICT (modify/delete): b.txt deleted in other and modified in HEAD.  Version HEAD of b.txt left in tree.
+Automatic merge failed; fix conflicts and then commit the result.
+[err]
+[exit=1]
+UD b.txt
+100644 61780798228d17af2d34fce4cfbdf35556832472 1	b.txt
+100644 5ea2ed416fbd4a4cbe227b75fe255dd7fa6bd4d6 2	b.txt
+changed
+--- reverse: main deletes, other modifies
+$ git merge other
+[out]
+CONFLICT (modify/delete): b.txt deleted in HEAD and modified in other.  Version other of b.txt left in tree.
+Automatic merge failed; fix conflicts and then commit the result.
+[err]
+[exit=1]
+DU b.txt
+100644 61780798228d17af2d34fce4cfbdf35556832472 1	b.txt
+100644 5ea2ed416fbd4a4cbe227b75fe255dd7fa6bd4d6 3	b.txt
+--- add/add differing
+$ git merge other
+[out]
+Auto-merging new.txt
+CONFLICT (add/add): Merge conflict in new.txt
+Automatic merge failed; fix conflicts and then commit the result.
+[err]
+[exit=1]
+A  c.txt
+AA new.txt
+<<<<<<< HEAD
+B
+=======
+A
+>>>>>>> other
+100644 223b7836fb19fdf64ba2d3cd6173c6a283141f78 2	new.txt
+100644 f70f10e4db19068f79bc43844b49f3eece45c4e8 3	new.txt
+--- add/add identical
+$ git merge other
+[out]
+Merge made by the 'ort' strategy.
+ c.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 c.txt
+[err]
+[exit=0]
+*   0471cc3 Merge branch 'other'
+|\  
+| * 7c4bbb7 other adds new same
+--- rename in other, modify in main
+$ git merge other
+[out]
+Merge made by the 'ort' strategy.
+ c2.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 c2.txt
+[err]
+[exit=0]
+c
+Merge branch 'other'
+--- rename vs delete
+fatal: pathspec 'c.txt' did not match any files
+On branch main
+nothing to commit, working tree clean
+$ git merge other
+[out]
+Updating f742ed7..c50bf79
+Fast-forward
+ c2.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 c2.txt
+[err]
+[exit=0]
+100644 78981922613b2afb6025042ff6bd878ac1994e85 0	a.txt
+100644 61780798228d17af2d34fce4cfbdf35556832472 0	b.txt
+100644 f2ad6c76f0115a6ba5b00456a849810e7ec0af20 0	c2.txt
+fatal: There is no merge to abort (MERGE_HEAD missing).
+--- rename/rename 1to2
+$ git merge other
+[out]
+CONFLICT (rename/rename): c.txt renamed to c3.txt in HEAD and to c2.txt in other.
+Automatic merge failed; fix conflicts and then commit the result.
+[err]
+[exit=1]
+DD c.txt
+UA c2.txt
+AU c3.txt
+100644 78981922613b2afb6025042ff6bd878ac1994e85 0	a.txt
+100644 61780798228d17af2d34fce4cfbdf35556832472 0	b.txt
+100644 f2ad6c76f0115a6ba5b00456a849810e7ec0af20 1	c.txt
+100644 f2ad6c76f0115a6ba5b00456a849810e7ec0af20 3	c2.txt
+100644 f2ad6c76f0115a6ba5b00456a849810e7ec0af20 2	c3.txt
+--- both rename same
+$ git merge other
+[out]
+Merge made by the 'ort' strategy.
+[err]
+[exit=0]
+*   38a83f8 Merge branch 'other'
+|\  
+| * c50bf79 other renames c

@@ -1,0 +1,195 @@
+$ git branch --column
+  br1                     br18                    br5
+  br10                    br19                    br6
+  br11                    br2                     br7
+  br12                    br20                    br8
+  br13                    br21                    br9
+  br14                    br22                    long-branch-name-here
+  br15                    br23                  * main
+  br16                    br3
+  br17                    br4
+[exit=0]
+$ git branch --column=row
+  br1                     br10                    br11
+  br12                    br13                    br14
+  br15                    br16                    br17
+  br18                    br19                    br2
+  br20                    br21                    br22
+  br23                    br3                     br4
+  br5                     br6                     br7
+  br8                     br9                     long-branch-name-here
+* main
+[exit=0]
+$ git branch --column=dense
+  br1    br12   br15   br18   br20   br23   br5   br8                   * main
+  br10   br13   br16   br19   br21   br3    br6   br9
+  br11   br14   br17   br2    br22   br4    br7   long-branch-name-here
+[exit=0]
+$ git branch --column=plain
+  br1
+  br10
+  br11
+  br12
+  br13
+  br14
+  br15
+  br16
+  br17
+  br18
+  br19
+  br2
+  br20
+  br21
+  br22
+  br23
+  br3
+  br4
+  br5
+  br6
+  br7
+  br8
+  br9
+  long-branch-name-here
+* main
+[exit=0]
+  br1    br10   br11
+  br12   br13   br14
+  br15   br16   br17
+  br18   br19   br2
+  br20   br21   br22
+  br23   br3    br4
+  br5    br6    br7
+  br8    br9    long-branch-name-here
+* main
+$ git branch --column=foo
+error: unsupported option 'foo'
+[exit=129]
+$ git branch --column=row bogus x
+error: unsupported option 'bogus x'
+[exit=129]
+$ git branch -v --column
+fatal: options '--column' and '--verbose' cannot be used together
+[exit=128]
+$ git branch --no-column
+  br1
+  br10
+  br11
+  br12
+  br13
+  br14
+  br15
+  br16
+  br17
+  br18
+  br19
+  br2
+  br20
+  br21
+  br22
+  br23
+  br3
+  br4
+  br5
+  br6
+  br7
+  br8
+  br9
+  long-branch-name-here
+* main
+[exit=0]
+  br1                     br18                    br5
+  br10                    br19                    br6
+  br11                    br2                     br7
+error: unsupported option 'bogus'
+error: invalid column.ui mode bogus
+fatal: unable to parse 'column.ui' from command-line config
+[exit=128]
+error: missing value for 'column.ui'
+fatal: unable to parse 'column.ui' from command-line config
+[exit=128]
+  br1
+  br10
+  br1                     br10                    br11
+  br12                    br13                    br14
+  br1
+  br10
+  br11
+  br1    br10   br11                    br12   br13   br14   br15
+  br16   br17   br18                    br19   br2    br20   br21
+  br22   br23   br3                     br4    br5    br6    br7
+  br8    br9    long-branch-name-here * main
+error: unsupported option 'bogus'
+error: invalid column.ui mode bogus
+fatal: bad config variable 'column.ui' in file '.git/config' at line 7
+[exit=128]
+  br1                     br18                    br5
+  br10                    br19                    br6
+  br11                    br2                     br7
+  br12                    br20                    br8
+  br13                    br21                    br9
+  br14                    br22                    long-branch-name-here
+  br15                    br23                  * main
+  br16                    br3
+  br17                    br4
+[exit=0]
+$ git branch --column --format=%(refname:short)
+br1                   br18                  br5
+br10                  br19                  br6
+br11                  br2                   br7
+br12                  br20                  br8
+br13                  br21                  br9
+br14                  br22                  long-branch-name-here
+br15                  br23                  main
+br16                  br3
+br17                  br4
+[exit=0]
+$ git branch --column -r
+[exit=0]
+$ git tag --column
+t1   t11  t13  t15  t17  t19  t20  t22  t3   t5   t7   t9
+t10  t12  t14  t16  t18  t2   t21  t23  t4   t6   t8
+[exit=0]
+$ git tag -l --column=row t1*
+t1   t10  t11  t12  t13  t14  t15  t16  t17  t18  t19
+[exit=0]
+$ git tag --column=foo
+error: unsupported option 'foo'
+[exit=129]
+$ git tag -n --column
+fatal: options '--column' and '-n' cannot be used together
+[exit=128]
+$ git tag -n --column=never
+t1              add c
+t10             add c
+t11             add c
+t12             add c
+t13             add c
+t14             add c
+t15             add c
+t16             add c
+t17             add c
+t18             add c
+t19             add c
+t2              add c
+t20             add c
+t21             add c
+t22             add c
+t23             add c
+t3              add c
+t4              add c
+t5              add c
+t6              add c
+t7              add c
+t8              add c
+t9              add c
+[exit=0]
+t1              add c
+t10             add c
+$ git tag --column x
+[exit=0]
+$ git tag -d --column x
+Deleted tag 'x' (was 110d11a)
+[exit=0]
+$ git tag --column --format=%(refname:short)%0a%(objecttype) t2*
+fatal: 't2*' is not a valid tag name.
+[exit=128]

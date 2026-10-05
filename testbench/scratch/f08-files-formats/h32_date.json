@@ -1,0 +1,2964 @@
+{
+  "key": "h32_date",
+  "hypotheses": [
+    {
+      "id": "H32",
+      "verdict": "partial",
+      "summary": "parse_datetime 0.16 + jiff 0.2: 240/264 casos byte a byte (90.9%); +FORMAT 74/83 (só diretivas 59/59), -d 119/134, fusos 47/58, opções 43/43. Outros: interim 0.2 + chrono 0.4 + chrono-tz 0.10: 173/264; parse_datetime 0.11 + chrono 0.4 + chrono-tz 0.10: 206/264; parse_datetime 0.16 + chrono 0.4 + chrono-tz 0.10 (atribuição): 213/264. O agora e o fuso entram por API (parse_datetime_at_date; tzdb embutido do jiff 2026c, oráculo 2026c-0+deb13u1), mas TZ=\"...\" dentro do -d é resolvido pelo banco global do jiff, que lê /usr/share/zoneinfo do host: o front-end separa o prefixo.",
+      "evidence": {
+        "best": "parse_datetime 0.16 + jiff 0.2",
+        "strict": 240,
+        "total": 264,
+        "format": {
+          "strict": 74,
+          "total": 83,
+          "rate": 0.892
+        },
+        "directives": {
+          "strict": 59,
+          "total": 59,
+          "rate": 1.0
+        },
+        "parse": {
+          "strict": 119,
+          "total": 134,
+          "rate": 0.888
+        },
+        "tz": {
+          "strict": 47,
+          "total": 58,
+          "rate": 0.81
+        },
+        "options": {
+          "strict": 43,
+          "total": 43,
+          "rate": 1.0
+        },
+        "others": [
+          "interim 0.2 + chrono 0.4 + chrono-tz 0.10: 173/264",
+          "parse_datetime 0.11 + chrono 0.4 + chrono-tz 0.10: 206/264",
+          "parse_datetime 0.16 + chrono 0.4 + chrono-tz 0.10 (atribuição): 213/264"
+        ],
+        "tzdb_versions": {
+          "oracle_tzdata": "2026c-0+deb13u1",
+          "jiff_tzdb_bundled": "2026c",
+          "chrono_tz": "2025b"
+        },
+        "host_coupling": {
+          "jiff_global_db": "TimeZoneDatabase(ZoneInfo(/usr/share/zoneinfo))",
+          "global_db_reads_host_zoneinfo": true,
+          "parse_datetime_tz_prefix_resolves_via": "jiff::tz::TimeZone::get (banco global), parse_datetime-0.16.0/src/items/timezone.rs:93",
+          "parse_datetime_jiff_features": [
+            "tz-system",
+            "tzdb-bundle-platform",
+            "tzdb-zoneinfo"
+          ],
+          "raw_tz_prefix_tokyo_epoch": 1768435200,
+          "expected_tokyo_epoch": 1768435200,
+          "mitigation": "front-end separa TZ=\"...\" e resolve o fuso pelo TimeZoneDatabase::bundled(); now e fuso sempre injetados",
+          "zoned_now_used_only_without_base": "parse_datetime chama Zoned::now() só quando não recebe base; usamos parse_datetime_at_date"
+        },
+        "rule": "confirmada se +FORMAT (diretivas e flags) e -d >= 95% no melhor candidato; parcial se ambos >= 75%; refutada abaixo"
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "name": "parse_datetime 0.16 + jiff 0.2",
+      "version": "parse_datetime 0.16.0, jiff 0.2.37",
+      "role": "date",
+      "category": "b",
+      "conformance": {
+        "candidate": "parse_datetime 0.16 + jiff 0.2",
+        "total": 264,
+        "strict_pass": 240,
+        "lenient_pass": 240,
+        "unsupported": 0,
+        "by_tag": {
+          "ambiguous": [
+            2,
+            2,
+            4
+          ],
+          "cli": [
+            9,
+            9,
+            9
+          ],
+          "dst": [
+            15,
+            15,
+            23
+          ],
+          "edge": [
+            3,
+            3,
+            8
+          ],
+          "epoch": [
+            9,
+            9,
+            10
+          ],
+          "error": [
+            19,
+            19,
+            23
+          ],
+          "flags": [
+            13,
+            13,
+            21
+          ],
+          "format": [
+            61,
+            61,
+            62
+          ],
+          "iso": [
+            19,
+            19,
+            20
+          ],
+          "locale": [
+            4,
+            4,
+            4
+          ],
+          "nanos": [
+            9,
+            9,
+            10
+          ],
+          "offset": [
+            10,
+            10,
+            11
+          ],
+          "options": [
+            43,
+            43,
+            43
+          ],
+          "parse": [
+            119,
+            119,
+            134
+          ],
+          "posix": [
+            7,
+            7,
+            7
+          ],
+          "relative": [
+            41,
+            41,
+            45
+          ],
+          "rfc2822": [
+            3,
+            3,
+            3
+          ],
+          "text": [
+            7,
+            7,
+            7
+          ],
+          "time": [
+            6,
+            6,
+            6
+          ],
+          "tz": [
+            47,
+            47,
+            58
+          ],
+          "tz-in-string": [
+            4,
+            4,
+            4
+          ],
+          "tzdb-content": [
+            0,
+            0,
+            1
+          ],
+          "week": [
+            11,
+            11,
+            11
+          ],
+          "weekday": [
+            10,
+            10,
+            10
+          ],
+          "width": [
+            4,
+            4,
+            8
+          ],
+          "zone-name": [
+            7,
+            7,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "date-flag-upper",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\\n\" obtido \"MON|MONDAY|JAN|JANUARY|AM|AM|UTC|JAN\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-swap-case",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"MON|MONDAY|JAN|JANUARY|am|am|utc\\n\" obtido \"Mon|Monday|Jan|January|am|am|utc\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-width-text",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"    Monday|       JAN|     January|   AM\\n\" obtido \"Monday|JAN|January|AM\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-width-epoch",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"000001767604023|     1767604023|1767604023\\n\" obtido \"     1767604023|     1767604023|1767604023\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-width-offset",
+            "tags": [
+              "flags",
+              "width",
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"+000000000|   +0|+0|+0000:00\\n\" obtido \"+0000|+0000|+0000|+00:00\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-plus-year",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2026|+02026|20\\n\" obtido \"%+4Y|%+6Y|%+C\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-combined-dash-upper",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"JAN 5\\n\" obtido \"%-^b %^-d\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-ampm-afternoon",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"PM|pm|pm|pm|3| 3\\n\" obtido \"PM|pm|PM|pm|3| 3\\n\""
+            ]
+          },
+          {
+            "id": "date-fmt-locale-modifiers",
+            "tags": [
+              "format",
+              "edge"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"26 2026 05 09 Mon Jan  5 09:07:03 2026\\n\" obtido \"%Ey %EY %Od %OH %Ec\\n\""
+            ]
+          },
+          {
+            "id": "date-parse-empty-string",
+            "tags": [
+              "parse",
+              "edge"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2026-01-15 00:00:00 +0000\\n\" obtido \"2026-01-15 12:00:00 +0000\\n\""
+            ]
+          },
+          {
+            "id": "date-parse-datetime-plus-hours",
+            "tags": [
+              "parse",
+              "iso",
+              "relative"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2026-01-15 10:00:00 +0000\\n\" obtido \"2026-01-15 15:00:00 +0000\\n\""
+            ]
+          },
+          {
+            "id": "date-parse-epoch-negative-fraction",
+            "tags": [
+              "parse",
+              "epoch",
+              "nanos"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"-2 500000000 23:59:58\\n\" obtido \"-1 500000000 23:59:58\\n\""
+            ]
+          },
+          {
+            "id": "date-parse-invalid-trailing",
+            "tags": [
+              "parse",
+              "error"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\" obtido \"Tue Jan 13 14:00:00 UTC 2026\\n\"",
+              "stderr: esperado \"date: invalid date ‘2 days agoo’\\n\" obtido \"\"",
+              "exit: esperado Some(1)/None obtido Some(0)/None"
+            ]
+          },
+          {
+            "id": "date-tz-ny-spring-gap",
+            "tags": [
+              "tz",
+              "dst",
+              "error",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\" obtido \"2026-03-08 03:30:00 EDT\\n\"",
+              "stderr: esperado \"date: invalid date ‘2026-03-08 02:30’\\n\" obtido \"\"",
+              "exit: esperado Some(1)/None obtido Some(0)/None"
+            ]
+          },
+          {
+            "id": "date-tz-ny-fall-ambiguous-now-winter",
+            "tags": [
+              "tz",
+              "dst",
+              "ambiguous",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2026-11-01 01:30:00 EST 1793514600\\n\" obtido \"2026-11-01 01:30:00 EDT 1793511000\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "strict 240/264 (+FORMAT 74/83, só diretivas 59/59, -d 119/134, fusos 47/58, opções 43/43). Front-end nosso injeta o agora (parse_datetime_at_date) e o fuso (TimeZoneDatabase::bundled); o prefixo TZ=\"...\" do -d é separado pelo front-end porque o parse_datetime o resolve pelo banco global do jiff, que lê /usr/share/zoneinfo.",
+      "metrics": {
+        "strict_rate": 0.909,
+        "lenient_rate": 0.909,
+        "format_rate": {
+          "strict": 74,
+          "total": 83,
+          "rate": 0.892
+        },
+        "directives_rate": {
+          "strict": 59,
+          "total": 59,
+          "rate": 1.0
+        },
+        "parse_rate": {
+          "strict": 119,
+          "total": 134,
+          "rate": 0.888
+        },
+        "tz_rate": {
+          "strict": 47,
+          "total": 58,
+          "rate": 0.81
+        },
+        "options_rate": {
+          "strict": 43,
+          "total": 43,
+          "rate": 1.0
+        },
+        "by_tag_strict_rate": {
+          "cli": {
+            "strict": 9,
+            "total": 9,
+            "rate": 1.0
+          },
+          "dst": {
+            "strict": 15,
+            "total": 23,
+            "rate": 0.652
+          },
+          "edge": {
+            "strict": 3,
+            "total": 8,
+            "rate": 0.375
+          },
+          "epoch": {
+            "strict": 9,
+            "total": 10,
+            "rate": 0.9
+          },
+          "error": {
+            "strict": 19,
+            "total": 23,
+            "rate": 0.826
+          },
+          "flags": {
+            "strict": 13,
+            "total": 21,
+            "rate": 0.619
+          },
+          "format": {
+            "strict": 61,
+            "total": 62,
+            "rate": 0.984
+          },
+          "iso": {
+            "strict": 19,
+            "total": 20,
+            "rate": 0.95
+          },
+          "locale": {
+            "strict": 4,
+            "total": 4,
+            "rate": 1.0
+          },
+          "nanos": {
+            "strict": 9,
+            "total": 10,
+            "rate": 0.9
+          },
+          "offset": {
+            "strict": 10,
+            "total": 11,
+            "rate": 0.909
+          },
+          "options": {
+            "strict": 43,
+            "total": 43,
+            "rate": 1.0
+          },
+          "parse": {
+            "strict": 119,
+            "total": 134,
+            "rate": 0.888
+          },
+          "posix": {
+            "strict": 7,
+            "total": 7,
+            "rate": 1.0
+          },
+          "relative": {
+            "strict": 41,
+            "total": 45,
+            "rate": 0.911
+          },
+          "rfc2822": {
+            "strict": 3,
+            "total": 3,
+            "rate": 1.0
+          },
+          "text": {
+            "strict": 7,
+            "total": 7,
+            "rate": 1.0
+          },
+          "time": {
+            "strict": 6,
+            "total": 6,
+            "rate": 1.0
+          },
+          "tz": {
+            "strict": 47,
+            "total": 58,
+            "rate": 0.81
+          },
+          "tz-in-string": {
+            "strict": 4,
+            "total": 4,
+            "rate": 1.0
+          },
+          "week": {
+            "strict": 11,
+            "total": 11,
+            "rate": 1.0
+          },
+          "weekday": {
+            "strict": 10,
+            "total": 10,
+            "rate": 1.0
+          },
+          "width": {
+            "strict": 4,
+            "total": 8,
+            "rate": 0.5
+          },
+          "zone-name": {
+            "strict": 7,
+            "total": 7,
+            "rate": 1.0
+          }
+        },
+        "divergence_counts": {
+          "formatador: %s do jiff trunca pra zero em instante negativo fracionário (sonda)": 1,
+          "formatador: strftime": 9,
+          "fuso: resolução do TZ ou dado do tzdb": 3,
+          "parser: aceita entrada que o GNU rejeita": 4,
+          "parser: hora local ambígua (o GNU herda o isdst do agora)": 2,
+          "parser: instante diferente": 2,
+          "parser: relativo atravessando horário de verão": 3
+        },
+        "divergences": {
+          "formatador: %s do jiff trunca pra zero em instante negativo fracionário (sonda)": [
+            "date-parse-epoch-negative-fraction: stdout: esperado \"-2 500000000 23:59:58\\n\" obtido \"-1 500000000 23:59:58\\n\""
+          ],
+          "formatador: strftime": [
+            "date-flag-upper: stdout: esperado \"MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\\n\" obtido \"MON|MONDAY|JAN|JANUARY|AM|AM|UTC|JAN\\n\"",
+            "date-flag-swap-case: stdout: esperado \"MON|MONDAY|JAN|JANUARY|am|am|utc\\n\" obtido \"Mon|Monday|Jan|January|am|am|utc\\n\"",
+            "date-flag-width-text: stdout: esperado \"    Monday|       JAN|     January|   AM\\n\" obtido \"Monday|JAN|January|AM\\n\"",
+            "date-flag-width-epoch: stdout: esperado \"000001767604023|     1767604023|1767604023\\n\" obtido \"     1767604023|     1767604023|1767604023\\n\"",
+            "date-flag-width-offset: stdout: esperado \"+000000000|   +0|+0|+0000:00\\n\" obtido \"+0000|+0000|+0000|+00:00\\n\"",
+            "date-flag-plus-year: stdout: esperado \"2026|+02026|20\\n\" obtido \"%+4Y|%+6Y|%+C\\n\"",
+            "date-flag-combined-dash-upper: stdout: esperado \"JAN 5\\n\" obtido \"%-^b %^-d\\n\"",
+            "date-flag-ampm-afternoon: stdout: esperado \"PM|pm|pm|pm|3| 3\\n\" obtido \"PM|pm|PM|pm|3| 3\\n\"",
+            "date-fmt-locale-modifiers: stdout: esperado \"26 2026 05 09 Mon Jan  5 09:07:03 2026\\n\" obtido \"%Ey %EY %Od %OH %Ec\\n\""
+          ],
+          "fuso: resolução do TZ ou dado do tzdb": [
+            "date-tz-unknown-name: stdout: esperado \"2026-07-01 12:00:00 Foo +0000\\n\" obtido \"2026-07-01 12:00:00 FOO +0000\\n\"",
+            "date-tz-empty: stdout: esperado \"2026-07-01 12:00:00 Universal +0000\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\"",
+            "date-tz-backward-link: stdout: esperado \"2026-07-01 12:00:00  +0000\\n\" obtido \"2026-07-01 12:00:00 EDT -0400\\n\""
+          ],
+          "parser: aceita entrada que o GNU rejeita": [
+            "date-parse-invalid-trailing: stdout: esperado \"\" obtido \"Tue Jan 13 14:00:00 UTC 2026\\n\"",
+            "date-tz-ny-spring-gap: stdout: esperado \"\" obtido \"2026-03-08 03:30:00 EDT\\n\"",
+            "date-tz-berlin-spring-gap: stdout: esperado \"\" obtido \"2026-03-29 03:30:00 CEST\\n\"",
+            "date-tz-sao-paulo-historic-gap: stdout: esperado \"\" obtido \"2018-11-04 01:30:00 -02\\n\""
+          ],
+          "parser: hora local ambígua (o GNU herda o isdst do agora)": [
+            "date-tz-ny-fall-ambiguous-now-winter: stdout: esperado \"2026-11-01 01:30:00 EST 1793514600\\n\" obtido \"2026-11-01 01:30:00 EDT 1793511000\\n\"",
+            "date-tz-berlin-fall-ambiguous-now-winter: stdout: esperado \"2026-10-25 02:30:00 CET 1792891800\\n\" obtido \"2026-10-25 02:30:00 CEST 1792888200\\n\""
+          ],
+          "parser: instante diferente": [
+            "date-parse-empty-string: stdout: esperado \"2026-01-15 00:00:00 +0000\\n\" obtido \"2026-01-15 12:00:00 +0000\\n\"",
+            "date-parse-datetime-plus-hours: stdout: esperado \"2026-01-15 10:00:00 +0000\\n\" obtido \"2026-01-15 15:00:00 +0000\\n\""
+          ],
+          "parser: relativo atravessando horário de verão": [
+            "date-tz-ny-plus-day-across-dst: stdout: esperado \"2026-03-08 07:00:00 EDT\\n\" obtido \"2026-03-08 12:00:00 EDT\\n\"",
+            "date-tz-ny-plus-24h-across-dst: stdout: esperado \"2026-03-06 08:00:00 EST\\n\" obtido \"2026-03-08 13:00:00 EDT\\n\"",
+            "date-tz-ny-tomorrow-across-dst: stdout: esperado \"2026-03-08 13:00:00 EDT\\n\" obtido \"2026-03-08 12:00:00 EDT\\n\""
+          ]
+        },
+        "category_depscan_all_targets": "c",
+        "c_deps_built_on_linux": [],
+        "depscan": [
+          {
+            "package": "parse_datetime",
+            "version": "0.16.0",
+            "own_category": "a",
+            "tree_category": "c",
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 25,
+            "tree_unsafe": 1385,
+            "host_touching_deps": {
+              "defmt-macros 1.1.1": 2,
+              "jiff 0.2.37": 19,
+              "jiff-static 0.2.37": 1,
+              "portable-atomic 1.15.0": 6,
+              "portable-atomic-util 0.2.8": 12,
+              "serde_core 1.0.229": 1,
+              "winnow 1.0.4": 2
+            }
+          },
+          {
+            "package": "jiff",
+            "version": "0.2.37",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "own_host_touch": 19,
+            "own_unsafe": 78,
+            "tree_deps": 21,
+            "tree_unsafe": 1009,
+            "host_touching_deps": {
+              "defmt-macros 1.1.1": 2,
+              "jiff-static 0.2.37": 1,
+              "portable-atomic 1.15.0": 6,
+              "portable-atomic-util 0.2.8": 12,
+              "serde_core 1.0.229": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "interim 0.2 + chrono 0.4 + chrono-tz 0.10",
+      "version": "interim 0.2.1, chrono 0.4.45, chrono-tz 0.10.4",
+      "role": "date",
+      "category": "b",
+      "conformance": {
+        "candidate": "interim 0.2 + chrono 0.4 + chrono-tz 0.10",
+        "total": 264,
+        "strict_pass": 173,
+        "lenient_pass": 173,
+        "unsupported": 0,
+        "by_tag": {
+          "ambiguous": [
+            2,
+            2,
+            4
+          ],
+          "cli": [
+            9,
+            9,
+            9
+          ],
+          "dst": [
+            11,
+            11,
+            23
+          ],
+          "edge": [
+            1,
+            1,
+            8
+          ],
+          "epoch": [
+            1,
+            1,
+            10
+          ],
+          "error": [
+            18,
+            18,
+            23
+          ],
+          "flags": [
+            3,
+            3,
+            21
+          ],
+          "format": [
+            58,
+            58,
+            62
+          ],
+          "iso": [
+            13,
+            13,
+            20
+          ],
+          "locale": [
+            4,
+            4,
+            4
+          ],
+          "nanos": [
+            0,
+            0,
+            10
+          ],
+          "offset": [
+            5,
+            5,
+            11
+          ],
+          "options": [
+            39,
+            39,
+            43
+          ],
+          "parse": [
+            70,
+            70,
+            134
+          ],
+          "posix": [
+            3,
+            3,
+            7
+          ],
+          "relative": [
+            24,
+            24,
+            45
+          ],
+          "rfc2822": [
+            0,
+            0,
+            3
+          ],
+          "text": [
+            4,
+            4,
+            7
+          ],
+          "time": [
+            6,
+            6,
+            6
+          ],
+          "tz": [
+            32,
+            32,
+            58
+          ],
+          "tz-in-string": [
+            3,
+            3,
+            4
+          ],
+          "tzdb-content": [
+            0,
+            0,
+            1
+          ],
+          "week": [
+            11,
+            11,
+            11
+          ],
+          "weekday": [
+            8,
+            8,
+            10
+          ],
+          "width": [
+            0,
+            0,
+            8
+          ],
+          "zone-name": [
+            1,
+            1,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "date-flag-upper",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %^a|%^A|%^b|%^B|%^p|%^P|%^Z|%^h\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-swap-case",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"MON|MONDAY|JAN|JANUARY|am|am|utc\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %#a|%#A|%#b|%#B|%#p|%#P|%#Z\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-numeric",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0000002026|00005|0009|000005\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10Y|%5d|%4H|%6j\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-space-pad",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"         5| 2026|   1\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %_10d|%_5Y|%_4m\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-no-pad",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"5|9\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %-10d|%-5H\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-zero-pad",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0000000005|0005|009\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %010d|%04e|%03k\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-text",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"    Monday|       JAN|     January|   AM\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10A|%^10b|%12B|%5p\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-epoch",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"000001767604023|     1767604023|1767604023\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %15s|%_15s|%-s\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-offset",
+            "tags": [
+              "flags",
+              "width",
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"+000000000|   +0|+0|+0000:00\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10z|%_z|%-z|%8:z\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-plus-year",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2026|+02026|20\\n\" obtido \"2026-01-05T09:07:03+00:004Y|2026-01-05T09:07:03+00:006Y|2026-01-05T09:07:03+00:00C\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-nanos-precision-zero",
+            "tags": [
+              "flags",
+              "nanos"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"000|000000|000000000|000000000|0\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %3N|%6N|%9N|%-N|%1N\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-nanos-precision",
+            "tags": [
+              "flags",
+              "nanos",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"012345678|012|012345|012345678|0|012345678\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: invalid date ‘@1767604023.012345678’\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-nanos-small",
+            "tags": [
+              "flags",
+              "nanos",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1767604023.000000042|000\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: invalid date ‘@1767604023.000000042’\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-nanos-in-composite",
+            "tags": [
+              "flags",
+              "nanos",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"09:07:03.500 1767604023.500000000\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: invalid date ‘@1767604023.5’\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-combined-dash-upper",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"JAN 5\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %-^b %^-d\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "strict 173/264 (+FORMAT 61/83, só diretivas 58/59, -d 70/134, fusos 32/58, opções 39/43). interim não tem a gramática do GNU (sem @epoch, ISO com offset, fuso por nome, combinações data + relativo); chrono não tem %N, %q, flags ^ e # nem largura; chrono-tz não entende TZ POSIX.",
+      "metrics": {
+        "strict_rate": 0.655,
+        "lenient_rate": 0.655,
+        "format_rate": {
+          "strict": 61,
+          "total": 83,
+          "rate": 0.735
+        },
+        "directives_rate": {
+          "strict": 58,
+          "total": 59,
+          "rate": 0.983
+        },
+        "parse_rate": {
+          "strict": 70,
+          "total": 134,
+          "rate": 0.522
+        },
+        "tz_rate": {
+          "strict": 32,
+          "total": 58,
+          "rate": 0.552
+        },
+        "options_rate": {
+          "strict": 39,
+          "total": 43,
+          "rate": 0.907
+        },
+        "by_tag_strict_rate": {
+          "cli": {
+            "strict": 9,
+            "total": 9,
+            "rate": 1.0
+          },
+          "dst": {
+            "strict": 11,
+            "total": 23,
+            "rate": 0.478
+          },
+          "edge": {
+            "strict": 1,
+            "total": 8,
+            "rate": 0.125
+          },
+          "epoch": {
+            "strict": 1,
+            "total": 10,
+            "rate": 0.1
+          },
+          "error": {
+            "strict": 18,
+            "total": 23,
+            "rate": 0.783
+          },
+          "flags": {
+            "strict": 3,
+            "total": 21,
+            "rate": 0.143
+          },
+          "format": {
+            "strict": 58,
+            "total": 62,
+            "rate": 0.935
+          },
+          "iso": {
+            "strict": 13,
+            "total": 20,
+            "rate": 0.65
+          },
+          "locale": {
+            "strict": 4,
+            "total": 4,
+            "rate": 1.0
+          },
+          "nanos": {
+            "strict": 0,
+            "total": 10,
+            "rate": 0.0
+          },
+          "offset": {
+            "strict": 5,
+            "total": 11,
+            "rate": 0.455
+          },
+          "options": {
+            "strict": 39,
+            "total": 43,
+            "rate": 0.907
+          },
+          "parse": {
+            "strict": 70,
+            "total": 134,
+            "rate": 0.522
+          },
+          "posix": {
+            "strict": 3,
+            "total": 7,
+            "rate": 0.429
+          },
+          "relative": {
+            "strict": 24,
+            "total": 45,
+            "rate": 0.533
+          },
+          "rfc2822": {
+            "strict": 0,
+            "total": 3,
+            "rate": 0.0
+          },
+          "text": {
+            "strict": 4,
+            "total": 7,
+            "rate": 0.571
+          },
+          "time": {
+            "strict": 6,
+            "total": 6,
+            "rate": 1.0
+          },
+          "tz": {
+            "strict": 32,
+            "total": 58,
+            "rate": 0.552
+          },
+          "tz-in-string": {
+            "strict": 3,
+            "total": 4,
+            "rate": 0.75
+          },
+          "week": {
+            "strict": 11,
+            "total": 11,
+            "rate": 1.0
+          },
+          "weekday": {
+            "strict": 8,
+            "total": 10,
+            "rate": 0.8
+          },
+          "width": {
+            "strict": 0,
+            "total": 8,
+            "rate": 0.0
+          },
+          "zone-name": {
+            "strict": 1,
+            "total": 7,
+            "rate": 0.143
+          }
+        },
+        "divergence_counts": {
+          "formatador: erro de formatação": 18,
+          "formatador: strftime": 1,
+          "fuso: resolução do TZ ou dado do tzdb": 12,
+          "parser (atribuído por troca: mesmo formatador passa com outro parser)": 44,
+          "parser: aceita entrada que o GNU rejeita": 3,
+          "parser: rejeita entrada que o GNU aceita": 13
+        },
+        "divergences": {
+          "formatador: erro de formatação": [
+            "date-flag-upper: stdout: esperado \"MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\\n\" obtido \"\"",
+            "date-flag-swap-case: stdout: esperado \"MON|MONDAY|JAN|JANUARY|am|am|utc\\n\" obtido \"\"",
+            "date-flag-width-numeric: stdout: esperado \"0000002026|00005|0009|000005\\n\" obtido \"\"",
+            "date-flag-width-space-pad: stdout: esperado \"         5| 2026|   1\\n\" obtido \"\"",
+            "date-flag-width-no-pad: stdout: esperado \"5|9\\n\" obtido \"\"",
+            "date-flag-width-zero-pad: stdout: esperado \"0000000005|0005|009\\n\" obtido \"\"",
+            "date-flag-width-text: stdout: esperado \"    Monday|       JAN|     January|   AM\\n\" obtido \"\"",
+            "date-flag-width-epoch: stdout: esperado \"000001767604023|     1767604023|1767604023\\n\" obtido \"\"",
+            "date-flag-width-offset: stdout: esperado \"+000000000|   +0|+0|+0000:00\\n\" obtido \"\"",
+            "date-flag-nanos-precision-zero: stdout: esperado \"000|000000|000000000|000000000|0\\n\" obtido \"\"",
+            "date-flag-combined-dash-upper: stdout: esperado \"JAN 5\\n\" obtido \"\"",
+            "date-flag-pad-on-text: stdout: esperado \"[Mon][Mon][Mon]\\n\" obtido \"\"",
+            "date-flag-composite-directives: stdout: esperado \"01/05/26|2026-01-05|MON JAN  5 09:07:03 2026|09:07:03|09:07:03 AM\\n\" obtido \"\"",
+            "date-flag-ampm-afternoon: stdout: esperado \"PM|pm|pm|pm|3| 3\\n\" obtido \"\"",
+            "date-fmt-nanos-frozen: stdout: esperado \"000000000\\n\" obtido \"\"",
+            "date-fmt-unknown-directive: stdout: esperado \"[%J][%i][%L]\\n\" obtido \"\"",
+            "date-fmt-trailing-percent: stdout: esperado \"abc%\\n\" obtido \"\"",
+            "date-fmt-locale-modifiers: stdout: esperado \"26 2026 05 09 Mon Jan  5 09:07:03 2026\\n\" obtido \"\""
+          ],
+          "formatador: strftime": [
+            "date-flag-plus-year: stdout: esperado \"2026|+02026|20\\n\" obtido \"2026-01-05T09:07:03+00:004Y|2026-01-05T09:07:03+00:006Y|2026-01-05T09:07:03+00:00C\\n\""
+          ],
+          "fuso: resolução do TZ ou dado do tzdb": [
+            "date-tz-kolkata: stdout: esperado \"Thu 2026-01-15 12:00:00 IST +0530 +05:30 +05:30:00 +05:30 1768458600\\n\" obtido \"Thu 2026-01-15 12:00:00 IST +0530 +05:30 +05:30:00 +05 1768458600\\n\"",
+            "date-tz-lord-howe-winter: stdout: esperado \"Wed 2026-07-15 12:00:00 +1030 +1030 +10:30 +10:30 1784079000\\n\" obtido \"Wed 2026-07-15 12:00:00 +1030 +1030 +10:30 +10 1784079000\\n\"",
+            "date-tz-kathmandu: stdout: esperado \"2026-01-15 12:00:00 +0545 +0545 +05:45\\n\" obtido \"2026-01-15 12:00:00 +0545 +0545 +05\\n\"",
+            "date-tz-chatham: stdout: esperado \"2026-01-15 12:00:00 +1345 +1345 +13:45\\n\" obtido \"2026-01-15 12:00:00 +1345 +1345 +13\\n\"",
+            "date-tz-st-johns: stdout: esperado \"2026-01-15 12:00:00 NST -0330 -03:30\\n\" obtido \"2026-01-15 12:00:00 NST -0330 -03\\n\"",
+            "date-tz-posix-jst: stdout: esperado \"2026-01-15 12:00:00 JST +0900\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\"",
+            "date-tz-posix-angle-brackets: stdout: esperado \"2026-01-15 12:00:00 -03 -0300\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\"",
+            "date-tz-posix-half-hour: stdout: esperado \"2026-01-15 12:00:00 +0530 +0530\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\"",
+            "date-tz-posix-explicit-rules: stdout: esperado \"2026-07-01 12:00:00 CEST +0200\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\"",
+            "date-tz-unknown-name: stdout: esperado \"2026-07-01 12:00:00 Foo +0000\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\"",
+            "date-tz-empty: stdout: esperado \"2026-07-01 12:00:00 Universal +0000\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\"",
+            "date-tz-backward-link: stdout: esperado \"2026-07-01 12:00:00  +0000\\n\" obtido \"2026-07-01 12:00:00 EDT -0400\\n\""
+          ],
+          "parser (atribuído por troca: mesmo formatador passa com outro parser)": [
+            "date-opt-file: stdout: esperado \"2026-01-01 00:00:00\\n2026-02-03 04:05:06\\n1970-01-01 00:00:00\\n\" obtido \"2026-01-01 00:00:00\\n2026-02-03 04:05:06\\n\"",
+            "date-opt-file-stdin: stdout: esperado \"100\\n100\\n\" obtido \"\"",
+            "date-parse-this-thursday: stdout: esperado \"2026-01-15 00:00:00 +0000\\n\" obtido \"2026-01-22 00:00:00 +0000\\n\"",
+            "date-parse-last-month: stdout: esperado \"2025-12-15 12:00:00 +0000\\n\" obtido \"2026-01-12 00:00:00 +0000\\n\"",
+            "date-parse-next-month: stdout: esperado \"2026-02-15 12:00:00 +0000\\n\" obtido \"2026-01-19 00:00:00 +0000\\n\"",
+            "date-parse-next-month-overflow: stdout: esperado \"2026-03-03 10:30:00 +0000\\n\" obtido \"2026-02-02 00:00:00 +0000\\n\"",
+            "date-parse-month-ago-overflow: stdout: esperado \"2026-03-03 10:30:00 +0000\\n\" obtido \"2026-02-28 00:00:00 +0000\\n\"",
+            "date-parse-midnight: stdout: esperado \"\" obtido \"2026-01-15 12:00:00 +0000\\n\"",
+            "date-parse-plus-week: stdout: esperado \"2026-01-22 12:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-year-ago: stdout: esperado \"2025-01-15 12:00:00 +0000\\n\" obtido \"2025-01-15 00:00:00 +0000\\n\"",
+            "date-parse-year-ago-leap: stdout: esperado \"2027-03-01 12:00:00 +0000\\n\" obtido \"2027-02-28 00:00:00 +0000\\n\"",
+            "date-parse-seconds-plus: stdout: esperado \"2026-01-15 12:00:45 +0000\\n\" obtido \"\"",
+            "date-parse-compound-relative: stdout: esperado \"2026-01-16 10:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-next-year: stdout: esperado \"2027-01-15 12:00:00 +0000\\n\" obtido \"2027-01-15 00:00:00 +0000\\n\"",
+            "date-parse-fortnight: stdout: esperado \"2026-01-29 12:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-third-friday: stdout: esperado \"2026-01-30 00:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-iso-compact-number: stdout: esperado \"2026-03-01 00:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-iso-utc-word: stdout: esperado \"2026-03-01 14:15:00 +0000\\n\" obtido \"\"",
+            "date-parse-zone-est: stdout: esperado \"2026-03-01 19:15:00 +0000\\n\" obtido \"\"",
+            "date-parse-zone-pst: stdout: esperado \"2026-03-01 22:15:00 +0000\\n\" obtido \"\"",
+            "date-parse-zone-utc-offset: stdout: esperado \"2026-03-01 11:15:00 +0000\\n\" obtido \"\"",
+            "date-parse-date-plus-day: stdout: esperado \"2026-01-16 00:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-date-plus-month-overflow: stdout: esperado \"2026-03-03 00:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-month-name-day-year: stdout: esperado \"2026-03-01 00:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-month-name-only: stdout: esperado \"\" obtido \"2026-03-01 00:00:00 +0000\\n\"",
+            "date-parse-rfc2822: stdout: esperado \"2026-03-01 14:15:16 +0000\\n\" obtido \"\"",
+            "date-parse-rfc2822-offset: stdout: esperado \"2026-01-15 12:30:00 +0000\\n\" obtido \"\"",
+            "date-parse-gmt-word: stdout: esperado \"2026-03-01 14:15:16 +0000\\n\" obtido \"\"",
+            "date-parse-default-output-roundtrip: stdout: esperado \"2026-03-01 14:15:16 +0000\\n\" obtido \"\"",
+            "date-parse-epoch: stdout: esperado \"2023-11-14 22:13:20 +0000\\n\" obtido \"\"",
+            "date-parse-epoch-default-output: stdout: esperado \"Tue Nov 14 22:13:20 UTC 2023\\n\" obtido \"\"",
+            "date-parse-epoch-negative: stdout: esperado \"1969-12-31 23:59:59 +0000 -1\\n\" obtido \"\"",
+            "date-parse-epoch-zero: stdout: esperado \"1970-01-01 00:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-invalid-hour: stdout: esperado \"\" obtido \"Fri Jan 16 01:00:00 UTC 2026\\n\"",
+            "date-parse-invalid-military-zone-letter: stdout: esperado \"Thu Jan 15 12:00:00 UTC 2026\\n\" obtido \"\"",
+            "date-tz-epoch-in-zones-sao-paulo: stdout: esperado \"Thu Jan 15 09:00:00 -03 2026\\n\" obtido \"\"",
+            "date-tz-epoch-in-zones-kolkata: stdout: esperado \"2026-01-15 17:30:00 IST +0530\\n\" obtido \"\"",
+            "date-tz-epoch-in-zones-lord-howe: stdout: esperado \"2026-01-15 23:00:00 +11 +1100\\n\" obtido \"\"",
+            "date-tz-ny-spring-after-gap: stdout: esperado \"2026-03-08 03:30:00 EDT 1772955000\\n\" obtido \"2026-03-08 04:30:00 EDT 1772958600\\n\"",
+            "date-tz-ny-fall-ambiguous-now-winter: stdout: esperado \"2026-11-01 01:30:00 EST 1793514600\\n\" obtido \"2026-11-01 01:30:00 EDT 1793511000\\n\"",
+            "date-tz-ny-date-plus-day-across-dst: stdout: esperado \"2026-03-08 00:00:00 EST\\n\" obtido \"\"",
+            "date-tz-ny-tomorrow-across-dst: stdout: esperado \"2026-03-08 13:00:00 EDT\\n\" obtido \"2026-03-08 12:00:00 EDT\\n\"",
+            "date-tz-berlin-fall-ambiguous-now-summer: stdout: esperado \"2026-10-25 02:30:00 CEST 1792888200\\n\" obtido \"2026-10-25 02:30:00 CET 1792891800\\n\"",
+            "date-tz-in-string-posix: stdout: esperado \"2026-01-15 00:00:00 UTC\\n\" obtido \"2026-01-15 09:00:00 UTC\\n\""
+          ],
+          "parser: aceita entrada que o GNU rejeita": [
+            "date-tz-ny-spring-gap: stdout: esperado \"\" obtido \"2026-03-08 03:30:00 EDT\\n\"",
+            "date-tz-berlin-spring-gap: stdout: esperado \"\" obtido \"2026-03-29 01:30:00 CET\\n\"",
+            "date-tz-sao-paulo-historic-gap: stdout: esperado \"\" obtido \"2018-11-04 01:30:00 -02\\n\""
+          ],
+          "parser: rejeita entrada que o GNU aceita": [
+            "date-flag-nanos-precision: stdout: esperado \"012345678|012|012345|012345678|0|012345678\\n\" obtido \"\"",
+            "date-flag-nanos-small: stdout: esperado \"1767604023.000000042|000\\n\" obtido \"\"",
+            "date-flag-nanos-in-composite: stdout: esperado \"09:07:03.500 1767604023.500000000\\n\" obtido \"\"",
+            "date-opt-iso-ns: stdout: esperado \"2026-01-05T09:07:03,012345678+00:00\\n\" obtido \"\"",
+            "date-opt-rfc3339-ns: stdout: esperado \"2026-01-05 09:07:03.500000000+00:00\\n\" obtido \"\"",
+            "date-parse-empty-string: stdout: esperado \"2026-01-15 00:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-iso-fraction: stdout: esperado \"2026-03-01 14:15:16.250000000 +0000\\n\" obtido \"\"",
+            "date-parse-iso-fraction-comma: stdout: esperado \"2026-03-01 14:15:16.500 +0000\\n\" obtido \"\"",
+            "date-parse-datetime-plus-hours: stdout: esperado \"2026-01-15 10:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-epoch-fraction: stdout: esperado \"2023-11-14 22:13:20.500000000 1700000000\\n\" obtido \"\"",
+            "date-parse-epoch-negative-fraction: stdout: esperado \"-2 500000000 23:59:58\\n\" obtido \"\"",
+            "date-tz-ny-plus-day-across-dst: stdout: esperado \"2026-03-08 07:00:00 EDT\\n\" obtido \"\"",
+            "date-tz-ny-plus-24h-across-dst: stdout: esperado \"2026-03-06 08:00:00 EST\\n\" obtido \"\""
+          ]
+        },
+        "category_depscan_all_targets": "c",
+        "c_deps_built_on_linux": [],
+        "depscan": [
+          {
+            "package": "interim",
+            "version": "0.2.1",
+            "own_category": "a",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 39,
+            "tree_unsafe": 2315,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "chrono 0.4.45": 6,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "logos-codegen 0.15.1": 3,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          },
+          {
+            "package": "chrono",
+            "version": "0.4.45",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 6,
+            "own_unsafe": 7,
+            "tree_deps": 31,
+            "tree_unsafe": 2265,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          },
+          {
+            "package": "chrono-tz",
+            "version": "0.10.4",
+            "own_category": "a",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 35,
+            "tree_unsafe": 2277,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "chrono 0.4.45": 6,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "parse_datetime 0.11 + chrono 0.4 + chrono-tz 0.10",
+      "version": "parse_datetime 0.11.0, chrono 0.4.45, chrono-tz 0.10.4",
+      "role": "date",
+      "category": "b",
+      "conformance": {
+        "candidate": "parse_datetime 0.11 + chrono 0.4 + chrono-tz 0.10",
+        "total": 264,
+        "strict_pass": 206,
+        "lenient_pass": 206,
+        "unsupported": 0,
+        "by_tag": {
+          "ambiguous": [
+            4,
+            4,
+            4
+          ],
+          "cli": [
+            9,
+            9,
+            9
+          ],
+          "dst": [
+            12,
+            12,
+            23
+          ],
+          "edge": [
+            1,
+            1,
+            8
+          ],
+          "epoch": [
+            8,
+            8,
+            10
+          ],
+          "error": [
+            18,
+            18,
+            23
+          ],
+          "flags": [
+            3,
+            3,
+            21
+          ],
+          "format": [
+            58,
+            58,
+            62
+          ],
+          "iso": [
+            17,
+            17,
+            20
+          ],
+          "locale": [
+            4,
+            4,
+            4
+          ],
+          "nanos": [
+            0,
+            0,
+            10
+          ],
+          "offset": [
+            5,
+            5,
+            11
+          ],
+          "options": [
+            41,
+            41,
+            43
+          ],
+          "parse": [
+            103,
+            103,
+            134
+          ],
+          "posix": [
+            2,
+            2,
+            7
+          ],
+          "relative": [
+            40,
+            40,
+            45
+          ],
+          "rfc2822": [
+            3,
+            3,
+            3
+          ],
+          "text": [
+            7,
+            7,
+            7
+          ],
+          "time": [
+            6,
+            6,
+            6
+          ],
+          "tz": [
+            34,
+            34,
+            58
+          ],
+          "tz-in-string": [
+            2,
+            2,
+            4
+          ],
+          "tzdb-content": [
+            0,
+            0,
+            1
+          ],
+          "week": [
+            11,
+            11,
+            11
+          ],
+          "weekday": [
+            10,
+            10,
+            10
+          ],
+          "width": [
+            0,
+            0,
+            8
+          ],
+          "zone-name": [
+            6,
+            6,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "date-flag-upper",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %^a|%^A|%^b|%^B|%^p|%^P|%^Z|%^h\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-swap-case",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"MON|MONDAY|JAN|JANUARY|am|am|utc\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %#a|%#A|%#b|%#B|%#p|%#P|%#Z\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-numeric",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0000002026|00005|0009|000005\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10Y|%5d|%4H|%6j\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-space-pad",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"         5| 2026|   1\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %_10d|%_5Y|%_4m\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-no-pad",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"5|9\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %-10d|%-5H\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-zero-pad",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0000000005|0005|009\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %010d|%04e|%03k\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-text",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"    Monday|       JAN|     January|   AM\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10A|%^10b|%12B|%5p\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-epoch",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"000001767604023|     1767604023|1767604023\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %15s|%_15s|%-s\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-offset",
+            "tags": [
+              "flags",
+              "width",
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"+000000000|   +0|+0|+0000:00\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10z|%_z|%-z|%8:z\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-plus-year",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2026|+02026|20\\n\" obtido \"2026-01-05T09:07:03+00:004Y|2026-01-05T09:07:03+00:006Y|2026-01-05T09:07:03+00:00C\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-nanos-precision-zero",
+            "tags": [
+              "flags",
+              "nanos"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"000|000000|000000000|000000000|0\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %3N|%6N|%9N|%-N|%1N\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-nanos-precision",
+            "tags": [
+              "flags",
+              "nanos",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"012345678|012|012345|012345678|0|012345678\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %N|%3N|%6N|%9N|%1N|%-N\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-nanos-small",
+            "tags": [
+              "flags",
+              "nanos",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1767604023.000000042|000\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %s.%N|%3N\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-nanos-in-composite",
+            "tags": [
+              "flags",
+              "nanos",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"09:07:03.500 1767604023.500000000\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %T.%3N %s.%N\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-combined-dash-upper",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"JAN 5\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %-^b %^-d\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "strict 206/264 (+FORMAT 61/83, só diretivas 58/59, -d 103/134, fusos 34/58, opções 41/43). parse_datetime 0.11 tem a gramática do GNU mas trabalha com offset fixo (DST errado em datas de outra estação) e a API exige DateTime<Local>; strftime do chrono com as mesmas lacunas do candidato interim.",
+      "metrics": {
+        "strict_rate": 0.78,
+        "lenient_rate": 0.78,
+        "format_rate": {
+          "strict": 61,
+          "total": 83,
+          "rate": 0.735
+        },
+        "directives_rate": {
+          "strict": 58,
+          "total": 59,
+          "rate": 0.983
+        },
+        "parse_rate": {
+          "strict": 103,
+          "total": 134,
+          "rate": 0.769
+        },
+        "tz_rate": {
+          "strict": 34,
+          "total": 58,
+          "rate": 0.586
+        },
+        "options_rate": {
+          "strict": 41,
+          "total": 43,
+          "rate": 0.953
+        },
+        "by_tag_strict_rate": {
+          "cli": {
+            "strict": 9,
+            "total": 9,
+            "rate": 1.0
+          },
+          "dst": {
+            "strict": 12,
+            "total": 23,
+            "rate": 0.522
+          },
+          "edge": {
+            "strict": 1,
+            "total": 8,
+            "rate": 0.125
+          },
+          "epoch": {
+            "strict": 8,
+            "total": 10,
+            "rate": 0.8
+          },
+          "error": {
+            "strict": 18,
+            "total": 23,
+            "rate": 0.783
+          },
+          "flags": {
+            "strict": 3,
+            "total": 21,
+            "rate": 0.143
+          },
+          "format": {
+            "strict": 58,
+            "total": 62,
+            "rate": 0.935
+          },
+          "iso": {
+            "strict": 17,
+            "total": 20,
+            "rate": 0.85
+          },
+          "locale": {
+            "strict": 4,
+            "total": 4,
+            "rate": 1.0
+          },
+          "nanos": {
+            "strict": 0,
+            "total": 10,
+            "rate": 0.0
+          },
+          "offset": {
+            "strict": 5,
+            "total": 11,
+            "rate": 0.455
+          },
+          "options": {
+            "strict": 41,
+            "total": 43,
+            "rate": 0.953
+          },
+          "parse": {
+            "strict": 103,
+            "total": 134,
+            "rate": 0.769
+          },
+          "posix": {
+            "strict": 2,
+            "total": 7,
+            "rate": 0.286
+          },
+          "relative": {
+            "strict": 40,
+            "total": 45,
+            "rate": 0.889
+          },
+          "rfc2822": {
+            "strict": 3,
+            "total": 3,
+            "rate": 1.0
+          },
+          "text": {
+            "strict": 7,
+            "total": 7,
+            "rate": 1.0
+          },
+          "time": {
+            "strict": 6,
+            "total": 6,
+            "rate": 1.0
+          },
+          "tz": {
+            "strict": 34,
+            "total": 58,
+            "rate": 0.586
+          },
+          "tz-in-string": {
+            "strict": 2,
+            "total": 4,
+            "rate": 0.5
+          },
+          "week": {
+            "strict": 11,
+            "total": 11,
+            "rate": 1.0
+          },
+          "weekday": {
+            "strict": 10,
+            "total": 10,
+            "rate": 1.0
+          },
+          "width": {
+            "strict": 0,
+            "total": 8,
+            "rate": 0.0
+          },
+          "zone-name": {
+            "strict": 6,
+            "total": 7,
+            "rate": 0.857
+          }
+        },
+        "divergence_counts": {
+          "formatador: erro de formatação": 18,
+          "formatador: strftime": 1,
+          "fuso: resolução do TZ ou dado do tzdb": 12,
+          "parser (atribuído por troca: mesmo formatador passa com outro parser)": 11,
+          "parser: aceita entrada que o GNU rejeita": 3,
+          "parser: instante diferente": 2,
+          "parser: rejeita entrada que o GNU aceita": 9,
+          "parser: relativo atravessando horário de verão": 2
+        },
+        "divergences": {
+          "formatador: erro de formatação": [
+            "date-flag-upper: stdout: esperado \"MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\\n\" obtido \"\"",
+            "date-flag-swap-case: stdout: esperado \"MON|MONDAY|JAN|JANUARY|am|am|utc\\n\" obtido \"\"",
+            "date-flag-width-numeric: stdout: esperado \"0000002026|00005|0009|000005\\n\" obtido \"\"",
+            "date-flag-width-space-pad: stdout: esperado \"         5| 2026|   1\\n\" obtido \"\"",
+            "date-flag-width-no-pad: stdout: esperado \"5|9\\n\" obtido \"\"",
+            "date-flag-width-zero-pad: stdout: esperado \"0000000005|0005|009\\n\" obtido \"\"",
+            "date-flag-width-text: stdout: esperado \"    Monday|       JAN|     January|   AM\\n\" obtido \"\"",
+            "date-flag-width-epoch: stdout: esperado \"000001767604023|     1767604023|1767604023\\n\" obtido \"\"",
+            "date-flag-width-offset: stdout: esperado \"+000000000|   +0|+0|+0000:00\\n\" obtido \"\"",
+            "date-flag-nanos-precision-zero: stdout: esperado \"000|000000|000000000|000000000|0\\n\" obtido \"\"",
+            "date-flag-combined-dash-upper: stdout: esperado \"JAN 5\\n\" obtido \"\"",
+            "date-flag-pad-on-text: stdout: esperado \"[Mon][Mon][Mon]\\n\" obtido \"\"",
+            "date-flag-composite-directives: stdout: esperado \"01/05/26|2026-01-05|MON JAN  5 09:07:03 2026|09:07:03|09:07:03 AM\\n\" obtido \"\"",
+            "date-flag-ampm-afternoon: stdout: esperado \"PM|pm|pm|pm|3| 3\\n\" obtido \"\"",
+            "date-fmt-nanos-frozen: stdout: esperado \"000000000\\n\" obtido \"\"",
+            "date-fmt-unknown-directive: stdout: esperado \"[%J][%i][%L]\\n\" obtido \"\"",
+            "date-fmt-trailing-percent: stdout: esperado \"abc%\\n\" obtido \"\"",
+            "date-fmt-locale-modifiers: stdout: esperado \"26 2026 05 09 Mon Jan  5 09:07:03 2026\\n\" obtido \"\""
+          ],
+          "formatador: strftime": [
+            "date-flag-plus-year: stdout: esperado \"2026|+02026|20\\n\" obtido \"2026-01-05T09:07:03+00:004Y|2026-01-05T09:07:03+00:006Y|2026-01-05T09:07:03+00:00C\\n\""
+          ],
+          "fuso: resolução do TZ ou dado do tzdb": [
+            "date-tz-kolkata: stdout: esperado \"Thu 2026-01-15 12:00:00 IST +0530 +05:30 +05:30:00 +05:30 1768458600\\n\" obtido \"Thu 2026-01-15 12:00:00 IST +0530 +05:30 +05:30:00 +05 1768458600\\n\"",
+            "date-tz-lord-howe-winter: stdout: esperado \"Wed 2026-07-15 12:00:00 +1030 +1030 +10:30 +10:30 1784079000\\n\" obtido \"Wed 2026-07-15 12:00:00 +1030 +1030 +10:30 +10 1784079000\\n\"",
+            "date-tz-kathmandu: stdout: esperado \"2026-01-15 12:00:00 +0545 +0545 +05:45\\n\" obtido \"2026-01-15 12:00:00 +0545 +0545 +05\\n\"",
+            "date-tz-chatham: stdout: esperado \"2026-01-15 12:00:00 +1345 +1345 +13:45\\n\" obtido \"2026-01-15 12:00:00 +1345 +1345 +13\\n\"",
+            "date-tz-st-johns: stdout: esperado \"2026-01-15 12:00:00 NST -0330 -03:30\\n\" obtido \"2026-01-15 12:00:00 NST -0330 -03\\n\"",
+            "date-tz-posix-jst: stdout: esperado \"2026-01-15 12:00:00 JST +0900\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\"",
+            "date-tz-posix-angle-brackets: stdout: esperado \"2026-01-15 12:00:00 -03 -0300\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\"",
+            "date-tz-posix-half-hour: stdout: esperado \"2026-01-15 12:00:00 +0530 +0530\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\"",
+            "date-tz-posix-explicit-rules: stdout: esperado \"2026-07-01 12:00:00 CEST +0200\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\"",
+            "date-tz-unknown-name: stdout: esperado \"2026-07-01 12:00:00 Foo +0000\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\"",
+            "date-tz-empty: stdout: esperado \"2026-07-01 12:00:00 Universal +0000\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\"",
+            "date-tz-backward-link: stdout: esperado \"2026-07-01 12:00:00  +0000\\n\" obtido \"2026-07-01 13:00:00 EDT -0400\\n\""
+          ],
+          "parser (atribuído por troca: mesmo formatador passa com outro parser)": [
+            "date-parse-month-ago-overflow: stdout: esperado \"2026-03-03 10:30:00 +0000\\n\" obtido \"2026-02-28 10:30:00 +0000\\n\"",
+            "date-parse-year-ago-leap: stdout: esperado \"2027-03-01 12:00:00 +0000\\n\" obtido \"\"",
+            "date-parse-invalid-trailing: stdout: esperado \"\" obtido \"Tue Jan 13 02:00:00 UTC 2026\\n\"",
+            "date-parse-invalid-military-zone-letter: stdout: esperado \"Thu Jan 15 12:00:00 UTC 2026\\n\" obtido \"\"",
+            "date-tz-ny-spring-after-gap: stdout: esperado \"2026-03-08 03:30:00 EDT 1772955000\\n\" obtido \"2026-03-08 04:30:00 EDT 1772958600\\n\"",
+            "date-tz-ny-summer-date-from-winter: stdout: esperado \"2026-07-01 12:00:00 EDT -0400\\n\" obtido \"2026-07-01 13:00:00 EDT -0400\\n\"",
+            "date-tz-sao-paulo-historic-dst: stdout: esperado \"2016-01-15 12:00:00 -02 -0200\\n\" obtido \"2016-01-15 13:00:00 -02 -0200\\n\"",
+            "date-tz-lord-howe-half-hour-dst: stdout: esperado \"2026-07-15 12:00:00 +1030 +1030\\n\" obtido \"2026-07-15 11:30:00 +1030 +1030\\n\"",
+            "date-tz-posix-est5edt-summer: stdout: esperado \"2026-07-01 12:00:00 EDT -0400\\n\" obtido \"2026-07-01 13:00:00 EDT -0400\\n\"",
+            "date-tz-in-string-berlin-to-sao-paulo: stdout: esperado \"2026-07-01 07:00:00 -03 -0300\\n\" obtido \"2026-07-01 08:00:00 -03 -0300\\n\"",
+            "date-tz-in-string-posix: stdout: esperado \"2026-01-15 00:00:00 UTC\\n\" obtido \"2026-01-15 09:00:00 UTC\\n\""
+          ],
+          "parser: aceita entrada que o GNU rejeita": [
+            "date-tz-ny-spring-gap: stdout: esperado \"\" obtido \"2026-03-08 03:30:00 EDT\\n\"",
+            "date-tz-berlin-spring-gap: stdout: esperado \"\" obtido \"2026-03-29 03:30:00 CEST\\n\"",
+            "date-tz-sao-paulo-historic-gap: stdout: esperado \"\" obtido \"2018-11-04 01:30:00 -02\\n\""
+          ],
+          "parser: instante diferente": [
+            "date-parse-empty-string: stdout: esperado \"2026-01-15 00:00:00 +0000\\n\" obtido \"2026-01-15 12:00:00 +0000\\n\"",
+            "date-parse-datetime-plus-hours: stdout: esperado \"2026-01-15 10:00:00 +0000\\n\" obtido \"2026-01-15 15:00:00 +0000\\n\""
+          ],
+          "parser: rejeita entrada que o GNU aceita": [
+            "date-flag-nanos-precision: stdout: esperado \"012345678|012|012345|012345678|0|012345678\\n\" obtido \"\"",
+            "date-flag-nanos-small: stdout: esperado \"1767604023.000000042|000\\n\" obtido \"\"",
+            "date-flag-nanos-in-composite: stdout: esperado \"09:07:03.500 1767604023.500000000\\n\" obtido \"\"",
+            "date-opt-iso-ns: stdout: esperado \"2026-01-05T09:07:03,012345678+00:00\\n\" obtido \"\"",
+            "date-opt-rfc3339-ns: stdout: esperado \"2026-01-05 09:07:03.500000000+00:00\\n\" obtido \"\"",
+            "date-parse-iso-fraction: stdout: esperado \"2026-03-01 14:15:16.250000000 +0000\\n\" obtido \"\"",
+            "date-parse-iso-fraction-comma: stdout: esperado \"2026-03-01 14:15:16.500 +0000\\n\" obtido \"\"",
+            "date-parse-epoch-fraction: stdout: esperado \"2023-11-14 22:13:20.500000000 1700000000\\n\" obtido \"\"",
+            "date-parse-epoch-negative-fraction: stdout: esperado \"-2 500000000 23:59:58\\n\" obtido \"\""
+          ],
+          "parser: relativo atravessando horário de verão": [
+            "date-tz-ny-plus-day-across-dst: stdout: esperado \"2026-03-08 07:00:00 EDT\\n\" obtido \"2026-03-08 13:00:00 EDT\\n\"",
+            "date-tz-ny-plus-24h-across-dst: stdout: esperado \"2026-03-06 08:00:00 EST\\n\" obtido \"2026-03-08 13:00:00 EDT\\n\""
+          ]
+        },
+        "category_depscan_all_targets": "c",
+        "c_deps_built_on_linux": [],
+        "depscan": [
+          {
+            "package": "chrono",
+            "version": "0.4.45",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 6,
+            "own_unsafe": 7,
+            "tree_deps": 31,
+            "tree_unsafe": 2265,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          },
+          {
+            "package": "chrono-tz",
+            "version": "0.10.4",
+            "own_category": "a",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 35,
+            "tree_unsafe": 2277,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "chrono 0.4.45": 6,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "parse_datetime 0.16 + chrono 0.4 + chrono-tz 0.10",
+      "version": "parse_datetime 0.16.0, chrono 0.4.45, chrono-tz 0.10.4",
+      "role": "date",
+      "category": "b",
+      "conformance": {
+        "candidate": "parse_datetime 0.16 + chrono 0.4 + chrono-tz 0.10",
+        "total": 264,
+        "strict_pass": 213,
+        "lenient_pass": 213,
+        "unsupported": 0,
+        "by_tag": {
+          "ambiguous": [
+            2,
+            2,
+            4
+          ],
+          "cli": [
+            9,
+            9,
+            9
+          ],
+          "dst": [
+            13,
+            13,
+            23
+          ],
+          "edge": [
+            1,
+            1,
+            8
+          ],
+          "epoch": [
+            8,
+            8,
+            10
+          ],
+          "error": [
+            19,
+            19,
+            23
+          ],
+          "flags": [
+            3,
+            3,
+            21
+          ],
+          "format": [
+            58,
+            58,
+            62
+          ],
+          "iso": [
+            17,
+            17,
+            20
+          ],
+          "locale": [
+            4,
+            4,
+            4
+          ],
+          "nanos": [
+            0,
+            0,
+            10
+          ],
+          "offset": [
+            5,
+            5,
+            11
+          ],
+          "options": [
+            41,
+            41,
+            43
+          ],
+          "parse": [
+            110,
+            110,
+            134
+          ],
+          "posix": [
+            3,
+            3,
+            7
+          ],
+          "relative": [
+            41,
+            41,
+            45
+          ],
+          "rfc2822": [
+            3,
+            3,
+            3
+          ],
+          "text": [
+            7,
+            7,
+            7
+          ],
+          "time": [
+            6,
+            6,
+            6
+          ],
+          "tz": [
+            38,
+            38,
+            58
+          ],
+          "tz-in-string": [
+            4,
+            4,
+            4
+          ],
+          "tzdb-content": [
+            0,
+            0,
+            1
+          ],
+          "week": [
+            11,
+            11,
+            11
+          ],
+          "weekday": [
+            10,
+            10,
+            10
+          ],
+          "width": [
+            0,
+            0,
+            8
+          ],
+          "zone-name": [
+            7,
+            7,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "date-flag-upper",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %^a|%^A|%^b|%^B|%^p|%^P|%^Z|%^h\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-swap-case",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"MON|MONDAY|JAN|JANUARY|am|am|utc\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %#a|%#A|%#b|%#B|%#p|%#P|%#Z\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-numeric",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0000002026|00005|0009|000005\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10Y|%5d|%4H|%6j\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-space-pad",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"         5| 2026|   1\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %_10d|%_5Y|%_4m\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-no-pad",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"5|9\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %-10d|%-5H\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-zero-pad",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0000000005|0005|009\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %010d|%04e|%03k\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-text",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"    Monday|       JAN|     January|   AM\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10A|%^10b|%12B|%5p\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-epoch",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"000001767604023|     1767604023|1767604023\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %15s|%_15s|%-s\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-width-offset",
+            "tags": [
+              "flags",
+              "width",
+              "offset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"+000000000|   +0|+0|+0000:00\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10z|%_z|%-z|%8:z\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-plus-year",
+            "tags": [
+              "flags",
+              "width"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2026|+02026|20\\n\" obtido \"2026-01-05T09:07:03+00:004Y|2026-01-05T09:07:03+00:006Y|2026-01-05T09:07:03+00:00C\\n\""
+            ]
+          },
+          {
+            "id": "date-flag-nanos-precision-zero",
+            "tags": [
+              "flags",
+              "nanos"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"000|000000|000000000|000000000|0\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %3N|%6N|%9N|%-N|%1N\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-nanos-precision",
+            "tags": [
+              "flags",
+              "nanos",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"012345678|012|012345|012345678|0|012345678\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %N|%3N|%6N|%9N|%1N|%-N\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-nanos-small",
+            "tags": [
+              "flags",
+              "nanos",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1767604023.000000042|000\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %s.%N|%3N\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-nanos-in-composite",
+            "tags": [
+              "flags",
+              "nanos",
+              "parse"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"09:07:03.500 1767604023.500000000\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %T.%3N %s.%N\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "date-flag-combined-dash-upper",
+            "tags": [
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"JAN 5\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %-^b %^-d\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          }
+        ]
+      },
+      "fit": "reference",
+      "notes": "strict 213/264 (+FORMAT 61/83, só diretivas 58/59, -d 110/134, fusos 38/58, opções 41/43). Combinação de atribuição: o mesmo parser do candidato principal com o strftime do chrono.",
+      "metrics": {
+        "strict_rate": 0.807,
+        "lenient_rate": 0.807,
+        "format_rate": {
+          "strict": 61,
+          "total": 83,
+          "rate": 0.735
+        },
+        "directives_rate": {
+          "strict": 58,
+          "total": 59,
+          "rate": 0.983
+        },
+        "parse_rate": {
+          "strict": 110,
+          "total": 134,
+          "rate": 0.821
+        },
+        "tz_rate": {
+          "strict": 38,
+          "total": 58,
+          "rate": 0.655
+        },
+        "options_rate": {
+          "strict": 41,
+          "total": 43,
+          "rate": 0.953
+        },
+        "by_tag_strict_rate": {
+          "cli": {
+            "strict": 9,
+            "total": 9,
+            "rate": 1.0
+          },
+          "dst": {
+            "strict": 13,
+            "total": 23,
+            "rate": 0.565
+          },
+          "edge": {
+            "strict": 1,
+            "total": 8,
+            "rate": 0.125
+          },
+          "epoch": {
+            "strict": 8,
+            "total": 10,
+            "rate": 0.8
+          },
+          "error": {
+            "strict": 19,
+            "total": 23,
+            "rate": 0.826
+          },
+          "flags": {
+            "strict": 3,
+            "total": 21,
+            "rate": 0.143
+          },
+          "format": {
+            "strict": 58,
+            "total": 62,
+            "rate": 0.935
+          },
+          "iso": {
+            "strict": 17,
+            "total": 20,
+            "rate": 0.85
+          },
+          "locale": {
+            "strict": 4,
+            "total": 4,
+            "rate": 1.0
+          },
+          "nanos": {
+            "strict": 0,
+            "total": 10,
+            "rate": 0.0
+          },
+          "offset": {
+            "strict": 5,
+            "total": 11,
+            "rate": 0.455
+          },
+          "options": {
+            "strict": 41,
+            "total": 43,
+            "rate": 0.953
+          },
+          "parse": {
+            "strict": 110,
+            "total": 134,
+            "rate": 0.821
+          },
+          "posix": {
+            "strict": 3,
+            "total": 7,
+            "rate": 0.429
+          },
+          "relative": {
+            "strict": 41,
+            "total": 45,
+            "rate": 0.911
+          },
+          "rfc2822": {
+            "strict": 3,
+            "total": 3,
+            "rate": 1.0
+          },
+          "text": {
+            "strict": 7,
+            "total": 7,
+            "rate": 1.0
+          },
+          "time": {
+            "strict": 6,
+            "total": 6,
+            "rate": 1.0
+          },
+          "tz": {
+            "strict": 38,
+            "total": 58,
+            "rate": 0.655
+          },
+          "tz-in-string": {
+            "strict": 4,
+            "total": 4,
+            "rate": 1.0
+          },
+          "week": {
+            "strict": 11,
+            "total": 11,
+            "rate": 1.0
+          },
+          "weekday": {
+            "strict": 10,
+            "total": 10,
+            "rate": 1.0
+          },
+          "width": {
+            "strict": 0,
+            "total": 8,
+            "rate": 0.0
+          },
+          "zone-name": {
+            "strict": 7,
+            "total": 7,
+            "rate": 1.0
+          }
+        },
+        "divergence_counts": {
+          "formatador (atribuído por troca: mesmo parser passa com outro formatador)": 27,
+          "formatador: erro de formatação": 8,
+          "formatador: strftime": 1,
+          "fuso: resolução do TZ ou dado do tzdb": 3,
+          "parser (atribuído por troca: mesmo formatador passa com outro parser)": 4,
+          "parser: aceita entrada que o GNU rejeita": 3,
+          "parser: instante diferente": 2,
+          "parser: rejeita entrada que o GNU aceita": 1,
+          "parser: relativo atravessando horário de verão": 2
+        },
+        "divergences": {
+          "formatador (atribuído por troca: mesmo parser passa com outro formatador)": [
+            "date-flag-width-numeric: stdout: esperado \"0000002026|00005|0009|000005\\n\" obtido \"\"",
+            "date-flag-width-space-pad: stdout: esperado \"         5| 2026|   1\\n\" obtido \"\"",
+            "date-flag-width-no-pad: stdout: esperado \"5|9\\n\" obtido \"\"",
+            "date-flag-width-zero-pad: stdout: esperado \"0000000005|0005|009\\n\" obtido \"\"",
+            "date-flag-nanos-precision-zero: stdout: esperado \"000|000000|000000000|000000000|0\\n\" obtido \"\"",
+            "date-flag-nanos-precision: stdout: esperado \"012345678|012|012345|012345678|0|012345678\\n\" obtido \"\"",
+            "date-flag-nanos-small: stdout: esperado \"1767604023.000000042|000\\n\" obtido \"\"",
+            "date-flag-nanos-in-composite: stdout: esperado \"09:07:03.500 1767604023.500000000\\n\" obtido \"\"",
+            "date-flag-pad-on-text: stdout: esperado \"[Mon][Mon][Mon]\\n\" obtido \"\"",
+            "date-flag-composite-directives: stdout: esperado \"01/05/26|2026-01-05|MON JAN  5 09:07:03 2026|09:07:03|09:07:03 AM\\n\" obtido \"\"",
+            "date-fmt-nanos-frozen: stdout: esperado \"000000000\\n\" obtido \"\"",
+            "date-fmt-unknown-directive: stdout: esperado \"[%J][%i][%L]\\n\" obtido \"\"",
+            "date-fmt-trailing-percent: stdout: esperado \"abc%\\n\" obtido \"\"",
+            "date-opt-iso-ns: stdout: esperado \"2026-01-05T09:07:03,012345678+00:00\\n\" obtido \"\"",
+            "date-opt-rfc3339-ns: stdout: esperado \"2026-01-05 09:07:03.500000000+00:00\\n\" obtido \"\"",
+            "date-parse-iso-fraction: stdout: esperado \"2026-03-01 14:15:16.250000000 +0000\\n\" obtido \"\"",
+            "date-parse-iso-fraction-comma: stdout: esperado \"2026-03-01 14:15:16.500 +0000\\n\" obtido \"\"",
+            "date-parse-epoch-fraction: stdout: esperado \"2023-11-14 22:13:20.500000000 1700000000\\n\" obtido \"\"",
+            "date-tz-kolkata: stdout: esperado \"Thu 2026-01-15 12:00:00 IST +0530 +05:30 +05:30:00 +05:30 1768458600\\n\" obtido \"Thu 2026-01-15 12:00:00 IST +0530 +05:30 +05:30:00 +05 1768458600\\n\"",
+            "date-tz-lord-howe-winter: stdout: esperado \"Wed 2026-07-15 12:00:00 +1030 +1030 +10:30 +10:30 1784079000\\n\" obtido \"Wed 2026-07-15 12:00:00 +1030 +1030 +10:30 +10 1784079000\\n\"",
+            "date-tz-kathmandu: stdout: esperado \"2026-01-15 12:00:00 +0545 +0545 +05:45\\n\" obtido \"2026-01-15 12:00:00 +0545 +0545 +05\\n\"",
+            "date-tz-chatham: stdout: esperado \"2026-01-15 12:00:00 +1345 +1345 +13:45\\n\" obtido \"2026-01-15 12:00:00 +1345 +1345 +13\\n\"",
+            "date-tz-st-johns: stdout: esperado \"2026-01-15 12:00:00 NST -0330 -03:30\\n\" obtido \"2026-01-15 12:00:00 NST -0330 -03\\n\"",
+            "date-tz-posix-jst: stdout: esperado \"2026-01-15 12:00:00 JST +0900\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\"",
+            "date-tz-posix-angle-brackets: stdout: esperado \"2026-01-15 12:00:00 -03 -0300\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\"",
+            "date-tz-posix-half-hour: stdout: esperado \"2026-01-15 12:00:00 +0530 +0530\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\"",
+            "date-tz-posix-explicit-rules: stdout: esperado \"2026-07-01 12:00:00 CEST +0200\\n\" obtido \"2026-07-01 10:00:00 UTC +0000\\n\""
+          ],
+          "formatador: erro de formatação": [
+            "date-flag-upper: stdout: esperado \"MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\\n\" obtido \"\"",
+            "date-flag-swap-case: stdout: esperado \"MON|MONDAY|JAN|JANUARY|am|am|utc\\n\" obtido \"\"",
+            "date-flag-width-text: stdout: esperado \"    Monday|       JAN|     January|   AM\\n\" obtido \"\"",
+            "date-flag-width-epoch: stdout: esperado \"000001767604023|     1767604023|1767604023\\n\" obtido \"\"",
+            "date-flag-width-offset: stdout: esperado \"+000000000|   +0|+0|+0000:00\\n\" obtido \"\"",
+            "date-flag-combined-dash-upper: stdout: esperado \"JAN 5\\n\" obtido \"\"",
+            "date-flag-ampm-afternoon: stdout: esperado \"PM|pm|pm|pm|3| 3\\n\" obtido \"\"",
+            "date-fmt-locale-modifiers: stdout: esperado \"26 2026 05 09 Mon Jan  5 09:07:03 2026\\n\" obtido \"\""
+          ],
+          "formatador: strftime": [
+            "date-flag-plus-year: stdout: esperado \"2026|+02026|20\\n\" obtido \"2026-01-05T09:07:03+00:004Y|2026-01-05T09:07:03+00:006Y|2026-01-05T09:07:03+00:00C\\n\""
+          ],
+          "fuso: resolução do TZ ou dado do tzdb": [
+            "date-tz-unknown-name: stdout: esperado \"2026-07-01 12:00:00 Foo +0000\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\"",
+            "date-tz-empty: stdout: esperado \"2026-07-01 12:00:00 Universal +0000\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\"",
+            "date-tz-backward-link: stdout: esperado \"2026-07-01 12:00:00  +0000\\n\" obtido \"2026-07-01 12:00:00 EDT -0400\\n\""
+          ],
+          "parser (atribuído por troca: mesmo formatador passa com outro parser)": [
+            "date-parse-invalid-trailing: stdout: esperado \"\" obtido \"Tue Jan 13 14:00:00 UTC 2026\\n\"",
+            "date-tz-ny-fall-ambiguous-now-winter: stdout: esperado \"2026-11-01 01:30:00 EST 1793514600\\n\" obtido \"2026-11-01 01:30:00 EDT 1793511000\\n\"",
+            "date-tz-ny-tomorrow-across-dst: stdout: esperado \"2026-03-08 13:00:00 EDT\\n\" obtido \"2026-03-08 12:00:00 EDT\\n\"",
+            "date-tz-berlin-fall-ambiguous-now-winter: stdout: esperado \"2026-10-25 02:30:00 CET 1792891800\\n\" obtido \"2026-10-25 02:30:00 CEST 1792888200\\n\""
+          ],
+          "parser: aceita entrada que o GNU rejeita": [
+            "date-tz-ny-spring-gap: stdout: esperado \"\" obtido \"2026-03-08 03:30:00 EDT\\n\"",
+            "date-tz-berlin-spring-gap: stdout: esperado \"\" obtido \"2026-03-29 03:30:00 CEST\\n\"",
+            "date-tz-sao-paulo-historic-gap: stdout: esperado \"\" obtido \"2018-11-04 01:30:00 -02\\n\""
+          ],
+          "parser: instante diferente": [
+            "date-parse-empty-string: stdout: esperado \"2026-01-15 00:00:00 +0000\\n\" obtido \"2026-01-15 12:00:00 +0000\\n\"",
+            "date-parse-datetime-plus-hours: stdout: esperado \"2026-01-15 10:00:00 +0000\\n\" obtido \"2026-01-15 15:00:00 +0000\\n\""
+          ],
+          "parser: rejeita entrada que o GNU aceita": [
+            "date-parse-epoch-negative-fraction: stdout: esperado \"-2 500000000 23:59:58\\n\" obtido \"\""
+          ],
+          "parser: relativo atravessando horário de verão": [
+            "date-tz-ny-plus-day-across-dst: stdout: esperado \"2026-03-08 07:00:00 EDT\\n\" obtido \"2026-03-08 12:00:00 EDT\\n\"",
+            "date-tz-ny-plus-24h-across-dst: stdout: esperado \"2026-03-06 08:00:00 EST\\n\" obtido \"2026-03-08 13:00:00 EDT\\n\""
+          ]
+        },
+        "category_depscan_all_targets": "c",
+        "c_deps_built_on_linux": [],
+        "depscan": [
+          {
+            "package": "parse_datetime",
+            "version": "0.16.0",
+            "own_category": "a",
+            "tree_category": "c",
+            "c_deps": [
+              "defmt 1.1.1"
+            ],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 25,
+            "tree_unsafe": 1385,
+            "host_touching_deps": {
+              "defmt-macros 1.1.1": 2,
+              "jiff 0.2.37": 19,
+              "jiff-static 0.2.37": 1,
+              "portable-atomic 1.15.0": 6,
+              "portable-atomic-util 0.2.8": 12,
+              "serde_core 1.0.229": 1,
+              "winnow 1.0.4": 2
+            }
+          },
+          {
+            "package": "chrono",
+            "version": "0.4.45",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 6,
+            "own_unsafe": 7,
+            "tree_deps": 31,
+            "tree_unsafe": 2265,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          },
+          {
+            "package": "chrono-tz",
+            "version": "0.10.4",
+            "own_category": "a",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 35,
+            "tree_unsafe": 2277,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "chrono 0.4.45": 6,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "roles": [],
+  "metrics": {
+    "cases": 264,
+    "common_failures": [
+      "date-flag-upper",
+      "date-flag-swap-case",
+      "date-flag-width-text",
+      "date-flag-width-epoch",
+      "date-flag-width-offset",
+      "date-flag-plus-year",
+      "date-flag-combined-dash-upper",
+      "date-flag-ampm-afternoon",
+      "date-fmt-locale-modifiers",
+      "date-parse-empty-string",
+      "date-parse-datetime-plus-hours",
+      "date-parse-epoch-negative-fraction",
+      "date-tz-ny-spring-gap",
+      "date-tz-ny-plus-day-across-dst",
+      "date-tz-ny-plus-24h-across-dst",
+      "date-tz-berlin-spring-gap",
+      "date-tz-sao-paulo-historic-gap",
+      "date-tz-unknown-name",
+      "date-tz-empty",
+      "date-tz-backward-link"
+    ],
+    "root_cause_probes": {
+      "jiff_strftime_s_negative_fraction": {
+        "instant": "-1.5 s",
+        "jiff": "-1",
+        "gnu": "-2"
+      },
+      "parse_datetime_accepts_dst_gap": {
+        "input": "2026-03-08 02:30 America/New_York",
+        "result": "2026-03-08 03:30:00 EDT",
+        "gnu": "invalid date"
+      },
+      "parse_datetime_time_then_signed_number": {
+        "input": "2026-01-15 12:00 +3 hours (UTC)",
+        "result": "2026-01-15 20:00:00",
+        "gnu": "2026-01-15 10:00:00 (o GNU lê '+3' depois da hora como fuso UTC+3 e 'hours' como +1 hora)"
+      }
+    },
+    "tzdb_versions": {
+      "oracle_tzdata": "2026c-0+deb13u1",
+      "jiff_tzdb_bundled": "2026c",
+      "chrono_tz": "2025b"
+    },
+    "host_coupling": {
+      "jiff_global_db": "TimeZoneDatabase(ZoneInfo(/usr/share/zoneinfo))",
+      "global_db_reads_host_zoneinfo": true,
+      "parse_datetime_tz_prefix_resolves_via": "jiff::tz::TimeZone::get (banco global), parse_datetime-0.16.0/src/items/timezone.rs:93",
+      "parse_datetime_jiff_features": [
+        "tz-system",
+        "tzdb-bundle-platform",
+        "tzdb-zoneinfo"
+      ],
+      "raw_tz_prefix_tokyo_epoch": 1768435200,
+      "expected_tokyo_epoch": 1768435200,
+      "mitigation": "front-end separa TZ=\"...\" e resolve o fuso pelo TimeZoneDatabase::bundled(); now e fuso sempre injetados",
+      "zoned_now_used_only_without_base": "parse_datetime chama Zoned::now() só quando não recebe base; usamos parse_datetime_at_date"
+    },
+    "clock": "relógio congelado via FAKETIME + LD_PRELOAD da libfaketime (ver corpus/cases/date/format.toml)"
+  },
+  "notes": [
+    "H32: os casos com relógio usam FAKETIME absoluto + LD_PRELOAD da libfaketime em vez do campo `faketime` do harness: o wrapper `faketime` só fixa os segundos e herda a fração de segundo real (medido: 12:00:00.79, 12:00:00.92...), então %S vira o segundo seguinte de vez em quando. Com -u a libfaketime reinterpreta o FAKETIME absoluto no TZ novo, então os casos com -u usam o mtime da fixture (-r).",
+    "H32: o tzdata do oráculo (Debian 13) não traz os nomes legados (US/Eastern, Universal ficam no pacote tzdata-legacy); o tzdb embutido do jiff traz, então esses casos divergem por dado de fuso, não por código."
+  ]
+}

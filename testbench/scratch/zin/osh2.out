@@ -1,0 +1,370 @@
+$ zstd -l s.txt.zst h.txt.zst e.txt.zst
+Frames  Skips  Compressed  Uncompressed  Ratio  Check  Filename
+     1      0    26.1 KiB       106 KiB  4.069  XXH64  s.txt.zst
+     1      0      19   B         6   B  0.316  XXH64  h.txt.zst
+     1      0      13   B         0   B  0.000  XXH64  e.txt.zst
+----------------------------------------------------------------- 
+     3      0    26.2 KiB       106 KiB  4.064  XXH64  3 files
+[exit 0]
+$ zstd -lv s.txt.zst e.txt.zst
+*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***
+s.txt.zst 
+# Zstandard Frames: 1
+DictID: 0
+Window Size: 106 KiB (108894 B)
+Compressed Size: 26.1 KiB (26761 B)
+Decompressed Size: 106 KiB (108894 B)
+Ratio: 4.0691
+Check: XXH64 801aa1e4
+
+e.txt.zst 
+# Zstandard Frames: 1
+DictID: 0
+Window Size: 0 B (0 B)
+Compressed Size: 13 B (13 B)
+Decompressed Size: 0 B (0 B)
+Ratio: 0.0000
+Check: XXH64 51d8e999
+
+[exit 0]
+$ zstd -l m.zst
+Frames  Skips  Compressed  Uncompressed  Ratio  Check  Filename
+     2      0    26.2 KiB       106 KiB  4.066  XXH64  m.zst
+[exit 0]
+0000
+hello
+[exit 0]
+$ zstd -lv m.zst
+*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***
+m.zst 
+# Zstandard Frames: 2
+DictID: 0
+Window Size: 6 B (6 B)
+Compressed Size: 26.2 KiB (26780 B)
+Decompressed Size: 106 KiB (108900 B)
+Ratio: 4.0665
+Check: XXH64
+
+[exit 0]
+$ zstd -t c1.zst
+c1.zst : Decoding error (36) : Data corruption detected 
+[exit 1]
+84
+$ zstd -t c2.zst
+c2.zst : Read error (39) : premature end 
+[exit 1]
+108963
+$ zstd -t c3.zst
+c3.zst : Decoding error (36) : Restored data doesn't match checksum 
+[exit 1]
+96
+$ zstd -t --no-check c3.zst
+c3.zst              : 108894 bytes 
+[exit 0]
+$ zstd -t c4.zst
+zstd: c4.zst: unknown header 
+[exit 1]
+$ zstd -l c4.zst
+Error: reached end of file with incomplete frame 
+Frames  Skips  Compressed  Uncompressed  Ratio  Check  Filename
+File "c4.zst" not compressed by zstd 
+[exit 1]
+$ zstd -t c5.zst
+c5.zst : Read error (39) : premature end 
+[exit 1]
+$ zstd -t c6.zst
+c6.zst : Decoding error (36) : Frame requires too much memory for decoding 
+c6.zst : Window log larger than ZSTD_WINDOWLOG_MAX=31; not supported 
+[exit 1]
+$ zstd -dc skh.zst
+hello
+[exit 0]
+$ zstd -l skh.zst
+Frames  Skips  Compressed  Uncompressed  Ratio  Check  Filename
+     2      1      30   B         6   B  0.200  XXH64  skh.zst
+[exit 0]
+$ zstd -dc c7.zst
+c7.zst : Read error (39) : premature end 
+[exit 1]
+$ zstd -l c7.zst
+Error while reading block header 
+Error while parsing "c7.zst" 
+Frames  Skips  Compressed  Uncompressed  Ratio  Check  Filename
+     0      0       6   B         6   B  1.000   None  c7.zst
+[exit 1]
+$ zstd -dc g1.zst
+zstd: g1.zst: unsupported format 
+hello
+[exit 1]
+$ zstd -l g1.zst
+Frames  Skips  Compressed  Uncompressed  Ratio  Check  Filename
+File "g1.zst" not compressed by zstd 
+[exit 1]
+$ zstd -l big.zst
+Frames  Skips  Compressed  Uncompressed  Ratio  Check  Filename
+     1      0    26.1 KiB       106 KiB  4.069  XXH64  big.zst
+[exit 0]
+$ zstd -t -M1KB s.txt.zst
+s.txt.zst           : 108894 bytes 
+[exit 0]
+$ zstd -t --memory=1MB big.zst
+big.zst             : 108894 bytes 
+[exit 0]
+$ zstd -dc h.gz
+hello
+[exit 0]
+$ zstd -dc h.xz
+hello
+[exit 0]
+$ zstd -dc h.lzma
+hello
+[exit 0]
+$ zstd -d -f h.gz
+h.gz                : 6 bytes 
+[exit 0]
+h.gz
+h.lzma
+h.txt
+h.txt.zst
+h.xz
+$ zstd -q --format=gzip -f h.txt
+[exit 0]
+$ gzip -dc h.txt.gz
+hello
+[exit 0]
+$ zstd -q --format=xz -f h.txt
+[exit 0]
+$ xz -dc h.txt.xz
+hello
+[exit 0]
+$ zstd -q --format=lzma -f h.txt
+[exit 0]
+$ xz -dc h.txt.lzma
+hello
+[exit 0]
+$ zstd -q --format=lz4 -f h.txt
+[exit 0]
+$ zstd -dc h.txt.lz4
+hello
+[exit 0]
+$ zstd -dc hg.gz
+zstd: hg.gz: premature gz end 
+[exit 1]
+$ zstd -dc hx.xz
+zstd: hx.xz: premature lzma end 
+[exit 1]
+$ zstd -d t.tzst
+t.tzst              : 108894 bytes 
+[exit 0]
+t.tar
+t.tzst
+$ zstd -d u.zstd
+u.zstd              : 108894 bytes 
+[exit 0]
+u
+u.zstd
+$ zstd -d s.txt
+zstd: s.txt: unknown suffix (.zst/.tzst/.gz/.tgz/.lzma/.xz/.txz/.lz4/.tlz4 expected). Can't derive the output file name. Specify it with -o dstFileName. Ignoring.
+[exit 1]
+$ zstd -d nosuffix
+zstd: nosuffix: unknown suffix (.zst/.tzst/.gz/.tgz/.lzma/.xz/.txz/.lz4/.tlz4 expected). Can't derive the output file name. Specify it with -o dstFileName. Ignoring.
+[exit 1]
+$ zstd -d .zst
+zstd: .zst: unknown suffix (.zst/.tzst/.gz/.tgz/.lzma/.xz/.txz/.lz4/.tlz4 expected). Can't derive the output file name. Specify it with -o dstFileName. Ignoring.
+[exit 1]
+$ zstd -q --output-dir-flat od h.txt s.txt
+[exit 0]
+h.txt.zst
+s.txt.zst
+$ zstd -d --output-dir-flat od -f od/h.txt.zst
+od/h.txt.zst        : 6 bytes 
+[exit 0]
+h.txt
+h.txt.zst
+s.txt.zst
+$ zstd -q -r --output-dir-mirror mir sub
+[exit 0]
+mir:
+sub
+
+mir/sub:
+x
+
+mir/sub/x:
+h.txt.zst
+$ zstd -q -f --filelist list
+[exit 0]
+$ zstd -q -f --filelist nolist
+zstd: error reading nolist 
+[exit 1]
+$ zstd -q --exclude-compressed h.txt.zst
+[exit 0]
+h.txt.zst
+$ zstd h.txt
+zstd: h.txt.zst already exists; overwrite (y/n) ? Not overwritten  
+ 
+[exit 1]
+$ zstd -q h.txt
+zstd: h.txt.zst already exists; not overwritten  
+[exit 1]
+zstd: h.txt.zst already exists; overwrite (y/n) ? h.txt                :316.67%   (     6 B =>     19 B, h.txt.zst) 
+[y 0]
+$ zstd -o s.txt h.txt
+zstd: s.txt already exists; overwrite (y/n) ? Not overwritten  
+ 
+[exit 1]
+$ zstd -o x.zst h.txt s.txt
+zstd: WARNING: all input files will be processed and concatenated into a single output file: x.zst 
+The concatenated output CANNOT regenerate original file names nor directory structure. 
+Proceed? (y/n): Aborting... 
+[exit 1]
+$ zstd -q -o x.zst h.txt s.txt
+Concatenating multiple processed inputs into a single output loses file metadata. 
+Aborting. 
+[exit 1]
+$ zstd -f -o x.zst h.txt s.txt
+zstd: WARNING: all input files will be processed and concatenated into a single output file: x.zst 
+The concatenated output CANNOT regenerate original file names nor directory structure. 
+  2 files compressed : 24.59% (   106 KiB =>   26.2 KiB)
+[exit 0]
+108926
+49
+h.txt
+$ zstd -q --rm hr.txt
+[exit 0]
+hr.txt.zst
+$ zstd -q -d --rm hr.txt.zst
+[exit 0]
+hr.txt
+26993
+253
+516
+59
+$ zstd --zstd=bogus=1 h.txt
+Incorrect parameter: --zstd=bogus=1 
+Compress or decompress the INPUT file(s); reads from STDIN if INPUT is `-` or not provided.
+
+Usage: zstd [OPTIONS...] [INPUT... | -] [-o OUTPUT]
+
+Options:
+  -o OUTPUT                     Write output to a single file, OUTPUT.
+  -k, --keep                    Preserve INPUT file(s). [Default] 
+  --rm                          Remove INPUT file(s) after successful (de)compression.
+
+  -#                            Desired compression level, where `#` is a number between 1 and 19;
+                                lower numbers provide faster compression, higher numbers yield
+                                better compression ratios. [Default: 3]
+
+  -d, --decompress              Perform decompression.
+  -D DICT                       Use DICT as the dictionary for compression or decompression.
+
+  -f, --force                   Disable input and output checks. Allows overwriting existing files,
+                                receiving input from the console, printing output to STDOUT, and
+                                operating on links, block devices, etc. Unrecognized formats will be
+                                passed-through through as-is.
+
+  -h                            Display short usage and exit.
+  -H, --help                    Display full help and exit.
+  -V, --version                 Display the program version and exit.
+
+[exit 1]
+$ zstd --fast=0 h.txt
+Incorrect parameter: --fast=0 
+Compress or decompress the INPUT file(s); reads from STDIN if INPUT is `-` or not provided.
+
+Usage: zstd [OPTIONS...] [INPUT... | -] [-o OUTPUT]
+
+Options:
+  -o OUTPUT                     Write output to a single file, OUTPUT.
+  -k, --keep                    Preserve INPUT file(s). [Default] 
+  --rm                          Remove INPUT file(s) after successful (de)compression.
+
+  -#                            Desired compression level, where `#` is a number between 1 and 19;
+                                lower numbers provide faster compression, higher numbers yield
+                                better compression ratios. [Default: 3]
+
+  -d, --decompress              Perform decompression.
+  -D DICT                       Use DICT as the dictionary for compression or decompression.
+
+  -f, --force                   Disable input and output checks. Allows overwriting existing files,
+                                receiving input from the console, printing output to STDOUT, and
+                                operating on links, block devices, etc. Unrecognized formats will be
+                                passed-through through as-is.
+
+  -h                            Display short usage and exit.
+  -H, --help                    Display full help and exit.
+  -V, --version                 Display the program version and exit.
+
+[exit 1]
+56
+$ zstd --long=x h.txt
+zstd: h.txt.zst already exists; overwrite (y/n) ? Not overwritten  
+ 
+[exit 1]
+$ zstd -o
+error: missing command argument 
+[exit 1]
+$ zstd -o -c h.txt
+error: command cannot be separated from its argument by another command 
+[exit 1]
+$ zstd --threads -c h.txt
+error: command cannot be separated from its argument by another command 
+[exit 1]
+$ zstd --threads=abc h.txt
+error: only numeric values with optional suffixes K, KB, KiB, M, MB, MiB are allowed 
+[exit 1]
+$ zstd -99999999999 h.txt
+error: numeric value overflows 32-bit unsigned int 
+[exit 1]
+59
+$ zstd -b1 -bogus
+error: missing command argument 
+[exit 1]
+$ zstd --single-thread --rsyncable h.txt
+zstd: error 1 : Rsyncable mode is not compatible with single thread mode 
+ 
+[exit 1]
+$ zstd --single-thread -B1M -q -f h.txt
+[exit 0]
+Ignore environment variable setting ZSTD_CLEVEL=abc: not a valid integer value 
+19
+Ignore environment variable setting ZSTD_CLEVEL=99999999999: numeric value too large 
+19
+$ zstdcat h.txt
+hello
+[exit 0]
+108939
+$ unzstd -q -f h.txt.zst
+[exit 0]
+h.txt
+h.txt.gz
+h.txt.lz4
+h.txt.lzma
+h.txt.xz
+h.txt.zst
+$ zstd -t h.txt.zst s.txt.zst c1.zst
+c1.zst : Decoding error (36) : Data corruption detected 
+2 files decompressed : 108900 bytes total 
+[exit 1]
+$ zstd -d -c --pass-through h.txt
+hello
+[exit 0]
+$ zstd -l -
+zstd: --list does not support reading from standard input 
+[exit 1]
+$ zstd -l
+zstd: --list does not support reading from standard input 
+No files given 
+[exit 1]
+$ zstd -c -
+(µ/ý$   ™éØQ[exit 0]
+$ zstd nope1 nope2
+zstd: can't stat nope1 : No such file or directory -- ignored 
+zstd: can't stat nope2 : No such file or directory -- ignored 
+[exit 1]
+$ zstd -D nodict -c h.txt
+zstd: error 31 : Stat failed on dictionary file nodict: No such file or directory 
+[exit 31]
+$ zstd -D h.txt -c h.txt
+zstd: cannot use h.txt as an input file and dictionary 
+[exit 1]

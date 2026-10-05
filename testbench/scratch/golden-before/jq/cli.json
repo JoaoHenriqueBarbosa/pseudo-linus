@@ -1,0 +1,464 @@
+{
+  "jq-arg": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-arg-is-string": {
+    "stdout": "[\"5\",6,\"string\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-argjson": {
+    "stdout": "[\"a\",1,2]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-argjson-invalid": {
+    "stdout": "",
+    "stderr": "jq: invalid JSON text passed to --argjson\nUse jq --help for help with command-line options,\nor see the jq manpage, or online docs  at https://jqlang.github.io/jq\n",
+    "exit": 2,
+    "files": {}
+  },
+  "jq-args-named": {
+    "stdout": "{\"x\":\"1\",\"y\":2}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-args-positional": {
+    "stdout": "{\"positional\":[\"a\",\"b c\",\"-d\"],\"named\":{}}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-ascii-output": {
+    "stdout": "{\"s\":\"ol\\u00e1 \\u2603 \\ud83d\\ude00\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-combined-short-flags": {
+    "stdout": "[\"a\",1]\n[\"b\",2]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-compact": {
+    "stdout": "{\"id\":1,\"name\":\"Alice\",\"tags\":[\"admin\",\"dev\"]}\n{\"id\":2,\"name\":\"Bob\",\"tags\":[]}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 90,
+        "sha256": "3bffa67125f71c5a9d011ba5d7607d542af328cf71762811fc6e9a44f291d5e2",
+        "data": "{\"users\":[{\"id\":1,\"name\":\"Alice\",\"tags\":[\"admin\",\"dev\"]},{\"id\":2,\"name\":\"Bob\",\"tags\":[]}]}"
+      }
+    }
+  },
+  "jq-empty-input-no-output": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-env-and-ENV": {
+    "stdout": "[\"/root\",\"x y\",true]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-exit-in-set-e-script": {
+    "stdout": "null\njq falhou com 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-exit-status-false": {
+    "stdout": "false\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "jq-exit-status-last-value-wins": {
+    "stdout": "false\n1\nnull\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "jq-exit-status-no-output": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 4,
+    "files": {}
+  },
+  "jq-exit-status-null": {
+    "stdout": "null\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "jq-exit-status-select-pattern": {
+    "stdout": "empty: 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "eeb85c2675888473ec64b7580aa0c76c6fd6b2bd51828870286ef202ad89dae2",
+        "data": "{\"items\": []}"
+      }
+    }
+  },
+  "jq-exit-status-true": {
+    "stdout": "\"yes\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-from-file": {
+    "stdout": "42\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "158bd717cba6a6f5214bce29fd0f8cdbc9a9d139ec1152203dbe9eeb53741be8",
+        "data": "[{\"age\":30},{\"age\":12}]"
+      },
+      "prog.jq": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "b0898ab9fced7dd4c77c99d93f63deb5ac40982611df1eb445f9be773e10a4d3",
+        "data": "# soma as idades\n[.[] | .age] | add\n"
+      }
+    }
+  },
+  "jq-identity-pretty": {
+    "stdout": "{\n  \"users\": [\n    {\n      \"id\": 1,\n      \"name\": \"Alice\",\n      \"email\": \"alice@example.com\",\n      \"age\": 30,\n      \"tags\": [\n        \"admin\",\n        \"dev\"\n      ],\n      \"active\": true\n    },\n    {\n      \"id\": 2,\n      \"name\": \"Bob\",\n      \"email\": null,\n      \"age\": 25,\n      \"tags\": [],\n      \"active\": false\n    }\n  ],\n  \"meta\": {\n    \"total\": 2,\n    \"page\": 1,\n    \"empty\": {}\n  }\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 217,
+        "sha256": "3ed7bdc11a27444ab256f143b9eb83fa9776e79bb346d11d53dcd1a601559d8e",
+        "data": "{\"users\":[{\"id\":1,\"name\":\"Alice\",\"email\":\"alice@example.com\",\"age\":30,\"tags\":[\"admin\",\"dev\"],\"active\":true},{\"id\":2,\"name\":\"Bob\",\"email\":null,\"age\":25,\"tags\":[],\"active\":false}],\"meta\":{\"total\":2,\"page\":1,\"empty\":{}}}"
+      }
+    }
+  },
+  "jq-indent-0": {
+    "stdout": "{\"a\":[1,{\"b\":2}],\"c\":{}}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-indent-4": {
+    "stdout": "{\n    \"a\": [\n        1,\n        {\n            \"b\": 2\n        }\n    ],\n    \"c\": {}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-indent-too-big": {
+    "stdout": "",
+    "stderr": "jq: --indent takes a number between -1 and 7\nUse jq --help for help with command-line options,\nor see the jq manpage, or online docs  at https://jqlang.github.io/jq\n",
+    "exit": 2,
+    "files": {}
+  },
+  "jq-input-and-inputs": {
+    "stdout": "[1,2]\n[3,4]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-input-filename-stdin": {
+    "stdout": "\"<stdin>\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-input-odd-count-error": {
+    "stdout": "[1,2]\n",
+    "stderr": "jq: error (at <unknown>): break\n",
+    "exit": 5,
+    "files": {}
+  },
+  "jq-inputs-collect": {
+    "stdout": "[1,\"a\",[2]]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-join-output": {
+    "stdout": "a1b{\n  \"c\": 2\n}",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-jsonargs": {
+    "stdout": "[1,{\"a\":2},null]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-loc": {
+    "stdout": "{\"file\":\"<top-level>\",\"line\":1}\n{\"file\":\"<top-level>\",\"line\":1}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-missing-file": {
+    "stdout": "",
+    "stderr": "jq: error: Could not open file nope.json: No such file or directory\n",
+    "exit": 2,
+    "files": {}
+  },
+  "jq-missing-file-among-others": {
+    "stdout": "{\"ok\":true}\n",
+    "stderr": "jq: error: Could not open file nope.json: No such file or directory\n",
+    "exit": 2,
+    "files": {
+      "a.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93",
+        "data": "{\"ok\":true}"
+      }
+    }
+  },
+  "jq-modify-file-via-tmp": {
+    "stdout": "{\n  \"name\": \"p\",\n  \"version\": \"2.0\",\n  \"deps\": [\n    \"x\"\n  ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 63,
+        "sha256": "9995e07d848f60c676f6a35a2129366f71bf1334277382ad67d5f263d1f5ac7a",
+        "data": "{\n  \"name\": \"p\",\n  \"version\": \"2.0\",\n  \"deps\": [\n    \"x\"\n  ]\n}\n"
+      }
+    }
+  },
+  "jq-multiple-files": {
+    "stdout": "[{\"f\":\"a\"},\"a.json\"]\n[1,\"b.json\"]\n[2,\"b.json\"]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "910b42ae2f4a973d3af5f056c18c62742efb4f7c4af344444e47e071411d6e57",
+        "data": "{\"f\":\"a\"}"
+      },
+      "b.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "f71998fe363b9c29116c80b5eecf33a2fedca3b6159724384485804b71651029",
+        "data": "1 2"
+      }
+    }
+  },
+  "jq-no-filter-stdin": {
+    "stdout": "{\n  \"a\": 1\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-null-input": {
+    "stdout": "2\n[\n  0,\n  1,\n  2\n]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-null-input-ignores-stdin": {
+    "stdout": "41\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-null-input-inputs-reduce": {
+    "stdout": "42\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-options-after-filter": {
+    "stdout": "{\"b\":\"c\"}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "3ff0e331ca59a2a1194bac0e36359ed4540a97383e1cdf6eb95c7de9309143fc",
+        "data": "{\"a\":{\"b\":\"c\"}}"
+      }
+    }
+  },
+  "jq-pipeline-curl-style": {
+    "stdout": "7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-pipeline-to-while-read": {
+    "stdout": "a.txt=10\nb c.txt=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "files.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 56,
+        "sha256": "11123a494412e12f54640f399f7c54b2ee3042aa123317c29714b06a85ed1946",
+        "data": "[{\"name\":\"a.txt\",\"size\":10},{\"name\":\"b c.txt\",\"size\":0}]"
+      }
+    }
+  },
+  "jq-raw-input-lines": {
+    "stdout": "\"line one\"\n\"\\\"quoted\\\"\"\n\"\"\n\"last\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-raw-input-null-input-inputs": {
+    "stdout": "[\n  \"x\",\n  \"y\"\n]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-raw-input-slurp": {
+    "stdout": "[\n  \"a\",\n  \"b\",\n  \"\"\n]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-raw-output": {
+    "stdout": "Alice\nBob \"B\"\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-raw-output-nonstring": {
+    "stdout": "s\n1\nnull\n{\n  \"a\": [\n    1\n  ]\n}\ntrue\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-raw-output0": {
+    "stdout": "a\u0000b\u0000",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-rawfile": {
+    "stdout": "10\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "notes.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "410687c4efaaf7fd234c25a8e854252de517b17043e65f8f19cc6b7fc2ab8192",
+        "data": "olá\nmundo\n"
+      }
+    }
+  },
+  "jq-seq-flag": {
+    "stdout": "",
+    "stderr": "jq: ignoring parse error: Unfinished abandoned text at EOF at line 1, column 5\n",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-slurp-add": {
+    "stdout": "42\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-slurp-empty-input": {
+    "stdout": "[]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-slurp-length": {
+    "stdout": "4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-slurpfile": {
+    "stdout": "3\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "values.json": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "6583f9b9eb328e69dae3505eb0f037fadde8b694eea542fef0f0cfb5f9d7c18d",
+        "data": "{\"k\": 1} {\"k\": 2} 3"
+      }
+    }
+  },
+  "jq-sort-keys": {
+    "stdout": "{\n  \"A\": [\n    {\n      \"y\": 2,\n      \"z\": 1\n    }\n  ],\n  \"a\": {\n    \"c\": 2,\n    \"d\": 1\n  },\n  \"b\": 1\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-sort-keys-compact": {
+    "stdout": "{\"a\":{\"c\":2,\"d\":1},\"b\":1}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-stream-flag": {
+    "stdout": "[[\"a\",0],1]\n[[\"a\",1,\"b\"],null]\n[[\"a\",1,\"b\"]]\n[[\"a\",1]]\n[[\"c\"],\"d\"]\n[[\"c\"]]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-tab": {
+    "stdout": "{\n\t\"a\": [\n\t\t1,\n\t\t{\n\t\t\t\"b\": 2\n\t\t}\n\t]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "jq-undefined-variable": {
+    "stdout": "",
+    "stderr": "jq: error: $nope is not defined at <top-level>, line 1:\n$nope\njq: 1 compile error\n",
+    "exit": 3,
+    "files": {}
+  },
+  "jq-unknown-option": {
+    "stdout": "",
+    "stderr": "jq: Unknown option --frobnicate\nUse jq --help for help with command-line options,\nor see the jq manpage, or online docs  at https://jqlang.github.io/jq\n",
+    "exit": 2,
+    "files": {}
+  },
+  "jq-version": {
+    "stdout": "jq-1.7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

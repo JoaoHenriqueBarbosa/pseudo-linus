@@ -1,0 +1,33 @@
+Author: Daniel Jacobowitz <dan@debian.org>
+Author: Sven Joachim <svenjoac@gmx.de>
+Description: Fix backspace key description in some terminfo entries
+ Change backspace key description according to the Debian keyboard policy.
+Bug-Debian: https://bugs.debian.org/237997
+Bug-Debian: https://bugs.debian.org/1037071
+Forwarded: not-needed
+Last-Update: 2024-04-15
+
+---
+ misc/terminfo.src |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/misc/terminfo.src
++++ b/misc/terminfo.src
+@@ -6746,7 +6746,7 @@ rxvt-basic|rxvt terminal base (X Window
+ 	cup=\E[%i%p1%d;%p2%dH, ed=\E[J, el=\E[K, el1=\E[1K,
+ 	flash=\E[?5h$<100/>\E[?5l, ich=\E[%p1%d@,
+ 	is1=\E[?47l\E=\E[?1l,
+-	is2=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l\E[4l,
++	is2=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l\E[4l, kbs=^?,
+ 	kcbt=\E[Z, kmous=\E[M, rev=\E[7m, ri=\EM, rmir=\E[4l,
+ 	rmkx=\E>, rmso=\E[27m, rmul=\E[24m,
+ 	rs1=\E>\E[1;3;4;5;6l\E[?7h\E[m\E[r\E[2J\E[H,
+@@ -6985,7 +6985,7 @@ Eterm|Eterm-color|Eterm with xterm-style
+ 	ech=\E[%p1%dX, ed=\E[J, el=\E[K, el1=\E[1K, enacs=\E)0,
+ 	hpa=\E[%i%p1%dG, ich=\E[%p1%d@, is1=\E[?47l\E>\E[?1l,
+ 	is2=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;3;4;6l\E[4l, kNXT@,
+-	kPRV@, ka1=\E[7~, ka3=\E[5~, kb2=\EOu, kbeg=\EOu, kc1=\E[8~,
++	kPRV@, ka1=\E[7~, ka3=\E[5~, kb2=\EOu, kbeg=\EOu, kbs=^?, kc1=\E[8~,
+ 	kc3=\E[6~, kent=\EOM, khlp=\E[28~, kmous=\E[M, mc4=\E[4i,
+ 	mc5=\E[5i, rev=\E[7m, ri=\EM, rmam=\E[?7l, rmir=\E[4l, rmkx=,
+ 	rmso=\E[27m, rmul=\E[24m,

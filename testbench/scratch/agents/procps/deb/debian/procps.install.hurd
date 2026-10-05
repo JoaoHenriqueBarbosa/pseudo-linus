@@ -1,0 +1,3 @@
+# Files to install for hurd systems
+usr/bin
+usr/share/locale

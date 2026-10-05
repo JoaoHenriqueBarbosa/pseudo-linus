@@ -1,0 +1,843 @@
+[
+  {
+    "id": "file-png",
+    "tags": [
+      "image",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-png-brief",
+    "tags": [
+      "image",
+      "describe",
+      "brief"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-jpeg",
+    "tags": [
+      "image",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-gif",
+    "tags": [
+      "image",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-random",
+    "tags": [
+      "binary",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-gzip",
+    "tags": [
+      "compressed",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-gzip-brief",
+    "tags": [
+      "compressed",
+      "describe",
+      "brief"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-gzip-named",
+    "tags": [
+      "compressed",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-gzip-z",
+    "tags": [
+      "compressed",
+      "describe",
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "opção não suportada: -z",
+    "detail": [
+      "unsupported: opção não suportada: -z"
+    ]
+  },
+  {
+    "id": "file-bzip2",
+    "tags": [
+      "compressed",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-xz",
+    "tags": [
+      "compressed",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-zstd",
+    "tags": [
+      "compressed",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-lzip",
+    "tags": [
+      "compressed",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-tgz",
+    "tags": [
+      "compressed",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-tar",
+    "tags": [
+      "archive",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-zip",
+    "tags": [
+      "archive",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-zip-brief",
+    "tags": [
+      "archive",
+      "describe",
+      "brief"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-symlink-follow",
+    "tags": [
+      "special",
+      "describe",
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-multi",
+    "tags": [
+      "special",
+      "describe",
+      "multi"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-multi-mime",
+    "tags": [
+      "special",
+      "mime",
+      "multi"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.txt:     text/plain\\nimage.png: image/png\\ndata.json: application/json\\nsub:       inode/directory\\n\" obtido \"a.txt:     text/plain\\nimage.png: image/png\\ndata.json: text/plain\\nsub:       inode/directory\\n\""
+    ]
+  },
+  {
+    "id": "file-multi-brief",
+    "tags": [
+      "special",
+      "describe",
+      "multi",
+      "brief"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-multi-with-missing",
+    "tags": [
+      "special",
+      "error",
+      "multi"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-stdin",
+    "tags": [
+      "special",
+      "describe",
+      "stdin"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-stdin-mime",
+    "tags": [
+      "special",
+      "mime",
+      "stdin"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"/dev/stdin: application/json\\n\" obtido \"/dev/stdin: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-subdir-path",
+    "tags": [
+      "special",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-separator",
+    "tags": [
+      "special",
+      "describe",
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-ascii",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-ascii-brief",
+    "tags": [
+      "text",
+      "describe",
+      "brief"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-utf8",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-crlf",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-cr-only",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-no-newline",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-long-lines",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-latin1",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-utf8-bom",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-utf16le-bom",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-script-bash",
+    "tags": [
+      "script",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-script-python",
+    "tags": [
+      "script",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-script-python-mime",
+    "tags": [
+      "script",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"tool.py: text/x-script.python\\n\" obtido \"tool.py: text/x-shellscript\\n\""
+    ]
+  },
+  {
+    "id": "file-script-sh",
+    "tags": [
+      "script",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-c-source",
+    "tags": [
+      "source",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-c-source-mime",
+    "tags": [
+      "source",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"main.c: text/x-c\\n\" obtido \"main.c: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-json",
+    "tags": [
+      "structured",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-json-mime",
+    "tags": [
+      "structured",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"data.json: application/json\\n\" obtido \"data.json: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-json-i",
+    "tags": [
+      "structured",
+      "mime-charset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"data.json: application/json; charset=us-ascii\\n\" obtido \"data.json: text/plain; charset=us-ascii\\n\""
+    ]
+  },
+  {
+    "id": "file-xml",
+    "tags": [
+      "structured",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-html",
+    "tags": [
+      "structured",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-csv",
+    "tags": [
+      "structured",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  },
+  {
+    "id": "file-pdf",
+    "tags": [
+      "document",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "motor sem descrição (só MIME)",
+    "detail": [
+      "unsupported: motor sem descrição (só MIME)"
+    ]
+  }
+]

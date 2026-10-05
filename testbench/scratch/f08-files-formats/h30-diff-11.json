@@ -1,0 +1,1337 @@
+[
+  {
+    "id": "diff-tie-repeated-pair-delete",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-repeated-pair-delete-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,5 +2,3 @@\\n b\\n a\\n b\\n-a\\n\"... (123 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -2,5 +2,3 @@\\n b\\n a\\n\"... (129 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-insert-in-run",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-delete-from-run",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-blank-lines-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,6 +1,7 @@\\n para \"... (161 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-braces-insert-function",
+    "tags": [
+      "ties",
+      "unified",
+      "code"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.c\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.c\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -3,6 +3,11 @@\\n     return 1;\\n\"... (198 bytes) obtido \"--- \\\"a.c\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.c\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -3,6 +3,11 @@\\n     retu\"... (203 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-braces-delete-function",
+    "tags": [
+      "ties",
+      "normal",
+      "code"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-moved-block",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-moved-block-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,5 +1,5 @@\\n-m1\\n-m2\\n k1\\n\"... (136 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,5 +1,5 @@\\n-m1\\n-m\"... (142 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-swap-two",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-reverse",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-interleaved",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-duplicate-anchor",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-abab-baba",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-abc-cab-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (135 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n\"... (141 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-python-return",
+    "tags": [
+      "ties",
+      "unified",
+      "code"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.py\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.py\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -4,10 +4,12 @@\\n     value =\"... (373 bytes) obtido \"--- \\\"a.py\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.py\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -4,6 +4,8 @@\\n     val\"... (393 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-json-closing",
+    "tags": [
+      "ties",
+      "unified",
+      "code"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.json\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.json\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,10 +2,10 @@\\n   \\\"a\\\": \"... (226 bytes) obtido \"--- \\\"a.json\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.json\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -2,10 +2,10 @@\\n  \"... (232 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-markdown-list",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-many-blank-insert-c",
+    "tags": [
+      "ties",
+      "context"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Context(3) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Context(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-tie-shell-script-u2",
+    "tags": [
+      "ties",
+      "unified",
+      "code"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.sh\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.sh\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,8 @@\\n #!/bin/sh\\n-se\"... (194 bytes) obtido \"--- \\\"a.sh\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.sh\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,7 +1,8 @@\\n #!/bin/\"... (200 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-xml-u",
+    "tags": [
+      "ties",
+      "unified",
+      "code"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.xml\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.xml\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,8 @@\\n <a>\\n   <b>\\n\"... (164 bytes) obtido \"--- \\\"a.xml\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.xml\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,6 +1,8 @@\\n <a>\\n \"... (170 bytes)"
+    ]
+  },
+  {
+    "id": "diff-dirs-no-r",
+    "tags": [
+      "dirs"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-dirs-r",
+    "tags": [
+      "dirs"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-dirs-ru",
+    "tags": [
+      "dirs",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"diff -ru a/changed.txt b/changed.txt\\n--- a/changed.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b/changed.txt\\t2026-01-15 \"... (388 bytes) obtido \"diff -ru a/changed.txt b/changed.txt\\n--- \\\"a/changed.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b/changed.txt\\\\t2026-0\"... (400 bytes)"
+    ]
+  },
+  {
+    "id": "diff-dirs-r-u-separate",
+    "tags": [
+      "dirs",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"diff -r -u a/f.txt b/f.txt\\n--- a/f.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b/f.txt\\t2026-01-15 12:00:00.000000000 +00\"... (141 bytes) obtido \"diff -r -u a/f.txt b/f.txt\\n--- \\\"a/f.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b/f.txt\\\\t2026-01-15 12:00:00.00000000\"... (147 bytes)"
+    ]
+  },
+  {
+    "id": "diff-dirs-ruN",
+    "tags": [
+      "dirs",
+      "unified",
+      "newfile"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"diff -ruN a/changed.txt b/changed.txt\\n--- a/changed.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b/changed.txt\\t2026-01-15\"... (492 bytes) obtido \"diff -ruN a/changed.txt b/changed.txt\\n--- \\\"a/changed.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b/changed.txt\\\\t2026-\"... (510 bytes)"
+    ]
+  },
+  {
+    "id": "diff-dirs-binary-inside",
+    "tags": [
+      "dirs",
+      "binary"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-dirs-trailing-slash",
+    "tags": [
+      "dirs"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-empty-vs-content-normal",
+    "tags": [
+      "empty",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-empty-vs-content-u",
+    "tags": [
+      "empty",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- empty.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -0,0 +1,2 @@\\n+first\\n+\"... (127 bytes) obtido \"--- \\\"empty.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -0,0 +1,2 @@\\n+f\"... (133 bytes)"
+    ]
+  },
+  {
+    "id": "diff-content-vs-empty-u",
+    "tags": [
+      "empty",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ empty.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,2 +0,0 @@\\n-first\\n-\"... (127 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"empty.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,2 +0,0 @@\\n-f\"... (133 bytes)"
+    ]
+  },
+  {
+    "id": "diff-content-vs-empty-c",
+    "tags": [
+      "empty",
+      "context"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Context(3) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Context(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-nonl-old-u",
+    "tags": [
+      "nonl",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,2 +1,2 @@\\n a\\n-b\\n\\\\ No n\"... (145 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,2 +1,2 @@\\n a\\n-b\\n\"... (151 bytes)"
+    ]
+  },
+  {
+    "id": "diff-nonl-new-u",
+    "tags": [
+      "nonl",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,2 +1,2 @@\\n a\\n-b\\n+b\\n\\\\ N\"... (145 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,2 +1,2 @@\\n a\\n-b\\n\"... (151 bytes)"
+    ]
+  },
+  {
+    "id": "diff-nonl-both-differ-u",
+    "tags": [
+      "nonl",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,3 +1,3 @@\\n a\\n b\\n-last \"... (190 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,3 +1,3 @@\\n a\\n b\\n\"... (196 bytes)"
+    ]
+  },
+  {
+    "id": "diff-nonl-both-same-tail-u",
+    "tags": [
+      "nonl",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,4 +1,4 @@\\n-first\\n+FIRS\"... (134 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,4 +1,4 @@\\n-first\"... (140 bytes)"
+    ]
+  },
+  {
+    "id": "diff-nonl-near-change-u",
+    "tags": [
+      "nonl",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,4 +1,4 @@\\n l1\\n l2\\n-old\"... (159 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,4 +1,4 @@\\n l1\\n l\"... (165 bytes)"
+    ]
+  },
+  {
+    "id": "diff-nonl-normal",
+    "tags": [
+      "nonl",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-nonl-only-newline-normal",
+    "tags": [
+      "nonl",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-nonl-c",
+    "tags": [
+      "nonl",
+      "context"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Context(3) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Context(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-nonl-append-u",
+    "tags": [
+      "nonl",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,2 +1,3 @@\\n a\\n-b\\n\\\\ No n\"... (176 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,2 +1,3 @@\\n a\\n-b\\n\"... (182 bytes)"
+    ]
+  },
+  {
+    "id": "diff-single-line-nonl",
+    "tags": [
+      "nonl",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1 +1 @@\\n-x\\n\\\\ No newline \"... (166 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1 +1 @@\\n-x\\n\\\\ No ne\"... (172 bytes)"
+    ]
+  },
+  {
+    "id": "diff-binary-text-flag",
+    "tags": [
+      "binary",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-crlf-vs-lf-u",
+    "tags": [
+      "crlf",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,3 +1,3 @@\\n-one\\r\\n-two\\r\\n\"... (145 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,3 +1,3 @@\\n-one\\r\\n\"... (151 bytes)"
+    ]
+  },
+  {
+    "id": "diff-crlf-change-u",
+    "tags": [
+      "crlf",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,3 +1,3 @@\\n one\\r\\n-two\\r\\n\"... (134 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,3 +1,3 @@\\n one\\r\\n\"... (140 bytes)"
+    ]
+  },
+  {
+    "id": "diff-latin1-bytes",
+    "tags": [
+      "bytes",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-utf8-u",
+    "tags": [
+      "bytes",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,3 +1,3 @@\\n ação\\n-funçã\"... (143 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,3 +1,3 @@\\n ação\\n\"... (149 bytes)"
+    ]
+  },
+  {
+    "id": "diff-stdin-normal",
+    "tags": [
+      "stdin",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-file-vs-dir",
+    "tags": [
+      "dir"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-i-ignore-case",
+    "tags": [
+      "ignore"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-i-ignore-case-u",
+    "tags": [
+      "ignore",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Unified(3) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Unified(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-w-ignore-all-space",
+    "tags": [
+      "ignore"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-b-ignore-space-change-u",
+    "tags": [
+      "ignore",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Unified(3) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Unified(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-B-ignore-blank-lines",
+    "tags": [
+      "ignore"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-y-side-by-side",
+    "tags": [
+      "side-by-side"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo SideBySide { width: 40, suppress_common: false } não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo SideBySide { width: 40, suppress_common: false } não suportado"
+    ]
+  },
+  {
+    "id": "diff-y-suppress-common",
+    "tags": [
+      "side-by-side"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo SideBySide { width: 40, suppress_common: true } não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo SideBySide { width: 40, suppress_common: true } não suportado"
+    ]
+  },
+  {
+    "id": "diff-normal-change",
+    "tags": [
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-normal-add",
+    "tags": [
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-normal-delete",
+    "tags": [
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-normal-mixed",
+    "tags": [
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-normal-explicit-flag",
+    "tags": [
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Normal não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-u-basic",
+    "tags": [
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,7 @@\\n one\\n two\\n t\"... (155 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,7 +1,7 @@\\n one\\n \"... (161 bytes)"
+    ]
+  },
+  {
+    "id": "diff-u-first-line",
+    "tags": [
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,4 +1,4 @@\\n-head\\n+HEAD\\n\"... (132 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,4 +1,4 @@\\n-head\\n\"... (138 bytes)"
+    ]
+  },
+  {
+    "id": "diff-u-last-line",
+    "tags": [
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -3,4 +3,4 @@\\n l3\\n l4\\n l5\\n\"... (132 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -3,4 +3,4 @@\\n l3\\n l\"... (138 bytes)"
+    ]
+  },
+  {
+    "id": "diff-u-append",
+    "tags": [
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -3,3 +3,5 @@\\n l3\\n l4\\n l5\\n\"... (128 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -3,3 +3,5 @@\\n l3\\n l\"... (134 bytes)"
+    ]
+  },
+  {
+    "id": "diff-u-prepend",
+    "tags": [
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,3 +1,4 @@\\n+l0\\n l1\\n l2\\n\"... (124 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,3 +1,4 @@\\n+l0\\n l\"... (130 bytes)"
+    ]
+  },
+  {
+    "id": "diff-u-pure-delete-middle",
+    "tags": [
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,7 +2,6 @@\\n l2\\n l3\\n l4\\n\"... (136 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -2,7 +2,6 @@\\n l2\\n l\"... (142 bytes)"
+    ]
+  },
+  {
+    "id": "diff-u-whole-replace",
+    "tags": [
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,3 +1,2 @@\\n-a\\n-b\\n-c\\n+x\\n\"... (123 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,3 +1,2 @@\\n-a\\n-b\\n\"... (129 bytes)"
+    ]
+  },
+  {
+    "id": "diff-u-two-hunks",
+    "tags": [
+      "unified",
+      "hunks"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,6 @@\\n l01\\n l02\\n-l\"... (201 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,6 +1,6 @@\\n l01\\n \"... (207 bytes)"
+    ]
+  },
+  {
+    "id": "diff-u-gap-six-merges",
+    "tags": [
+      "unified",
+      "hunks"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,14 +2,14 @@\\n l02\\n l03\\n\"... (190 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -2,7 +2,7 @@\\n l02\\n \"... (210 bytes)"
+    ]
+  },
+  {
+    "id": "diff-u-gap-seven-splits",
+    "tags": [
+      "unified",
+      "hunks"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,7 +2,7 @@\\n l02\\n l03\\n l\"... (206 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -2,7 +2,7 @@\\n l02\\n \"... (212 bytes)"
+    ]
+  },
+  {
+    "id": "diff-U0",
+    "tags": [
+      "unified",
+      "hunks"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2 +2 @@\\n-l2\\n+L2\\n@@ -4 +3\"... (149 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -2 +2 @@\\n-l2\\n+L2\\n@@\"... (155 bytes)"
+    ]
+  },
+  {
+    "id": "diff-U1",
+    "tags": [
+      "unified",
+      "hunks"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,3 +1,3 @@\\n l1\\n-l2\\n+L2\\n\"... (156 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1,3 +1,3 @@\\n l1\\n-l\"... (162 bytes)"
+    ]
+  },
+  {
+    "id": "diff-U5",
+    "tags": [
+      "unified",
+      "hunks"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,11 +2,11 @@\\n l02\\n l03\\n\"... (174 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -2,11 +2,11 @@\\n l02\"... (180 bytes)"
+    ]
+  },
+  {
+    "id": "diff-unified-long-option",
+    "tags": [
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,5 +2,5 @@\\n b\\n c\\n-d\\n+D\\n\"... (126 bytes) obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -2,5 +2,5 @@\\n b\\n c\\n\"... (132 bytes)"
+    ]
+  },
+  {
+    "id": "diff-c-basic",
+    "tags": [
+      "context"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Context(3) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Context(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-c-add-only",
+    "tags": [
+      "context"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Context(3) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Context(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-c-delete-only",
+    "tags": [
+      "context"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Context(3) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Context(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-c-mixed-two-hunks",
+    "tags": [
+      "context",
+      "hunks"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Context(3) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Context(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-C1",
+    "tags": [
+      "context"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Context(1) não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Context(1) não suportado"
+    ]
+  },
+  {
+    "id": "diff-s-differ-u",
+    "tags": [
+      "unified",
+      "exit"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1 +1 @@\\n-a\\n+b\\n\" obtido \"--- \\\"a.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n+++ \\\"b.txt\\\\t2026-01-15 12:00:00.000000000 +0000\\\"\\n@@ -1 +1 @@\\n-a\\n+b\\n\""
+    ]
+  },
+  {
+    "id": "diff-e-ed-script",
+    "tags": [
+      "ed"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "diffy create_patch próprio (Myers): estilo Ed não suportado",
+    "detail": [
+      "unsupported: diffy create_patch próprio (Myers): estilo Ed não suportado"
+    ]
+  }
+]

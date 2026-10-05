@@ -1,0 +1,232 @@
+== rm basic
+$ git rm a.txt
+[out]
+rm 'a.txt'
+[err]
+[exit=0]
+D  a.txt
+b.txt
+c.txt
+d
+$ git rm a.txt
+[out]
+[err]
+fatal: pathspec 'a.txt' did not match any files
+[exit=128]
+$ git rm nonexist
+[out]
+[err]
+fatal: pathspec 'nonexist' did not match any files
+[exit=128]
+$ git rm -q b.txt
+[out]
+[err]
+[exit=0]
+D  a.txt
+D  b.txt
+$ git rm --cached c.txt
+[out]
+rm 'c.txt'
+[err]
+[exit=0]
+D  a.txt
+D  b.txt
+D  c.txt
+?? c.txt
+c.txt
+d
+$ git rm c.txt
+[out]
+[err]
+fatal: pathspec 'c.txt' did not match any files
+[exit=128]
+$ git rm -f c.txt
+[out]
+[err]
+fatal: pathspec 'c.txt' did not match any files
+[exit=128]
+D  a.txt
+D  b.txt
+D  c.txt
+?? c.txt
+== rm modified
+$ git rm a.txt
+[out]
+[err]
+error: the following file has local modifications:
+    a.txt
+(use --cached to keep the file, or -f to force removal)
+[exit=1]
+$ git rm -f a.txt
+[out]
+rm 'a.txt'
+[err]
+[exit=0]
+$ git rm a.txt
+[out]
+[err]
+error: the following file has changes staged in the index:
+    a.txt
+(use --cached to keep the file, or -f to force removal)
+[exit=1]
+$ git rm --cached a.txt
+[out]
+rm 'a.txt'
+[err]
+[exit=0]
+D  a.txt
+?? a.txt
+$ git rm a.txt
+[out]
+[err]
+error: the following file has staged content different from both the
+file and the HEAD:
+    a.txt
+(use -f to force removal)
+[exit=1]
+$ git rm --cached a.txt
+[out]
+[err]
+error: the following file has staged content different from both the
+file and the HEAD:
+    a.txt
+(use -f to force removal)
+[exit=1]
+$ git rm --cached a.txt
+[out]
+rm 'a.txt'
+[err]
+[exit=0]
+== rm -r dirs
+$ git rm d
+[out]
+[err]
+fatal: not removing 'd' recursively without -r
+[exit=128]
+$ git rm -r d
+[out]
+rm 'd/e/f.txt'
+rm 'd/g.txt'
+[err]
+[exit=0]
+a.txt
+b.txt
+c.txt
+$ git rm -rq d
+[out]
+[err]
+[exit=0]
+$ git rm -n a.txt
+[out]
+rm 'a.txt'
+[err]
+[exit=0]
+a.txt
+$ git rm -r -n d
+[out]
+rm 'd/e/f.txt'
+rm 'd/g.txt'
+[err]
+[exit=0]
+$ git rm d/*
+[out]
+rm 'd/e/f.txt'
+rm 'd/g.txt'
+[err]
+[exit=0]
+$ git rm -r --cached d
+[out]
+rm 'd/e/f.txt'
+rm 'd/g.txt'
+[err]
+[exit=0]
+e
+g.txt
+$ git rm --ignore-unmatch nonexist
+[out]
+[err]
+[exit=0]
+$ git rm -r nonexist
+[out]
+[err]
+fatal: pathspec 'nonexist' did not match any files
+[exit=128]
+$ git rm a.txt a.txt
+[out]
+rm 'a.txt'
+[err]
+[exit=0]
+$ git rm a.txt nonexist
+[out]
+[err]
+fatal: pathspec 'nonexist' did not match any files
+[exit=128]
+== untracked
+$ git rm u.txt
+[out]
+[err]
+fatal: pathspec 'u.txt' did not match any files
+[exit=128]
+$ git rm -f u.txt
+[out]
+[err]
+fatal: pathspec 'u.txt' did not match any files
+[exit=128]
+== subdir
+$ git rm g.txt
+[out]
+rm 'd/g.txt'
+[err]
+[exit=0]
+$ git rm ../a.txt
+[out]
+rm 'a.txt'
+[err]
+[exit=0]
+a.txt
+b.txt
+c.txt
+d
+u.txt
+== rm of dir with modified file
+$ git rm -r d
+[out]
+[err]
+error: the following file has local modifications:
+    d/g.txt
+(use --cached to keep the file, or -f to force removal)
+[exit=1]
+$ git rm a.txt b.txt
+[out]
+[err]
+error: the following files have local modifications:
+    a.txt
+    b.txt
+(use --cached to keep the file, or -f to force removal)
+[exit=1]
+== rm after file already deleted
+$ git rm a.txt
+[out]
+rm 'a.txt'
+[err]
+[exit=0]
+D  a.txt
+?? u.txt
+$ git rm --cached a.txt
+[out]
+rm 'a.txt'
+[err]
+[exit=0]
+$ git rm -r d --dry-run
+[out]
+rm 'd/e/f.txt'
+rm 'd/g.txt'
+[err]
+[exit=0]
+$ git rm -r -f d -q
+[out]
+[err]
+[exit=0]
+b.txt
+c.txt
+u.txt

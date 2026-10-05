@@ -1,0 +1,5 @@
+mkdir -p d; printf 'hello world\n' > d/a.txt; printf 'x\ny\n' > d/b.txt; touch -d '2026-01-15 12:00:00' d/a.txt d/b.txt d; echo ok
+rm -f o.zip; ls d/a.txt d/b.txt | zip -q -@ o.zip; xxd o.zip | head -12
+rm -f o.zip; printf 'abc\n' | zip -q o.zip -; xxd o.zip
+zip -q - d/a.txt | xxd
+rm -f o.zip; zip -q -l o.zip d/b.txt; xxd o.zip | head -8

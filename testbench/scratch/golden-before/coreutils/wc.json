@@ -1,0 +1,304 @@
+{
+  "wc-L": {
+    "stdout": "24 in.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "43a997f165f269790e145294fef78959968fe0086f9180d0e7e3a536666d2787",
+        "data": "curta\numa linha bem mais longa\n\tx\n"
+      }
+    }
+  },
+  "wc-binary": {
+    "stdout": " 2  1 11 bin.dat\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin.dat": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "06e3dad216d42a7b8224647fc268a77ccf40db781216a50d9ed47bfb66b70e8b",
+        "data": {
+          "b64": "AAEC/4CBf0EKIAo="
+        }
+      }
+    }
+  },
+  "wc-c": {
+    "stdout": "7 in.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "ada323d45a144db50e2fbb47c5744fc4cbcb9ab393e42f63ce91913eeea74489",
+        "data": "ação\n"
+      }
+    }
+  },
+  "wc-default": {
+    "stdout": " 3  5 30 in.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "9ecc2f319ea8814749627e9df4b429bf26e161b39d3e64565215cce17c747215",
+        "data": "uma linha\nduas palavras aqui\n\n"
+      }
+    }
+  },
+  "wc-dir": {
+    "stdout": "      0       0       0 d\n",
+    "stderr": "wc: d: Is a directory\n",
+    "exit": 1,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "wc-empty": {
+    "stdout": "0 0 0 empty.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "wc-files0-from": {
+    "stdout": "1 a.txt\n2 b.txt\n3 total\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "list": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "2db332c3c075c459832bd6c5a01cfa5bd1d1fc3c2a7ebd1fc1864c0861bfd51f",
+        "data": "a.txt\u0000b.txt\u0000"
+      }
+    }
+  },
+  "wc-l": {
+    "stdout": "3 in.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "wc-l-no-trailing-newline": {
+    "stdout": "1 in.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "7e18f737311b2dc3b2f269dd78396b0351f14fb66efa879f768cb23181883c78",
+        "data": "a\nb"
+      }
+    }
+  },
+  "wc-lwc-order": {
+    "stdout": "1 4 in.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "01186fcf04b4b447f393e552964c08c7b419c1ad7a25c342a0b631b1967d3a27",
+        "data": "a b\n"
+      }
+    }
+  },
+  "wc-m": {
+    "stdout": "5 in.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "ada323d45a144db50e2fbb47c5744fc4cbcb9ab393e42f63ce91913eeea74489",
+        "data": "ação\n"
+      }
+    }
+  },
+  "wc-missing": {
+    "stdout": "1 a.txt\n1 total\n",
+    "stderr": "wc: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "wc-multi-default": {
+    "stdout": " 1  2  8 a.txt\n 1  1  6 b.txt\n 2  3 14 total\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "683f085a702e61427c85aa6440f968f39499d988a36e0af4a36bf32b79f46c3e",
+        "data": "um dois\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "234ec86b2d8da31c927ed3dcd1875247f5de4d8c93d1820fe685b199a1fb8870",
+        "data": "três\n"
+      }
+    }
+  },
+  "wc-multi-total": {
+    "stdout": " 2 a.txt\n11 b.txt\n13 total\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "abcc1b4a3f0b6056d843fed9593758b6b54035f60f251df70915de45d3d74a74",
+        "data": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n"
+      }
+    }
+  },
+  "wc-pipeline-find": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.py": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/c.py": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "b/d.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "wc-stdin": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "wc-stdin-default": {
+    "stdout": "      2       3       6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "wc-total-never": {
+    "stdout": "1 a.txt\n2 b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      }
+    }
+  },
+  "wc-w": {
+    "stdout": "3 in.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "4e7e5bb24bb00f2491f8f9f7ed8ec718097286499239c5ca277481d896da8f21",
+        "data": "  um\tdois\n três  "
+      }
+    }
+  }
+}

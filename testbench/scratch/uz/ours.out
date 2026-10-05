@@ -1,0 +1,33 @@
+=== getent hosts 4294967296; echo "rc=$?"
+rc=2
+rc=0
+=== getent hosts 4294967295; echo "rc=$?"
+255.255.255.255 4294967295
+rc=0
+rc=0
+=== getent hosts 0x100000000; echo "rc=$?"
+rc=2
+rc=0
+=== getent hosts 1.16777216; echo "rc=$?"
+rc=2
+rc=0
+=== getent hosts 99999999999999999999; echo "rc=$?"
+rc=2
+rc=0
+=== locale -av > /tmp/lv; head -n 12 /tmp/lv | od -c
+0000000   l   o   c   a   l   e   :       C   .   u   t   f   8        
+0000020                                   d   i   r   e   c   t   o   r
+0000040   y   :       /   u   s   r   /   l   i   b   /   l   o   c   a
+0000060   l   e   /   C   .   u   t   f   8  \n   -   -   -   -   -   -
+0000100   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -   -
+*
+0000200   -   -   -   -   -   -   -   -   -  \n                   t   i
+0000220   t   l   e       |       C       l   o   c   a   l   e  \n    
+0000240               e   m   a   i   l       |       b   u   g   -   g
+0000260   l   i   b   c   -   l   o   c   a   l   e   s   @   g   n   u
+0000300   .   o   r   g  \n       r   e   v   i   s   i   o   n       |
+0000320       2   .   1  \n                       d   a   t   e       |
+0000340       2   0   2   2   -   0   1   -   3   0  \n           c   o
+0000360   d   e   s   e   t       |       U   T   F   -   8  \n
+0000376
+rc=0

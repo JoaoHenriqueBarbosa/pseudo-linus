@@ -1,0 +1,709 @@
+{
+  "ls-1-dir": {
+    "stdout": "lib.rs\nmain.rs\nutil\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/lib.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src/main.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "536e506bb90914c243a12b397b9a998f85ae2cbd9ba02dfd03a9e155ca5ca0f4",
+        "data": "fn main() {}\n"
+      },
+      "src/util": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ls-A": {
+    "stdout": ".env\na.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      ".env": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7169412703c3edbf2de7c2dcd1fb1476dea91d7c951621eb2e3b79c06a3d174e",
+        "data": "X=1\n"
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "ls-F": {
+    "stdout": "link@\nplain\nrun.sh*\nsub/\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/link": {
+        "kind": "symlink",
+        "target": "plain"
+      },
+      "d/plain": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ls-R": {
+    "stdout": ".:\ndocs\nsrc\ntop.txt\n\n./docs:\nreadme.md\n\n./src:\nmain.rs\nutil\n\n./src/util:\nmod.rs\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "docs": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "docs/readme.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/main.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src/util": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/util/mod.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "top.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ls-S": {
+    "stdout": "large\nmid\nmid2\nsmall\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/large": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646",
+        "data": "1234567890"
+      },
+      "d/mid": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+        "data": "12345"
+      },
+      "d/mid2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+        "data": "12345"
+      },
+      "d/small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "data": "1"
+      }
+    }
+  },
+  "ls-a": {
+    "stdout": ".\n..\n.env\n.git\na.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      ".env": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7169412703c3edbf2de7c2dcd1fb1476dea91d7c951621eb2e3b79c06a3d174e",
+        "data": "X=1\n"
+      },
+      ".git": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "ls-basic": {
+    "stdout": "Zeta.md\n_under\na.txt\nb.txt\nsrc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      ".hidden": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "91ee5e9f42ba3d34e414443b36a27b797a56a47aad6bb1e4c1769e69c77ce0ca",
+        "data": "h\n"
+      },
+      "Zeta.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "c865f6c5ab8d1b0bcd383a5e1e3879d22681c96bf462c269b7581d523fbe70ab",
+        "data": "z\n"
+      },
+      "_under": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ls-color-never": {
+    "stdout": ".\n..\nx\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ls-d-glob": {
+    "stdout": "one/\ntwo/\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "file": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "one": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "one/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "two": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ls-files-and-dirs": {
+    "stdout": "a.txt\nz.txt\n\nd:\ninner\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/inner": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "z.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ls-full-time": {
+    "stdout": "-rw-r--r-- 1 root root 2 2026-01-15 12:00:00.000000000 +0000 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "ls-l-default-old-date": {
+    "stdout": "-rw-r--r-- 1 root root 2 Jan 15  2026 a.txt\n-rw-r--r-- 1 root root 3 Jan 15  2026 b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a81c31ac62620b9215a14ff00544cb07a55b765594f3ab3be77e70923ae27cf1",
+        "data": "bb\n"
+      }
+    }
+  },
+  "ls-l-long-iso": {
+    "stdout": "total 20\n-rw-r--r-- 1 root root   10 2026-01-15 12:00 a.txt\n-rw-r--r-- 1 root root  202 2026-01-15 12:00 big.log\n-rwxr-xr-x 1 root root   18 2026-01-15 12:00 run.sh\n-rw------- 1 root root    1 2026-01-15 12:00 secret\ndrwx------ 2 root root 4096 2026-01-15 12:00 sub\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "47df473b600ab787db630671efea6d975d19c419522fd72a9fe7cb86684aa9fe",
+        "data": "conteúdo\n"
+      },
+      "big.log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 202,
+        "sha256": "65f1dd96a6515392f7222af8bdf02c7516832bd06745e0f84b2103053f16b299",
+        "data": "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+      },
+      "run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 18,
+        "sha256": "397a2a1f305a0cde04b3f92dabbfa8187d2e229e91ad0afee4ca894744170dc3",
+        "data": "#!/bin/sh\necho oi\n"
+      },
+      "secret": {
+        "kind": "file",
+        "mode": 384,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 448
+      },
+      "sub/inner.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "50c393f158c3de2db92fa9661bfb00eda5b67c3a777c88524ed3417509631625",
+        "data": "i\n"
+      }
+    }
+  },
+  "ls-l-recent-date": {
+    "stdout": "-rw-r--r-- 1 root root 2 Jan 15 12:00 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "ls-l-symlink": {
+    "stdout": "lrwxrwxrwx 1 root root 8  link -> real.txt\n-rw-r--r-- 1 root root 2  real.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real.txt"
+      },
+      "real.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "ls-l-time-style-format": {
+    "stdout": "total 8\n-rw-r--r-- 1 root root 2 2026-01-15 12:00 x\n-rw-r--r-- 1 root root 3 2026-01-15 12:00 y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "dir/y": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "f14b4987904bcb5814e4459a057ed4d20f58a633152288a761214dcd28780b56",
+        "data": "22\n"
+      }
+    }
+  },
+  "ls-lS": {
+    "stdout": "total 8\n-rw-r--r-- 1 root root 10 2026-01-15 12:00 large\n-rw-r--r-- 1 root root  1 2026-01-15 12:00 small\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/large": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646",
+        "data": "1234567890"
+      },
+      "d/small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+        "data": "1"
+      }
+    }
+  },
+  "ls-la-dir-head": {
+    "stdout": "-rw-r--r-- 1 root root    2 2026-01-15 12:00 a\n-rw-r--r-- 1 root root    3 2026-01-15 12:00 b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "sub/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a81c31ac62620b9215a14ff00544cb07a55b765594f3ab3be77e70923ae27cf1",
+        "data": "bb\n"
+      }
+    }
+  },
+  "ls-ld": {
+    "stdout": "-rw-r--r-- 1 root root    0 2026-01-15 12:00 a.txt\ndrwxr-xr-x 3 root root 4096 2026-01-15 12:00 sub\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/one": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/two.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ls-lh": {
+    "stdout": "total 8.0K\n-rw-r--r-- 1 root root 1.2K 2026-01-15 12:00 medium.txt\n-rw-r--r-- 1 root root    3 2026-01-15 12:00 small\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "data/medium.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1212,
+        "sha256": "fced40c47eac609dcd469369eea007a949d85532f201868de13aebd2a3f4cfba",
+        "data": "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+      },
+      "data/small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "ls-missing": {
+    "stdout": "a.txt\n",
+    "stderr": "ls: cannot access 'nope': No such file or directory\n",
+    "exit": 2,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ls-n-numeric": {
+    "stdout": "-rw-r--r-- 1 0 0 2 2026-01-15 12:00 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "ls-names-with-spaces": {
+    "stdout": "aspas'simples\ncom espaço.txt\nnormal\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/aspas'simples": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/com espaço.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/normal": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ls-p": {
+    "stdout": "file\nsub/\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/file": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ls-r": {
+    "stdout": "c\nb\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ls-t": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  }
+}

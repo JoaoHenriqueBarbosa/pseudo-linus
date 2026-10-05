@@ -1,0 +1,32 @@
+mkdir -p d/sub; printf 'hello world\n' > d/a.txt; seq 1 5000 > d/sub/n.txt; printf '#!/bin/sh\necho hi\n' > d/run.sh; chmod 755 d/run.sh; ln -sf a.txt d/link; head -c 30000 /dev/zero > d/zero.bin; touch -d '2026-01-15 12:00:00' d d/* d/sub d/sub/*; touch -h -d '2026-01-15 12:00:00' d/link; echo ok
+rm -f o.zip; zip -r o.zip d; md5sum o.zip; unzip -Z -v o.zip | md5sum
+rm -f o.zip; zip -rq o.zip d; md5sum o.zip
+rm -f o.zip; zip -r -9 o.zip d; md5sum o.zip
+rm -f o.zip; zip -r -1 o.zip d; md5sum o.zip
+rm -f o.zip; zip -r -0 o.zip d; md5sum o.zip
+rm -f o.zip; zip -ry o.zip d; md5sum o.zip
+rm -f o.zip; zip -rX o.zip d; md5sum o.zip
+rm -f o.zip; zip -rj o.zip d; md5sum o.zip
+rm -f o.zip; zip -rD o.zip d; md5sum o.zip
+rm -f o.zip; zip -r -Z bzip2 o.zip d; md5sum o.zip
+rm -f o.zip; zip -r -P secret o.zip d >/dev/null; unzip -P secret -tq o.zip
+rm -f o.zip; zip -rv o.zip d
+rm -f o.zip; zip o.zip d/a.txt d/sub/n.txt; zip o.zip d/a.txt; zip -u o.zip d/a.txt; touch -d '2026-02-01' d/a.txt; zip -u o.zip d/a.txt d/run.sh; zip -f o.zip; md5sum o.zip
+zip -d o.zip d/run.sh; unzip -l o.zip | tail -3; md5sum o.zip
+zip -d o.zip nothere; echo rc=$?
+zip -z o.zip <<< 'meu comentário'; unzip -z o.zip
+rm -f o.zip; zip -r o.zip d -x '*.bin'; unzip -Z1 o.zip
+rm -f o.zip; zip -r o.zip d -i '*.txt'; unzip -Z1 o.zip
+rm -f o.zip; zip -r o.zip d -x 'd/sub/*'; unzip -Z1 o.zip
+rm -f o.zip; touch -d '2026-01-15 12:00:00' d/a.txt d/run.sh; ls d/a.txt d/run.sh | zip -@ o.zip; md5sum o.zip
+rm -f o.zip; printf 'abc\n' | zip o.zip -; md5sum o.zip; unzip -p o.zip -
+rm -f o.zip; touch -d '2026-01-15 12:00:00' d/a.txt; zip - d/a.txt | md5sum
+zip -sf o.zip 2>&1; zip nada.zip; echo rc=$?
+zip; echo rc=$?
+zip -h | head -5; zip -v | head -3
+zip o.zip nothere.txt; echo rc=$?
+zip -T o.zip; echo rc=$?
+rm -f o.zip; zip -r -m o2.zip d/sub; ls d; unzip -Z1 o2.zip
+zip -Q o.zip; echo rc=$?
+rm -f o.zip; touch -d '2026-01-15 12:00:00' d/a.txt; zip -r -l o.zip d/a.txt; md5sum o.zip
+rm -f o.zip; zip -rn .txt o.zip d; unzip -v o.zip | sed -n 4,12p

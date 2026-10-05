@@ -1,0 +1,1727 @@
+{
+  "key": "h31_archive",
+  "hypotheses": [
+    {
+      "id": "H31",
+      "verdict": "confirmed",
+      "summary": "6/6 papéis com crate Rust pura que interopera nos dois sentidos (GNU->crate | crate->GNU): flate2 15/15 | 15/15, zlib-rs 15/15 | 15/15, bzip2 9/9 | 10/10, lzma-rust2 xz 23/23 | 15/15, lzma 9/9 | 15/15, lzip 13/13 | 15/15, structured-zstd 15/15 | 15/15, ruzstd 15/15 | 5/5; tar: GNU lê os nossos ustar/gnu/pax=true, crate lê ustar/gnu/oldgnu/pax/v7 do GNU=true; zip: unzip lê os nossos=true, crate lê os do zip=true. CLIs (gzip -l, tar tv, unzip -l, mensagens) são nossos.",
+      "evidence": {
+        "roles": {
+          "gzip": [
+            "flate2 (miniz_oxide)",
+            "zlib-rs"
+          ],
+          "bzip2": [
+            "bzip2 (libbz2-rs-sys)"
+          ],
+          "xz": [
+            "lzma-rust2"
+          ],
+          "zstd": [
+            "structured-zstd"
+          ],
+          "tar": [
+            "tar"
+          ],
+          "zip": [
+            "zip"
+          ]
+        },
+        "decode_matrix": {
+          "bzip2-rs": "9/9",
+          "flate2-gzip": "15/15",
+          "lzma-rs-lzma": "9/9",
+          "lzma-rs-xz": "15/23",
+          "lzma-rust2-lzip": "13/13",
+          "lzma-rust2-lzma": "9/9",
+          "lzma-rust2-xz": "23/23",
+          "ruzstd": "15/15",
+          "structured-zstd": "15/15",
+          "xz4rust-xz": "21/23",
+          "zlib-rs-gzip": "15/15"
+        },
+        "encode_matrix": {
+          "bzip2-rs": "10/10",
+          "flate2-gzip": "15/15",
+          "lzma-rs-lzma": "5/5",
+          "lzma-rs-xz": "5/5",
+          "lzma-rust2-lzip": "15/15",
+          "lzma-rust2-lzma": "15/15",
+          "lzma-rust2-xz": "15/15",
+          "ruzstd": "5/5",
+          "structured-zstd": "15/15",
+          "zlib-rs-gzip": "15/15"
+        },
+        "c_deps": {
+          "bzip2": [],
+          "flate2": [],
+          "libbz2-rs-sys": [],
+          "lzma-rs": [],
+          "lzma-rust2": [],
+          "miniz_oxide": [],
+          "ruzstd": [],
+          "structured-zstd": [],
+          "tar": [],
+          "xz4rust": [],
+          "zip": [],
+          "zlib-rs": []
+        }
+      }
+    }
+  ],
+  "candidates": [
+    {
+      "name": "flate2 (miniz_oxide)",
+      "version": "flate2 1.1.10 + miniz_oxide 0.8.9",
+      "role": "gzip",
+      "category": "b",
+      "conformance": {
+        "candidate": "archive-cli (flate2)",
+        "total": 11,
+        "strict_pass": 11,
+        "lenient_pass": 11,
+        "unsupported": 0,
+        "by_tag": {
+          "error": [
+            4,
+            4,
+            4
+          ],
+          "formatter": [
+            11,
+            11,
+            11
+          ],
+          "gzip-d": [
+            5,
+            5,
+            5
+          ],
+          "gzip-l": [
+            3,
+            3,
+            3
+          ],
+          "gzip-t": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits",
+      "notes": "GzEncoder/MultiGzDecoder sobre Read/Write; gzip -l, -t e as mensagens do gzip são nossas (a crate expõe só o erro de io, que classificamos por ErrorKind e texto). GNU->crate 15/15 e crate->GNU 15/15.",
+      "metrics": {
+        "interop": {
+          "gnu_to_candidate": {
+            "pass": 15,
+            "total": 15,
+            "failures": []
+          },
+          "candidate_to_gnu": {
+            "pass": 15,
+            "total": 15,
+            "failures": []
+          }
+        },
+        "bench": {
+          "flate2-gzip": {
+            "ratio-text": 0.227,
+            "enc-mbps-text": 26.21,
+            "dec-mbps-text": 413.04,
+            "ratio-binary": 0.3336,
+            "enc-mbps-binary": 18.84,
+            "dec-mbps-binary": 391.93
+          }
+        },
+        "output_size_vs_gnu_default_text": {
+          "flate2-gzip": 0.98
+        },
+        "depscan": [
+          {
+            "package": "flate2",
+            "version": "1.1.10",
+            "own_category": "a",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 0,
+            "own_unsafe": 36,
+            "tree_deps": 6,
+            "tree_unsafe": 469,
+            "host_touching_deps": {
+              "zlib-rs 0.6.8": 3
+            }
+          },
+          {
+            "package": "miniz_oxide",
+            "version": "0.9.1",
+            "own_category": "a",
+            "tree_category": "a",
+            "c_deps": [],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 2,
+            "tree_unsafe": 36,
+            "host_touching_deps": {}
+          }
+        ],
+        "cli_shim": {
+          "label": "flate2",
+          "strict": 11,
+          "lenient": 11,
+          "total": 11
+        }
+      }
+    },
+    {
+      "name": "zlib-rs",
+      "version": "0.6.8",
+      "role": "gzip",
+      "category": "b",
+      "conformance": {
+        "candidate": "archive-cli (zlib-rs)",
+        "total": 11,
+        "strict_pass": 11,
+        "lenient_pass": 11,
+        "unsupported": 0,
+        "by_tag": {
+          "error": [
+            4,
+            4,
+            4
+          ],
+          "formatter": [
+            11,
+            11,
+            11
+          ],
+          "gzip-d": [
+            5,
+            5,
+            5
+          ],
+          "gzip-l": [
+            3,
+            3,
+            3
+          ],
+          "gzip-t": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits",
+      "notes": "API segura Deflate/Inflate (raw) com enquadramento gzip nosso, igual ao flate2 com a feature zlib-rs. GNU->crate 15/15 e crate->GNU 15/15.",
+      "metrics": {
+        "interop": {
+          "gnu_to_candidate": {
+            "pass": 15,
+            "total": 15,
+            "failures": []
+          },
+          "candidate_to_gnu": {
+            "pass": 15,
+            "total": 15,
+            "failures": []
+          }
+        },
+        "bench": {
+          "zlib-rs-gzip": {
+            "ratio-text": 0.2354,
+            "enc-mbps-text": 50.96,
+            "dec-mbps-text": 709.7,
+            "ratio-binary": 0.3522,
+            "enc-mbps-binary": 45.4,
+            "dec-mbps-binary": 420.84
+          }
+        },
+        "output_size_vs_gnu_default_text": {
+          "zlib-rs-gzip": 1.02
+        },
+        "depscan": [
+          {
+            "package": "zlib-rs",
+            "version": "0.6.8",
+            "own_category": "b",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 3,
+            "own_unsafe": 382,
+            "tree_deps": 0,
+            "tree_unsafe": 382,
+            "host_touching_deps": {}
+          }
+        ],
+        "cli_shim": {
+          "label": "zlib-rs",
+          "strict": 11,
+          "lenient": 11,
+          "total": 11
+        }
+      }
+    },
+    {
+      "name": "bzip2 (libbz2-rs-sys)",
+      "version": "bzip2 0.6.1 + libbz2-rs-sys 0.2.5",
+      "role": "bzip2",
+      "category": "b",
+      "conformance": {
+        "candidate": "archive-cli (bzip2)",
+        "total": 2,
+        "strict_pass": 2,
+        "lenient_pass": 2,
+        "unsupported": 0,
+        "by_tag": {
+          "bzip2-d": [
+            2,
+            2,
+            2
+          ],
+          "error": [
+            1,
+            1,
+            1
+          ],
+          "formatter": [
+            2,
+            2,
+            2
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits",
+      "notes": "Backend padrão da 0.6 é o porte Rust do libbzip2 (sem C); no nível 9 a saída é byte a byte a do bzip2 1.0.8. Compression::default() é 6, o bzip2 do GNU usa 9. GNU->crate 9/9 e crate->GNU 10/10.",
+      "metrics": {
+        "interop": {
+          "gnu_to_candidate": {
+            "pass": 9,
+            "total": 9,
+            "failures": []
+          },
+          "candidate_to_gnu": {
+            "pass": 10,
+            "total": 10,
+            "failures": []
+          }
+        },
+        "bench": {
+          "bzip2-rs": {
+            "ratio-text": 0.1404,
+            "enc-mbps-text": 12.06,
+            "dec-mbps-text": 9.41,
+            "ratio-binary": 0.2792,
+            "enc-mbps-binary": 10.86,
+            "dec-mbps-binary": 17.32
+          }
+        },
+        "output_size_vs_gnu_default_text": {
+          "bzip2-rs": 1.0
+        },
+        "depscan": [
+          {
+            "package": "bzip2",
+            "version": "0.6.1",
+            "own_category": "a",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 0,
+            "own_unsafe": 18,
+            "tree_deps": 1,
+            "tree_unsafe": 139,
+            "host_touching_deps": {
+              "libbz2-rs-sys 0.2.5": 18
+            }
+          },
+          {
+            "package": "libbz2-rs-sys",
+            "version": "0.2.5",
+            "own_category": "b",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 18,
+            "own_unsafe": 121,
+            "tree_deps": 0,
+            "tree_unsafe": 121,
+            "host_touching_deps": {}
+          }
+        ],
+        "cli_shim": {
+          "label": "bzip2",
+          "strict": 2,
+          "lenient": 2,
+          "total": 2
+        }
+      }
+    },
+    {
+      "name": "lzma-rust2",
+      "version": "0.21.0",
+      "role": "xz",
+      "category": "b",
+      "conformance": {
+        "candidate": "archive-cli (lzma-rust2)",
+        "total": 4,
+        "strict_pass": 4,
+        "lenient_pass": 4,
+        "unsupported": 0,
+        "by_tag": {
+          "error": [
+            1,
+            1,
+            1
+          ],
+          "formatter": [
+            4,
+            4,
+            4
+          ],
+          "lzip-d": [
+            1,
+            1,
+            1
+          ],
+          "lzma": [
+            1,
+            1,
+            1
+          ],
+          "xz-d": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits",
+      "notes": "Cobre .xz, .lzma e .lzip (leitor e escritor, filtros BCJ e delta). A feature padrão `optimization` usa unsafe localizado; sem ela a crate é forbid(unsafe_code). GNU->crate 45/45 e crate->GNU 45/45.",
+      "metrics": {
+        "interop": {
+          "gnu_to_candidate": {
+            "pass": 45,
+            "total": 45,
+            "failures": []
+          },
+          "candidate_to_gnu": {
+            "pass": 45,
+            "total": 45,
+            "failures": []
+          }
+        },
+        "bench": {
+          "lzma-rust2-lzip": {
+            "ratio-text": 0.1833,
+            "enc-mbps-text": 1.78,
+            "dec-mbps-text": 94.38,
+            "ratio-binary": 0.213,
+            "enc-mbps-binary": 3.36,
+            "dec-mbps-binary": 77.34
+          },
+          "lzma-rust2-lzma": {
+            "ratio-text": 0.1833,
+            "enc-mbps-text": 0.88,
+            "dec-mbps-text": 24.59,
+            "ratio-binary": 0.2129,
+            "enc-mbps-binary": 1.56,
+            "dec-mbps-binary": 59.41
+          },
+          "lzma-rust2-xz": {
+            "ratio-text": 0.1834,
+            "enc-mbps-text": 2.26,
+            "dec-mbps-text": 88.1,
+            "ratio-binary": 0.2131,
+            "enc-mbps-binary": 2.58,
+            "dec-mbps-binary": 66.88
+          }
+        },
+        "output_size_vs_gnu_default_text": {
+          "lzma-rust2-lzip": 1.0,
+          "lzma-rust2-lzma": 1.0,
+          "lzma-rust2-xz": 1.0
+        },
+        "depscan": [
+          {
+            "package": "lzma-rust2",
+            "version": "0.21.0",
+            "own_category": "a",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 0,
+            "own_unsafe": 14,
+            "tree_deps": 10,
+            "tree_unsafe": 964,
+            "host_touching_deps": {
+              "cpufeatures 0.3.1": 24,
+              "libc 0.2.190": 1
+            }
+          }
+        ],
+        "cli_shim": {
+          "label": "lzma-rust2",
+          "strict": 4,
+          "lenient": 4,
+          "total": 4
+        }
+      }
+    },
+    {
+      "name": "lzma-rs",
+      "version": "0.3.0",
+      "role": "xz",
+      "category": "a",
+      "conformance": {
+        "candidate": "archive-cli (lzma-rs)",
+        "total": 3,
+        "strict_pass": 3,
+        "lenient_pass": 3,
+        "unsupported": 0,
+        "by_tag": {
+          "error": [
+            1,
+            1,
+            1
+          ],
+          "formatter": [
+            3,
+            3,
+            3
+          ],
+          "lzma": [
+            1,
+            1,
+            1
+          ],
+          "xz-d": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "does_not_fit",
+      "notes": "forbid(unsafe_code); sem nível de compressão e sem lzip. O xz_compress grava LZMA2 em blocos não comprimidos e o lzma_compress só literais; o decodificador de xz não tem SHA-256 nem os filtros BCJ e delta. GNU->crate 24/32 e crate->GNU 10/10.",
+      "metrics": {
+        "interop": {
+          "gnu_to_candidate": {
+            "pass": 24,
+            "total": 32,
+            "failures": [
+              "xz/sha256__text: checksum: Unsupported SHA-256 checksum (not yet implemented)",
+              "xz/sha256__binary: checksum: Unsupported SHA-256 checksum (not yet implemented)",
+              "xz/x86__text: format: Unknown filter id 4",
+              "xz/x86__binary: format: Unknown filter id 4",
+              "xz/delta__text: format: Unknown filter id 3",
+              "xz/delta__binary: format: Unknown filter id 3",
+              "xz/multi__text: format: Unexpected data after last XZ block",
+              "xz/multi__binary: format: Unexpected data after last XZ block"
+            ]
+          },
+          "candidate_to_gnu": {
+            "pass": 10,
+            "total": 10,
+            "failures": []
+          }
+        },
+        "bench": {
+          "lzma-rs-lzma": {
+            "ratio-text": 0.5699,
+            "enc-mbps-text": 33.7,
+            "dec-mbps-text": 76.45,
+            "ratio-binary": 0.5122,
+            "enc-mbps-binary": 33.58,
+            "dec-mbps-binary": 56.96
+          },
+          "lzma-rs-xz": {
+            "ratio-text": 1.0001,
+            "enc-mbps-text": 20117.08,
+            "dec-mbps-text": 66.6,
+            "ratio-binary": 1.0002,
+            "enc-mbps-binary": 22854.75,
+            "dec-mbps-binary": 55.26
+          }
+        },
+        "output_size_vs_gnu_default_text": {
+          "lzma-rs-lzma": 3.1,
+          "lzma-rs-xz": 5.45
+        },
+        "depscan": [
+          {
+            "package": "lzma-rs",
+            "version": "0.3.0",
+            "own_category": "a",
+            "tree_category": "a",
+            "c_deps": [],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 3,
+            "tree_unsafe": 37,
+            "host_touching_deps": {}
+          }
+        ],
+        "cli_shim": {
+          "label": "lzma-rs",
+          "strict": 3,
+          "lenient": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "name": "xz4rust",
+      "version": "0.2.3",
+      "role": "xz",
+      "category": "b",
+      "conformance": {
+        "candidate": "archive-cli (xz4rust)",
+        "total": 3,
+        "strict_pass": 3,
+        "lenient_pass": 3,
+        "unsupported": 0,
+        "by_tag": {
+          "error": [
+            1,
+            1,
+            1
+          ],
+          "formatter": [
+            3,
+            3,
+            3
+          ],
+          "lzma": [
+            1,
+            1,
+            1
+          ],
+          "xz-d": [
+            3,
+            3,
+            3
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "does_not_fit",
+      "notes": "Só decodificador de .xz (sem .lzma, sem lzip, sem codificador). Decodificação 21/23.",
+      "metrics": {
+        "interop": {
+          "gnu_to_candidate": {
+            "pass": 21,
+            "total": 23,
+            "failures": [
+              "xz/multi__text: saída de 1000000 bytes, esperado 2000000",
+              "xz/multi__binary: saída de 262144 bytes, esperado 524288"
+            ]
+          },
+          "candidate_to_gnu": {
+            "pass": 0,
+            "total": 0,
+            "failures": []
+          }
+        },
+        "bench": {
+          "xz4rust-xz": {
+            "dec-mbps-text": 65.86,
+            "dec-mbps-binary": 47.73
+          }
+        },
+        "output_size_vs_gnu_default_text": {},
+        "depscan": [
+          {
+            "package": "xz4rust",
+            "version": "0.2.3",
+            "own_category": "a",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 0,
+            "own_unsafe": 3,
+            "tree_deps": 9,
+            "tree_unsafe": 952,
+            "host_touching_deps": {
+              "cpufeatures 0.2.17": 30,
+              "libc 0.2.190": 1
+            }
+          }
+        ],
+        "cli_shim": {
+          "label": "xz4rust",
+          "strict": 3,
+          "lenient": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "name": "ruzstd",
+      "version": "0.9.0",
+      "role": "zstd",
+      "category": "b",
+      "conformance": {
+        "candidate": "archive-cli (ruzstd)",
+        "total": 2,
+        "strict_pass": 2,
+        "lenient_pass": 2,
+        "unsupported": 0,
+        "by_tag": {
+          "error": [
+            1,
+            1,
+            1
+          ],
+          "formatter": [
+            2,
+            2,
+            2
+          ],
+          "zstd-d": [
+            2,
+            2,
+            2
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "does_not_fit",
+      "notes": "Codificador só no nível Fastest (Default, Better e Best são unimplemented!()). GNU->crate 15/15 e crate->GNU 5/5, mas a saída fica 1.39x a do GNU no nível padrão: interopera, não serve de compressor.",
+      "metrics": {
+        "interop": {
+          "gnu_to_candidate": {
+            "pass": 15,
+            "total": 15,
+            "failures": []
+          },
+          "candidate_to_gnu": {
+            "pass": 5,
+            "total": 5,
+            "failures": []
+          }
+        },
+        "bench": {
+          "ruzstd": {
+            "ratio-text": 0.3541,
+            "enc-mbps-text": 97.34,
+            "dec-mbps-text": 342.1,
+            "ratio-binary": 0.5018,
+            "enc-mbps-binary": 73.48,
+            "dec-mbps-binary": 222.63
+          }
+        },
+        "output_size_vs_gnu_default_text": {
+          "ruzstd": 1.39
+        },
+        "depscan": [
+          {
+            "package": "ruzstd",
+            "version": "0.9.0",
+            "own_category": "b",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 3,
+            "own_unsafe": 39,
+            "tree_deps": 1,
+            "tree_unsafe": 111,
+            "host_touching_deps": {}
+          }
+        ],
+        "cli_shim": {
+          "label": "ruzstd",
+          "strict": 2,
+          "lenient": 2,
+          "total": 2
+        }
+      }
+    },
+    {
+      "name": "structured-zstd",
+      "version": "0.0.58",
+      "role": "zstd",
+      "category": "b",
+      "conformance": {
+        "candidate": "archive-cli (structured-zstd)",
+        "total": 2,
+        "strict_pass": 2,
+        "lenient_pass": 2,
+        "unsupported": 0,
+        "by_tag": {
+          "error": [
+            1,
+            1,
+            1
+          ],
+          "formatter": [
+            2,
+            2,
+            2
+          ],
+          "zstd-d": [
+            2,
+            2,
+            2
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits",
+      "notes": "Fork do ruzstd com todos os níveis numéricos; versão 0.0.x (API instável). GNU->crate 15/15 e crate->GNU 15/15.",
+      "metrics": {
+        "interop": {
+          "gnu_to_candidate": {
+            "pass": 15,
+            "total": 15,
+            "failures": []
+          },
+          "candidate_to_gnu": {
+            "pass": 15,
+            "total": 15,
+            "failures": []
+          }
+        },
+        "bench": {
+          "structured-zstd": {
+            "ratio-text": 0.2539,
+            "enc-mbps-text": 55.07,
+            "dec-mbps-text": 786.45,
+            "ratio-binary": 0.3682,
+            "enc-mbps-binary": 162.18,
+            "dec-mbps-binary": 780.38
+          }
+        },
+        "output_size_vs_gnu_default_text": {
+          "structured-zstd": 1.0
+        },
+        "depscan": [
+          {
+            "package": "structured-zstd",
+            "version": "0.0.58",
+            "own_category": "b",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 65,
+            "own_unsafe": 1083,
+            "tree_deps": 2,
+            "tree_unsafe": 1155,
+            "host_touching_deps": {}
+          }
+        ],
+        "cli_shim": {
+          "label": "structured-zstd",
+          "strict": 2,
+          "lenient": 2,
+          "total": 2
+        }
+      }
+    },
+    {
+      "name": "tar",
+      "version": "0.4.46",
+      "role": "tar",
+      "category": "b",
+      "conformance": {
+        "candidate": "archive-cli (tar)",
+        "total": 15,
+        "strict_pass": 15,
+        "lenient_pass": 15,
+        "unsupported": 0,
+        "by_tag": {
+          "bzip2": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            1,
+            1,
+            1
+          ],
+          "formatter": [
+            15,
+            15,
+            15
+          ],
+          "gnu": [
+            5,
+            5,
+            5
+          ],
+          "oldgnu": [
+            1,
+            1,
+            1
+          ],
+          "pax": [
+            2,
+            2,
+            2
+          ],
+          "tar-t": [
+            1,
+            1,
+            1
+          ],
+          "tar-tv": [
+            12,
+            12,
+            12
+          ],
+          "tar-x": [
+            2,
+            2,
+            2
+          ],
+          "ustar": [
+            2,
+            2,
+            2
+          ],
+          "v7": [
+            1,
+            1,
+            1
+          ],
+          "xz": [
+            1,
+            1,
+            1
+          ],
+          "zstd": [
+            1,
+            1,
+            1
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits_with_work",
+      "notes": "Sem default features (sem xattr). Archive::entries resolve ././@LongLink e pax path/linkpath; Builder gera ././@LongLink sozinho mas pax só pelo primitivo append_pax_extensions (camada nossa); unpack usa std::fs, então a extração sobre o VFS é nossa. Lê e escreve tudo que o GNU lê; pax e extração sobre o VFS ficam com a gente.",
+      "metrics": {
+        "gnu_archives_read": {
+          "gnu": {
+            "expected": 22,
+            "ok": 22,
+            "problems": []
+          },
+          "oldgnu": {
+            "expected": 22,
+            "ok": 22,
+            "problems": []
+          },
+          "pax": {
+            "expected": 22,
+            "ok": 22,
+            "problems": []
+          },
+          "ustar": {
+            "expected": 16,
+            "ok": 16,
+            "problems": []
+          },
+          "v7": {
+            "expected": 6,
+            "ok": 6,
+            "problems": []
+          }
+        },
+        "gnu_reads_ours": {
+          "gnu": {
+            "tar_tvf": [
+              0,
+              ""
+            ],
+            "tar_xf": [
+              0,
+              ""
+            ],
+            "entries_ok": 22,
+            "entries": 22,
+            "problems": [],
+            "uses_gnu_longlink": true
+          },
+          "pax": {
+            "tar_tvf": [
+              0,
+              ""
+            ],
+            "tar_xf": [
+              0,
+              ""
+            ],
+            "entries_ok": 22,
+            "entries": 22,
+            "problems": [],
+            "uses_gnu_longlink": false
+          },
+          "ustar": {
+            "tar_tvf": [
+              0,
+              ""
+            ],
+            "tar_xf": [
+              0,
+              ""
+            ],
+            "entries_ok": 16,
+            "entries": 16,
+            "problems": [],
+            "uses_gnu_longlink": false
+          },
+          "ustar-long": {
+            "tar_tvf": [
+              0,
+              ""
+            ],
+            "tar_xf": [
+              0,
+              ""
+            ],
+            "entries_ok": 22,
+            "entries": 22,
+            "problems": [],
+            "uses_gnu_longlink": true
+          }
+        },
+        "depscan": [
+          {
+            "package": "tar",
+            "version": "0.4.46",
+            "own_category": "b",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 46,
+            "own_unsafe": 26,
+            "tree_deps": 10,
+            "tree_unsafe": 18227,
+            "host_touching_deps": {
+              "errno 0.3.14": 12,
+              "filetime 0.2.29": 39,
+              "libc 0.2.190": 1,
+              "rustix 1.1.5": 47,
+              "xattr 1.6.1": 33
+            }
+          }
+        ],
+        "cli_shim": {
+          "label": "tar",
+          "strict": 15,
+          "lenient": 15,
+          "total": 15
+        }
+      }
+    },
+    {
+      "name": "zip",
+      "version": "8.6.0",
+      "role": "zip",
+      "category": "b",
+      "conformance": {
+        "candidate": "archive-cli (zip)",
+        "total": 6,
+        "strict_pass": 6,
+        "lenient_pass": 6,
+        "unsupported": 0,
+        "by_tag": {
+          "error": [
+            1,
+            1,
+            1
+          ],
+          "formatter": [
+            6,
+            6,
+            6
+          ],
+          "unzip-l": [
+            4,
+            4,
+            4
+          ],
+          "unzip-x": [
+            2,
+            2,
+            2
+          ]
+        },
+        "sample_failures": []
+      },
+      "fit": "fits",
+      "notes": "default-features = false com deflate-flate2 (miniz_oxide), bzip2 (Rust) e xz (lzma-rust2); a feature zstd puxaria o zstd-sys (C) e foi deixada de fora. Lê os zip do Info-ZIP e o unzip lê os nossos (stored, deflate, bzip2).",
+      "metrics": {
+        "gnu_archives_read": {
+          "bzip2": {
+            "expected": 13,
+            "ok": 13,
+            "problems": []
+          },
+          "deflate": {
+            "expected": 13,
+            "ok": 13,
+            "problems": []
+          },
+          "stored": {
+            "expected": 13,
+            "ok": 13,
+            "problems": []
+          }
+        },
+        "unzip_reads_ours": {
+          "bzip2": {
+            "unzip_t": [
+              0,
+              "No errors detected in compressed data of ours/zip/bzip2.zip."
+            ],
+            "unzip_x": [
+              0,
+              ""
+            ],
+            "entries_ok": 13,
+            "entries": 13,
+            "problems": []
+          },
+          "deflate": {
+            "unzip_t": [
+              0,
+              "No errors detected in compressed data of ours/zip/deflate.zip."
+            ],
+            "unzip_x": [
+              0,
+              ""
+            ],
+            "entries_ok": 13,
+            "entries": 13,
+            "problems": []
+          },
+          "stored": {
+            "unzip_t": [
+              0,
+              "No errors detected in compressed data of ours/zip/stored.zip."
+            ],
+            "unzip_x": [
+              0,
+              ""
+            ],
+            "entries_ok": 13,
+            "entries": 13,
+            "problems": []
+          },
+          "xz": {
+            "unzip_t": [
+              81,
+              "No errors detected in ours/zip/xz.zip for the 6 files tested. 7 files skipped because of unsupported compression or encoding."
+            ],
+            "unzip_x": [
+              81,
+              ""
+            ],
+            "entries_ok": 6,
+            "entries": 13,
+            "problems": [
+              "faltou t/a.txt",
+              "faltou t/big.bin",
+              "faltou t/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt",
+              "faltou t/exec.sh",
+              "faltou t/ro.txt",
+              "faltou t/spaces and ünïcode.txt",
+              "faltou t/sub/deep.txt"
+            ]
+          }
+        },
+        "depscan": [
+          {
+            "package": "zip",
+            "version": "8.6.0",
+            "own_category": "b",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 19,
+            "own_unsafe": 21,
+            "tree_deps": 32,
+            "tree_unsafe": 2500,
+            "host_touching_deps": {
+              "cpufeatures 0.3.1": 24,
+              "hashbrown 0.17.1": 11,
+              "libbz2-rs-sys 0.2.5": 18,
+              "libc 0.2.190": 1,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "typed-path 0.12.3": 1,
+              "zlib-rs 0.6.8": 3
+            }
+          }
+        ],
+        "cli_shim": {
+          "label": "zip",
+          "strict": 6,
+          "lenient": 6,
+          "total": 6
+        }
+      }
+    }
+  ],
+  "roles": [],
+  "metrics": {
+    "inputs": {
+      "binary": 262144,
+      "empty": 0,
+      "one": 1,
+      "random": 65536,
+      "text": 1000000
+    },
+    "codec_candidate": {
+      "bzip2-rs": "bzip2",
+      "flate2-gzip": "flate2",
+      "lzma-rs-lzma": "lzma-rs",
+      "lzma-rs-xz": "lzma-rs",
+      "lzma-rust2-lzip": "lzma-rust2",
+      "lzma-rust2-lzma": "lzma-rust2",
+      "lzma-rust2-xz": "lzma-rust2",
+      "ruzstd": "ruzstd",
+      "structured-zstd": "structured-zstd",
+      "xz4rust-xz": "xz4rust",
+      "zlib-rs-gzip": "zlib-rs"
+    },
+    "variants": [
+      "gzip/l1: gzip -1 -n -c {in}",
+      "gzip/l6: gzip -n -c {in}",
+      "gzip/l9: gzip -9 -n -c {in}",
+      "gzip/named: gzip -c {in}",
+      "gzip/rsyncable: gzip --rsyncable -n -c {in}",
+      "gzip/multi: gzip -n -c {in}",
+      "bzip2/l1: bzip2 -1 -c {in}",
+      "bzip2/l9: bzip2 -c {in}",
+      "bzip2/multi: bzip2 -c {in}",
+      "xz/l0: xz -0 -c {in}",
+      "xz/l6: xz -c {in}",
+      "xz/l9e: xz -9e -c {in}",
+      "xz/crc32: xz --check=crc32 -c {in}",
+      "xz/sha256: xz --check=sha256 -c {in}",
+      "xz/nocheck: xz --check=none -c {in}",
+      "xz/blocks: xz -T4 --block-size=65536 -c {in}",
+      "xz/x86: xz --x86 --lzma2 -c {in}",
+      "xz/delta: xz --delta=dist=4 --lzma2 -c {in}",
+      "xz/multi: xz -c {in}",
+      "lzma/l0: xz --format=lzma -0 -c {in}",
+      "lzma/l6: xz --format=lzma -c {in}",
+      "lzma/l9: xz --format=lzma -9 -c {in}",
+      "lzip/l0: lzip -0 -c {in}",
+      "lzip/l6: lzip -c {in}",
+      "lzip/l9: lzip -9 -c {in}",
+      "lzip/members: lzip -b 100KiB -c {in}",
+      "lzip/multi: lzip -c {in}",
+      "zstd/l1: zstd -q -1 -c {in}",
+      "zstd/l3: zstd -q -c {in}",
+      "zstd/l19: zstd -q -19 -c {in}",
+      "zstd/nocheck: zstd -q --no-check -c {in}",
+      "zstd/stream: cat {in} | zstd -q -c",
+      "zstd/multi: zstd -q -c {in}"
+    ],
+    "decode": {
+      "bzip2-rs": {
+        "total": 9,
+        "pass": 9,
+        "failures": []
+      },
+      "flate2-gzip": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      },
+      "lzma-rs-lzma": {
+        "total": 9,
+        "pass": 9,
+        "failures": []
+      },
+      "lzma-rs-xz": {
+        "total": 23,
+        "pass": 15,
+        "failures": [
+          "xz/sha256__text: checksum: Unsupported SHA-256 checksum (not yet implemented)",
+          "xz/sha256__binary: checksum: Unsupported SHA-256 checksum (not yet implemented)",
+          "xz/x86__text: format: Unknown filter id 4",
+          "xz/x86__binary: format: Unknown filter id 4",
+          "xz/delta__text: format: Unknown filter id 3",
+          "xz/delta__binary: format: Unknown filter id 3",
+          "xz/multi__text: format: Unexpected data after last XZ block",
+          "xz/multi__binary: format: Unexpected data after last XZ block"
+        ]
+      },
+      "lzma-rust2-lzip": {
+        "total": 13,
+        "pass": 13,
+        "failures": []
+      },
+      "lzma-rust2-lzma": {
+        "total": 9,
+        "pass": 9,
+        "failures": []
+      },
+      "lzma-rust2-xz": {
+        "total": 23,
+        "pass": 23,
+        "failures": []
+      },
+      "ruzstd": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      },
+      "structured-zstd": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      },
+      "xz4rust-xz": {
+        "total": 23,
+        "pass": 21,
+        "failures": [
+          "xz/multi__text: saída de 1000000 bytes, esperado 2000000",
+          "xz/multi__binary: saída de 262144 bytes, esperado 524288"
+        ]
+      },
+      "zlib-rs-gzip": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      }
+    },
+    "encode": {
+      "bzip2-rs": {
+        "total": 10,
+        "pass": 10,
+        "failures": []
+      },
+      "flate2-gzip": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      },
+      "lzma-rs-lzma": {
+        "total": 5,
+        "pass": 5,
+        "failures": []
+      },
+      "lzma-rs-xz": {
+        "total": 5,
+        "pass": 5,
+        "failures": []
+      },
+      "lzma-rust2-lzip": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      },
+      "lzma-rust2-lzma": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      },
+      "lzma-rust2-xz": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      },
+      "ruzstd": {
+        "total": 5,
+        "pass": 5,
+        "failures": []
+      },
+      "structured-zstd": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      },
+      "zlib-rs-gzip": {
+        "total": 15,
+        "pass": 15,
+        "failures": []
+      }
+    },
+    "bench_candidates": {
+      "bzip2-rs": {
+        "ratio-text": 0.1404,
+        "enc-mbps-text": 12.06,
+        "dec-mbps-text": 9.41,
+        "ratio-binary": 0.2792,
+        "enc-mbps-binary": 10.86,
+        "dec-mbps-binary": 17.32
+      },
+      "flate2-gzip": {
+        "ratio-text": 0.227,
+        "enc-mbps-text": 26.21,
+        "dec-mbps-text": 413.04,
+        "ratio-binary": 0.3336,
+        "enc-mbps-binary": 18.84,
+        "dec-mbps-binary": 391.93
+      },
+      "lzma-rs-lzma": {
+        "ratio-text": 0.5699,
+        "enc-mbps-text": 33.7,
+        "dec-mbps-text": 76.45,
+        "ratio-binary": 0.5122,
+        "enc-mbps-binary": 33.58,
+        "dec-mbps-binary": 56.96
+      },
+      "lzma-rs-xz": {
+        "ratio-text": 1.0001,
+        "enc-mbps-text": 20117.08,
+        "dec-mbps-text": 66.6,
+        "ratio-binary": 1.0002,
+        "enc-mbps-binary": 22854.75,
+        "dec-mbps-binary": 55.26
+      },
+      "lzma-rust2-lzip": {
+        "ratio-text": 0.1833,
+        "enc-mbps-text": 1.78,
+        "dec-mbps-text": 94.38,
+        "ratio-binary": 0.213,
+        "enc-mbps-binary": 3.36,
+        "dec-mbps-binary": 77.34
+      },
+      "lzma-rust2-lzma": {
+        "ratio-text": 0.1833,
+        "enc-mbps-text": 0.88,
+        "dec-mbps-text": 24.59,
+        "ratio-binary": 0.2129,
+        "enc-mbps-binary": 1.56,
+        "dec-mbps-binary": 59.41
+      },
+      "lzma-rust2-xz": {
+        "ratio-text": 0.1834,
+        "enc-mbps-text": 2.26,
+        "dec-mbps-text": 88.1,
+        "ratio-binary": 0.2131,
+        "enc-mbps-binary": 2.58,
+        "dec-mbps-binary": 66.88
+      },
+      "ruzstd": {
+        "ratio-text": 0.3541,
+        "enc-mbps-text": 97.34,
+        "dec-mbps-text": 342.1,
+        "ratio-binary": 0.5018,
+        "enc-mbps-binary": 73.48,
+        "dec-mbps-binary": 222.63
+      },
+      "structured-zstd": {
+        "ratio-text": 0.2539,
+        "enc-mbps-text": 55.07,
+        "dec-mbps-text": 786.45,
+        "ratio-binary": 0.3682,
+        "enc-mbps-binary": 162.18,
+        "dec-mbps-binary": 780.38
+      },
+      "xz4rust-xz": {
+        "dec-mbps-text": 65.86,
+        "dec-mbps-binary": 47.73
+      },
+      "zlib-rs-gzip": {
+        "ratio-text": 0.2354,
+        "enc-mbps-text": 50.96,
+        "dec-mbps-text": 709.7,
+        "ratio-binary": 0.3522,
+        "enc-mbps-binary": 45.4,
+        "dec-mbps-binary": 420.84
+      }
+    },
+    "bench_gnu": {
+      "gzip": {
+        "ratio-text": 0.2315,
+        "enc-mbps-text": 27.97,
+        "dec-mbps-text": 222.11,
+        "ratio-binary": 0.3348,
+        "enc-mbps-binary": 16.66,
+        "dec-mbps-binary": 168.41
+      },
+      "bzip2": {
+        "ratio-text": 0.1404,
+        "enc-mbps-text": 11.93,
+        "dec-mbps-text": 10.11,
+        "ratio-binary": 0.2792,
+        "enc-mbps-binary": 11.93,
+        "dec-mbps-binary": 17.84
+      },
+      "xz": {
+        "ratio-text": 0.1836,
+        "enc-mbps-text": 1.74,
+        "dec-mbps-text": 83.99,
+        "ratio-binary": 0.2183,
+        "enc-mbps-binary": 2.13,
+        "dec-mbps-binary": 53.32
+      },
+      "lzma": {
+        "ratio-text": 0.1836,
+        "enc-mbps-text": 1.69,
+        "dec-mbps-text": 94.5,
+        "ratio-binary": 0.2181,
+        "enc-mbps-binary": 2.13,
+        "dec-mbps-binary": 82.83
+      },
+      "lzip": {
+        "ratio-text": 0.1828,
+        "enc-mbps-text": 1.94,
+        "dec-mbps-text": 83.73,
+        "ratio-binary": 0.2182,
+        "enc-mbps-binary": 2.34,
+        "dec-mbps-binary": 50.68
+      },
+      "zstd": {
+        "ratio-text": 0.2539,
+        "enc-mbps-text": 88.67,
+        "dec-mbps-text": 470.31,
+        "ratio-binary": 0.3804,
+        "enc-mbps-binary": 86.76,
+        "dec-mbps-binary": 107.31
+      },
+      "zstd1": {
+        "ratio-text": 0.2695,
+        "enc-mbps-text": 93.76,
+        "dec-mbps-text": 362.13,
+        "ratio-binary": 0.4266,
+        "enc-mbps-binary": 117.98,
+        "dec-mbps-binary": 75.28
+      }
+    },
+    "gnu_spawn_ms": 3.86,
+    "tar": {
+      "crate_reads_gnu": {
+        "gnu": {
+          "expected": 22,
+          "ok": 22,
+          "problems": []
+        },
+        "oldgnu": {
+          "expected": 22,
+          "ok": 22,
+          "problems": []
+        },
+        "pax": {
+          "expected": 22,
+          "ok": 22,
+          "problems": []
+        },
+        "ustar": {
+          "expected": 16,
+          "ok": 16,
+          "problems": []
+        },
+        "v7": {
+          "expected": 6,
+          "ok": 6,
+          "problems": []
+        }
+      },
+      "gnu_reads_ours": {
+        "gnu": {
+          "tar_tvf": [
+            0,
+            ""
+          ],
+          "tar_xf": [
+            0,
+            ""
+          ],
+          "entries_ok": 22,
+          "entries": 22,
+          "problems": [],
+          "uses_gnu_longlink": true
+        },
+        "pax": {
+          "tar_tvf": [
+            0,
+            ""
+          ],
+          "tar_xf": [
+            0,
+            ""
+          ],
+          "entries_ok": 22,
+          "entries": 22,
+          "problems": [],
+          "uses_gnu_longlink": false
+        },
+        "ustar": {
+          "tar_tvf": [
+            0,
+            ""
+          ],
+          "tar_xf": [
+            0,
+            ""
+          ],
+          "entries_ok": 16,
+          "entries": 16,
+          "problems": [],
+          "uses_gnu_longlink": false
+        },
+        "ustar-long": {
+          "tar_tvf": [
+            0,
+            ""
+          ],
+          "tar_xf": [
+            0,
+            ""
+          ],
+          "entries_ok": 22,
+          "entries": 22,
+          "problems": [],
+          "uses_gnu_longlink": true
+        }
+      }
+    },
+    "zip": {
+      "crate_reads_gnu": {
+        "bzip2": {
+          "expected": 13,
+          "ok": 13,
+          "problems": []
+        },
+        "deflate": {
+          "expected": 13,
+          "ok": 13,
+          "problems": []
+        },
+        "stored": {
+          "expected": 13,
+          "ok": 13,
+          "problems": []
+        }
+      },
+      "unzip_reads_ours": {
+        "bzip2": {
+          "unzip_t": [
+            0,
+            "No errors detected in compressed data of ours/zip/bzip2.zip."
+          ],
+          "unzip_x": [
+            0,
+            ""
+          ],
+          "entries_ok": 13,
+          "entries": 13,
+          "problems": []
+        },
+        "deflate": {
+          "unzip_t": [
+            0,
+            "No errors detected in compressed data of ours/zip/deflate.zip."
+          ],
+          "unzip_x": [
+            0,
+            ""
+          ],
+          "entries_ok": 13,
+          "entries": 13,
+          "problems": []
+        },
+        "stored": {
+          "unzip_t": [
+            0,
+            "No errors detected in compressed data of ours/zip/stored.zip."
+          ],
+          "unzip_x": [
+            0,
+            ""
+          ],
+          "entries_ok": 13,
+          "entries": 13,
+          "problems": []
+        },
+        "xz": {
+          "unzip_t": [
+            81,
+            "No errors detected in ours/zip/xz.zip for the 6 files tested. 7 files skipped because of unsupported compression or encoding."
+          ],
+          "unzip_x": [
+            81,
+            ""
+          ],
+          "entries_ok": 6,
+          "entries": 13,
+          "problems": [
+            "faltou t/a.txt",
+            "faltou t/big.bin",
+            "faltou t/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd/ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.txt",
+            "faltou t/exec.sh",
+            "faltou t/ro.txt",
+            "faltou t/spaces and ünïcode.txt",
+            "faltou t/sub/deep.txt"
+          ]
+        }
+      }
+    },
+    "cli_shim": {
+      "backends": [
+        "bzip2",
+        "flate2",
+        "lzma-rs",
+        "lzma-rust2",
+        "ruzstd",
+        "structured-zstd",
+        "tar",
+        "xz4rust",
+        "zip",
+        "zlib-rs"
+      ],
+      "note": "byte a byte contra corpus/cases/archive/listing.toml; cada candidato pontua só as tags do seu papel"
+    },
+    "compress_bytes_identical_to_gnu": {
+      "cli_cases_small_input": {
+        "bzip2-c-bytes": true,
+        "gzip-c-bytes": true,
+        "lzip-c-bytes": false,
+        "xz-c-bytes": false,
+        "zstd-c-bytes": false
+      },
+      "default_level_corpus": {
+        "bzip2-rs": {
+          "binary": true,
+          "text": true
+        },
+        "flate2-gzip": {
+          "binary": false,
+          "text": false
+        },
+        "lzma-rs-lzma": {
+          "binary": false,
+          "text": false
+        },
+        "lzma-rs-xz": {
+          "binary": false,
+          "text": false
+        },
+        "lzma-rust2-lzip": {
+          "binary": false,
+          "text": false
+        },
+        "lzma-rust2-lzma": {
+          "binary": false,
+          "text": false
+        },
+        "lzma-rust2-xz": {
+          "binary": false,
+          "text": false
+        },
+        "structured-zstd": {
+          "binary": false,
+          "text": false
+        },
+        "zlib-rs-gzip": {
+          "binary": false,
+          "text": false
+        }
+      }
+    }
+  },
+  "notes": [
+    "H31: o flate2 não pode ter os backends miniz_oxide e zlib-rs no mesmo grafo (as features unificam); o candidato zlib-rs usa a API segura zlib_rs::{Deflate, Inflate} em modo raw com o enquadramento gzip feito aqui, que é exatamente o que o flate2 faz com a feature zlib-rs.",
+    "H31: velocidades do GNU medidas no container em laço com date +%s%N, descontando 3.86 ms de criação de processo por iteração; candidatos medidos no processo. Nível: o padrão do GNU (gzip 6, bzip2 9, xz/lzip 6, zstd 3).",
+    "H31: depscan sem C em nenhuma das 12 crates (nenhum `links`, nenhuma build-dependency cc/cmake/bindgen). A categoria (b) vem de código fora do caminho que usamos: tar (unpack e append_path em std::fs; a feature xattr é ligada no grafo pela pure-magic, não por nós), zip (extract em std::fs), ruzstd e structured-zstd (std::fs só em src/bin e testes), libbz2-rs-sys (ABI C exportada com tipos da libc) e zlib-rs (eprintln de trace). O depscan também põe o zlib-rs sob o flate2 por causa da dependência fraca `zlib-rs?/std`, que não está ativa (cargo tree -i zlib-rs mostra só o experimento).",
+    "H31: com Header::new_ustar e nome acima de 255 bytes (ou alvo de link acima de 100), o Builder da crate tar grava ././@LongLink (extensão GNU) sem avisar: o GNU lê, mas o arquivo deixa de ser ustar POSIX. pax exige montar os registros com append_pax_extensions (camada nossa, testada no modo pax).",
+    "H31: o XzReader do xz4rust devolve só o primeiro stream de um .xz concatenado (xz a b > c), sem erro: truncamento silencioso.",
+    "H31: zip com método 95 (xz) escrito pela crate zip é recusado pelo unzip 6.0 do oráculo (\"unsupported compression\", exit 81): limitação do consumidor; o Info-ZIP também não gera esse método."
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "awk-OFMT-CONVFMT": {
+    "stdout": "3.14159\n3.14\n3.142\n17\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-average-print-default-ofmt": {
+    "stdout": "30.3333\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-average-printf": {
+    "stdout": "29.50\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-compound-assign": {
+    "stdout": "15\n12\n24\n6\n2\n8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-division-by-zero": {
+    "stdout": "",
+    "stderr": "awk: cmd. line:1: error: division by zero attempted\n",
+    "exit": 1,
+    "files": {}
+  },
+  "awk-exponent": {
+    "stdout": "1024 8 1.41421 0.5 -nan\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-float-output": {
+    "stdout": "0.3 0.333333 10000000000 3 1e-05 123457 1.23457e+06 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-hex-source-vs-string": {
+    "stdout": "26 0 9 11\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-increment-ops": {
+    "stdout": "5 6 7 7 5 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-int-division-modulo": {
+    "stdout": "3.5 3 1 -1 1.5 -3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-integer-valued-float-concat": {
+    "stdout": "1 2.5 1000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-large-integers": {
+    "stdout": "9007199254740992 9007199254740992 1000000 10000000000000000 123456789012 9223372036854775808 10000000000000000525047602552044202487044685811081591549158541155118024579889081957863713750804478640437044438328838781769425232353604305756447921847867069828483872009265758037378302337947880900593689532349707999450811190389676408800746527427801424945792587888200568428381156694721963868654594005401600\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-leading-zeros-field": {
+    "stdout": "007 7 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-length-of-number": {
+    "stdout": "5 8 11\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-math-functions": {
+    "stdout": "1.4142 2.7183 2.3026 3.1416 0.8415 1.0000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-max-min": {
+    "stdout": "max=12 min=-3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-modulo-by-zero": {
+    "stdout": "",
+    "stderr": "awk: cmd. line:1: fatal: division by zero attempted in `%'\n",
+    "exit": 2,
+    "files": {}
+  },
+  "awk-numeric-prefix-string": {
+    "stdout": "12 0 3 4 -10 0.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-percent-histogram": {
+    "stdout": "a 75.0%\nb 25.0%\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-c-number-utf8": {
+    "stdout": "á€\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-columns": {
+    "stdout": "alice     |   30|85000.00\nbob       |   25|52000.50\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-conversions": {
+    "stdout": "A h 10 ff FF 1.234500e+03 1.230000E-04 1.23457e+06 0.0001 %\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-d-of-strings": {
+    "stdout": "12 0 3 3.14159\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-flags": {
+    "stdout": "00042|+42| 42|003.1|7    |010|0xff\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-g-format": {
+    "stdout": "100000 1e+06 0.0001 1e-05 3.14\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-huge-d": {
+    "stdout": "18446744073709551616 -9223372036854775808 1180591620717411303424\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-i-and-u": {
+    "stdout": "3 7 -2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-no-newline": {
+    "stdout": "a b c \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-not-enough-args": {
+    "stdout": "",
+    "stderr": "awk: cmd. line:1: fatal: not enough arguments to satisfy format string\n\t`%s %s\n'\n\t    ^ ran out for this one\n",
+    "exit": 2,
+    "files": {}
+  },
+  "awk-printf-parens": {
+    "stdout": "x=1\ny=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-positional": {
+    "stdout": "hello world\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-star-width": {
+    "stdout": "   42|ab  |3.14\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-printf-string-precision": {
+    "stdout": "abc|        xy|ab    |\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-scientific-input": {
+    "stdout": "1000 1 0.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-sprintf": {
+    "stdout": "007-x 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-sprintf-table": {
+    "stdout": "cpu       45.3%\nmem        7.0%\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-srand-return": {
+    "stdout": "5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-string-vs-number-compare": {
+    "stdout": "1 0 1 0 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-strnum-field-compare": {
+    "stdout": "0 0\n0 0\n0 1\n0 1\n1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-sum-column": {
+    "stdout": "235000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-uninitialized-var": {
+    "stdout": "0 [] 0 1 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

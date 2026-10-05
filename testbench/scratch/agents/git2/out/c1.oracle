@@ -1,0 +1,130 @@
+$ git checkout feature
+Switched to branch 'feature'
+[exit=0]
+$ git checkout feature
+Already on 'feature'
+[exit=0]
+$ git checkout main
+Switched to branch 'main'
+[exit=0]
+$ git checkout -
+Switched to branch 'feature'
+[exit=0]
+$ git checkout -
+Switched to branch 'main'
+[exit=0]
+$ git switch -
+Switched to branch 'feature'
+[exit=0]
+$ git checkout -b new
+Switched to a new branch 'new'
+[exit=0]
+$ git checkout -b new
+fatal: a branch named 'new' already exists
+[exit=128]
+$ git checkout -B new
+Reset branch 'new'
+[exit=0]
+$ git checkout -B new2 HEAD~1
+Switched to a new branch 'new2'
+[exit=0]
+$ git checkout -b
+error: switch `b' requires a value
+[exit=129]
+$ git checkout nonexist
+error: pathspec 'nonexist' did not match any file(s) known to git
+[exit=1]
+$ git checkout -q feature
+[exit=0]
+$ git checkout -b n3 -q
+[exit=0]
+$ git checkout --detach
+HEAD is now at f742ed7 add b
+[exit=0]
+$ git checkout --detach main
+Previous HEAD position was f742ed7 add b
+HEAD is now at 110d11a add c
+[exit=0]
+$ git checkout HEAD~1
+Previous HEAD position was 110d11a add c
+HEAD is now at f742ed7 add b
+[exit=0]
+$ git checkout main
+Previous HEAD position was f742ed7 add b
+Switched to branch 'main'
+[exit=0]
+$ git checkout -d feature
+HEAD is now at f742ed7 add b
+[exit=0]
+$ git checkout 110d11a6f83207f06077f9d00b2fd73dfee2056b
+Previous HEAD position was f742ed7 add b
+HEAD is now at 110d11a add c
+[exit=0]
+$ git checkout main~1
+Previous HEAD position was 110d11a add c
+HEAD is now at f742ed7 add b
+[exit=0]
+Agent <agent@example.com> 1768478460 +0000	commit (initial): add a
+Agent <agent@example.com> 1768478520 +0000	commit: add b
+Agent <agent@example.com> 1768478580 +0000	commit: add c
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from main to feature
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from feature to feature
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from feature to main
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from main to feature
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from feature to main
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from main to feature
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from feature to new
+Agent <agent@example.com> 1768478580 +0000	branch: Reset to HEAD
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from new to new
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from new to new2
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from new2 to feature
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from feature to n3
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from n3 to HEAD
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from f742ed745a17b3d948e9fe299ddc31076bd22cc5 to main
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from 110d11a6f83207f06077f9d00b2fd73dfee2056b to HEAD~1
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from f742ed745a17b3d948e9fe299ddc31076bd22cc5 to main
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from main to feature
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from f742ed745a17b3d948e9fe299ddc31076bd22cc5 to 110d11a6f83207f06077f9d00b2fd73dfee2056b
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from 110d11a6f83207f06077f9d00b2fd73dfee2056b to main~1
+$ git checkout HEAD
+[exit=0]
+$ git checkout -q HEAD
+[exit=0]
+$ git checkout main --
+Already on 'main'
+[exit=0]
+$ git checkout -- a.txt
+[exit=0]
+$ git checkout HEAD -- a.txt
+[exit=0]
+$ git checkout HEAD~1 -- c.txt
+error: pathspec 'c.txt' did not match any file(s) known to git
+[exit=1]
+$ git status --short
+[exit=0]
+$ git checkout -- nonexist
+error: pathspec 'nonexist' did not match any file(s) known to git
+[exit=1]
+$ git checkout HEAD -- nonexist
+error: pathspec 'nonexist' did not match any file(s) known to git
+[exit=1]
+$ git checkout .
+Updated 0 paths from the index
+[exit=0]
+$ git checkout a.txt
+Updated 1 path from the index
+[exit=0]
+a
+$ git checkout -- a.txt
+[exit=0]
+changed
+M  a.txt
+$ git checkout -f main
+Already on 'main'
+[exit=0]
+$ git checkout --orphan orph
+Switched to a new branch 'orph'
+[exit=0]
+On branch orph
+
+No commits yet

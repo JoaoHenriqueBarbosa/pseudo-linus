@@ -1,0 +1,17 @@
+fatal: the requested upstream branch 'origin/nonex' does not exist$
+hint:$
+hint: If you are planning on basing your work on an upstream$
+hint: branch that already exists at the remote, you may need to$
+error: switch `u' requires a value
+fatal: too many arguments to set new upstream
+fatal: branch 'nonex' has no upstream information
+fatal: 'bad..name' is not a valid branch name$
+hint: See `man git check-ref-format`$
+hint: Disable this message with "git config advice.refSyntax false"$
+warning: not setting branch 'main' as its own upstream
+warning: not setting branch 'main' as its own upstream
+warning: not setting branch 'main' as its own upstream
+fatal: could not set upstream of HEAD to main when it does not point to any branch
+fatal: could not unset upstream of HEAD when it does not point to any branch
+fatal: cannot rename the current branch while not on any
+fatal: cannot copy the current branch while not on any

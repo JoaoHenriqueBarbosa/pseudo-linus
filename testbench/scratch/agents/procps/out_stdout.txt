@@ -1,0 +1,152 @@
+    ("DFMT", "pid,tname,state,cputime,cmd"),
+    ("DefBSD", "pid,tname,stat,bsdtime,args"),
+    ("DefSysV", "pid,tname,time,cmd"),
+    ("END_BSD", "state,tname,cputime,comm"),
+    ("END_SYS5", "state,tname,time,command"),
+    ("F5FMT", "uname,pid,ppid,c,start,tname,time,cmd"),
+    ("FB_", "pid,tt,stat,time,command"),
+    ("FB_j", "user,pid,ppid,pgid,sess,jobc,stat,tt,time,command"),
+    ("FB_l", "uid,pid,ppid,cpu,pri,nice,vsz,rss,wchan,stat,tt,time,command"),
+    ("FB_u", "user,pid,pcpu,pmem,vsz,rss,tt,stat,start,time,command"),
+    ("FB_v", "pid,stat,time,sl,re,pagein,vsz,rss,lim,tsiz,pcpu,pmem,command"),
+    ("FD_", "pid,tty,time,comm"),
+    ("FD_f", "user,pid,ppid,start_time,tty,time,comm"),
+    ("FD_fj", "user,pid,ppid,start_time,tty,time,pgid,sid,comm"),
+    ("FD_j", "pid,tty,time,pgid,sid,comm"),
+    ("FD_l", "flags,state,uid,pid,ppid,priority,nice,vsz,wchan,tty,time,comm"),
+    ("FD_lj", "flags,state,uid,pid,ppid,priority,nice,vsz,wchan,tty,time,pgid,sid,comm"),
+    ("FL5FMT", "f,state,uid,pid,ppid,pcpu,pri,nice,rss,wchan,start,time,command"),
+    ("FLASK_context", "pid,context,command"),
+    ("HP_", "pid,tty,time,comm"),
+    ("HP_f", "user,pid,ppid,cpu,stime,tty,time,args"),
+    ("HP_fl", "flags,state,user,pid,ppid,cpu,intpri,nice,addr,sz,wchan,stime,tty,time,args"),
+    ("HP_l", "flags,state,uid,pid,ppid,cpu,intpri,nice,addr,sz,wchan,tty,time,comm"),
+    ("J390", "pid,sid,pgrp,tname,atime,args"),
+    ("JFMT", "user,pid,ppid,pgid,sess,jobc,state,tname,cputime,command"),
+    ("L5FMT", "f,state,uid,pid,ppid,c,pri,nice,addr,sz,wchan,tt,time,ucmd"),
+    ("LFMT", "uid,pid,ppid,cp,pri,nice,vsz,rss,wchan,state,tname,cputime,command"),
+    ("OL_X", "pid,start_stack,esp,eip,timeout,alarm,stat,tname,bsdtime,args"),
+    ("OL_j", "ppid,pid,pgid,sid,tname,tpgid,stat,uid,bsdtime,args"),
+    ("OL_l", "flags,uid,pid,ppid,priority,nice,vsz,rss,wchan,stat,tname,bsdtime,args"),
+    ("OL_m", "pid,tname,majflt,minflt,m_trs,m_drs,m_size,m_swap,rss,m_share,vm_lib,m_dt,args"),
+    ("OL_s", "uid,pid,pending,sig_block,sig_ignore,caught,stat,tname,bsdtime,args"),
+    ("OL_u", "user,pid,pcpu,pmem,vsz,rss,tname,stat,start_time,bsdtime,args"),
+    ("OL_v", "pid,tname,stat,bsdtime,maj_flt,m_trs,m_drs,rss,pmem,args"),
+    ("RD_", "pid,tname,state,bsdtime,comm"),
+    ("RD_f", "uid,pid,ppid,start_time,tname,bsdtime,args"),
+    ("RD_fj", "uid,pid,ppid,start_time,tname,bsdtime,pgid,sid,args"),
+    ("RD_j", "pid,tname,state,bsdtime,pgid,sid,comm"),
+    ("RD_l", "flags,state,uid,pid,ppid,priority,nice,wchan,tname,bsdtime,comm"),
+    ("RD_lj", "flags,state,uid,pid,ppid,priority,nice,wchan,tname,bsdtime,pgid,sid,comm"),
+    ("RUSAGE", "minflt,majflt,nswap,inblock,oublock,msgsnd,msgrcv,nsigs,nvcsw,nivcsw"),
+    ("SCHED", "user,pcpu,pri,usrpri,nice,psxpri,psr,policy,pset"),
+    ("SFMT", "uid,pid,cursig,sig,sigmask,sigignore,sigcatch,stat,tname,command"),
+    ("Std_f", "uid_hack,pid,ppid,c,stime,tname,time,cmd"),
+    ("Std_fl", "f,s,uid_hack,pid,ppid,c,opri,ni,addr,sz,wchan,stime,tname,time,cmd"),
+    ("Std_l", "f,s,uid,pid,ppid,c,opri,ni,addr,sz,wchan,tname,time,ucmd"),
+    ("THREAD", "user,pcpu,pri,scnt,wchan,usertime,systime"),
+    ("UFMT", "uname,pid,pcpu,pmem,vsz,rss,tt,state,start,time,command"),
+    ("VFMT", "pid,tt,state,time,sl,pagein,vsz,rss,pcpu,pmem,command"),
+    ("~", "~"),
+VmLib
+SmapPss
+OomAdj
+Utilization
+IdEuid
+IdTgid
+Cmd
+AutogrpNice
+Supgroups
+IoWriteOps
+RssRlim
+AutogrpId
+FltMin
+Cgroup
+AddrCurrEsp
+IdRgroup
+IoWriteCbytes
+IdSgid
+State
+NsPid
+Noop
+SdUunit
+NsUts
+IoWriteChars
+TicsAll
+IdSuid
+OomScore
+MemResPgs
+TimeAll
+Cgname
+Sigcatch
+NsMnt
+IdRuser
+IdSuser
+NsIpc
+Exe
+VmRssLocked
+Cmdline
+IdRgid
+SdMach
+PriorityRt
+IoWriteBytes
+TicsUserC
+VmExe
+NsCgroup
+Lxcname
+IdPid
+NsUser
+IdPgrp
+Nice
+SdUnit
+NsTime
+SdSeat
+TicsUser
+IdTpgid
+IdRuid
+VmStack
+MemShrPgs
+AddrCodeEnd
+SchedClass
+Processor
+TicsBegan
+IdPpid
+SdOuid
+Sigblocked
+TimeElapsed
+IdEuser
+IdSession
+IdLogin
+ProcessorNode
+Sigpending
+Sigignore
+VsizeBytes
+IdFgroup
+Nlwp
+NsNet
+IoReadOps
+VmRss
+TtyName
+IdFuser
+SdSlice
+IoReadChars
+Flags
+IoReadBytes
+AddrCurrEip
+AddrCodeStart
+FltMaj
+IdFgid
+SmapPrvTotal
+Supgids
+VmData
+Signals
+IdEgroup
+IdSgroup
+AddrStackStart
+SdSess
+WchanName
+VmSize
+IdFuid
+IdEgid
+UtilizationC
+Priority

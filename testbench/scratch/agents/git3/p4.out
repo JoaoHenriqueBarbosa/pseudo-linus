@@ -1,0 +1,233 @@
+$ git revert HEAD~1
+[out]
+Auto-merging f.txt
+CONFLICT (content): Merge conflict in f.txt
+[err]
+error: could not revert 731555e... change f
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm <pathspec>", then run
+hint: "git revert --continue".
+hint: You can instead skip this commit with "git revert --skip".
+hint: To abort and get back to the state before "git revert",
+hint: run "git revert --abort".
+hint: Disable this message with "git config advice.mergeConflict false"
+[exit=1]
+l1
+<<<<<<< HEAD
+l2 again
+=======
+l2
+>>>>>>> parent of 731555e (change f)
+l3
+On branch main
+You are currently reverting commit 731555e.
+  (fix conflicts and run "git revert --continue")
+  (use "git revert --skip" to skip this patch)
+  (use "git revert --abort" to cancel the revert operation)
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add <file>..." to mark resolution)
+	both modified:   f.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+Revert "change f"
+
+This reverts commit 731555e4b06927d111d5ec0ca42b3af357eeb025.
+
+# Conflicts:
+#	f.txt
+AUTO_MERGE
+MERGE_MSG
+REVERT_HEAD
+731555e4b06927d111d5ec0ca42b3af357eeb025
+$ git revert --continue
+[out]
+[main 01e1971] Revert "change f"
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[err]
+[exit=0]
+01e1971 HEAD@{0}: commit: Revert "change f"
+12d3b78 HEAD@{1}: commit: change f again
+731555e HEAD@{2}: commit: change f
+Agent agent@example.com Revert "change f"
+This reverts commit 731555e4b06927d111d5ec0ca42b3af357eeb025.
+
+--- conflict then commit directly
+$ git revert HEAD~1
+[out]
+Auto-merging f.txt
+CONFLICT (content): Merge conflict in f.txt
+[err]
+error: could not revert 12d3b78... change f again
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm <pathspec>", then run
+hint: "git revert --continue".
+hint: You can instead skip this commit with "git revert --skip".
+hint: To abort and get back to the state before "git revert",
+hint: run "git revert --abort".
+hint: Disable this message with "git config advice.mergeConflict false"
+[exit=1]
+$ git commit
+[out]
+[err]
+error: Terminal is dumb, but EDITOR unset
+Please supply the message using either -m or -F option.
+[exit=1]
+$ git commit
+[out]
+[main 42e6b7a] Revert "change f again"
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[err]
+[exit=0]
+42e6b7a HEAD@{0}: commit: Revert "change f again"
+01e1971 HEAD@{1}: commit: Revert "change f"
+--- revert skip multi
+$ git revert HEAD~1 HEAD
+[out]
+Auto-merging f.txt
+CONFLICT (content): Merge conflict in f.txt
+[err]
+error: could not revert 12d3b78... change f again
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm <pathspec>", then run
+hint: "git revert --continue".
+hint: You can instead skip this commit with "git revert --skip".
+hint: To abort and get back to the state before "git revert",
+hint: run "git revert --abort".
+hint: Disable this message with "git config advice.mergeConflict false"
+[exit=1]
+revert 12d3b78 change f again
+revert 01e1971 Revert "change f"
+01e19714b6ee7dff23432518539be3e4360022fc
+$ git revert --skip
+[out]
+[main 138c90b] Reapply "change f"
+ Date: Thu Jan 15 12:06:00 2026 +0000
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[err]
+[exit=0]
+On branch main
+nothing to commit, working tree clean
+138c90b Reapply "change f"
+01e1971 Revert "change f"
+12d3b78 change f again
+--- pick: cherry-pick -x conflict + continue
+$ git cherry-pick -x side
+[out]
+[main f6391a8] side edit
+ Date: Thu Jan 15 12:07:00 2026 +0000
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[err]
+[exit=0]
+$ git cherry-pick --continue
+[out]
+[err]
+error: no cherry-pick or revert in progress
+fatal: cherry-pick failed
+[exit=128]
+side edit
+
+side body
+
+(cherry picked from commit bd7a63a147a3eead7f99f2537eca6aa10bfab12e)
+
+f6391a8 HEAD@{0}: cherry-pick: side edit
+138c90b HEAD@{1}: checkout: moving from side to main
+--- pick merge commit
+error: Your local changes to the following files would be overwritten by checkout:
+	f.txt
+Please commit your changes or stash them before you switch branches.
+Aborting
+merge: m1 - not something we can merge
+$ git cherry-pick HEAD
+[out]
+On branch main
+You are currently cherry-picking commit 01b6107.
+  (all conflicts fixed: run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+nothing to commit, working tree clean
+[err]
+The previous cherry-pick is now empty, possibly due to conflict resolution.
+If you wish to commit it anyway, use:
+
+    git commit --allow-empty
+
+Otherwise, please use 'git cherry-pick --skip'
+[exit=1]
+$ git cherry-pick -m 1 HEAD
+[out]
+On branch main
+You are currently cherry-picking commit 01b6107.
+  (all conflicts fixed: run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+nothing to commit, working tree clean
+[err]
+The previous cherry-pick is now empty, possibly due to conflict resolution.
+If you wish to commit it anyway, use:
+
+    git commit --allow-empty
+
+Otherwise, please use 'git cherry-pick --skip'
+[exit=1]
+$ git cherry-pick -m 3 HEAD
+[out]
+[err]
+error: commit 01b6107543c6004df3b8394109fded68fd7a2e84 does not have parent 3
+fatal: cherry-pick failed
+[exit=128]
+$ git cherry-pick -m 0 HEAD
+[out]
+[err]
+error: option `mainline' expects a number greater than zero
+[exit=129]
+$ git revert HEAD
+[out]
+[main fbcc074] Revert "m1"
+ Date: Thu Jan 15 12:08:00 2026 +0000
+ 2 files changed, 1 insertion(+), 2 deletions(-)
+ delete mode 100644 m1.txt
+[err]
+[exit=0]
+$ git revert -m 1 HEAD
+[out]
+[main de92fd3] Reapply "m1"
+ Date: Thu Jan 15 12:08:00 2026 +0000
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+ create mode 100644 m1.txt
+[err]
+[exit=0]
+Reapply "m1"
+
+This reverts commit fbcc0740cdfb14f76947d3897bed575362ca6ebe.
+
+--- root commit
+$ git cherry-pick 1d512c3d80fe691009862707920813ee23554d64
+[out]
+On branch main
+You are currently cherry-picking commit 1d512c3.
+  (all conflicts fixed: run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+nothing to commit, working tree clean
+[err]
+The previous cherry-pick is now empty, possibly due to conflict resolution.
+If you wish to commit it anyway, use:
+
+    git commit --allow-empty
+
+Otherwise, please use 'git cherry-pick --skip'
+[exit=1]
+$ git revert 1d512c3d80fe691009862707920813ee23554d64
+[out]
+[main 7ec3747] Revert "add a"
+ Date: Thu Jan 15 12:08:00 2026 +0000
+ 1 file changed, 1 deletion(-)
+ delete mode 100644 a.txt
+[err]
+[exit=0]

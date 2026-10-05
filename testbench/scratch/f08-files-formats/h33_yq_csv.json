@@ -1,0 +1,4120 @@
+{
+  "key": "h33_yq_csv",
+  "hypotheses": [],
+  "candidates": [
+    {
+      "name": "jaq + jaq-fmts 0.1 (saphyr-parser)",
+      "version": "0.1.1",
+      "role": "yq",
+      "category": "c",
+      "conformance": {
+        "candidate": "jaq + jaq-fmts 0.1 (saphyr-parser)",
+        "total": 105,
+        "strict_pass": 82,
+        "lenient_pass": 88,
+        "unsupported": 0,
+        "by_tag": {
+          "anchor": [
+            1,
+            2,
+            2
+          ],
+          "args": [
+            2,
+            2,
+            2
+          ],
+          "block": [
+            4,
+            4,
+            4
+          ],
+          "bom": [
+            0,
+            0,
+            1
+          ],
+          "comment": [
+            1,
+            1,
+            1
+          ],
+          "compact": [
+            2,
+            2,
+            2
+          ],
+          "crlf": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            3,
+            9,
+            10
+          ],
+          "exit": [
+            4,
+            4,
+            4
+          ],
+          "files": [
+            3,
+            3,
+            3
+          ],
+          "filter": [
+            19,
+            19,
+            19
+          ],
+          "flow": [
+            1,
+            1,
+            1
+          ],
+          "identity": [
+            5,
+            5,
+            5
+          ],
+          "indent": [
+            2,
+            2,
+            2
+          ],
+          "jq-engine": [
+            0,
+            0,
+            1
+          ],
+          "key-order": [
+            2,
+            2,
+            2
+          ],
+          "keys": [
+            6,
+            6,
+            6
+          ],
+          "merge": [
+            0,
+            0,
+            2
+          ],
+          "multidoc": [
+            6,
+            6,
+            6
+          ],
+          "null-input": [
+            1,
+            1,
+            1
+          ],
+          "number": [
+            11,
+            11,
+            15
+          ],
+          "python-quirk": [
+            1,
+            1,
+            2
+          ],
+          "raw": [
+            6,
+            6,
+            6
+          ],
+          "scalar": [
+            16,
+            16,
+            21
+          ],
+          "slurp": [
+            1,
+            1,
+            1
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "string": [
+            3,
+            3,
+            4
+          ],
+          "structure": [
+            5,
+            5,
+            6
+          ],
+          "tag": [
+            0,
+            0,
+            1
+          ],
+          "unicode": [
+            1,
+            1,
+            2
+          ],
+          "yaml-out": [
+            3,
+            3,
+            10
+          ],
+          "yaml-roundtrip": [
+            1,
+            1,
+            2
+          ],
+          "yaml11": [
+            5,
+            5,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "yq-yaml-out-identity",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"name: web\\nreplicas: 3\\nratio: 0.5\\nenabled: true\\nnothing: null\\nlabels:\\n  app: web\\nports:\\n  - 80\\n  - 443\\ncontainers:\\n  - na\"... (181 bytes) obtido \"name: web\\nreplicas: 3\\nratio: 0.5\\nenabled: true\\nnothing: null\\nlabels:\\n  app: web\\nports:\\n  - 80\\n  - 443\\ncontainers:\\n  -\\n  \"... (185 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-quoting",
+            "tags": [
+              "yaml-out",
+              "string"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: 'yes'\\nb: '012'\\nc: ''\\nd: ' leading space'\\ne: 'key: value'\\nf: '#hash'\\ng: 'line1\\n\\n  line2'\\nh: '1.0'\\ni: 'null'\\nj: '-'\\nk: \"... (134 bytes) obtido \"a: \\\"yes\\\"\\nb: \\\"012\\\"\\nc: \\\"\\\"\\nd: \\\" leading space\\\"\\ne: \\\"key: value\\\"\\nf: \\\"#hash\\\"\\ng: \\\"line1\\\\nline2\\\"\\nh: \\\"1.0\\\"\\ni: \\\"null\\\"\\nj: \\\"-\\\"\\nk: \\\"@\"... (132 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"5\\n...\\n\" obtido \"5\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-string-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"hello\\n...\\n\" obtido \"hello\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-unicode",
+            "tags": [
+              "yaml-out",
+              "unicode"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"nome: olá ✓\\nctrl: \\\"a\\\\tb\\\"\\n\" obtido \"nome: olá ✓\\nctrl: a\\tb\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-long-line",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor\\n  incididunt ut labore\\n\" obtido \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-nested-lists",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"matrix:\\n  - - 1\\n    - 2\\n  - - 3\\n    - 4\\ndeep:\\n  - name: a\\n    deps:\\n      - b\\n      - c\\n\" obtido \"matrix:\\n  -\\n    - 1\\n    - 2\\n  -\\n    - 3\\n    - 4\\ndeep:\\n  -\\n    name: a\\n    deps:\\n      - b\\n      - c\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-roundtrip",
+            "tags": [
+              "yaml-roundtrip"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: [1, 2]\\nb: \\\"quoted\\\"\\nc: 'single'\\nd: plain\\n\" obtido \"a:\\n  - 1\\n  - 2\\nb: quoted\\nc: single\\nd: plain\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-flow",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a flow sequence\\n  in \\\"bad.yaml\\\", line 1, column 4\\ndid not find expected\"... (167 bytes) obtido \"yq: Error running jq: while parsing a flow sequence, expected ',' or ']' at byte 9 line 2 column 1.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-indent",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a block mapping\\n  in \\\"bad.yaml\\\", line 1, column 1\\ndid not find expected\"... (160 bytes) obtido \"yq: Error running jq: while parsing a block mapping, did not find expected key at byte 11 line 3 column 2.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-mapping",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ScannerError: mapping values are not allowed in this context\\n  in \\\"bad.yaml\\\", line 1, column 5.\\n\" obtido \"yq: Error running jq: mapping values are not allowed in this context at byte 4 line 1 column 5.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-unknown-alias",
+            "tags": [
+              "error",
+              "anchor"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ComposerError: found undefined alias\\n  in \\\"bad.yaml\\\", line 1, column 4.\\n\" obtido \"yq: Error running jq: while parsing node, found unknown anchor at byte 3 line 1 column 4.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-filter-syntax",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:\\n.a |   \\njq: 1 compi\"... (129 bytes) obtido \"jq: error: [(File { code: \\\".a |\\\", path: () }, Parse([(Term, \\\"\\\")]))]\\njq: 1 compile error\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-index-string",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error (at <stdin>:1): Cannot index string with string \\\"b\\\"\\n\" obtido \"jq: error (at <stdin>:1): cannot index \\\"text\\\" with \\\"b\\\"\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-after-output",
+            "tags": [
+              "error",
+              "number",
+              "jq-engine"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n0.5\\n\" obtido \"1\\n0.5\\n1.7976931348623157e+308\\n\"",
+              "stderr: esperado \"jq: error (at <stdin>:1): number (1) and number (0) cannot be divided because the divisor is zero\\n\" obtido \"\"",
+              "exit: esperado Some(5)/None obtido Some(0)/None"
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Filtro jaq-core/std/json 3.x; front-end e impressão jq nossos; camada YAML e emissor -y da crate. Divergências estritas por classe: error-message=6, jq-engine=1, merge-key=2, number=1, other=2, yaml-output=8, yaml11-forms=3.",
+      "metrics": {
+        "strict_rate": 0.781,
+        "lenient_rate": 0.838,
+        "core": {
+          "strict": 69,
+          "lenient": 69,
+          "total": 74
+        },
+        "yaml11_forms": {
+          "strict": 6,
+          "lenient": 6,
+          "total": 9
+        },
+        "yaml_output": {
+          "strict": 4,
+          "lenient": 4,
+          "total": 12
+        },
+        "errors": {
+          "strict": 3,
+          "lenient": 9,
+          "total": 10
+        },
+        "divergence_classes": {
+          "error-message": 6,
+          "jq-engine": 1,
+          "merge-key": 2,
+          "number": 1,
+          "other": 2,
+          "yaml-output": 8,
+          "yaml11-forms": 3
+        },
+        "failing": [
+          "yq-yaml-out-identity [yaml-output]",
+          "yq-yaml-out-quoting [yaml-output]",
+          "yq-yaml-out-scalar [yaml-output]",
+          "yq-yaml-out-string-scalar [yaml-output]",
+          "yq-yaml-out-unicode [yaml-output]",
+          "yq-yaml-out-long-line [yaml-output]",
+          "yq-yaml-out-nested-lists [yaml-output]",
+          "yq-yaml-roundtrip [yaml-output]",
+          "yq-error-invalid-yaml-flow [error-message]",
+          "yq-error-invalid-yaml-indent [error-message]",
+          "yq-error-invalid-yaml-mapping [error-message]",
+          "yq-error-unknown-alias [error-message]",
+          "yq-error-filter-syntax [error-message]",
+          "yq-error-index-string [error-message]",
+          "yq-error-after-output [jq-engine]",
+          "yq-scalar-int-legacy-octal [yaml11-forms]",
+          "yq-scalar-int-08 [yaml11-forms]",
+          "yq-scalar-int-hex [number]",
+          "yq-scalar-int-binary [yaml11-forms]",
+          "yq-scalar-explicit-tags [other]",
+          "yq-merge-key [merge-key]",
+          "yq-merge-key-list [merge-key]",
+          "yq-bom [other]"
+        ],
+        "depscan": {
+          "package": "jaq-fmts",
+          "version": "0.1.1",
+          "own_category": "b",
+          "tree_category": "c",
+          "c_deps": [
+            "defmt 1.1.1"
+          ],
+          "own_host_touch": 2,
+          "own_unsafe": 1,
+          "tree_deps": 54,
+          "tree_unsafe": 3322,
+          "host_touching_deps": {
+            "bytes 1.12.1": 1,
+            "defmt-macros 1.1.1": 2,
+            "hashbrown 0.17.1": 11,
+            "jaq-core 3.1.1": 3,
+            "jaq-std 3.0.3": 1,
+            "jiff 0.2.37": 19,
+            "jiff-static 0.2.37": 1,
+            "libc 0.2.190": 1,
+            "memmap2 0.9.11": 120,
+            "portable-atomic 1.15.0": 6,
+            "portable-atomic-util 0.2.8": 12,
+            "saphyr-parser 0.0.8": 2,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "jaq + saphyr 0.1",
+      "version": "0.1.0",
+      "role": "yq",
+      "category": "b",
+      "conformance": {
+        "candidate": "jaq + saphyr 0.1",
+        "total": 105,
+        "strict_pass": 81,
+        "lenient_pass": 87,
+        "unsupported": 0,
+        "by_tag": {
+          "anchor": [
+            1,
+            2,
+            2
+          ],
+          "args": [
+            2,
+            2,
+            2
+          ],
+          "block": [
+            4,
+            4,
+            4
+          ],
+          "bom": [
+            0,
+            0,
+            1
+          ],
+          "comment": [
+            1,
+            1,
+            1
+          ],
+          "compact": [
+            2,
+            2,
+            2
+          ],
+          "crlf": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            3,
+            9,
+            10
+          ],
+          "exit": [
+            4,
+            4,
+            4
+          ],
+          "files": [
+            3,
+            3,
+            3
+          ],
+          "filter": [
+            19,
+            19,
+            19
+          ],
+          "flow": [
+            1,
+            1,
+            1
+          ],
+          "identity": [
+            5,
+            5,
+            5
+          ],
+          "indent": [
+            2,
+            2,
+            2
+          ],
+          "jq-engine": [
+            0,
+            0,
+            1
+          ],
+          "key-order": [
+            2,
+            2,
+            2
+          ],
+          "keys": [
+            5,
+            5,
+            6
+          ],
+          "merge": [
+            0,
+            0,
+            2
+          ],
+          "multidoc": [
+            4,
+            4,
+            6
+          ],
+          "null-input": [
+            1,
+            1,
+            1
+          ],
+          "number": [
+            12,
+            12,
+            15
+          ],
+          "python-quirk": [
+            1,
+            1,
+            2
+          ],
+          "raw": [
+            6,
+            6,
+            6
+          ],
+          "scalar": [
+            16,
+            16,
+            21
+          ],
+          "slurp": [
+            1,
+            1,
+            1
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "string": [
+            3,
+            3,
+            4
+          ],
+          "structure": [
+            5,
+            5,
+            6
+          ],
+          "tag": [
+            0,
+            0,
+            1
+          ],
+          "unicode": [
+            2,
+            2,
+            2
+          ],
+          "yaml-out": [
+            5,
+            5,
+            10
+          ],
+          "yaml-roundtrip": [
+            1,
+            1,
+            2
+          ],
+          "yaml11": [
+            6,
+            6,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "yq-yaml-out-identity",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"name: web\\nreplicas: 3\\nratio: 0.5\\nenabled: true\\nnothing: null\\nlabels:\\n  app: web\\nports:\\n  - 80\\n  - 443\\ncontainers:\\n  - na\"... (181 bytes) obtido \"name: web\\nreplicas: 3\\nratio: 0.5\\nenabled: true\\nnothing: ~\\nlabels:\\n  app: web\\nports:\\n  - 80\\n  - 443\\ncontainers:\\n  - name:\"... (180 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-quoting",
+            "tags": [
+              "yaml-out",
+              "string"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: 'yes'\\nb: '012'\\nc: ''\\nd: ' leading space'\\ne: 'key: value'\\nf: '#hash'\\ng: 'line1\\n\\n  line2'\\nh: '1.0'\\ni: 'null'\\nj: '-'\\nk: \"... (134 bytes) obtido \"a: \\\"yes\\\"\\nb: \\\"012\\\"\\nc: \\\"\\\"\\nd: \\\" leading space\\\"\\ne: \\\"key: value\\\"\\nf: \\\"#hash\\\"\\ng: |-\\n  line1\\n  line2\\nh: \\\"1.0\\\"\\ni: \\\"null\\\"\\nj: \\\"-\\\"\\nk\"... (138 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"5\\n...\\n\" obtido \"5\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-string-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"hello\\n...\\n\" obtido \"hello\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-long-line",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor\\n  incididunt ut labore\\n\" obtido \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-roundtrip",
+            "tags": [
+              "yaml-roundtrip"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: [1, 2]\\nb: \\\"quoted\\\"\\nc: 'single'\\nd: plain\\n\" obtido \"a:\\n  - 1\\n  - 2\\nb: quoted\\nc: single\\nd: plain\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-flow",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a flow sequence\\n  in \\\"bad.yaml\\\", line 1, column 4\\ndid not find expected\"... (167 bytes) obtido \"yq: Error running jq: while parsing a flow sequence, expected ',' or ']' at byte 9 line 2 column 1.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-indent",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a block mapping\\n  in \\\"bad.yaml\\\", line 1, column 1\\ndid not find expected\"... (160 bytes) obtido \"yq: Error running jq: while parsing a block mapping, did not find expected key at byte 11 line 3 column 2.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-mapping",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ScannerError: mapping values are not allowed in this context\\n  in \\\"bad.yaml\\\", line 1, column 5.\\n\" obtido \"yq: Error running jq: mapping values are not allowed in this context at byte 4 line 1 column 5.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-unknown-alias",
+            "tags": [
+              "error",
+              "anchor"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ComposerError: found undefined alias\\n  in \\\"bad.yaml\\\", line 1, column 4.\\n\" obtido \"yq: Error running jq: while parsing node, found unknown anchor at byte 3 line 1 column 4.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-filter-syntax",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:\\n.a |   \\njq: 1 compi\"... (129 bytes) obtido \"jq: error: [(File { code: \\\".a |\\\", path: () }, Parse([(Term, \\\"\\\")]))]\\njq: 1 compile error\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-index-string",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error (at <stdin>:1): Cannot index string with string \\\"b\\\"\\n\" obtido \"jq: error (at <stdin>:1): cannot index \\\"text\\\" with \\\"b\\\"\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-after-output",
+            "tags": [
+              "error",
+              "number",
+              "jq-engine"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n0.5\\n\" obtido \"1\\n0.5\\n1.7976931348623157e+308\\n\"",
+              "stderr: esperado \"jq: error (at <stdin>:1): number (1) and number (0) cannot be divided because the divisor is zero\\n\" obtido \"\"",
+              "exit: esperado Some(5)/None obtido Some(0)/None"
+            ]
+          },
+          {
+            "id": "yq-scalar-null-forms",
+            "tags": [
+              "scalar"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"{\\\"a\\\":null,\\\"b\\\":null,\\\"c\\\":null,\\\"d\\\":null,\\\"e\\\":null}\\n\" obtido \"{\\\"a\\\":null,\\\"b\\\":null,\\\"c\\\":null,\\\"d\\\":\\\"\\\",\\\"e\\\":null}\\n\""
+            ]
+          },
+          {
+            "id": "yq-scalar-int-big",
+            "tags": [
+              "scalar",
+              "number"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"{\\\"a\\\":100000000000000000000,\\\"b\\\":-99999999999999999999999}\\n\" obtido \"{\\\"a\\\":1E+20,\\\"b\\\":-1E+23}\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Filtro jaq-core/std/json 3.x; front-end e impressão jq nossos; camada YAML e emissor -y da crate. Divergências estritas por classe: error-message=6, jq-engine=1, merge-key=2, number=1, other=6, yaml-output=6, yaml11-forms=2.",
+      "metrics": {
+        "strict_rate": 0.771,
+        "lenient_rate": 0.829,
+        "core": {
+          "strict": 65,
+          "lenient": 65,
+          "total": 74
+        },
+        "yaml11_forms": {
+          "strict": 7,
+          "lenient": 7,
+          "total": 9
+        },
+        "yaml_output": {
+          "strict": 6,
+          "lenient": 6,
+          "total": 12
+        },
+        "errors": {
+          "strict": 3,
+          "lenient": 9,
+          "total": 10
+        },
+        "divergence_classes": {
+          "error-message": 6,
+          "jq-engine": 1,
+          "merge-key": 2,
+          "number": 1,
+          "other": 6,
+          "yaml-output": 6,
+          "yaml11-forms": 2
+        },
+        "failing": [
+          "yq-yaml-out-identity [yaml-output]",
+          "yq-yaml-out-quoting [yaml-output]",
+          "yq-yaml-out-scalar [yaml-output]",
+          "yq-yaml-out-string-scalar [yaml-output]",
+          "yq-yaml-out-long-line [yaml-output]",
+          "yq-yaml-roundtrip [yaml-output]",
+          "yq-error-invalid-yaml-flow [error-message]",
+          "yq-error-invalid-yaml-indent [error-message]",
+          "yq-error-invalid-yaml-mapping [error-message]",
+          "yq-error-unknown-alias [error-message]",
+          "yq-error-filter-syntax [error-message]",
+          "yq-error-index-string [error-message]",
+          "yq-error-after-output [jq-engine]",
+          "yq-scalar-null-forms [other]",
+          "yq-scalar-int-big [number]",
+          "yq-scalar-int-legacy-octal [yaml11-forms]",
+          "yq-scalar-int-08 [yaml11-forms]",
+          "yq-scalar-explicit-tags [other]",
+          "yq-multidoc-leading-separator [other]",
+          "yq-merge-key [merge-key]",
+          "yq-merge-key-list [merge-key]",
+          "yq-explicit-null-doc [other]",
+          "yq-duplicate-keys [other]",
+          "yq-bom [other]"
+        ],
+        "depscan": {
+          "package": "saphyr",
+          "version": "0.1.0",
+          "own_category": "a",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 0,
+          "own_unsafe": 0,
+          "tree_deps": 15,
+          "tree_unsafe": 865,
+          "host_touching_deps": {
+            "hashbrown 0.17.1": 11,
+            "saphyr-parser 0.1.0": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "jaq + serde-saphyr 1.3",
+      "version": "1.3.0",
+      "role": "yq",
+      "category": "b",
+      "conformance": {
+        "candidate": "jaq + serde-saphyr 1.3",
+        "total": 105,
+        "strict_pass": 83,
+        "lenient_pass": 89,
+        "unsupported": 0,
+        "by_tag": {
+          "anchor": [
+            1,
+            2,
+            2
+          ],
+          "args": [
+            2,
+            2,
+            2
+          ],
+          "block": [
+            4,
+            4,
+            4
+          ],
+          "bom": [
+            1,
+            1,
+            1
+          ],
+          "comment": [
+            1,
+            1,
+            1
+          ],
+          "compact": [
+            2,
+            2,
+            2
+          ],
+          "crlf": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            3,
+            9,
+            10
+          ],
+          "exit": [
+            4,
+            4,
+            4
+          ],
+          "files": [
+            3,
+            3,
+            3
+          ],
+          "filter": [
+            19,
+            19,
+            19
+          ],
+          "flow": [
+            1,
+            1,
+            1
+          ],
+          "identity": [
+            5,
+            5,
+            5
+          ],
+          "indent": [
+            2,
+            2,
+            2
+          ],
+          "jq-engine": [
+            0,
+            0,
+            1
+          ],
+          "key-order": [
+            2,
+            2,
+            2
+          ],
+          "keys": [
+            6,
+            6,
+            6
+          ],
+          "merge": [
+            0,
+            0,
+            2
+          ],
+          "multidoc": [
+            4,
+            4,
+            6
+          ],
+          "null-input": [
+            1,
+            1,
+            1
+          ],
+          "number": [
+            10,
+            10,
+            15
+          ],
+          "python-quirk": [
+            1,
+            1,
+            2
+          ],
+          "raw": [
+            6,
+            6,
+            6
+          ],
+          "scalar": [
+            15,
+            15,
+            21
+          ],
+          "slurp": [
+            1,
+            1,
+            1
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "string": [
+            3,
+            3,
+            4
+          ],
+          "structure": [
+            6,
+            6,
+            6
+          ],
+          "tag": [
+            1,
+            1,
+            1
+          ],
+          "unicode": [
+            2,
+            2,
+            2
+          ],
+          "yaml-out": [
+            6,
+            6,
+            10
+          ],
+          "yaml-roundtrip": [
+            1,
+            1,
+            2
+          ],
+          "yaml11": [
+            5,
+            5,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "yq-yaml-out-quoting",
+            "tags": [
+              "yaml-out",
+              "string"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: 'yes'\\nb: '012'\\nc: ''\\nd: ' leading space'\\ne: 'key: value'\\nf: '#hash'\\ng: 'line1\\n\\n  line2'\\nh: '1.0'\\ni: 'null'\\nj: '-'\\nk: \"... (134 bytes) obtido \"a: \\\"yes\\\"\\nb: \\\"012\\\"\\nc: \\\"\\\"\\nd: \\\" leading space\\\"\\ne: \\\"key: value\\\"\\nf: \\\"#hash\\\"\\ng: \\\"line1\\\\nline2\\\"\\nh: \\\"1.0\\\"\\ni: \\\"null\\\"\\nj: '-'\\nk: \\\"@\"... (132 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"5\\n...\\n\" obtido \"5\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-string-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"hello\\n...\\n\" obtido \"hello\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-long-line",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor\\n  incididunt ut labore\\n\" obtido \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-roundtrip",
+            "tags": [
+              "yaml-roundtrip"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: [1, 2]\\nb: \\\"quoted\\\"\\nc: 'single'\\nd: plain\\n\" obtido \"a:\\n  - 1\\n  - 2\\nb: quoted\\nc: single\\nd: plain\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-flow",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a flow sequence\\n  in \\\"bad.yaml\\\", line 1, column 4\\ndid not find expected\"... (167 bytes) obtido \"yq: Error running jq: unclosed bracket '[' at line 1, column 4.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-indent",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a block mapping\\n  in \\\"bad.yaml\\\", line 1, column 1\\ndid not find expected\"... (160 bytes) obtido \"yq: Error running jq: while parsing a block mapping, did not find expected key at line 3, column 2.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-mapping",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ScannerError: mapping values are not allowed in this context\\n  in \\\"bad.yaml\\\", line 1, column 5.\\n\" obtido \"yq: Error running jq: mapping values are not allowed in this context at line 1, column 5.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-unknown-alias",
+            "tags": [
+              "error",
+              "anchor"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ComposerError: found undefined alias\\n  in \\\"bad.yaml\\\", line 1, column 4.\\n\" obtido \"yq: Error running jq: alias references unknown anchor at line 1, column 4.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-filter-syntax",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:\\n.a |   \\njq: 1 compi\"... (129 bytes) obtido \"jq: error: [(File { code: \\\".a |\\\", path: () }, Parse([(Term, \\\"\\\")]))]\\njq: 1 compile error\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-index-string",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error (at <stdin>:1): Cannot index string with string \\\"b\\\"\\n\" obtido \"jq: error (at <stdin>:1): cannot index \\\"text\\\" with \\\"b\\\"\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-after-output",
+            "tags": [
+              "error",
+              "number",
+              "jq-engine"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n0.5\\n\" obtido \"1\\n0.5\\n1.7976931348623157e+308\\n\"",
+              "stderr: esperado \"jq: error (at <stdin>:1): number (1) and number (0) cannot be divided because the divisor is zero\\n\" obtido \"\"",
+              "exit: esperado Some(5)/None obtido Some(0)/None"
+            ]
+          },
+          {
+            "id": "yq-scalar-int-big",
+            "tags": [
+              "scalar",
+              "number"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"{\\\"a\\\":100000000000000000000,\\\"b\\\":-99999999999999999999999}\\n\" obtido \"{\\\"a\\\":1E+20,\\\"b\\\":-1E+23}\\n\""
+            ]
+          },
+          {
+            "id": "yq-scalar-int-08",
+            "tags": [
+              "scalar",
+              "python-quirk"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\" obtido \"{\\\"a\\\":8.0}\\n\"",
+              "stderr: esperado \"yq: Error running jq: ValueError: invalid literal for int() with base 8: '08'.\\n\" obtido \"\"",
+              "exit: esperado Some(1)/None obtido Some(0)/None"
+            ]
+          },
+          {
+            "id": "yq-scalar-int-hex",
+            "tags": [
+              "scalar",
+              "number"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"{\\\"a\\\":31,\\\"b\\\":255,\\\"c\\\":\\\"-0x10\\\"}\\n\" obtido \"{\\\"a\\\":31,\\\"b\\\":255,\\\"c\\\":-16}\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Filtro jaq-core/std/json 3.x; front-end e impressão jq nossos; camada YAML e emissor -y da crate. Divergências estritas por classe: error-message=6, jq-engine=1, merge-key=2, number=3, other=2, yaml-output=5, yaml11-forms=3.",
+      "metrics": {
+        "strict_rate": 0.79,
+        "lenient_rate": 0.848,
+        "core": {
+          "strict": 67,
+          "lenient": 67,
+          "total": 74
+        },
+        "yaml11_forms": {
+          "strict": 6,
+          "lenient": 6,
+          "total": 9
+        },
+        "yaml_output": {
+          "strict": 7,
+          "lenient": 7,
+          "total": 12
+        },
+        "errors": {
+          "strict": 3,
+          "lenient": 9,
+          "total": 10
+        },
+        "divergence_classes": {
+          "error-message": 6,
+          "jq-engine": 1,
+          "merge-key": 2,
+          "number": 3,
+          "other": 2,
+          "yaml-output": 5,
+          "yaml11-forms": 3
+        },
+        "failing": [
+          "yq-yaml-out-quoting [yaml-output]",
+          "yq-yaml-out-scalar [yaml-output]",
+          "yq-yaml-out-string-scalar [yaml-output]",
+          "yq-yaml-out-long-line [yaml-output]",
+          "yq-yaml-roundtrip [yaml-output]",
+          "yq-error-invalid-yaml-flow [error-message]",
+          "yq-error-invalid-yaml-indent [error-message]",
+          "yq-error-invalid-yaml-mapping [error-message]",
+          "yq-error-unknown-alias [error-message]",
+          "yq-error-filter-syntax [error-message]",
+          "yq-error-index-string [error-message]",
+          "yq-error-after-output [jq-engine]",
+          "yq-scalar-int-big [number]",
+          "yq-scalar-int-08 [yaml11-forms]",
+          "yq-scalar-int-hex [number]",
+          "yq-scalar-int-binary [yaml11-forms]",
+          "yq-scalar-int-underscore [yaml11-forms]",
+          "yq-scalar-inf-nan [number]",
+          "yq-multidoc-leading-separator [other]",
+          "yq-merge-key [merge-key]",
+          "yq-merge-key-list [merge-key]",
+          "yq-explicit-null-doc [other]"
+        ],
+        "depscan": {
+          "package": "serde-saphyr",
+          "version": "1.3.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 9,
+          "own_unsafe": 0,
+          "tree_deps": 24,
+          "tree_unsafe": 962,
+          "host_touching_deps": {
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "jaq + yaml-rust2 0.13",
+      "version": "0.13.0",
+      "role": "yq",
+      "category": "b",
+      "conformance": {
+        "candidate": "jaq + yaml-rust2 0.13",
+        "total": 105,
+        "strict_pass": 83,
+        "lenient_pass": 89,
+        "unsupported": 0,
+        "by_tag": {
+          "anchor": [
+            1,
+            2,
+            2
+          ],
+          "args": [
+            2,
+            2,
+            2
+          ],
+          "block": [
+            4,
+            4,
+            4
+          ],
+          "bom": [
+            0,
+            0,
+            1
+          ],
+          "comment": [
+            1,
+            1,
+            1
+          ],
+          "compact": [
+            2,
+            2,
+            2
+          ],
+          "crlf": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            3,
+            9,
+            10
+          ],
+          "exit": [
+            4,
+            4,
+            4
+          ],
+          "files": [
+            3,
+            3,
+            3
+          ],
+          "filter": [
+            19,
+            19,
+            19
+          ],
+          "flow": [
+            1,
+            1,
+            1
+          ],
+          "identity": [
+            5,
+            5,
+            5
+          ],
+          "indent": [
+            2,
+            2,
+            2
+          ],
+          "jq-engine": [
+            0,
+            0,
+            1
+          ],
+          "key-order": [
+            2,
+            2,
+            2
+          ],
+          "keys": [
+            5,
+            5,
+            6
+          ],
+          "merge": [
+            0,
+            0,
+            2
+          ],
+          "multidoc": [
+            6,
+            6,
+            6
+          ],
+          "null-input": [
+            1,
+            1,
+            1
+          ],
+          "number": [
+            12,
+            12,
+            15
+          ],
+          "python-quirk": [
+            1,
+            1,
+            2
+          ],
+          "raw": [
+            6,
+            6,
+            6
+          ],
+          "scalar": [
+            16,
+            16,
+            21
+          ],
+          "slurp": [
+            1,
+            1,
+            1
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "string": [
+            3,
+            3,
+            4
+          ],
+          "structure": [
+            5,
+            5,
+            6
+          ],
+          "tag": [
+            0,
+            0,
+            1
+          ],
+          "unicode": [
+            2,
+            2,
+            2
+          ],
+          "yaml-out": [
+            5,
+            5,
+            10
+          ],
+          "yaml-roundtrip": [
+            1,
+            1,
+            2
+          ],
+          "yaml11": [
+            6,
+            6,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "yq-yaml-out-identity",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"name: web\\nreplicas: 3\\nratio: 0.5\\nenabled: true\\nnothing: null\\nlabels:\\n  app: web\\nports:\\n  - 80\\n  - 443\\ncontainers:\\n  - na\"... (181 bytes) obtido \"name: web\\nreplicas: 3\\nratio: 0.5\\nenabled: true\\nnothing: ~\\nlabels:\\n  app: web\\nports:\\n  - 80\\n  - 443\\ncontainers:\\n  - name:\"... (180 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-quoting",
+            "tags": [
+              "yaml-out",
+              "string"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: 'yes'\\nb: '012'\\nc: ''\\nd: ' leading space'\\ne: 'key: value'\\nf: '#hash'\\ng: 'line1\\n\\n  line2'\\nh: '1.0'\\ni: 'null'\\nj: '-'\\nk: \"... (134 bytes) obtido \"a: \\\"yes\\\"\\nb: \\\"012\\\"\\nc: \\\"\\\"\\nd: \\\" leading space\\\"\\ne: \\\"key: value\\\"\\nf: \\\"#hash\\\"\\ng: |-\\n  line1\\n  line2\\nh: \\\"1.0\\\"\\ni: \\\"null\\\"\\nj: \\\"-\\\"\\nk\"... (138 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"5\\n...\\n\" obtido \"5\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-string-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"hello\\n...\\n\" obtido \"hello\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-long-line",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor\\n  incididunt ut labore\\n\" obtido \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-roundtrip",
+            "tags": [
+              "yaml-roundtrip"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: [1, 2]\\nb: \\\"quoted\\\"\\nc: 'single'\\nd: plain\\n\" obtido \"a:\\n  - 1\\n  - 2\\nb: quoted\\nc: single\\nd: plain\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-flow",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a flow sequence\\n  in \\\"bad.yaml\\\", line 1, column 4\\ndid not find expected\"... (167 bytes) obtido \"yq: Error running jq: while parsing a flow sequence, expected ',' or ']' at byte 9 line 2 column 1.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-indent",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a block mapping\\n  in \\\"bad.yaml\\\", line 1, column 1\\ndid not find expected\"... (160 bytes) obtido \"yq: Error running jq: while parsing a block mapping, did not find expected key at byte 12 line 3 column 3.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-mapping",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ScannerError: mapping values are not allowed in this context\\n  in \\\"bad.yaml\\\", line 1, column 5.\\n\" obtido \"yq: Error running jq: mapping values are not allowed in this context at byte 4 line 1 column 5.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-unknown-alias",
+            "tags": [
+              "error",
+              "anchor"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ComposerError: found undefined alias\\n  in \\\"bad.yaml\\\", line 1, column 4.\\n\" obtido \"yq: Error running jq: while parsing node, found unknown anchor at byte 3 line 1 column 4.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-filter-syntax",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:\\n.a |   \\njq: 1 compi\"... (129 bytes) obtido \"jq: error: [(File { code: \\\".a |\\\", path: () }, Parse([(Term, \\\"\\\")]))]\\njq: 1 compile error\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-index-string",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error (at <stdin>:1): Cannot index string with string \\\"b\\\"\\n\" obtido \"jq: error (at <stdin>:1): cannot index \\\"text\\\" with \\\"b\\\"\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-after-output",
+            "tags": [
+              "error",
+              "number",
+              "jq-engine"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n0.5\\n\" obtido \"1\\n0.5\\n1.7976931348623157e+308\\n\"",
+              "stderr: esperado \"jq: error (at <stdin>:1): number (1) and number (0) cannot be divided because the divisor is zero\\n\" obtido \"\"",
+              "exit: esperado Some(5)/None obtido Some(0)/None"
+            ]
+          },
+          {
+            "id": "yq-scalar-null-forms",
+            "tags": [
+              "scalar"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"{\\\"a\\\":null,\\\"b\\\":null,\\\"c\\\":null,\\\"d\\\":null,\\\"e\\\":null}\\n\" obtido \"{\\\"a\\\":null,\\\"b\\\":null,\\\"c\\\":\\\"Null\\\",\\\"d\\\":null,\\\"e\\\":\\\"NULL\\\"}\\n\""
+            ]
+          },
+          {
+            "id": "yq-scalar-int-big",
+            "tags": [
+              "scalar",
+              "number"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"{\\\"a\\\":100000000000000000000,\\\"b\\\":-99999999999999999999999}\\n\" obtido \"{\\\"a\\\":1E+20,\\\"b\\\":-1E+23}\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Filtro jaq-core/std/json 3.x; front-end e impressão jq nossos; camada YAML e emissor -y da crate. Divergências estritas por classe: error-message=6, jq-engine=1, merge-key=2, number=1, other=4, yaml-output=6, yaml11-forms=2.",
+      "metrics": {
+        "strict_rate": 0.79,
+        "lenient_rate": 0.848,
+        "core": {
+          "strict": 67,
+          "lenient": 67,
+          "total": 74
+        },
+        "yaml11_forms": {
+          "strict": 7,
+          "lenient": 7,
+          "total": 9
+        },
+        "yaml_output": {
+          "strict": 6,
+          "lenient": 6,
+          "total": 12
+        },
+        "errors": {
+          "strict": 3,
+          "lenient": 9,
+          "total": 10
+        },
+        "divergence_classes": {
+          "error-message": 6,
+          "jq-engine": 1,
+          "merge-key": 2,
+          "number": 1,
+          "other": 4,
+          "yaml-output": 6,
+          "yaml11-forms": 2
+        },
+        "failing": [
+          "yq-yaml-out-identity [yaml-output]",
+          "yq-yaml-out-quoting [yaml-output]",
+          "yq-yaml-out-scalar [yaml-output]",
+          "yq-yaml-out-string-scalar [yaml-output]",
+          "yq-yaml-out-long-line [yaml-output]",
+          "yq-yaml-roundtrip [yaml-output]",
+          "yq-error-invalid-yaml-flow [error-message]",
+          "yq-error-invalid-yaml-indent [error-message]",
+          "yq-error-invalid-yaml-mapping [error-message]",
+          "yq-error-unknown-alias [error-message]",
+          "yq-error-filter-syntax [error-message]",
+          "yq-error-index-string [error-message]",
+          "yq-error-after-output [jq-engine]",
+          "yq-scalar-null-forms [other]",
+          "yq-scalar-int-big [number]",
+          "yq-scalar-int-legacy-octal [yaml11-forms]",
+          "yq-scalar-int-08 [yaml11-forms]",
+          "yq-scalar-explicit-tags [other]",
+          "yq-merge-key [merge-key]",
+          "yq-merge-key-list [merge-key]",
+          "yq-duplicate-keys [other]",
+          "yq-bom [other]"
+        ],
+        "depscan": {
+          "package": "yaml-rust2",
+          "version": "0.13.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 2,
+          "own_unsafe": 0,
+          "tree_deps": 6,
+          "tree_unsafe": 752,
+          "host_touching_deps": {
+            "hashbrown 0.17.1": 11
+          }
+        }
+      }
+    },
+    {
+      "name": "jaq + noyalib 0.0.51",
+      "version": "0.0.51",
+      "role": "yq",
+      "category": "b",
+      "conformance": {
+        "candidate": "jaq + noyalib 0.0.51",
+        "total": 105,
+        "strict_pass": 84,
+        "lenient_pass": 90,
+        "unsupported": 0,
+        "by_tag": {
+          "anchor": [
+            1,
+            2,
+            2
+          ],
+          "args": [
+            2,
+            2,
+            2
+          ],
+          "block": [
+            4,
+            4,
+            4
+          ],
+          "bom": [
+            1,
+            1,
+            1
+          ],
+          "comment": [
+            1,
+            1,
+            1
+          ],
+          "compact": [
+            2,
+            2,
+            2
+          ],
+          "crlf": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            2,
+            8,
+            10
+          ],
+          "exit": [
+            4,
+            4,
+            4
+          ],
+          "files": [
+            3,
+            3,
+            3
+          ],
+          "filter": [
+            19,
+            19,
+            19
+          ],
+          "flow": [
+            1,
+            1,
+            1
+          ],
+          "identity": [
+            5,
+            5,
+            5
+          ],
+          "indent": [
+            2,
+            2,
+            2
+          ],
+          "jq-engine": [
+            0,
+            0,
+            1
+          ],
+          "key-order": [
+            2,
+            2,
+            2
+          ],
+          "keys": [
+            4,
+            4,
+            6
+          ],
+          "merge": [
+            0,
+            0,
+            2
+          ],
+          "multidoc": [
+            6,
+            6,
+            6
+          ],
+          "null-input": [
+            1,
+            1,
+            1
+          ],
+          "number": [
+            12,
+            12,
+            15
+          ],
+          "python-quirk": [
+            0,
+            0,
+            2
+          ],
+          "raw": [
+            6,
+            6,
+            6
+          ],
+          "scalar": [
+            18,
+            18,
+            21
+          ],
+          "slurp": [
+            1,
+            1,
+            1
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "string": [
+            3,
+            3,
+            4
+          ],
+          "structure": [
+            6,
+            6,
+            6
+          ],
+          "tag": [
+            1,
+            1,
+            1
+          ],
+          "unicode": [
+            1,
+            1,
+            2
+          ],
+          "yaml-out": [
+            4,
+            4,
+            10
+          ],
+          "yaml-roundtrip": [
+            1,
+            1,
+            2
+          ],
+          "yaml11": [
+            6,
+            6,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "yq-yaml-out-quoting",
+            "tags": [
+              "yaml-out",
+              "string"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: 'yes'\\nb: '012'\\nc: ''\\nd: ' leading space'\\ne: 'key: value'\\nf: '#hash'\\ng: 'line1\\n\\n  line2'\\nh: '1.0'\\ni: 'null'\\nj: '-'\\nk: \"... (134 bytes) obtido \"a: yes\\nb: \\\"012\\\"\\nc: \\\"\\\"\\nd: \\\" leading space\\\"\\ne: \\\"key: value\\\"\\nf: \\\"#hash\\\"\\ng: |-\\n  line1\\n  line2\\nh: \\\"1.0\\\"\\ni: \\\"null\\\"\\nj: \\\"-\\\"\\nk: \"... (134 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"5\\n...\\n\" obtido \"5\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-string-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"hello\\n...\\n\" obtido \"hello\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-unicode",
+            "tags": [
+              "yaml-out",
+              "unicode"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"nome: olá ✓\\nctrl: \\\"a\\\\tb\\\"\\n\" obtido \"nome: olá ✓\\nctrl: a\\tb\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-long-line",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor\\n  incididunt ut labore\\n\" obtido \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-nested-lists",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"matrix:\\n  - - 1\\n    - 2\\n  - - 3\\n    - 4\\ndeep:\\n  - name: a\\n    deps:\\n      - b\\n      - c\\n\" obtido \"matrix:\\n  -\\n    - 1\\n    - 2\\n  -\\n    - 3\\n    - 4\\ndeep:\\n  - name: a\\n    deps:\\n      - b\\n      - c\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-roundtrip",
+            "tags": [
+              "yaml-roundtrip"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: [1, 2]\\nb: \\\"quoted\\\"\\nc: 'single'\\nd: plain\\n\" obtido \"a:\\n  - 1\\n  - 2\\nb: quoted\\nc: single\\nd: plain\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-flow",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a flow sequence\\n  in \\\"bad.yaml\\\", line 1, column 4\\ndid not find expected\"... (167 bytes) obtido \"yq: Error running jq: YAML parse error at line 2, column 1: expected ',' or ']' in flow sequence.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-indent",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a block mapping\\n  in \\\"bad.yaml\\\", line 1, column 1\\ndid not find expected\"... (160 bytes) obtido \"yq: Error running jq: YAML parse error at line 3, column 2: inconsistent indentation: token at a column that does not ma\"... (146 bytes)"
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-mapping",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ScannerError: mapping values are not allowed in this context\\n  in \\\"bad.yaml\\\", line 1, column 5.\\n\" obtido \"yq: Error running jq: YAML parse error at line 1, column 5: mapping values are not allowed in this context.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-unknown-alias",
+            "tags": [
+              "error",
+              "anchor"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ComposerError: found undefined alias\\n  in \\\"bad.yaml\\\", line 1, column 4.\\n\" obtido \"yq: Error running jq: unknown anchor: nope at line 1, column 4.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-filter-syntax",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:\\n.a |   \\njq: 1 compi\"... (129 bytes) obtido \"jq: error: [(File { code: \\\".a |\\\", path: () }, Parse([(Term, \\\"\\\")]))]\\njq: 1 compile error\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-index-string",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error (at <stdin>:1): Cannot index string with string \\\"b\\\"\\n\" obtido \"jq: error (at <stdin>:1): cannot index \\\"text\\\" with \\\"b\\\"\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-after-output",
+            "tags": [
+              "error",
+              "number",
+              "jq-engine"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n0.5\\n\" obtido \"1\\n0.5\\n1.7976931348623157e+308\\n\"",
+              "stderr: esperado \"jq: error (at <stdin>:1): number (1) and number (0) cannot be divided because the divisor is zero\\n\" obtido \"\"",
+              "exit: esperado Some(5)/None obtido Some(0)/None"
+            ]
+          },
+          {
+            "id": "yq-scalar-int-big",
+            "tags": [
+              "scalar",
+              "number"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"{\\\"a\\\":100000000000000000000,\\\"b\\\":-99999999999999999999999}\\n\" obtido \"{\\\"a\\\":1E+20,\\\"b\\\":-1E+23}\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "Filtro jaq-core/std/json 3.x; front-end e impressão jq nossos; camada YAML e emissor -y da crate. Divergências estritas por classe: error-exit=1, error-message=6, jq-engine=1, merge-key=2, number=1, yaml-output=7, yaml11-forms=3.",
+      "metrics": {
+        "strict_rate": 0.8,
+        "lenient_rate": 0.857,
+        "core": {
+          "strict": 71,
+          "lenient": 71,
+          "total": 74
+        },
+        "yaml11_forms": {
+          "strict": 6,
+          "lenient": 6,
+          "total": 9
+        },
+        "yaml_output": {
+          "strict": 5,
+          "lenient": 5,
+          "total": 12
+        },
+        "errors": {
+          "strict": 2,
+          "lenient": 8,
+          "total": 10
+        },
+        "divergence_classes": {
+          "error-exit": 1,
+          "error-message": 6,
+          "jq-engine": 1,
+          "merge-key": 2,
+          "number": 1,
+          "yaml-output": 7,
+          "yaml11-forms": 3
+        },
+        "failing": [
+          "yq-yaml-out-quoting [yaml-output]",
+          "yq-yaml-out-scalar [yaml-output]",
+          "yq-yaml-out-string-scalar [yaml-output]",
+          "yq-yaml-out-unicode [yaml-output]",
+          "yq-yaml-out-long-line [yaml-output]",
+          "yq-yaml-out-nested-lists [yaml-output]",
+          "yq-yaml-roundtrip [yaml-output]",
+          "yq-error-invalid-yaml-flow [error-message]",
+          "yq-error-invalid-yaml-indent [error-message]",
+          "yq-error-invalid-yaml-mapping [error-message]",
+          "yq-error-unknown-alias [error-message]",
+          "yq-error-filter-syntax [error-message]",
+          "yq-error-index-string [error-message]",
+          "yq-error-after-output [jq-engine]",
+          "yq-scalar-int-big [number]",
+          "yq-scalar-int-legacy-octal [yaml11-forms]",
+          "yq-scalar-int-08 [yaml11-forms]",
+          "yq-merge-key [merge-key]",
+          "yq-merge-key-list [merge-key]",
+          "yq-keys-python-collision [yaml11-forms]",
+          "yq-complex-key [error-exit]"
+        ],
+        "depscan": {
+          "package": "noyalib",
+          "version": "0.0.51",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 27,
+          "own_unsafe": 0,
+          "tree_deps": 18,
+          "tree_unsafe": 1050,
+          "host_touching_deps": {
+            "hashbrown 0.17.1": 11,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "jaq + saphyr-parser 0.1 + resolvedor yq nosso",
+      "version": "0.1.0",
+      "role": "yq",
+      "category": "b",
+      "conformance": {
+        "candidate": "jaq + saphyr-parser 0.1 + resolvedor yq nosso",
+        "total": 105,
+        "strict_pass": 92,
+        "lenient_pass": 98,
+        "unsupported": 0,
+        "by_tag": {
+          "anchor": [
+            1,
+            2,
+            2
+          ],
+          "args": [
+            2,
+            2,
+            2
+          ],
+          "block": [
+            4,
+            4,
+            4
+          ],
+          "bom": [
+            1,
+            1,
+            1
+          ],
+          "comment": [
+            1,
+            1,
+            1
+          ],
+          "compact": [
+            2,
+            2,
+            2
+          ],
+          "crlf": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            3,
+            9,
+            10
+          ],
+          "exit": [
+            4,
+            4,
+            4
+          ],
+          "files": [
+            3,
+            3,
+            3
+          ],
+          "filter": [
+            19,
+            19,
+            19
+          ],
+          "flow": [
+            1,
+            1,
+            1
+          ],
+          "identity": [
+            5,
+            5,
+            5
+          ],
+          "indent": [
+            2,
+            2,
+            2
+          ],
+          "jq-engine": [
+            0,
+            0,
+            1
+          ],
+          "key-order": [
+            2,
+            2,
+            2
+          ],
+          "keys": [
+            6,
+            6,
+            6
+          ],
+          "merge": [
+            2,
+            2,
+            2
+          ],
+          "multidoc": [
+            6,
+            6,
+            6
+          ],
+          "null-input": [
+            1,
+            1,
+            1
+          ],
+          "number": [
+            14,
+            14,
+            15
+          ],
+          "python-quirk": [
+            2,
+            2,
+            2
+          ],
+          "raw": [
+            6,
+            6,
+            6
+          ],
+          "scalar": [
+            21,
+            21,
+            21
+          ],
+          "slurp": [
+            1,
+            1,
+            1
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "string": [
+            3,
+            3,
+            4
+          ],
+          "structure": [
+            6,
+            6,
+            6
+          ],
+          "tag": [
+            1,
+            1,
+            1
+          ],
+          "unicode": [
+            2,
+            2,
+            2
+          ],
+          "yaml-out": [
+            5,
+            5,
+            10
+          ],
+          "yaml-roundtrip": [
+            1,
+            1,
+            2
+          ],
+          "yaml11": [
+            7,
+            7,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "yq-yaml-out-identity",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"name: web\\nreplicas: 3\\nratio: 0.5\\nenabled: true\\nnothing: null\\nlabels:\\n  app: web\\nports:\\n  - 80\\n  - 443\\ncontainers:\\n  - na\"... (181 bytes) obtido \"name: web\\nreplicas: 3\\nratio: 0.5\\nenabled: true\\nnothing: ~\\nlabels:\\n  app: web\\nports:\\n  - 80\\n  - 443\\ncontainers:\\n  - name:\"... (180 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-quoting",
+            "tags": [
+              "yaml-out",
+              "string"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: 'yes'\\nb: '012'\\nc: ''\\nd: ' leading space'\\ne: 'key: value'\\nf: '#hash'\\ng: 'line1\\n\\n  line2'\\nh: '1.0'\\ni: 'null'\\nj: '-'\\nk: \"... (134 bytes) obtido \"a: \\\"yes\\\"\\nb: \\\"012\\\"\\nc: \\\"\\\"\\nd: \\\" leading space\\\"\\ne: \\\"key: value\\\"\\nf: \\\"#hash\\\"\\ng: |-\\n  line1\\n  line2\\nh: \\\"1.0\\\"\\ni: \\\"null\\\"\\nj: \\\"-\\\"\\nk\"... (138 bytes)"
+            ]
+          },
+          {
+            "id": "yq-yaml-out-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"5\\n...\\n\" obtido \"5\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-string-scalar",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"hello\\n...\\n\" obtido \"hello\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-out-long-line",
+            "tags": [
+              "yaml-out"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor\\n  incididunt ut labore\\n\" obtido \"desc: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore\\n\""
+            ]
+          },
+          {
+            "id": "yq-yaml-roundtrip",
+            "tags": [
+              "yaml-roundtrip"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a: [1, 2]\\nb: \\\"quoted\\\"\\nc: 'single'\\nd: plain\\n\" obtido \"a:\\n  - 1\\n  - 2\\nb: quoted\\nc: single\\nd: plain\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-flow",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a flow sequence\\n  in \\\"bad.yaml\\\", line 1, column 4\\ndid not find expected\"... (167 bytes) obtido \"yq: Error running jq: ScannerError: while parsing a flow sequence, expected ',' or ']' at byte 9 line 2 column 1.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-indent",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ParserError: while parsing a block mapping\\n  in \\\"bad.yaml\\\", line 1, column 1\\ndid not find expected\"... (160 bytes) obtido \"yq: Error running jq: ScannerError: while parsing a block mapping, did not find expected key at byte 11 line 3 column 2.\"... (121 bytes)"
+            ]
+          },
+          {
+            "id": "yq-error-invalid-yaml-mapping",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ScannerError: mapping values are not allowed in this context\\n  in \\\"bad.yaml\\\", line 1, column 5.\\n\" obtido \"yq: Error running jq: ScannerError: mapping values are not allowed in this context at byte 4 line 1 column 5.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-unknown-alias",
+            "tags": [
+              "error",
+              "anchor"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"yq: Error running jq: ComposerError: found undefined alias\\n  in \\\"bad.yaml\\\", line 1, column 4.\\n\" obtido \"yq: Error running jq: ScannerError: while parsing node, found unknown anchor at byte 3 line 1 column 4.\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-filter-syntax",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:\\n.a |   \\njq: 1 compi\"... (129 bytes) obtido \"jq: error: [(File { code: \\\".a |\\\", path: () }, Parse([(Term, \\\"\\\")]))]\\njq: 1 compile error\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-index-string",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"jq: error (at <stdin>:1): Cannot index string with string \\\"b\\\"\\n\" obtido \"jq: error (at <stdin>:1): cannot index \\\"text\\\" with \\\"b\\\"\\n\""
+            ]
+          },
+          {
+            "id": "yq-error-after-output",
+            "tags": [
+              "error",
+              "number",
+              "jq-engine"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n0.5\\n\" obtido \"1\\n0.5\\n1.7976931348623157e+308\\n\"",
+              "stderr: esperado \"jq: error (at <stdin>:1): number (1) and number (0) cannot be divided because the divisor is zero\\n\" obtido \"\"",
+              "exit: esperado Some(5)/None obtido Some(0)/None"
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "É o trabalho medido: eventos do saphyr-parser + resolvedor/construtor do yq 3.4.3 (core schema 1.2, inteiro do PyYAML, merge key do flatten_mapping, BOM) escrito por nós; -y pelo emissor do saphyr. Divergências estritas por classe: error-message=6, jq-engine=1, yaml-output=6.",
+      "metrics": {
+        "strict_rate": 0.876,
+        "lenient_rate": 0.933,
+        "core": {
+          "strict": 74,
+          "lenient": 74,
+          "total": 74
+        },
+        "yaml11_forms": {
+          "strict": 9,
+          "lenient": 9,
+          "total": 9
+        },
+        "yaml_output": {
+          "strict": 6,
+          "lenient": 6,
+          "total": 12
+        },
+        "errors": {
+          "strict": 3,
+          "lenient": 9,
+          "total": 10
+        },
+        "divergence_classes": {
+          "error-message": 6,
+          "jq-engine": 1,
+          "yaml-output": 6
+        },
+        "failing": [
+          "yq-yaml-out-identity [yaml-output]",
+          "yq-yaml-out-quoting [yaml-output]",
+          "yq-yaml-out-scalar [yaml-output]",
+          "yq-yaml-out-string-scalar [yaml-output]",
+          "yq-yaml-out-long-line [yaml-output]",
+          "yq-yaml-roundtrip [yaml-output]",
+          "yq-error-invalid-yaml-flow [error-message]",
+          "yq-error-invalid-yaml-indent [error-message]",
+          "yq-error-invalid-yaml-mapping [error-message]",
+          "yq-error-unknown-alias [error-message]",
+          "yq-error-filter-syntax [error-message]",
+          "yq-error-index-string [error-message]",
+          "yq-error-after-output [jq-engine]"
+        ],
+        "depscan": {
+          "package": "saphyr-parser",
+          "version": "0.1.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 2,
+          "own_unsafe": 0,
+          "tree_deps": 7,
+          "tree_unsafe": 148,
+          "host_touching_deps": {}
+        },
+        "resolver_code_lines": 252
+      }
+    },
+    {
+      "name": "yqr 0.8 (motor próprio + noyalib)",
+      "version": "0.8.1",
+      "role": "yq",
+      "category": "b",
+      "conformance": {
+        "candidate": "yqr 0.8 (motor próprio + noyalib)",
+        "total": 105,
+        "strict_pass": 60,
+        "lenient_pass": 66,
+        "unsupported": 2,
+        "by_tag": {
+          "anchor": [
+            1,
+            2,
+            2
+          ],
+          "args": [
+            0,
+            0,
+            2
+          ],
+          "block": [
+            4,
+            4,
+            4
+          ],
+          "bom": [
+            1,
+            1,
+            1
+          ],
+          "comment": [
+            1,
+            1,
+            1
+          ],
+          "compact": [
+            2,
+            2,
+            2
+          ],
+          "crlf": [
+            1,
+            1,
+            1
+          ],
+          "error": [
+            1,
+            7,
+            10
+          ],
+          "exit": [
+            3,
+            3,
+            4
+          ],
+          "files": [
+            2,
+            2,
+            3
+          ],
+          "filter": [
+            5,
+            5,
+            19
+          ],
+          "flow": [
+            1,
+            1,
+            1
+          ],
+          "identity": [
+            5,
+            5,
+            5
+          ],
+          "indent": [
+            2,
+            2,
+            2
+          ],
+          "jq-engine": [
+            0,
+            0,
+            1
+          ],
+          "key-order": [
+            1,
+            1,
+            2
+          ],
+          "keys": [
+            4,
+            4,
+            6
+          ],
+          "merge": [
+            0,
+            0,
+            2
+          ],
+          "multidoc": [
+            5,
+            5,
+            6
+          ],
+          "null-input": [
+            0,
+            0,
+            1
+          ],
+          "number": [
+            8,
+            8,
+            15
+          ],
+          "python-quirk": [
+            0,
+            0,
+            2
+          ],
+          "raw": [
+            3,
+            3,
+            6
+          ],
+          "scalar": [
+            17,
+            17,
+            21
+          ],
+          "slurp": [
+            0,
+            0,
+            1
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "string": [
+            3,
+            3,
+            4
+          ],
+          "structure": [
+            6,
+            6,
+            6
+          ],
+          "tag": [
+            1,
+            1,
+            1
+          ],
+          "unicode": [
+            1,
+            1,
+            2
+          ],
+          "yaml-out": [
+            3,
+            3,
+            10
+          ],
+          "yaml-roundtrip": [
+            0,
+            0,
+            2
+          ],
+          "yaml11": [
+            6,
+            6,
+            7
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "yq-map-select",
+            "tags": [
+              "filter"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[\\\"api\\\",\\\"cron\\\"]\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found LBracket\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-map-arith",
+            "tags": [
+              "filter",
+              "number"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[4,3]\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found Ident(\\\"map\\\")\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-keys",
+            "tags": [
+              "filter"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[\\\"alpha\\\",\\\"mid\\\",\\\"zeta\\\"]\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found Ident(\\\"keys\\\")\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-keys-unsorted",
+            "tags": [
+              "filter",
+              "key-order"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[\\\"zeta\\\",\\\"alpha\\\",\\\"mid\\\"]\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found Ident(\\\"keys_unsorted\\\")\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-length",
+            "tags": [
+              "filter"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"3\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found Ident(\\\"length\\\")\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-with-entries-raw",
+            "tags": [
+              "filter",
+              "raw"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"HOST=localhost\\nPORT=8080\\nTLS=true\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: lex error: invalid escape sequence \\\\(\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-sort-by",
+            "tags": [
+              "filter"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[\\\"a\\\",\\\"b\\\",\\\"c\\\"]\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found Ident(\\\"sort_by\\\")\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-add",
+            "tags": [
+              "filter",
+              "number"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"6.5\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found LBracket\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-paths",
+            "tags": [
+              "filter"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[[\\\"a\\\"],[\\\"a\\\",\\\"b\\\"],[\\\"a\\\",\\\"c\\\"],[\\\"a\\\",\\\"c\\\",0],[\\\"a\\\",\\\"c\\\",1]]\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found LBracket\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-slurp",
+            "tags": [
+              "files",
+              "slurp"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[\\\"a\\\",\\\"b\\\"]\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found Ident(\\\"map\\\")\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-null-input",
+            "tags": [
+              "null-input"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"{\\\"a\\\":1,\\\"b\\\":[2,3]}\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: lex error: unexpected character '{' at position 0\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-join",
+            "tags": [
+              "filter",
+              "raw"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"alpha,beta,gamma\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: expected Dot but found Ident(\\\"join\\\")\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-tostring-number",
+            "tags": [
+              "filter",
+              "number"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[\\\"10\\\",\\\"2.5\\\",\\\"1000.0\\\"]\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: lex error: unexpected character ',' at position 3: yqr has no ',' operator; a function separates its argument\"... (174 bytes)",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-has-del",
+            "tags": [
+              "filter"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"true\\n{\\\"b\\\":2}\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: lex error: unexpected character ',' at position 9: yqr has no ',' operator; a function separates its argument\"... (174 bytes)",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          },
+          {
+            "id": "yq-update",
+            "tags": [
+              "filter"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"{\\\"replicas\\\":5,\\\"image\\\":\\\"x\\\"}\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"jq: error: parse error: unexpected trailing token Pipe\\njq: 1 compile error\\n\"",
+              "exit: esperado Some(0)/None obtido Some(3)/None"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "Motor jq próprio do yqr (subconjunto, sem aritmética nem --arg) sobre noyalib; o front-end imprime JSON (o CLI do yqr emite YAML). Divergências estritas por classe: error-exit=2, error-message=6, jq-engine=1, merge-key=2, number=5, other=15, unsupported=2, yaml-output=9, yaml11-forms=3.",
+      "metrics": {
+        "strict_rate": 0.571,
+        "lenient_rate": 0.629,
+        "core": {
+          "strict": 50,
+          "lenient": 50,
+          "total": 74
+        },
+        "yaml11_forms": {
+          "strict": 6,
+          "lenient": 6,
+          "total": 9
+        },
+        "yaml_output": {
+          "strict": 3,
+          "lenient": 3,
+          "total": 12
+        },
+        "errors": {
+          "strict": 1,
+          "lenient": 7,
+          "total": 10
+        },
+        "divergence_classes": {
+          "error-exit": 2,
+          "error-message": 6,
+          "jq-engine": 1,
+          "merge-key": 2,
+          "number": 5,
+          "other": 15,
+          "unsupported": 2,
+          "yaml-output": 9,
+          "yaml11-forms": 3
+        },
+        "failing": [
+          "yq-map-select [other]",
+          "yq-map-arith [number]",
+          "yq-keys [other]",
+          "yq-keys-unsorted [other]",
+          "yq-length [other]",
+          "yq-with-entries-raw [other]",
+          "yq-sort-by [other]",
+          "yq-add [number]",
+          "yq-paths [other]",
+          "yq-slurp [other]",
+          "yq-null-input [other]",
+          "yq-join [other]",
+          "yq-tostring-number [number]",
+          "yq-has-del [other]",
+          "yq-update [other]",
+          "yq-yaml-out-quoting [yaml-output]",
+          "yq-yaml-out-scalar [yaml-output]",
+          "yq-yaml-out-string-scalar [yaml-output]",
+          "yq-yaml-out-unicode [yaml-output]",
+          "yq-yaml-out-long-line [yaml-output]",
+          "yq-yaml-out-nested-lists [yaml-output]",
+          "yq-yaml-out-update [yaml-output]",
+          "yq-yaml-roundtrip [yaml-output]",
+          "yq-yaml-roundtrip-update [yaml-output]",
+          "yq-arg [unsupported]",
+          "yq-argjson [unsupported]",
+          "yq-exit-status-empty [other]",
+          "yq-error-invalid-yaml-flow [error-message]",
+          "yq-error-invalid-yaml-indent [error-message]",
+          "yq-error-invalid-yaml-mapping [error-message]",
+          "yq-error-unknown-alias [error-message]",
+          "yq-error-filter-syntax [error-message]",
+          "yq-error-runtime [error-exit]",
+          "yq-error-index-string [error-message]",
+          "yq-error-after-output [jq-engine]",
+          "yq-optional-iterate [other]",
+          "yq-scalar-int-big [number]",
+          "yq-scalar-int-legacy-octal [yaml11-forms]",
+          "yq-scalar-int-08 [yaml11-forms]",
+          "yq-scalar-number-arith [number]",
+          "yq-multidoc-select [other]",
+          "yq-merge-key [merge-key]",
+          "yq-merge-key-list [merge-key]",
+          "yq-keys-python-collision [yaml11-forms]",
+          "yq-complex-key [error-exit]"
+        ],
+        "depscan": {
+          "package": "yqr",
+          "version": "0.8.1",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 17,
+          "own_unsafe": 0,
+          "tree_deps": 36,
+          "tree_unsafe": 9992,
+          "host_touching_deps": {
+            "anstream 1.0.0": 11,
+            "anstyle-query 1.1.5": 12,
+            "anstyle-wincon 3.0.11": 6,
+            "clap_builder 4.6.7": 8,
+            "clap_derive 4.6.7": 2,
+            "clap_lex 1.1.1": 1,
+            "hashbrown 0.17.1": 11,
+            "is_terminal_polyfill 1.70.2": 1,
+            "noyalib 0.0.51": 27,
+            "serde 1.0.229": 1,
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "csv",
+      "version": "1.4.0",
+      "role": "csv",
+      "category": "b",
+      "conformance": {
+        "candidate": "csv 1.4",
+        "total": 36,
+        "strict_pass": 30,
+        "lenient_pass": 30,
+        "unsupported": 0,
+        "by_tag": {
+          "blank": [
+            0,
+            0,
+            2
+          ],
+          "bom": [
+            0,
+            0,
+            1
+          ],
+          "column": [
+            4,
+            4,
+            5
+          ],
+          "crlf": [
+            3,
+            3,
+            3
+          ],
+          "cut": [
+            8,
+            8,
+            10
+          ],
+          "malformed": [
+            3,
+            3,
+            3
+          ],
+          "quote": [
+            3,
+            3,
+            3
+          ],
+          "ragged": [
+            1,
+            1,
+            1
+          ],
+          "read": [
+            14,
+            14,
+            16
+          ],
+          "semantics": [
+            0,
+            0,
+            3
+          ],
+          "unicode": [
+            4,
+            4,
+            4
+          ],
+          "write": [
+            4,
+            4,
+            5
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "csv-cut-crlf",
+            "tags": [
+              "cut",
+              "semantics"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"b\\r\\nd\\r\\n\" obtido \"b\\nd\\n\""
+            ]
+          },
+          {
+            "id": "csv-cut-quoted",
+            "tags": [
+              "cut",
+              "semantics"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"desc\\n\\\"a\\n\" obtido \"desc\\na, b\\n\""
+            ]
+          },
+          {
+            "id": "csv-column-crlf",
+            "tags": [
+              "column",
+              "semantics"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a    b\\r\\nccc  d\\r\\n\" obtido \"a    b\\nccc  d\\n\""
+            ]
+          },
+          {
+            "id": "csv-read-bom",
+            "tags": [
+              "read",
+              "bom"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[\\\"\\u{feff}name\\\", \\\"age\\\"]\\n[\\\"ana\\\", \\\"30\\\"]\\n\" obtido \"[\\\"name\\\", \\\"age\\\"]\\n[\\\"ana\\\", \\\"30\\\"]\\n\""
+            ]
+          },
+          {
+            "id": "csv-read-blank-line",
+            "tags": [
+              "read",
+              "blank"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"[\\\"a\\\", \\\"b\\\"]\\n[]\\n[\\\"c\\\", \\\"d\\\"]\\n\" obtido \"[\\\"a\\\", \\\"b\\\"]\\n[\\\"c\\\", \\\"d\\\"]\\n\""
+            ]
+          },
+          {
+            "id": "csv-write-single-empty-field",
+            "tags": [
+              "write",
+              "blank"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"\\\"\\\"\\n\\n,\\n\" obtido \"\\\"\\\"\\n\\\"\\\"\\n,\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits",
+      "notes": "Leitor e escritor da crate com has_headers(false), flexible(true), QuoteStyle::Necessary e terminador escolhido. Sem oráculo GNU de CSV: cut/column em CSV sem aspas e Python csv pra RFC 4180. 6 divergências estritas.",
+      "metrics": {
+        "strict_rate": 0.833,
+        "comparable": {
+          "strict": 30,
+          "total": 33
+        },
+        "cut": {
+          "strict": 8,
+          "total": 10
+        },
+        "column": {
+          "strict": 4,
+          "total": 5
+        },
+        "python_read": {
+          "strict": 14,
+          "total": 16
+        },
+        "python_write": {
+          "strict": 4,
+          "total": 5
+        },
+        "failures": [
+          {
+            "id": "csv-cut-crlf",
+            "tags": [
+              "cut",
+              "semantics"
+            ],
+            "detail": [
+              "stdout: esperado \"b\\r\\nd\\r\\n\" obtido \"b\\nd\\n\""
+            ]
+          },
+          {
+            "id": "csv-cut-quoted",
+            "tags": [
+              "cut",
+              "semantics"
+            ],
+            "detail": [
+              "stdout: esperado \"desc\\n\\\"a\\n\" obtido \"desc\\na, b\\n\""
+            ]
+          },
+          {
+            "id": "csv-column-crlf",
+            "tags": [
+              "column",
+              "semantics"
+            ],
+            "detail": [
+              "stdout: esperado \"a    b\\r\\nccc  d\\r\\n\" obtido \"a    b\\nccc  d\\n\""
+            ]
+          },
+          {
+            "id": "csv-read-bom",
+            "tags": [
+              "read",
+              "bom"
+            ],
+            "detail": [
+              "stdout: esperado \"[\\\"\\u{feff}name\\\", \\\"age\\\"]\\n[\\\"ana\\\", \\\"30\\\"]\\n\" obtido \"[\\\"name\\\", \\\"age\\\"]\\n[\\\"ana\\\", \\\"30\\\"]\\n\""
+            ]
+          },
+          {
+            "id": "csv-read-blank-line",
+            "tags": [
+              "read",
+              "blank"
+            ],
+            "detail": [
+              "stdout: esperado \"[\\\"a\\\", \\\"b\\\"]\\n[]\\n[\\\"c\\\", \\\"d\\\"]\\n\" obtido \"[\\\"a\\\", \\\"b\\\"]\\n[\\\"c\\\", \\\"d\\\"]\\n\""
+            ]
+          },
+          {
+            "id": "csv-write-single-empty-field",
+            "tags": [
+              "write",
+              "blank"
+            ],
+            "detail": [
+              "stdout: esperado \"\\\"\\\"\\n\\n,\\n\" obtido \"\\\"\\\"\\n\\\"\\\"\\n,\\n\""
+            ]
+          }
+        ],
+        "no_gnu_oracle": "não existe ferramenta GNU de CSV; referências usadas: cut e column (util-linux) em CSV sem aspas e o módulo csv do Python 3.13 do oráculo pra RFC 4180",
+        "depscan": {
+          "package": "csv",
+          "version": "1.4.0",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "own_host_touch": 2,
+          "own_unsafe": 4,
+          "tree_deps": 10,
+          "tree_unsafe": 462,
+          "host_touching_deps": {
+            "serde_core 1.0.229": 1
+          }
+        }
+      }
+    }
+  ],
+  "roles": [
+    {
+      "role": "yq",
+      "best": "jaq 3 + saphyr-parser 0.1 com resolvedor yq nosso; emissor -y nosso",
+      "fit": "fits_with_work",
+      "summary": "melhor camada pronta (jaq + noyalib 0.0.51) faz 84/105 estrito e 96% leniente no núcleo; com o resolvedor nosso (252 linhas) sobre o saphyr-parser sobe pra 92/105 estrito, 9/9 nas formas 1.1/Python; nenhum emissor de crate reproduz o -y do PyYAML (melhor 7/12)."
+    },
+    {
+      "role": "csv",
+      "best": "csv 1.4",
+      "fit": "fits",
+      "summary": "csv 1.4: 30/36 estrito no corpus (30/33 fora dos casos em que cut/column divergem de CSV por definição); cut 8/10, column 4/5, leitura Python 14/16, escrita Python 4/5."
+    }
+  ],
+  "metrics": {
+    "yq": {
+      "cases": 105,
+      "candidates": [
+        {
+          "candidate": "jaq + jaq-fmts 0.1 (saphyr-parser)",
+          "strict": 82,
+          "lenient": 88,
+          "total": 105,
+          "core_lenient": 0.932,
+          "yaml11_forms_strict": 6,
+          "yaml_output_strict": 4
+        },
+        {
+          "candidate": "jaq + saphyr 0.1",
+          "strict": 81,
+          "lenient": 87,
+          "total": 105,
+          "core_lenient": 0.878,
+          "yaml11_forms_strict": 7,
+          "yaml_output_strict": 6
+        },
+        {
+          "candidate": "jaq + serde-saphyr 1.3",
+          "strict": 83,
+          "lenient": 89,
+          "total": 105,
+          "core_lenient": 0.905,
+          "yaml11_forms_strict": 6,
+          "yaml_output_strict": 7
+        },
+        {
+          "candidate": "jaq + yaml-rust2 0.13",
+          "strict": 83,
+          "lenient": 89,
+          "total": 105,
+          "core_lenient": 0.905,
+          "yaml11_forms_strict": 7,
+          "yaml_output_strict": 6
+        },
+        {
+          "candidate": "jaq + noyalib 0.0.51",
+          "strict": 84,
+          "lenient": 90,
+          "total": 105,
+          "core_lenient": 0.959,
+          "yaml11_forms_strict": 6,
+          "yaml_output_strict": 5
+        },
+        {
+          "candidate": "jaq + saphyr-parser 0.1 + resolvedor yq nosso",
+          "strict": 92,
+          "lenient": 98,
+          "total": 105,
+          "core_lenient": 1.0,
+          "yaml11_forms_strict": 9,
+          "yaml_output_strict": 6
+        },
+        {
+          "candidate": "yqr 0.8 (motor próprio + noyalib)",
+          "strict": 60,
+          "lenient": 66,
+          "total": 105,
+          "core_lenient": 0.676,
+          "yaml11_forms_strict": 6,
+          "yaml_output_strict": 3
+        }
+      ],
+      "jaq_core_depscan": {
+        "package": "jaq-core",
+        "version": "3.1.1",
+        "own_category": "b",
+        "tree_category": "b",
+        "c_deps": [],
+        "own_host_touch": 3,
+        "own_unsafe": 0,
+        "tree_deps": 3,
+        "tree_unsafe": 59,
+        "host_touching_deps": {}
+      },
+      "yaml_test_suite": {
+        "repo": "https://github.com/yaml/yaml-test-suite",
+        "branch": "data",
+        "commit": "6ad3d2c62885d82fc349026c136ef560838fdf3d",
+        "tests": 402,
+        "layers": [
+          {
+            "layer": "jaq + jaq-fmts 0.1 (saphyr-parser)",
+            "pass": 398,
+            "total": 402,
+            "rate": 0.99,
+            "valid_with_json": {
+              "pass": 276,
+              "total": 279
+            },
+            "must_reject": {
+              "pass": 94,
+              "total": 94
+            },
+            "valid_without_json": {
+              "pass": 28,
+              "total": 29
+            },
+            "panics": 0,
+            "failing_sample": [
+              "565N",
+              "6KGN",
+              "FH7J",
+              "S4JQ"
+            ]
+          },
+          {
+            "layer": "jaq + saphyr 0.1",
+            "pass": 376,
+            "total": 402,
+            "rate": 0.935,
+            "valid_with_json": {
+              "pass": 254,
+              "total": 279
+            },
+            "must_reject": {
+              "pass": 94,
+              "total": 94
+            },
+            "valid_without_json": {
+              "pass": 28,
+              "total": 29
+            },
+            "panics": 0,
+            "failing_sample": [
+              "2XXW",
+              "5WE3",
+              "6KGN",
+              "6XDY",
+              "6ZKB",
+              "7W2P",
+              "8KB6",
+              "9BXH",
+              "9DXL",
+              "C2DT",
+              "DK95/07",
+              "FH7J",
+              "JTV5",
+              "MUS6/02",
+              "MUS6/03",
+              "MUS6/04",
+              "MUS6/05",
+              "MUS6/06",
+              "PUW8",
+              "S4JQ",
+              "SM9W/00",
+              "UKK6/01",
+              "UT92",
+              "W42U",
+              "W4TN",
+              "ZWK4"
+            ]
+          },
+          {
+            "layer": "jaq + serde-saphyr 1.3",
+            "pass": 388,
+            "total": 402,
+            "rate": 0.965,
+            "valid_with_json": {
+              "pass": 266,
+              "total": 279
+            },
+            "must_reject": {
+              "pass": 93,
+              "total": 94
+            },
+            "valid_without_json": {
+              "pass": 29,
+              "total": 29
+            },
+            "panics": 0,
+            "failing_sample": [
+              "565N",
+              "6XDY",
+              "6ZKB",
+              "9C9N",
+              "9DXL",
+              "DK95/07",
+              "MUS6/02",
+              "MUS6/03",
+              "MUS6/04",
+              "MUS6/05",
+              "MUS6/06",
+              "PUW8",
+              "UT92",
+              "W4TN"
+            ]
+          },
+          {
+            "layer": "jaq + yaml-rust2 0.13",
+            "pass": 399,
+            "total": 402,
+            "rate": 0.993,
+            "valid_with_json": {
+              "pass": 279,
+              "total": 279
+            },
+            "must_reject": {
+              "pass": 94,
+              "total": 94
+            },
+            "valid_without_json": {
+              "pass": 26,
+              "total": 29
+            },
+            "panics": 0,
+            "failing_sample": [
+              "2JQS",
+              "FH7J",
+              "X38W"
+            ]
+          },
+          {
+            "layer": "jaq + noyalib 0.0.51",
+            "pass": 401,
+            "total": 402,
+            "rate": 0.998,
+            "valid_with_json": {
+              "pass": 278,
+              "total": 279
+            },
+            "must_reject": {
+              "pass": 94,
+              "total": 94
+            },
+            "valid_without_json": {
+              "pass": 29,
+              "total": 29
+            },
+            "panics": 0,
+            "failing_sample": [
+              "JEF9/02"
+            ]
+          },
+          {
+            "layer": "jaq + saphyr-parser 0.1 + resolvedor yq nosso",
+            "pass": 401,
+            "total": 402,
+            "rate": 0.998,
+            "valid_with_json": {
+              "pass": 278,
+              "total": 279
+            },
+            "must_reject": {
+              "pass": 94,
+              "total": 94
+            },
+            "valid_without_json": {
+              "pass": 29,
+              "total": 29
+            },
+            "panics": 0,
+            "failing_sample": [
+              "S4JQ"
+            ]
+          }
+        ]
+      },
+      "oracle_loader_finding": "o yq 3.4.3 resolve escalares pelas regex do core schema do YAML 1.2 (yes/no, 0b, 1_000, 1:20 e datas ficam string) mas constrói inteiros com o construtor 1.1 do PyYAML (012 = 10, 08 dá ValueError) e expande merge keys na ordem do flatten_mapping"
+    },
+    "csv": {
+      "strict_rate": 0.833,
+      "comparable": {
+        "strict": 30,
+        "total": 33
+      },
+      "cut": {
+        "strict": 8,
+        "total": 10
+      },
+      "column": {
+        "strict": 4,
+        "total": 5
+      },
+      "python_read": {
+        "strict": 14,
+        "total": 16
+      },
+      "python_write": {
+        "strict": 4,
+        "total": 5
+      },
+      "failures": [
+        {
+          "id": "csv-cut-crlf",
+          "tags": [
+            "cut",
+            "semantics"
+          ],
+          "detail": [
+            "stdout: esperado \"b\\r\\nd\\r\\n\" obtido \"b\\nd\\n\""
+          ]
+        },
+        {
+          "id": "csv-cut-quoted",
+          "tags": [
+            "cut",
+            "semantics"
+          ],
+          "detail": [
+            "stdout: esperado \"desc\\n\\\"a\\n\" obtido \"desc\\na, b\\n\""
+          ]
+        },
+        {
+          "id": "csv-column-crlf",
+          "tags": [
+            "column",
+            "semantics"
+          ],
+          "detail": [
+            "stdout: esperado \"a    b\\r\\nccc  d\\r\\n\" obtido \"a    b\\nccc  d\\n\""
+          ]
+        },
+        {
+          "id": "csv-read-bom",
+          "tags": [
+            "read",
+            "bom"
+          ],
+          "detail": [
+            "stdout: esperado \"[\\\"\\u{feff}name\\\", \\\"age\\\"]\\n[\\\"ana\\\", \\\"30\\\"]\\n\" obtido \"[\\\"name\\\", \\\"age\\\"]\\n[\\\"ana\\\", \\\"30\\\"]\\n\""
+          ]
+        },
+        {
+          "id": "csv-read-blank-line",
+          "tags": [
+            "read",
+            "blank"
+          ],
+          "detail": [
+            "stdout: esperado \"[\\\"a\\\", \\\"b\\\"]\\n[]\\n[\\\"c\\\", \\\"d\\\"]\\n\" obtido \"[\\\"a\\\", \\\"b\\\"]\\n[\\\"c\\\", \\\"d\\\"]\\n\""
+          ]
+        },
+        {
+          "id": "csv-write-single-empty-field",
+          "tags": [
+            "write",
+            "blank"
+          ],
+          "detail": [
+            "stdout: esperado \"\\\"\\\"\\n\\n,\\n\" obtido \"\\\"\\\"\\n\\\"\\\"\\n,\\n\""
+          ]
+        }
+      ],
+      "no_gnu_oracle": "não existe ferramenta GNU de CSV; referências usadas: cut e column (util-linux) em CSV sem aspas e o módulo csv do Python 3.13 do oráculo pra RFC 4180",
+      "depscan": {
+        "package": "csv",
+        "version": "1.4.0",
+        "own_category": "b",
+        "tree_category": "b",
+        "c_deps": [],
+        "own_host_touch": 2,
+        "own_unsafe": 4,
+        "tree_deps": 10,
+        "tree_unsafe": 462,
+        "host_touching_deps": {
+          "serde_core 1.0.229": 1
+        }
+      }
+    }
+  },
+  "notes": [
+    "H33/yq: o carregador do yq 3.4.3 não é YAML 1.1 puro: resolve escalares pelas regex do core schema 1.2 (yes/no/on/off, 0b101, 1_000, 1:20 e datas ficam string), mas constrói inteiro com o construtor 1.1 do PyYAML (012 = 10, 08 dá ValueError) e expande merge keys na ordem do flatten_mapping. Nenhuma crate reproduz essa mistura; o resolvedor nosso sobre o saphyr-parser reproduz.",
+    "H33/yq: o depscan acusa defmt 1.1.1 como C na árvore do jaq-fmts; é falso positivo (o `links = \"defmt\"` é namespace de linker, não C, e a crate nem entra no build: `cargo tree --target all -i defmt` vazio). jaq-core 3.1.1 toca o host em 3 pontos: `unwrap_valr` chama std::process::exit no halt (o front-end trata o halt sem ele) e o loader de módulos usa std::env/std::fs só via `with_std_read` (não usado).",
+    "H33/csv: não há ferramenta GNU de CSV no oráculo. Referências: cut e column (util-linux) em CSV sem aspas, e o módulo csv do Python 3.13 (dependência do yq no oráculo) pra RFC 4180. Casos em que cut/column divergem de CSV por definição (CRLF, aspas) ficam com a tag `semantics`."
+  ]
+}

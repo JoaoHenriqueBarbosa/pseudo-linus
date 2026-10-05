@@ -1,0 +1,32 @@
+unzip -l t1.zip
+unzip -v t1.zip
+unzip -l stored.zip
+unzip -v stored.zip
+unzip -lv nox.zip
+unzip -v bz.zip
+unzip -v enc.zip
+unzip -v fast.zip
+unzip -v best.zip
+unzip -l names.zip
+unzip -v names.zip
+unzip -l empty.zip
+unzip -l pre.zip
+unzip -l trunc.zip
+unzip -l trunc2.zip
+unzip -l notzip.zip
+unzip -lq t1.zip
+unzip -lqq t1.zip
+unzip -z t1.zip
+unzip -lz t1.zip
+unzip -l t1.zip a.txt
+unzip -l t1.zip 'sub/*'
+unzip -l t1.zip nope
+unzip -l t1.zip -x a.txt
+unzip -lL t1.zip
+unzip -l t1
+unzip -l '*.zip'
+unzip -l 'st*.zip'
+unzip -l sub
+unzip -l -C t1.zip A.TXT
+unzip -lW t1.zip '*'
+unzip -lW t1.zip '**'

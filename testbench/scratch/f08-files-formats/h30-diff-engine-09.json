@@ -1,0 +1,34 @@
+[
+  {
+    "id": "diff-tie-blank-lines-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-abc-cab-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (135 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n+b\\n\"... (135 bytes)"
+    ]
+  }
+]

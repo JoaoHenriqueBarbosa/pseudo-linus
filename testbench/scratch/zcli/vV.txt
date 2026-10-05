@@ -1,0 +1,2 @@
+*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***
+*** supports: zstd, zstd legacy v0.5+, gzip, lz4, lzma, xz 

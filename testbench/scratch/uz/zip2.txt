@@ -1,0 +1,3 @@
+mkdir -p d; printf 'hello world\n' > d/a.txt; touch -d '2026-01-15 12:00:00' d/a.txt d; echo ok
+rm -f o.zip; zip -q -0 o.zip d/a.txt; xxd o.zip
+rm -f o.zip; zip -q o.zip d/a.txt; xxd o.zip

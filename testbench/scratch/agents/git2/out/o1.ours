@@ -1,0 +1,73 @@
+$ git checkout main
+[out]
+[err]
+Warning: you are leaving 2 commits behind, not connected to
+any of your branches:
+
+  6793534 lost two
+  1ff529a lost one
+
+If you want to keep them by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> 6793534
+
+Switched to branch 'main'
+[exit=0]
+Agent <agent@example.com> 1768478640 +0000	commit: lost one
+Agent <agent@example.com> 1768478700 +0000	commit: lost two
+Agent <agent@example.com> 1768478700 +0000	checkout: moving from 67935348abe76cba40166785e30bac50f746fc56 to main
+$ git switch main
+[out]
+[err]
+Warning: you are leaving 1 commit behind, not connected to
+any of your branches:
+
+  ac64f0c lost three
+
+If you want to keep it by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> ac64f0c
+
+Switched to branch 'main'
+[exit=0]
+$ git checkout main
+[out]
+[err]
+Warning: you are leaving 1 commit behind, not connected to
+any of your branches:
+
+  93c79ba three
+
+If you want to keep it by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> 93c79ba
+
+Switched to branch 'main'
+[exit=0]
+$ git checkout main
+[out]
+[err]
+Warning: you are leaving 1 commit behind, not connected to
+any of your branches:
+
+  84a814b four
+
+Switched to branch 'main'
+[exit=0]
+$ git checkout -q main
+[out]
+[err]
+[exit=0]
+$ git checkout --detach HEAD
+[out]
+[err]
+HEAD is now at 110d11a add c
+[exit=0]
+$ git checkout --detach
+[out]
+[err]
+HEAD is now at 110d11a add c
+[exit=0]

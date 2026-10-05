@@ -1,0 +1,178 @@
+== into itself
+$ git mv d d/sub
+[out]
+[err]
+fatal: can not move directory into itself, source=d, destination=d/sub
+[exit=128]
+$ git mv -k d d/sub
+[out]
+[err]
+[exit=0]
+$ git mv d/e d/e/x
+[out]
+[err]
+fatal: can not move directory into itself, source=d/e, destination=d/e/x
+[exit=128]
+== dir to existing dir
+$ git mv d nd
+[out]
+[err]
+[exit=0]
+R  d/e/f.txt -> nd/d/e/f.txt
+R  d/g.txt -> nd/d/g.txt
+d
+a.txt
+b.txt
+c.txt
+d
+nd
+tgt
+== to dir with slash
+$ git mv a.txt nd/
+[out]
+[err]
+[exit=0]
+$ git mv b.txt nd/b2.txt
+[out]
+[err]
+[exit=0]
+$ git mv c.txt tgt
+[out]
+[err]
+[exit=0]
+R  a.txt -> nd/a.txt
+R  b.txt -> nd/b2.txt
+R  c.txt -> tgt/c.txt
+== multiple to dir
+$ git mv a.txt b.txt nd
+[out]
+[err]
+fatal: destination 'nd' is not a directory
+[exit=128]
+== multiple to nonexistent dir
+$ git mv a.txt b.txt nope
+[out]
+[err]
+fatal: destination 'nope' is not a directory
+[exit=128]
+== -k with errors in multiple
+$ git mv -k a.txt nonexist b.txt nd
+[out]
+[err]
+fatal: destination 'nd' is not a directory
+[exit=128]
+== untracked source
+$ git mv u.txt nd
+[out]
+[err]
+fatal: not under version control, source=u.txt, destination=nd
+[exit=128]
+$ git mv -k u.txt nd
+[out]
+[err]
+[exit=0]
+== overwrite dir with file
+$ git mv a.txt d
+[out]
+[err]
+[exit=0]
+$ git mv -f a.txt d
+[out]
+[err]
+fatal: bad source, source=a.txt, destination=d/a.txt
+[exit=128]
+$ git mv d/g.txt a.txt
+[out]
+[err]
+[exit=0]
+$ git mv -f d/g.txt a.txt
+[out]
+[err]
+fatal: bad source, source=d/g.txt, destination=a.txt
+[exit=128]
+M  a.txt
+A  d/a.txt
+D  d/g.txt
+?? u.txt
+== rename in subdir
+$ git mv g.txt h.txt
+[out]
+[err]
+[exit=0]
+$ git mv ../a.txt .
+[out]
+[err]
+[exit=0]
+$ git mv e ../nd
+[out]
+[err]
+[exit=0]
+$ git mv h.txt ../tgt/
+[out]
+[err]
+fatal: destination directory does not exist, source=d/h.txt, destination=tgt/
+[exit=128]
+R  a.txt -> d/a.txt
+R  d/g.txt -> d/h.txt
+R  d/e/f.txt -> nd/f.txt
+?? u.txt
+== mv verbose multi
+$ git mv -v a.txt b.txt nd
+[out]
+[err]
+fatal: destination 'nd' is not a directory
+[exit=128]
+== dry run
+$ git mv -n a.txt zzz
+[out]
+Checking rename of 'a.txt' to 'zzz'
+Renaming a.txt to zzz
+[err]
+[exit=0]
+a.txt
+$ git mv -n a.txt b.txt nd
+[out]
+[err]
+fatal: destination 'nd' is not a directory
+[exit=128]
+$ git mv -nv a.txt zzz
+[out]
+Checking rename of 'a.txt' to 'zzz'
+Renaming a.txt to zzz
+[err]
+[exit=0]
+== sparse
+$ git mv --sparse a.txt zz
+[out]
+[err]
+[exit=0]
+== source with trailing slash
+$ git mv d/ dd
+[out]
+[err]
+[exit=0]
+R  d/e/f.txt -> dd/e/f.txt
+R  d/g.txt -> dd/g.txt
+?? u.txt
+== source dir exists untracked, dest missing dir parent
+$ git mv a.txt nonexist/sub/a.txt
+[out]
+[err]
+fatal: renaming 'a.txt' failed: No such file or directory
+[exit=128]
+== mv to same file in other form
+$ git mv a.txt ./a.txt
+[out]
+[err]
+fatal: can not move directory into itself, source=a.txt, destination=a.txt
+[exit=128]
+$ git mv a.txt nd/../a.txt
+[out]
+[err]
+fatal: can not move directory into itself, source=a.txt, destination=a.txt
+[exit=128]
+== mv file onto dir with same name
+$ git mv a.txt a2
+[out]
+[err]
+[exit=0]

@@ -1,0 +1,211 @@
+$ git cherry-pick feat~1
+[out]
+[main b98570f] feat one
+ Date: Thu Jan 15 12:04:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 f1.txt
+[err]
+[exit=0]
+b98570f Agent Thu Jan 15 12:04:00 2026 +0000 feat one
+110d11a Agent Thu Jan 15 12:03:00 2026 +0000 add c
+b98570f HEAD@{0}: cherry-pick: feat one
+110d11a HEAD@{1}: checkout: moving from feat to main
+ff0a095 HEAD@{2}: commit: feat two
+AUTO_MERGE
+--- -x
+$ git cherry-pick -x feat
+[out]
+[main d4bdd93] feat two
+ Date: Thu Jan 15 12:05:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 f2.txt
+[err]
+[exit=0]
+feat two
+
+body line
+
+(cherry picked from commit ff0a095f4332c9d51717d0576346c379a3cfd370)
+
+--- -n
+$ git cherry-pick -n feat~1
+[out]
+[err]
+[exit=0]
+A  f1.txt
+AUTO_MERGE
+MERGE_MSG
+ORIG_HEAD
+--- range
+$ git cherry-pick main..feat
+[out]
+[main b98570f] feat one
+ Date: Thu Jan 15 12:04:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 f1.txt
+[main c09293b] feat two
+ Date: Thu Jan 15 12:05:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 f2.txt
+[err]
+[exit=0]
+c09293b feat two
+b98570f feat one
+110d11a add c
+f742ed7 add b
+AUTO_MERGE
+ORIG_HEAD
+--- edit/signoff
+$ git cherry-pick -s feat~1
+[out]
+[main 04ea8a4] feat one
+ Date: Thu Jan 15 12:04:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 f1.txt
+[err]
+[exit=0]
+feat one
+
+Signed-off-by: Agent <agent@example.com>
+
+--- errors
+$ git cherry-pick
+[out]
+[err]
+usage: git cherry-pick [--edit] [-n] [-m <parent-number>] [-s] [-x] [--ff]
+                       [-S[<keyid>]] <commit>...
+   or: git cherry-pick (--continue | --skip | --abort | --quit)
+
+    --quit                end revert or cherry-pick sequence
+    --continue            resume revert or cherry-pick sequence
+    --abort               cancel revert or cherry-pick sequence
+    --skip                skip current commit and continue
+    --[no-]cleanup <mode> how to strip spaces and #comments from message
+    -n, --no-commit       don't automatically commit
+    --commit              opposite of --no-commit
+    -e, --[no-]edit       edit the commit message
+    -s, --[no-]signoff    add a Signed-off-by trailer
+    -m, --[no-]mainline <parent-number>
+                          select mainline parent
+    --[no-]rerere-autoupdate
+                          update the index with reused conflict resolution if possible
+    --[no-]strategy <strategy>
+                          merge strategy
+    -X, --[no-]strategy-option <option>
+                          option for merge strategy
+    -S, --[no-]gpg-sign[=<key-id>]
+                          GPG sign commit
+    -x                    append commit name
+    --[no-]ff             allow fast-forward
+    --[no-]allow-empty    preserve initially empty commits
+    --[no-]allow-empty-message
+                          allow commits with empty messages
+    --[no-]keep-redundant-commits
+                          deprecated: use --empty=keep instead
+    --empty (stop|drop|keep)
+                          how to handle commits that become empty
+
+[exit=129]
+$ git cherry-pick nope
+[out]
+[err]
+fatal: bad revision 'nope'
+[exit=128]
+$ git cherry-pick feat~1 nope
+[out]
+[err]
+fatal: bad revision 'nope'
+[exit=128]
+$ git cherry-pick -m 1 feat~1
+[out]
+[main b98570f] feat one
+ Date: Thu Jan 15 12:04:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 f1.txt
+[err]
+[exit=0]
+$ git cherry-pick --continue
+[out]
+[err]
+error: no cherry-pick or revert in progress
+fatal: cherry-pick failed
+[exit=128]
+$ git cherry-pick --abort
+[out]
+[err]
+error: no cherry-pick or revert in progress
+fatal: cherry-pick failed
+[exit=128]
+$ git cherry-pick --skip
+[out]
+[err]
+error: no cherry-pick in progress
+fatal: cherry-pick failed
+[exit=128]
+$ git cherry-pick --quit
+[out]
+[err]
+[exit=0]
+$ git cherry-pick HEAD
+[out]
+On branch main
+You are currently cherry-picking commit b98570f.
+  (all conflicts fixed: run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+nothing to commit, working tree clean
+[err]
+The previous cherry-pick is now empty, possibly due to conflict resolution.
+If you wish to commit it anyway, use:
+
+    git commit --allow-empty
+
+Otherwise, please use 'git cherry-pick --skip'
+[exit=1]
+--- already applied (empty)
+$ git cherry-pick feat~1
+[out]
+On branch main
+You are currently cherry-picking commit c38de6f.
+  (all conflicts fixed: run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+nothing to commit, working tree clean
+[err]
+The previous cherry-pick is now empty, possibly due to conflict resolution.
+If you wish to commit it anyway, use:
+
+    git commit --allow-empty
+
+Otherwise, please use 'git cherry-pick --skip'
+[exit=1]
+$ git cherry-pick --allow-empty feat~1
+[out]
+On branch main
+You are currently cherry-picking commit c38de6f.
+  (all conflicts fixed: run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+nothing to commit, working tree clean
+[err]
+The previous cherry-pick is now empty, possibly due to conflict resolution.
+If you wish to commit it anyway, use:
+
+    git commit --allow-empty
+
+Otherwise, please use 'git cherry-pick --skip'
+[exit=1]
+$ git cherry-pick --keep-redundant-commits feat~1
+[out]
+[main fa77698] feat one
+ Date: Thu Jan 15 12:04:00 2026 +0000
+[err]
+[exit=0]
+fa77698 feat one
+b98570f feat one
+110d11a add c
+f742ed7 add b
+1d512c3 add a

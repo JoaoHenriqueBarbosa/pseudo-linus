@@ -1,0 +1,7 @@
+seq 1 40000 > n.txt; for i in $(seq 1 6000); do echo "$i $((i*i % 977)) linha $((i % 13)) $((i*7919 % 10007))"; done > t.txt; seq 1 60000 | awk '{printf "%02x", ($1*7919 + $1*$1*31) % 256}' | xxd -r -p > b.bin; head -c 200000 /dev/zero > z.bin; printf 'abc' > s.txt; : > e.txt; cat t.txt b.bin n.txt > m.bin; echo ok
+for f in n.txt t.txt b.bin z.bin s.txt e.txt m.bin; do for l in 1 2 3 4 5 6 7 8 9; do printf '%s %s ' $f $l; gzip -$l -n -c $f | md5sum; done; done
+for l in 1 6 9; do gzip -$l -n -c t.txt b.bin n.txt s.txt m.bin | md5sum; done
+for f in t.txt m.bin n.txt; do for l in 1 6 9; do printf '%s %s ' $f $l; gzip --rsyncable -$l -n -c $f | md5sum; done; done
+cat m.bin | gzip -n | md5sum; cat t.txt | gzip -9 -n | md5sum
+mkdir -p d; cp t.txt b.bin d/; touch -d '2026-01-15 12:00:00' d d/*; tar --owner=0 --group=0 --numeric-owner -czf - d | md5sum
+cp t.txt u.txt; touch -d '2026-01-15 12:00:00' u.txt; gzip -k u.txt; md5sum u.txt.gz; gzip -l u.txt.gz; rm u.txt.gz; gzip -v -k u.txt; rm -f u.txt.gz

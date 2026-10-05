@@ -1,0 +1,111 @@
+$ git branch
+* main
+[exit=0]
+$ git branch -v
+* main 4035a44 two
+[exit=0]
+$ git branch feature
+[exit=0]
+$ git branch -v
+  feature 4035a44 two
+* main    4035a44 two
+[exit=0]
+$ git branch -vv
+  feature 4035a44 two
+* main    4035a44 two
+[exit=0]
+$ git branch --list
+  feature
+* main
+[exit=0]
+$ git branch --list f*
+  feature
+[exit=0]
+$ git branch --show-current
+main
+[exit=0]
+$ git branch -a
+  feature
+* main
+[exit=0]
+$ git branch -r
+[exit=0]
+$ git branch feature
+fatal: a branch named 'feature' already exists
+[exit=128]
+$ git branch -d feature
+Deleted branch feature (was 4035a44).
+[exit=0]
+$ git branch -d feature
+error: branch 'feature' not found
+[exit=1]
+$ git branch -D nonexist
+error: branch 'nonexist' not found
+[exit=1]
+$ git branch bad..name
+fatal: 'bad..name' is not a valid branch name
+hint: See `man git check-ref-format`
+hint: Disable this message with "git config advice.refSyntax false"
+[exit=128]
+$ git branch -m feature
+[exit=0]
+$ git branch -m main main2
+fatal: no branch named 'main'
+[exit=128]
+$ git branch -m main2 main
+fatal: no branch named 'main2'
+[exit=128]
+$ git branch x HEAD~1
+[exit=0]
+$ git branch -c x y
+[exit=0]
+$ git branch --contains HEAD~1
+* feature
+  x
+  y
+[exit=0]
+$ git branch --merged
+* feature
+  x
+  y
+[exit=0]
+$ git branch --no-merged
+[exit=0]
+$ git branch --contains
+* feature
+[exit=0]
+$ git branch -d x
+Deleted branch x (was a98f67a).
+[exit=0]
+0000000000000000000000000000000000000000 a98f67a140243cabf0dc3e2fb96df8feb872ab1f Agent <agent@example.com> 1768478460 +0000	commit (initial): one
+a98f67a140243cabf0dc3e2fb96df8feb872ab1f 4035a448da822a1cd6d16ffc17a5da0a663fa62e Agent <agent@example.com> 1768478520 +0000	commit: two
+4035a448da822a1cd6d16ffc17a5da0a663fa62e 0000000000000000000000000000000000000000 Agent <agent@example.com> 1768478520 +0000	Branch: renamed refs/heads/main to refs/heads/feature
+0000000000000000000000000000000000000000 4035a448da822a1cd6d16ffc17a5da0a663fa62e Agent <agent@example.com> 1768478520 +0000	Branch: renamed refs/heads/main to refs/heads/feature
+---
+feature
+y
+0000000000000000000000000000000000000000 a98f67a140243cabf0dc3e2fb96df8feb872ab1f Agent <agent@example.com> 1768478520 +0000	branch: Created from HEAD~1
+a98f67a140243cabf0dc3e2fb96df8feb872ab1f a98f67a140243cabf0dc3e2fb96df8feb872ab1f Agent <agent@example.com> 1768478520 +0000	Branch: copied refs/heads/x to refs/heads/y
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+error: pathspec 'main' did not match any file(s) known to git
+$ git branch -d new
+error: cannot delete branch 'new' used by worktree at '/work/r'
+[exit=1]
+$ git branch -D new
+error: cannot delete branch 'new' used by worktree at '/work/r'
+[exit=1]
+$ git branch -d y main
+error: branch 'main' not found
+Deleted branch y (was a98f67a).
+[exit=1]
+$ git branch -d main
+error: branch 'main' not found
+[exit=1]
+$ git branch
+  feature
+* new
+[exit=0]

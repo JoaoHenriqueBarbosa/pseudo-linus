@@ -1,0 +1,6 @@
+getent hosts 4294967296; echo "rc=$?"
+getent hosts 4294967295; echo "rc=$?"
+getent hosts 0x100000000; echo "rc=$?"
+getent hosts 1.16777216; echo "rc=$?"
+getent hosts 99999999999999999999; echo "rc=$?"
+locale -av > /tmp/lv; head -n 12 /tmp/lv | od -c

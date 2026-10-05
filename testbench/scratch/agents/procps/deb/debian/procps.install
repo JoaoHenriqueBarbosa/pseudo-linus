@@ -1,0 +1,6 @@
+# Files to install for non-kfreebsd and non-hurd systems
+# I think that just means linux
+debian/README.sysctl etc/sysctl.d
+usr/bin
+usr/sbin/sysctl usr/sbin
+usr/share/locale

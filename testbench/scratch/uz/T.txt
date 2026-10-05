@@ -1,0 +1,21 @@
+unzip -T t1.zip; stat -c '%X %Y' t1.zip
+unzip -qT stored.zip; stat -c '%X %Y' stored.zip
+unzip -qqT nox.zip; stat -c '%X %Y' nox.zip
+unzip -T t1.zip 'sub/*'; stat -c '%Y' t1.zip
+unzip -T t1.zip a.txt -x a.txt; stat -c '%Y' t1.zip
+unzip -T t1.zip nothere.txt; stat -c '%Y' t1.zip
+unzip -T t1.zip 'dir2/'; stat -c '%Y' t1.zip
+unzip -T empty.zip; stat -c '%Y' empty.zip
+unzip -T trunc2.zip; stat -c '%Y' trunc2.zip
+unzip -T pre.zip; stat -c '%Y' pre.zip
+unzip -T trunc.zip
+unzip -T nada.zip
+cp t1.zip ro.zip; chmod 444 ro.zip; unzip -T ro.zip; stat -c '%Y' ro.zip
+unzip -T '*.zip'; stat -c '%Y' bz.zip
+unzip -qT 't*.zip'
+unzip -qqT 't*.zip'
+unzip -TZ t1.zip
+unzip -T -l t1.zip
+unzip -T -t stored.zip
+unzip -T -z t1.zip
+unzip -T old_mix.zip; stat -c '%Y' old_mix.zip

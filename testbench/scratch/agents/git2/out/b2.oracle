@@ -1,0 +1,169 @@
+$ git branch -m feature feat2
+[exit=0]
+0000000000000000000000000000000000000000 f742ed745a17b3d948e9fe299ddc31076bd22cc5 Agent <agent@example.com> 1768478580 +0000	branch: Created from HEAD~1
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 f742ed745a17b3d948e9fe299ddc31076bd22cc5 Agent <agent@example.com> 1768478580 +0000	Branch: renamed refs/heads/feature to refs/heads/feat2
+feat2
+main
+$ git branch -m main trunk
+[exit=0]
+ref: refs/heads/trunk
+Agent <agent@example.com> 1768478460 +0000	commit (initial): add a
+Agent <agent@example.com> 1768478520 +0000	commit: add b
+Agent <agent@example.com> 1768478580 +0000	commit: add c
+Agent <agent@example.com> 1768478580 +0000	Branch: renamed refs/heads/main to refs/heads/trunk
+Agent <agent@example.com> 1768478580 +0000	Branch: renamed refs/heads/main to refs/heads/trunk
+Agent <agent@example.com> 1768478460 +0000	commit (initial): add a
+Agent <agent@example.com> 1768478520 +0000	commit: add b
+Agent <agent@example.com> 1768478580 +0000	commit: add c
+Agent <agent@example.com> 1768478580 +0000	Branch: renamed refs/heads/main to refs/heads/trunk
+$ git branch -M trunk feat2
+[exit=0]
+* feat2
+Agent <agent@example.com> 1768478460 +0000	commit (initial): add a
+Agent <agent@example.com> 1768478520 +0000	commit: add b
+Agent <agent@example.com> 1768478580 +0000	commit: add c
+Agent <agent@example.com> 1768478580 +0000	Branch: renamed refs/heads/main to refs/heads/trunk
+Agent <agent@example.com> 1768478580 +0000	Branch: renamed refs/heads/main to refs/heads/trunk
+Agent <agent@example.com> 1768478580 +0000	Branch: renamed refs/heads/trunk to refs/heads/feat2
+Agent <agent@example.com> 1768478580 +0000	Branch: renamed refs/heads/trunk to refs/heads/feat2
+$ git branch -m trunk
+[exit=0]
+$ git branch -m
+fatal: branch name required
+[exit=128]
+$ git branch -m a b c
+fatal: too many arguments for a rename operation
+[exit=128]
+$ git branch -c
+fatal: branch name required
+[exit=128]
+$ git branch -C feat2 trunk
+fatal: no branch named 'feat2'
+[exit=128]
+$ git branch -c nonexist foo
+fatal: no branch named 'nonexist'
+[exit=128]
+$ git branch -m nonexist foo
+fatal: no branch named 'nonexist'
+[exit=128]
+$ git branch -d
+fatal: branch name required
+[exit=128]
+$ git branch --delete
+fatal: branch name required
+[exit=128]
+$ git branch -d trunk
+error: cannot delete branch 'trunk' used by worktree at '/work/r'
+[exit=1]
+$ git branch trunk2 trunk
+[exit=0]
+$ git branch trunk3 nonexistent
+fatal: not a valid object name: 'nonexistent'
+[exit=128]
+$ git branch trunk4 HEAD~1 extra
+usage: git branch [<options>] [-r | -a] [--merged] [--no-merged]
+   or: git branch [<options>] [-f] [--recurse-submodules] <branch-name> [<start-point>]
+   or: git branch [<options>] [-l] [<pattern>...]
+   or: git branch [<options>] [-r] (-d | -D) <branch-name>...
+   or: git branch [<options>] (-m | -M) [<old-branch>] <new-branch>
+   or: git branch [<options>] (-c | -C) [<old-branch>] <new-branch>
+   or: git branch [<options>] [-r | -a] [--points-at]
+   or: git branch [<options>] [-r | -a] [--format]
+
+Generic options
+    -v, --[no-]verbose    show hash and subject, give twice for upstream branch
+    -q, --[no-]quiet      suppress informational messages
+    -t, --[no-]track[=(direct|inherit)]
+                          set branch tracking configuration
+    -u, --[no-]set-upstream-to <upstream>
+                          change the upstream info
+    --[no-]unset-upstream unset the upstream info
+    --[no-]color[=<when>] use colored output
+    -r, --remotes         act on remote-tracking branches
+    --contains <commit>   print only branches that contain the commit
+    --no-contains <commit>
+                          print only branches that don't contain the commit
+    --[no-]abbrev[=<n>]   use <n> digits to display object names
+
+Specific git-branch actions:
+    -a, --all             list both remote-tracking and local branches
+    -d, --[no-]delete     delete fully merged branch
+    -D                    delete branch (even if not merged)
+    -m, --[no-]move       move/rename a branch and its reflog
+    -M                    move/rename a branch, even if target exists
+    --[no-]omit-empty     do not output a newline after empty formatted refs
+    -c, --[no-]copy       copy a branch and its reflog
+    -C                    copy a branch, even if target exists
+    -l, --[no-]list       list branch names
+    --[no-]show-current   show current branch name
+    --[no-]create-reflog  create the branch's reflog
+    --[no-]edit-description
+                          edit the description for the branch
+    -f, --[no-]force      force creation, move/rename, deletion
+    --merged <commit>     print only branches that are merged
+    --no-merged <commit>  print only branches that are not merged
+    --[no-]column[=<style>]
+                          list branches in columns
+    --[no-]sort <key>     field name to sort on
+    --[no-]points-at <object>
+                          print only branches of the object
+    -i, --[no-]ignore-case
+                          sorting and filtering are case insensitive
+    --[no-]recurse-submodules
+                          recurse through submodules
+    --[no-]format <format>
+                          format to use for the output
+
+[exit=129]
+$ git branch -f trunk2 HEAD~1
+[exit=0]
+$ git branch -f trunk
+fatal: cannot force update the branch 'trunk' used by worktree at '/work/r'
+[exit=128]
+$ git branch -f trunk3 HEAD
+[exit=0]
+* trunk  110d11a add c
+  trunk2 f742ed7 add b
+  trunk3 110d11a add c
+$ git branch --show-current
+trunk
+[exit=0]
+$ git branch --show-current
+[exit=0]
+$ git branch
+* (HEAD detached at 110d11a)
+  trunk
+  trunk2
+  trunk3
+[exit=0]
+$ git branch -v
+* (HEAD detached at 110d11a) 110d11a add c
+  trunk                      110d11a add c
+  trunk2                     f742ed7 add b
+  trunk3                     110d11a add c
+[exit=0]
+$ git branch -vv
+* (HEAD detached at 110d11a) 110d11a add c
+  trunk                      110d11a add c
+  trunk2                     f742ed7 add b
+  trunk3                     110d11a add c
+[exit=0]
+$ git branch --list
+* (HEAD detached at 110d11a)
+  trunk
+  trunk2
+  trunk3
+[exit=0]
+$ git branch -d trunk2
+Deleted branch trunk2 (was f742ed7).
+[exit=0]
+$ git branch --merged
+* (HEAD detached at 110d11a)
+  trunk
+  trunk3
+[exit=0]
+$ git branch --no-merged
+[exit=0]
+$ git branch --contains trunk2
+error: malformed object name trunk2
+[exit=129]

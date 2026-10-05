@@ -1,0 +1,157 @@
+$ git branch -r
+  origin/HEAD -> origin/main
+  origin/dev
+  origin/main
+[exit=0]
+$ git branch -a
+* main
+  other
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/dev
+  remotes/origin/main
+[exit=0]
+$ git branch -vv
+* main  110d11a add c
+  other 1d512c3 add a
+[exit=0]
+$ git branch -v -r
+  origin/HEAD -> origin/main
+  origin/dev  1d512c3 add a
+  origin/main f742ed7 add b
+[exit=0]
+$ git branch -vva
+* main                110d11a add c
+  other               1d512c3 add a
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/dev  1d512c3 add a
+  remotes/origin/main f742ed7 add b
+[exit=0]
+$ git branch -avv
+* main                110d11a add c
+  other               1d512c3 add a
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/dev  1d512c3 add a
+  remotes/origin/main f742ed7 add b
+[exit=0]
+$ git branch --all -v
+* main                110d11a add c
+  other               1d512c3 add a
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/dev  1d512c3 add a
+  remotes/origin/main f742ed7 add b
+[exit=0]
+$ git branch -r -v --list origin/d*
+  origin/dev 1d512c3 add a
+[exit=0]
+$ git branch -l o*
+  other
+[exit=0]
+$ git branch -r -l origin/*
+  origin/HEAD -> origin/main
+  origin/dev
+  origin/main
+[exit=0]
+$ git branch --list -r o*
+  origin/HEAD -> origin/main
+  origin/dev
+  origin/main
+[exit=0]
+$ git branch -t other2 origin/dev
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+$ git branch --set-upstream-to=origin/dev other
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+$ git branch -u origin/dev other
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+$ git branch -u origin/nonex other
+fatal: the requested upstream branch 'origin/nonex' does not exist
+hint:
+hint: If you are planning on basing your work on an upstream
+hint: branch that already exists at the remote, you may need to
+hint: run "git fetch" to retrieve it.
+hint:
+hint: If you are planning to push out a new local branch that
+hint: will track its remote counterpart, you may want to use
+hint: "git push -u" to set the upstream config as you push.
+hint: Disable this message with "git config advice.setUpstreamFailure false"
+[exit=128]
+$ git branch --unset-upstream other
+fatal: branch 'other' has no upstream information
+[exit=128]
+$ git branch --unset-upstream other
+fatal: branch 'other' has no upstream information
+[exit=128]
+* main  110d11a add c
+  other 1d512c3 add a
+$ git branch -d -r origin/dev
+Deleted remote-tracking branch origin/dev (was 1d512c3).
+[exit=0]
+$ git branch -r
+  origin/HEAD -> origin/main
+  origin/main
+[exit=0]
+$ git branch -dr origin/dev
+Deleted remote-tracking branch origin/dev (was 1d512c3).
+[exit=0]
+$ git branch -r -D origin/dev
+error: remote-tracking branch 'origin/dev' not found
+[exit=1]
+$ git branch --points-at HEAD
+* main
+[exit=0]
+$ git branch --points-at HEAD~2
+  other
+[exit=0]
+$ git branch --sort=-committerdate
+* main
+  other
+[exit=0]
+$ git branch --sort=refname
+* main
+  other
+[exit=0]
+$ git branch --format=%(refname:short) %(objectname:short) %(HEAD)
+main 110d11a *
+other 1d512c3  
+[exit=0]
+$ git branch --contains HEAD~2 other
+  other
+[exit=0]
+$ git branch --abbrev=12 -v
+* main  110d11a6f832 add c
+  other 1d512c3d80fe add a
+[exit=0]
+$ git branch --no-abbrev -v
+* main  110d11a6f83207f06077f9d00b2fd73dfee2056b add c
+  other 1d512c3d80fe691009862707920813ee23554d64 add a
+[exit=0]
+$ git branch -q newq
+[exit=0]
+$ git branch -qd newq
+[exit=0]
+$ git branch -v --no-color
+* main  110d11a add c
+  other 1d512c3 add a
+[exit=0]
+$ git branch --column
+* main    other
+[exit=0]
+$ git branch -i -l OTH*
+  other
+[exit=0]
+$ git branch -l OTH*
+[exit=0]
+$ git branch -l main other
+* main
+  other
+[exit=0]

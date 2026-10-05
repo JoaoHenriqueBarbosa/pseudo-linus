@@ -1,0 +1,98 @@
+[
+  {
+    "id": "csv-cut-crlf",
+    "tags": [
+      "cut",
+      "semantics"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"b\\r\\nd\\r\\n\" obtido \"b\\nd\\n\""
+    ]
+  },
+  {
+    "id": "csv-cut-quoted",
+    "tags": [
+      "cut",
+      "semantics"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"desc\\n\\\"a\\n\" obtido \"desc\\na, b\\n\""
+    ]
+  },
+  {
+    "id": "csv-column-crlf",
+    "tags": [
+      "column",
+      "semantics"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a    b\\r\\nccc  d\\r\\n\" obtido \"a    b\\nccc  d\\n\""
+    ]
+  },
+  {
+    "id": "csv-read-bom",
+    "tags": [
+      "read",
+      "bom"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"[\\\"\\u{feff}name\\\", \\\"age\\\"]\\n[\\\"ana\\\", \\\"30\\\"]\\n\" obtido \"[\\\"name\\\", \\\"age\\\"]\\n[\\\"ana\\\", \\\"30\\\"]\\n\""
+    ]
+  },
+  {
+    "id": "csv-read-blank-line",
+    "tags": [
+      "read",
+      "blank"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"[\\\"a\\\", \\\"b\\\"]\\n[]\\n[\\\"c\\\", \\\"d\\\"]\\n\" obtido \"[\\\"a\\\", \\\"b\\\"]\\n[\\\"c\\\", \\\"d\\\"]\\n\""
+    ]
+  },
+  {
+    "id": "csv-write-single-empty-field",
+    "tags": [
+      "write",
+      "blank"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"\\\"\\\"\\n\\n,\\n\" obtido \"\\\"\\\"\\n\\\"\\\"\\n,\\n\""
+    ]
+  }
+]

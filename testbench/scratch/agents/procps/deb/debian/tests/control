@@ -1,0 +1,2 @@
+Tests: version free pgrep pmap ps pwdx uptime vmstat w
+Depends: @, shunit2

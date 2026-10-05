@@ -1,0 +1,20 @@
+206c206
+<   --rm                          Remove INPUT file(s) after successful (de)compression.
+---
+>   --rm                         Remove INPUT file(s) after successful (de)compression.
+233c233
+<   --rm                          Remove INPUT file(s) after successful (de)compression.
+---
+>   --rm                         Remove INPUT file(s) after successful (de)compression.
+262c262
+<   --rm                          Remove INPUT file(s) after successful (de)compression.
+---
+>   --rm                         Remove INPUT file(s) after successful (de)compression.
+374c374
+<   --rm                          Remove INPUT file(s) after successful (de)compression.
+---
+>   --rm                         Remove INPUT file(s) after successful (de)compression.
+484c484
+<   --rm                          Remove INPUT file(s) after successful (de)compression.
+---
+>   --rm                         Remove INPUT file(s) after successful (de)compression.

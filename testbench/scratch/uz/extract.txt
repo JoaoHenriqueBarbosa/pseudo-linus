@@ -1,0 +1,39 @@
+rm -rf o; unzip -d o t1.zip; ls -lAR --time-style=+%s o; cat o/a.txt o/link
+rm -rf o; unzip -q -d o t1.zip; find o | sort
+rm -rf o; unzip -d o t1.zip a.txt big.txt; md5sum o/*
+unzip -p t1.zip a.txt sub/deep.txt
+unzip -c t1.zip a.txt sub/deep.txt
+unzip -p t1.zip big.txt | md5sum
+unzip -t t1.zip
+unzip -tq t1.zip
+unzip -tqq t1.zip
+unzip -t stored.zip
+unzip -t nox.zip
+unzip -t bz.zip
+unzip -p bz.zip big.txt | md5sum
+unzip -t fast.zip
+unzip -t best.zip
+unzip -t pre.zip
+unzip -p pre.zip a.txt
+unzip -t enc.zip
+unzip -P secret -t enc.zip
+unzip -P wrong -t enc.zip
+unzip -P secret -p enc.zip a.txt
+rm -rf o; unzip -d o nox.zip; ls -lA --time-style=+%s o
+rm -rf o; mkdir o; echo old > o/a.txt; unzip -d o stored.zip < /dev/null; cat o/a.txt
+rm -rf o; mkdir o; echo old > o/a.txt; unzip -o -d o stored.zip; cat o/a.txt
+rm -rf o; mkdir o; echo old > o/a.txt; unzip -n -d o stored.zip; cat o/a.txt
+rm -rf o; mkdir o; echo old > o/a.txt; echo y | unzip -d o stored.zip; cat o/a.txt
+rm -rf o; mkdir o; echo old > o/a.txt; echo n | unzip -d o stored.zip; cat o/a.txt
+rm -rf o; mkdir o; echo old > o/a.txt; printf 'r\nb.txt\n' | unzip -d o stored.zip; ls o
+rm -rf o; mkdir o; echo old > o/a.txt; printf 'x\nA\n' | unzip -d o stored.zip; cat o/a.txt
+rm -rf o; mkdir o; echo old > o/a.txt; unzip -B -o -d o stored.zip; ls o; cat o/a.txt~
+rm -rf o; unzip -j -d o t1.zip; ls -A o
+rm -rf o; unzip -d o names.zip; ls o | od -c | head
+unzip -a -p t1.zip a.txt
+unzip -aa -c t1.zip a.txt
+unzip -t trunc2.zip
+unzip trunc.zip
+unzip -d o empty.zip
+unzip -o -d o2 t1.zip nothere.txt
+unzip -o -d o3 t1.zip -x big.txt; ls o3

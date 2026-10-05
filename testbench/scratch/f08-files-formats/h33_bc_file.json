@@ -1,0 +1,4762 @@
+{
+  "key": "h33_bc_file",
+  "hypotheses": [],
+  "candidates": [
+    {
+      "name": "posixutils-rs bc @4073af047104",
+      "version": "git 4073af047104",
+      "role": "bc",
+      "category": "c",
+      "conformance": {
+        "candidate": "posixutils-rs bc @4073af047104",
+        "total": 118,
+        "strict_pass": 73,
+        "lenient_pass": 74,
+        "unsupported": 0,
+        "by_tag": {
+          "arith": [
+            26,
+            26,
+            32
+          ],
+          "base": [
+            16,
+            16,
+            20
+          ],
+          "compare": [
+            0,
+            0,
+            2
+          ],
+          "control": [
+            6,
+            6,
+            9
+          ],
+          "define": [
+            10,
+            10,
+            11
+          ],
+          "env": [
+            0,
+            0,
+            2
+          ],
+          "error": [
+            0,
+            1,
+            9
+          ],
+          "file": [
+            0,
+            1,
+            3
+          ],
+          "format": [
+            1,
+            1,
+            5
+          ],
+          "gnu-ext": [
+            0,
+            0,
+            11
+          ],
+          "last": [
+            0,
+            0,
+            1
+          ],
+          "mathlib": [
+            4,
+            4,
+            11
+          ],
+          "quit": [
+            5,
+            5,
+            6
+          ],
+          "scale": [
+            10,
+            10,
+            19
+          ],
+          "string": [
+            2,
+            2,
+            4
+          ],
+          "upstream": [
+            40,
+            40,
+            50
+          ],
+          "wrap": [
+            2,
+            2,
+            5
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "bc-leading-zero",
+            "tags": [
+              "format",
+              "scale"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \".33\\n.75\\n\" obtido \"0.33\\n0.75\\n\""
+            ]
+          },
+          {
+            "id": "bc-negative-frac",
+            "tags": [
+              "format",
+              "scale"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"-.33\\n-.5\\n\" obtido \"-0.33\\n-0.5\\n\""
+            ]
+          },
+          {
+            "id": "bc-pow",
+            "tags": [
+              "arith"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1024\\n0\\n.12500\\n\" obtido \"1024\\n0\\n0.12500\\n\""
+            ]
+          },
+          {
+            "id": "bc-pow-frac-exponent",
+            "tags": [
+              "error",
+              "arith"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n3\\n\" obtido \"3\\n\"",
+              "stderr: esperado \"Runtime warning (func=(main), adr=8): non-zero scale in exponent\\n\" obtido \"bc: runtime error (line 1): exponent has to be an integer\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-sqrt-negative",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"Runtime error (func=(main), adr=6): Square root of a negative number\\n\" obtido \"bc: runtime error (line 1): square root of negative number\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-obase-fraction",
+            "tags": [
+              "base",
+              "scale"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \".555555553\\n-A.8\\n\" obtido \"0.555555553\\n-A.8\\n\""
+            ]
+          },
+          {
+            "id": "bc-l-trig",
+            "tags": [
+              "mathlib"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \".84147098480789650665\\n1.00000000000000000000\\n.78539816339744830961\\n\" obtido \"0.84147098480789650665\\n1.00000000000000000000\\n0.78539816339744830961\\n\""
+            ]
+          },
+          {
+            "id": "bc-l-bessel",
+            "tags": [
+              "mathlib"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \".76519768655796655144\\n.49709410246427403801\\n\" obtido \"0.76519768655796655144\\n0.49709410246427403801\\n\""
+            ]
+          },
+          {
+            "id": "bc-l-scale-reset",
+            "tags": [
+              "mathlib",
+              "scale"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"20\\n.33\\n3\\n\" obtido \"20\\n0.33\\n3\\n\""
+            ]
+          },
+          {
+            "id": "bc-line-length-zero",
+            "tags": [
+              "wrap",
+              "env"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376\\n\" obtido \"20370359763344860862684456884093781610514683936659362506361404493543\\\\\\n81299763336706183397376\\n\""
+            ]
+          },
+          {
+            "id": "bc-line-length-20",
+            "tags": [
+              "wrap",
+              "env"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"126765060022822940\\\\\\n1496703205376\\n\" obtido \"1267650600228229401496703205376\\n\""
+            ]
+          },
+          {
+            "id": "bc-for-break",
+            "tags": [
+              "control",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0\\n1\\n2\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"bc: (standard_in):1:13: error: expected an expression, found ';'\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-continue",
+            "tags": [
+              "control",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0\\n2\\n4\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"bc: (standard_in):1:39: error: expected '}', found 'o'\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-if-else",
+            "tags": [
+              "control",
+              "string",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"big\\nnot huge\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"bc: (standard_in):1:13: error: expected a newline, found 'r'\\nbc: (standard_in):1:15: error: expected '}', found 'r'\\n\"",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-print",
+            "tags": [
+              "string",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"x=3\\na\\tb\\n0\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"bc: (standard_in):1:2: error: expected a newline, found 'r'\\nbc: (standard_in):1:2: error: expected a newline, found 'r'\\n\"... (180 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "73/118 estrito, 74/118 leniente; núcleo numérico 49/69. Só com o zero à esquerda corrigido: 92/118 estrito, núcleo numérico 67/69. Divergências: BC_LINE_LENGTH ignorado: 2; erro: exit ou recuperação diferente: 7; extensão GNU ausente ou diferente: 9; opção de CLI ausente (-q, -s, -w): 3; semântica: 4; só a mensagem de erro difere: 1; zero à esquerda (0.5 em vez de .5): 19. Motor: 5504 linhas em 7 arquivos (2609 de teste), 0 pontos de host, 0 unsafe, 8 panic!. bc POSIX estrito: imprime 0 antes do ponto, não tem as extensões GNU (print, else, !, &&, ||, last, #, halt, continue, void) nem -q/-s/-w. O motor (calc/bc_util) escreve num Write genérico e não toca o host; o binário depende de plib, que compila C.",
+      "metrics": {
+        "rev": "4073af047104a44442f44047c76c1167f43a8c67",
+        "strict_rate": 0.619,
+        "lenient_rate": 0.627,
+        "agent_style_strict_lenient_total": [
+          33,
+          34,
+          68
+        ],
+        "upstream_posixutils_suite_strict_lenient_total": [
+          40,
+          40,
+          50
+        ],
+        "numeric_core_strict_lenient_total": [
+          49,
+          49,
+          69
+        ],
+        "numeric_core_if_leading_zero_fixed": [
+          67,
+          49,
+          69
+        ],
+        "strict_if_leading_zero_fixed": 92,
+        "gnu_extensions_strict_lenient_total": [
+          0,
+          0,
+          11
+        ],
+        "error_cases_strict_lenient_total": [
+          0,
+          1,
+          9
+        ],
+        "divergence_classes": {
+          "BC_LINE_LENGTH ignorado": 2,
+          "erro: exit ou recuperação diferente": 7,
+          "extensão GNU ausente ou diferente": 9,
+          "opção de CLI ausente (-q, -s, -w)": 3,
+          "semântica": 4,
+          "só a mensagem de erro difere": 1,
+          "zero à esquerda (0.5 em vez de .5)": 19
+        },
+        "cases_with_rust_panic": 0,
+        "package_depscan": {
+          "package": "posixutils-calc",
+          "own_category": "b",
+          "tree_category": "c",
+          "c_deps": [
+            "plib 0.9.0"
+          ],
+          "tree_deps": 42,
+          "host_touching_deps": {
+            "bigdecimal 0.4.10": 4,
+            "clap_builder 4.6.7": 8,
+            "clap_derive 4.6.7": 2,
+            "clap_lex 1.1.1": 1,
+            "errno 0.3.14": 12,
+            "gettext-rs 0.9.0": 18,
+            "libc 0.2.189": 1,
+            "nix 0.28.0": 4298,
+            "plib 0.9.0": 293,
+            "rustyline 14.0.0": 68
+          }
+        },
+        "engine_package_category": null,
+        "engine_source": {
+          "files": 7,
+          "lines": 5504,
+          "test_lines": 2609,
+          "host_touch": 0,
+          "unsafe_sites": 0,
+          "panic_sites": 8,
+          "unwrap_sites": 152
+        },
+        "cli_source": {
+          "files": 1,
+          "lines": 240,
+          "test_lines": 0,
+          "host_touch": 10,
+          "unsafe_sites": 0,
+          "panic_sites": 0,
+          "unwrap_sites": 0
+        }
+      }
+    },
+    {
+      "name": "bc_clone_rs @d0e3f445bfa0",
+      "version": "git d0e3f445bfa0",
+      "role": "bc",
+      "category": "b",
+      "conformance": {
+        "candidate": "bc_clone_rs @d0e3f445bfa0",
+        "total": 118,
+        "strict_pass": 91,
+        "lenient_pass": 94,
+        "unsupported": 0,
+        "by_tag": {
+          "arith": [
+            29,
+            30,
+            32
+          ],
+          "base": [
+            18,
+            18,
+            20
+          ],
+          "compare": [
+            0,
+            0,
+            2
+          ],
+          "control": [
+            6,
+            6,
+            9
+          ],
+          "define": [
+            10,
+            10,
+            11
+          ],
+          "env": [
+            0,
+            0,
+            2
+          ],
+          "error": [
+            0,
+            3,
+            9
+          ],
+          "file": [
+            1,
+            2,
+            3
+          ],
+          "format": [
+            4,
+            4,
+            5
+          ],
+          "gnu-ext": [
+            0,
+            0,
+            11
+          ],
+          "last": [
+            0,
+            0,
+            1
+          ],
+          "mathlib": [
+            11,
+            11,
+            11
+          ],
+          "quit": [
+            5,
+            5,
+            6
+          ],
+          "scale": [
+            19,
+            19,
+            19
+          ],
+          "string": [
+            2,
+            2,
+            4
+          ],
+          "upstream": [
+            47,
+            47,
+            50
+          ],
+          "wrap": [
+            3,
+            3,
+            5
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "bc-pow-frac-exponent",
+            "tags": [
+              "error",
+              "arith"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"Runtime warning (func=(main), adr=8): non-zero scale in exponent\\n\" obtido \"\""
+            ]
+          },
+          {
+            "id": "bc-sqrt-negative",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"Runtime error (func=(main), adr=6): Square root of a negative number\\n\" obtido \"\\nthread 'main' (1614449) panicked at crates/bc_core/src/math.rs:209:13:\\nsquare root of negative number\\nnote: run with `R\"... (245 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-line-length-zero",
+            "tags": [
+              "wrap",
+              "env"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376\\n\" obtido \"20370359763344860862684456884093781610514683936659362506361404493543\\\\\\n81299763336706183397376\\n\""
+            ]
+          },
+          {
+            "id": "bc-line-length-20",
+            "tags": [
+              "wrap",
+              "env"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"126765060022822940\\\\\\n1496703205376\\n\" obtido \"1267650600228229401496703205376\\n\""
+            ]
+          },
+          {
+            "id": "bc-for-break",
+            "tags": [
+              "control",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0\\n1\\n2\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"\\nthread 'main' (1614643) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected named expressi\"... (255 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-continue",
+            "tags": [
+              "control",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"0\\n2\\n4\\n\" obtido \"0\\n0\\n1\\n2\\n0\\n3\\n4\\n\""
+            ]
+          },
+          {
+            "id": "bc-if-else",
+            "tags": [
+              "control",
+              "string",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"big\\nnot huge\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"\\nthread 'main' (1614656) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected Eof, got Strin\"... (406 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-print",
+            "tags": [
+              "string",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"x=3\\na\\tb\\n0\\n\" obtido \"\"",
+              "stderr: esperado \"\" obtido \"\\nthread 'main' (1614663) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected Eof, got Strin\"... (561 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-last-dot",
+            "tags": [
+              "last",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"10\\n20\\n21\\n\" obtido \"10\\n0\\n\"",
+              "stderr: esperado \"\" obtido \"\\nthread 'main' (1614674) panicked at crates/bc_core/src/parser.rs:87:9:\\nLexical error on line 1: unexpected character '.\"... (239 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-compare",
+            "tags": [
+              "compare",
+              "gnu-ext"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n1\\n0\\n1\\n0\\n1\\n\" obtido \"1\\n1\\n0\\n\"",
+              "stderr: esperado \"\" obtido \"\\nthread 'main' (1614679) panicked at crates/bc_core/src/parser.rs:87:9:\\nLexical error on line 1: unexpected character '!\"... (561 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-relational-assign",
+            "tags": [
+              "compare"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"1\\n\" obtido \"0\\n\"",
+              "stderr: esperado \"\" obtido \"\\nthread 'main' (1614684) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected Rparen, got Re\"... (241 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-div-zero",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"Runtime error (func=(main), adr=3): Divide by zero\\n\" obtido \"\\nthread 'main' (1614690) panicked at crates/bc_core/src/math.rs:124:13:\\ndivision by zero\\nnote: run with `RUST_BACKTRACE=\"... (217 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-mod-zero",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"Runtime error (func=(main), adr=5): Modulo by zero\\n\" obtido \"\\nthread 'main' (1614696) panicked at crates/bc_core/src/math.rs:124:13:\\ndivision by zero\\nnote: run with `RUST_BACKTRACE=\"... (217 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-syntax-error",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": false,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stderr: esperado \"(standard_in) 1: syntax error\\n\" obtido \"\\nthread 'main' (1614703) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected named expressi\"... (251 bytes)",
+              "exit: esperado Some(0)/None obtido Some(1)/None"
+            ]
+          },
+          {
+            "id": "bc-uppercase-variable",
+            "tags": [
+              "error"
+            ],
+            "stdout_ok": true,
+            "stderr_ok": false,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": true,
+            "detail": [
+              "stderr: esperado \"(standard_in) 1: syntax error\\n\" obtido \"\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "91/118 estrito, 94/118 leniente; núcleo numérico 65/69. Divergências: BC_LINE_LENGTH ignorado: 2; erro: exit ou recuperação diferente: 5; extensão GNU ausente ou diferente: 9; opção de CLI ausente (-q, -s, -w): 3; semântica: 5; só a mensagem de erro difere: 3. 13 casos terminam em panic do Rust no stderr. Motor: 4674 linhas em 4 arquivos (2039 de teste), 0 pontos de host, 0 unsafe, 14 panic!. Motor em pacote separado (bc_core, no_std + alloc, categoria a). Erros de sintaxe e de execução viram panic! dentro do bc_core (o CLI deles faz catch_unwind): num host com panic=abort isso derruba tudo, então o fork precisa trocar panic por Result.",
+      "metrics": {
+        "rev": "d0e3f445bfa0a412879b7600b094934beaad85a0",
+        "strict_rate": 0.771,
+        "lenient_rate": 0.797,
+        "agent_style_strict_lenient_total": [
+          44,
+          47,
+          68
+        ],
+        "upstream_posixutils_suite_strict_lenient_total": [
+          47,
+          47,
+          50
+        ],
+        "numeric_core_strict_lenient_total": [
+          65,
+          65,
+          69
+        ],
+        "numeric_core_if_leading_zero_fixed": [
+          65,
+          65,
+          69
+        ],
+        "strict_if_leading_zero_fixed": 91,
+        "gnu_extensions_strict_lenient_total": [
+          0,
+          0,
+          11
+        ],
+        "error_cases_strict_lenient_total": [
+          0,
+          3,
+          9
+        ],
+        "divergence_classes": {
+          "BC_LINE_LENGTH ignorado": 2,
+          "erro: exit ou recuperação diferente": 5,
+          "extensão GNU ausente ou diferente": 9,
+          "opção de CLI ausente (-q, -s, -w)": 3,
+          "semântica": 5,
+          "só a mensagem de erro difere": 3
+        },
+        "cases_with_rust_panic": 13,
+        "package_depscan": {
+          "package": "bc_clone",
+          "own_category": "b",
+          "tree_category": "b",
+          "c_deps": [],
+          "tree_deps": 15,
+          "host_touching_deps": {
+            "ctrlc 3.5.2": 12,
+            "dispatch2 0.3.1": 8,
+            "libc 0.2.186": 1,
+            "nix 0.31.3": 4743,
+            "objc2 0.6.4": 3
+          }
+        },
+        "engine_package_category": "a",
+        "engine_source": {
+          "files": 4,
+          "lines": 4674,
+          "test_lines": 2039,
+          "host_touch": 0,
+          "unsafe_sites": 0,
+          "panic_sites": 14,
+          "unwrap_sites": 21
+        },
+        "cli_source": {
+          "files": 1,
+          "lines": 1096,
+          "test_lines": 1026,
+          "host_touch": 10,
+          "unsafe_sites": 0,
+          "panic_sites": 0,
+          "unwrap_sites": 43
+        }
+      }
+    },
+    {
+      "name": "bc (crates.io)",
+      "version": "0.1.17",
+      "role": "bc",
+      "category": "b",
+      "fit": "does_not_fit",
+      "notes": "Não implementa bc: src/lib.rs monta um Command do executável `bc` do sistema (crate execute, `command.execute_input_output`, linhas 87 e 118) e devolve a saída dele. Num pseudo-linus sem bc no host não há o que chamar.",
+      "metrics": {
+        "evidence": "bc-0.1.17/src/lib.rs:41 use execute::{command_args, Execute}; :87 command.execute_input_output(...)"
+      }
+    },
+    {
+      "name": "bashkit builtin bc",
+      "version": "0.18.2",
+      "role": "bc",
+      "fit": "does_not_fit",
+      "notes": "Builtin de 707 linhas sobre f64 (BcState.variables: HashMap<String, f64>, src/builtins/bc.rs:98), quebra a entrada por linha e por ';' sem gramática: sem precisão arbitrária, sem define/auto, sem if/while/for, sem ibase/obase. Não é bc; não vale fork.",
+      "metrics": {
+        "evidence": "bashkit-0.18.2/src/builtins/bc.rs:96-98 struct BcState { variables: HashMap<String, f64> }"
+      }
+    },
+    {
+      "name": "pure-magic 0.4.1 + magic-db 0.6.0 (first_magic)",
+      "version": "0.4.1",
+      "role": "file",
+      "category": "c",
+      "conformance": {
+        "candidate": "pure-magic 0.4.1 + magic-db 0.6.0 (first_magic)",
+        "total": 89,
+        "strict_pass": 66,
+        "lenient_pass": 66,
+        "unsupported": 1,
+        "by_tag": {
+          "archive": [
+            3,
+            3,
+            5
+          ],
+          "binary": [
+            3,
+            3,
+            3
+          ],
+          "brief": [
+            5,
+            5,
+            6
+          ],
+          "compressed": [
+            13,
+            13,
+            15
+          ],
+          "describe": [
+            28,
+            28,
+            48
+          ],
+          "document": [
+            1,
+            1,
+            2
+          ],
+          "error": [
+            3,
+            3,
+            3
+          ],
+          "flags": [
+            3,
+            3,
+            4
+          ],
+          "image": [
+            8,
+            8,
+            8
+          ],
+          "mime": [
+            28,
+            28,
+            29
+          ],
+          "mime-charset": [
+            8,
+            8,
+            10
+          ],
+          "multi": [
+            4,
+            4,
+            4
+          ],
+          "script": [
+            3,
+            3,
+            6
+          ],
+          "source": [
+            1,
+            1,
+            2
+          ],
+          "special": [
+            18,
+            18,
+            18
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "structured": [
+            5,
+            5,
+            9
+          ],
+          "text": [
+            11,
+            11,
+            21
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "file-gzip-named",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"named.txt.gz: gzip compressed data, was \\\"named.txt\\\", last modified: Thu Jan 15 12:00:00 2026, from Unix, original size m\"... (135 bytes) obtido \"named.txt.gz: gzip compressed data, was \\\"named.txt\\\", last modified: 2026-01-15 12:00:00, from Unix, original size modulo\"... (130 bytes)"
+            ]
+          },
+          {
+            "id": "file-gzip-z",
+            "tags": [
+              "compressed",
+              "describe",
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "opção não suportada: -z",
+            "detail": [
+              "unsupported: opção não suportada: -z"
+            ]
+          },
+          {
+            "id": "file-zip",
+            "tags": [
+              "archive",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompresse\"... (147 bytes) obtido \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified 2026-01-15 12:00:00, uncompressed\"... (146 bytes)"
+            ]
+          },
+          {
+            "id": "file-zip-brief",
+            "tags": [
+              "archive",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompressed size \"... (140 bytes) obtido \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified 2026-01-15 12:00:00, uncompressed size 2\"... (139 bytes)"
+            ]
+          },
+          {
+            "id": "file-utf8",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"utf8.txt: Unicode text, UTF-8 text\\n\" obtido \"utf8.txt: UTF-8 text\\n\""
+            ]
+          },
+          {
+            "id": "file-crlf",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"crlf.txt: ASCII text, with CRLF line terminators\\n\" obtido \"crlf.txt: ASCII text\\n\""
+            ]
+          },
+          {
+            "id": "file-cr-only",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"cr.txt: ASCII text, with CR line terminators\\n\" obtido \"cr.txt: ASCII text\\n\""
+            ]
+          },
+          {
+            "id": "file-no-newline",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"nonl.txt: ASCII text, with no line terminators\\n\" obtido \"nonl.txt: ASCII text\\n\""
+            ]
+          },
+          {
+            "id": "file-long-lines",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"long.txt: ASCII text, with very long lines (361)\\n\" obtido \"long.txt: ASCII text\\n\""
+            ]
+          },
+          {
+            "id": "file-latin1",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"latin1.txt: ISO-8859 text\\n\" obtido \"latin1.txt: data\\n\""
+            ]
+          },
+          {
+            "id": "file-latin1-i",
+            "tags": [
+              "text",
+              "mime-charset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"latin1.txt: text/plain; charset=iso-8859-1\\n\" obtido \"latin1.txt: application/octet-stream; charset=iso-8859-1\\n\""
+            ]
+          },
+          {
+            "id": "file-utf8-bom",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"bom.txt: Unicode text, UTF-8 (with BOM) text\\n\" obtido \"bom.txt: UTF-8 text\\n\""
+            ]
+          },
+          {
+            "id": "file-utf16le-bom",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"utf16.txt: Unicode text, UTF-16, little-endian text\\n\" obtido \"utf16.txt: data\\n\""
+            ]
+          },
+          {
+            "id": "file-utf16le-bom-i",
+            "tags": [
+              "text",
+              "mime-charset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"utf16.txt: text/plain; charset=utf-16le\\n\" obtido \"utf16.txt: application/octet-stream; charset=utf-16le\\n\""
+            ]
+          },
+          {
+            "id": "file-script-bash",
+            "tags": [
+              "script",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"run.sh: Bourne-Again shell script, ASCII text executable\\n\" obtido \"run.sh: Bourne-Again shell script text executable\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "descrição 28/48 (só conteúdo de arquivo regular: 17/37), --mime-type 28/29, -i/--mime-encoding 8/10. Divergências: data no formato errado (2026-01-15 em vez de Thu Jan 15 ... 2026): 1; opção não suportada (-z): 1; regra de magic diferente: 3; texto: codificação, terminadores ou ', ASCII text': 18. Banco embutido no binário (magic_embed), sem ler o host. Texto: só ASCII/UTF-8/Unknown (TextEncoding), sem CRLF, linhas longas, ISO-8859 ou UTF-16, e escreve \"S text\" onde o libmagic escreve \"S, ASCII text\"; datas de gzip e zip saem em ISO em vez do formato do ctime. depscan acha C na árvore (blake3 1.8.7, iana-time-zone-haiku 0.1.2, wasm-bindgen-shared 0.2.129); nenhuma linkada no binário Linux.",
+      "metrics": {
+        "strict_rate": 0.742,
+        "describe_strict_lenient_total": [
+          28,
+          28,
+          48
+        ],
+        "describe_content_only_strict_lenient_total": [
+          17,
+          17,
+          37
+        ],
+        "mime_type_strict_lenient_total": [
+          28,
+          28,
+          29
+        ],
+        "mime_charset_strict_lenient_total": [
+          8,
+          8,
+          10
+        ],
+        "divergence_classes": {
+          "data no formato errado (2026-01-15 em vez de Thu Jan 15 ... 2026)": 1,
+          "opção não suportada (-z)": 1,
+          "regra de magic diferente": 3,
+          "texto: codificação, terminadores ou ', ASCII text'": 18
+        },
+        "our_ascmagic_layer": false,
+        "runs": 3,
+        "nondeterministic_cases": [],
+        "c_deps": [
+          "blake3 1.8.7",
+          "iana-time-zone-haiku 0.1.2",
+          "wasm-bindgen-shared 0.2.129"
+        ],
+        "c_deps_linked_on_linux": [],
+        "c_deps_not_linked_reason": [
+          {
+            "crate": "blake3",
+            "why": "só no proc-macro magic-embed (via fs-walk), em tempo de build; compila assembly SIMD com cc mas não vai pro binário"
+          },
+          {
+            "crate": "iana-time-zone-haiku",
+            "why": "só no alvo Haiku"
+          },
+          {
+            "crate": "wasm-bindgen-shared",
+            "why": "só no alvo wasm32"
+          }
+        ],
+        "depscan": {
+          "pure-magic": {
+            "package": "pure-magic",
+            "version": "0.4.1",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 4,
+            "own_unsafe": 0,
+            "tree_deps": 82,
+            "tree_unsafe": 21386,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "chrono 0.4.45": 6,
+              "csv 1.4.0": 2,
+              "errno 0.3.14": 12,
+              "filetime 0.2.29": 39,
+              "hashbrown 0.17.1": 11,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "pest_generator 2.9.2": 3,
+              "rustix 1.1.5": 47,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "tar 0.4.46": 46,
+              "virtue 0.0.18": 4,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7,
+              "xattr 1.6.1": 33,
+              "zlib-rs 0.6.8": 3
+            }
+          },
+          "magic-db": {
+            "package": "magic-db",
+            "version": "0.6.0",
+            "own_category": "a",
+            "tree_category": "c",
+            "c_deps": [
+              "blake3 1.8.7",
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 89,
+            "tree_unsafe": 21715,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "blake3 1.8.7": 7,
+              "chrono 0.4.45": 6,
+              "cpufeatures 0.3.1": 24,
+              "csv 1.4.0": 2,
+              "errno 0.3.14": 12,
+              "filetime 0.2.29": 39,
+              "fs-walk 0.2.2": 1,
+              "hashbrown 0.17.1": 11,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "pest_generator 2.9.2": 3,
+              "pure-magic 0.4.1": 4,
+              "rustix 1.1.5": 47,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "tar 0.4.46": 46,
+              "virtue 0.0.18": 4,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7,
+              "xattr 1.6.1": 33,
+              "zlib-rs 0.6.8": 3
+            }
+          }
+        },
+        "libmagic_rs_magdir_load_error": null
+      }
+    },
+    {
+      "name": "pure-magic 0.4.1 + magic-db 0.6.0 (best_magic)",
+      "version": "0.4.1",
+      "role": "file",
+      "category": "c",
+      "conformance": {
+        "candidate": "pure-magic 0.4.1 + magic-db 0.6.0 (best_magic)",
+        "total": 89,
+        "strict_pass": 66,
+        "lenient_pass": 66,
+        "unsupported": 1,
+        "by_tag": {
+          "archive": [
+            3,
+            3,
+            5
+          ],
+          "binary": [
+            3,
+            3,
+            3
+          ],
+          "brief": [
+            5,
+            5,
+            6
+          ],
+          "compressed": [
+            13,
+            13,
+            15
+          ],
+          "describe": [
+            28,
+            28,
+            48
+          ],
+          "document": [
+            1,
+            1,
+            2
+          ],
+          "error": [
+            3,
+            3,
+            3
+          ],
+          "flags": [
+            3,
+            3,
+            4
+          ],
+          "image": [
+            8,
+            8,
+            8
+          ],
+          "mime": [
+            28,
+            28,
+            29
+          ],
+          "mime-charset": [
+            8,
+            8,
+            10
+          ],
+          "multi": [
+            4,
+            4,
+            4
+          ],
+          "script": [
+            3,
+            3,
+            6
+          ],
+          "source": [
+            1,
+            1,
+            2
+          ],
+          "special": [
+            18,
+            18,
+            18
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "structured": [
+            5,
+            5,
+            9
+          ],
+          "text": [
+            11,
+            11,
+            21
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "file-gzip-named",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"named.txt.gz: gzip compressed data, was \\\"named.txt\\\", last modified: Thu Jan 15 12:00:00 2026, from Unix, original size m\"... (135 bytes) obtido \"named.txt.gz: gzip compressed data, was \\\"named.txt\\\", last modified: 2026-01-15 12:00:00, from Unix, original size modulo\"... (130 bytes)"
+            ]
+          },
+          {
+            "id": "file-gzip-z",
+            "tags": [
+              "compressed",
+              "describe",
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "opção não suportada: -z",
+            "detail": [
+              "unsupported: opção não suportada: -z"
+            ]
+          },
+          {
+            "id": "file-zip",
+            "tags": [
+              "archive",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompresse\"... (147 bytes) obtido \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified 2026-01-15 12:00:00, uncompressed\"... (146 bytes)"
+            ]
+          },
+          {
+            "id": "file-zip-brief",
+            "tags": [
+              "archive",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompressed size \"... (140 bytes) obtido \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified 2026-01-15 12:00:00, uncompressed size 2\"... (139 bytes)"
+            ]
+          },
+          {
+            "id": "file-utf8",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"utf8.txt: Unicode text, UTF-8 text\\n\" obtido \"utf8.txt: UTF-8 text\\n\""
+            ]
+          },
+          {
+            "id": "file-crlf",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"crlf.txt: ASCII text, with CRLF line terminators\\n\" obtido \"crlf.txt: ASCII text\\n\""
+            ]
+          },
+          {
+            "id": "file-cr-only",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"cr.txt: ASCII text, with CR line terminators\\n\" obtido \"cr.txt: ASCII text\\n\""
+            ]
+          },
+          {
+            "id": "file-no-newline",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"nonl.txt: ASCII text, with no line terminators\\n\" obtido \"nonl.txt: ASCII text\\n\""
+            ]
+          },
+          {
+            "id": "file-long-lines",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"long.txt: ASCII text, with very long lines (361)\\n\" obtido \"long.txt: ASCII text\\n\""
+            ]
+          },
+          {
+            "id": "file-latin1",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"latin1.txt: ISO-8859 text\\n\" obtido \"latin1.txt: data\\n\""
+            ]
+          },
+          {
+            "id": "file-latin1-i",
+            "tags": [
+              "text",
+              "mime-charset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"latin1.txt: text/plain; charset=iso-8859-1\\n\" obtido \"latin1.txt: application/octet-stream; charset=iso-8859-1\\n\""
+            ]
+          },
+          {
+            "id": "file-utf8-bom",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"bom.txt: Unicode text, UTF-8 (with BOM) text\\n\" obtido \"bom.txt: UTF-8 text\\n\""
+            ]
+          },
+          {
+            "id": "file-utf16le-bom",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"utf16.txt: Unicode text, UTF-16, little-endian text\\n\" obtido \"utf16.txt: data\\n\""
+            ]
+          },
+          {
+            "id": "file-utf16le-bom-i",
+            "tags": [
+              "text",
+              "mime-charset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"utf16.txt: text/plain; charset=utf-16le\\n\" obtido \"utf16.txt: application/octet-stream; charset=utf-16le\\n\""
+            ]
+          },
+          {
+            "id": "file-script-bash",
+            "tags": [
+              "script",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"run.sh: Bourne-Again shell script, ASCII text executable\\n\" obtido \"run.sh: Bourne-Again shell script text executable\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "descrição 28/48 (só conteúdo de arquivo regular: 17/37), --mime-type 28/29, -i/--mime-encoding 8/10. Divergências: data no formato errado (2026-01-15 em vez de Thu Jan 15 ... 2026): 1; opção não suportada (-z): 1; regra de magic diferente: 3; texto: codificação, terminadores ou ', ASCII text': 18. Banco embutido no binário (magic_embed), sem ler o host. Texto: só ASCII/UTF-8/Unknown (TextEncoding), sem CRLF, linhas longas, ISO-8859 ou UTF-16, e escreve \"S text\" onde o libmagic escreve \"S, ASCII text\"; datas de gzip e zip saem em ISO em vez do formato do ctime. depscan acha C na árvore (blake3 1.8.7, iana-time-zone-haiku 0.1.2, wasm-bindgen-shared 0.2.129); nenhuma linkada no binário Linux.",
+      "metrics": {
+        "strict_rate": 0.742,
+        "describe_strict_lenient_total": [
+          28,
+          28,
+          48
+        ],
+        "describe_content_only_strict_lenient_total": [
+          17,
+          17,
+          37
+        ],
+        "mime_type_strict_lenient_total": [
+          28,
+          28,
+          29
+        ],
+        "mime_charset_strict_lenient_total": [
+          8,
+          8,
+          10
+        ],
+        "divergence_classes": {
+          "data no formato errado (2026-01-15 em vez de Thu Jan 15 ... 2026)": 1,
+          "opção não suportada (-z)": 1,
+          "regra de magic diferente": 3,
+          "texto: codificação, terminadores ou ', ASCII text'": 18
+        },
+        "our_ascmagic_layer": false,
+        "runs": 3,
+        "nondeterministic_cases": [],
+        "c_deps": [
+          "blake3 1.8.7",
+          "iana-time-zone-haiku 0.1.2",
+          "wasm-bindgen-shared 0.2.129"
+        ],
+        "c_deps_linked_on_linux": [],
+        "c_deps_not_linked_reason": [
+          {
+            "crate": "blake3",
+            "why": "só no proc-macro magic-embed (via fs-walk), em tempo de build; compila assembly SIMD com cc mas não vai pro binário"
+          },
+          {
+            "crate": "iana-time-zone-haiku",
+            "why": "só no alvo Haiku"
+          },
+          {
+            "crate": "wasm-bindgen-shared",
+            "why": "só no alvo wasm32"
+          }
+        ],
+        "depscan": {
+          "pure-magic": {
+            "package": "pure-magic",
+            "version": "0.4.1",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 4,
+            "own_unsafe": 0,
+            "tree_deps": 82,
+            "tree_unsafe": 21386,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "chrono 0.4.45": 6,
+              "csv 1.4.0": 2,
+              "errno 0.3.14": 12,
+              "filetime 0.2.29": 39,
+              "hashbrown 0.17.1": 11,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "pest_generator 2.9.2": 3,
+              "rustix 1.1.5": 47,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "tar 0.4.46": 46,
+              "virtue 0.0.18": 4,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7,
+              "xattr 1.6.1": 33,
+              "zlib-rs 0.6.8": 3
+            }
+          },
+          "magic-db": {
+            "package": "magic-db",
+            "version": "0.6.0",
+            "own_category": "a",
+            "tree_category": "c",
+            "c_deps": [
+              "blake3 1.8.7",
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 89,
+            "tree_unsafe": 21715,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "blake3 1.8.7": 7,
+              "chrono 0.4.45": 6,
+              "cpufeatures 0.3.1": 24,
+              "csv 1.4.0": 2,
+              "errno 0.3.14": 12,
+              "filetime 0.2.29": 39,
+              "fs-walk 0.2.2": 1,
+              "hashbrown 0.17.1": 11,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "pest_generator 2.9.2": 3,
+              "pure-magic 0.4.1": 4,
+              "rustix 1.1.5": 47,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "tar 0.4.46": 46,
+              "virtue 0.0.18": 4,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7,
+              "xattr 1.6.1": 33,
+              "zlib-rs 0.6.8": 3
+            }
+          }
+        },
+        "libmagic_rs_magdir_load_error": null
+      }
+    },
+    {
+      "name": "pure-magic 0.4.1 + magic-db 0.6.0 (first_magic) + ascmagic nosso",
+      "version": "0.4.1",
+      "role": "file",
+      "category": "c",
+      "conformance": {
+        "candidate": "pure-magic 0.4.1 + magic-db 0.6.0 (first_magic) + ascmagic nosso",
+        "total": 89,
+        "strict_pass": 82,
+        "lenient_pass": 82,
+        "unsupported": 1,
+        "by_tag": {
+          "archive": [
+            3,
+            3,
+            5
+          ],
+          "binary": [
+            3,
+            3,
+            3
+          ],
+          "brief": [
+            5,
+            5,
+            6
+          ],
+          "compressed": [
+            13,
+            13,
+            15
+          ],
+          "describe": [
+            42,
+            42,
+            48
+          ],
+          "document": [
+            1,
+            1,
+            2
+          ],
+          "error": [
+            3,
+            3,
+            3
+          ],
+          "flags": [
+            3,
+            3,
+            4
+          ],
+          "image": [
+            8,
+            8,
+            8
+          ],
+          "mime": [
+            28,
+            28,
+            29
+          ],
+          "mime-charset": [
+            10,
+            10,
+            10
+          ],
+          "multi": [
+            4,
+            4,
+            4
+          ],
+          "script": [
+            6,
+            6,
+            6
+          ],
+          "source": [
+            2,
+            2,
+            2
+          ],
+          "special": [
+            18,
+            18,
+            18
+          ],
+          "stdin": [
+            2,
+            2,
+            2
+          ],
+          "structured": [
+            7,
+            7,
+            9
+          ],
+          "text": [
+            21,
+            21,
+            21
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "file-gzip-named",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"named.txt.gz: gzip compressed data, was \\\"named.txt\\\", last modified: Thu Jan 15 12:00:00 2026, from Unix, original size m\"... (135 bytes) obtido \"named.txt.gz: gzip compressed data, was \\\"named.txt\\\", last modified: 2026-01-15 12:00:00, from Unix, original size modulo\"... (130 bytes)"
+            ]
+          },
+          {
+            "id": "file-gzip-z",
+            "tags": [
+              "compressed",
+              "describe",
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "opção não suportada: -z",
+            "detail": [
+              "unsupported: opção não suportada: -z"
+            ]
+          },
+          {
+            "id": "file-zip",
+            "tags": [
+              "archive",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompresse\"... (147 bytes) obtido \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified 2026-01-15 12:00:00, uncompressed\"... (146 bytes)"
+            ]
+          },
+          {
+            "id": "file-zip-brief",
+            "tags": [
+              "archive",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompressed size \"... (140 bytes) obtido \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified 2026-01-15 12:00:00, uncompressed size 2\"... (139 bytes)"
+            ]
+          },
+          {
+            "id": "file-csv",
+            "tags": [
+              "structured",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"people.csv: ASCII text\\n\" obtido \"people.csv: CSV ASCII text\\n\""
+            ]
+          },
+          {
+            "id": "file-csv-mime",
+            "tags": [
+              "structured",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"people.csv: text/plain\\n\" obtido \"people.csv: text/csv\\n\""
+            ]
+          },
+          {
+            "id": "file-pdf",
+            "tags": [
+              "document",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"doc.pdf: PDF document, version 1.4, 1 page(s)\\n\" obtido \"doc.pdf: PDF document, version 1.4\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "fits_with_work",
+      "notes": "descrição 42/48 (só conteúdo de arquivo regular: 31/37), --mime-type 28/29, -i/--mime-encoding 10/10. Divergências: data no formato errado (2026-01-15 em vez de Thu Jan 15 ... 2026): 1; opção não suportada (-z): 1; regra de magic diferente: 3; texto: codificação, terminadores ou ', ASCII text': 2. Com a camada ascmagic nossa (~150 linhas: classe de codificação, terminadores, linhas longas, reescrita de \"S text\") por cima do motor. Sobra: data no formato ISO no gzip e no zip (bug do pure-magic, fork ou patch), -z não implementado no front-end, e CSV/PDF que mudaram nas regras de 2026. depscan acha C na árvore (blake3 1.8.7, iana-time-zone-haiku 0.1.2, wasm-bindgen-shared 0.2.129); nenhuma linkada no binário Linux.",
+      "metrics": {
+        "strict_rate": 0.921,
+        "describe_strict_lenient_total": [
+          42,
+          42,
+          48
+        ],
+        "describe_content_only_strict_lenient_total": [
+          31,
+          31,
+          37
+        ],
+        "mime_type_strict_lenient_total": [
+          28,
+          28,
+          29
+        ],
+        "mime_charset_strict_lenient_total": [
+          10,
+          10,
+          10
+        ],
+        "divergence_classes": {
+          "data no formato errado (2026-01-15 em vez de Thu Jan 15 ... 2026)": 1,
+          "opção não suportada (-z)": 1,
+          "regra de magic diferente": 3,
+          "texto: codificação, terminadores ou ', ASCII text'": 2
+        },
+        "our_ascmagic_layer": true,
+        "runs": 3,
+        "nondeterministic_cases": [],
+        "c_deps": [
+          "blake3 1.8.7",
+          "iana-time-zone-haiku 0.1.2",
+          "wasm-bindgen-shared 0.2.129"
+        ],
+        "c_deps_linked_on_linux": [],
+        "c_deps_not_linked_reason": [
+          {
+            "crate": "blake3",
+            "why": "só no proc-macro magic-embed (via fs-walk), em tempo de build; compila assembly SIMD com cc mas não vai pro binário"
+          },
+          {
+            "crate": "iana-time-zone-haiku",
+            "why": "só no alvo Haiku"
+          },
+          {
+            "crate": "wasm-bindgen-shared",
+            "why": "só no alvo wasm32"
+          }
+        ],
+        "depscan": {
+          "pure-magic": {
+            "package": "pure-magic",
+            "version": "0.4.1",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 4,
+            "own_unsafe": 0,
+            "tree_deps": 82,
+            "tree_unsafe": 21386,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "chrono 0.4.45": 6,
+              "csv 1.4.0": 2,
+              "errno 0.3.14": 12,
+              "filetime 0.2.29": 39,
+              "hashbrown 0.17.1": 11,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "pest_generator 2.9.2": 3,
+              "rustix 1.1.5": 47,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "tar 0.4.46": 46,
+              "virtue 0.0.18": 4,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7,
+              "xattr 1.6.1": 33,
+              "zlib-rs 0.6.8": 3
+            }
+          },
+          "magic-db": {
+            "package": "magic-db",
+            "version": "0.6.0",
+            "own_category": "a",
+            "tree_category": "c",
+            "c_deps": [
+              "blake3 1.8.7",
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 0,
+            "own_unsafe": 0,
+            "tree_deps": 89,
+            "tree_unsafe": 21715,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "blake3 1.8.7": 7,
+              "chrono 0.4.45": 6,
+              "cpufeatures 0.3.1": 24,
+              "csv 1.4.0": 2,
+              "errno 0.3.14": 12,
+              "filetime 0.2.29": 39,
+              "fs-walk 0.2.2": 1,
+              "hashbrown 0.17.1": 11,
+              "iana-time-zone 0.1.65": 9,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "pest_generator 2.9.2": 3,
+              "pure-magic 0.4.1": 4,
+              "rustix 1.1.5": 47,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "tar 0.4.46": 46,
+              "virtue 0.0.18": 4,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7,
+              "xattr 1.6.1": 33,
+              "zlib-rs 0.6.8": 3
+            }
+          }
+        },
+        "libmagic_rs_magdir_load_error": null
+      }
+    },
+    {
+      "name": "libmagic-rs 0.12.6 (regras embutidas)",
+      "version": "0.12.6",
+      "role": "file",
+      "category": "c",
+      "conformance": {
+        "candidate": "libmagic-rs 0.12.6 (regras embutidas)",
+        "total": 89,
+        "strict_pass": 38,
+        "lenient_pass": 38,
+        "unsupported": 1,
+        "by_tag": {
+          "archive": [
+            3,
+            3,
+            5
+          ],
+          "binary": [
+            1,
+            1,
+            3
+          ],
+          "brief": [
+            2,
+            2,
+            6
+          ],
+          "compressed": [
+            2,
+            2,
+            15
+          ],
+          "describe": [
+            15,
+            15,
+            48
+          ],
+          "document": [
+            1,
+            1,
+            2
+          ],
+          "error": [
+            3,
+            3,
+            3
+          ],
+          "flags": [
+            3,
+            3,
+            4
+          ],
+          "image": [
+            4,
+            4,
+            8
+          ],
+          "mime": [
+            15,
+            15,
+            29
+          ],
+          "mime-charset": [
+            6,
+            6,
+            10
+          ],
+          "multi": [
+            1,
+            1,
+            4
+          ],
+          "script": [
+            0,
+            0,
+            6
+          ],
+          "source": [
+            0,
+            0,
+            2
+          ],
+          "special": [
+            14,
+            14,
+            18
+          ],
+          "stdin": [
+            1,
+            1,
+            2
+          ],
+          "structured": [
+            2,
+            2,
+            9
+          ],
+          "text": [
+            11,
+            11,
+            21
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "file-png",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"img.png: PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\\n\" obtido \"img.png: PNG image data\\n\""
+            ]
+          },
+          {
+            "id": "file-png-brief",
+            "tags": [
+              "image",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\\n\" obtido \"PNG image data\\n\""
+            ]
+          },
+          {
+            "id": "file-jpeg",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"photo.jpg: JPEG image data, JFIF standard 1.01, aspect ratio, density 1x1, segment length 16, baseline, precision 8, 8x8\"... (135 bytes) obtido \"photo.jpg: JPEG image data\\n\""
+            ]
+          },
+          {
+            "id": "file-gif",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"anim.gif: GIF image data, version 87a, 2 x 2\\n\" obtido \"anim.gif: GIF image data\\n\""
+            ]
+          },
+          {
+            "id": "file-random-mime",
+            "tags": [
+              "binary",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"random.bin: application/octet-stream\\n\" obtido \"random.bin: (sem MIME)\\n\""
+            ]
+          },
+          {
+            "id": "file-random-i",
+            "tags": [
+              "binary",
+              "mime-charset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"random.bin: application/octet-stream; charset=binary\\n\" obtido \"random.bin: (sem MIME); charset=binary\\n\""
+            ]
+          },
+          {
+            "id": "file-gzip",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.gz: gzip compressed data, from Unix, original size modulo 2^32 240\\n\" obtido \"a.gz: gzip compressed data\\n\""
+            ]
+          },
+          {
+            "id": "file-gzip-brief",
+            "tags": [
+              "compressed",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"gzip compressed data, from Unix, original size modulo 2^32 240\\n\" obtido \"gzip compressed data\\n\""
+            ]
+          },
+          {
+            "id": "file-gzip-named",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"named.txt.gz: gzip compressed data, was \\\"named.txt\\\", last modified: Thu Jan 15 12:00:00 2026, from Unix, original size m\"... (135 bytes) obtido \"named.txt.gz: gzip compressed data\\n\""
+            ]
+          },
+          {
+            "id": "file-gzip-z",
+            "tags": [
+              "compressed",
+              "describe",
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "opção não suportada: -z",
+            "detail": [
+              "unsupported: opção não suportada: -z"
+            ]
+          },
+          {
+            "id": "file-bzip2",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.bz2: bzip2 compressed data, block size = 900k\\n\" obtido \"a.bz2: data\\n\""
+            ]
+          },
+          {
+            "id": "file-bzip2-mime",
+            "tags": [
+              "compressed",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.bz2: application/x-bzip2\\n\" obtido \"a.bz2: (sem MIME)\\n\""
+            ]
+          },
+          {
+            "id": "file-xz",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.xz: XZ compressed data, checksum CRC64\\n\" obtido \"a.xz: data\\n\""
+            ]
+          },
+          {
+            "id": "file-xz-mime",
+            "tags": [
+              "compressed",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.xz: application/x-xz\\n\" obtido \"a.xz: (sem MIME)\\n\""
+            ]
+          },
+          {
+            "id": "file-zstd",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zst: Zstandard compressed data (v0.8+), Dictionary ID: None\\n\" obtido \"a.zst: data\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "descrição 15/48 (só conteúdo de arquivo regular: 6/37), --mime-type 15/29, -i/--mime-encoding 6/10. Divergências: motor sem MIME: 8; opção não suportada (-z): 1; regra de magic diferente: 18; texto: codificação, terminadores ou ', ASCII text': 24. Regras embutidas cobrem 10 formatos (ELF, PE, ZIP, TAR, GZIP, JPEG, PNG, GIF, BMP, PDF). depscan acha C na árvore (iana-time-zone-haiku 0.1.2, wasm-bindgen-shared 0.2.129); nenhuma linkada no binário Linux.",
+      "metrics": {
+        "strict_rate": 0.427,
+        "describe_strict_lenient_total": [
+          15,
+          15,
+          48
+        ],
+        "describe_content_only_strict_lenient_total": [
+          6,
+          6,
+          37
+        ],
+        "mime_type_strict_lenient_total": [
+          15,
+          15,
+          29
+        ],
+        "mime_charset_strict_lenient_total": [
+          6,
+          6,
+          10
+        ],
+        "divergence_classes": {
+          "motor sem MIME": 8,
+          "opção não suportada (-z)": 1,
+          "regra de magic diferente": 18,
+          "texto: codificação, terminadores ou ', ASCII text'": 24
+        },
+        "our_ascmagic_layer": false,
+        "runs": 3,
+        "nondeterministic_cases": [],
+        "c_deps": [
+          "iana-time-zone-haiku 0.1.2",
+          "wasm-bindgen-shared 0.2.129"
+        ],
+        "c_deps_linked_on_linux": [],
+        "c_deps_not_linked_reason": [
+          {
+            "crate": "iana-time-zone-haiku",
+            "why": "só no alvo Haiku"
+          },
+          {
+            "crate": "wasm-bindgen-shared",
+            "why": "só no alvo wasm32"
+          }
+        ],
+        "depscan": {
+          "libmagic-rs": {
+            "package": "libmagic-rs",
+            "version": "0.12.6",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 39,
+            "own_unsafe": 1,
+            "tree_deps": 78,
+            "tree_unsafe": 14352,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "anstream 1.0.0": 11,
+              "anstyle-query 1.1.5": 12,
+              "anstyle-wincon 3.0.11": 6,
+              "chrono 0.4.45": 6,
+              "clap-stdin 0.8.1": 4,
+              "clap_builder 4.6.7": 8,
+              "clap_complete 4.6.11": 20,
+              "clap_derive 4.6.7": 2,
+              "clap_lex 1.1.1": 1,
+              "ctrlc 3.5.2": 12,
+              "dispatch2 0.3.1": 8,
+              "env_filter 2.0.0": 2,
+              "env_logger 0.11.11": 3,
+              "hashbrown 0.17.1": 11,
+              "iana-time-zone 0.1.65": 9,
+              "is_terminal_polyfill 1.70.2": 1,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "nix 0.31.3": 4743,
+              "nom 8.0.0": 1,
+              "objc2 0.6.4": 3,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          }
+        },
+        "libmagic_rs_magdir_load_error": null
+      }
+    },
+    {
+      "name": "libmagic-rs 0.12.6 (magdir do magic-db)",
+      "version": "0.12.6",
+      "role": "file",
+      "category": "c",
+      "conformance": {
+        "candidate": "libmagic-rs 0.12.6 (magdir do magic-db)",
+        "total": 89,
+        "strict_pass": 50,
+        "lenient_pass": 50,
+        "unsupported": 1,
+        "by_tag": {
+          "archive": [
+            1,
+            1,
+            5
+          ],
+          "binary": [
+            1,
+            1,
+            3
+          ],
+          "brief": [
+            5,
+            5,
+            6
+          ],
+          "compressed": [
+            11,
+            11,
+            15
+          ],
+          "describe": [
+            25,
+            25,
+            48
+          ],
+          "document": [
+            1,
+            1,
+            2
+          ],
+          "error": [
+            3,
+            3,
+            3
+          ],
+          "flags": [
+            3,
+            3,
+            4
+          ],
+          "image": [
+            7,
+            7,
+            8
+          ],
+          "mime": [
+            17,
+            17,
+            29
+          ],
+          "mime-charset": [
+            6,
+            6,
+            10
+          ],
+          "multi": [
+            2,
+            2,
+            4
+          ],
+          "script": [
+            0,
+            0,
+            6
+          ],
+          "source": [
+            0,
+            0,
+            2
+          ],
+          "special": [
+            15,
+            15,
+            18
+          ],
+          "stdin": [
+            1,
+            1,
+            2
+          ],
+          "structured": [
+            3,
+            3,
+            9
+          ],
+          "text": [
+            11,
+            11,
+            21
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "file-gif",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"anim.gif: GIF image data, version 87a, 2 x 2\\n\" obtido \"anim.gif: GIF image data 2 x 2\\n\""
+            ]
+          },
+          {
+            "id": "file-random-mime",
+            "tags": [
+              "binary",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"random.bin: application/octet-stream\\n\" obtido \"random.bin: (sem MIME)\\n\""
+            ]
+          },
+          {
+            "id": "file-random-i",
+            "tags": [
+              "binary",
+              "mime-charset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"random.bin: application/octet-stream; charset=binary\\n\" obtido \"random.bin: (sem MIME); charset=binary\\n\""
+            ]
+          },
+          {
+            "id": "file-gzip-z",
+            "tags": [
+              "compressed",
+              "describe",
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "opção não suportada: -z",
+            "detail": [
+              "unsupported: opção não suportada: -z"
+            ]
+          },
+          {
+            "id": "file-zstd",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zst: Zstandard compressed data (v0.8+), Dictionary ID: None\\n\" obtido \"a.zst: Zstandard compressed data (v0.8+), Dictionary ID: None, Dictionary ID: None\\n\""
+            ]
+          },
+          {
+            "id": "file-zstd-mime",
+            "tags": [
+              "compressed",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zst: application/zstd\\n\" obtido \"a.zst: (sem MIME)\\n\""
+            ]
+          },
+          {
+            "id": "file-lzip-mime",
+            "tags": [
+              "compressed",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.lz: application/x-lzip\\n\" obtido \"a.lz: application/zip\\n\""
+            ]
+          },
+          {
+            "id": "file-tar",
+            "tags": [
+              "archive",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.tar: POSIX tar archive\\n\" obtido \"a.tar: data\\n\""
+            ]
+          },
+          {
+            "id": "file-tar-mime",
+            "tags": [
+              "archive",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.tar: application/x-tar\\n\" obtido \"a.tar: (sem MIME)\\n\""
+            ]
+          },
+          {
+            "id": "file-zip",
+            "tags": [
+              "archive",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompresse\"... (147 bytes) obtido \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, uncompressed size 240, method=deflate\\n\""
+            ]
+          },
+          {
+            "id": "file-zip-brief",
+            "tags": [
+              "archive",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompressed size \"... (140 bytes) obtido \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, uncompressed size 240, method=deflate\\n\""
+            ]
+          },
+          {
+            "id": "file-multi",
+            "tags": [
+              "special",
+              "describe",
+              "multi"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt:     ASCII text\\nimage.png: PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\\ndata.json: JSON text data\\nsub: \"... (136 bytes) obtido \"a.txt:     ASCII text\\nimage.png: PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\\ndata.json: ASCII text\\nsub:     \"... (132 bytes)"
+            ]
+          },
+          {
+            "id": "file-multi-mime",
+            "tags": [
+              "special",
+              "mime",
+              "multi"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt:     text/plain\\nimage.png: image/png\\ndata.json: application/json\\nsub:       inode/directory\\n\" obtido \"a.txt:     text/plain\\nimage.png: image/png\\ndata.json: text/plain\\nsub:       inode/directory\\n\""
+            ]
+          },
+          {
+            "id": "file-stdin-mime",
+            "tags": [
+              "special",
+              "mime",
+              "stdin"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"/dev/stdin: application/json\\n\" obtido \"/dev/stdin: text/plain\\n\""
+            ]
+          },
+          {
+            "id": "file-utf8",
+            "tags": [
+              "text",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"utf8.txt: Unicode text, UTF-8 text\\n\" obtido \"utf8.txt: UTF-8 Unicode text\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "descrição 25/48 (só conteúdo de arquivo regular: 15/37), --mime-type 17/29, -i/--mime-encoding 6/10. Divergências: motor sem MIME: 6; opção não suportada (-z): 1; regra de magic diferente: 10; texto: codificação, terminadores ou ', ASCII text': 22. Mesmo magdir do magic-db carregado como magic em texto; !:mime não é lido. O MIME vem de MimeMapper::get_mime_type, que itera um HashMap estático (src/mime.rs:158) e devolve a primeira palavra-chave contida na descrição: a ordem muda de um processo pro outro, e o --mime-type do HTML oscilou entre text/html e text/plain entre execuções (placar varia em 1 caso). depscan acha C na árvore (iana-time-zone-haiku 0.1.2, wasm-bindgen-shared 0.2.129); nenhuma linkada no binário Linux.",
+      "metrics": {
+        "strict_rate": 0.562,
+        "describe_strict_lenient_total": [
+          25,
+          25,
+          48
+        ],
+        "describe_content_only_strict_lenient_total": [
+          15,
+          15,
+          37
+        ],
+        "mime_type_strict_lenient_total": [
+          17,
+          17,
+          29
+        ],
+        "mime_charset_strict_lenient_total": [
+          6,
+          6,
+          10
+        ],
+        "divergence_classes": {
+          "motor sem MIME": 6,
+          "opção não suportada (-z)": 1,
+          "regra de magic diferente": 10,
+          "texto: codificação, terminadores ou ', ASCII text'": 22
+        },
+        "our_ascmagic_layer": false,
+        "runs": 3,
+        "nondeterministic_cases": [],
+        "c_deps": [
+          "iana-time-zone-haiku 0.1.2",
+          "wasm-bindgen-shared 0.2.129"
+        ],
+        "c_deps_linked_on_linux": [],
+        "c_deps_not_linked_reason": [
+          {
+            "crate": "iana-time-zone-haiku",
+            "why": "só no alvo Haiku"
+          },
+          {
+            "crate": "wasm-bindgen-shared",
+            "why": "só no alvo wasm32"
+          }
+        ],
+        "depscan": {
+          "libmagic-rs": {
+            "package": "libmagic-rs",
+            "version": "0.12.6",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 39,
+            "own_unsafe": 1,
+            "tree_deps": 78,
+            "tree_unsafe": 14352,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "anstream 1.0.0": 11,
+              "anstyle-query 1.1.5": 12,
+              "anstyle-wincon 3.0.11": 6,
+              "chrono 0.4.45": 6,
+              "clap-stdin 0.8.1": 4,
+              "clap_builder 4.6.7": 8,
+              "clap_complete 4.6.11": 20,
+              "clap_derive 4.6.7": 2,
+              "clap_lex 1.1.1": 1,
+              "ctrlc 3.5.2": 12,
+              "dispatch2 0.3.1": 8,
+              "env_filter 2.0.0": 2,
+              "env_logger 0.11.11": 3,
+              "hashbrown 0.17.1": 11,
+              "iana-time-zone 0.1.65": 9,
+              "is_terminal_polyfill 1.70.2": 1,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "nix 0.31.3": 4743,
+              "nom 8.0.0": 1,
+              "objc2 0.6.4": 3,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          }
+        },
+        "libmagic_rs_magdir_load_error": null
+      }
+    },
+    {
+      "name": "libmagic-rs 0.12.6 (magdir do magic-db) + ascmagic nosso",
+      "version": "0.12.6",
+      "role": "file",
+      "category": "c",
+      "conformance": {
+        "candidate": "libmagic-rs 0.12.6 (magdir do magic-db) + ascmagic nosso",
+        "total": 89,
+        "strict_pass": 65,
+        "lenient_pass": 65,
+        "unsupported": 1,
+        "by_tag": {
+          "archive": [
+            1,
+            1,
+            5
+          ],
+          "binary": [
+            1,
+            1,
+            3
+          ],
+          "brief": [
+            5,
+            5,
+            6
+          ],
+          "compressed": [
+            11,
+            11,
+            15
+          ],
+          "describe": [
+            38,
+            38,
+            48
+          ],
+          "document": [
+            1,
+            1,
+            2
+          ],
+          "error": [
+            3,
+            3,
+            3
+          ],
+          "flags": [
+            3,
+            3,
+            4
+          ],
+          "image": [
+            7,
+            7,
+            8
+          ],
+          "mime": [
+            17,
+            17,
+            29
+          ],
+          "mime-charset": [
+            8,
+            8,
+            10
+          ],
+          "multi": [
+            2,
+            2,
+            4
+          ],
+          "script": [
+            2,
+            2,
+            6
+          ],
+          "source": [
+            1,
+            1,
+            2
+          ],
+          "special": [
+            15,
+            15,
+            18
+          ],
+          "stdin": [
+            1,
+            1,
+            2
+          ],
+          "structured": [
+            5,
+            5,
+            9
+          ],
+          "text": [
+            21,
+            21,
+            21
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "file-gif",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"anim.gif: GIF image data, version 87a, 2 x 2\\n\" obtido \"anim.gif: GIF image data 2 x 2\\n\""
+            ]
+          },
+          {
+            "id": "file-random-mime",
+            "tags": [
+              "binary",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"random.bin: application/octet-stream\\n\" obtido \"random.bin: (sem MIME)\\n\""
+            ]
+          },
+          {
+            "id": "file-random-i",
+            "tags": [
+              "binary",
+              "mime-charset"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"random.bin: application/octet-stream; charset=binary\\n\" obtido \"random.bin: (sem MIME); charset=binary\\n\""
+            ]
+          },
+          {
+            "id": "file-gzip-z",
+            "tags": [
+              "compressed",
+              "describe",
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "opção não suportada: -z",
+            "detail": [
+              "unsupported: opção não suportada: -z"
+            ]
+          },
+          {
+            "id": "file-zstd",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zst: Zstandard compressed data (v0.8+), Dictionary ID: None\\n\" obtido \"a.zst: Zstandard compressed data (v0.8+), Dictionary ID: None, Dictionary ID: None\\n\""
+            ]
+          },
+          {
+            "id": "file-zstd-mime",
+            "tags": [
+              "compressed",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zst: application/zstd\\n\" obtido \"a.zst: (sem MIME)\\n\""
+            ]
+          },
+          {
+            "id": "file-lzip-mime",
+            "tags": [
+              "compressed",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.lz: application/x-lzip\\n\" obtido \"a.lz: application/zip\\n\""
+            ]
+          },
+          {
+            "id": "file-tar",
+            "tags": [
+              "archive",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.tar: POSIX tar archive\\n\" obtido \"a.tar: data\\n\""
+            ]
+          },
+          {
+            "id": "file-tar-mime",
+            "tags": [
+              "archive",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.tar: application/x-tar\\n\" obtido \"a.tar: (sem MIME)\\n\""
+            ]
+          },
+          {
+            "id": "file-zip",
+            "tags": [
+              "archive",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompresse\"... (147 bytes) obtido \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, uncompressed size 240, method=deflate\\n\""
+            ]
+          },
+          {
+            "id": "file-zip-brief",
+            "tags": [
+              "archive",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompressed size \"... (140 bytes) obtido \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, uncompressed size 240, method=deflate\\n\""
+            ]
+          },
+          {
+            "id": "file-multi",
+            "tags": [
+              "special",
+              "describe",
+              "multi"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt:     ASCII text\\nimage.png: PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\\ndata.json: JSON text data\\nsub: \"... (136 bytes) obtido \"a.txt:     ASCII text\\nimage.png: PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\\ndata.json: ASCII text\\nsub:     \"... (132 bytes)"
+            ]
+          },
+          {
+            "id": "file-multi-mime",
+            "tags": [
+              "special",
+              "mime",
+              "multi"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"a.txt:     text/plain\\nimage.png: image/png\\ndata.json: application/json\\nsub:       inode/directory\\n\" obtido \"a.txt:     text/plain\\nimage.png: image/png\\ndata.json: text/plain\\nsub:       inode/directory\\n\""
+            ]
+          },
+          {
+            "id": "file-stdin-mime",
+            "tags": [
+              "special",
+              "mime",
+              "stdin"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"/dev/stdin: application/json\\n\" obtido \"/dev/stdin: text/plain\\n\""
+            ]
+          },
+          {
+            "id": "file-script-bash-mime",
+            "tags": [
+              "script",
+              "mime"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": true,
+            "files_ok": true,
+            "strict": false,
+            "lenient": false,
+            "detail": [
+              "stdout: esperado \"run.sh: text/x-shellscript\\n\" obtido \"run.sh: text/plain\\n\""
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "descrição 38/48 (só conteúdo de arquivo regular: 28/37), --mime-type 17/29, -i/--mime-encoding 8/10. Divergências: motor sem MIME: 4; opção não suportada (-z): 1; regra de magic diferente: 10; texto: codificação, terminadores ou ', ASCII text': 9. Com a camada ascmagic nossa por cima do libmagic-rs com magdir; o MIME continua vindo da tabela de palavras-chave em HashMap estático (ordem muda por processo, ver a variante sem a camada). depscan acha C na árvore (iana-time-zone-haiku 0.1.2, wasm-bindgen-shared 0.2.129); nenhuma linkada no binário Linux.",
+      "metrics": {
+        "strict_rate": 0.73,
+        "describe_strict_lenient_total": [
+          38,
+          38,
+          48
+        ],
+        "describe_content_only_strict_lenient_total": [
+          28,
+          28,
+          37
+        ],
+        "mime_type_strict_lenient_total": [
+          17,
+          17,
+          29
+        ],
+        "mime_charset_strict_lenient_total": [
+          8,
+          8,
+          10
+        ],
+        "divergence_classes": {
+          "motor sem MIME": 4,
+          "opção não suportada (-z)": 1,
+          "regra de magic diferente": 10,
+          "texto: codificação, terminadores ou ', ASCII text'": 9
+        },
+        "our_ascmagic_layer": true,
+        "runs": 3,
+        "nondeterministic_cases": [],
+        "c_deps": [
+          "iana-time-zone-haiku 0.1.2",
+          "wasm-bindgen-shared 0.2.129"
+        ],
+        "c_deps_linked_on_linux": [],
+        "c_deps_not_linked_reason": [
+          {
+            "crate": "iana-time-zone-haiku",
+            "why": "só no alvo Haiku"
+          },
+          {
+            "crate": "wasm-bindgen-shared",
+            "why": "só no alvo wasm32"
+          }
+        ],
+        "depscan": {
+          "libmagic-rs": {
+            "package": "libmagic-rs",
+            "version": "0.12.6",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "iana-time-zone-haiku 0.1.2",
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 39,
+            "own_unsafe": 1,
+            "tree_deps": 78,
+            "tree_unsafe": 14352,
+            "host_touching_deps": {
+              "android_system_properties 0.1.6": 4,
+              "anstream 1.0.0": 11,
+              "anstyle-query 1.1.5": 12,
+              "anstyle-wincon 3.0.11": 6,
+              "chrono 0.4.45": 6,
+              "clap-stdin 0.8.1": 4,
+              "clap_builder 4.6.7": 8,
+              "clap_complete 4.6.11": 20,
+              "clap_derive 4.6.7": 2,
+              "clap_lex 1.1.1": 1,
+              "ctrlc 3.5.2": 12,
+              "dispatch2 0.3.1": 8,
+              "env_filter 2.0.0": 2,
+              "env_logger 0.11.11": 3,
+              "hashbrown 0.17.1": 11,
+              "iana-time-zone 0.1.65": 9,
+              "is_terminal_polyfill 1.70.2": 1,
+              "libc 0.2.190": 1,
+              "memmap2 0.9.11": 120,
+              "nix 0.31.3": 4743,
+              "nom 8.0.0": 1,
+              "objc2 0.6.4": 3,
+              "serde 1.0.229": 1,
+              "serde_core 1.0.229": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4,
+              "windows-implement 0.60.2": 7
+            }
+          }
+        },
+        "libmagic_rs_magdir_load_error": null
+      }
+    },
+    {
+      "name": "infer 0.22 (só MIME)",
+      "version": "0.22",
+      "role": "file",
+      "category": "c",
+      "conformance": {
+        "candidate": "infer 0.22 (só MIME)",
+        "total": 89,
+        "strict_pass": 40,
+        "lenient_pass": 40,
+        "unsupported": 43,
+        "by_tag": {
+          "archive": [
+            2,
+            2,
+            5
+          ],
+          "binary": [
+            2,
+            2,
+            3
+          ],
+          "brief": [
+            1,
+            1,
+            6
+          ],
+          "compressed": [
+            6,
+            6,
+            15
+          ],
+          "describe": [
+            6,
+            6,
+            48
+          ],
+          "document": [
+            1,
+            1,
+            2
+          ],
+          "error": [
+            2,
+            2,
+            3
+          ],
+          "flags": [
+            1,
+            1,
+            4
+          ],
+          "image": [
+            4,
+            4,
+            8
+          ],
+          "mime": [
+            24,
+            24,
+            29
+          ],
+          "mime-charset": [
+            9,
+            9,
+            10
+          ],
+          "multi": [
+            0,
+            0,
+            4
+          ],
+          "script": [
+            2,
+            2,
+            6
+          ],
+          "source": [
+            0,
+            0,
+            2
+          ],
+          "special": [
+            9,
+            9,
+            18
+          ],
+          "stdin": [
+            0,
+            0,
+            2
+          ],
+          "structured": [
+            3,
+            3,
+            9
+          ],
+          "text": [
+            11,
+            11,
+            21
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "file-png",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-png-brief",
+            "tags": [
+              "image",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-jpeg",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gif",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-random",
+            "tags": [
+              "binary",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gzip",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gzip-brief",
+            "tags": [
+              "compressed",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gzip-named",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gzip-z",
+            "tags": [
+              "compressed",
+              "describe",
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "opção não suportada: -z",
+            "detail": [
+              "unsupported: opção não suportada: -z"
+            ]
+          },
+          {
+            "id": "file-bzip2",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-xz",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-zstd",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-lzip",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-tgz",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-tar",
+            "tags": [
+              "archive",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "descrição 6/48 (só conteúdo de arquivo regular: 1/37), --mime-type 24/29, -i/--mime-encoding 9/10. Divergências: opção não suportada (-z): 1; regra de magic diferente: 3; sem descrição (motor só de MIME): 42; texto: codificação, terminadores ou ', ASCII text': 3. Só MIME; descrição indisponível (casos de descrição contam como unsupported). depscan acha C na árvore (wasm-bindgen-shared 0.2.129); nenhuma linkada no binário Linux.",
+      "metrics": {
+        "strict_rate": 0.449,
+        "describe_strict_lenient_total": [
+          6,
+          6,
+          48
+        ],
+        "describe_content_only_strict_lenient_total": [
+          1,
+          1,
+          37
+        ],
+        "mime_type_strict_lenient_total": [
+          24,
+          24,
+          29
+        ],
+        "mime_charset_strict_lenient_total": [
+          9,
+          9,
+          10
+        ],
+        "divergence_classes": {
+          "opção não suportada (-z)": 1,
+          "regra de magic diferente": 3,
+          "sem descrição (motor só de MIME)": 42,
+          "texto: codificação, terminadores ou ', ASCII text'": 3
+        },
+        "our_ascmagic_layer": false,
+        "runs": 3,
+        "nondeterministic_cases": [],
+        "c_deps": [
+          "wasm-bindgen-shared 0.2.129"
+        ],
+        "c_deps_linked_on_linux": [],
+        "c_deps_not_linked_reason": [
+          {
+            "crate": "wasm-bindgen-shared",
+            "why": "só no alvo wasm32"
+          }
+        ],
+        "depscan": {
+          "infer": {
+            "package": "infer",
+            "version": "0.22.0",
+            "own_category": "b",
+            "tree_category": "c",
+            "c_deps": [
+              "wasm-bindgen-shared 0.2.129"
+            ],
+            "own_host_touch": 1,
+            "own_unsafe": 0,
+            "tree_deps": 21,
+            "tree_unsafe": 876,
+            "host_touching_deps": {
+              "cfb 0.14.0": 1,
+              "wasm-bindgen 0.2.129": 2,
+              "wasm-bindgen-macro 0.2.129": 4,
+              "wasm-bindgen-macro-support 0.2.129": 4
+            }
+          }
+        },
+        "libmagic_rs_magdir_load_error": null
+      }
+    },
+    {
+      "name": "file-format 0.29 (só MIME)",
+      "version": "0.29",
+      "role": "file",
+      "category": "b",
+      "conformance": {
+        "candidate": "file-format 0.29 (só MIME)",
+        "total": 89,
+        "strict_pass": 40,
+        "lenient_pass": 40,
+        "unsupported": 43,
+        "by_tag": {
+          "archive": [
+            2,
+            2,
+            5
+          ],
+          "binary": [
+            2,
+            2,
+            3
+          ],
+          "brief": [
+            1,
+            1,
+            6
+          ],
+          "compressed": [
+            6,
+            6,
+            15
+          ],
+          "describe": [
+            6,
+            6,
+            48
+          ],
+          "document": [
+            1,
+            1,
+            2
+          ],
+          "error": [
+            2,
+            2,
+            3
+          ],
+          "flags": [
+            1,
+            1,
+            4
+          ],
+          "image": [
+            4,
+            4,
+            8
+          ],
+          "mime": [
+            24,
+            24,
+            29
+          ],
+          "mime-charset": [
+            9,
+            9,
+            10
+          ],
+          "multi": [
+            0,
+            0,
+            4
+          ],
+          "script": [
+            2,
+            2,
+            6
+          ],
+          "source": [
+            0,
+            0,
+            2
+          ],
+          "special": [
+            9,
+            9,
+            18
+          ],
+          "stdin": [
+            0,
+            0,
+            2
+          ],
+          "structured": [
+            3,
+            3,
+            9
+          ],
+          "text": [
+            11,
+            11,
+            21
+          ]
+        },
+        "sample_failures": [
+          {
+            "id": "file-png",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-png-brief",
+            "tags": [
+              "image",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-jpeg",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gif",
+            "tags": [
+              "image",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-random",
+            "tags": [
+              "binary",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gzip",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gzip-brief",
+            "tags": [
+              "compressed",
+              "describe",
+              "brief"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gzip-named",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-gzip-z",
+            "tags": [
+              "compressed",
+              "describe",
+              "flags"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "opção não suportada: -z",
+            "detail": [
+              "unsupported: opção não suportada: -z"
+            ]
+          },
+          {
+            "id": "file-bzip2",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-xz",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-zstd",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-lzip",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-tgz",
+            "tags": [
+              "compressed",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          },
+          {
+            "id": "file-tar",
+            "tags": [
+              "archive",
+              "describe"
+            ],
+            "stdout_ok": false,
+            "stderr_ok": true,
+            "exit_ok": false,
+            "files_ok": false,
+            "strict": false,
+            "lenient": false,
+            "unsupported": "motor sem descrição (só MIME)",
+            "detail": [
+              "unsupported: motor sem descrição (só MIME)"
+            ]
+          }
+        ]
+      },
+      "fit": "does_not_fit",
+      "notes": "descrição 6/48 (só conteúdo de arquivo regular: 1/37), --mime-type 24/29, -i/--mime-encoding 9/10. Divergências: opção não suportada (-z): 1; regra de magic diferente: 3; sem descrição (motor só de MIME): 42; texto: codificação, terminadores ou ', ASCII text': 3. Só MIME; descrição indisponível (casos de descrição contam como unsupported).",
+      "metrics": {
+        "strict_rate": 0.449,
+        "describe_strict_lenient_total": [
+          6,
+          6,
+          48
+        ],
+        "describe_content_only_strict_lenient_total": [
+          1,
+          1,
+          37
+        ],
+        "mime_type_strict_lenient_total": [
+          24,
+          24,
+          29
+        ],
+        "mime_charset_strict_lenient_total": [
+          9,
+          9,
+          10
+        ],
+        "divergence_classes": {
+          "opção não suportada (-z)": 1,
+          "regra de magic diferente": 3,
+          "sem descrição (motor só de MIME)": 42,
+          "texto: codificação, terminadores ou ', ASCII text'": 3
+        },
+        "our_ascmagic_layer": false,
+        "runs": 3,
+        "nondeterministic_cases": [],
+        "c_deps": [],
+        "c_deps_linked_on_linux": [],
+        "c_deps_not_linked_reason": [],
+        "depscan": {
+          "file-format": {
+            "package": "file-format",
+            "version": "0.29.0",
+            "own_category": "b",
+            "tree_category": "b",
+            "c_deps": [],
+            "own_host_touch": 1,
+            "own_unsafe": 0,
+            "tree_deps": 0,
+            "tree_unsafe": 0,
+            "host_touching_deps": {}
+          }
+        },
+        "libmagic_rs_magdir_load_error": null
+      }
+    }
+  ],
+  "roles": [
+    {
+      "role": "bc",
+      "best": "fork do motor de posixutils-rs bc @4073af047104, com extensões GNU, mensagens de erro e front-end nossos",
+      "fit": "fits_with_work",
+      "summary": "melhor base de fork (posixutils-rs bc @4073af047104): 73/118 estrito contra o GNU bc 1.07.1 (92 com o zero à esquerda corrigido), núcleo numérico 67/69, 0 casos em panic; o resto é zero à esquerda (0.5 em vez de .5) (19), extensão GNU ausente ou diferente (9), erro: exit ou recuperação diferente (7); nenhuma implementação existe como biblioteca no crates.io."
+    },
+    {
+      "role": "file",
+      "best": "pure-magic 0.4.1 + magic-db 0.6.0 (first_magic) + ascmagic nosso, com front-end nosso (opções, symlink, charset)",
+      "fit": "fits_with_work",
+      "summary": "pure-magic 0.4.1 + magic-db 0.6.0 (first_magic) + ascmagic nosso: descrição 42/48 e --mime-type 28/29 byte a byte contra o file 5.46."
+    }
+  ],
+  "metrics": {
+    "bc": {
+      "cases": 118,
+      "candidates": [
+        {
+          "candidate": "posixutils-rs bc @4073af047104",
+          "strict": 73,
+          "lenient": 74,
+          "total": 118,
+          "strict_if_leading_zero_fixed": 92,
+          "numeric_core": [
+            49,
+            49,
+            69
+          ],
+          "numeric_core_if_leading_zero_fixed": [
+            67,
+            49,
+            69
+          ],
+          "rust_panics": 0,
+          "agent_style": [
+            33,
+            34,
+            68
+          ],
+          "upstream_suite": [
+            40,
+            40,
+            50
+          ]
+        },
+        {
+          "candidate": "bc_clone_rs @d0e3f445bfa0",
+          "strict": 91,
+          "lenient": 94,
+          "total": 118,
+          "strict_if_leading_zero_fixed": 91,
+          "numeric_core": [
+            65,
+            65,
+            69
+          ],
+          "numeric_core_if_leading_zero_fixed": [
+            65,
+            65,
+            69
+          ],
+          "rust_panics": 13,
+          "agent_style": [
+            44,
+            47,
+            68
+          ],
+          "upstream_suite": [
+            47,
+            47,
+            50
+          ]
+        }
+      ]
+    },
+    "file": {
+      "cases": 89,
+      "magdir": "/home/john/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/magic-db-0.6.0/src/magdir",
+      "magdir_files": 359,
+      "load_seconds": {
+        "magic_db_embedded": 0.018,
+        "libmagic_rs_magdir_text": 0.045
+      },
+      "candidates": [
+        {
+          "candidate": "pure-magic 0.4.1 + magic-db 0.6.0 (first_magic)",
+          "strict": 66,
+          "total": 89,
+          "describe": [
+            28,
+            28,
+            48
+          ],
+          "describe_content_only": [
+            17,
+            17,
+            37
+          ],
+          "mime": [
+            28,
+            28,
+            29
+          ],
+          "mime_charset": [
+            8,
+            8,
+            10
+          ],
+          "divergence_classes": {
+            "data no formato errado (2026-01-15 em vez de Thu Jan 15 ... 2026)": 1,
+            "opção não suportada (-z)": 1,
+            "regra de magic diferente": 3,
+            "texto: codificação, terminadores ou ', ASCII text'": 18
+          }
+        },
+        {
+          "candidate": "pure-magic 0.4.1 + magic-db 0.6.0 (best_magic)",
+          "strict": 66,
+          "total": 89,
+          "describe": [
+            28,
+            28,
+            48
+          ],
+          "describe_content_only": [
+            17,
+            17,
+            37
+          ],
+          "mime": [
+            28,
+            28,
+            29
+          ],
+          "mime_charset": [
+            8,
+            8,
+            10
+          ],
+          "divergence_classes": {
+            "data no formato errado (2026-01-15 em vez de Thu Jan 15 ... 2026)": 1,
+            "opção não suportada (-z)": 1,
+            "regra de magic diferente": 3,
+            "texto: codificação, terminadores ou ', ASCII text'": 18
+          }
+        },
+        {
+          "candidate": "pure-magic 0.4.1 + magic-db 0.6.0 (first_magic) + ascmagic nosso",
+          "strict": 82,
+          "total": 89,
+          "describe": [
+            42,
+            42,
+            48
+          ],
+          "describe_content_only": [
+            31,
+            31,
+            37
+          ],
+          "mime": [
+            28,
+            28,
+            29
+          ],
+          "mime_charset": [
+            10,
+            10,
+            10
+          ],
+          "divergence_classes": {
+            "data no formato errado (2026-01-15 em vez de Thu Jan 15 ... 2026)": 1,
+            "opção não suportada (-z)": 1,
+            "regra de magic diferente": 3,
+            "texto: codificação, terminadores ou ', ASCII text'": 2
+          }
+        },
+        {
+          "candidate": "libmagic-rs 0.12.6 (regras embutidas)",
+          "strict": 38,
+          "total": 89,
+          "describe": [
+            15,
+            15,
+            48
+          ],
+          "describe_content_only": [
+            6,
+            6,
+            37
+          ],
+          "mime": [
+            15,
+            15,
+            29
+          ],
+          "mime_charset": [
+            6,
+            6,
+            10
+          ],
+          "divergence_classes": {
+            "motor sem MIME": 8,
+            "opção não suportada (-z)": 1,
+            "regra de magic diferente": 18,
+            "texto: codificação, terminadores ou ', ASCII text'": 24
+          }
+        },
+        {
+          "candidate": "libmagic-rs 0.12.6 (magdir do magic-db)",
+          "strict": 50,
+          "total": 89,
+          "describe": [
+            25,
+            25,
+            48
+          ],
+          "describe_content_only": [
+            15,
+            15,
+            37
+          ],
+          "mime": [
+            17,
+            17,
+            29
+          ],
+          "mime_charset": [
+            6,
+            6,
+            10
+          ],
+          "divergence_classes": {
+            "motor sem MIME": 6,
+            "opção não suportada (-z)": 1,
+            "regra de magic diferente": 10,
+            "texto: codificação, terminadores ou ', ASCII text'": 22
+          }
+        },
+        {
+          "candidate": "libmagic-rs 0.12.6 (magdir do magic-db) + ascmagic nosso",
+          "strict": 65,
+          "total": 89,
+          "describe": [
+            38,
+            38,
+            48
+          ],
+          "describe_content_only": [
+            28,
+            28,
+            37
+          ],
+          "mime": [
+            17,
+            17,
+            29
+          ],
+          "mime_charset": [
+            8,
+            8,
+            10
+          ],
+          "divergence_classes": {
+            "motor sem MIME": 4,
+            "opção não suportada (-z)": 1,
+            "regra de magic diferente": 10,
+            "texto: codificação, terminadores ou ', ASCII text'": 9
+          }
+        },
+        {
+          "candidate": "infer 0.22 (só MIME)",
+          "strict": 40,
+          "total": 89,
+          "describe": [
+            6,
+            6,
+            48
+          ],
+          "describe_content_only": [
+            1,
+            1,
+            37
+          ],
+          "mime": [
+            24,
+            24,
+            29
+          ],
+          "mime_charset": [
+            9,
+            9,
+            10
+          ],
+          "divergence_classes": {
+            "opção não suportada (-z)": 1,
+            "regra de magic diferente": 3,
+            "sem descrição (motor só de MIME)": 42,
+            "texto: codificação, terminadores ou ', ASCII text'": 3
+          }
+        },
+        {
+          "candidate": "file-format 0.29 (só MIME)",
+          "strict": 40,
+          "total": 89,
+          "describe": [
+            6,
+            6,
+            48
+          ],
+          "describe_content_only": [
+            1,
+            1,
+            37
+          ],
+          "mime": [
+            24,
+            24,
+            29
+          ],
+          "mime_charset": [
+            9,
+            9,
+            10
+          ],
+          "divergence_classes": {
+            "opção não suportada (-z)": 1,
+            "regra de magic diferente": 3,
+            "sem descrição (motor só de MIME)": 42,
+            "texto: codificação, terminadores ou ', ASCII text'": 3
+          }
+        }
+      ]
+    }
+  },
+  "notes": [
+    "bc: implementações Rust triadas no GitHub e descartadas sem rodar por tamanho e estado (WillKirkmanM/bc e tincochan/bc-rust com 5 KB, AdrianColaianni/bcr \"WIP\", akgvn/bc parado desde 2021); kz80_bc gera código Z80; eva/evar/excalc são calculadoras com outra linguagem.",
+    "file: o magdir do magic-db 0.6.0 vem do repositório do file de 2026 (images,v 1.276, compress,v 1.100, archive,v 1.223, commands,v 1.82), mais novo que o file 5.46 do oráculo (images,v 1.263, compress,v 1.96, archive,v 1.207, commands,v 1.77): parte das divergências de descrição pode ser regra nova, não motor.",
+    "file: o `file` do posixutils-rs foi descartado sem rodar: é o file do POSIX (\"commands text\", \"c program text\"), lê o magic em texto de /usr/share/file/magic/magic do host e não tem --mime-type."
+  ]
+}

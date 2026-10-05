@@ -1,0 +1,20 @@
+tree: f4b3548 commit: f742ed7
+$ git checkout old b.txt
+[out]
+[err]
+Updated 0 paths from f4b3548
+[exit=0]
+$ git checkout old -- c.txt
+[out]
+[err]
+error: pathspec 'c.txt' did not match any file(s) known to git
+[exit=1]
+$ git checkout old b.txt
+[out]
+[err]
+Updated 1 path from f4b3548
+[exit=0]
+$ git checkout old -q b.txt
+[out]
+[err]
+[exit=0]

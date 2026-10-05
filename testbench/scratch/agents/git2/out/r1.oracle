@@ -1,0 +1,209 @@
+== reset mixed
+$ git reset
+[out]
+Unstaged changes after reset:
+M	a.txt
+M	b.txt
+[err]
+[exit=0]
+ M a.txt
+ M b.txt
+?? n.txt
+== reset soft
+M  a.txt
+M  b.txt
+A  n.txt
+$ git reset --soft HEAD~1
+[out]
+[err]
+[exit=0]
+M  a.txt
+M  b.txt
+A  c.txt
+A  n.txt
+Agent <agent@example.com> 1768478460 +0000	commit (initial): add a
+Agent <agent@example.com> 1768478520 +0000	commit: add b
+Agent <agent@example.com> 1768478580 +0000	commit: add c
+Agent <agent@example.com> 1768478580 +0000	reset: moving to HEAD
+Agent <agent@example.com> 1768478580 +0000	reset: moving to HEAD~1
+110d11a6f83207f06077f9d00b2fd73dfee2056b
+== reset hard
+$ git reset --hard
+[out]
+HEAD is now at f742ed7 add b
+[err]
+[exit=0]
+$ git reset --hard HEAD~1
+[out]
+HEAD is now at 1d512c3 add a
+[err]
+[exit=0]
+$ git reset --hard main
+[out]
+HEAD is now at 1d512c3 add a
+[err]
+[exit=0]
+$ git reset --hard HEAD~2
+[out]
+[err]
+fatal: ambiguous argument 'HEAD~2': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+[exit=128]
+a.txt
+1d512c3 HEAD@{0}: reset: moving to main
+1d512c3 HEAD@{1}: reset: moving to HEAD~1
+f742ed7 HEAD@{2}: reset: moving to HEAD
+f742ed7 HEAD@{3}: reset: moving to HEAD~1
+110d11a HEAD@{4}: reset: moving to HEAD
+110d11a HEAD@{5}: commit: add c
+f742ed7 HEAD@{6}: commit: add b
+1d512c3 HEAD@{7}: commit (initial): add a
+Agent <agent@example.com> 1768478460 +0000	commit (initial): add a
+Agent <agent@example.com> 1768478520 +0000	commit: add b
+Agent <agent@example.com> 1768478580 +0000	commit: add c
+Agent <agent@example.com> 1768478580 +0000	reset: moving to HEAD~1
+Agent <agent@example.com> 1768478580 +0000	reset: moving to HEAD~1
+== mixed to older commit
+$ git reset HEAD~1
+[out]
+[err]
+fatal: ambiguous argument 'HEAD~1': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+[exit=128]
+$ git reset HEAD~1 -- a.txt
+[out]
+[err]
+fatal: Failed to resolve 'HEAD~1' as a valid tree.
+[exit=128]
+$ git reset -- a.txt
+[out]
+[err]
+[exit=0]
+$ git reset a.txt
+[out]
+[err]
+[exit=0]
+$ git reset HEAD a.txt
+[out]
+[err]
+[exit=0]
+$ git reset nonexist
+[out]
+[err]
+fatal: ambiguous argument 'nonexist': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+[exit=128]
+$ git reset HEAD nonexist
+[out]
+[err]
+[exit=0]
+$ git reset -- nonexist
+[out]
+[err]
+[exit=0]
+== reset paths with changes
+$ git reset a.txt
+[out]
+Unstaged changes after reset:
+M	a.txt
+[err]
+[exit=0]
+ M a.txt
+A  b.txt
+$ git reset
+[out]
+Unstaged changes after reset:
+M	a.txt
+[err]
+[exit=0]
+$ git reset -q
+[out]
+[err]
+[exit=0]
+$ git reset --mixed
+[out]
+Unstaged changes after reset:
+M	a.txt
+[err]
+[exit=0]
+$ git reset --mixed -q HEAD
+[out]
+[err]
+[exit=0]
+$ git reset --soft -- a.txt
+[out]
+[err]
+fatal: Cannot do soft reset with paths.
+[exit=128]
+$ git reset --hard -- a.txt
+[out]
+[err]
+fatal: Cannot do hard reset with paths.
+[exit=128]
+$ git reset --soft --hard
+[out]
+HEAD is now at 1d512c3 add a
+[err]
+[exit=0]
+$ git reset --merge
+[out]
+[err]
+[exit=0]
+$ git reset --keep HEAD~1
+[out]
+[err]
+fatal: ambiguous argument 'HEAD~1': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+[exit=128]
+?? b.txt
+$ git reset nonexistentrev
+[out]
+[err]
+fatal: ambiguous argument 'nonexistentrev': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+[exit=128]
+$ git reset --hard nonexistentrev
+[out]
+[err]
+fatal: ambiguous argument 'nonexistentrev': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+[exit=128]
+$ git reset HEAD~10
+[out]
+[err]
+fatal: ambiguous argument 'HEAD~10': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+[exit=128]
+== reset on detached/new branch
+$ git reset --hard HEAD~1
+[out]
+[err]
+fatal: ambiguous argument 'HEAD~1': unknown revision or path not in the working tree.
+Use '--' to separate paths from revisions, like this:
+'git <command> [<revision>...] -- [<file>...]'
+[exit=128]
+== untracked file
+$ git reset --hard
+[out]
+HEAD is now at 1d512c3 add a
+[err]
+[exit=0]
+a.txt
+b.txt
+u.txt
+== reset with new file in older commit
+== unstaged after reset with rename
+$ git reset HEAD~1
+[out]
+[err]
+[exit=0]
+?? b.txt
+?? d.txt
+?? u.txt

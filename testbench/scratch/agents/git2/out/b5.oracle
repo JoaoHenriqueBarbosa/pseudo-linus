@@ -1,0 +1,138 @@
+$ git branch -d topic
+error: the branch 'topic' is not fully merged
+hint: If you are sure you want to delete it, run 'git branch -D topic'
+hint: Disable this message with "git config advice.forceDeleteBranch false"
+[exit=1]
+$ git branch -D topic
+Deleted branch topic (was 0314496).
+[exit=0]
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[branch "topic3"]
+	description = hello
+	remote = .
+	merge = refs/heads/main
+$ git branch -d topic3
+Deleted branch topic3 (was 110d11a).
+[exit=0]
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+main
+$ git branch -d topic4
+error: the branch 'topic4' is not fully merged
+hint: If you are sure you want to delete it, run 'git branch -D topic4'
+hint: Disable this message with "git config advice.forceDeleteBranch false"
+[exit=1]
+$ git branch -d -q topic4
+error: the branch 'topic4' is not fully merged
+hint: If you are sure you want to delete it, run 'git branch -D topic4'
+hint: Disable this message with "git config advice.forceDeleteBranch false"
+[exit=1]
+$ git branch -dq topic4
+error: the branch 'topic4' is not fully merged
+hint: If you are sure you want to delete it, run 'git branch -D topic4'
+hint: Disable this message with "git config advice.forceDeleteBranch false"
+[exit=1]
+$ git branch -D -q topic4
+[exit=0]
+$ git branch -d -f topic4
+error: branch 'topic4' not found
+[exit=1]
+$ git branch -f -d topic4
+error: branch 'topic4' not found
+[exit=1]
+--- merged into upstream but not HEAD
+$ git branch -d up2
+warning: deleting branch 'up2' that has been merged to
+         'refs/heads/up1', but not yet merged to HEAD
+Deleted branch up2 (was a6b315e).
+[exit=0]
+$ git branch -d gone
+Deleted branch gone (was 1d512c3).
+[exit=0]
+$ git branch -d gone
+error: branch 'gone' not found
+[exit=1]
+--- tag nonbranch
+$ git branch -d main
+error: cannot delete branch 'main' used by worktree at '/work/r'
+[exit=1]
+--- ref with slash
+feat
+main
+up1
+$ git branch -d feat/x
+Deleted branch feat/x (was f742ed7).
+[exit=0]
+main
+up1
+--- dir/file conflict
+$ git branch feat
+fatal: cannot lock ref 'refs/heads/feat': 'refs/heads/feat/y' exists; cannot create 'refs/heads/feat'
+[exit=128]
+$ git branch feat/y/z
+fatal: cannot lock ref 'refs/heads/feat/y/z': 'refs/heads/feat/y' exists; cannot create 'refs/heads/feat/y/z'
+[exit=128]
+$ git branch -m feat/y feat
+[exit=0]
+$ git branch -m feat/y feat/z
+fatal: no branch named 'feat/y'
+[exit=128]
+  feat
+* main
+  up1
+--- invalid names
+$ git branch -- -x
+fatal: '-x' is not a valid branch name
+hint: See `man git check-ref-format`
+hint: Disable this message with "git config advice.refSyntax false"
+[exit=128]
+$ git branch HEAD
+fatal: 'HEAD' is not a valid branch name
+hint: See `man git check-ref-format`
+hint: Disable this message with "git config advice.refSyntax false"
+[exit=128]
+$ git branch 
+fatal: '' is not a valid branch name
+hint: See `man git check-ref-format`
+hint: Disable this message with "git config advice.refSyntax false"
+[exit=128]
+$ git branch a b
+fatal: 'a b' is not a valid branch name
+hint: See `man git check-ref-format`
+hint: Disable this message with "git config advice.refSyntax false"
+[exit=128]
+$ git branch a:b
+fatal: 'a:b' is not a valid branch name
+hint: See `man git check-ref-format`
+hint: Disable this message with "git config advice.refSyntax false"
+[exit=128]
+$ git branch @
+[exit=0]
+$ git branch x.lock
+fatal: 'x.lock' is not a valid branch name
+hint: See `man git check-ref-format`
+hint: Disable this message with "git config advice.refSyntax false"
+[exit=128]
+$ git branch .x
+fatal: '.x' is not a valid branch name
+hint: See `man git check-ref-format`
+hint: Disable this message with "git config advice.refSyntax false"
+[exit=128]
+$ git branch x/
+fatal: 'x/' is not a valid branch name
+hint: See `man git check-ref-format`
+hint: Disable this message with "git config advice.refSyntax false"
+[exit=128]
+$ git branch main
+fatal: a branch named 'main' already exists
+[exit=128]
+$ git branch -d HEAD
+error: branch 'HEAD' not found
+[exit=1]

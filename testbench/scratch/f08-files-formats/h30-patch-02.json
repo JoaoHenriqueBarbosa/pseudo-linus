@@ -1,0 +1,17 @@
+[
+  {
+    "id": "patch-malformed-hunk",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": true,
+    "detail": [
+      "stderr: esperado \"patch: **** malformed patch at line 5:  \\n\\n\" obtido \"patch: **** malformed patch at line 5: -b\\n\""
+    ]
+  }
+]

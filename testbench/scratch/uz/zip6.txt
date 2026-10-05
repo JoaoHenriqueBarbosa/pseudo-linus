@@ -1,0 +1,3 @@
+mkdir -p e; for i in $(seq 1 6000); do echo "$i $((i*i % 977)) linha $((i % 13)) $((i*7919 % 10007))"; done > e/big.txt; seq 1 40000 | awk '{printf "%02x", ($1*7919 + $1*$1*31) % 256}' | xxd -r -p > e/g.bin; seq 1 30000 | xxd -p > e/hex.txt; cat e/g.bin e/g.bin e/hex.txt > e/mix.bin; printf 'a\r\nb\r\n' > e/crlf.txt; : > e/empty.txt; touch -d '2026-01-15 12:00:00' e e/*; ls -l e | wc -l
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; zip -q -6 -r o.zip e; unzip -Z -v o.zip | grep -v 'offset\|^$'
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; zip -q -6 -r o.zip e; xxd o.zip > x.txt; wc -l x.txt; for i in 1 2 3; do stat -c '%n %X %Y' e e/big.txt; done

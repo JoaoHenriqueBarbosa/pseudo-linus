@@ -1,0 +1,277 @@
+{
+  "basename-basic": {
+    "stdout": "main.rs\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basename-multiple": {
+    "stdout": "one.txt\ntwo.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basename-suffix": {
+    "stdout": "main\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basename-suffix-positional": {
+    "stdout": "archive.tar\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "basename-trailing-slash": {
+    "stdout": "b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dirname-basic": {
+    "stdout": "/home/user/src\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dirname-relative": {
+    "stdout": ".\na\n/\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "readlink-f": {
+    "stdout": "/work/case/t.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "t.txt"
+      },
+      "t.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "readlink-plain": {
+    "stdout": "../somewhere/else\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "../somewhere/else"
+      }
+    }
+  },
+  "realpath-file": {
+    "stdout": "/work/case/a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "realpath-m": {
+    "stdout": "/work/case/x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "realpath-missing": {
+    "stdout": "",
+    "stderr": "realpath: nope/x: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "realpath-relative-to": {
+    "stdout": "../docs/a.md\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "docs": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "docs/a.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "realpath-symlink": {
+    "stdout": "/work/case/dir/target.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir/target.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "dir/target.txt"
+      }
+    }
+  },
+  "stat-L": {
+    "stdout": "link regular file 4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "t.txt"
+      },
+      "t.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb",
+        "data": "abc\n"
+      }
+    }
+  },
+  "stat-c-basic": {
+    "stdout": "a.txt 6 644 -rw-r--r-- regular file\nd 4096 750 drwxr-x--- directory\nrun.sh 1 755 -rwxr-xr-x regular file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "f33ae3bc9a22cd7564990a794789954409977013966fb1a8f43c35776b833a95",
+        "data": "12345\n"
+      },
+      "d": {
+        "kind": "dir",
+        "mode": 488
+      },
+      "run.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      }
+    }
+  },
+  "stat-c-mtime": {
+    "stdout": "2026-01-15 12:00:00.000000000 +0000 1768478400\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "stat-c-owner": {
+    "stdout": "root:root 0:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "stat-c-size": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "stat-c-symlink": {
+    "stdout": "'link' -> 't.txt' symbolic link\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "t.txt"
+      },
+      "t.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "stat-missing": {
+    "stdout": "",
+    "stderr": "stat: cannot statx 'nope': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stat-printf": {
+    "stdout": "a.txt\t1\nb.txt\t2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+        "data": "a"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3b64db95cb55c763391c707108489ae18b4112d783300de38e033b4c98c3deaf",
+        "data": "bb"
+      }
+    }
+  }
+}

@@ -1,0 +1,117 @@
+[
+  {
+    "id": "file-gzip-named",
+    "tags": [
+      "compressed",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"named.txt.gz: gzip compressed data, was \\\"named.txt\\\", last modified: Thu Jan 15 12:00:00 2026, from Unix, original size m\"... (135 bytes) obtido \"named.txt.gz: gzip compressed data, was \\\"named.txt\\\", last modified: 2026-01-15 12:00:00, from Unix, original size modulo\"... (130 bytes)"
+    ]
+  },
+  {
+    "id": "file-gzip-z",
+    "tags": [
+      "compressed",
+      "describe",
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "opção não suportada: -z",
+    "detail": [
+      "unsupported: opção não suportada: -z"
+    ]
+  },
+  {
+    "id": "file-zip",
+    "tags": [
+      "archive",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompresse\"... (147 bytes) obtido \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified 2026-01-15 12:00:00, uncompressed\"... (146 bytes)"
+    ]
+  },
+  {
+    "id": "file-zip-brief",
+    "tags": [
+      "archive",
+      "describe",
+      "brief"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompressed size \"... (140 bytes) obtido \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified 2026-01-15 12:00:00, uncompressed size 2\"... (139 bytes)"
+    ]
+  },
+  {
+    "id": "file-csv",
+    "tags": [
+      "structured",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"people.csv: ASCII text\\n\" obtido \"people.csv: CSV ASCII text\\n\""
+    ]
+  },
+  {
+    "id": "file-csv-mime",
+    "tags": [
+      "structured",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"people.csv: text/plain\\n\" obtido \"people.csv: text/csv\\n\""
+    ]
+  },
+  {
+    "id": "file-pdf",
+    "tags": [
+      "document",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"doc.pdf: PDF document, version 1.4, 1 page(s)\\n\" obtido \"doc.pdf: PDF document, version 1.4\\n\""
+    ]
+  }
+]

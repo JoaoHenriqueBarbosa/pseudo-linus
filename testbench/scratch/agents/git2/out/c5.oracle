@@ -1,0 +1,202 @@
+== -b tracking streams
+$ git checkout -b t5 origin/dev
+[out]
+branch 't5' set up to track 'origin/dev'.
+[err]
+Switched to a new branch 't5'
+[exit=0]
+$ git checkout main
+[out]
+[err]
+Switched to branch 'main'
+[exit=0]
+$ git switch -c t6 origin/dev
+[out]
+branch 't6' set up to track 'origin/dev'.
+[err]
+Switched to a new branch 't6'
+[exit=0]
+$ git switch t5
+[out]
+Your branch is up to date with 'origin/dev'.
+[err]
+Switched to branch 't5'
+[exit=0]
+$ git checkout t5
+[out]
+Your branch is up to date with 'origin/dev'.
+[err]
+Already on 't5'
+[exit=0]
+$ git checkout --track origin/dev
+[out]
+branch 'dev' set up to track 'origin/dev'.
+[err]
+Switched to a new branch 'dev'
+[exit=0]
+$ git checkout --track -b zz origin/dev
+[out]
+branch 'zz' set up to track 'origin/dev'.
+[err]
+Switched to a new branch 'zz'
+[exit=0]
+== guess
+$ git checkout guessme
+[out]
+branch 'guessme' set up to track 'origin/guessme'.
+[err]
+Switched to a new branch 'guessme'
+[exit=0]
+$ git branch -vv
+[out]
+  dev     f742ed7 [origin/dev] add b
+* guessme 1d512c3 [origin/guessme] add a
+  main    110d11a add c
+  t5      f742ed7 [origin/dev] add b
+  t6      f742ed7 [origin/dev] add b
+  zz      f742ed7 [origin/dev] add b
+[err]
+[exit=0]
+	merge = refs/heads/dev
+[branch "guessme"]
+	remote = origin
+	merge = refs/heads/guessme
+$ git switch guessme2
+[out]
+[err]
+fatal: invalid reference: guessme2
+[exit=128]
+$ git switch g2
+[out]
+branch 'g2' set up to track 'origin/g2'.
+[err]
+Switched to a new branch 'g2'
+[exit=0]
+$ git checkout --no-guess g2
+[out]
+Your branch is up to date with 'origin/g2'.
+[err]
+Switched to branch 'g2'
+[exit=0]
+$ git checkout -
+[out]
+[err]
+Switched to branch 'main'
+[exit=0]
+== orphan
+$ git checkout --orphan newroot
+[out]
+[err]
+Switched to a new branch 'newroot'
+[exit=0]
+A  a.txt
+A  b.txt
+A  c.txt
+fatal: your current branch 'newroot' does not have any commits yet
+$ git checkout main
+[out]
+[err]
+Switched to branch 'main'
+[exit=0]
+== unborn
+$ git checkout -b first
+[out]
+[err]
+Switched to a new branch 'first'
+[exit=0]
+$ git checkout main
+[out]
+[err]
+error: pathspec 'main' did not match any file(s) known to git
+[exit=1]
+$ git switch -c second
+[out]
+[err]
+Switched to a new branch 'second'
+[exit=0]
+$ git checkout --detach
+[out]
+[err]
+fatal: You are on a branch yet to be born
+[exit=128]
+$ git branch
+[out]
+[err]
+[exit=0]
+$ git reset
+[out]
+[err]
+[exit=0]
+$ git reset --hard
+[out]
+[err]
+[exit=0]
+$ git reset --soft
+[out]
+[err]
+[exit=0]
+$ git tag t1
+[out]
+[err]
+fatal: Failed to resolve 'HEAD' as a valid ref.
+[exit=128]
+$ git branch x
+[out]
+[err]
+fatal: not a valid object name: 'second'
+[exit=128]
+$ git checkout x
+[out]
+[err]
+error: pathspec 'x' did not match any file(s) known to git
+[exit=1]
+$ git switch x
+[out]
+[err]
+fatal: invalid reference: x
+[exit=128]
+$ git reset
+[out]
+[err]
+[exit=0]
+$ git reset f
+[out]
+[err]
+[exit=0]
+?? f
+$ git rm --cached f
+[out]
+[err]
+fatal: pathspec 'f' did not match any files
+[exit=128]
+$ git rm -f f
+[out]
+[err]
+fatal: pathspec 'f' did not match any files
+[exit=128]
+== unmerged
+$ git merge side
+[out]
+Auto-merging a.txt
+CONFLICT (content): Merge conflict in a.txt
+Automatic merge failed; fix conflicts and then commit the result.
+[err]
+[exit=1]
+UU a.txt
+$ git checkout side
+[out]
+a.txt: needs merge
+[err]
+error: you need to resolve your current index first
+[exit=1]
+$ git switch side
+[out]
+[err]
+fatal: cannot switch branch while merging
+Consider "git merge --quit" or "git worktree add".
+[exit=128]
+$ git checkout -f side
+[out]
+[err]
+Switched to branch 'side'
+[exit=0]

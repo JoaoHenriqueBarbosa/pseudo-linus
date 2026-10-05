@@ -1,0 +1,40 @@
+Description: w test add FROM column
+ The tests assume you haven't enabled the FROM column for w by default
+ Debian has this enabled by default
+Author: Craig Small <csmall@debian.org>
+Origin: Debian
+Forwarded: no
+Reviewed-by: Craig Small <csmall@debian.org>
+Last-Update: 2024-10-15
+--- a/testsuite/w.test/w.exp
++++ b/testsuite/w.test/w.exp
+@@ -5,10 +5,10 @@
+ set w "${topdir}src/w"
+ 
+ set w_uptime "\\s+\\d{2}:\\d{2}:\\d{2} up (\\d+ days?,)?\\s*\\d+( min|:\\d+), +\\d+ users?, +load average: \[0-9.\]+, \[0-9.\]+, \[0-9.\]+\\s+"
+-set w_std_header "${w_uptime}USER\\s+TTY\\s+LOGIN@\\s+IDLE\\s+JCPU\\s+PCPU\\s+WHAT\\s+"
+-set w_short_header "${w_uptime}USER\\s+TTY\\s+IDLE\\s+WHAT\\s+"
+-set w_from_header "${w_uptime}USER\\s+TTY\\s+FROM\\s+LOGIN@\\s+IDLE\\s+JCPU\\s+PCPU\\s+WHAT\\s+"
+-set w_fromshort_header "${w_uptime}USER\\s+TTY\\s+FROM\\s+IDLE\\s+WHAT\\s+"
++set w_from_header "${w_uptime}USER\\s+TTY\\s+LOGIN@\\s+IDLE\\s+JCPU\\s+PCPU\\s+WHAT\\s+"
++set w_fromshort_header "${w_uptime}USER\\s+TTY\\s+IDLE\\s+WHAT\\s+"
++set w_std_header "${w_uptime}USER\\s+TTY\\s+FROM\\s+LOGIN@\\s+IDLE\\s+JCPU\\s+PCPU\\s+WHAT\\s+"
++set w_short_header "${w_uptime}USER\\s+TTY\\s+FROM\\s+IDLE\\s+WHAT\\s+"
+ 
+ set w_user "\[A-Za-z0-9_-\]+"
+ set w_tty "\[a-z0-9/]+"
+@@ -18,10 +18,10 @@
+ set w_ival7  "\(\\?\|\\d+days\|\\d+:\\d+m?\|\\d+.\\d+s\)"
+ set w_what  "\[A-Za-z0-9_\/\\-\]+"
+ set w_pids  "\\d+/\\d+"
+-set w_std_userlines "\(${w_user}\\s+${w_tty}\\s+${w_login}\\s+${w_idle}\\s+${w_ival7}\\s+${w_ival7}\\s+${w_what}\\s*\)*"
+-set w_short_userlines "\(${w_user}\\s+${w_tty}\\s+${w_idle}\\s+${w_what}\\s*\)*"
+-set w_from_userlines "\(${w_user}\\s+${w_tty}\\s+${w_from}\\s+${w_login}\\s+${w_idle}\\s+${w_ival7}\\s+${w_ival7}\\s+${w_what}\\s*\)*"
+-set w_fromshort_userlines "\(${w_user}\\s+${w_tty}\\s+${w_from}\\s+${w_idle}\\s+${w_what}\\s*\)*"
++set w_from_userlines "\(${w_user}\\s+${w_tty}\\s+${w_login}\\s+${w_idle}\\s+${w_ival7}\\s+${w_ival7}\\s+${w_what}\\s*\)*"
++set w_fromshort_userlines "\(${w_user}\\s+${w_tty}\\s+${w_idle}\\s+${w_what}\\s*\)*"
++set w_std_userlines "\(${w_user}\\s+${w_tty}\\s+${w_from}\\s+${w_login}\\s+${w_idle}\\s+${w_ival7}\\s+${w_ival7}\\s+${w_what}\\s*\)*"
++set w_short_userlines "\(${w_user}\\s+${w_tty}\\s+${w_from}\\s+${w_idle}\\s+${w_what}\\s*\)*"
+ set w_pid_userlines "\(${w_user}\\s+${w_tty}\\s+${w_idle}\\s+%{w_pids}\s+${w_what}\\s*\)*"
+ 
+ set test "w with no arguments"

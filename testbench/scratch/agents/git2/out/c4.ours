@@ -1,0 +1,152 @@
+== checkout -b with local mods
+$ git checkout -b nb
+[out]
+[err]
+Switched to a new branch 'nb'
+[exit=0]
+$ git checkout --detach HEAD~1
+[out]
+M	a.txt
+[err]
+HEAD is now at f742ed7 add b
+[exit=0]
+== checkout <tree> -- path
+$ git checkout old -- b.txt
+[out]
+[err]
+[exit=0]
+$ git checkout HEAD~2 -- b.txt c.txt
+[out]
+[err]
+error: pathspec 'b.txt' did not match any file(s) known to git
+error: pathspec 'c.txt' did not match any file(s) known to git
+[exit=1]
+$ git checkout old -- .
+[out]
+[err]
+[exit=0]
+$ git checkout old
+[out]
+[err]
+Switched to branch 'old'
+[exit=0]
+$ git checkout old b.txt
+[out]
+[err]
+Updated 0 paths from f4b3548
+[exit=0]
+$ git checkout HEAD~1 b.txt
+[out]
+[err]
+error: pathspec 'b.txt' did not match any file(s) known to git
+[exit=1]
+$ git checkout -q HEAD~1 b.txt
+[out]
+[err]
+error: pathspec 'b.txt' did not match any file(s) known to git
+[exit=1]
+== path with ambiguity
+$ git checkout b.txt
+[out]
+[err]
+Switched to branch 'b.txt'
+[exit=0]
+$ git checkout -- b.txt
+[out]
+[err]
+[exit=0]
+$ git checkout b.txt --
+[out]
+[err]
+Already on 'b.txt'
+[exit=0]
+== -b with -- path
+== path in subdir
+$ git checkout d
+[out]
+[err]
+Updated 1 path from the index
+[exit=0]
+f.txt
+$ git checkout -- d/e/f.txt
+[out]
+[err]
+[exit=0]
+$ git checkout -- e/f.txt
+[out]
+[err]
+[exit=0]
+$ git checkout .
+[out]
+[err]
+Updated 0 paths from the index
+[exit=0]
+== restore
+$ git restore a.txt
+[out]
+[err]
+[exit=0]
+a
+$ git restore a.txt
+[out]
+[err]
+[exit=0]
+mod
+$ git restore --staged a.txt
+[out]
+[err]
+[exit=0]
+ M a.txt
+$ git restore --staged --worktree a.txt
+[out]
+[err]
+[exit=0]
+$ git restore --source=HEAD~2 --staged --worktree a.txt
+[out]
+[err]
+[exit=0]
+$ git restore -s HEAD~1 a.txt
+[out]
+[err]
+[exit=0]
+$ git restore --source HEAD~1 nonexist
+[out]
+[err]
+error: pathspec 'nonexist' did not match any file(s) known to git
+[exit=1]
+$ git restore nonexist
+[out]
+[err]
+error: pathspec 'nonexist' did not match any file(s) known to git
+[exit=1]
+$ git restore -S -W .
+[out]
+[err]
+[exit=0]
+$ git restore .
+[out]
+[err]
+[exit=0]
+$ git restore --source=nonexist a.txt
+[out]
+[err]
+fatal: could not resolve nonexist
+[exit=128]
+$ git restore -q a.txt
+[out]
+[err]
+[exit=0]
+$ git restore --staged
+[out]
+[err]
+fatal: you must specify path(s) to restore
+[exit=128]
+$ git restore --ours a.txt
+[out]
+[err]
+[exit=0]
+$ git restore -s HEAD~1
+[out]
+[err]
+fatal: you must specify path(s) to restore
+[exit=128]

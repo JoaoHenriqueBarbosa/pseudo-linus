@@ -1,0 +1,272 @@
+{
+  "awk-F-colon-file": {
+    "stdout": "root /bin/bash\ndaemon /usr/sbin/nologin\njohn /bin/zsh\nnobody /usr/sbin/nologin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 184,
+        "sha256": "7609eeeb81bd8f300cb4116d19b98d1b013ada58ac62a27ca41a12fc36ace8ff",
+        "data": "root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\njohn:x:1000:1000:John,,,:/home/john:/bin/zsh\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n"
+      }
+    }
+  },
+  "awk-F-comma-csv-skip-header": {
+    "stdout": "Alice\nBob\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "users.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 72,
+        "sha256": "e00123f7c0f89b4f2750e450b1478415185d4b163a7013baa5e5ed572dd93d5e",
+        "data": "id,name,email,age\n1,Alice,alice@example.com,30\n2,Bob,bob@example.com,25\n"
+      }
+    }
+  },
+  "awk-F-pipe-literal": {
+    "stdout": "b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-F-regex": {
+    "stdout": "3 b\n3 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-F-separate-arg": {
+    "stdout": "john\nnobody\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 136,
+        "sha256": "50e4ab0502f61222f8a0b5e59b3fc2537a03bfd071fa20fa28223030f902ce26",
+        "data": "root:x:0:0:root:/root:/bin/bash\njohn:x:1000:1000:John,,,:/home/john:/bin/zsh\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n"
+      }
+    }
+  },
+  "awk-F-single-space-string": {
+    "stdout": "3 lead\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-F-tab-escape": {
+    "stdout": "b c\ny\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-FIELDWIDTHS": {
+    "stdout": "abc|de|fghi\n123|45|6789\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-FPAT-csv-quoted": {
+    "stdout": "3 \"Carol, Jr.\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-FS-change-midstream": {
+    "stdout": "a,b\nd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-NF-assign-grow": {
+    "stdout": "a,b,,,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-NF-assign-truncate": {
+    "stdout": "a b\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-NF-last": {
+    "stdout": "c\none\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-NF-minus-one": {
+    "stdout": "b\nx\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-NF-pattern-skips-blank": {
+    "stdout": "a\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-NR-FNR-two-files": {
+    "stdout": "== a.txt\n1 1 a1\n2 2 a2\n== b.txt\n3 1 b1\n4 2 b2\n5 3 b3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "65454a5200a827c042e1379e1f2698d151699e4d76466a3b0e4ebd348f4f131b",
+        "data": "a1\na2\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "4ff45a4b41b980ecc0be9cbfbb5af142876365c2acc7a9e698919b63f894e604",
+        "data": "b1\nb2\nb3\n"
+      }
+    }
+  },
+  "awk-NR-assignment": {
+    "stdout": "1 a\n10 b\n11 c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-OFS-no-rebuild": {
+    "stdout": "a b   c\na-b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-OFS-rebuild": {
+    "stdout": "a-b-c\nd-e\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-OFS-tab": {
+    "stdout": "root\t0\njohn\t1000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-ORS-comma": {
+    "stdout": "a,b,c,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-RS-char": {
+    "stdout": "1 [a]\n2 [b]\n3 [c\n]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-RS-paragraph-FS-newline": {
+    "stdout": "a b|c d\ne f|g h\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-RS-paragraph-mode": {
+    "stdout": "1: name: (4 campos)\n2: name: (5 campos)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-RS-regex-RT": {
+    "stdout": "1 [a] [12]\n2 [b] [3]\n3 [c] []\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-crlf-input": {
+    "stdout": "4 b\r\n4 d\r\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-default-fs-leading-spaces": {
+    "stdout": "3:a:c\n1:x:x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-dollar-string-index": {
+    "stdout": "y x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-empty-input": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-field-assign-rebuilds-dollar0": {
+    "stdout": "a  c\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-field-beyond-NF": {
+    "stdout": "a b c   X\n6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-field-zero-modify": {
+    "stdout": "BIG 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-join-two-files": {
+    "stdout": "apple 3 1.20\ncherry 2 3.00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "orders.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "e4834454a1b073ab516310eef9050d7a09eb35eef873b0232f0640e954c96f2e",
+        "data": "apple 3\nkiwi 1\ncherry 2\n"
+      },
+      "prices.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "def792d18692bfcaeffcd1ab19308612b88c227cca3adc6f42f1cffbf446788f",
+        "data": "apple 1.20\nbanana 0.50\ncherry 3.00\n"
+      }
+    }
+  },
+  "awk-no-trailing-newline": {
+    "stdout": "1: first\n2: second\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-print-col": {
+    "stdout": "alice\nbob\ncarol\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-print-multi-cols": {
+    "stdout": "alice engineering\nbob marketing\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

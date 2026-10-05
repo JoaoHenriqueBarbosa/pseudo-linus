@@ -1,0 +1,364 @@
+{
+  "sort-V": {
+    "stdout": "v0.9\nv1.2.0\nv1.2.0-rc1\nv1.2.10\nv1.9.3\nv1.10.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "03e918d15275bc7485c31c03c8a763868747e2bb0c892bdef2acc468d1c9be83",
+        "data": "v1.10.0\nv1.2.0\nv1.9.3\nv1.2.10\nv0.9\nv1.2.0-rc1\n"
+      }
+    }
+  },
+  "sort-bad-key": {
+    "stdout": "",
+    "stderr": "sort: field number is zero: invalid field specification ‘0’\n",
+    "exit": 2,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "sort-basic": {
+    "stdout": "10\n9\nBanana\nZebra\n_x\nabacate\nbanana\npera\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "b1e52e90090711c1d67f78f5686d72a3166e7f81452241879c6a5f785fa53e2c",
+        "data": "pera\nBanana\nabacate\nZebra\nbanana\n_x\n10\n9\n"
+      }
+    }
+  },
+  "sort-check-disorder": {
+    "stdout": "",
+    "stderr": "sort: in.txt:3: disorder: b\n",
+    "exit": 1,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "bfe802aba7bf3bc6429fc1739f2081742448621c4231d7a6ec1e659b796067c8",
+        "data": "a\nc\nb\n"
+      }
+    }
+  },
+  "sort-check-ok": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "sort-f": {
+    "stdout": "A\na\nB\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "6b177e7cb162278bf9b5672e863ec2f4a3a30ce04fd50af2b2dfe3ea3e77dd07",
+        "data": "b\nA\na\nB\n"
+      }
+    }
+  },
+  "sort-h": {
+    "stdout": "0\n512\n1K\n10K\n1.5M\n2M\n1G\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "33c74fa12bacb5fb697278f0a70d9494d436a1150f766a9f410190658c8457f6",
+        "data": "1G\n512\n2M\n1K\n10K\n1.5M\n0\n"
+      }
+    }
+  },
+  "sort-k2": {
+    "stdout": "y abacate 1\nx banana 3\nz cereja 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "ee7b9522ab0a42f201cfd7ed2a229f1b516f64f1bcb1e742442b620e3a991950",
+        "data": "x banana 3\ny abacate 1\nz cereja 2\n"
+      }
+    }
+  },
+  "sort-k2n": {
+    "stdout": "b 2\nd 2\na 10\nc 33\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "71acbd22f58ec3312ac4cd47707a38a91e4b7618ec04f8bb9ace13e86bab12cf",
+        "data": "a 10\nb 2\nc 33\nd 2\n"
+      }
+    }
+  },
+  "sort-missing": {
+    "stdout": "",
+    "stderr": "sort: cannot read: nope.txt: No such file or directory\n",
+    "exit": 2,
+    "files": {}
+  },
+  "sort-multi-files": {
+    "stdout": "a\nb\ny\nz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7aa20773724cc32a28106979fac40c8aadc201f56341e6ec85a8d82618f3b213",
+        "data": "z\nb\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "132a7dea2960222f52e955a851d4d4d5d9cb471a865074b04878382200a791d1",
+        "data": "a\ny\n"
+      }
+    }
+  },
+  "sort-multi-key": {
+    "stdout": "c:x:9\ne:x:3\na:x:1\nb:y:5\nd:y:2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "94a2949dff4e6d07d74dc6db7f13f2d63a318f2bd6f45911b7ec66115e7d560e",
+        "data": "a:x:1\nb:y:5\nc:x:9\nd:y:2\ne:x:3\n"
+      }
+    }
+  },
+  "sort-n": {
+    "stdout": "-3\n+4\n0\nabc\n1e3\n2.5\n 7\n9\n10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "44843c987443e43abf8ce8a9307d90469a90632142ed104d64e547d2b4ae1d3c",
+        "data": "10\n9\n-3\n2.5\n0\nabc\n+4\n1e3\n 7\n"
+      }
+    }
+  },
+  "sort-no-trailing-newline": {
+    "stdout": "a\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "c4a78e5bdf318c857b19a6ae4678d9fc8ab0d9bf2b7dd11b41a06c4c1047d943",
+        "data": "b\na"
+      }
+    }
+  },
+  "sort-nr": {
+    "stdout": "10 dez outra\n10 dez\n3 três\n1 um\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "9f359d90b1751b9c3016d8460ec652e013ad27040bb02094a80dbd664b8b54ad",
+        "data": "3 três\n10 dez\n1 um\n10 dez outra\n"
+      }
+    }
+  },
+  "sort-o-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "451d660bc5f37a981539cf07c4c6a182693a7d165b4589ecb1165a72555ff90a",
+        "data": "2\n1\n"
+      },
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "a6e2b7a040683432de03a18fd8a1939a2fdf82585b364bfc874bdd4095c4cae1",
+        "data": "1\n2\n"
+      }
+    }
+  },
+  "sort-o-inplace": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "29186ee59865abdf5f37da40cefc9e7f345e49860aefd7a8f43438cdaf88f856",
+        "data": "1\n2\n10\n"
+      }
+    }
+  },
+  "sort-r": {
+    "stdout": "c\nb\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "710a4679fd1f6d2e0c6db8ef19ede2e083ef7fd67190e45eb5ec309597e56634",
+        "data": "b\nc\na\n"
+      }
+    }
+  },
+  "sort-rh-du-style": {
+    "stdout": "1.1G\t.\n120M\t./node_modules\n12K\t./src\n4.0K\t./a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 46,
+        "sha256": "e9c49eba0b4ffad8e3856203f11ea38d5d71768944bf748ceccb632298a80ba8",
+        "data": "4.0K\t./a\n120M\t./node_modules\n12K\t./src\n1.1G\t.\n"
+      }
+    }
+  },
+  "sort-stable-key": {
+    "stdout": "a 2\na 1\nb 1\nb 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "dd913ef4399e3a20cad3311097b439903ab01fb1c970ce6b0528e2270ef93e6e",
+        "data": "b 1\na 2\nb 0\na 1\n"
+      }
+    }
+  },
+  "sort-stdin": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sort-t-k-csv": {
+    "stdout": "bia,ops,3200\ndani,qa,3200\ncaio,dev,4100\nana,dev,5000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.csv": {
+        "kind": "file",
+        "mode": 420,
+        "size": 53,
+        "sha256": "904e521e06521da7da1f1b576bf6164b2ce0c1e193a285b7e6929f0175779c3f",
+        "data": "ana,dev,5000\nbia,ops,3200\ncaio,dev,4100\ndani,qa,3200\n"
+      }
+    }
+  },
+  "sort-u": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "98ce3dcc3b83de48c23322c1c2a4c55ea3234c424aa6b736a00775478a57f638",
+        "data": "b\na\nb\nc\na\n"
+      }
+    }
+  },
+  "sort-u-key": {
+    "stdout": "a 1\nb 2\nc 4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "ee8c48d79b79e9ebd445bf5d0c3b1deb2bb8871e291055a0f1b324547a2befd1",
+        "data": "a 1\nb 2\na 3\nc 4\nb 5\n"
+      }
+    }
+  },
+  "sort-uniq-c-rank": {
+    "stdout": "      3 erro\n      2 aviso\n      1 info\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "98ff4593a93d5c3c9ae05e7ad91963f14014f73259b2da9a2cfd6407dcc1a0fa",
+        "data": "erro\naviso\nerro\ninfo\nerro\naviso\ndebug\n"
+      }
+    }
+  },
+  "sort-utf8": {
+    "stdout": "abacate\nzebra\nÁgua\nárvore\néclair\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "d336384235f721071f86b43d546c2f0a9f26bc405b0ddbebe3db475b7dae010e",
+        "data": "éclair\nzebra\nárvore\nabacate\nÁgua\n"
+      }
+    }
+  }
+}

@@ -1,0 +1,204 @@
+[
+  {
+    "id": "patch-malformed-hunk",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": true,
+    "detail": [
+      "stderr: esperado \"patch: **** malformed patch at line 5:  \\n\\n\" obtido \"patch: **** malformed patch at line 5: -b\\n\""
+    ]
+  },
+  {
+    "id": "patch-offset-positive",
+    "tags": [
+      "offset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 4 (offset 2 lines).\\n\" obtido \"patching file a.txt\\n\"",
+      "files: -a.txt.orig"
+    ]
+  },
+  {
+    "id": "patch-offset-negative",
+    "tags": [
+      "offset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 1 (offset -1 lines).\\n\" obtido \"patching file a.txt\\n\"",
+      "files: -a.txt.orig"
+    ]
+  },
+  {
+    "id": "patch-offset-two-hunks",
+    "tags": [
+      "offset",
+      "multi-hunk"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 with fuzz 1 (offset 1 line).\\nHunk #2 succeeded at 15 (offset 1 line).\\n\" obtido \"patching file a.txt\\n\"",
+      "files: -a.txt.orig"
+    ]
+  },
+  {
+    "id": "patch-offset-no-backup",
+    "tags": [
+      "offset",
+      "backup"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 (offset 1 line).\\n\" obtido \"patching file a.txt\\n\""
+    ]
+  },
+  {
+    "id": "patch-ambiguous-offset",
+    "tags": [
+      "offset",
+      "ties"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 5 (offset 2 lines).\\n\" obtido \"patching file a.txt\\n\"",
+      "files: ~a.txt: file 644 14B c1c7bebf3b4d != file 644 14B 24363b88db4a",
+      "files: -a.txt.orig"
+    ]
+  },
+  {
+    "id": "patch-fuzz-1",
+    "tags": [
+      "fuzz"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 with fuzz 1.\\n\" obtido \"patching file a.txt\\nHunk #1 FAILED at 2.\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None",
+      "files: ~a.txt: file 644 74B 15c4fc1e38b2 != file 644 71B 744d7b12748b",
+      "files: +a.txt.rej"
+    ]
+  },
+  {
+    "id": "patch-fuzz-2",
+    "tags": [
+      "fuzz"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 2 with fuzz 2.\\n\" obtido \"patching file a.txt\\nHunk #1 FAILED at 2.\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None",
+      "files: ~a.txt: file 644 74B 343023f1e724 != file 644 71B 19b9447d25db",
+      "files: +a.txt.rej"
+    ]
+  },
+  {
+    "id": "patch-fuzz-with-offset",
+    "tags": [
+      "fuzz",
+      "offset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #1 succeeded at 3 with fuzz 1 (offset 1 line).\\n\" obtido \"patching file a.txt\\nHunk #1 FAILED at 2.\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None",
+      "files: ~a.txt: file 644 78B b9b8979bb941 != file 644 75B 292cb6814c97",
+      "files: +a.txt.rej"
+    ]
+  },
+  {
+    "id": "patch-reject-partial",
+    "tags": [
+      "reject",
+      "multi-hunk"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #2 FAILED at 14.\\n1 out of 2 hunks FAILED -- saving rejects to file a.txt.rej\\n\" obtido \"patching file a.txt\\nHunk #2 FAILED at 14.\\n2 out of 2 hunks FAILED -- saving rejects to file a.txt.rej\\n\"",
+      "files: ~a.txt: file 644 87B 4039fe5ed945 != file 644 87B bfdd72f7c5a6",
+      "files: ~a.txt.rej: file 644 78B 3cf3c1c51d01 != file 644 119B ad60eb52f7c3"
+    ]
+  },
+  {
+    "id": "patch-crlf-target-lf-patch",
+    "tags": [
+      "crlf",
+      "reject"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"patching file a.txt\\nHunk #1 FAILED at 1 (different line endings).\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt\"... (125 bytes) obtido \"patching file a.txt\\nHunk #1 FAILED at 1.\\n1 out of 1 hunk FAILED -- saving rejects to file a.txt.rej\\n\""
+    ]
+  },
+  {
+    "id": "patch-crlf-both",
+    "tags": [
+      "crlf"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"(Stripping trailing CRs from patch; use --binary to disable.)\\npatching file a.txt\\nHunk #1 FAILED at 1 (different line en\"... (187 bytes) obtido \"(Stripping trailing CRs from patch; use --binary to disable.)\\npatching file a.txt\\nHunk #1 FAILED at 1.\\n1 out of 1 hunk F\"... (162 bytes)"
+    ]
+  }
+]

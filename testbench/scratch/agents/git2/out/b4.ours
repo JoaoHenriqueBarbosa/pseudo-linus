@@ -1,0 +1,148 @@
+git: 'remote' is not a git command. See 'git --help'.
+
+The most similar command is
+	remote
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[branch "ahead2"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "behind"]
+	remote = origin
+	merge = refs/heads/main
+[branch "gone1"]
+	remote = origin
+	merge = refs/heads/zzz
+[branch "same"]
+	remote = origin
+	merge = refs/heads/main
+$ git branch -vv
+  ahead2 110d11a add c
+  behind 1d512c3 add a
+  gone1  110d11a add c
+* main   110d11a add c
+  other  1d512c3 add a
+  same   f742ed7 add b
+[exit=0]
+$ git branch -v
+  ahead2 110d11a add c
+  behind 1d512c3 add a
+  gone1  110d11a add c
+* main   110d11a add c
+  other  1d512c3 add a
+  same   f742ed7 add b
+[exit=0]
+$ git branch -t t1 origin/dev
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+$ git branch --track t2 origin/dev
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+$ git branch --track=inherit t3 origin/dev
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+$ git branch --no-track t4 origin/dev
+[exit=0]
+$ git branch --set-upstream-to=origin/dev other
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+$ git branch -u origin/main other
+fatal: cannot set up tracking information; starting point 'origin/main' is not a branch
+[exit=128]
+$ git branch -u main other
+branch 'other' set up to track 'main'.
+[exit=0]
+$ git branch --unset-upstream other
+[exit=0]
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[branch "ahead2"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "behind"]
+	remote = origin
+	merge = refs/heads/main
+[branch "gone1"]
+	remote = origin
+	merge = refs/heads/zzz
+[branch "same"]
+	remote = origin
+	merge = refs/heads/main
+$ git branch -u origin/dev
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+$ git branch -u origin/dev nonexist
+fatal: branch 'nonexist' does not exist
+[exit=128]
+$ git checkout -b t5 origin/dev
+Switched to a new branch 't5'
+[exit=0]
+$ git checkout -b t6 --no-track origin/dev
+Switched to a new branch 't6'
+[exit=0]
+$ git switch -c t7 origin/dev
+Switched to a new branch 't7'
+[exit=0]
+$ git switch -c t8 -t main
+Switched to a new branch 't8'
+branch 't8' set up to track 'main'.
+[exit=0]
+$ git switch t5
+Switched to branch 't5'
+[exit=0]
+$ git switch main
+Switched to branch 'main'
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+[exit=0]
+$ git branch t9 main
+branch 't9' set up to track 'main'.
+[exit=0]
+$ git branch t10 origin/main
+[exit=0]
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[branch "ahead2"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "behind"]
+	remote = origin
+	merge = refs/heads/main
+[branch "gone1"]
+	remote = origin
+	merge = refs/heads/zzz
+[branch "same"]
+	remote = origin
+	merge = refs/heads/main
+[branch "t8"]
+	remote = .
+	merge = refs/heads/main
+[branch]
+	autoSetupMerge = always
+[branch "t9"]
+	remote = .
+	merge = refs/heads/main
+$ git branch -d t1
+error: branch 't1' not found
+[exit=1]
+$ git branch -vv --list ahead*
+  ahead2 110d11a add c
+[exit=0]

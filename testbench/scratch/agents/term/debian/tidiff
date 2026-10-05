@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# Compare two directory trees with compiled terminfo files.  First
+# test which files (if any) differ, on those that do run infocmp to
+# produce a detailed report.
+
+usage()
+{
+    echo "Usage: $0 old-directory new-directory" >&2
+    exit 1
+}
+
+if [ $# != 2 ]; then
+    usage
+fi
+
+OLD="$1"
+NEW="$2"
+
+if [ ! -d "$OLD" ]; then
+    echo "$0: $OLD is not a directory" >&2
+    usage
+fi
+
+if [ ! -d "$NEW" ]; then
+    echo "$0: $NEW is not a directory" >&2
+    usage
+fi
+
+filelist=$(mktemp) || { echo "$0: could not create temporary file" >&2; exit 1; }
+
+echo "diff -qr --no-dereference $OLD $NEW"
+diff -qr --no-dereference "$OLD" "$NEW" | tee "$filelist"
+[ -n "$filelist" ] || { rm -f "$filelist"; exit 0; }
+
+grep "$OLD.*$NEW" "$filelist" | while IFS= read -r line
+do
+    entry=$(basename "$(echo "$line" | cut -d ' ' -f2)")
+    echo "infocmp report for $entry:"
+    infocmp -x -A "$OLD" -B "$NEW" "$entry" "$entry"
+done
+
+rm -f "$filelist"
+exit 0

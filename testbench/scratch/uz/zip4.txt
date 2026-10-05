@@ -1,0 +1,21 @@
+mkdir -p e; for i in $(seq 1 6000); do echo "$i $((i*i % 977)) linha $((i % 13)) $((i*7919 % 10007))"; done > e/big.txt; seq 1 40000 | awk '{printf "%02x", ($1*7919 + $1*$1*31) % 256}' | xxd -r -p > e/g.bin; seq 1 30000 | xxd -p > e/hex.txt; cat e/g.bin e/g.bin e/hex.txt > e/mix.bin; printf 'a\r\nb\r\n' > e/crlf.txt; : > e/empty.txt; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; ls -l e | wc -l
+for l in 1 3 5 6 8 9; do rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -q -$l -r o.zip e; md5sum o.zip; done
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -r -Z bzip2 o.zip e; md5sum o.zip
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -r -ll o.zip e; md5sum o.zip
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -q -r o.zip e; zip -c o.zip e/big.txt <<< 'coment do big'; unzip -l o.zip; md5sum o.zip
+rm -f o.zip o2.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -q -r o.zip e; zip -q o.zip -O o2.zip -d e/crlf.txt; md5sum o.zip o2.zip
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -q -r o.zip e; rm e/crlf.txt; touch -d '2026-01-16 12:00:00' e; touch -a -d '2030-01-01' e; zip -FS o.zip -r e; unzip -Z1 o.zip; md5sum o.zip; printf 'a\r\nb\r\n' > e/crlf.txt
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -q -r -t 2026-01-16 o.zip e; echo rc=$?
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -q -r -tt 2026-01-16 o.zip e; unzip -Z1 o.zip
+rm -f o.zip; zip -r -t 13132026 o.zip e; echo rc=$?
+zip -q o.zip -x; echo rc=$?
+zip --bogus; echo rc=$?
+zip -Z foo o.zip e/big.txt; echo rc=$?
+zip -9 -r; echo rc=$?
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -r -T o.zip e; echo rc=$?
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -r -dc o.zip e
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -r -db -dd o.zip e 2>&1 | head -8
+rm -f sfx.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; printf 'XXXXSTUB' > sfx.zip; zip -q -r sfx.zip e; zip -A sfx.zip; md5sum sfx.zip; unzip -tq sfx.zip
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -q -r o.zip e; zip -sf o.zip
+rm -f o.zip; touch -d '2026-01-15 12:00:00' e e/*; touch -a -d '2030-01-01' e e/*; zip -q -r o.zip e; chmod 000 e/hex.txt; zip -u o.zip e/hex.txt; touch e/hex.txt; zip o.zip e/hex.txt; echo rc=$?; chmod 644 e/hex.txt
+rm -f o.zip; zip -q o.zip e/empty.txt e; unzip -v o.zip | sed -n 3,6p

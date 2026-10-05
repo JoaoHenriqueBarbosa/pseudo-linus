@@ -1,0 +1,747 @@
+[
+  {
+    "id": "bc-leading-zero",
+    "tags": [
+      "format",
+      "scale"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \".33\\n.75\\n\" obtido \"0.33\\n0.75\\n\""
+    ]
+  },
+  {
+    "id": "bc-negative-frac",
+    "tags": [
+      "format",
+      "scale"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"-.33\\n-.5\\n\" obtido \"-0.33\\n-0.5\\n\""
+    ]
+  },
+  {
+    "id": "bc-pow",
+    "tags": [
+      "arith"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1024\\n0\\n.12500\\n\" obtido \"1024\\n0\\n0.12500\\n\""
+    ]
+  },
+  {
+    "id": "bc-pow-frac-exponent",
+    "tags": [
+      "error",
+      "arith"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1\\n3\\n\" obtido \"3\\n\"",
+      "stderr: esperado \"Runtime warning (func=(main), adr=8): non-zero scale in exponent\\n\" obtido \"bc: runtime error (line 1): exponent has to be an integer\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-sqrt-negative",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"Runtime error (func=(main), adr=6): Square root of a negative number\\n\" obtido \"bc: runtime error (line 1): square root of negative number\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-obase-fraction",
+    "tags": [
+      "base",
+      "scale"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \".555555553\\n-A.8\\n\" obtido \"0.555555553\\n-A.8\\n\""
+    ]
+  },
+  {
+    "id": "bc-l-trig",
+    "tags": [
+      "mathlib"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \".84147098480789650665\\n1.00000000000000000000\\n.78539816339744830961\\n\" obtido \"0.84147098480789650665\\n1.00000000000000000000\\n0.78539816339744830961\\n\""
+    ]
+  },
+  {
+    "id": "bc-l-bessel",
+    "tags": [
+      "mathlib"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \".76519768655796655144\\n.49709410246427403801\\n\" obtido \"0.76519768655796655144\\n0.49709410246427403801\\n\""
+    ]
+  },
+  {
+    "id": "bc-l-scale-reset",
+    "tags": [
+      "mathlib",
+      "scale"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"20\\n.33\\n3\\n\" obtido \"20\\n0.33\\n3\\n\""
+    ]
+  },
+  {
+    "id": "bc-line-length-zero",
+    "tags": [
+      "wrap",
+      "env"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376\\n\" obtido \"20370359763344860862684456884093781610514683936659362506361404493543\\\\\\n81299763336706183397376\\n\""
+    ]
+  },
+  {
+    "id": "bc-line-length-20",
+    "tags": [
+      "wrap",
+      "env"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"126765060022822940\\\\\\n1496703205376\\n\" obtido \"1267650600228229401496703205376\\n\""
+    ]
+  },
+  {
+    "id": "bc-for-break",
+    "tags": [
+      "control",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0\\n1\\n2\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:13: error: expected an expression, found ';'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-continue",
+    "tags": [
+      "control",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0\\n2\\n4\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:39: error: expected '}', found 'o'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-if-else",
+    "tags": [
+      "control",
+      "string",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"big\\nnot huge\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:13: error: expected a newline, found 'r'\\nbc: (standard_in):1:15: error: expected '}', found 'r'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-print",
+    "tags": [
+      "string",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"x=3\\na\\tb\\n0\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:2: error: expected a newline, found 'r'\\nbc: (standard_in):1:2: error: expected a newline, found 'r'\\n\"... (180 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-last-dot",
+    "tags": [
+      "last",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"10\\n20\\n21\\n\" obtido \"10\\n1\\n\"",
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:2: error: expected a newline, found 'a'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-compare",
+    "tags": [
+      "compare",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1\\n1\\n0\\n1\\n0\\n1\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:3: error: expected a newline, found '<'\\nbc: (standard_in):1:3: error: expected a newline, found '=='\"... (341 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-relational-assign",
+    "tags": [
+      "compare"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1\\n\" obtido \"0\\n\"",
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:8: error: expected ')', found '>'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-div-zero",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"Runtime error (func=(main), adr=3): Divide by zero\\n\" obtido \"bc: runtime error (line 1): division by zero\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-mod-zero",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"Runtime error (func=(main), adr=5): Modulo by zero\\n\" obtido \"bc: runtime error (line 1): division by zero\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-syntax-error",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"(standard_in) 1: syntax error\\n\" obtido \"bc: (standard_in):1:4: error: expected an expression, found '*'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-uppercase-variable",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"10\\n\" obtido \"\"",
+      "stderr: esperado \"(standard_in) 1: syntax error\\n\" obtido \"bc: (standard_in):1:3: error: expected a newline, found '='\\nbc: runtime error (line 1): invalid digit for the current ib\"... (124 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-uppercase-digit",
+    "tags": [
+      "base"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"10\\n16\\n35\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"bc: runtime error (line 1): invalid digit for the current ibase\\nbc: runtime error (line 1): invalid digit for the curren\"... (180 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-halt",
+    "tags": [
+      "quit",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1\\n\" obtido \"1\\n2\\n\"",
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:2: error: expected a newline, found 'a'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-file-q",
+    "tags": [
+      "file"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"144\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"error: unexpected argument '-q' found\\n\\n  tip: to pass '-q' as a value, use '-- -q'\\n\\nUsage: bc [OPTIONS] [FILES]...\\n\\nFor \"... (152 bytes)",
+      "exit: esperado Some(0)/None obtido Some(2)/None"
+    ]
+  },
+  {
+    "id": "bc-file-then-stdin",
+    "tags": [
+      "file"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"42\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"bc: lib.bc:1:15: error: expected a newline after '{', found 'return'\\nbc: runtime error (line 1): undefined function\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-missing-file",
+    "tags": [
+      "file",
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": true,
+    "detail": [
+      "stderr: esperado \"File nope.bc is unavailable.\\n\" obtido \"bc: nope.bc: No such file or directory\\n\""
+    ]
+  },
+  {
+    "id": "bc-comments",
+    "tags": [
+      "gnu-ext"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:1: error: illegal character '#'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-scale-60",
+    "tags": [
+      "scale"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \".142857142857142857142857142857142857142857142857142857142857\\n\" obtido \"0.142857142857142857142857142857142857142857142857142857142857\\n\""
+    ]
+  },
+  {
+    "id": "bc-scale-100-wrap",
+    "tags": [
+      "scale",
+      "wrap"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \".1428571428571428571428571428571428571428571428571428571428571428571\\\\\\n428571428571428571428571428571428\\n\" obtido \"0.142857142857142857142857142857142857142857142857142857142857142857\\\\\\n1428571428571428571428571428571428\\n\""
+    ]
+  },
+  {
+    "id": "bc-negative-base-pow",
+    "tags": [
+      "arith"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"-8\\n-.5000000000\\n\" obtido \"-8\\n-0.5000000000\\n\""
+    ]
+  },
+  {
+    "id": "bc-standard-mode",
+    "tags": [
+      "error",
+      "gnu-ext"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"(standard_in) 2: Error: print statement\\n\" obtido \"error: unexpected argument '-s' found\\n\\n  tip: to pass '-s' as a value, use '-- -s'\\n\\nUsage: bc [OPTIONS] [FILES]...\\n\\nFor \"... (152 bytes)",
+      "exit: esperado Some(0)/None obtido Some(2)/None"
+    ]
+  },
+  {
+    "id": "bc-warn-mode",
+    "tags": [
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"y\\n\" obtido \"\"",
+      "stderr: esperado \"(standard_in) 1: (Warning) print statement\\n\" obtido \"error: unexpected argument '-w' found\\n\\n  tip: to pass '-w' as a value, use '-- -w'\\n\\nUsage: bc [OPTIONS] [FILES]...\\n\\nFor \"... (152 bytes)",
+      "exit: esperado Some(0)/None obtido Some(2)/None"
+    ]
+  },
+  {
+    "id": "bc-void-function",
+    "tags": [
+      "define",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"v\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"bc: (standard_in):1:9: error: expected '(' after a function name, found 'o'\\nbc: runtime error (line 1): undefined functi\"... (123 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-crlf-input",
+    "tags": [
+      "format",
+      "error"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"\" obtido \"2\\n4\\n\"",
+      "stderr: esperado \"(standard_in) 1: illegal character: ^M\\n(standard_in) 2: illegal character: ^M\\n\" obtido \"\""
+    ]
+  },
+  {
+    "id": "up-atan-to-scale-17",
+    "tags": [
+      "upstream",
+      "mathlib"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \".19739555984988075\\n.54041950027058415\\n.78539816339744830\\n.95054684081207514\\n.95054684081207514\\n1.06369782240255966\\n\" obtido \"0.19739555984988075\\n0.54041950027058415\\n0.78539816339744830\\n0.95054684081207514\\n0.95054684081207514\\n1.06369782240255966\\n\""
+    ]
+  },
+  {
+    "id": "up-cos-to-scale-18",
+    "tags": [
+      "upstream",
+      "mathlib"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \".877582561890372716\\n.540302305868139717\\n.070737201667702910\\n-.416146836547142386\\n-.801143615546933714\\n-.9899924966004454\"... (123 bytes) obtido \"0.877582561890372716\\n0.540302305868139717\\n0.070737201667702910\\n-0.416146836547142386\\n-0.801143615546933714\\n-0.9899924966\"... (129 bytes)"
+    ]
+  },
+  {
+    "id": "up-div",
+    "tags": [
+      "upstream",
+      "arith",
+      "scale"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1\\n.5\\n0\\n0\\n10\\n.5000000000\\n2.0000000000\\n2.0000000000\\n.1728900000\\n5.0184858406\\n\" obtido \"1\\n0.5\\n0\\n0\\n10\\n0.5000000000\\n2.0000000000\\n2.0000000000\\n0.1728900000\\n5.0184858406\\n\""
+    ]
+  },
+  {
+    "id": "up-ln-to-scale-17",
+    "tags": [
+      "upstream",
+      "mathlib"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"-1.60943791243410037\\n-.51082562376599068\\n.69314718055994530\\n2.70716314111414067\\n4.86930895201907172\\n7.17234881324178779\\n\" obtido \"-1.60943791243410037\\n-0.51082562376599068\\n0.69314718055994530\\n2.70716314111414067\\n4.86930895201907172\\n7.1723488132417877\"... (122 bytes)"
+    ]
+  },
+  {
+    "id": "up-multiline-numbers",
+    "tags": [
+      "upstream",
+      "format"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"12\\n123456\\n.345\\n.456\\n\" obtido \"12\\n123456\\n0.345\\n0.456\\n\""
+    ]
+  },
+  {
+    "id": "up-output-base-14",
+    "tags": [
+      "upstream",
+      "base"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0\\n1\\n8B.B0B\\n.B09B\\n\" obtido \"0\\n1\\n8B.B0B\\n0.B09B\\n\""
+    ]
+  },
+  {
+    "id": "up-pow",
+    "tags": [
+      "upstream",
+      "arith",
+      "scale"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"3\\n1024.000\\n4\\n1024.0000\\n3\\n2.000\\n0\\n0\\n0\\n0\\n2\\n.50\\n.5000000000\\n.2500000000\\n.0111994624\\n2\\n4\\n148.184\\n10000000000\\n1\\n0\\n1\\n1\\n\" obtido \"3\\n1024.000\\n4\\n1024.0000\\n3\\n2.000\\n0\\n0\\n0\\n0\\n2\\n0.50\\n0.5000000000\\n0.2500000000\\n0.0111994624\\n2\\n4\\n148.184\\n10000000000\\n1\\n0\\n1\\n1\\n\""
+    ]
+  },
+  {
+    "id": "up-read-base-10",
+    "tags": [
+      "upstream",
+      "base"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0\\n1\\n130\\n.234\\n.388\\n2011.0367\\n-3478.89\\n\" obtido \"0\\n1\\n130\\n0.234\\n0.388\\n2011.0367\\n-3478.89\\n\""
+    ]
+  },
+  {
+    "id": "up-sin-to-scale-18",
+    "tags": [
+      "upstream",
+      "mathlib"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \".479425538604203000\\n.841470984807896506\\n.997494986604054430\\n.909297426825681695\\n.598472144103956494\\n.141120008059867222\\n\" obtido \"0.479425538604203000\\n0.841470984807896506\\n0.997494986604054430\\n0.909297426825681695\\n0.598472144103956494\\n0.1411200080598\"... (126 bytes)"
+    ]
+  },
+  {
+    "id": "up-sqrt",
+    "tags": [
+      "upstream",
+      "arith",
+      "scale"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0\\n0\\n0\\n1\\n0\\n1\\n10\\n1.4142135623\\n5\\n1.41421\\n0\\n2\\n2\\n.50\\n\" obtido \"0\\n0\\n0\\n1\\n0\\n1\\n10\\n1.4142135623\\n5\\n1.41421\\n0\\n2\\n2\\n0.50\\n\""
+    ]
+  }
+]

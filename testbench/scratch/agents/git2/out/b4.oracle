@@ -1,0 +1,180 @@
+branch 'behind' set up to track 'origin/dev'.
+branch 'same' set up to track 'origin/main'.
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "origin"]
+	url = /nonexistent
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[branch "ahead2"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "behind"]
+	remote = origin
+	merge = refs/heads/main
+[branch "gone1"]
+	remote = origin
+	merge = refs/heads/zzz
+[branch "same"]
+	remote = origin
+	merge = refs/heads/main
+$ git branch -vv
+  ahead2 110d11a [origin/dev: ahead 2] add c
+  behind 1d512c3 [origin/main: behind 1] add a
+  gone1  110d11a [origin/zzz: gone] add c
+* main   110d11a [origin/main: ahead 1] add c
+  other  1d512c3 add a
+  same   f742ed7 [origin/main] add b
+[exit=0]
+$ git branch -v
+  ahead2 110d11a [ahead 2] add c
+  behind 1d512c3 [behind 1] add a
+  gone1  110d11a [gone] add c
+* main   110d11a [ahead 1] add c
+  other  1d512c3 add a
+  same   f742ed7 add b
+[exit=0]
+$ git branch -t t1 origin/dev
+branch 't1' set up to track 'origin/dev'.
+[exit=0]
+$ git branch --track t2 origin/dev
+branch 't2' set up to track 'origin/dev'.
+[exit=0]
+$ git branch --track=inherit t3 origin/dev
+warning: asked to inherit tracking from 'refs/remotes/origin/dev', but no remote is set
+[exit=0]
+$ git branch --no-track t4 origin/dev
+[exit=0]
+$ git branch --set-upstream-to=origin/dev other
+branch 'other' set up to track 'origin/dev'.
+[exit=0]
+$ git branch -u origin/main other
+branch 'other' set up to track 'origin/main'.
+[exit=0]
+$ git branch -u main other
+branch 'other' set up to track 'main'.
+[exit=0]
+$ git branch --unset-upstream other
+[exit=0]
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "origin"]
+	url = /nonexistent
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[branch "ahead2"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "behind"]
+	remote = origin
+	merge = refs/heads/main
+[branch "gone1"]
+	remote = origin
+	merge = refs/heads/zzz
+[branch "same"]
+	remote = origin
+	merge = refs/heads/main
+[branch "t1"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "t2"]
+	remote = origin
+	merge = refs/heads/dev
+$ git branch -u origin/dev
+branch 'main' set up to track 'origin/dev'.
+[exit=0]
+$ git branch -u origin/dev nonexist
+fatal: branch 'nonexist' does not exist
+[exit=128]
+$ git checkout -b t5 origin/dev
+Switched to a new branch 't5'
+branch 't5' set up to track 'origin/dev'.
+[exit=0]
+$ git checkout -b t6 --no-track origin/dev
+Switched to a new branch 't6'
+[exit=0]
+$ git switch -c t7 origin/dev
+Switched to a new branch 't7'
+branch 't7' set up to track 'origin/dev'.
+[exit=0]
+$ git switch -c t8 -t main
+Switched to a new branch 't8'
+branch 't8' set up to track 'main'.
+[exit=0]
+$ git switch t5
+Switched to branch 't5'
+Your branch is up to date with 'origin/dev'.
+[exit=0]
+$ git switch main
+Switched to branch 'main'
+Your branch is ahead of 'origin/dev' by 2 commits.
+  (use "git push" to publish your local commits)
+[exit=0]
+$ git branch t9 main
+branch 't9' set up to track 'main'.
+[exit=0]
+$ git branch t10 origin/main
+branch 't10' set up to track 'origin/main'.
+[exit=0]
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "origin"]
+	url = /nonexistent
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "ahead2"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "behind"]
+	remote = origin
+	merge = refs/heads/main
+[branch "gone1"]
+	remote = origin
+	merge = refs/heads/zzz
+[branch "same"]
+	remote = origin
+	merge = refs/heads/main
+[branch "t1"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "t2"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "t5"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "t7"]
+	remote = origin
+	merge = refs/heads/dev
+[branch "t8"]
+	remote = .
+	merge = refs/heads/main
+[branch]
+	autoSetupMerge = always
+[branch "t9"]
+	remote = .
+	merge = refs/heads/main
+[branch "t10"]
+	remote = origin
+	merge = refs/heads/main
+$ git branch -d t1
+Deleted branch t1 (was 1d512c3).
+[exit=0]
+$ git branch -vv --list ahead*
+  ahead2 110d11a [origin/dev: ahead 2] add c
+[exit=0]

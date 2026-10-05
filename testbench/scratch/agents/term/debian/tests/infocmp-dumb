@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+export TERMINFO=/usr/share/terminfo
+
+echo "Checking if infocmp works as expected ..."
+diff -u - <(infocmp dumb) <<'EOF'
+#	Reconstructed via infocmp from file: /usr/share/terminfo/d/dumb
+dumb|80-column dumb tty,
+	am,
+	cols#80,
+	bel=^G, cr=\r, cud1=\n, ind=\n,
+EOF
+
+diff -u - <(infocmp -C dumb) <<'EOF'
+#	Reconstructed via infocmp from file: /usr/share/terminfo/d/dumb
+dumb|80-column dumb tty:\
+	:am:\
+	:co#80:\
+	:bl=^G:cr=\r:do=\n:sf=\n:
+EOF

@@ -1,0 +1,44 @@
+3c3
+<      1      0    26.0 KiB       106 KiB  4.083  XXH64  s.txt.zst
+---
+>      1      0    26.1 KiB       106 KiB  4.069  XXH64  s.txt.zst
+7c7
+<      3      0    26.1 KiB       106 KiB  4.078  XXH64  3 files
+---
+>      3      0    26.2 KiB       106 KiB  4.064  XXH64  3 files
+15c15
+< Compressed Size: 26.0 KiB (26672 B)
+---
+> Compressed Size: 26.1 KiB (26761 B)
+17c17
+< Ratio: 4.0827
+---
+> Ratio: 4.0691
+32c32
+<      2      0    26.1 KiB       106 KiB  4.080  XXH64  m.zst
+---
+>      2      0    26.2 KiB       106 KiB  4.066  XXH64  m.zst
+43c43
+< Compressed Size: 26.1 KiB (26691 B)
+---
+> Compressed Size: 26.2 KiB (26780 B)
+45c45
+< Ratio: 4.0800
+---
+> Ratio: 4.0665
+105c105
+<      1      0    26.0 KiB       106 KiB  4.083  XXH64  big.zst
+---
+>      1      0    26.1 KiB       106 KiB  4.069  XXH64  big.zst
+228c228
+<   2 files compressed : 24.51% (   106 KiB =>   26.1 KiB)
+---
+>   2 files compressed : 24.59% (   106 KiB =>   26.2 KiB)
+239c239
+< 26904
+---
+> 26993
+241c241
+< 515
+---
+> 516

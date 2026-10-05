@@ -1,0 +1,33 @@
+error: Terminal is dumb, but EDITOR unset
+== x
+Agent <agent@example.com> 1768478580 +0000	branch: Created from main
+Agent <agent@example.com> 1768478580 +0000	branch: Reset to HEAD~1
+Agent <agent@example.com> 1768478580 +0000	branch: Reset to main
+== y
+Agent <agent@example.com> 1768478580 +0000	branch: Created from main
+== z
+Agent <agent@example.com> 1768478580 +0000	branch: Created from HEAD
+== w
+Agent <agent@example.com> 1768478580 +0000	branch: Created from HEAD
+== nb
+Agent <agent@example.com> 1768478580 +0000	branch: Created from HEAD~1
+== nb2
+Agent <agent@example.com> 1768478580 +0000	branch: Created from HEAD
+== zz
+Agent <agent@example.com> 1768478580 +0000	branch: Created from HEAD~1
+== dd
+Agent <agent@example.com> 1768478580 +0000	branch: Created from HEAD
+== fromdet
+Agent <agent@example.com> 1768478580 +0000	branch: Created from HEAD
+== HEAD
+Agent <agent@example.com> 1768478460 +0000	commit (initial): add a
+Agent <agent@example.com> 1768478520 +0000	commit: add b
+Agent <agent@example.com> 1768478580 +0000	commit: add c
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from main to z
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from z to w
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from w to main
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from main to x
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from x to nb
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from nb to nb2
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from nb2 to HEAD
+Agent <agent@example.com> 1768478580 +0000	checkout: moving from f742ed745a17b3d948e9fe299ddc31076bd22cc5 to fromdet

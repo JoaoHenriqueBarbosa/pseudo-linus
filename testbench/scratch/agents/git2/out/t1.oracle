@@ -1,0 +1,386 @@
+$ git tag
+[out]
+[err]
+[exit=0]
+$ git tag v1
+[out]
+[err]
+[exit=0]
+$ git tag
+[out]
+v1
+[err]
+[exit=0]
+$ git tag v1
+[out]
+[err]
+fatal: tag 'v1' already exists
+[exit=128]
+$ git tag -f v1 HEAD~1
+[out]
+Updated tag 'v1' (was 110d11a)
+[err]
+[exit=0]
+$ git tag -f v1b HEAD~1
+[out]
+[err]
+[exit=0]
+$ git tag v2 HEAD~2
+[out]
+[err]
+[exit=0]
+$ git tag -l
+[out]
+v1
+v1b
+v2
+[err]
+[exit=0]
+$ git tag --list v*
+[out]
+v1
+v1b
+v2
+[err]
+[exit=0]
+$ git tag -l v[12]
+[out]
+v1
+v2
+[err]
+[exit=0]
+$ git tag -l v1 v2
+[out]
+v1
+v2
+[err]
+[exit=0]
+$ git tag -d v1b
+[out]
+Deleted tag 'v1b' (was f742ed7)
+[err]
+[exit=0]
+$ git tag -d v1b
+[out]
+[err]
+error: tag 'v1b' not found.
+[exit=1]
+$ git tag -d v1 v2 nonexist
+[out]
+Deleted tag 'v1' (was f742ed7)
+Deleted tag 'v2' (was 1d512c3)
+[err]
+error: tag 'nonexist' not found.
+[exit=1]
+$ git tag -a va -m annotated msg
+[out]
+[err]
+[exit=0]
+$ git tag -a vb -m line1 -m line2
+[out]
+[err]
+[exit=0]
+$ git tag -m implies annotate vc
+[out]
+[err]
+[exit=0]
+$ git tag -a vd
+[out]
+[err]
+error: Terminal is dumb, but EDITOR unset
+Please supply the message using either -m or -F option.
+[exit=1]
+$ git tag -a
+[out]
+[err]
+usage: git tag [-a | -s | -u <key-id>] [-f] [-m <msg> | -F <file>] [-e]
+               [(--trailer <token>[(=|:)<value>])...]
+               <tagname> [<commit> | <object>]
+   or: git tag -d <tagname>...
+   or: git tag [-n[<num>]] -l [--contains <commit>] [--no-contains <commit>]
+               [--points-at <object>] [--column[=<options>] | --no-column]
+               [--create-reflog] [--sort=<key>] [--format=<format>]
+               [--merged <commit>] [--no-merged <commit>] [<pattern>...]
+   or: git tag -v [--format=<format>] <tagname>...
+
+    -l, --list            list tag names
+    -n[<n>]               print <n> lines of each tag message
+    -d, --delete          delete tags
+    -v, --verify          verify tags
+
+Tag creation options
+    -a, --[no-]annotate   annotated tag, needs a message
+    -m, --message <message>
+                          tag message
+    -F, --[no-]file <file>
+                          read message from file
+    --trailer <trailer>   add custom trailer(s)
+    -e, --[no-]edit       force edit of tag message
+    -s, --[no-]sign       annotated and GPG-signed tag
+    --[no-]cleanup <mode> how to strip spaces and #comments from message
+    -u, --[no-]local-user <key-id>
+                          use another key to sign the tag
+    -f, --[no-]force      replace the tag if exists
+    --[no-]create-reflog  create a reflog
+
+Tag listing options
+    --[no-]column[=<style>]
+                          show tag list in columns
+    --contains <commit>   print only tags that contain the commit
+    --no-contains <commit>
+                          print only tags that don't contain the commit
+    --merged <commit>     print only tags that are merged
+    --no-merged <commit>  print only tags that are not merged
+    --[no-]omit-empty     do not output a newline after empty formatted refs
+    --[no-]sort <key>     field name to sort on
+    --[no-]points-at <object>
+                          print only tags of the object
+    --[no-]format <format>
+                          format to use for the output
+    --[no-]color[=<when>] respect format colors
+    -i, --[no-]ignore-case
+                          sorting and filtering are case insensitive
+
+[exit=129]
+$ git tag -n
+[out]
+va              annotated msg
+vb              line1
+vc              implies annotate
+[err]
+[exit=0]
+$ git tag -n1
+[out]
+va              annotated msg
+vb              line1
+vc              implies annotate
+[err]
+[exit=0]
+$ git tag -n3 -l v*
+[out]
+va              annotated msg
+vb              line1
+    
+    line2
+vc              implies annotate
+[err]
+[exit=0]
+$ git tag -l -n2
+[out]
+va              annotated msg
+vb              line1
+    
+vc              implies annotate
+[err]
+[exit=0]
+145a40d987cb265ce0a65c33efa108d5789c5375
+object 110d11a6f83207f06077f9d00b2fd73dfee2056b
+type commit
+tag va
+tagger Agent <agent@example.com> 1768478580 +0000
+
+annotated msg
+tag
+object 110d11a6f83207f06077f9d00b2fd73dfee2056b
+type commit
+tag vb
+tagger Agent <agent@example.com> 1768478580 +0000
+
+line1
+
+line2
+object 110d11a6f83207f06077f9d00b2fd73dfee2056b
+type commit
+tag vc
+tagger Agent <agent@example.com> 1768478580 +0000
+
+implies annotate
+145a40d987cb265ce0a65c33efa108d5789c5375 refs/tags/va
+7db7eb5124e81f26cea8636e416007d3fb5b9f83 refs/tags/vb
+5fed7cd93334df61d06889c32a8271fd811c0ab9 refs/tags/vc
+$ git tag -a vf -F -
+[out]
+[err]
+[exit=0]
+$ git tag -a ve -F msg.txt
+[out]
+[err]
+[exit=0]
+object 110d11a6f83207f06077f9d00b2fd73dfee2056b
+type commit
+tag ve
+tagger Agent <agent@example.com> 1768478580 +0000
+
+from file
+
+body
+$ git tag --contains HEAD~1
+[out]
+va
+vb
+vc
+ve
+vf
+[err]
+[exit=0]
+$ git tag --contains HEAD
+[out]
+va
+vb
+vc
+ve
+vf
+[err]
+[exit=0]
+$ git tag --merged HEAD
+[out]
+va
+vb
+vc
+ve
+vf
+[err]
+[exit=0]
+$ git tag --no-merged HEAD
+[out]
+[err]
+[exit=0]
+$ git tag --points-at HEAD
+[out]
+va
+vb
+vc
+ve
+vf
+[err]
+[exit=0]
+$ git tag --sort=-refname
+[out]
+vf
+ve
+vc
+vb
+va
+[err]
+[exit=0]
+$ git tag --sort=creatordate
+[out]
+va
+vb
+vc
+ve
+vf
+[err]
+[exit=0]
+$ git tag --format=%(refname:short) %(objecttype) %(subject)
+[out]
+va tag annotated msg
+vb tag line1
+vc tag implies annotate
+ve tag from file
+vf tag 
+[err]
+[exit=0]
+$ git tag bad name
+[out]
+[err]
+fatal: 'bad name' is not a valid tag name.
+[exit=128]
+$ git tag bad..name
+[out]
+[err]
+fatal: 'bad..name' is not a valid tag name.
+[exit=128]
+$ git tag HEAD
+[out]
+[err]
+[exit=0]
+$ git tag -a -f va -m forced
+[out]
+Updated tag 'va' (was 145a40d)
+[err]
+warning: refname 'HEAD' is ambiguous.
+[exit=0]
+$ git tag -a va -m again
+[out]
+[err]
+warning: refname 'HEAD' is ambiguous.
+fatal: tag 'va' already exists
+[exit=128]
+$ git tag v9 nonexist
+[out]
+[err]
+fatal: Failed to resolve 'nonexist' as a valid ref.
+[exit=128]
+$ git tag v10 HEAD extra
+[out]
+[err]
+fatal: too many arguments
+[exit=128]
+$ git tag -d
+[out]
+[err]
+[exit=0]
+$ git tag --delete va
+[out]
+Deleted tag 'va' (was 156d507)
+[err]
+[exit=0]
+$ git tag -l -d
+[out]
+[err]
+error: options '-d' and '-l' cannot be used together
+[exit=129]
+$ git tag -a -m  empty
+[out]
+[err]
+warning: refname 'HEAD' is ambiguous.
+[exit=0]
+$ git tag -a -m     blank
+[out]
+[err]
+warning: refname 'HEAD' is ambiguous.
+[exit=0]
+$ git tag -a -m msg dup HEAD~1
+[out]
+[err]
+warning: refname 'HEAD' is ambiguous.
+[exit=0]
+$ git tag -v dup
+[out]
+object f742ed745a17b3d948e9fe299ddc31076bd22cc5
+type commit
+tag dup
+tagger Agent <agent@example.com> 1768478580 +0000
+
+msg
+[err]
+error: no signature found
+[exit=1]
+$ git tag -s foo -m x
+[out]
+[err]
+warning: refname 'HEAD' is ambiguous.
+error: cannot run gpg: No such file or directory
+error: gpg failed to sign the data:
+(no gpg output)
+error: unable to sign the tag
+The tag message has been left in .git/TAG_EDITMSG
+[exit=128]
+HEAD
+blank
+dup
+empty
+vb
+vc
+ve
+vf
+cat: .git/logs/refs/tags/v1: No such file or directory
+$ git tag --create-reflog rl
+[out]
+[err]
+warning: refname 'HEAD' is ambiguous.
+[exit=0]
+rl
+fatal: Failed to resolve 'va' as a valid ref.
+fatal: Not a valid object name tt

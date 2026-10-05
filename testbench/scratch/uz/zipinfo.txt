@@ -1,0 +1,45 @@
+zipinfo t1.zip
+unzip -Z t1.zip
+unzip -Z1 t1.zip
+unzip -Z2 t1.zip
+zipinfo -s t1.zip
+zipinfo -m t1.zip
+zipinfo -l t1.zip
+zipinfo -h t1.zip
+zipinfo -t t1.zip
+zipinfo -T t1.zip
+zipinfo -M t1.zip
+zipinfo -z t1.zip
+zipinfo -v t1.zip
+zipinfo -v stored.zip
+zipinfo -v nox.zip
+zipinfo -v bz.zip
+zipinfo -v enc.zip
+zipinfo -v fast.zip
+zipinfo -v best.zip
+zipinfo -v names.zip
+zipinfo names.zip
+zipinfo -1 names.zip
+zipinfo empty.zip
+zipinfo -v empty.zip
+zipinfo pre.zip
+zipinfo -v pre.zip
+zipinfo trunc.zip
+zipinfo trunc2.zip
+zipinfo -v trunc2.zip
+zipinfo notzip.zip
+zipinfo t1.zip a.txt
+zipinfo t1.zip 'sub/*'
+zipinfo t1.zip nope
+zipinfo t1.zip -x a.txt
+zipinfo -2 t1.zip -x 'sub/*' a.txt
+zipinfo -l stored.zip
+zipinfo -m bz.zip enc.zip
+zipinfo '*.zip'
+zipinfo -h -t t1.zip
+zipinfo -2ht t1.zip
+zipinfo -U names.zip
+zipinfo -UU names.zip
+zipinfo
+zipinfo -x
+unzip -Z -v t1.zip a.txt

@@ -1,0 +1,17 @@
+$ git commit -m
+[out]
+[err]
+error: switch `m' requires a value
+[exit=129]
+$ git mv
+[out]
+[err]
+usage: git mv [<options>] <source>... <destination>
+
+    -v, --[no-]verbose    be verbose
+    -n, --[no-]dry-run    dry run
+    -f, --[no-]force      force move/rename even if target exists
+    -k                    skip move/rename errors
+    --[no-]sparse         allow updating entries outside of the sparse-checkout cone
+
+[exit=129]

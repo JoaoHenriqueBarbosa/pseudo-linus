@@ -1,0 +1,194 @@
+git: 'remote' is not a git command. See 'git --help'.
+
+The most similar command is
+	remote
+== -b tracking streams
+$ git checkout -b t5 origin/dev
+[out]
+[err]
+Switched to a new branch 't5'
+[exit=0]
+$ git checkout main
+[out]
+[err]
+Switched to branch 'main'
+[exit=0]
+$ git switch -c t6 origin/dev
+[out]
+[err]
+Switched to a new branch 't6'
+[exit=0]
+$ git switch t5
+[out]
+[err]
+Switched to branch 't5'
+[exit=0]
+$ git checkout t5
+[out]
+[err]
+Already on 't5'
+[exit=0]
+$ git checkout --track origin/dev
+[out]
+[err]
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+$ git checkout --track -b zz origin/dev
+[out]
+[err]
+fatal: cannot set up tracking information; starting point 'origin/dev' is not a branch
+[exit=128]
+== guess
+$ git checkout guessme
+[out]
+[err]
+fatal: cannot set up tracking information; starting point 'origin/guessme' is not a branch
+[exit=128]
+$ git branch -vv
+[out]
+  main 110d11a add c
+* t5   f742ed7 add b
+  t6   f742ed7 add b
+[err]
+[exit=0]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+$ git switch guessme2
+[out]
+[err]
+fatal: invalid reference: guessme2
+[exit=128]
+$ git switch g2
+[out]
+D	b.txt
+[err]
+fatal: cannot set up tracking information; starting point 'origin/g2' is not a branch
+[exit=128]
+$ git checkout --no-guess g2
+[out]
+[err]
+error: pathspec 'g2' did not match any file(s) known to git
+[exit=1]
+$ git checkout -
+[out]
+D	b.txt
+[err]
+Already on 'main'
+[exit=0]
+== orphan
+$ git checkout --orphan newroot
+[out]
+[err]
+Switched to a new branch 'newroot'
+[exit=0]
+A  a.txt
+A  c.txt
+fatal: your current branch 'newroot' does not have any commits yet
+$ git checkout main
+[out]
+[err]
+Switched to branch 'main'
+[exit=0]
+== unborn
+$ git checkout -b first
+[out]
+[err]
+Switched to a new branch 'first'
+[exit=0]
+$ git checkout main
+[out]
+[err]
+error: pathspec 'main' did not match any file(s) known to git
+[exit=1]
+$ git switch -c second
+[out]
+[err]
+Switched to a new branch 'second'
+[exit=0]
+$ git checkout --detach
+[out]
+[err]
+fatal: You are on a branch yet to be born
+[exit=128]
+$ git branch
+[out]
+[err]
+[exit=0]
+$ git reset
+[out]
+[err]
+[exit=0]
+$ git reset --hard
+[out]
+[err]
+[exit=0]
+$ git reset --soft
+[out]
+[err]
+[exit=0]
+$ git tag t1
+[out]
+[err]
+fatal: Failed to resolve 'HEAD' as a valid ref.
+[exit=128]
+$ git branch x
+[out]
+[err]
+fatal: not a valid object name: 'second'
+[exit=128]
+$ git checkout x
+[out]
+[err]
+error: pathspec 'x' did not match any file(s) known to git
+[exit=1]
+$ git switch x
+[out]
+[err]
+fatal: invalid reference: x
+[exit=128]
+$ git reset
+[out]
+[err]
+[exit=0]
+$ git reset f
+[out]
+[err]
+[exit=0]
+?? f
+$ git rm --cached f
+[out]
+[err]
+fatal: pathspec 'f' did not match any files
+[exit=128]
+$ git rm -f f
+[out]
+[err]
+fatal: pathspec 'f' did not match any files
+[exit=128]
+== unmerged
+$ git merge side
+[out]
+[err]
+git: 'merge' is not a git command. See 'git --help'.
+
+The most similar commands are
+	merge
+	mergetool
+[exit=1]
+$ git checkout side
+[out]
+[err]
+Switched to branch 'side'
+[exit=0]
+$ git switch side
+[out]
+[err]
+Already on 'side'
+[exit=0]
+$ git checkout -f side
+[out]
+[err]
+Already on 'side'
+[exit=0]

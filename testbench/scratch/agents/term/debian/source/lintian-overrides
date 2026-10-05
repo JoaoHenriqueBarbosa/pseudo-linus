@@ -1,0 +1,2 @@
+# Silence overzealousness, see https://bugs.debian.org/1019980
+ncurses source: source-is-missing [doc/html/ada/*]

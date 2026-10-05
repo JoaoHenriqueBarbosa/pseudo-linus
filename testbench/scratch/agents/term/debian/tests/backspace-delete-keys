@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+export TERMINFO=/usr/share/terminfo
+
+echo "Checking if terminfo entries have expected backspace key definitions ..."
+for term in Eterm linux rxvt screen tmux xterm ; do
+    infocmp $term | grep -F -q 'kbs=^?'
+done
+
+echo "Checking if terminfo entries have expected delete key definitions ..."
+for term in Eterm linux rxvt screen tmux vt220 xterm ; do
+    infocmp $term | grep -F -q 'kdch1=\E[3~'
+done

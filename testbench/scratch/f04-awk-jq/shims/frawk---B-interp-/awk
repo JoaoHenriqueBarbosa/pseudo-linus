@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /home/john/projects/pseudo-linus/testbench/scratch/f04-awk-jq/tools/frawk/bin/frawk -B interp "$@"

@@ -1,0 +1,45 @@
+=== unzip
+51b10cb2e460923416ba2a4126e9a822  -
+rc=0
+=== unzip -h
+51b10cb2e460923416ba2a4126e9a822  -
+rc=0
+=== unzip -hh
+99efc2db076145789cd092b69019ed6e  -
+rc=0
+=== unzip -v
+30272c041a89d14ad1e2133d2efad6c7  -
+rc=0
+=== unzip -q
+51b10cb2e460923416ba2a4126e9a822  -
+rc=10
+=== unzip -Z
+15c52291b4ab21200255fa5ac8df979a  -
+rc=0
+=== unzip -Z -h
+15c52291b4ab21200255fa5ac8df979a  -
+rc=0
+=== unzip -vqqqq
+412009a52065c979bb390cf7defec31c  -
+rc=0
+=== unzip -d
+11c18d0f4a2abda9e5211c1b48233b8c  -
+rc=10
+=== unzip -x z.zip
+c427623e1103280dc428f18c365b8b22  -
+rc=9
+=== unzip -cu z.zip
+12e59476fb167b3906d925791e44e089  -
+rc=10
+=== unzip -no z.zip
+99151c59a11312da27d27bea553020f5  -
+rc=9
+=== unzip -k z.zip
+51b10cb2e460923416ba2a4126e9a822  -
+rc=10
+=== unzip -a -Z
+fcd34e903f51cd36f9552d864a5ba135  -
+rc=10
+=== UNZIP='-o "a b"' unzip -v
+57d30e7ea33b121070ca82880c156a08  -
+rc=9

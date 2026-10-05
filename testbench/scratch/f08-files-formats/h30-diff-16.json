@@ -1,0 +1,385 @@
+[
+  {
+    "id": "diff-tie-insert-in-run",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"3a4\\n> x\\n\" obtido \"3a4,4\\n> x\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-blank-lines-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-moved-block-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,5 +1,5 @@\\n-m1\\n-m2\\n k1\\n\"... (136 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,5 +1,3 @@\\n-m1\\n-m2\\n k1\\n\"... (152 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-swap-two",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1d0\\n< first\\n2a2\\n> first\\n\" obtido \"1,1d0\\n< first\\n2a2,2\\n> first\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-interleaved",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2d1\\n< 2\\n3a3\\n> 2\\n5d4\\n< 5\\n6a6\\n> 5\\n\" obtido \"2,2d1\\n< 2\\n3a3,3\\n> 2\\n5,5d4\\n< 5\\n6a6,6\\n> 5\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-duplicate-anchor",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2d1\\n< X\\n\" obtido \"2,2d1\\n< X\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-abab-baba",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1d0\\n< a\\n4a4\\n> a\\n\" obtido \"1,1d0\\n< a\\n4a4,4\\n> a\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-abc-cab-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n-a\\n\"... (135 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,6 @@\\n-a\\n-b\\n c\\n+b\\n\"... (135 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-python-return",
+    "tags": [
+      "ties",
+      "unified",
+      "code"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.py\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.py\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -4,10 +4,12 @@\\n     value =\"... (373 bytes) obtido \"--- a.py\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.py\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -4,6 +4,8 @@\\n     value = v\"... (389 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-markdown-list",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"4,4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-shell-script-u2",
+    "tags": [
+      "ties",
+      "unified",
+      "code"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.sh\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.sh\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,7 +1,8 @@\\n #!/bin/sh\\n-se\"... (194 bytes) obtido \"--- a.sh\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.sh\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,4 +1,4 @@\\n #!/bin/sh\\n-se\"... (210 bytes)"
+    ]
+  },
+  {
+    "id": "diff-nonl-c",
+    "tags": [
+      "nonl",
+      "context"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"*** a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n--- b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n***************\\n*** 1,2 ****\"... (182 bytes) obtido \"*** a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n--- b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n***************\\n*** 1,2 ****\"... (182 bytes)"
+    ]
+  },
+  {
+    "id": "diff-i-ignore-case",
+    "tags": [
+      "ignore"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado",
+    "detail": [
+      "unsupported: uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-i-ignore-case-u",
+    "tags": [
+      "ignore",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Unified(3) não suportado",
+    "detail": [
+      "unsupported: uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Unified(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-w-ignore-all-space",
+    "tags": [
+      "ignore"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado",
+    "detail": [
+      "unsupported: uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-b-ignore-space-change-u",
+    "tags": [
+      "ignore",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Unified(3) não suportado",
+    "detail": [
+      "unsupported: uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Unified(3) não suportado"
+    ]
+  },
+  {
+    "id": "diff-B-ignore-blank-lines",
+    "tags": [
+      "ignore"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado",
+    "detail": [
+      "unsupported: uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo Normal não suportado"
+    ]
+  },
+  {
+    "id": "diff-y-side-by-side",
+    "tags": [
+      "side-by-side"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"apple\\t\\t\\tapple\\nbanana\\t\\t   |\\tblueberry\\ncherry\\t\\t\\tcherry\\ndate\\t\\t   |\\telderberry\\n\" obtido \"apple\\t\\t   apple\\nbanana\\t\\t <\\n\\t\\t >\\tblueberry\\ncherry\\t\\t   cherry\\ndate\\t\\t <\\n\\t\\t >\\telderberry\\n\""
+    ]
+  },
+  {
+    "id": "diff-y-suppress-common",
+    "tags": [
+      "side-by-side"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo SideBySide { width: 40, suppress_common: true } não suportado",
+    "detail": [
+      "unsupported: uutils diffutils formatadores próprios (normal/unified/context/ed/side-by-side): estilo SideBySide { width: 40, suppress_common: true } não suportado"
+    ]
+  },
+  {
+    "id": "diff-normal-add",
+    "tags": [
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2a3\\n> two and a half\\n3a5\\n> four\\n\" obtido \"2a3,3\\n> two and a half\\n3a5,5\\n> four\\n\""
+    ]
+  },
+  {
+    "id": "diff-normal-delete",
+    "tags": [
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1d0\\n< zero\\n3d1\\n< two\\n5d2\\n< four\\n\" obtido \"1,1d0\\n< zero\\n3,3d1\\n< two\\n5,5d2\\n< four\\n\""
+    ]
+  },
+  {
+    "id": "diff-normal-mixed",
+    "tags": [
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2c2,3\\n< beta\\n---\\n> BETA\\n> BETA2\\n4d4\\n< delta\\n6a7\\n> new\\n8d8\\n< theta\\n\" obtido \"2c2,3\\n< beta\\n---\\n> BETA\\n> BETA2\\n4,4d4\\n< delta\\n6a7,7\\n> new\\n8,8d8\\n< theta\\n\""
+    ]
+  },
+  {
+    "id": "diff-u-gap-six-merges",
+    "tags": [
+      "unified",
+      "hunks"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,14 +2,14 @@\\n l02\\n l03\\n\"... (190 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -2,7 +2,7 @@\\n l02\\n l03\\n l\"... (204 bytes)"
+    ]
+  },
+  {
+    "id": "diff-e-ed-script",
+    "tags": [
+      "ed"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"4a\\nfive\\n.\\n2c\\nTWO\\n.\\n\" obtido \"2c\\nTWO\\n.\\n4a\\nfive\\n.\\n\""
+    ]
+  }
+]

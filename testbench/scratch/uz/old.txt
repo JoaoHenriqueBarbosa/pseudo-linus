@@ -1,0 +1,37 @@
+unzip -t imp_lit8k.zip
+unzip -t imp_lit4k.zip
+unzip -t imp_nolit4k.zip
+unzip -t imp_nolit8k.zip
+unzip -t shr.zip
+unzip -t shr_clear.zip
+unzip -t shr_kwk.zip
+unzip -tq old_mix.zip
+unzip -p imp_lit8k.zip | md5sum
+unzip -p imp_nolit4k.zip | md5sum
+unzip -p shr_clear.zip | md5sum
+unzip -p shr_kwk.zip | md5sum
+rm -rf o; unzip -d o old_mix.zip; md5sum o/*
+unzip -v old_mix.zip
+unzip -Z old_mix.zip
+unzip -a -p imp_lit4k.zip | head -3
+unzip -c shr_kwk.zip | head -c 300
+unzip -t bad_imp_pad.zip
+unzip -tq bad_imp_pad.zip
+unzip -p bad_imp_pad.zip | md5sum
+rm -rf o; unzip -d o bad_imp_pad.zip; ls -l o
+unzip -t bad_imp_trunc.zip
+unzip -tq bad_imp_trunc.zip
+rm -rf o; unzip -d o bad_imp_trunc.zip; ls -l o
+unzip -t bad_imp_tree.zip
+unzip -tq bad_imp_tree.zip
+unzip -t bad_imp_flip.zip
+unzip -p bad_imp_flip.zip | md5sum
+unzip -t bad_shr_trunc.zip
+unzip -p bad_shr_trunc.zip | md5sum
+unzip -t bad_shr_flip.zip
+unzip -tq bad_shr_flip.zip
+rm -rf o; unzip -d o bad_shr_flip.zip; ls -l o
+unzip -t bad_shr_bits.zip
+unzip -tq bad_shr_bits.zip
+unzip -t bad_mix.zip
+rm -rf o; unzip -o -d o bad_mix.zip; md5sum o/*

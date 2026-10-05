@@ -1,0 +1,144 @@
+$ git checkout HEAD~1
+Note: switching to 'HEAD~1'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at f742ed7 add b
+[exit=0]
+$ git checkout main
+Previous HEAD position was f742ed7 add b
+Switched to branch 'main'
+[exit=0]
+$ git checkout v1
+Note: switching to 'v1'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at f742ed7 add b
+[exit=0]
+$ git checkout main
+Previous HEAD position was f742ed7 add b
+Switched to branch 'main'
+[exit=0]
+$ git checkout -q v1
+[exit=0]
+$ git checkout main
+Previous HEAD position was f742ed7 add b
+Switched to branch 'main'
+[exit=0]
+$ git switch --detach HEAD~2
+HEAD is now at 1d512c3 add a
+[exit=0]
+$ git switch main
+Previous HEAD position was 1d512c3 add a
+Switched to branch 'main'
+[exit=0]
+$ git switch -d v1
+HEAD is now at f742ed7 add b
+[exit=0]
+$ git switch main
+Previous HEAD position was f742ed7 add b
+Switched to branch 'main'
+[exit=0]
+$ git switch v1
+fatal: a branch is expected, got tag 'v1'
+hint: If you want to detach HEAD at the commit, try again with the --detach option.
+[exit=128]
+$ git switch HEAD~1
+fatal: a branch is expected, got commit 'HEAD~1'
+hint: If you want to detach HEAD at the commit, try again with the --detach option.
+[exit=128]
+$ git switch nonexist
+fatal: invalid reference: nonexist
+[exit=128]
+$ git switch
+fatal: missing branch or commit argument
+[exit=128]
+$ git switch -c
+error: switch `c' requires a value
+[exit=129]
+$ git switch -c x -c y
+Switched to a new branch 'y'
+[exit=0]
+$ git switch main extra
+fatal: only one reference expected
+[exit=128]
+$ git switch -C x
+Switched to a new branch 'x'
+[exit=0]
+$ git switch -C x
+Reset branch 'x'
+[exit=0]
+$ git switch -C y HEAD~1
+Switched to and reset branch 'y'
+[exit=0]
+$ git switch -c x
+fatal: a branch named 'x' already exists
+[exit=128]
+$ git switch -c z HEAD~1
+Switched to a new branch 'z'
+[exit=0]
+$ git switch --orphan o1
+Switched to a new branch 'o1'
+[exit=0]
+$ git status
+On branch o1
+
+$ git switch main
+Switched to branch 'main'
+[exit=0]
+$ git switch -
+fatal: invalid reference: @{-1}
+[exit=128]
+$ git switch -q -
+fatal: invalid reference: @{-1}
+[exit=128]
+$ git switch --guess nonexist
+fatal: invalid reference: nonexist
+[exit=128]
+=== advice off
+$ git checkout HEAD~1
+HEAD is now at f742ed7 add b
+[exit=0]
+=== checkout -b with detached
+$ git checkout -b fromdet
+Switched to a new branch 'fromdet'
+[exit=0]
+=== checkout of commit with files updated
+a.txt
+a.txt
+b.txt
+c.txt
+=== -f
+$ git checkout -f HEAD~2
+HEAD is now at 1d512c3 add a
+[exit=0]
+a
+$ git status --short
+[exit=0]

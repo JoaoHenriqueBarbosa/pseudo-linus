@@ -1,0 +1,250 @@
+$ git commit -m
+[out]
+[err]
+error: switch `m' requires a value
+[exit=129]
+$ git branch -u
+[out]
+[err]
+error: switch `u' requires a value
+[exit=129]
+$ git checkout -b
+[out]
+[err]
+error: switch `b' requires a value
+[exit=129]
+$ git branch --sort
+[out]
+[err]
+error: option `sort' requires a value
+[exit=129]
+$ git branch -t=foo
+[out]
+[err]
+error: option `--track' expects "direct" or "inherit"
+[exit=129]
+$ git branch --contains=foo
+[out]
+[err]
+error: malformed object name foo
+[exit=129]
+$ git tag -m
+[out]
+[err]
+error: switch `m' requires a value
+[exit=129]
+$ git reset --foo
+[out]
+[err]
+error: unknown option `foo'
+usage: git reset [--mixed | --soft | --hard | --merge | --keep] [-q] [<commit>]
+   or: git reset [-q] [<tree-ish>] [--] <pathspec>...
+   or: git reset [-q] [--pathspec-from-file [--pathspec-file-nul]] [<tree-ish>]
+   or: git reset --patch [<tree-ish>] [--] [<pathspec>...]
+
+    -q, --[no-]quiet      be quiet, only report errors
+    --no-refresh          skip refreshing the index after reset
+    --refresh             opposite of --no-refresh
+    --mixed               reset HEAD and index
+    --soft                reset only HEAD
+    --hard                reset HEAD, index and working tree
+    --merge               reset HEAD, index and working tree
+    --keep                reset HEAD but keep local changes
+    --[no-]recurse-submodules[=<reset>]
+                          control recursive updating of submodules
+    -p, --[no-]patch      select hunks interactively
+    -N, --[no-]intent-to-add
+                          record only the fact that removed paths will be added later
+    --[no-]pathspec-from-file <file>
+                          read pathspec from file
+    --[no-]pathspec-file-nul
+                          with --pathspec-from-file, pathspec elements are separated with NUL character
+
+[exit=129]
+$ git rm
+[out]
+[err]
+fatal: No pathspec was given. Which files should I remove?
+[exit=128]
+$ git mv
+[out]
+[err]
+usage: git mv [<options>] <source>... <destination>
+
+    -v, --[no-]verbose    be verbose
+    -n, --[no-]dry-run    dry run
+    -f, --[no-]force      force move/rename even if target exists
+    -k                    skip move/rename errors
+    --[no-]sparse         allow updating entries outside of the sparse-checkout cone
+
+[exit=129]
+$ git mv a.txt
+[out]
+[err]
+usage: git mv [<options>] <source>... <destination>
+
+    -v, --[no-]verbose    be verbose
+    -n, --[no-]dry-run    dry run
+    -f, --[no-]force      force move/rename even if target exists
+    -k                    skip move/rename errors
+    --[no-]sparse         allow updating entries outside of the sparse-checkout cone
+
+[exit=129]
+$ git tag --foo
+[out]
+[err]
+error: unknown option `foo'
+usage: git tag [-a | -s | -u <key-id>] [-f] [-m <msg> | -F <file>] [-e]
+               [(--trailer <token>[(=|:)<value>])...]
+               <tagname> [<commit> | <object>]
+   or: git tag -d <tagname>...
+   or: git tag [-n[<num>]] -l [--contains <commit>] [--no-contains <commit>]
+               [--points-at <object>] [--column[=<options>] | --no-column]
+               [--create-reflog] [--sort=<key>] [--format=<format>]
+               [--merged <commit>] [--no-merged <commit>] [<pattern>...]
+   or: git tag -v [--format=<format>] <tagname>...
+
+    -l, --list            list tag names
+    -n[<n>]               print <n> lines of each tag message
+    -d, --delete          delete tags
+    -v, --verify          verify tags
+
+Tag creation options
+    -a, --[no-]annotate   annotated tag, needs a message
+    -m, --message <message>
+                          tag message
+    -F, --[no-]file <file>
+                          read message from file
+    --trailer <trailer>   add custom trailer(s)
+    -e, --[no-]edit       force edit of tag message
+    -s, --[no-]sign       annotated and GPG-signed tag
+    --[no-]cleanup <mode> how to strip spaces and #comments from message
+    -u, --[no-]local-user <key-id>
+                          use another key to sign the tag
+    -f, --[no-]force      replace the tag if exists
+    --[no-]create-reflog  create a reflog
+
+Tag listing options
+    --[no-]column[=<style>]
+                          show tag list in columns
+    --contains <commit>   print only tags that contain the commit
+    --no-contains <commit>
+                          print only tags that don't contain the commit
+    --merged <commit>     print only tags that are merged
+    --no-merged <commit>  print only tags that are not merged
+    --[no-]omit-empty     do not output a newline after empty formatted refs
+    --[no-]sort <key>     field name to sort on
+    --[no-]points-at <object>
+                          print only tags of the object
+    --[no-]format <format>
+                          format to use for the output
+    --[no-]color[=<when>] respect format colors
+    -i, --[no-]ignore-case
+                          sorting and filtering are case insensitive
+
+[exit=129]
+$ git rm --foo
+[out]
+[err]
+error: unknown option `foo'
+usage: git rm [-f | --force] [-n] [-r] [--cached] [--ignore-unmatch]
+              [--quiet] [--pathspec-from-file=<file> [--pathspec-file-nul]]
+              [--] [<pathspec>...]
+
+    -n, --[no-]dry-run    dry run
+    -q, --[no-]quiet      do not list removed files
+    --[no-]cached         only remove from the index
+    -f, --[no-]force      override the up-to-date check
+    -r                    allow recursive removal
+    --[no-]ignore-unmatch exit with a zero status even if nothing matched
+    --[no-]sparse         allow updating entries outside of the sparse-checkout cone
+    --[no-]pathspec-from-file <file>
+                          read pathspec from file
+    --[no-]pathspec-file-nul
+                          with --pathspec-from-file, pathspec elements are separated with NUL character
+
+[exit=129]
+$ git mv --foo
+[out]
+[err]
+error: unknown option `foo'
+usage: git mv [<options>] <source>... <destination>
+
+    -v, --[no-]verbose    be verbose
+    -n, --[no-]dry-run    dry run
+    -f, --[no-]force      force move/rename even if target exists
+    -k                    skip move/rename errors
+    --[no-]sparse         allow updating entries outside of the sparse-checkout cone
+
+[exit=129]
+$ git restore
+[out]
+[err]
+fatal: you must specify path(s) to restore
+[exit=128]
+$ git restore --foo
+[out]
+[err]
+error: unknown option `foo'
+usage: git restore [<options>] [--source=<branch>] <file>...
+
+    -s, --[no-]source <tree-ish>
+                          which tree-ish to checkout from
+    -S, --[no-]staged     restore the index
+    -W, --[no-]worktree   restore the working tree (default)
+    --[no-]ignore-unmerged
+                          ignore unmerged entries
+    --[no-]overlay        use overlay mode
+    -q, --[no-]quiet      suppress progress reporting
+    --[no-]recurse-submodules[=<checkout>]
+                          control recursive updating of submodules
+    --[no-]progress       force progress reporting
+    -m, --[no-]merge      perform a 3-way merge with the new branch
+    --[no-]conflict <style>
+                          conflict style (merge, diff3, or zdiff3)
+    -2, --ours            checkout our version for unmerged files
+    -3, --theirs          checkout their version for unmerged files
+    -p, --[no-]patch      select hunks interactively
+    --[no-]ignore-skip-worktree-bits
+                          do not limit pathspecs to sparse entries only
+    --[no-]pathspec-from-file <file>
+                          read pathspec from file
+    --[no-]pathspec-file-nul
+                          with --pathspec-from-file, pathspec elements are separated with NUL character
+
+[exit=129]
+$ git for-each-ref --foo
+[out]
+[err]
+error: unknown option `foo'
+usage: git for-each-ref [<options>] [<pattern>]
+   or: git for-each-ref [--points-at <object>]
+   or: git for-each-ref [--merged [<commit>]] [--no-merged [<commit>]]
+   or: git for-each-ref [--contains [<commit>]] [--no-contains [<commit>]]
+
+    -s, --[no-]shell      quote placeholders suitably for shells
+    -p, --[no-]perl       quote placeholders suitably for perl
+    --[no-]python         quote placeholders suitably for python
+    --[no-]tcl            quote placeholders suitably for Tcl
+    --[no-]omit-empty     do not output a newline after empty formatted refs
+
+    --[no-]count <n>      show only <n> matched refs
+    --[no-]format <format>
+                          format to use for the output
+    --[no-]color[=<when>] respect format colors
+    --[no-]exclude <pattern>
+                          exclude refs which match pattern
+    --[no-]sort <key>     field name to sort on
+    --[no-]points-at <object>
+                          print only refs which points at the given object
+    --merged <commit>     print only refs that are merged
+    --no-merged <commit>  print only refs that are not merged
+    --contains <commit>   print only refs which contain the commit
+    --no-contains <commit>
+                          print only refs which don't contain the commit
+    --[no-]ignore-case    sorting and filtering are case insensitive
+    --[no-]stdin          read reference patterns from stdin
+    --[no-]include-root-refs
+                          also include HEAD ref and pseudorefs
+
+[exit=129]

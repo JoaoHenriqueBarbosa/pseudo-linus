@@ -1,0 +1,98 @@
+[
+  {
+    "id": "diff-tie-blank-lines-u",
+    "tags": [
+      "ties",
+      "unified"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (150 bytes) obtido \"--- a.txt\\t2026-01-15 12:00:00.000000000 +0000\\n+++ b.txt\\t2026-01-15 12:00:00.000000000 +0000\\n@@ -1,6 +1,7 @@\\n para one\\n \\n\"... (158 bytes)"
+    ]
+  },
+  {
+    "id": "diff-tie-swap-two",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1d0\\n< first\\n2a2\\n> first\\n\" obtido \"0a1\\n> second\\n2d2\\n< second\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-reverse",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1,4d0\\n< 1\\n< 2\\n< 3\\n< 4\\n5a2,5\\n> 4\\n> 3\\n> 2\\n> 1\\n\" obtido \"0a1,4\\n> 5\\n> 4\\n> 3\\n> 2\\n2,5d5\\n< 2\\n< 3\\n< 4\\n< 5\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-interleaved",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2d1\\n< 2\\n3a3\\n> 2\\n5d4\\n< 5\\n6a6\\n> 5\\n\" obtido \"1a2\\n> 3\\n3d3\\n< 3\\n4a5\\n> 6\\n6d6\\n< 6\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-abab-baba",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1d0\\n< a\\n4a4\\n> a\\n\" obtido \"0a1\\n> b\\n4d4\\n< b\\n\""
+    ]
+  },
+  {
+    "id": "diff-tie-markdown-list",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"3a4,5\\n> - outro\\n> - item\\n5d6\\n< - outro\\n\""
+    ]
+  }
+]

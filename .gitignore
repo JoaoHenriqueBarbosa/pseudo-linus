@@ -3,6 +3,21 @@
 /testbench/experiments/*/target/
 /testbench/corpus/agent/
 /testbench/corpus/upstream/
-/testbench/scratch/
+# O scratch é versionado (trabalho que só existia nele se perdeu quando uma worktree foi limpa);
+# fica de fora só o que é gerado ou baixado e pesa: alvos de build, binários e caches de experimento,
+# e as fontes de terceiros que se baixam de novo.
+/testbench/scratch/**/target/
+/testbench/scratch/**/*.tar.gz
+/testbench/scratch/**/*.tar.xz
+/testbench/scratch/**/*.tgz
+/testbench/scratch/agents/*/*-[0-9]*/
+/testbench/scratch/f01-regex/mined-golden-*.json
+/testbench/scratch/f04-awk-jq/tools/
+/testbench/scratch/f06-coreutils-find/uu-bin/
+/testbench/scratch/zstd-1.5.7/
+/testbench/scratch/zlibsrc/
+/testbench/scratch/gzsrc/
+/testbench/scratch/infozip/
+/testbench/scratch/gtar/
 *.profraw
 perf.data*

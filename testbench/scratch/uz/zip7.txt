@@ -1,0 +1,6 @@
+seq 1 3000 > a; printf y > b; : > z; seq 1 30000 > c; touch -d '2026-01-15 12:00:00' a b z c; touch -a -d '2030-01-01' a b z c; echo ok
+zip - a b 2>&1 | xxd | grep -c .; zip - a b 2>&1 | xxd | sed -n '1,4p;410,420p'
+zip - z 2>&1 | xxd | head -4
+zip -9 -r < /dev/null 2>&1 | xxd | head -6
+zip - c b 2>&1 | xxd | grep -n 'adding\|defl\|stored'
+zip -Z bzip2 - b 2>&1 | xxd | head -6

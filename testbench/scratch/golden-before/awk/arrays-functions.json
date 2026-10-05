@@ -1,0 +1,194 @@
+{
+  "awk-array-count-for-in-order": {
+    "stdout": "marketing 2\nsupport 1\nsales 1\nengineering 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-array-count-sorted-pipeline": {
+    "stdout": "3 engineering\n2 marketing\n1 sales\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 110,
+        "sha256": "19a2f947afc1bdc266b5f3f1465f95e86de280a9df88b9e0ab1b946e7531a170",
+        "data": "alice 30 engineering\nbob 25 marketing\ncarol 35 engineering\ndave 28 sales\neve 41 marketing\ngina 29 engineering\n"
+      }
+    }
+  },
+  "awk-array-group-sum-sorted": {
+    "stdout": "engineering 183000\nmarketing 52000\nsales 47000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "data.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 97,
+        "sha256": "af62fd7578672ab7e5e77e9b0fdc345b203b3fd527cc3caecd9fe80c4dbc9889",
+        "data": "alice 30 engineering 85000\nbob 25 marketing 52000\ncarol 35 engineering 98000\ndave 28 sales 47000\n"
+      }
+    }
+  },
+  "awk-array-in-delete-length": {
+    "stdout": "0 1 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-array-param-by-reference": {
+    "stdout": "1 16 4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-arrays-of-arrays": {
+    "stdout": "2 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-asort": {
+    "stdout": "1 apple\n2 banana\n3 fig\n4 pear\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-asort-numeric": {
+    "stdout": "3 9 10 100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-asorti": {
+    "stdout": "apple 2\nfig 3\npear 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-delete-whole-array": {
+    "stdout": "0\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-function-locals-convention": {
+    "stdout": "x,y,z\ni=[] s=[]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-function-no-return-value": {
+    "stdout": "[] 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-function-scalar-by-value": {
+    "stdout": "1 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-indirect-function-call": {
+    "stdout": "hi there\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-isarray": {
+    "stdout": "1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-length-array": {
+    "stdout": "2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-multidim-subsep": {
+    "stdout": "1 2 3\n1 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-numeric-string-subscripts": {
+    "stdout": "1 sum\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-recursion-factorial": {
+    "stdout": "3628800 2432902008176640000 15511210043330986055303168\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-recursion-fib": {
+    "stdout": "0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-recursive-array-walk": {
+    "stdout": "15\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-reference-creates-element": {
+    "stdout": "empty\n1 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-sorted-in-ind-str-asc": {
+    "stdout": "apple 2\nbanana 1\nfig 1\npear 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-sorted-in-val-num-desc": {
+    "stdout": "a 35\nb 20\nc 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-transpose-matrix": {
+    "stdout": "1 4\n2 5\n3 6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-typeof": {
+    "stdout": "array number string untyped untyped\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-user-function-max": {
+    "stdout": "17\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "awk-word-frequency-top": {
+    "stdout": "4 the\n2 and\n1 bird\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "text.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "0bdb0f7cacf29ea75016be9fffccdff3feff00e3648c86cb7a30dc6b6561f985",
+        "data": "the cat and the dog and the bird\nThe end\n"
+      }
+    }
+  }
+}

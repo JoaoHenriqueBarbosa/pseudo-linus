@@ -1,0 +1,253 @@
+== mv basic
+$ git mv a.txt z.txt
+[out]
+[err]
+[exit=0]
+R  a.txt -> z.txt
+$ git mv -v b.txt y.txt
+[out]
+Renaming b.txt to y.txt
+[err]
+[exit=0]
+$ git mv nonexist foo
+[out]
+[err]
+fatal: bad source, source=nonexist, destination=foo
+[exit=128]
+$ git mv z.txt c.txt
+[out]
+[err]
+fatal: destination exists, source=z.txt, destination=c.txt
+[exit=128]
+$ git mv -f z.txt c.txt
+[out]
+[err]
+[exit=0]
+D  a.txt
+M  c.txt
+R  b.txt -> y.txt
+$ git mv -n y.txt x.txt
+[out]
+Checking rename of 'y.txt' to 'x.txt'
+Renaming y.txt to x.txt
+[err]
+[exit=0]
+c.txt
+d
+empty
+y.txt
+$ git mv -k nonexist foo
+[out]
+[err]
+[exit=0]
+$ git mv -k nonexist y.txt
+[out]
+[err]
+[exit=0]
+$ git mv y.txt
+[out]
+[err]
+usage: git mv [<options>] <source>... <destination>
+
+    -v, --[no-]verbose    be verbose
+    -n, --[no-]dry-run    dry run
+    -f, --[no-]force      force move/rename even if target exists
+    -k                    skip move/rename errors
+    --[no-]sparse         allow updating entries outside of the sparse-checkout cone
+
+[exit=129]
+$ git mv y.txt y.txt
+[out]
+[err]
+fatal: can not move directory into itself, source=y.txt, destination=y.txt
+[exit=128]
+$ git mv y.txt d
+[out]
+[err]
+[exit=0]
+D  a.txt
+M  c.txt
+R  b.txt -> d/y.txt
+$ git mv d d2
+[out]
+[err]
+[exit=0]
+D  a.txt
+M  c.txt
+R  d/e/f.txt -> d2/e/f.txt
+R  d/g.txt -> d2/g.txt
+R  b.txt -> d2/y.txt
+$ git mv d2 d3
+[out]
+[err]
+[exit=0]
+$ git mv d2/ d3
+[out]
+[err]
+fatal: bad source, source=d2, destination=d3/d2
+[exit=128]
+$ git mv d3 d2
+[out]
+[err]
+[exit=0]
+$ git mv d2 empty
+[out]
+[err]
+[exit=0]
+$ git mv d2/g.txt d2/e/f.txt .
+[out]
+[err]
+fatal: bad source, source=d2/g.txt, destination=g.txt
+[exit=128]
+$ git mv d2/g.txt .
+[out]
+[err]
+fatal: bad source, source=d2/g.txt, destination=g.txt
+[exit=128]
+$ git mv d2/e/f.txt nonexistdir/
+[out]
+[err]
+fatal: bad source, source=d2/e/f.txt, destination=nonexistdir/
+[exit=128]
+$ git mv d2/e/f.txt nonexistdir/f.txt
+[out]
+[err]
+fatal: bad source, source=d2/e/f.txt, destination=nonexistdir/f.txt
+[exit=128]
+$ git mv g.txt nonexistdir/
+[out]
+[err]
+fatal: bad source, source=g.txt, destination=nonexistdir/
+[exit=128]
+$ git mv g.txt nd/
+[out]
+[err]
+fatal: bad source, source=g.txt, destination=nd/g.txt
+[exit=128]
+$ git mv -v g.txt nd/
+[out]
+[err]
+fatal: bad source, source=g.txt, destination=nd/g.txt
+[exit=128]
+D  a.txt
+M  c.txt
+R  d/e/f.txt -> empty/d2/e/f.txt
+R  d/g.txt -> empty/d2/g.txt
+R  b.txt -> empty/d2/y.txt
+$ git mv u.txt nd/
+[out]
+[err]
+fatal: not under version control, source=u.txt, destination=nd/u.txt
+[exit=128]
+$ git mv c.txt u.txt
+[out]
+[err]
+fatal: destination exists, source=c.txt, destination=u.txt
+[exit=128]
+== mv over existing untracked
+$ git mv c.txt q.txt
+[out]
+[err]
+fatal: destination exists, source=c.txt, destination=q.txt
+[exit=128]
+$ git mv -f c.txt q.txt
+[out]
+[err]
+[exit=0]
+D  c.txt
+R  d/e/f.txt -> empty/d2/e/f.txt
+R  d/g.txt -> empty/d2/g.txt
+R  b.txt -> empty/d2/y.txt
+R  a.txt -> q.txt
+?? u.txt
+== mv multiple to dir
+$ git mv nd/g.txt y.txt tgt
+[out]
+[err]
+fatal: bad source, source=nd/g.txt, destination=tgt/g.txt
+[exit=128]
+D  c.txt
+R  d/e/f.txt -> empty/d2/e/f.txt
+R  d/g.txt -> empty/d2/g.txt
+R  b.txt -> empty/d2/y.txt
+R  a.txt -> q.txt
+?? u.txt
+$ git mv tgt/g.txt tgt/y.txt nonexistdir
+[out]
+[err]
+fatal: destination 'nonexistdir' is not a directory
+[exit=128]
+$ git mv tgt nd
+[out]
+[err]
+fatal: source directory is empty, source=tgt, destination=nd/tgt
+[exit=128]
+D  c.txt
+R  d/e/f.txt -> empty/d2/e/f.txt
+R  d/g.txt -> empty/d2/g.txt
+R  b.txt -> empty/d2/y.txt
+R  a.txt -> q.txt
+?? u.txt
+== mv in subdir
+$ git mv tgt ../tgt2
+[out]
+[err]
+fatal: bad source, source=nd/tgt, destination=tgt2
+[exit=128]
+D  c.txt
+R  d/e/f.txt -> empty/d2/e/f.txt
+R  d/g.txt -> empty/d2/g.txt
+R  b.txt -> empty/d2/y.txt
+R  a.txt -> q.txt
+?? u.txt
+== mv modified file
+bash: line 67: tgt2/g.txt: No such file or directory
+$ git mv tgt2/g.txt g2.txt
+[out]
+[err]
+fatal: bad source, source=tgt2/g.txt, destination=g2.txt
+[exit=128]
+D  c.txt
+R  d/e/f.txt -> empty/d2/e/f.txt
+R  d/g.txt -> empty/d2/g.txt
+R  b.txt -> empty/d2/y.txt
+R  a.txt -> q.txt
+?? u.txt
+== mv symlink and exec
+$ git mv l1 l2
+[out]
+[err]
+[exit=0]
+== mv into itself
+$ git mv d2 d2/sub
+[out]
+[err]
+fatal: bad source, source=d2, destination=d2/sub
+[exit=128]
+$ git mv -k d2 d2/sub
+[out]
+[err]
+[exit=0]
+== mv case dir
+$ git mv nd/ nd2
+[out]
+[err]
+fatal: source directory is empty, source=nd, destination=nd2
+[exit=128]
+D  c.txt
+R  d/e/f.txt -> empty/d2/e/f.txt
+R  d/g.txt -> empty/d2/g.txt
+R  b.txt -> empty/d2/y.txt
+A  l2
+R  a.txt -> q.txt
+?? u.txt
+$ git mv . x
+[out]
+[err]
+fatal: bad source, source=, destination=x
+[exit=128]
+$ git mv nd2/* tgt2
+[out]
+[err]
+fatal: bad source, source=nd2/*, destination=tgt2
+[exit=128]

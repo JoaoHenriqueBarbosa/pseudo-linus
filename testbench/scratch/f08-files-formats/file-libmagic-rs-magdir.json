@@ -1,0 +1,632 @@
+[
+  {
+    "id": "file-gif",
+    "tags": [
+      "image",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"anim.gif: GIF image data, version 87a, 2 x 2\\n\" obtido \"anim.gif: GIF image data 2 x 2\\n\""
+    ]
+  },
+  {
+    "id": "file-random-mime",
+    "tags": [
+      "binary",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"random.bin: application/octet-stream\\n\" obtido \"random.bin: (sem MIME)\\n\""
+    ]
+  },
+  {
+    "id": "file-random-i",
+    "tags": [
+      "binary",
+      "mime-charset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"random.bin: application/octet-stream; charset=binary\\n\" obtido \"random.bin: (sem MIME); charset=binary\\n\""
+    ]
+  },
+  {
+    "id": "file-gzip-z",
+    "tags": [
+      "compressed",
+      "describe",
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": false,
+    "files_ok": false,
+    "strict": false,
+    "lenient": false,
+    "unsupported": "opção não suportada: -z",
+    "detail": [
+      "unsupported: opção não suportada: -z"
+    ]
+  },
+  {
+    "id": "file-zstd",
+    "tags": [
+      "compressed",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.zst: Zstandard compressed data (v0.8+), Dictionary ID: None\\n\" obtido \"a.zst: Zstandard compressed data (v0.8+), Dictionary ID: None, Dictionary ID: None\\n\""
+    ]
+  },
+  {
+    "id": "file-zstd-mime",
+    "tags": [
+      "compressed",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.zst: application/zstd\\n\" obtido \"a.zst: (sem MIME)\\n\""
+    ]
+  },
+  {
+    "id": "file-lzip-mime",
+    "tags": [
+      "compressed",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.lz: application/x-lzip\\n\" obtido \"a.lz: application/zip\\n\""
+    ]
+  },
+  {
+    "id": "file-tar",
+    "tags": [
+      "archive",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.tar: POSIX tar archive\\n\" obtido \"a.tar: data\\n\""
+    ]
+  },
+  {
+    "id": "file-tar-mime",
+    "tags": [
+      "archive",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.tar: application/x-tar\\n\" obtido \"a.tar: (sem MIME)\\n\""
+    ]
+  },
+  {
+    "id": "file-zip",
+    "tags": [
+      "archive",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompresse\"... (147 bytes) obtido \"a.zip: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, uncompressed size 240, method=deflate\\n\""
+    ]
+  },
+  {
+    "id": "file-zip-brief",
+    "tags": [
+      "archive",
+      "describe",
+      "brief"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jan 15 2026 12:00:00, uncompressed size \"... (140 bytes) obtido \"Zip archive data, made by v3.0 UNIX, extract using at least v2.0, uncompressed size 240, method=deflate\\n\""
+    ]
+  },
+  {
+    "id": "file-multi",
+    "tags": [
+      "special",
+      "describe",
+      "multi"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.txt:     ASCII text\\nimage.png: PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\\ndata.json: JSON text data\\nsub: \"... (136 bytes) obtido \"a.txt:     ASCII text\\nimage.png: PNG image data, 4 x 3, 8-bit/color RGBA, non-interlaced\\ndata.json: ASCII text\\nsub:     \"... (132 bytes)"
+    ]
+  },
+  {
+    "id": "file-multi-mime",
+    "tags": [
+      "special",
+      "mime",
+      "multi"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"a.txt:     text/plain\\nimage.png: image/png\\ndata.json: application/json\\nsub:       inode/directory\\n\" obtido \"a.txt:     text/plain\\nimage.png: image/png\\ndata.json: text/plain\\nsub:       inode/directory\\n\""
+    ]
+  },
+  {
+    "id": "file-stdin-mime",
+    "tags": [
+      "special",
+      "mime",
+      "stdin"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"/dev/stdin: application/json\\n\" obtido \"/dev/stdin: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-utf8",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"utf8.txt: Unicode text, UTF-8 text\\n\" obtido \"utf8.txt: UTF-8 Unicode text\\n\""
+    ]
+  },
+  {
+    "id": "file-crlf",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"crlf.txt: ASCII text, with CRLF line terminators\\n\" obtido \"crlf.txt: ASCII text\\n\""
+    ]
+  },
+  {
+    "id": "file-cr-only",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"cr.txt: ASCII text, with CR line terminators\\n\" obtido \"cr.txt: ASCII text\\n\""
+    ]
+  },
+  {
+    "id": "file-no-newline",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"nonl.txt: ASCII text, with no line terminators\\n\" obtido \"nonl.txt: ASCII text\\n\""
+    ]
+  },
+  {
+    "id": "file-long-lines",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"long.txt: ASCII text, with very long lines (361)\\n\" obtido \"long.txt: ASCII text\\n\""
+    ]
+  },
+  {
+    "id": "file-latin1",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"latin1.txt: ISO-8859 text\\n\" obtido \"latin1.txt: data\\n\""
+    ]
+  },
+  {
+    "id": "file-latin1-i",
+    "tags": [
+      "text",
+      "mime-charset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"latin1.txt: text/plain; charset=iso-8859-1\\n\" obtido \"latin1.txt: (sem MIME); charset=iso-8859-1\\n\""
+    ]
+  },
+  {
+    "id": "file-utf8-bom",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"bom.txt: Unicode text, UTF-8 (with BOM) text\\n\" obtido \"bom.txt: UTF-8 Unicode text\\n\""
+    ]
+  },
+  {
+    "id": "file-utf16le-bom",
+    "tags": [
+      "text",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"utf16.txt: Unicode text, UTF-16, little-endian text\\n\" obtido \"utf16.txt: data\\n\""
+    ]
+  },
+  {
+    "id": "file-utf16le-bom-i",
+    "tags": [
+      "text",
+      "mime-charset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"utf16.txt: text/plain; charset=utf-16le\\n\" obtido \"utf16.txt: (sem MIME); charset=utf-16le\\n\""
+    ]
+  },
+  {
+    "id": "file-script-bash",
+    "tags": [
+      "script",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"run.sh: Bourne-Again shell script, ASCII text executable\\n\" obtido \"run.sh: Bourne-Again shell script text executable\\n\""
+    ]
+  },
+  {
+    "id": "file-script-bash-mime",
+    "tags": [
+      "script",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"run.sh: text/x-shellscript\\n\" obtido \"run.sh: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-script-python",
+    "tags": [
+      "script",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"tool.py: Python script, ASCII text executable\\n\" obtido \"tool.py: a /usr/bin/env python3 script text executable\\n\""
+    ]
+  },
+  {
+    "id": "file-script-python-mime",
+    "tags": [
+      "script",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"tool.py: text/x-script.python\\n\" obtido \"tool.py: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-script-sh",
+    "tags": [
+      "script",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"posix: POSIX shell script, ASCII text executable\\n\" obtido \"posix: POSIX shell script text executable\\n\""
+    ]
+  },
+  {
+    "id": "file-script-sh-mime",
+    "tags": [
+      "script",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"posix: text/x-shellscript\\n\" obtido \"posix: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-c-source",
+    "tags": [
+      "source",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"main.c: C source, ASCII text\\n\" obtido \"main.c: C source text\\n\""
+    ]
+  },
+  {
+    "id": "file-c-source-mime",
+    "tags": [
+      "source",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"main.c: text/x-c\\n\" obtido \"main.c: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-json",
+    "tags": [
+      "structured",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"data.json: JSON text data\\n\" obtido \"data.json: ASCII text\\n\""
+    ]
+  },
+  {
+    "id": "file-json-mime",
+    "tags": [
+      "structured",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"data.json: application/json\\n\" obtido \"data.json: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-json-i",
+    "tags": [
+      "structured",
+      "mime-charset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"data.json: application/json; charset=us-ascii\\n\" obtido \"data.json: text/plain; charset=us-ascii\\n\""
+    ]
+  },
+  {
+    "id": "file-xml",
+    "tags": [
+      "structured",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"doc.xml: XML 1.0 document, ASCII text\\n\" obtido \"doc.xml: XML 1.0 document text\\n\""
+    ]
+  },
+  {
+    "id": "file-xml-mime",
+    "tags": [
+      "structured",
+      "mime"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"doc.xml: text/xml\\n\" obtido \"doc.xml: text/plain\\n\""
+    ]
+  },
+  {
+    "id": "file-html",
+    "tags": [
+      "structured",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"page.html: HTML document, ASCII text\\n\" obtido \"page.html: HTML document text\\n\""
+    ]
+  },
+  {
+    "id": "file-pdf",
+    "tags": [
+      "document",
+      "describe"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"doc.pdf: PDF document, version 1.4, 1 page(s)\\n\" obtido \"doc.pdf: PDF document, version 1.4\\n\""
+    ]
+  }
+]

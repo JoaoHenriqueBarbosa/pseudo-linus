@@ -1,0 +1,4 @@
+usr/lib/${DEB_HOST_MULTIARCH}/libncurses.so usr/lib/${DEB_HOST_MULTIARCH}/libcurses.so
+usr/lib/${DEB_HOST_MULTIARCH}/libncurses.a usr/lib/${DEB_HOST_MULTIARCH}/libcurses.a
+usr/lib/${DEB_HOST_MULTIARCH}/libtinfo.so usr/lib/${DEB_HOST_MULTIARCH}/libtermcap.so
+usr/lib/${DEB_HOST_MULTIARCH}/libtinfo.a usr/lib/${DEB_HOST_MULTIARCH}/libtermcap.a

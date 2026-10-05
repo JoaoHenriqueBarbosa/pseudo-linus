@@ -1,0 +1,18 @@
+[
+  {
+    "id": "diff-tie-markdown-list",
+    "tags": [
+      "ties",
+      "normal"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"4d3\\n< - item\\n5a5,6\\n> - item\\n> - item\\n\" obtido \"4d3\\n< - item\\n6a6,7\\n> - item\\n> - item\\n\""
+    ]
+  }
+]

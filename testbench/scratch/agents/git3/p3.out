@@ -1,0 +1,208 @@
+$ git revert HEAD
+[out]
+[main 3e6b073] Revert "add g"
+ Date: Thu Jan 15 12:06:00 2026 +0000
+ 1 file changed, 1 deletion(-)
+ delete mode 100644 g.txt
+[err]
+[exit=0]
+Revert "add g"
+
+This reverts commit 1115bfa565d89e580df40d661cf7671d38267dde.
+
+3e6b073 Agent Revert "add g"
+1115bfa Agent add g
+7952e23 Agent change f
+AUTO_MERGE
+3e6b073 HEAD@{0}: revert: Revert "add g"
+1115bfa HEAD@{1}: commit: add g
+--- revert the revert
+$ git revert HEAD
+[out]
+[main 9c5b4d0] Reapply "add g"
+ Date: Thu Jan 15 12:06:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 g.txt
+[err]
+[exit=0]
+Reapply "add g"
+
+This reverts commit 3e6b07322d0349b1f3d8324e1583cb4736a6220a.
+
+--- -n
+$ git revert -n HEAD~2
+[out]
+[err]
+[exit=0]
+D  g.txt
+AUTO_MERGE
+MERGE_MSG
+REVERT_HEAD
+Revert "add g"
+
+This reverts commit 1115bfa565d89e580df40d661cf7671d38267dde.
+--- revert with conflict
+$ git revert HEAD~3
+[out]
+[main 85c9b60] Revert "add g"
+ Date: Thu Jan 15 12:07:00 2026 +0000
+ 1 file changed, 1 deletion(-)
+ delete mode 100644 g.txt
+[err]
+[exit=0]
+l1
+l2 other
+l3
+AUTO_MERGE
+ORIG_HEAD
+cat: .git/MERGE_MSG: No such file or directory
+On branch main
+nothing to commit, working tree clean
+$ git revert --continue
+[out]
+[err]
+error: no cherry-pick or revert in progress
+fatal: revert failed
+[exit=128]
+$ git revert --skip
+[out]
+[err]
+error: no revert in progress
+fatal: revert failed
+[exit=128]
+On branch main
+nothing to commit, working tree clean
+$ git revert --abort
+[out]
+[err]
+error: no cherry-pick or revert in progress
+fatal: revert failed
+[exit=128]
+--- revert multiple
+85c9b60 Revert "add g"
+4d1d725 other edit
+9c5b4d0 Reapply "add g"
+$ git revert HEAD HEAD~1
+[out]
+[main bc9ee66] Reapply "add g"
+ Date: Thu Jan 15 12:07:00 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 g.txt
+[main a39176b] Revert "other edit"
+ Date: Thu Jan 15 12:07:00 2026 +0000
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[err]
+[exit=0]
+Revert "other edit"
+Reapply "add g"
+Revert "add g"
+--- revert -x / -m / edit / signoff / --no-commit multiple
+$ git revert --no-edit -s HEAD
+[out]
+[main 48864da] Reapply "other edit"
+ Date: Thu Jan 15 12:07:00 2026 +0000
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[err]
+[exit=0]
+Reapply "other edit"
+
+This reverts commit a39176b8bfddbebc484de8265c4c52d1df301612.
+
+Signed-off-by: Agent <agent@example.com>
+
+$ git revert -x HEAD
+[out]
+[err]
+usage: git revert [--[no-]edit] [-n] [-m <parent-number>] [-s] [-S[<keyid>]] <commit>...
+   or: git revert (--continue | --skip | --abort | --quit)
+
+    --quit                end revert or cherry-pick sequence
+    --continue            resume revert or cherry-pick sequence
+    --abort               cancel revert or cherry-pick sequence
+    --skip                skip current commit and continue
+    --[no-]cleanup <mode> how to strip spaces and #comments from message
+    -n, --no-commit       don't automatically commit
+    --commit              opposite of --no-commit
+    -e, --[no-]edit       edit the commit message
+    -s, --[no-]signoff    add a Signed-off-by trailer
+    -m, --[no-]mainline <parent-number>
+                          select mainline parent
+    --[no-]rerere-autoupdate
+                          update the index with reused conflict resolution if possible
+    --[no-]strategy <strategy>
+                          merge strategy
+    -X, --[no-]strategy-option <option>
+                          option for merge strategy
+    -S, --[no-]gpg-sign[=<key-id>]
+                          GPG sign commit
+    --[no-]reference      use the 'reference' format to refer to commits
+
+[exit=129]
+$ git revert
+[out]
+[err]
+usage: git revert [--[no-]edit] [-n] [-m <parent-number>] [-s] [-S[<keyid>]] <commit>...
+   or: git revert (--continue | --skip | --abort | --quit)
+
+    --quit                end revert or cherry-pick sequence
+    --continue            resume revert or cherry-pick sequence
+    --abort               cancel revert or cherry-pick sequence
+    --skip                skip current commit and continue
+    --[no-]cleanup <mode> how to strip spaces and #comments from message
+    -n, --no-commit       don't automatically commit
+    --commit              opposite of --no-commit
+    -e, --[no-]edit       edit the commit message
+    -s, --[no-]signoff    add a Signed-off-by trailer
+    -m, --[no-]mainline <parent-number>
+                          select mainline parent
+    --[no-]rerere-autoupdate
+                          update the index with reused conflict resolution if possible
+    --[no-]strategy <strategy>
+                          merge strategy
+    -X, --[no-]strategy-option <option>
+                          option for merge strategy
+    -S, --[no-]gpg-sign[=<key-id>]
+                          GPG sign commit
+    --[no-]reference      use the 'reference' format to refer to commits
+
+[exit=129]
+$ git revert nope
+[out]
+[err]
+fatal: bad revision 'nope'
+[exit=128]
+$ git revert --continue
+[out]
+[err]
+error: no cherry-pick or revert in progress
+fatal: revert failed
+[exit=128]
+$ git revert --skip
+[out]
+[err]
+error: no revert in progress
+fatal: revert failed
+[exit=128]
+$ git revert --quit
+[out]
+[err]
+[exit=0]
+$ git revert -e HEAD
+[out]
+[err]
+error: Terminal is dumb, but EDITOR unset
+Please supply the message using either -m or -F option.
+[exit=1]
+$ git revert --reference HEAD
+[out]
+[err]
+error: your local changes would be overwritten by revert.
+hint: commit your changes or stash them to proceed.
+fatal: revert failed
+[exit=128]
+Reapply "other edit"
+
+This reverts commit a39176b8bfddbebc484de8265c4c52d1df301612.
+
+Signed-off-by: Agent <agent@example.com>
+

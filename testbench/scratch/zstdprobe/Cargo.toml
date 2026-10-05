@@ -1,0 +1,9 @@
+[package]
+name = "zstdprobe"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+structured-zstd = "0.0.58"
+
+[workspace]

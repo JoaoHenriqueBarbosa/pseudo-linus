@@ -1,0 +1,1677 @@
+{
+  "bashkit-grep": [
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"grep: nope.txt: io error: file not found\\n\"",
+        "stderr: esperado \"grep: nope.txt: No such file or directory\\n\" obtido \"\"",
+        "exit: esperado Some(2)/None obtido Some(1)/None"
+      ],
+      "id": "missing-file-exit-2"
+    },
+    {
+      "detail": [
+        "exit: esperado Some(2)/None obtido Some(1)/None"
+      ],
+      "id": "missing-file-suppressed"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"app.log:ERROR db down\\n\" obtido \"grep: nope.txt: io error: file not found\\nERROR db down\\n\"",
+        "stderr: esperado \"grep: nope.txt: No such file or directory\\n\" obtido \"\"",
+        "exit: esperado Some(2)/None obtido Some(0)/None"
+      ],
+      "id": "missing-and-match"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2:b\\n3:ab\\n\" obtido \"grep: -: io error: file not found\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "stdin-dash"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"input:b\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: unrecognized option '--label=input'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "stdin-label"
+    },
+    {
+      "detail": [
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "files-without-match-none"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1\\n22\\n\" obtido \"\\n1\\n22\\n\\n\\n\\n\\n\""
+      ],
+      "id": "only-matching-empty-matches"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"abcd\\nab\\n\" obtido \"ab\\nab\\n\""
+      ],
+      "id": "only-matching-longest"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:2:foo\\n1:6:foo\\n3:14:foo\\n\" obtido \"2:1:foo\\n6:1:foo\\n14:3:foo\\n\""
+      ],
+      "id": "only-matching-line-byte"
+    },
+    {
+      "detail": [
+        "unsupported: bashkit: execution error: grep: missing pattern"
+      ],
+      "id": "pattern-file-empty"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2\\nx3\\n4\\n--\\n6\\nx7\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- '1'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "context-numeric-shorthand"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a.txt:x1\\na.txt-2\\n--\\nb.txt:x1\\n\" obtido \"a.txt:x1\\na.txt-2\\nb.txt:x1\\n\""
+      ],
+      "id": "context-multi-file"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"src/lib/mod.rs:// TODO: mod\\nsrc/main.rs:// TODO: main\\n\" obtido \"/work/case/src/lib/mod.rs:// TODO: mod\\n/work/case/src/main.rs:// TODO: main\\n\""
+      ],
+      "id": "recursive-dir"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a.txt:2:needle\\nsub/b.txt:1:needle here\\n\" obtido \"\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "recursive-default-dot"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"./docs/notes.md\\n./src/main.rs\\n\" obtido \"/work/case/./docs/notes.md\\n/work/case/./src/main.rs\\n\""
+      ],
+      "id": "recursive-list-files"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"./build.rs:1:fn build() {}\\n./src/main.rs:1:fn main() {}\\n\" obtido \"/work/case/./build.rs:1:fn build() {}\\n/work/case/./src/main.rs:1:fn main() {}\\n\""
+      ],
+      "id": "recursive-include"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"./a.txt:x\\n\" obtido \"/work/case/./a.txt:x\\n\""
+      ],
+      "id": "recursive-exclude"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"./src/a.rs:1:x\\n\" obtido \"/work/case/./src/a.rs:1:x\\n\""
+      ],
+      "id": "recursive-exclude-dir"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"d/a:2\\nd/b:0\\n\" obtido \"/work/case/d/a:2\\n/work/case/d/b:0\\n\""
+      ],
+      "id": "recursive-count"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"d/a.txt:secret a\\n\" obtido \"/work/case/d/a.txt:secret a\\n\""
+      ],
+      "id": "recursive-skips-symlink"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"d/a.txt:secret a\\nd/link.txt:secret outside\\n\" obtido \"/work/case/d/a.txt:secret a\\n\""
+      ],
+      "id": "recursive-follow-symlink"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"grep: src: io error: is a directory\\n\"",
+        "stderr: esperado \"grep: src: Is a directory\\n\" obtido \"\"",
+        "exit: esperado Some(2)/None obtido Some(1)/None"
+      ],
+      "id": "directory-without-r"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"f.txt:x here\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- 'd'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "directory-skip"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"Binary file data.bin matches\\n\"",
+        "stderr: esperado \"grep: data.bin: binary file matches\\n\" obtido \"\""
+      ],
+      "id": "binary-file-matches"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"foo\\0\\u{1}bar\\n\" obtido \"foo\\u{1}bar\\n\""
+      ],
+      "id": "binary-as-text"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"t.txt:foo text\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: unrecognized option '--binary-files=without-match'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "binary-without-match-option"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"d/t.txt:foo text\\n\" obtido \"/work/case/d/t.txt:foo text\\nBinary file /work/case/d/data.bin matches\\n\"",
+        "stderr: esperado \"grep: d/data.bin: binary file matches\\n\" obtido \"\""
+      ],
+      "id": "binary-in-recursive"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"caf�\\n\"",
+        "stderr: esperado \"grep: latin1.txt: binary file matches\\n\" obtido \"\""
+      ],
+      "id": "invalid-utf8-is-binary"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1\\n\" obtido \"2\\n\""
+      ],
+      "id": "crlf-lines"
+    },
+    {
+      "detail": [
+        "unsupported: bashkit: execution error: grep: invalid pattern: regex parse error:\n    (\n    ^\nerror: unclosed group"
+      ],
+      "id": "invalid-regex-paren"
+    },
+    {
+      "detail": [
+        "unsupported: bashkit: execution error: grep: invalid pattern: regex parse error:\n    [abc\n    ^\nerror: unclosed character class"
+      ],
+      "id": "invalid-regex-bracket"
+    },
+    {
+      "detail": [
+        "unsupported: bashkit: execution error: grep: invalid pattern: regex parse error:\n    (a)\\2\n       ^^\nerror: backreferences are not supported"
+      ],
+      "id": "invalid-regex-backref"
+    },
+    {
+      "detail": [
+        "unsupported: bashkit: execution error: grep: missing pattern"
+      ],
+      "id": "missing-pattern"
+    },
+    {
+      "detail": [
+        "unsupported: bashkit: execution error: grep: invalid pattern: regex parse error:\n    (ab)\\1\n        ^^\nerror: backreferences are not supported"
+      ],
+      "id": "backref-bre"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"src/lib.rs:1:pub fn alpha() {}\\nsrc/lib.rs:2:fn beta() {}\\nsrc/lib.rs:3:    fn gamma() {}\\n\" obtido \"/work/case/src/lib.rs:1:pub fn alpha() {}\\n/work/case/src/lib.rs:2:fn beta() {}\\n/work/case/src/lib.rs:3:    fn gamma() {}\"... (121 bytes)"
+      ],
+      "id": "rust-fn-defs"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"abc\\nab\\n\" obtido \"ab\\nab\\n\""
+      ],
+      "id": "only-matching-multiple-patterns"
+    },
+    {
+      "detail": [
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "files-without-match-exit"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:\\tax\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- 'T'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "initial-tab"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:wA\\n1:wB\\n2:wC\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- '3'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "foad1-053"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:wA\\n5:wB\\n9:wC\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- '3'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "foad1-056"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:w\\n5:w\\n9:w\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- '3'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "foad1-059"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"(standard input):wA\\n(standard input):wB\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- '3'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "foad1-062"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"(standard input):wA wB\\n\" obtido \"wA wB\\n\""
+      ],
+      "id": "foad1-069"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"y\\n\" obtido \"\\ny\\n\\n\""
+      ],
+      "id": "foad1-109"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n13:120:[M13 yes]\\n14:130:[N14 yes]\\n\" obtido \"20:3:[C03 yes]\\n30:4:[D04 yes]\\n40:5:[E05 yes]\\n70:8:[H08 yes]\\n80:9:[I09 yes]\\n120:13:[M13 yes]\\n130:14:[N14 yes]\\n\""
+      ],
+      "id": "yesno-065"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\" obtido \"25:3:yes\\n35:4:yes\\n45:5:yes\\n75:8:yes\\n85:9:yes\\n125:13:yes\\n135:14:yes\\n\""
+      ],
+      "id": "yesno-066"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes) obtido \"10-2-[B02 no ]\\n20:3:[C03 yes]\\n30:4:[D04 yes]\\n40:5:[E05 yes]\\n50-6-[F06 no ]\\n60-7-[G07 no ]\\n70:8:[H08 yes]\\n80:9:[I09 yes]\\n\""
+      ],
+      "id": "yesno-067"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n14:135:yes\\n\" obtido \"25:3:yes\\n35:4:yes\\n45:5:yes\\n75:8:yes\\n85:9:yes\\n125:13:yes\\n135:14:yes\\n\""
+      ],
+      "id": "yesno-068"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\nXYZ\\n13:125:yes\\n14:135:yes\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: unrecognized option '--group=XYZ'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-069"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: unrecognized option '--no-gr'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-070"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- '1'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-071"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (191 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: unrecognized option '--group=XYZ'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-072"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (187 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: unrecognized option '--no-gr'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-073"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n8:70:[H08 yes]\\n\" obtido \"20:3:[C03 yes]\\n30:4:[D04 yes]\\n40:5:[E05 yes]\\n70:8:[H08 yes]\\n\""
+      ],
+      "id": "yesno-074"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n\" obtido \"25:3:yes\\n35:4:yes\\n45:5:yes\\n75:8:yes\\n\""
+      ],
+      "id": "yesno-075"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9-80-[I09 yes]\\n\" obtido \"10-2-[B02 no ]\\n20:3:[C03 yes]\\n30:4:[D04 yes]\\n40:5:[E05 yes]\\n50-6-[F06 no ]\\n60-7-[G07 no ]\\n70:8:[H08 yes]\\n80-9-[I09 yes]\\n\""
+      ],
+      "id": "yesno-076"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n\" obtido \"25:3:yes\\n35:4:yes\\n45:5:yes\\n75:8:yes\\n\""
+      ],
+      "id": "yesno-077"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\" obtido \"20:3:[C03 yes]\\n30:4:[D04 yes]\\n40:5:[E05 yes]\\n70:8:[H08 yes]\\n80:9:[I09 yes]\\n\""
+      ],
+      "id": "yesno-078"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n\" obtido \"25:3:yes\\n35:4:yes\\n45:5:yes\\n75:8:yes\\n85:9:yes\\n\""
+      ],
+      "id": "yesno-079"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n\" obtido \"25:3:yes\\n35:4:yes\\n45:5:yes\\n75:8:yes\\n85:9:yes\\n\""
+      ],
+      "id": "yesno-080"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n13:120:[M13 yes]\\n\" obtido \"20:3:[C03 yes]\\n30:4:[D04 yes]\\n40:5:[E05 yes]\\n70:8:[H08 yes]\\n80:9:[I09 yes]\\n120:13:[M13 yes]\\n\""
+      ],
+      "id": "yesno-081"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n\" obtido \"25:3:yes\\n35:4:yes\\n45:5:yes\\n75:8:yes\\n85:9:yes\\n125:13:yes\\n\""
+      ],
+      "id": "yesno-082"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes) obtido \"10-2-[B02 no ]\\n20:3:[C03 yes]\\n30:4:[D04 yes]\\n40:5:[E05 yes]\\n50-6-[F06 no ]\\n60-7-[G07 no ]\\n70:8:[H08 yes]\\n80:9:[I09 yes]\\n\""
+      ],
+      "id": "yesno-083"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n\" obtido \"25:3:yes\\n35:4:yes\\n45:5:yes\\n75:8:yes\\n85:9:yes\\n125:13:yes\\n\""
+      ],
+      "id": "yesno-084"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n10:90:[J10 no ]\\n11:100:[K11 no ]\\n12:110:[L12 no ]\\n\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n50:6:[F06 no ]\\n60:7:[G07 no ]\\n90:10:[J10 no ]\\n100:11:[K11 no ]\\n110:12:[L12 no ]\\n\""
+      ],
+      "id": "yesno-085"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n50:6:[F06 no ]\\n60:7:[G07 no ]\\n90:10:[J10 no ]\\n100:11:[K11 no ]\\n110:12:[L12 no ]\\n\""
+      ],
+      "id": "yesno-086"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n--\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-70-[H08 yes]\\n9-80-[I09 yes\"... (189 bytes) obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n20-3-[C03 yes]\\n--\\n40-5-[E05 yes]\\n50:6:[F06 no ]\\n60:7:[G07 no ]\\n70-8-[H08 yes]\\n80-9-[I09 yes\""
+      ],
+      "id": "yesno-087"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n8-75-yes\\n9-85-yes\\n13-125-yes\\n\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n20-3-[C03 yes]\\n--\\n40-5-[E05 yes]\\n50:6:[F06 no ]\\n60:7:[G07 no ]\\n70-8-[H08 yes]\\n80-9-[I09 yes\"... (189 bytes)"
+      ],
+      "id": "yesno-088"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\nXYZ\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-70-[H08 yes]\\n9-80-[I09 ye\"... (190 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: unrecognized option '--group=XYZ'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-089"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-70-[H08 yes]\\n9-80-[I09 yes]\\n1\"... (186 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: unrecognized option '--no-gr'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-090"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- '4'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-091"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n--\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-70-[H08 yes]\\n9-80-[I09 yes\"... (189 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"grep: invalid option -- '4'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-092"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n\" obtido \"0:1:[A01 no ]\\n\""
+      ],
+      "id": "yesno-093"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"0:1:[A01 no ]\\n\""
+      ],
+      "id": "yesno-094"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2-10-[B02 no ]\\n\" obtido \"0:1:[A01 no ]\\n10-2-[B02 no ]\\n\""
+      ],
+      "id": "yesno-095"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"0:1:[A01 no ]\\n10-2-[B02 no ]\\n\""
+      ],
+      "id": "yesno-096"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n\""
+      ],
+      "id": "yesno-097"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n\""
+      ],
+      "id": "yesno-098"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n6:50:[F06 no ]\\n\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n50:6:[F06 no ]\\n\""
+      ],
+      "id": "yesno-099"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n50:6:[F06 no ]\\n\""
+      ],
+      "id": "yesno-100"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n--\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7-60-[G07 no ]\\n\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n20-3-[C03 yes]\\n--\\n40-5-[E05 yes]\\n50:6:[F06 no ]\\n60-7-[G07 no ]\\n\""
+      ],
+      "id": "yesno-101"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n20-3-[C03 yes]\\n--\\n40-5-[E05 yes]\\n50:6:[F06 no ]\\n60-7-[G07 no ]\\n\""
+      ],
+      "id": "yesno-102"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (136 bytes) obtido \"10-2-[B02 no ]\\n20:3:[C03 yes]\\n30:4:[D04 yes]\\n40:5:[E05 yes]\\n50-6-[F06 no ]\\n60-7-[G07 no ]\\n70:8:[H08 yes]\\n80:9:[I09 yes]\\n\""
+      ],
+      "id": "yesno-107"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n20-3-[C03 yes]\\n\""
+      ],
+      "id": "yesno-108"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n\" obtido \"0:1:[A01 no ]\\n10:2:[B02 no ]\\n20-3-[C03 yes]\\n\""
+      ],
+      "id": "yesno-109"
+    }
+  ],
+  "bashkit-sed": [
+    {
+      "detail": [
+        "stdout: esperado \"a\\nb\\nc\\n\" obtido \"a\\n\\t\\tb\\nc\\n\""
+      ],
+      "id": "subst-trim-leading"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"still\\n\" obtido \"\"",
+        "stderr: esperado \"sed: can't read nope.txt: No such file or directory\\n\" obtido \"sed: can't read nope.txt: io error: file not found\\n\""
+      ],
+      "id": "error-missing-file-continues"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"XXaY\\0XbY\\0XcYY\\0\" obtido \"XXaY\\nXbY\\nXcYY\\0\""
+      ],
+      "id": "misc-zero-anchor"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a\\0c\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: -e expression #1, char 9: strings for `y' command are different lengths\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "misc-y-zero"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"yes&\\n\" obtido \"yesx26\\n\""
+      ],
+      "id": "misc-amp-escape"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\\\\A\" obtido \"x5cA\""
+      ],
+      "id": "misc-bug30794_1"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\\\\\" obtido \"x5c\""
+      ],
+      "id": "misc-bug30794_2"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\\\\1\" obtido \"x5c1\""
+      ],
+      "id": "misc-bug30794_3"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\\n#define DPRINTF(p)\\t\\t/*nothing */\\n#define DPRINTF(p) printf p\\n#define GETCHAR(c, eptr) c = *eptr;\\n#define GETCHARINC(c, \"... (36901 bytes) obtido \"\\n\\n\\n#define DPRINTF(p)\\t\\t/*nothing */\\n#define DPRINTF(p) printf p\\n#define GETCHAR(c, eptr) c = *eptr;\\n#define GETCHARINC(c\"",
+        "stderr: esperado \"\" obtido \"sed: warning: branch/label loop limit (1000) reached on line 168; output may be truncated\\n\""
+      ],
+      "id": "script-uniq"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"## config:mac-pre.in\\n## common Macintosh prefix for all Makefile.in in the Kerberos V5 tree\\n\\n#\\n# MPW-style lines for the\"... (6207 bytes) obtido \"## config:mac-pre.in\\n## common Macintosh prefix for all Makefile.in in the Kerberos V5 tree\\n\\n#\\n# MPW-style lines for the\"... (62"
+      ],
+      "id": "script-mac-mf"
+    }
+  ],
+  "f01+gnu-printer": [],
+  "f01+rg-printer": [
+    {
+      "detail": [
+        "stdout: esperado \"1\\n22\\n\" obtido \"\\n1\\n22\\n\\n\\n\\n\\n\""
+      ],
+      "id": "only-matching-empty-matches"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a.txt:x1\\na.txt-2\\n--\\nb.txt:x1\\n\" obtido \"a.txt:x1\\na.txt-2\\nb.txt:x1\\n\""
+      ],
+      "id": "context-multi-file"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:\\tax\\n\" obtido \"1:ax\\n\""
+      ],
+      "id": "initial-tab"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"y\\n\" obtido \"\\ny\\n\\n\""
+      ],
+      "id": "foad1-109"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n--\\n12-110-[L12\"... (148 bytes)"
+      ],
+      "id": "yesno-068"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\nXYZ\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\nXYZ\\n12-110-[L1\"... (149 bytes)"
+      ],
+      "id": "yesno-069"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n12-110-[L12 no\"... (145 bytes)"
+      ],
+      "id": "yesno-070"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9-80-[I09 yes]\\n\" obtido \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\""
+      ],
+      "id": "yesno-076"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n\""
+      ],
+      "id": "yesno-077"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n\""
+      ],
+      "id": "yesno-080"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes) obtido \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\""
+      ],
+      "id": "yesno-083"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n--\\n12-110-[L12\"... (148 bytes)"
+      ],
+      "id": "yesno-084"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n10:90:[J10 no ]\\n11:100:[K11 no ]\\n12:110:[L12 no ]\\n\""
+      ],
+      "id": "yesno-086"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n8-75-yes\\n9-85-yes\\n13-125-yes\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-25-yes\\n--\\n5-45-yes\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-75-yes\\n9-85-yes\\n10:90:[J10 no ]\\n11:100\"... (159 bytes)"
+      ],
+      "id": "yesno-088"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n\""
+      ],
+      "id": "yesno-094"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2-10-[B02 no ]\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n\""
+      ],
+      "id": "yesno-095"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n\""
+      ],
+      "id": "yesno-096"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n\""
+      ],
+      "id": "yesno-098"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n6:50:[F06 no ]\\n\""
+      ],
+      "id": "yesno-100"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n--\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7-60-[G07 no ]\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n--\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n\""
+      ],
+      "id": "yesno-101"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-25-yes\\n--\\n5-45-yes\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n\""
+      ],
+      "id": "yesno-102"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-25-yes\\n\""
+      ],
+      "id": "yesno-109"
+    }
+  ],
+  "red": [
+    {
+      "detail": [
+        "stdout: esperado \"Error 1\\nERROR 2\\n\" obtido \"\""
+      ],
+      "id": "print-regex-icase-address"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"use x;\\n// entry point\\nfn main() {}\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: -e expression #1, char 11: unknown command: //\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "insert-before-match"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"SCHOOL école\\n\" obtido \"ÉCOLE SCHOOL\\n\""
+      ],
+      "id": "utf8-icase"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"still\\n\" obtido \"\""
+      ],
+      "id": "error-missing-file-continues"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\\n  -n, --quiet, --silent\\n                 suppre\"... (1796 bytes) obtido \"Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\"",
+        "exit: esperado Some(1)/None obtido Some(4)/None"
+      ],
+      "id": "error-no-script"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"sed: can't find label for jump to `nowhere'\\n\" obtido \"sed: undefined label 'nowhere'\\n\"",
+        "exit: esperado Some(4)/None obtido Some(1)/None"
+      ],
+      "id": "error-undefined-label"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"b\\na\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: -e expression #1, char 0: unmatched '{'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "e-with-newline-script"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"Hello_World_!\\nSecondXXine__of_tests\\n\" obtido \"Hello World\\t!\\nSecond_line_ of te_t_\\n\""
+      ],
+      "id": "misc-space"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"XXaY\\0XbY\\0XcYY\\0\" obtido \"XXa\\0b\\0cYY\\0\""
+      ],
+      "id": "misc-zero-anchor"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a\\0c\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: -e expression #1, char 9: 'y' command strings have different lengths\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "misc-y-zero"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"bar\\n\\nfoo\\n\" obtido \"bar\\nfoo\\n\""
+      ],
+      "id": "misc-insert-nl"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"doh\\nok\\n\" obtido \"doh\\n\""
+      ],
+      "id": "misc-appquit"
+    },
+    {
+      "detail": [
+        "stdout: esperado \": ${_cv_='emptyvar'}\\n: ${ac_cv_prog/RANLIB='/usr/bin/ranlib'}\\n: ${ac_cv_prog/CC='/usr/unsupported/\\\\ \\\\ /lib/_cv_/cc'}\\n: $\"... (153 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: file in1 line 1: unknown option to 's'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "misc-classes"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"09 - 02 - 2002 00.00 Tg La7 La7 -\\n09 - 02 - 2002 00.00 Brand New Tmc 2 -\\n09 - 02 - 2002 00.10 Tg1 Notte Rai Uno -\\n09 - 0\"... (1290 bytes) obtido \"09 - 02 - 2002 00.00 Tg La7 La7 -\\n09 - 02 - 2002 00.00 Brand New Tmc 2 -\\n09 - 02 - 2002 00.10 Tg1 Notte Rai Uno -\\n09 - 0\"... (1290"
+      ],
+      "id": "misc-flipcase"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"This file is unique\\nThis file is unique\\nin that it does\\nin that it does\\nend in a newline.\\nend in a newline.\\nThis file is\"... (215 bytes) obtido \"This file is unique\\nThis file is unique\\nin that it does\\nin that it does\\nend in a newline.\\nend in a newline.\\nThis file is\"... ",
+        "files: ~noeolw.2out: file 644 53B 4ad75f2ef3a5 != file 644 54B 69a0be311555"
+      ],
+      "id": "misc-noeolw"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"foo foo fo oo f oo foo foo foo foo foo foo foo bar foo foo foo foo foo\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: file in1 line 1: number option to 's' command may not be zero\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "misc-numsub"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"``Democracy will not come today, this year,\\n  nor ever through compromise and fear.\\nMOO\\n  I have as much right as the ot\"... (449 bytes) obtido \"``Democracy will not come today, this year,\\n  nor ever through compromise and fear.\\nMOO\\n  I have as much right as the ot\"... (445 b"
+      ],
+      "id": "misc-readin"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"roses are red\\nviolets are blue\\nmy feet are cold\\nyour feet are too\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: -e expression #1, char 1: unknown command: '\\\\'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "misc-xabcx"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\\nb\\nbcx\\nbacx\\nbaacx\\nbaaacx\\nbaaaacx\\n\" obtido \"\\nb\\nbcx\\nbaxc\\nbaaxc\\nbaaaxc\\nbaaaaxc\\n\""
+      ],
+      "id": "misc-xbxcx3"
+    }
+  ],
+  "rg-regex+rg-printer": [
+    {
+      "detail": [
+        "stdout: esperado \"1\\n22\\n\" obtido \"\\n1\\n22\\n\\n\\n\\n\\n\""
+      ],
+      "id": "only-matching-empty-matches"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"abcd\\nab\\n\" obtido \"ab\\nab\\n\""
+      ],
+      "id": "only-matching-longest"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a.txt:x1\\na.txt-2\\n--\\nb.txt:x1\\n\" obtido \"a.txt:x1\\na.txt-2\\nb.txt:x1\\n\""
+      ],
+      "id": "context-multi-file"
+    },
+    {
+      "detail": [
+        "unsupported: sem suporte a backref"
+      ],
+      "id": "backref-bre"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"abc\\nab\\n\" obtido \"ab\\nab\\n\""
+      ],
+      "id": "only-matching-multiple-patterns"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:\\tax\\n\" obtido \"1:ax\\n\""
+      ],
+      "id": "initial-tab"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"y\\n\" obtido \"\\ny\\n\\n\""
+      ],
+      "id": "foad1-109"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n--\\n12-110-[L12\"... (148 bytes)"
+      ],
+      "id": "yesno-068"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\nXYZ\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\nXYZ\\n12-110-[L1\"... (149 bytes)"
+      ],
+      "id": "yesno-069"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n12-110-[L12 no\"... (145 bytes)"
+      ],
+      "id": "yesno-070"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9-80-[I09 yes]\\n\" obtido \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\""
+      ],
+      "id": "yesno-076"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n\""
+      ],
+      "id": "yesno-077"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n\""
+      ],
+      "id": "yesno-080"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (190 bytes) obtido \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\""
+      ],
+      "id": "yesno-083"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n\" obtido \"2-10-[B02 no ]\\n3:25:yes\\n4:35:yes\\n5:45:yes\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:75:yes\\n9:85:yes\\n10-90-[J10 no ]\\n--\\n12-110-[L12\"... (148 bytes)"
+      ],
+      "id": "yesno-084"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n10:90:[J10 no ]\\n11:100:[K11 no ]\\n12:110:[L12 no ]\\n\""
+      ],
+      "id": "yesno-086"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n8-75-yes\\n9-85-yes\\n13-125-yes\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-25-yes\\n--\\n5-45-yes\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-75-yes\\n9-85-yes\\n10:90:[J10 no ]\\n11:100\"... (159 bytes)"
+      ],
+      "id": "yesno-088"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n\""
+      ],
+      "id": "yesno-094"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2-10-[B02 no ]\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n\""
+      ],
+      "id": "yesno-095"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n\""
+      ],
+      "id": "yesno-096"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n\""
+      ],
+      "id": "yesno-098"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n6:50:[F06 no ]\\n\""
+      ],
+      "id": "yesno-100"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n--\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7-60-[G07 no ]\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n--\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n\""
+      ],
+      "id": "yesno-101"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-25-yes\\n--\\n5-45-yes\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n\""
+      ],
+      "id": "yesno-102"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n\" obtido \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-25-yes\\n\""
+      ],
+      "id": "yesno-109"
+    }
+  ],
+  "sed-rs": [
+    {
+      "detail": [
+        "stdout: esperado \"HELLO World\\n\" obtido \"\\\\Uhello\\\\E \\\\uworld\\n\""
+      ],
+      "id": "subst-case-conversion"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"mixed case\\n\" obtido \"\\\\LMiXeD CaSe\\n\""
+      ],
+      "id": "subst-lowercase-all"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"bar foo\\nbaz\\n\" obtido \"barfoo foo\\nbaz\\n\""
+      ],
+      "id": "subst-empty-regex-reuse"
+    },
+    {
+      "detail": [
+        "exit: esperado Some(2)/None obtido Some(0)/None"
+      ],
+      "id": "inplace-missing-file"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"start\\nb\\nc\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: parse error: expected address after ','\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "print-range-plus"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"Error 1\\nERROR 2\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: parse error: unknown command: 'I'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "print-regex-icase-address"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a\\nstop\\n\" obtido \"\""
+      ],
+      "id": "quit-exit-code"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1\\nX\\n4\\n\" obtido \"1\\nX\\nX\\n4\\n\""
+      ],
+      "id": "change-range"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a\\nb\\nc\\nd\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: invalid regex: regex parse error:\\n    ^(.*)\\\\n\\\\1$\\n           ^^\\nerror: backreferences are not supported\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "delete-dup-adjacent"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1\\nx\\n2\\ny\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: can't read -: No such file or directory\\n\""
+      ],
+      "id": "stdin-dash"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"b2\\n\" obtido \"a2\\nb2\\n\""
+      ],
+      "id": "multiple-files-continuous"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"b\\nb\" obtido \"b\\nb\\n\""
+      ],
+      "id": "no-trailing-newline"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"y\\r\\ny\\n\" obtido \"y\\ny\\n\""
+      ],
+      "id": "crlf-preserved"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"sed: -e expression #1, char 5: unterminated `s' command\\n\" obtido \"sed: parse error: unterminated replacement (expected closing '/')\\n\"",
+        "exit: esperado Some(1)/None obtido Some(2)/None"
+      ],
+      "id": "error-unterminated-s"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"sed: -e expression #1, char 1: unknown command: `k'\\n\" obtido \"sed: parse error: unknown command: 'k'\\n\"",
+        "exit: esperado Some(1)/None obtido Some(2)/None"
+      ],
+      "id": "error-unknown-command"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"\\n\"",
+        "stderr: esperado \"sed: -e expression #1, char 7: unknown option to `s'\\n\" obtido \"\"",
+        "exit: esperado Some(1)/None obtido Some(0)/None"
+      ],
+      "id": "error-unknown-option-to-s"
+    },
+    {
+      "detail": [
+        "exit: esperado Some(2)/None obtido Some(0)/None"
+      ],
+      "id": "error-missing-file"
+    },
+    {
+      "detail": [
+        "exit: esperado Some(2)/None obtido Some(0)/None"
+      ],
+      "id": "error-missing-file-continues"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"sed: -e expression #1, char 8: Unmatched ( or \\\\(\\n\" obtido \"sed: invalid regex: regex parse error:\\n    (a\\n    ^\\nerror: unclosed group\\n\"",
+        "exit: esperado Some(1)/None obtido Some(2)/None"
+      ],
+      "id": "error-bad-regex"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"\\n\"",
+        "stderr: esperado \"sed: -e expression #1, char 7: invalid reference \\\\1 on `s' command's RHS\\n\" obtido \"\"",
+        "exit: esperado Some(1)/None obtido Some(0)/None"
+      ],
+      "id": "error-invalid-backref"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\\n  -n, --quiet, --silent\\n                 suppre\"... (1796 bytes) obtido \"sed: parse error: no script provided. Usage: sed [OPTIONS] SCRIPT [FILE...]\\n\"",
+        "exit: esperado Some(1)/None obtido Some(2)/None"
+      ],
+      "id": "error-no-script"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"sed: unrecognized option '--frobnicate'\\nUsage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\\n  -n, -\"... (1836 bytes) obtido \"sed: parse error: unknown command: '-'\\n\"",
+        "exit: esperado Some(1)/None obtido Some(2)/None"
+      ],
+      "id": "error-unknown-option"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"sed: -e expression #1, char 0: unmatched `{'\\n\" obtido \"sed: parse error: unterminated block (missing '}')\\n\"",
+        "exit: esperado Some(1)/None obtido Some(2)/None"
+      ],
+      "id": "error-unmatched-brace"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"a\\n\"",
+        "stderr: esperado \"sed: can't find label for jump to `nowhere'\\n\" obtido \"\"",
+        "exit: esperado Some(4)/None obtido Some(0)/None"
+      ],
+      "id": "error-undefined-label"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a\\nb\\n\" obtido \"a\\na\\nb\\nb\\n\""
+      ],
+      "id": "comment-and-n"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"x\\n\" obtido \"\""
+      ],
+      "id": "address-zero-regex"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a,b,c,\" obtido \"a,b,c,\\0\""
+      ],
+      "id": "null-data"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"\" obtido \"sed: parse error: empty script\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "misc-empty"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"XXaY\\0XbY\\0XcYY\\0\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: parse error: unknown command: 'm'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "misc-zero-anchor"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"ax\\nbx\" obtido \"ax\\nbx\\n\""
+      ],
+      "id": "misc-preserve-missing-EOL-at-EOF"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a\\0c\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: parse error: y command: 'from' and 'to' must be same length (1 vs 4)\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "misc-y-zero"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"Are Sou Yure (S/n)? [S]$$Are Sou Yure (S/n)? [S]\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: parse error: y command: 'from' and 'to' must be same length (6 vs 5)\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "misc-y-newline"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"eeefff\\nXeefff\\nXYefff\\nXYeYff\\nXYeYYf\\nXYeYYY\\nXYeYYY\\n\" obtido \"eeefff\\nXeefff\\nYXeefff\\nYYXeefff\\nYYYXeefff\\nYYYYXeefff\\nYYYYYXeefff\\nYYYYYYXeefff\\nYYYYYYYXeefff\\nYYYYYYYYXeefff\\nYYYYYYYYYXeeff\"... (10013884425 bytes)",
+        "exit: esperado Some(0)/None obtido None/Some(9)"
+      ],
+      "id": "misc-recall"
+    },
+    {
+      "detail": [
+        "stdout: esperado \">abb<||>abbbb<\\n\" obtido \"><a><b><a><b><b><|><|><a><b><b><b><a><b><b><b><b><\\n\""
+      ],
+      "id": "misc-recall2"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"yes\\n\" obtido \"1\\n2\\n3\\n4\\naaa\\nyes\\n\""
+      ],
+      "id": "misc-0range"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"abcdefgh[\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: invalid regex: regex parse error:\\n    [[]\\n     ^^\\nerror: unclosed character class\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "misc-brackets"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a\\\\\\n\\n\" obtido \"a\\\\\\\\\\n\\n\""
+      ],
+      "id": "misc-bkslashes"
+    },
+    {
+      "detail": [
+        "stdout: esperado \": ${_cv_='emptyvar'}\\n: ${ac_cv_prog/RANLIB='/usr/bin/ranlib'}\\n: ${ac_cv_prog/CC='/usr/unsupported/\\\\ \\\\ /lib/_cv_/cc'}\\n: $\"... (153 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: parse error: unknown command: '['\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "misc-classes"
+    },
+    {
+      "detail": [
+        "stdout: esperado \": ${_cv_='emptyvar'}\\n: ${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: ${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: ${a\"... (150 bytes) obtido \": \\\\${_cv_='emptyvar'}\\n: \\\\${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: \\\\${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: \"... (15"
+      ],
+      "id": "misc-cv-vars"
+    },
+    {
+      "detail": [
+        "stdout: esperado \": ${_cv_='emptyvar'}\\n: ${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: ${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: ${a\"... (150 bytes) obtido \": \\\\${_cv_='emptyvar'}\\n: \\\\${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: \\\\${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: \"... (15"
+      ],
+      "id": "misc-quiet"
+    },
+    {
+      "detail": [
+        "stdout: esperado \": ${_cv_='emptyvar'}\\n: ${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: ${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: ${a\"... (150 bytes) obtido \": \\\\${_cv_='emptyvar'}\\n: \\\\${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: \\\\${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: \"... (15"
+      ],
+      "id": "misc-file"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2\\n3\\n2\\n2\\n5\\n2\\n2\\n2\\n11\\n2\\n2\\n2\\n2\\n13\\n11\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: invalid regex: regex parse error:\\n    (a*)([0-9])([0-9]*;.*\\\\2(a*))\\n                         ^^\\nerror: backreference\"... (140 bytes)",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "misc-factor"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"09 - 02 - 2002 00.00 Tg La7 La7 -\\n09 - 02 - 2002 00.00 Brand New Tmc 2 -\\n09 - 02 - 2002 00.10 Tg1 Notte Rai Uno -\\n09 - 0\"... (1290 bytes) obtido \"09 - 02 - 2002 00.00 \\\\L\\\\uTg \\\\L\\\\uLa7 \\\\L\\\\uLa7 -\\\\L\\\\u\\n09 - 02 - 2002 00.00 \\\\L\\\\uBrand \\\\L\\\\uNew \\\\L\\\\uTmc 2 -\\\\L\\\\u\\n09 - 02 - "
+      ],
+      "id": "misc-flipcase"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"XXaY\\nXbY\\nXcYY\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: parse error: unknown command: 'm'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "misc-newline-anchor"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"This file is unique\\nThis file is unique\\nin that it does\\nin that it does\\nend in a newline.\\nend in a newline.\\nThis file is\"... (215 bytes) obtido \"This file is unique\\nThis file is unique\\nin that it does\\nin that it does\\nend in a newline.\\nend in a newline.\\nThis file is\"... ",
+        "files: ~noeolw.1out: file 644 124B 926b884eded1 != file 644 140B 333527567a2e",
+        "files: ~noeolw.2out: file 644 53B 4ad75f2ef3a5 != file 644 108B 561e34f581f0"
+      ],
+      "id": "misc-noeolw"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\\\\A\" obtido \"\\\\A\\n\""
+      ],
+      "id": "misc-bug30794_1"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\\\\\" obtido \"\\\\\\n\""
+      ],
+      "id": "misc-bug30794_2"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\\\\1\" obtido \"\\\\1\\n\""
+      ],
+      "id": "misc-bug30794_3"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"X\" obtido \"n\\n\""
+      ],
+      "id": "misc-bug40242"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\\n#define DPRINTF(p)\\t\\t/*nothing */\\n#define DPRINTF(p) printf p\\n#define GETCHAR(c, eptr) c = *eptr;\\n#define GETCHARINC(c, \"... (36901 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: invalid regex: regex parse error:\\n    ^(.*)\\\\n\\\\1$\\n           ^^\\nerror: backreferences are not supported\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "script-uniq"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"## config:mac-pre.in\\n## common Macintosh prefix for all Makefile.in in the Kerberos V5 tree\\n\\n#\\n# MPW-style lines for the\"... (6207 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: parse error: couldn't read script file 'mac-mf.sed': stream did not contain valid UTF-8\\n\"",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "script-mac-mf"
+    }
+  ],
+  "uu_grep": [
+    {
+      "detail": [
+        "stdout: esperado \"a.txt:x1\\na.txt-2\\n--\\nb.txt:x1\\n\" obtido \"a.txt:x1\\na.txt-2\\nb.txt:x1\\n\""
+      ],
+      "id": "context-multi-file"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n14:135:yes\\n\" obtido \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\""
+      ],
+      "id": "yesno-068"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\nXYZ\\n13:125:yes\\n14:135:yes\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"error: unexpected argument '--group' found\\n\\ntip: a similar argument exists: '--group-separator'\\n\\nUsage: grep-usage\\n\\nFor \"... (152 bytes)",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-069"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n14:135:yes\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"error: unexpected argument '--no-gr' found\\n\\ntip: a similar argument exists: '--no-ignore-case'\\n\\nUsage: grep-usage\\n\\nFor m\"... (151 bytes)",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-070"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (191 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"error: unexpected argument '--group' found\\n\\ntip: a similar argument exists: '--group-separator'\\n\\nUsage: grep-usage\\n\\nFor \"... (152 bytes)",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-072"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2-10-[B02 no ]\\n3:20:[C03 yes]\\n4:30:[D04 yes]\\n5:40:[E05 yes]\\n6-50-[F06 no ]\\n7-60-[G07 no ]\\n8:70:[H08 yes]\\n9:80:[I09 yes]\\n\"... (187 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"error: unexpected argument '--no-gr' found\\n\\ntip: a similar argument exists: '--no-ignore-case'\\n\\nUsage: grep-usage\\n\\nFor m\"... (151 bytes)",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-073"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n--\\n13:125:yes\\n\" obtido \"3:25:yes\\n4:35:yes\\n5:45:yes\\n8:75:yes\\n9:85:yes\\n13:125:yes\\n\""
+      ],
+      "id": "yesno-084"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n8-75-yes\\n9-85-yes\\n13-125-yes\\n\" obtido \"\""
+      ],
+      "id": "yesno-088"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\nXYZ\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-70-[H08 yes]\\n9-80-[I09 ye\"... (190 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"error: unexpected argument '--group' found\\n\\ntip: a similar argument exists: '--group-separator'\\n\\nUsage: grep-usage\\n\\nFor \"... (152 bytes)",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-089"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1:0:[A01 no ]\\n2:10:[B02 no ]\\n3-20-[C03 yes]\\n5-40-[E05 yes]\\n6:50:[F06 no ]\\n7:60:[G07 no ]\\n8-70-[H08 yes]\\n9-80-[I09 yes]\\n1\"... (186 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"error: unexpected argument '--no-gr' found\\n\\ntip: a similar argument exists: '--no-ignore-case'\\n\\nUsage: grep-usage\\n\\nFor m\"... (151 bytes)",
+        "exit: esperado Some(0)/None obtido Some(2)/None"
+      ],
+      "id": "yesno-090"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n--\\n5-45-yes\\n\" obtido \"\""
+      ],
+      "id": "yesno-102"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"3-25-yes\\n\" obtido \"\""
+      ],
+      "id": "yesno-109"
+    }
+  ],
+  "uutils-sed": [
+    {
+      "detail": [
+        "stdout: esperado \"aXXX\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: <script argument 1>:1:8: error: multiple 'g' or numeric flags in substitute command\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "subst-nth-global"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"HELLO World\\n\" obtido \"Uhello\\\\E uworld\\n\""
+      ],
+      "id": "subst-case-conversion"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"mixed case\\n\" obtido \"\\\\LMiXeD CaSe\\n\""
+      ],
+      "id": "subst-lowercase-all"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"\" obtido \"sed: error Reading metadata of '-' for in-place edit: No such file or directory\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None",
+        "files: ~conf.txt: file 644 23B 60da0761a87d != file 644 23B 36d8df6a9b70"
+      ],
+      "id": "inplace-basic"
+    },
+    {
+      "detail": [
+        "files: ~a.txt: file 644 2B 53c234e5e847 != file 644 4B a6e2b7a04068",
+        "files: ~b.txt: file 644 2B 3bb2abb69ebb != file 644 14B c2b80587b056",
+        "files: +b.txt1d"
+      ],
+      "id": "inplace-multiple-files"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"\" obtido \"sed: error backing up 'b.txt' to 'b.txt$s/$/ END/': No such file or directory\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None",
+        "files: ~a.txt: file 644 8B 82748f9d7b68 != file 644 4B a6e2b7a04068",
+        "files: ~b.txt: file 644 8B 77136008908a != file 644 4B 09834d488008"
+      ],
+      "id": "inplace-separate-last-line"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"sed: can't read nope.txt: No such file or directory\\n\" obtido \"sed: <script argument 1>:1:2: error: extra characters at the end of the n command\\n\"",
+        "exit: esperado Some(2)/None obtido Some(1)/None"
+      ],
+      "id": "inplace-missing-file"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1\\nX\\n4\\n\" obtido \"1\\n4\\n\""
+      ],
+      "id": "change-range"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"2\\n1\\n4\\n3\\n\" obtido \"\""
+      ],
+      "id": "hold-exchange"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"y!\\nz\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: <script argument 1>:1:18: error: invalid substitute flag: '}'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "block-braces"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a.txt\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: <script argument 1>:1:2: error: invalid command code `F'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "file-name-cmd"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"dog concat dog.\\n\" obtido \"cat concat cat.\\n\""
+      ],
+      "id": "regex-word-boundary"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"sed: can't read nope.txt: No such file or directory\\n\" obtido \"sed: error opening input file 'nope.txt': No such file or directory\\n\"",
+        "exit: esperado Some(2)/None obtido Some(1)/None"
+      ],
+      "id": "error-missing-file"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"still\\n\" obtido \"\"",
+        "stderr: esperado \"sed: can't read nope.txt: No such file or directory\\n\" obtido \"sed: error opening input file 'nope.txt': No such file or directory\\n\"",
+        "exit: esperado Some(2)/None obtido Some(1)/None"
+      ],
+      "id": "error-missing-file-continues"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"\" obtido \"Stream editor for filtering and transforming text (part of uutils)\\n\\nUsage: sed [OPTION]... [script] [file]...\\n\\nArguments\"... (1392 bytes)",
+        "stderr: esperado \"Usage: sed [OPTION]... {script-only-if-no-other-script} [input-file]...\\n\\n  -n, --quiet, --silent\\n                 suppre\"... (1796 bytes) obtido \"\""
+      ],
+      "id": "error-no-script"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"sed: can't find label for jump to `nowhere'\\n\" obtido \"sed: <script argument 1>:1:1: error: undefined label `nowhere'\\n\"",
+        "exit: esperado Some(4)/None obtido Some(1)/None"
+      ],
+      "id": "error-undefined-label"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"1\\n3\\n5\\n\" obtido \"1\\n2\\n3\\n4\\n5\\n\""
+      ],
+      "id": "next-line-cmd"
+    },
+    {
+      "detail": [
+        "stderr: esperado \"\" obtido \"sed: <script argument 1>:1:1: error: invalid command code `.'\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None",
+        "files: ~.env: file 644 31B 0f04f793ee1d != file 644 29B 928e22f5772e"
+      ],
+      "id": "comment-out-line"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"a,b,c,\" obtido \"a\\nb\\nc\\n\""
+      ],
+      "id": "null-data"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"XXaY\\0XbY\\0XcYY\\0\" obtido \"a\\0b\\0c\\0\\n\""
+      ],
+      "id": "misc-zero-anchor"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"bar\\n\\nfoo\\n\" obtido \"bar\\nfoo\\n\""
+      ],
+      "id": "misc-insert-nl"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"abcdefgh[\\n\" obtido \"\"",
+        "stderr: esperado \"\" obtido \"sed: in1:1:9: error: Unterminated bracket expression\\n\"",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "misc-brackets"
+    },
+    {
+      "detail": [
+        "stdout: esperado \": ${_cv_='emptyvar'}\\n: ${ac_cv_prog/RANLIB='/usr/bin/ranlib'}\\n: ${ac_cv_prog/CC='/usr/unsupported/\\\\ \\\\ /lib/_cv_/cc'}\\n: $\"... (153 bytes) obtido \": \\\\${_cv_='emptyvar'}\\n: \\\\${ac_cv_prog/RANLIB='/usr/bin/ranlib'}\\n: \\\\${ac_cv_prog/CC='/usr/unsupported/\\\\ \\\\ /lib/_cv_/cc'}\\n\"..."
+      ],
+      "id": "misc-classes"
+    },
+    {
+      "detail": [
+        "stdout: esperado \": ${_cv_='emptyvar'}\\n: ${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: ${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: ${a\"... (150 bytes) obtido \": \\\\${_cv_='emptyvar'}\\n: \\\\${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: \\\\${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: \"... (15"
+      ],
+      "id": "misc-cv-vars"
+    },
+    {
+      "detail": [
+        "stdout: esperado \": ${_cv_='emptyvar'}\\n: ${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: ${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: ${a\"... (150 bytes) obtido \": \\\\${_cv_='emptyvar'}\\n: \\\\${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: \\\\${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: \"... (15"
+      ],
+      "id": "misc-quiet"
+    },
+    {
+      "detail": [
+        "stdout: esperado \": ${_cv_='emptyvar'}\\n: ${ac_cv_prog_RANLIB='/usr/bin/ranlib'}\\n: ${ac_cv_prog_CC='/usr/unsupported/  /lib/_cv_/cc'}\\n: ${a\"... (150 bytes) obtido \"\"",
+        "stderr: esperado \"\" obtido \"error: unexpected argument '--file' found\\n\\n  tip: a similar argument exists: '--silent'\\n\\nUsage: sed [OPTION]... [script]\"... (168 bytes)",
+        "exit: esperado Some(0)/None obtido Some(1)/None"
+      ],
+      "id": "misc-file"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"09 - 02 - 2002 00.00 Tg La7 La7 -\\n09 - 02 - 2002 00.00 Brand New Tmc 2 -\\n09 - 02 - 2002 00.10 Tg1 Notte Rai Uno -\\n09 - 0\"... (1290 bytes) obtido \"09 - 02 - 2002 00.00 \\\\LuTg \\\\LuLa7 \\\\LuLa7 -\\\\Lu\\n09 - 02 - 2002 00.00 \\\\LuBrand \\\\LuNew \\\\LuTmc 2 -\\\\Lu\\n09 - 02 - 2002 00.10 \\\\L\"."
+      ],
+      "id": "misc-flipcase"
+    },
+    {
+      "detail": [
+        "stdout: esperado \"This file is unique\\nThis file is unique\\nin that it does\\nin that it does\\nend in a newline.\\nend in a newline.\\nThis file is\"... (215 bytes) obtido \"This file is unique\\nThis file is unique\\nin that it does\\nin that it does\\nend in a newline.\\nend in a newline.This file is \"... (",
+        "files: ~noeolw.1out: file 644 124B 926b884eded1 != file 644 108B 93387b87c1ab",
+        "files: ~noeolw.2out: file 644 53B 4ad75f2ef3a5 != file 644 54B 69a0be311555"
+      ],
+      "id": "misc-noeolw"
+    }
+  ]
+}

@@ -1,0 +1,347 @@
+git: 'remote' is not a git command. See 'git --help'.
+
+The most similar command is
+	remote
+$ git for-each-ref
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/HEAD
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/main
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/tags/v1
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 tag	refs/tags/v2
+[err]
+[exit=0]
+$ git for-each-ref refs/heads
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+[err]
+[exit=0]
+$ git for-each-ref refs/heads/
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+[err]
+[exit=0]
+$ git for-each-ref refs/heads/m*
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+[err]
+[exit=0]
+$ git for-each-ref refs/tags/v*
+[out]
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/tags/v1
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 tag	refs/tags/v2
+[err]
+[exit=0]
+$ git for-each-ref heads
+[out]
+[err]
+[exit=0]
+$ git for-each-ref --count=2
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+[err]
+[exit=0]
+$ git for-each-ref --count=0
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/HEAD
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/main
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/tags/v1
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 tag	refs/tags/v2
+[err]
+[exit=0]
+$ git for-each-ref --sort=-refname
+[out]
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 tag	refs/tags/v2
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/tags/v1
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/main
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/HEAD
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+[err]
+[exit=0]
+$ git for-each-ref --sort=objecttype --sort=refname
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/HEAD
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/main
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/tags/v1
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 tag	refs/tags/v2
+[err]
+[exit=0]
+$ git for-each-ref --format=%(refname) %(objecttype) %(objectsize)
+[out]
+refs/heads/main commit 204
+refs/heads/other commit 156
+refs/remotes/origin/HEAD commit 204
+refs/remotes/origin/main commit 204
+refs/tags/v1 commit 204
+refs/tags/v2 tag 132
+[err]
+[exit=0]
+$ git for-each-ref --format=%(refname:short)|%(refname:lstrip=1)|%(refname:lstrip=2)|%(refname:rstrip=1)|%(refname:strip=2)|%(refname:rstrip=-1)
+[out]
+main|heads/main|main|refs/heads|main|refs
+other|heads/other|other|refs/heads|other|refs
+origin|remotes/origin/HEAD|origin/HEAD|refs/remotes/origin|origin/HEAD|refs
+origin/main|remotes/origin/main|origin/main|refs/remotes/origin|origin/main|refs
+v1|tags/v1|v1|refs/tags|v1|refs
+v2|tags/v2|v2|refs/tags|v2|refs
+[err]
+[exit=0]
+$ git for-each-ref --format=%(objectname) %(objectname:short) %(objectname:short=10) %(objectname:short=3)
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b 110d11a 110d11a6f8 110d
+1d512c3d80fe691009862707920813ee23554d64 1d512c3 1d512c3d80 1d51
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 f742ed7 f742ed745a f742
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 f742ed7 f742ed745a f742
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 f742ed7 f742ed745a f742
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 c4f654f c4f654f810 c4f6
+[err]
+[exit=0]
+$ git for-each-ref --format=%(tree) %(parent) %(numparent) refs/heads
+[out]
+d11b5fac254c4b7a5a8e078cbad43ba15d6494ff f742ed745a17b3d948e9fe299ddc31076bd22cc5 1
+08585692ce06452da6f82ae66b90d98b55536fca  0
+[err]
+[exit=0]
+$ git for-each-ref --format=%(author) | %(authorname) | %(authoremail) | %(authordate) | %(committerdate:iso) | %(committerdate:short) | %(authoremail:trim) | %(authoremail:localpart) refs/heads/main
+[out]
+Agent <agent@example.com> 1768478580 +0000 | Agent | <agent@example.com> | Thu Jan 15 12:03:00 2026 +0000 | 2026-01-15 12:03:00 +0000 | 2026-01-15 | agent@example.com | agent
+[err]
+[exit=0]
+$ git for-each-ref --format=%(creator) | %(creatordate) | %(creatordate:unix) refs/heads/main refs/tags
+[out]
+Agent <agent@example.com> 1768478580 +0000 | Thu Jan 15 12:03:00 2026 +0000 | 1768478580
+Agent <agent@example.com> 1768478520 +0000 | Thu Jan 15 12:02:00 2026 +0000 | 1768478520
+Agent <agent@example.com> 1768478580 +0000 | Thu Jan 15 12:03:00 2026 +0000 | 1768478580
+[err]
+[exit=0]
+$ git for-each-ref --format=%(subject)|%(body)|%(contents)|%(contents:subject)|%(contents:body)|%(contents:signature)|%(contents:lines=1) refs/heads/main refs/tags/v2
+[out]
+add c||add c
+|add c|||add c
+annotated one||annotated one
+|annotated one|||annotated one
+[err]
+[exit=0]
+$ git for-each-ref --format=%(tag) %(taggername) %(taggeremail) %(taggerdate) %(object) %(type) refs/tags
+[out]
+     
+v2 Agent <agent@example.com> Thu Jan 15 12:03:00 2026 +0000 1d512c3d80fe691009862707920813ee23554d64 commit
+[err]
+[exit=0]
+$ git for-each-ref --format=%(*objectname) %(*objecttype) %(*subject) %(*authorname) refs/tags
+[out]
+   
+1d512c3d80fe691009862707920813ee23554d64 commit add a Agent
+[err]
+[exit=0]
+$ git for-each-ref --format=%(upstream) %(upstream:short) %(upstream:track) %(upstream:trackshort) %(upstream:remotename) %(upstream:remoteref) %(upstream:track,nobracket) refs/heads
+[out]
+      
+      
+[err]
+[exit=0]
+$ git for-each-ref --format=%(push) %(push:short) %(push:track) refs/heads
+[out]
+refs/remotes/origin/main origin/main [ahead 1]
+  
+[err]
+[exit=0]
+$ git for-each-ref --format=%(HEAD) %(refname:short)
+[out]
+* main
+  other
+  origin
+  origin/main
+  v1
+  v2
+[err]
+[exit=0]
+$ git for-each-ref --format=%(symref) %(symref:short) %(refname) refs/remotes
+[out]
+refs/remotes/origin/main origin/main refs/remotes/origin/HEAD
+  refs/remotes/origin/main
+[err]
+[exit=0]
+$ git for-each-ref --format=%(worktreepath) refs/heads
+[out]
+/work/r
+
+[err]
+[exit=0]
+$ git for-each-ref --format=%(refname:short)%(if)%(upstream)%(then) T%(else) F%(end) refs/heads
+[out]
+main F
+other F
+[err]
+[exit=0]
+$ git for-each-ref --format=%(if:equals=main)%(refname:short)%(then)is main%(else)not%(end) refs/heads
+[out]
+is main
+not
+[err]
+[exit=0]
+$ git for-each-ref --format=%(align:10)%(refname:short)%(end)| refs/heads
+[out]
+main      |
+other     |
+[err]
+[exit=0]
+$ git for-each-ref --format=%(align:10,right)%(refname:short)%(end)| refs/heads
+[out]
+      main|
+     other|
+[err]
+[exit=0]
+$ git for-each-ref --format=%(color:red)x%(color:reset) refs/heads/main
+[out]
+x
+[err]
+[exit=0]
+$ git for-each-ref --format=%%x%xx41 refs/heads/main
+[out]
+%x%xx41
+[err]
+[exit=0]
+$ git for-each-ref --format=%(foo) refs/heads/main
+[out]
+[err]
+fatal: unknown field name: foo
+[exit=128]
+$ git for-each-ref --format=%(refname refs/heads/main
+[out]
+[err]
+error: malformed format string %(refname
+usage: git for-each-ref [<options>] [<pattern>]
+   or: git for-each-ref [--points-at <object>]
+   or: git for-each-ref [--merged [<commit>]] [--no-merged [<commit>]]
+   or: git for-each-ref [--contains [<commit>]] [--no-contains [<commit>]]
+
+    -s, --[no-]shell      quote placeholders suitably for shells
+    -p, --[no-]perl       quote placeholders suitably for perl
+    --[no-]python         quote placeholders suitably for python
+    --[no-]tcl            quote placeholders suitably for Tcl
+    --[no-]omit-empty     do not output a newline after empty formatted refs
+
+    --[no-]count <n>      show only <n> matched refs
+    --[no-]format <format>
+                          format to use for the output
+    --[no-]color[=<when>] respect format colors
+    --[no-]exclude <pattern>
+                          exclude refs which match pattern
+    --[no-]sort <key>     field name to sort on
+    --[no-]points-at <object>
+                          print only refs which points at the given object
+    --merged <commit>     print only refs that are merged
+    --no-merged <commit>  print only refs that are not merged
+    --contains <commit>   print only refs which contain the commit
+    --no-contains <commit>
+                          print only refs which don't contain the commit
+    --[no-]ignore-case    sorting and filtering are case insensitive
+    --[no-]stdin          read reference patterns from stdin
+    --[no-]include-root-refs
+                          also include HEAD ref and pseudorefs
+
+[exit=129]
+$ git for-each-ref --format=%(refname:foo) refs/heads/main
+[out]
+[err]
+fatal: unrecognized %(refname) argument: foo
+[exit=128]
+$ git for-each-ref --shell --format=%(refname) %(subject) refs/heads/main
+[out]
+'refs/heads/main' 'add c'
+[err]
+[exit=0]
+$ git for-each-ref --perl --format=%(refname) %(subject) refs/heads/main
+[out]
+'refs/heads/main' 'add c'
+[err]
+[exit=0]
+$ git for-each-ref --python --format=%(refname) %(subject) refs/heads/main
+[out]
+'refs/heads/main' 'add c'
+[err]
+[exit=0]
+$ git for-each-ref --tcl --format=%(refname) %(subject) refs/heads/main
+[out]
+"refs/heads/main" "add c"
+[err]
+[exit=0]
+$ git for-each-ref --points-at=HEAD~2
+[out]
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 tag	refs/tags/v2
+[err]
+[exit=0]
+$ git for-each-ref --contains HEAD~1 refs/heads
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+[err]
+[exit=0]
+$ git for-each-ref --no-contains HEAD~1 refs/heads
+[out]
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+[err]
+[exit=0]
+$ git for-each-ref --merged HEAD~1
+[out]
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/HEAD
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/main
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/tags/v1
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 tag	refs/tags/v2
+[err]
+[exit=0]
+$ git for-each-ref --no-merged HEAD~1
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+[err]
+[exit=0]
+$ git for-each-ref --exclude=refs/tags/*
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/HEAD
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/main
+[err]
+[exit=0]
+$ git for-each-ref --omit-empty --format=%(upstream) refs/heads
+[out]
+[err]
+[exit=0]
+$ git for-each-ref --include-root-refs
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	HEAD
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/HEAD
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/main
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/tags/v1
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 tag	refs/tags/v2
+[err]
+[exit=0]
+$ git for-each-ref --stdin
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/HEAD
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/remotes/origin/main
+f742ed745a17b3d948e9fe299ddc31076bd22cc5 commit	refs/tags/v1
+c4f654f8105cea9a3fb4bbe1d828200ff025f357 tag	refs/tags/v2
+[err]
+[exit=0]
+$ git for-each-ref --ignore-case REFS/HEADS/*
+[out]
+110d11a6f83207f06077f9d00b2fd73dfee2056b commit	refs/heads/main
+1d512c3d80fe691009862707920813ee23554d64 commit	refs/heads/other
+[err]
+[exit=0]

@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+libncurses_dev=$(dpkg-query -W -f'${Package}:${Architecture} ' 'libncurses-dev:*')
+# shellcheck disable=SC2086
+manpages=$(dpkg-query -L $libncurses_dev ncurses-bin ncurses-doc \
+	    | grep ^/usr/share/man/man./)
+
+echo "Checking for broken manpage references ..."
+for manpage in $manpages ; do
+    if [ -f "$manpage" ] && [ ! -L "$manpage" ] ; then
+	zgrep -nH '(3X)' "$manpage" | grep -v ':[0-9]\+:\.\\"' 1>&2 || true
+    fi
+done

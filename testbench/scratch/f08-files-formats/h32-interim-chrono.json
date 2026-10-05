@@ -1,0 +1,1629 @@
+[
+  {
+    "id": "date-flag-upper",
+    "tags": [
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"MON|MONDAY|JAN|JANUARY|AM|am|UTC|JAN\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %^a|%^A|%^b|%^B|%^p|%^P|%^Z|%^h\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-swap-case",
+    "tags": [
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"MON|MONDAY|JAN|JANUARY|am|am|utc\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %#a|%#A|%#b|%#B|%#p|%#P|%#Z\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-width-numeric",
+    "tags": [
+      "flags",
+      "width"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0000002026|00005|0009|000005\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10Y|%5d|%4H|%6j\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-width-space-pad",
+    "tags": [
+      "flags",
+      "width"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"         5| 2026|   1\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %_10d|%_5Y|%_4m\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-width-no-pad",
+    "tags": [
+      "flags",
+      "width"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"5|9\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %-10d|%-5H\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-width-zero-pad",
+    "tags": [
+      "flags",
+      "width"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0000000005|0005|009\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %010d|%04e|%03k\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-width-text",
+    "tags": [
+      "flags",
+      "width"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"    Monday|       JAN|     January|   AM\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10A|%^10b|%12B|%5p\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-width-epoch",
+    "tags": [
+      "flags",
+      "width"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"000001767604023|     1767604023|1767604023\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %15s|%_15s|%-s\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-width-offset",
+    "tags": [
+      "flags",
+      "width",
+      "offset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"+000000000|   +0|+0|+0000:00\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %10z|%_z|%-z|%8:z\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-plus-year",
+    "tags": [
+      "flags",
+      "width"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026|+02026|20\\n\" obtido \"2026-01-05T09:07:03+00:004Y|2026-01-05T09:07:03+00:006Y|2026-01-05T09:07:03+00:00C\\n\""
+    ]
+  },
+  {
+    "id": "date-flag-nanos-precision-zero",
+    "tags": [
+      "flags",
+      "nanos"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"000|000000|000000000|000000000|0\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %3N|%6N|%9N|%-N|%1N\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-nanos-precision",
+    "tags": [
+      "flags",
+      "nanos",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"012345678|012|012345|012345678|0|012345678\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1767604023.012345678’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-nanos-small",
+    "tags": [
+      "flags",
+      "nanos",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1767604023.000000042|000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1767604023.000000042’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-nanos-in-composite",
+    "tags": [
+      "flags",
+      "nanos",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"09:07:03.500 1767604023.500000000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1767604023.5’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-combined-dash-upper",
+    "tags": [
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"JAN 5\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %-^b %^-d\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-pad-on-text",
+    "tags": [
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"[Mon][Mon][Mon]\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: [%_a][%0a][%-a]\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-composite-directives",
+    "tags": [
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"01/05/26|2026-01-05|MON JAN  5 09:07:03 2026|09:07:03|09:07:03 AM\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %_D|%-F|%^c|%-T|%^r\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-flag-ampm-afternoon",
+    "tags": [
+      "flags"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"PM|pm|pm|pm|3| 3\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %^p|%#p|%^P|%#P|%-l|%_I\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-fmt-nanos-frozen",
+    "tags": [
+      "format"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"000000000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %N\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-fmt-unknown-directive",
+    "tags": [
+      "format",
+      "edge"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"[%J][%i][%L]\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: [%J][%i][%L]\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-fmt-trailing-percent",
+    "tags": [
+      "format",
+      "edge"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"abc%\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: abc%\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-fmt-locale-modifiers",
+    "tags": [
+      "format",
+      "edge"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"26 2026 05 09 Mon Jan  5 09:07:03 2026\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %Ey %EY %Od %OH %Ec\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-opt-iso-ns",
+    "tags": [
+      "options",
+      "nanos",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-05T09:07:03,012345678+00:00\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1767604023.012345678’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-opt-rfc3339-ns",
+    "tags": [
+      "options",
+      "nanos",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-05 09:07:03.500000000+00:00\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1767604023.5’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-opt-file",
+    "tags": [
+      "options",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-01 00:00:00\\n2026-02-03 04:05:06\\n1970-01-01 00:00:00\\n\" obtido \"2026-01-01 00:00:00\\n2026-02-03 04:05:06\\n\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@0’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-opt-file-stdin",
+    "tags": [
+      "options",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"100\\n100\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@100’\\ndate: invalid date ‘1970-01-01 00:01:40 UTC’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-this-thursday",
+    "tags": [
+      "parse",
+      "relative",
+      "weekday"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 00:00:00 +0000\\n\" obtido \"2026-01-22 00:00:00 +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-parse-last-month",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2025-12-15 12:00:00 +0000\\n\" obtido \"2026-01-12 00:00:00 +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-parse-next-month",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-02-15 12:00:00 +0000\\n\" obtido \"2026-01-19 00:00:00 +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-parse-next-month-overflow",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-03 10:30:00 +0000\\n\" obtido \"2026-02-02 00:00:00 +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-parse-month-ago-overflow",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-03 10:30:00 +0000\\n\" obtido \"2026-02-28 00:00:00 +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-parse-midnight",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"\" obtido \"2026-01-15 12:00:00 +0000\\n\"",
+      "stderr: esperado \"date: invalid date ‘midnight’\\n\" obtido \"\"",
+      "exit: esperado Some(1)/None obtido Some(0)/None"
+    ]
+  },
+  {
+    "id": "date-parse-plus-week",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-22 12:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘+1 week’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-year-ago",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2025-01-15 12:00:00 +0000\\n\" obtido \"2025-01-15 00:00:00 +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-parse-year-ago-leap",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2027-03-01 12:00:00 +0000\\n\" obtido \"2027-02-28 00:00:00 +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-parse-seconds-plus",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 12:00:45 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘+45 seconds’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-compound-relative",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-16 10:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘1 day 2 hours ago’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-next-year",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2027-01-15 12:00:00 +0000\\n\" obtido \"2027-01-15 00:00:00 +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-parse-fortnight",
+    "tags": [
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-29 12:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘fortnight’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-third-friday",
+    "tags": [
+      "parse",
+      "relative",
+      "weekday"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-30 00:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘third friday’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-empty-string",
+    "tags": [
+      "parse",
+      "edge"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 00:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-iso-fraction",
+    "tags": [
+      "parse",
+      "iso",
+      "nanos"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 14:15:16.250000000 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: formatação: formato não suportado pelo chrono: %F %T.%N %z\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-iso-fraction-comma",
+    "tags": [
+      "parse",
+      "iso",
+      "nanos"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 14:15:16.500 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-03-01T14:15:16,5Z’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-iso-compact-number",
+    "tags": [
+      "parse",
+      "iso"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 00:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘20260301’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-iso-utc-word",
+    "tags": [
+      "parse",
+      "iso",
+      "zone-name"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 14:15:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-03-01 14:15 UTC’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-zone-est",
+    "tags": [
+      "parse",
+      "zone-name"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 19:15:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-03-01 14:15 EST’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-zone-pst",
+    "tags": [
+      "parse",
+      "zone-name"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 22:15:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-03-01 14:15 PST’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-zone-utc-offset",
+    "tags": [
+      "parse",
+      "zone-name"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 11:15:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-03-01 14:15 UTC+3’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-date-plus-day",
+    "tags": [
+      "parse",
+      "iso",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-16 00:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-01-15 +1 day’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-date-plus-month-overflow",
+    "tags": [
+      "parse",
+      "iso",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-03 00:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-01-31 +1 month’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-datetime-plus-hours",
+    "tags": [
+      "parse",
+      "iso",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 10:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-01-15 12:00 +3 hours’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-month-name-day-year",
+    "tags": [
+      "parse",
+      "text"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 00:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘Mar 1 2026’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-month-name-only",
+    "tags": [
+      "parse",
+      "text"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"\" obtido \"2026-03-01 00:00:00 +0000\\n\"",
+      "stderr: esperado \"date: invalid date ‘march’\\n\" obtido \"\"",
+      "exit: esperado Some(1)/None obtido Some(0)/None"
+    ]
+  },
+  {
+    "id": "date-parse-rfc2822",
+    "tags": [
+      "parse",
+      "rfc2822"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 14:15:16 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘Sun, 01 Mar 2026 14:15:16 +0000’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-rfc2822-offset",
+    "tags": [
+      "parse",
+      "rfc2822"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 12:30:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘Thu, 15 Jan 2026 09:30:00 -0300’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-gmt-word",
+    "tags": [
+      "parse",
+      "rfc2822",
+      "zone-name"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 14:15:16 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘1 Mar 2026 14:15:16 GMT’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-default-output-roundtrip",
+    "tags": [
+      "parse",
+      "text"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-01 14:15:16 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘Sun Mar  1 14:15:16 UTC 2026’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-epoch",
+    "tags": [
+      "parse",
+      "epoch"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2023-11-14 22:13:20 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1700000000’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-epoch-default-output",
+    "tags": [
+      "parse",
+      "epoch"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"Tue Nov 14 22:13:20 UTC 2023\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1700000000’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-epoch-negative",
+    "tags": [
+      "parse",
+      "epoch"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1969-12-31 23:59:59 +0000 -1\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@-1’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-epoch-fraction",
+    "tags": [
+      "parse",
+      "epoch",
+      "nanos"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2023-11-14 22:13:20.500000000 1700000000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1700000000.5’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-epoch-negative-fraction",
+    "tags": [
+      "parse",
+      "epoch",
+      "nanos"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"-2 500000000 23:59:58\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@-1.5’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-epoch-zero",
+    "tags": [
+      "parse",
+      "epoch"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1970-01-01 00:00:00 +0000\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@0’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-parse-invalid-hour",
+    "tags": [
+      "parse",
+      "error"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"\" obtido \"Fri Jan 16 01:00:00 UTC 2026\\n\"",
+      "stderr: esperado \"date: invalid date ‘25:00’\\n\" obtido \"\"",
+      "exit: esperado Some(1)/None obtido Some(0)/None"
+    ]
+  },
+  {
+    "id": "date-parse-invalid-military-zone-letter",
+    "tags": [
+      "parse",
+      "error",
+      "zone-name"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"Thu Jan 15 12:00:00 UTC 2026\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-01-15 12:00 j’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-tz-kolkata",
+    "tags": [
+      "tz",
+      "offset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"Thu 2026-01-15 12:00:00 IST +0530 +05:30 +05:30:00 +05:30 1768458600\\n\" obtido \"Thu 2026-01-15 12:00:00 IST +0530 +05:30 +05:30:00 +05 1768458600\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-lord-howe-winter",
+    "tags": [
+      "tz",
+      "dst",
+      "offset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"Wed 2026-07-15 12:00:00 +1030 +1030 +10:30 +10:30 1784079000\\n\" obtido \"Wed 2026-07-15 12:00:00 +1030 +1030 +10:30 +10 1784079000\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-kathmandu",
+    "tags": [
+      "tz",
+      "offset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 12:00:00 +0545 +0545 +05:45\\n\" obtido \"2026-01-15 12:00:00 +0545 +0545 +05\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-chatham",
+    "tags": [
+      "tz",
+      "offset",
+      "dst"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 12:00:00 +1345 +1345 +13:45\\n\" obtido \"2026-01-15 12:00:00 +1345 +1345 +13\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-st-johns",
+    "tags": [
+      "tz",
+      "offset"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 12:00:00 NST -0330 -03:30\\n\" obtido \"2026-01-15 12:00:00 NST -0330 -03\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-epoch-in-zones-sao-paulo",
+    "tags": [
+      "tz",
+      "epoch",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"Thu Jan 15 09:00:00 -03 2026\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1768478400’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-tz-epoch-in-zones-kolkata",
+    "tags": [
+      "tz",
+      "epoch",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 17:30:00 IST +0530\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1768478400’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-tz-epoch-in-zones-lord-howe",
+    "tags": [
+      "tz",
+      "epoch",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 23:00:00 +11 +1100\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘@1768478400’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-tz-ny-spring-gap",
+    "tags": [
+      "tz",
+      "dst",
+      "error",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"\" obtido \"2026-03-08 03:30:00 EDT\\n\"",
+      "stderr: esperado \"date: invalid date ‘2026-03-08 02:30’\\n\" obtido \"\"",
+      "exit: esperado Some(1)/None obtido Some(0)/None"
+    ]
+  },
+  {
+    "id": "date-tz-ny-spring-after-gap",
+    "tags": [
+      "tz",
+      "dst",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-08 03:30:00 EDT 1772955000\\n\" obtido \"2026-03-08 04:30:00 EDT 1772958600\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-ny-fall-ambiguous-now-winter",
+    "tags": [
+      "tz",
+      "dst",
+      "ambiguous",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-11-01 01:30:00 EST 1793514600\\n\" obtido \"2026-11-01 01:30:00 EDT 1793511000\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-ny-plus-day-across-dst",
+    "tags": [
+      "tz",
+      "dst",
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-08 07:00:00 EDT\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-03-07 12:00 +1 day’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-tz-ny-plus-24h-across-dst",
+    "tags": [
+      "tz",
+      "dst",
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-06 08:00:00 EST\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-03-07 12:00 +24 hours’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-tz-ny-date-plus-day-across-dst",
+    "tags": [
+      "tz",
+      "dst",
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-08 00:00:00 EST\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"date: invalid date ‘2026-03-07 +1 day’\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "date-tz-ny-tomorrow-across-dst",
+    "tags": [
+      "tz",
+      "dst",
+      "parse",
+      "relative"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-03-08 13:00:00 EDT\\n\" obtido \"2026-03-08 12:00:00 EDT\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-berlin-spring-gap",
+    "tags": [
+      "tz",
+      "dst",
+      "error",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"\" obtido \"2026-03-29 01:30:00 CET\\n\"",
+      "stderr: esperado \"date: invalid date ‘2026-03-29 02:30’\\n\" obtido \"\"",
+      "exit: esperado Some(1)/None obtido Some(0)/None"
+    ]
+  },
+  {
+    "id": "date-tz-berlin-fall-ambiguous-now-summer",
+    "tags": [
+      "tz",
+      "dst",
+      "ambiguous",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-10-25 02:30:00 CEST 1792888200\\n\" obtido \"2026-10-25 02:30:00 CET 1792891800\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-sao-paulo-historic-gap",
+    "tags": [
+      "tz",
+      "dst",
+      "error",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"\" obtido \"2018-11-04 01:30:00 -02\\n\"",
+      "stderr: esperado \"date: invalid date ‘2018-11-04 00:30’\\n\" obtido \"\"",
+      "exit: esperado Some(1)/None obtido Some(0)/None"
+    ]
+  },
+  {
+    "id": "date-tz-posix-jst",
+    "tags": [
+      "tz",
+      "posix"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 12:00:00 JST +0900\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-posix-angle-brackets",
+    "tags": [
+      "tz",
+      "posix"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 12:00:00 -03 -0300\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-posix-half-hour",
+    "tags": [
+      "tz",
+      "posix"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 12:00:00 +0530 +0530\\n\" obtido \"2026-01-15 12:00:00 UTC +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-posix-explicit-rules",
+    "tags": [
+      "tz",
+      "posix",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-07-01 12:00:00 CEST +0200\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-unknown-name",
+    "tags": [
+      "tz",
+      "edge",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-07-01 12:00:00 Foo +0000\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-empty",
+    "tags": [
+      "tz",
+      "edge",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-07-01 12:00:00 Universal +0000\\n\" obtido \"2026-07-01 12:00:00 UTC +0000\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-backward-link",
+    "tags": [
+      "tz",
+      "edge",
+      "tzdb-content",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-07-01 12:00:00  +0000\\n\" obtido \"2026-07-01 12:00:00 EDT -0400\\n\""
+    ]
+  },
+  {
+    "id": "date-tz-in-string-posix",
+    "tags": [
+      "tz",
+      "tz-in-string",
+      "parse"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2026-01-15 00:00:00 UTC\\n\" obtido \"2026-01-15 09:00:00 UTC\\n\""
+    ]
+  }
+]

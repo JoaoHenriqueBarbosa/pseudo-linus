@@ -1,0 +1,52 @@
+archive      estrito  335/343  ( 97.7%)  leniente  335/343  ( 97.7%)     0 sem suporte  0.1s
+awk          estrito  233/234  ( 99.6%)  leniente  233/234  ( 99.6%)     0 sem suporte  0.1s
+bc           estrito  118/118  (100.0%)  leniente  118/118  (100.0%)     0 sem suporte  0.0s
+column       estrito  129/129  (100.0%)  leniente  129/129  (100.0%)     0 sem suporte  0.0s
+Returns true, a successful exit status.
+
+Immediately returns with the exit status 0, except when invoked with one of the recognized
+options. In those cases it will try to write the help or version text. Any IO error during this
+operation causes the program to return 1 instead.
+
+Usage: true
+
+Options:
+      --help     Print help information
+      --version  Print version information
+Returns false, an unsuccessful exit status.
+
+Immediately returns with the exit status 1. When invoked with one of the recognized options it
+will try to write the help or version text. Any IO error during this operation is diagnosed, yet
+the program will also return 1.
+
+Usage: false
+
+Options:
+      --help     Print help information
+      --version  Print version information
+coreutils    estrito  838/955  ( 87.7%)  leniente  916/955  ( 95.9%)     0 sem suporte  1.4s
+csv          estrito   15/36   ( 41.7%)  leniente   15/36   ( 41.7%)    21 sem suporte  0.0s
+date         estrito  240/264  ( 90.9%)  leniente  243/264  ( 92.0%)     0 sem suporte  0.0s
+diff         estrito  298/298  (100.0%)  leniente  298/298  (100.0%)     0 sem suporte  0.0s
+envsubst     estrito   22/22   (100.0%)  leniente   22/22   (100.0%)     0 sem suporte  0.0s
+file         estrito   89/89   (100.0%)  leniente   89/89   (100.0%)     0 sem suporte  0.1s
+find         estrito   49/52   ( 94.2%)  leniente   52/52   (100.0%)     0 sem suporte  0.0s
+git          estrito    0/15   (  0.0%)  leniente    0/15   (  0.0%)     0 sem suporte  0.0s
+grep         estrito  185/185  (100.0%)  leniente  185/185  (100.0%)     0 sem suporte  0.0s
+hexdump      estrito  184/184  (100.0%)  leniente  184/184  (100.0%)     0 sem suporte  0.0s
+jq           estrito  194/194  (100.0%)  leniente  194/194  (100.0%)     0 sem suporte  0.2s
+patch        estrito  209/210  ( 99.5%)  leniente  210/210  (100.0%)     0 sem suporte  0.0s
+procps       estrito   46/46   (100.0%)  leniente   46/46   (100.0%)     0 sem suporte  0.0s
+regex        estrito 1214/1214 (100.0%)  leniente 1214/1214 (100.0%)     0 sem suporte  0.4s
+sed          estrito  172/172  (100.0%)  leniente  172/172  (100.0%)     0 sem suporte  0.1s
+shell        estrito  106/108  ( 98.1%)  leniente  108/108  (100.0%)     0 sem suporte  0.3s
+smoke        estrito    6/6    (100.0%)  leniente    6/6    (100.0%)     0 sem suporte  0.0s
+sqlite       estrito  140/142  ( 98.6%)  leniente  140/142  ( 98.6%)     0 sem suporte  0.1s
+strings      estrito  148/161  ( 91.9%)  leniente  158/161  ( 98.1%)     0 sem suporte  0.0s
+tree         estrito   80/80   (100.0%)  leniente   80/80   (100.0%)     0 sem suporte  0.0s
+which        estrito   26/26   (100.0%)  leniente   26/26   (100.0%)     0 sem suporte  0.0s
+xargs        estrito   28/28   (100.0%)  leniente   28/28   (100.0%)     0 sem suporte  0.0s
+xxd          estrito   91/91   (100.0%)  leniente   91/91   (100.0%)     0 sem suporte  0.0s
+yq           estrito  105/105  (100.0%)  leniente  105/105  (100.0%)     0 sem suporte  0.1s
+TOTAL        estrito 5300/5507 (96.2%)  leniente 5397/5507 (98.0%)  em 3s
+gravado /home/john/projects/pseudo-linus/docs/conformance.md

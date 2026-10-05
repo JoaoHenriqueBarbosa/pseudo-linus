@@ -1,0 +1,446 @@
+$ git merge --ff-only side
+[out]
+[err]
+hint: Diverging branches can't be fast-forwarded, you need to either:
+hint:
+hint: 	git merge --no-ff
+hint:
+hint: or:
+hint:
+hint: 	git rebase
+hint:
+hint: Disable this message with "git config advice.diverging false"
+fatal: Not possible to fast-forward, aborting.
+[exit=128]
+$ git merge --squash --no-ff side
+[out]
+[err]
+fatal: options '--squash' and '--no-ff.' cannot be used together
+[exit=128]
+$ git merge --squash --commit side
+[out]
+[err]
+fatal: options '--squash' and '--commit.' cannot be used together
+[exit=128]
+$ git merge --no-ff --ff-only side
+[out]
+[err]
+hint: Diverging branches can't be fast-forwarded, you need to either:
+hint:
+hint: 	git merge --no-ff
+hint:
+hint: or:
+hint:
+hint: 	git rebase
+hint:
+hint: Disable this message with "git config advice.diverging false"
+fatal: Not possible to fast-forward, aborting.
+[exit=128]
+$ git merge -h
+[out]
+[err]
+usage: git merge [<options>] [<commit>...]
+   or: git merge --abort
+   or: git merge --continue
+
+    -n                    do not show a diffstat at the end of the merge
+    --[no-]stat           show a diffstat at the end of the merge
+    --[no-]summary        (synonym to --stat)
+    --[no-]log[=<n>]      add (at most <n>) entries from shortlog to merge commit message
+    --[no-]squash         create a single commit instead of doing a merge
+    --[no-]commit         perform a commit if the merge succeeds (default)
+    -e, --[no-]edit       edit message before committing
+    --[no-]cleanup <mode> how to strip spaces and #comments from message
+    --[no-]ff             allow fast-forward (default)
+    --ff-only             abort if fast-forward is not possible
+    --[no-]rerere-autoupdate
+                          update the index with reused conflict resolution if possible
+    --[no-]verify-signatures
+                          verify that the named commit has a valid GPG signature
+    -s, --[no-]strategy <strategy>
+                          merge strategy to use
+    -X, --[no-]strategy-option <option=value>
+                          option for selected merge strategy
+    -m, --[no-]message <message>
+                          merge commit message (for a non-fast-forward merge)
+    -F, --file <path>     read message from file
+    --[no-]into-name <name>
+                          use <name> instead of the real target
+    -v, --[no-]verbose    be more verbose
+    -q, --[no-]quiet      be more quiet
+    --[no-]abort          abort the current in-progress merge
+    --[no-]quit           --abort but leave index and working tree alone
+    --[no-]continue       continue the current in-progress merge
+    --[no-]allow-unrelated-histories
+                          allow merging unrelated histories
+    --[no-]progress       force progress reporting
+    -S, --[no-]gpg-sign[=<key-id>]
+                          GPG sign commit
+    --[no-]autostash      automatically stash/stash pop before and after
+    --[no-]overwrite-ignore
+                          update ignored files (default)
+    --[no-]signoff        add a Signed-off-by trailer
+    --no-verify           bypass pre-merge-commit and commit-msg hooks
+    --verify              opposite of --no-verify
+
+[exit=129]
+$ git merge --abort extra
+[out]
+[err]
+fatal: --abort expects no arguments
+
+usage: git merge [<options>] [<commit>...]
+   or: git merge --abort
+   or: git merge --continue
+
+    -n                    do not show a diffstat at the end of the merge
+    --[no-]stat           show a diffstat at the end of the merge
+    --[no-]summary        (synonym to --stat)
+    --[no-]log[=<n>]      add (at most <n>) entries from shortlog to merge commit message
+    --[no-]squash         create a single commit instead of doing a merge
+    --[no-]commit         perform a commit if the merge succeeds (default)
+    -e, --[no-]edit       edit message before committing
+    --[no-]cleanup <mode> how to strip spaces and #comments from message
+    --[no-]ff             allow fast-forward (default)
+    --ff-only             abort if fast-forward is not possible
+    --[no-]rerere-autoupdate
+                          update the index with reused conflict resolution if possible
+    --[no-]verify-signatures
+                          verify that the named commit has a valid GPG signature
+    -s, --[no-]strategy <strategy>
+                          merge strategy to use
+    -X, --[no-]strategy-option <option=value>
+                          option for selected merge strategy
+    -m, --[no-]message <message>
+                          merge commit message (for a non-fast-forward merge)
+    -F, --file <path>     read message from file
+    --[no-]into-name <name>
+                          use <name> instead of the real target
+    -v, --[no-]verbose    be more verbose
+    -q, --[no-]quiet      be more quiet
+    --[no-]abort          abort the current in-progress merge
+    --[no-]quit           --abort but leave index and working tree alone
+    --[no-]continue       continue the current in-progress merge
+    --[no-]allow-unrelated-histories
+                          allow merging unrelated histories
+    --[no-]progress       force progress reporting
+    -S, --[no-]gpg-sign[=<key-id>]
+                          GPG sign commit
+    --[no-]autostash      automatically stash/stash pop before and after
+    --[no-]overwrite-ignore
+                          update ignored files (default)
+    --[no-]signoff        add a Signed-off-by trailer
+    --no-verify           bypass pre-merge-commit and commit-msg hooks
+    --verify              opposite of --no-verify
+
+[exit=129]
+$ git merge --continue extra
+[out]
+[err]
+fatal: --continue expects no arguments
+
+usage: git merge [<options>] [<commit>...]
+   or: git merge --abort
+   or: git merge --continue
+
+    -n                    do not show a diffstat at the end of the merge
+    --[no-]stat           show a diffstat at the end of the merge
+    --[no-]summary        (synonym to --stat)
+    --[no-]log[=<n>]      add (at most <n>) entries from shortlog to merge commit message
+    --[no-]squash         create a single commit instead of doing a merge
+    --[no-]commit         perform a commit if the merge succeeds (default)
+    -e, --[no-]edit       edit message before committing
+    --[no-]cleanup <mode> how to strip spaces and #comments from message
+    --[no-]ff             allow fast-forward (default)
+    --ff-only             abort if fast-forward is not possible
+    --[no-]rerere-autoupdate
+                          update the index with reused conflict resolution if possible
+    --[no-]verify-signatures
+                          verify that the named commit has a valid GPG signature
+    -s, --[no-]strategy <strategy>
+                          merge strategy to use
+    -X, --[no-]strategy-option <option=value>
+                          option for selected merge strategy
+    -m, --[no-]message <message>
+                          merge commit message (for a non-fast-forward merge)
+    -F, --file <path>     read message from file
+    --[no-]into-name <name>
+                          use <name> instead of the real target
+    -v, --[no-]verbose    be more verbose
+    -q, --[no-]quiet      be more quiet
+    --[no-]abort          abort the current in-progress merge
+    --[no-]quit           --abort but leave index and working tree alone
+    --[no-]continue       continue the current in-progress merge
+    --[no-]allow-unrelated-histories
+                          allow merging unrelated histories
+    --[no-]progress       force progress reporting
+    -S, --[no-]gpg-sign[=<key-id>]
+                          GPG sign commit
+    --[no-]autostash      automatically stash/stash pop before and after
+    --[no-]overwrite-ignore
+                          update ignored files (default)
+    --[no-]signoff        add a Signed-off-by trailer
+    --no-verify           bypass pre-merge-commit and commit-msg hooks
+    --verify              opposite of --no-verify
+
+[exit=129]
+$ git merge --quit x
+[out]
+[err]
+fatal: --quit expects no arguments
+
+usage: git merge [<options>] [<commit>...]
+   or: git merge --abort
+   or: git merge --continue
+
+    -n                    do not show a diffstat at the end of the merge
+    --[no-]stat           show a diffstat at the end of the merge
+    --[no-]summary        (synonym to --stat)
+    --[no-]log[=<n>]      add (at most <n>) entries from shortlog to merge commit message
+    --[no-]squash         create a single commit instead of doing a merge
+    --[no-]commit         perform a commit if the merge succeeds (default)
+    -e, --[no-]edit       edit message before committing
+    --[no-]cleanup <mode> how to strip spaces and #comments from message
+    --[no-]ff             allow fast-forward (default)
+    --ff-only             abort if fast-forward is not possible
+    --[no-]rerere-autoupdate
+                          update the index with reused conflict resolution if possible
+    --[no-]verify-signatures
+                          verify that the named commit has a valid GPG signature
+    -s, --[no-]strategy <strategy>
+                          merge strategy to use
+    -X, --[no-]strategy-option <option=value>
+                          option for selected merge strategy
+    -m, --[no-]message <message>
+                          merge commit message (for a non-fast-forward merge)
+    -F, --file <path>     read message from file
+    --[no-]into-name <name>
+                          use <name> instead of the real target
+    -v, --[no-]verbose    be more verbose
+    -q, --[no-]quiet      be more quiet
+    --[no-]abort          abort the current in-progress merge
+    --[no-]quit           --abort but leave index and working tree alone
+    --[no-]continue       continue the current in-progress merge
+    --[no-]allow-unrelated-histories
+                          allow merging unrelated histories
+    --[no-]progress       force progress reporting
+    -S, --[no-]gpg-sign[=<key-id>]
+                          GPG sign commit
+    --[no-]autostash      automatically stash/stash pop before and after
+    --[no-]overwrite-ignore
+                          update ignored files (default)
+    --[no-]signoff        add a Signed-off-by trailer
+    --no-verify           bypass pre-merge-commit and commit-msg hooks
+    --verify              opposite of --no-verify
+
+[exit=129]
+$ git merge
+[out]
+[err]
+fatal: No remote for the current branch.
+[exit=128]
+$ git merge
+[out]
+[err]
+fatal: No default upstream defined for the current branch.
+[exit=128]
+$ git merge
+[out]
+[err]
+fatal: No remote-tracking branch for refs/heads/zzz from origin
+[exit=128]
+$ git merge
+[out]
+[err]
+fatal: No current branch.
+[exit=128]
+--- unrelated
+$ git merge orphan
+[out]
+[err]
+fatal: refusing to merge unrelated histories
+[exit=128]
+$ git merge --allow-unrelated-histories orphan
+[out]
+Merge made by the 'ort' strategy.
+ o.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 o.txt
+[err]
+[exit=0]
+*   b2cd71f Merge branch 'orphan'
+|\  
+| * 16b319b orphan
+* 08132b0 add d
+* 110d11a add c
+* f742ed7 add b
+* 1d512c3 add a
+--- dirty
+$ git merge side
+[out]
+Merge made by the 'ort' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+--- untracked would be overwritten
+$ git merge side
+[out]
+Already up to date.
+[err]
+[exit=0]
+$ git merge --no-ff side
+[out]
+Already up to date.
+[err]
+[exit=0]
+--- staged change not conflicting
+$ git merge side
+[out]
+Already up to date.
+[err]
+[exit=0]
+A  n.txt
+ D s.txt
+--- merge msg from tag, commit, remote, HEAD~1
+$ git merge --no-ff v1
+[out]
+Already up to date.
+[err]
+[exit=0]
+Merge branch 'side'
+$ git merge v2
+[out]
+Merge made by the 'ort' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+Merge tag 'v2'
+
+annotated
+
+$ git merge 7925df24b565f3db14692bfc025875907af25735
+[out]
+Merge made by the 'ort' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+Merge commit '7925df24b565f3db14692bfc025875907af25735'
+$ git merge side~0
+[out]
+Merge made by the 'ort' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+Merge branch 'side'
+$ git merge side
+[out]
+Merge made by the 'ort' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+Merge branch 'side' into topic
+$ git merge main
+[out]
+Merge made by the 'ort' strategy.
+[err]
+[exit=0]
+Merge branch 'main' into topic
+$ git merge main side
+[out]
+Trying simple merge with main
+Trying simple merge with side
+Merge made by the 'octopus' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+Merge branches 'main' and 'side' into topic
+$ git merge --into-name foo side
+[out]
+Merge made by the 'ort' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+Merge branch 'side' into foo
+$ git merge --log side
+[out]
+Merge made by the 'ort' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+Merge branch 'side' into topic
+
+* side:
+  add s
+
+$ git merge --no-stat side
+[out]
+Merge made by the 'ort' strategy.
+[err]
+[exit=0]
+$ git merge -n side
+[out]
+Already up to date.
+[err]
+[exit=0]
+$ git merge -q side
+[out]
+[err]
+[exit=0]
+$ git merge -e -m edit msg side
+[out]
+[err]
+error: Terminal is dumb, but EDITOR unset
+Not committing merge; use 'git commit' to complete the merge.
+[exit=1]
+$ git merge --no-edit -m noedit side
+[out]
+Merge made by the 'ort' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+noedit
+
+$ git merge --signoff side
+[out]
+Merge made by the 'ort' strategy.
+ s.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 s.txt
+[err]
+[exit=0]
+Merge branch 'side' into topic
+
+Signed-off-by: Agent <agent@example.com>
+
+$ git merge -F /dev/null side
+[out]
+[err]
+error: Empty commit message.
+Not committing merge; use 'git commit' to complete the merge.
+[exit=1]
+$ git merge -m  side
+[out]
+[err]
+fatal: You have not concluded your merge (MERGE_HEAD exists).
+Please, commit your changes before you merge.
+[exit=128]
+add d
+

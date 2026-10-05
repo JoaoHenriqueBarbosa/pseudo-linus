@@ -1,0 +1,452 @@
+[
+  {
+    "id": "bc-pow-frac-exponent",
+    "tags": [
+      "error",
+      "arith"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": true,
+    "detail": [
+      "stderr: esperado \"Runtime warning (func=(main), adr=8): non-zero scale in exponent\\n\" obtido \"\""
+    ]
+  },
+  {
+    "id": "bc-sqrt-negative",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"Runtime error (func=(main), adr=6): Square root of a negative number\\n\" obtido \"\\nthread 'main' (2428612) panicked at crates/bc_core/src/math.rs:209:13:\\nsquare root of negative number\\nnote: run with `R\"... (245 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-line-length-zero",
+    "tags": [
+      "wrap",
+      "env"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376\\n\" obtido \"20370359763344860862684456884093781610514683936659362506361404493543\\\\\\n81299763336706183397376\\n\""
+    ]
+  },
+  {
+    "id": "bc-line-length-20",
+    "tags": [
+      "wrap",
+      "env"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"126765060022822940\\\\\\n1496703205376\\n\" obtido \"1267650600228229401496703205376\\n\""
+    ]
+  },
+  {
+    "id": "bc-for-break",
+    "tags": [
+      "control",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0\\n1\\n2\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"\\nthread 'main' (2428737) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected named expressi\"... (255 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-continue",
+    "tags": [
+      "control",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0\\n2\\n4\\n\" obtido \"0\\n0\\n1\\n2\\n0\\n3\\n4\\n\""
+    ]
+  },
+  {
+    "id": "bc-if-else",
+    "tags": [
+      "control",
+      "string",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"big\\nnot huge\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"\\nthread 'main' (2428747) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected Eof, got Strin\"... (406 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-print",
+    "tags": [
+      "string",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"x=3\\na\\tb\\n0\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"\\nthread 'main' (2428752) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected Eof, got Strin\"... (561 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-last-dot",
+    "tags": [
+      "last",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"10\\n20\\n21\\n\" obtido \"10\\n0\\n\"",
+      "stderr: esperado \"\" obtido \"\\nthread 'main' (2428762) panicked at crates/bc_core/src/parser.rs:87:9:\\nLexical error on line 1: unexpected character '.\"... (239 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-compare",
+    "tags": [
+      "compare",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1\\n1\\n0\\n1\\n0\\n1\\n\" obtido \"1\\n1\\n0\\n\"",
+      "stderr: esperado \"\" obtido \"\\nthread 'main' (2428767) panicked at crates/bc_core/src/parser.rs:87:9:\\nLexical error on line 1: unexpected character '!\"... (561 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-relational-assign",
+    "tags": [
+      "compare"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1\\n\" obtido \"0\\n\"",
+      "stderr: esperado \"\" obtido \"\\nthread 'main' (2428772) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected Rparen, got Re\"... (241 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-div-zero",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"Runtime error (func=(main), adr=3): Divide by zero\\n\" obtido \"\\nthread 'main' (2428777) panicked at crates/bc_core/src/math.rs:124:13:\\ndivision by zero\\nnote: run with `RUST_BACKTRACE=\"... (217 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-mod-zero",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"Runtime error (func=(main), adr=5): Modulo by zero\\n\" obtido \"\\nthread 'main' (2428782) panicked at crates/bc_core/src/math.rs:124:13:\\ndivision by zero\\nnote: run with `RUST_BACKTRACE=\"... (217 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-syntax-error",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"(standard_in) 1: syntax error\\n\" obtido \"\\nthread 'main' (2428787) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected named expressi\"... (251 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-uppercase-variable",
+    "tags": [
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": true,
+    "detail": [
+      "stderr: esperado \"(standard_in) 1: syntax error\\n\" obtido \"\""
+    ]
+  },
+  {
+    "id": "bc-uppercase-digit",
+    "tags": [
+      "base"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"10\\n16\\n35\\n\" obtido \"10\\n16\\n\"",
+      "stderr: esperado \"\" obtido \"\\nthread 'main' (2428797) panicked at crates/bc_core/src/parser.rs:87:9:\\nLexical error on line 1: unexpected character 'Z\"... (239 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-halt",
+    "tags": [
+      "quit",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"1\\n\" obtido \"1\\n0\\n2\\n\""
+    ]
+  },
+  {
+    "id": "bc-file-q",
+    "tags": [
+      "file"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"144\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"bc: invalid option -- 'q'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-missing-file",
+    "tags": [
+      "file",
+      "error"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": true,
+    "detail": [
+      "stderr: esperado \"File nope.bc is unavailable.\\n\" obtido \"bc: cannot open file nope.bc\\n\""
+    ]
+  },
+  {
+    "id": "bc-comments",
+    "tags": [
+      "gnu-ext"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"\" obtido \"\\nthread 'main' (2428831) panicked at crates/bc_core/src/parser.rs:87:9:\\nLexical error on line 1: unexpected character '#\"... (239 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-standard-mode",
+    "tags": [
+      "error",
+      "gnu-ext"
+    ],
+    "stdout_ok": true,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stderr: esperado \"(standard_in) 2: Error: print statement\\n\" obtido \"bc: invalid option -- 's'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-warn-mode",
+    "tags": [
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"y\\n\" obtido \"\"",
+      "stderr: esperado \"(standard_in) 1: (Warning) print statement\\n\" obtido \"bc: invalid option -- 'w'\\n\"",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-void-function",
+    "tags": [
+      "define",
+      "gnu-ext"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": false,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"v\\n\" obtido \"\"",
+      "stderr: esperado \"\" obtido \"\\nthread 'main' (2428889) panicked at crates/bc_core/src/parser.rs:612:9:\\nParser error on line 1: expected Lparen, got Le\"... (389 bytes)",
+      "exit: esperado Some(0)/None obtido Some(1)/None"
+    ]
+  },
+  {
+    "id": "bc-crlf-input",
+    "tags": [
+      "format",
+      "error"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": false,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"\" obtido \"2\\n4\\n\"",
+      "stderr: esperado \"(standard_in) 1: illegal character: ^M\\n(standard_in) 2: illegal character: ^M\\n\" obtido \"\""
+    ]
+  },
+  {
+    "id": "up-operator-precedence",
+    "tags": [
+      "upstream",
+      "arith"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"0\\n12.2\\n39.23\\n9.78\\n9.5\\n87.5\\n66.40\\n6\\n15.28\\nif works\" obtido \"0\\n12.2\\n39.23\\n9.78\\n9.5\\n87.5\\n66.40\\n6\\nif works\""
+    ]
+  },
+  {
+    "id": "up-parenthesized-assignment-prints",
+    "tags": [
+      "upstream",
+      "arith"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"5\\n7\\n3\\n8\\n-9\\n\" obtido \"8\\n-9\\n\""
+    ]
+  },
+  {
+    "id": "up-parenthesized-base-register-assignment",
+    "tags": [
+      "upstream",
+      "base"
+    ],
+    "stdout_ok": false,
+    "stderr_ok": true,
+    "exit_ok": true,
+    "files_ok": true,
+    "strict": false,
+    "lenient": false,
+    "detail": [
+      "stdout: esperado \"10\\n100\\n3\\n10\\n255\\n\" obtido \"100\\n10\\n255\\n\""
+    ]
+  }
+]

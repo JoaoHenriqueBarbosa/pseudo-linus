@@ -1,0 +1,19 @@
+Description: Makefile link w to libsystemd
+Author: Craig Small <csmall@debian.org>
+Forwarded: https://gitlab.com/procps-ng/procps/-/commit/ca004d4657d5e8b468a4552ede429be53193a3a9
+Last-Update: 2024-10-15
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -149,6 +149,12 @@
+ 
+ dist_man_MANS += man/w.1
+ src_w_SOURCES = src/w.c local/fileutils.c
++if WITH_SYSTEMD
++src_w_LDADD = $(LDADD) @SYSTEMD_LIBS@
++else
++src_w_LDADD = $(LDADD)
++endif
++
+ else
+   EXTRA_DIST += man/w.1
+ endif
