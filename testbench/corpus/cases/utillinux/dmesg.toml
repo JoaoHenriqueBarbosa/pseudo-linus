@@ -1,0 +1,36 @@
+tool = "dmesg"
+source = "manual"
+
+# dmesg do util-linux 2.41 como root de contêiner sem privilégio: sem CAP_SYSLOG a leitura falha.
+
+[[case]]
+id = "dmesg-help"
+argv = ["dmesg", "--help"]
+
+[[case]]
+id = "dmesg-version"
+argv = ["dmesg", "-V"]
+
+[[case]]
+id = "dmesg-invalid-option"
+argv = ["dmesg", "-Z"]
+
+[[case]]
+id = "dmesg-unrecognized-option"
+argv = ["dmesg", "--bogus"]
+
+[[case]]
+id = "dmesg-buffer-size-invalid"
+script = "dmesg -s abc; echo \"rc=$?\""
+
+[[case]]
+id = "dmesg-time-format-invalid"
+script = "dmesg --time-format=foo; echo \"rc=$?\""
+
+[[case]]
+id = "dmesg-level-invalid"
+script = "dmesg -l foo; echo \"rc=$?\""
+
+[[case]]
+id = "dmesg-facility-invalid"
+script = "dmesg -f foo; echo \"rc=$?\""

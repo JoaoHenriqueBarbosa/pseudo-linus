@@ -1,0 +1,26 @@
+tool = "mount"
+source = "manual"
+
+[[case]]
+id = "mount-help"
+argv = ["mount", "--help"]
+
+[[case]]
+id = "mount-version"
+argv = ["mount", "-V"]
+
+[[case]]
+id = "mount-invalid-option"
+argv = ["mount", "-Z"]
+
+[[case]]
+id = "mount-unrecognized-option"
+argv = ["mount", "--bogus"]
+
+[[case]]
+id = "mount-too-many-args"
+script = "mount a b c; echo \"rc=$?\""
+
+[[case]]
+id = "mount-not-in-fstab"
+script = "mount /nonexistent-dir; echo \"rc=$?\""

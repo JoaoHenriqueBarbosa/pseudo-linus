@@ -1,0 +1,38 @@
+tool = "fstrim"
+source = "manual"
+
+[[case]]
+id = "fstrim-help"
+argv = ["fstrim", "--help"]
+
+[[case]]
+id = "fstrim-version"
+argv = ["fstrim", "-V"]
+
+[[case]]
+id = "fstrim-invalid-option"
+argv = ["fstrim", "-Z"]
+
+[[case]]
+id = "fstrim-unrecognized-option"
+argv = ["fstrim", "--bogus"]
+
+[[case]]
+id = "fstrim-no-mountpoint"
+script = "fstrim; echo \"rc=$?\""
+
+[[case]]
+id = "fstrim-offset-invalid"
+script = "fstrim -o abc /tmp; echo \"rc=$?\""
+
+[[case]]
+id = "fstrim-length-invalid"
+script = "fstrim -l abc /tmp; echo \"rc=$?\""
+
+[[case]]
+id = "fstrim-minimum-invalid"
+script = "fstrim -m abc /tmp; echo \"rc=$?\""
+
+[[case]]
+id = "fstrim-missing-dir"
+script = "fstrim /nonexistent; echo \"rc=$?\""

@@ -1,0 +1,26 @@
+tool = "switch_root"
+source = "manual"
+
+[[case]]
+id = "switch-root-help"
+argv = ["switch_root", "--help"]
+
+[[case]]
+id = "switch-root-version"
+argv = ["switch_root", "-V"]
+
+[[case]]
+id = "switch-root-invalid-option"
+argv = ["switch_root", "-Z"]
+
+[[case]]
+id = "switch-root-unrecognized-option"
+argv = ["switch_root", "--bogus"]
+
+[[case]]
+id = "switch-root-no-args"
+script = "switch_root; echo \"rc=$?\""
+
+[[case]]
+id = "switch-root-not-pid1"
+script = "switch_root /tmp /sbin/init; echo \"rc=$?\""

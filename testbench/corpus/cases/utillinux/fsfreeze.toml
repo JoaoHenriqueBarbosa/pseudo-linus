@@ -1,0 +1,30 @@
+tool = "fsfreeze"
+source = "manual"
+
+[[case]]
+id = "fsfreeze-help"
+argv = ["fsfreeze", "--help"]
+
+[[case]]
+id = "fsfreeze-version"
+argv = ["fsfreeze", "-V"]
+
+[[case]]
+id = "fsfreeze-invalid-option"
+argv = ["fsfreeze", "-Z"]
+
+[[case]]
+id = "fsfreeze-unrecognized-option"
+argv = ["fsfreeze", "--bogus"]
+
+[[case]]
+id = "fsfreeze-no-filesystem"
+script = "fsfreeze -f; echo \"rc=$?\""
+
+[[case]]
+id = "fsfreeze-no-action"
+script = "fsfreeze /tmp; echo \"rc=$?\""
+
+[[case]]
+id = "fsfreeze-missing-dir"
+script = "fsfreeze -f /nonexistent; echo \"rc=$?\""

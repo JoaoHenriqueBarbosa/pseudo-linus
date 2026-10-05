@@ -1,0 +1,26 @@
+tool = "wall"
+source = "manual"
+
+[[case]]
+id = "wall-help"
+argv = ["wall", "--help"]
+
+[[case]]
+id = "wall-version"
+argv = ["wall", "-V"]
+
+[[case]]
+id = "wall-invalid-option"
+argv = ["wall", "-Z"]
+
+[[case]]
+id = "wall-unrecognized-option"
+argv = ["wall", "--bogus"]
+
+[[case]]
+id = "wall-timeout-invalid"
+script = "wall -t abc msg; echo \"rc=$?\""
+
+[[case]]
+id = "wall-timeout-zero"
+script = "wall -t 0 msg; echo \"rc=$?\""

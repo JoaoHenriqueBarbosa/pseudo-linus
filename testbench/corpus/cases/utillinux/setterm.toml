@@ -1,0 +1,14 @@
+tool = "setterm"
+source = "manual"
+
+[[case]]
+id = "setterm-help"
+argv = ["setterm", "--help"]
+
+[[case]]
+id = "setterm-version"
+argv = ["setterm", "-V"]
+
+[[case]]
+id = "setterm-unrecognized-option"
+argv = ["setterm", "--bogus"]

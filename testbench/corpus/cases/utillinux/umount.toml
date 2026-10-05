@@ -1,0 +1,26 @@
+tool = "umount"
+source = "manual"
+
+[[case]]
+id = "umount-help"
+argv = ["umount", "--help"]
+
+[[case]]
+id = "umount-version"
+argv = ["umount", "-V"]
+
+[[case]]
+id = "umount-invalid-option"
+argv = ["umount", "-Z"]
+
+[[case]]
+id = "umount-unrecognized-option"
+argv = ["umount", "--bogus"]
+
+[[case]]
+id = "umount-no-operand"
+script = "umount; echo \"rc=$?\""
+
+[[case]]
+id = "umount-not-mounted"
+script = "mkdir d; umount d; echo \"rc=$?\""

@@ -1,0 +1,26 @@
+tool = "scriptlive"
+source = "manual"
+
+[[case]]
+id = "scriptlive-help"
+argv = ["scriptlive", "--help"]
+
+[[case]]
+id = "scriptlive-version"
+argv = ["scriptlive", "-V"]
+
+[[case]]
+id = "scriptlive-invalid-option"
+argv = ["scriptlive", "-Z"]
+
+[[case]]
+id = "scriptlive-unrecognized-option"
+argv = ["scriptlive", "--bogus"]
+
+[[case]]
+id = "scriptlive-divisor-invalid"
+script = "scriptlive -d abc t s; echo \"rc=$?\""
+
+[[case]]
+id = "scriptlive-maxdelay-invalid"
+script = "scriptlive -m abc t s; echo \"rc=$?\""

@@ -24,8 +24,19 @@ pub mod column;
 pub mod dc;
 pub mod debscripts;
 pub mod envsubst;
+pub mod dmesg;
 pub mod fallocate;
 pub mod file;
+pub mod fsfreeze;
+pub mod fstrim;
+pub mod mount;
+pub mod pivot_root;
+pub mod script;
+pub mod scriptlive;
+pub mod setterm;
+pub mod switch_root;
+pub mod umount;
+pub mod wall;
 pub mod findfs;
 pub mod findmnt;
 pub mod flock;
@@ -110,6 +121,13 @@ pub fn programs() -> Vec<Program> {
         Program::bin("column", column::main),
         Program::bin("colrm", colrm::main),
         Program::bin("dc", dc::main),
+        Program::bin("dmesg", dmesg::main),
+        Program::bin("mount", mount::main),
+        Program::bin("script", script::main),
+        Program::bin("scriptlive", scriptlive::main),
+        Program::bin("setterm", setterm::main),
+        Program::bin("umount", umount::main),
+        Program::bin("wall", wall::main),
         Program::bin("envsubst", envsubst::main),
         Program::bin("expiry", shadowconv::expiry_main),
         Program::bin("fallocate", fallocate::main),
@@ -188,6 +206,10 @@ pub fn programs() -> Vec<Program> {
         Program::bin("zdump", zdump::main),
         Program::sbin("add-shell", debscripts::add_shell_main),
         Program::sbin("blkdiscard", blkdiscard::main),
+        Program::sbin("fsfreeze", fsfreeze::main),
+        Program::sbin("fstrim", fstrim::main),
+        Program::sbin("pivot_root", pivot_root::main),
+        Program::sbin("switch_root", switch_root::main),
         Program::sbin("blkid", blkid::main),
         Program::sbin("blockdev", blockdev::main),
         Program::sbin("swaplabel", swaplabel::main),

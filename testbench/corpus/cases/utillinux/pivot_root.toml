@@ -1,0 +1,26 @@
+tool = "pivot_root"
+source = "manual"
+
+[[case]]
+id = "pivot-root-help"
+argv = ["pivot_root", "--help"]
+
+[[case]]
+id = "pivot-root-version"
+argv = ["pivot_root", "-V"]
+
+[[case]]
+id = "pivot-root-invalid-option"
+argv = ["pivot_root", "-Z"]
+
+[[case]]
+id = "pivot-root-unrecognized-option"
+argv = ["pivot_root", "--bogus"]
+
+[[case]]
+id = "pivot-root-no-args"
+script = "pivot_root; echo \"rc=$?\""
+
+[[case]]
+id = "pivot-root-too-many-args"
+script = "pivot_root a b c; echo \"rc=$?\""

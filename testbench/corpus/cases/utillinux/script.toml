@@ -1,0 +1,34 @@
+tool = "script"
+source = "manual"
+
+[[case]]
+id = "script-help"
+argv = ["script", "--help"]
+
+[[case]]
+id = "script-version"
+argv = ["script", "-V"]
+
+[[case]]
+id = "script-invalid-option"
+argv = ["script", "-Z"]
+
+[[case]]
+id = "script-unrecognized-option"
+argv = ["script", "--bogus"]
+
+[[case]]
+id = "script-logging-format-invalid"
+script = "script -m foo; echo \"rc=$?\""
+
+[[case]]
+id = "script-echo-invalid"
+script = "script -E foo; echo \"rc=$?\""
+
+[[case]]
+id = "script-output-limit-invalid"
+script = "script -o abc; echo \"rc=$?\""
+
+[[case]]
+id = "script-too-many-args"
+script = "script a b; echo \"rc=$?\""
