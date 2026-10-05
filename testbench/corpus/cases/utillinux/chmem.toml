@@ -1,0 +1,29 @@
+tool = "utillinux"
+source = "manual"
+
+# chmem do util-linux 2.41: ajuda, versão e erros de argumento.
+
+[[case]]
+id = "chmem-help"
+argv = ["chmem", "--help"]
+tags = ["chmem", "usage"]
+
+[[case]]
+id = "chmem-version"
+argv = ["chmem", "-V"]
+tags = ["chmem", "version"]
+
+[[case]]
+id = "chmem-bad-option"
+argv = ["chmem", "-Z"]
+tags = ["chmem", "error"]
+
+[[case]]
+id = "chmem-bad-long-option"
+argv = ["chmem", "--nope"]
+tags = ["chmem", "error"]
+
+[[case]]
+id = "chmem-no-args"
+argv = ["chmem"]
+tags = ["chmem", "usage", "error"]

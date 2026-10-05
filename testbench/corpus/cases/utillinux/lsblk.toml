@@ -1,0 +1,34 @@
+tool = "utillinux"
+source = "manual"
+
+# lsblk do util-linux 2.41: ajuda, versão e erros de argumento (a lista de dispositivos depende da máquina).
+
+[[case]]
+id = "lsblk-help"
+argv = ["lsblk", "--help"]
+tags = ["lsblk", "usage"]
+
+[[case]]
+id = "lsblk-version"
+argv = ["lsblk", "-V"]
+tags = ["lsblk", "version"]
+
+[[case]]
+id = "lsblk-bad-option"
+argv = ["lsblk", "-Z"]
+tags = ["lsblk", "error"]
+
+[[case]]
+id = "lsblk-bad-long-option"
+argv = ["lsblk", "--nope"]
+tags = ["lsblk", "error"]
+
+[[case]]
+id = "lsblk-unknown-column"
+argv = ["lsblk", "-o", "FOO"]
+tags = ["lsblk", "error"]
+
+[[case]]
+id = "lsblk-missing-output-argument"
+argv = ["lsblk", "-o"]
+tags = ["lsblk", "error"]

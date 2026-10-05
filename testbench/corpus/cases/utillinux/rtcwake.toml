@@ -1,0 +1,34 @@
+tool = "utillinux"
+source = "manual"
+
+# rtcwake do util-linux 2.41: ajuda, versão e erros de argumento.
+
+[[case]]
+id = "rtcwake-help"
+argv = ["rtcwake", "--help"]
+tags = ["rtcwake", "usage"]
+
+[[case]]
+id = "rtcwake-version"
+argv = ["rtcwake", "-V"]
+tags = ["rtcwake", "version"]
+
+[[case]]
+id = "rtcwake-bad-option"
+argv = ["rtcwake", "-Z"]
+tags = ["rtcwake", "error"]
+
+[[case]]
+id = "rtcwake-bad-long-option"
+argv = ["rtcwake", "--nope"]
+tags = ["rtcwake", "error"]
+
+[[case]]
+id = "rtcwake-bad-seconds"
+argv = ["rtcwake", "-s", "abc"]
+tags = ["rtcwake", "error"]
+
+[[case]]
+id = "rtcwake-no-wake-time"
+argv = ["rtcwake", "-n", "-m", "no"]
+tags = ["rtcwake", "error"]

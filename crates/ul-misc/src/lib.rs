@@ -23,6 +23,8 @@ pub mod vipw;
 pub mod blkid;
 pub mod blockdev;
 pub mod bzip2recover;
+pub mod chcpu;
+pub mod chmem;
 pub mod choom;
 pub mod chrt;
 pub mod col;
@@ -44,7 +46,10 @@ pub mod scriptlive;
 pub mod setterm;
 pub mod switch_root;
 pub mod umount;
+pub mod uclampset;
 pub mod wall;
+pub mod wdctl;
+pub mod zramctl;
 pub mod findfs;
 pub mod findmnt;
 pub mod flock;
@@ -73,6 +78,7 @@ pub mod swapon;
 pub mod locale;
 pub mod logger;
 pub mod look;
+pub mod lsblk;
 pub mod lscpu;
 pub mod lsipc;
 pub mod lslocks;
@@ -88,10 +94,12 @@ pub mod pager;
 pub mod passwd;
 pub mod prlimit;
 pub mod pwck;
+pub mod readprofile;
 pub mod rename_ul;
 pub mod renice;
 pub mod lzmainfo;
 pub mod rev;
+pub mod rtcwake;
 pub mod run_parts;
 pub mod scriptreplay;
 pub mod setarch;
@@ -188,6 +196,8 @@ pub fn programs() -> Vec<Program> {
         Program::bin("logger", logger::main),
         Program::bin("look", look::main),
         Program::bin("lscpu", lscpu::main),
+        Program::bin("lsblk", lsblk::main),
+        Program::bin("uclampset", uclampset::main),
         Program::bin("lsipc", lsipc::main),
         Program::bin("lslocks", lslocks::main),
         Program::bin("lslogins", lslogins::main),
@@ -239,6 +249,12 @@ pub fn programs() -> Vec<Program> {
         Program::sbin("fstrim", fstrim::main),
         Program::sbin("pivot_root", pivot_root::main),
         Program::sbin("switch_root", switch_root::main),
+        Program::sbin("chcpu", chcpu::main),
+        Program::sbin("chmem", chmem::main),
+        Program::sbin("readprofile", readprofile::main),
+        Program::sbin("rtcwake", rtcwake::main),
+        Program::sbin("wdctl", wdctl::main),
+        Program::sbin("zramctl", zramctl::main),
         Program::sbin("blkid", blkid::main),
         Program::sbin("blockdev", blockdev::main),
         Program::sbin("swaplabel", swaplabel::main),

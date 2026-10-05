@@ -1,0 +1,34 @@
+tool = "utillinux"
+source = "manual"
+
+# uclampset do util-linux 2.41: ajuda, versão e erros de argumento.
+
+[[case]]
+id = "uclampset-help"
+argv = ["uclampset", "--help"]
+tags = ["uclampset", "usage"]
+
+[[case]]
+id = "uclampset-version"
+argv = ["uclampset", "-V"]
+tags = ["uclampset", "version"]
+
+[[case]]
+id = "uclampset-bad-option"
+argv = ["uclampset", "-Z"]
+tags = ["uclampset", "error"]
+
+[[case]]
+id = "uclampset-bad-long-option"
+argv = ["uclampset", "--nope"]
+tags = ["uclampset", "error"]
+
+[[case]]
+id = "uclampset-no-args"
+argv = ["uclampset"]
+tags = ["uclampset", "usage", "error"]
+
+[[case]]
+id = "uclampset-bad-pid"
+argv = ["uclampset", "-p", "abc"]
+tags = ["uclampset", "error"]

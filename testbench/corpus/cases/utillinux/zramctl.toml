@@ -1,0 +1,49 @@
+tool = "utillinux"
+source = "manual"
+
+# zramctl do util-linux 2.41: ajuda, versão, erros de argumento e dispositivos ausentes.
+
+[[case]]
+id = "zramctl-help"
+argv = ["zramctl", "--help"]
+tags = ["zramctl", "usage"]
+
+[[case]]
+id = "zramctl-version"
+argv = ["zramctl", "-V"]
+tags = ["zramctl", "version"]
+
+[[case]]
+id = "zramctl-bad-option"
+argv = ["zramctl", "-Z"]
+tags = ["zramctl", "error"]
+
+[[case]]
+id = "zramctl-bad-long-option"
+argv = ["zramctl", "--nope"]
+tags = ["zramctl", "error"]
+
+[[case]]
+id = "zramctl-unknown-column"
+argv = ["zramctl", "-o", "FOO"]
+tags = ["zramctl", "error"]
+
+[[case]]
+id = "zramctl-bad-size"
+argv = ["zramctl", "-s", "abc", "/dev/zram0"]
+tags = ["zramctl", "error"]
+
+[[case]]
+id = "zramctl-find-without-size"
+argv = ["zramctl", "-f"]
+tags = ["zramctl", "error"]
+
+[[case]]
+id = "zramctl-reset-no-device"
+argv = ["zramctl", "-r"]
+tags = ["zramctl", "error"]
+
+[[case]]
+id = "zramctl-missing-device"
+argv = ["zramctl", "/nonexistent/zram0"]
+tags = ["zramctl", "error"]

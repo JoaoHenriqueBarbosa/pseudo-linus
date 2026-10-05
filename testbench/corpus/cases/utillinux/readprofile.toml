@@ -1,0 +1,29 @@
+tool = "utillinux"
+source = "manual"
+
+# readprofile do util-linux 2.41: ajuda, versão, erros de argumento e arquivos ausentes.
+
+[[case]]
+id = "readprofile-help"
+argv = ["readprofile", "--help"]
+tags = ["readprofile", "usage"]
+
+[[case]]
+id = "readprofile-version"
+argv = ["readprofile", "-V"]
+tags = ["readprofile", "version"]
+
+[[case]]
+id = "readprofile-bad-option"
+argv = ["readprofile", "-Z"]
+tags = ["readprofile", "error"]
+
+[[case]]
+id = "readprofile-bad-long-option"
+argv = ["readprofile", "--nope"]
+tags = ["readprofile", "error"]
+
+[[case]]
+id = "readprofile-missing-profile"
+argv = ["readprofile", "-p", "/nonexistent/profile"]
+tags = ["readprofile", "error"]

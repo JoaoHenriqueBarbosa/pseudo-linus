@@ -1,0 +1,39 @@
+tool = "utillinux"
+source = "manual"
+
+# chcpu do util-linux 2.41: ajuda, versão e erros de argumento.
+
+[[case]]
+id = "chcpu-help"
+argv = ["chcpu", "--help"]
+tags = ["chcpu", "usage"]
+
+[[case]]
+id = "chcpu-version"
+argv = ["chcpu", "-V"]
+tags = ["chcpu", "version"]
+
+[[case]]
+id = "chcpu-bad-option"
+argv = ["chcpu", "-Z"]
+tags = ["chcpu", "error"]
+
+[[case]]
+id = "chcpu-bad-long-option"
+argv = ["chcpu", "--nope"]
+tags = ["chcpu", "error"]
+
+[[case]]
+id = "chcpu-bad-cpu-list"
+argv = ["chcpu", "-e", "abc"]
+tags = ["chcpu", "error"]
+
+[[case]]
+id = "chcpu-missing-argument"
+argv = ["chcpu", "-e"]
+tags = ["chcpu", "error"]
+
+[[case]]
+id = "chcpu-bad-dispatch-mode"
+argv = ["chcpu", "-p", "diagonal"]
+tags = ["chcpu", "error"]

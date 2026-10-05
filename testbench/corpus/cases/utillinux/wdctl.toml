@@ -1,0 +1,34 @@
+tool = "utillinux"
+source = "manual"
+
+# wdctl do util-linux 2.41: ajuda, versão, erros de argumento e dispositivos ausentes.
+
+[[case]]
+id = "wdctl-help"
+argv = ["wdctl", "--help"]
+tags = ["wdctl", "usage"]
+
+[[case]]
+id = "wdctl-version"
+argv = ["wdctl", "-V"]
+tags = ["wdctl", "version"]
+
+[[case]]
+id = "wdctl-bad-option"
+argv = ["wdctl", "-Z"]
+tags = ["wdctl", "error"]
+
+[[case]]
+id = "wdctl-bad-long-option"
+argv = ["wdctl", "--nope"]
+tags = ["wdctl", "error"]
+
+[[case]]
+id = "wdctl-unknown-column"
+argv = ["wdctl", "-o", "FOO"]
+tags = ["wdctl", "error"]
+
+[[case]]
+id = "wdctl-missing-device"
+argv = ["wdctl", "/nonexistent/watchdog"]
+tags = ["wdctl", "error"]
