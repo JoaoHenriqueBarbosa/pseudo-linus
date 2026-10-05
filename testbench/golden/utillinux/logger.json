@@ -1,0 +1,50 @@
+{
+  "logger-bad-facility": {
+    "stdout": "",
+    "stderr": "logger: unknown facility name: bogus\n",
+    "exit": 1,
+    "files": {}
+  },
+  "logger-bad-option": {
+    "stdout": "",
+    "stderr": "logger: invalid option -- 'Z'\nTry 'logger --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "logger-bad-priority": {
+    "stdout": "",
+    "stderr": "logger: unknown priority name: bogus\n",
+    "exit": 1,
+    "files": {}
+  },
+  "logger-bad-size": {
+    "stdout": "",
+    "stderr": "logger: failed to parse message size: 'abc': Invalid argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "logger-help": {
+    "stdout": "\nUsage:\n logger [options] [<message>]\n\nEnter messages into the system log.\n\nOptions:\n -i                       log the logger command's PID\n     --id[=<id>]          log the given <id>, or otherwise the PID\n -f, --file <file>        log the contents of this file\n -e, --skip-empty         do not log empty lines when processing files\n     --no-act             do everything except the write the log\n -p, --priority <prio>    mark given message with this priority\n     --octet-count        use rfc6587 octet counting\n     --prio-prefix        look for a prefix on every line read from stdin\n -s, --stderr             output message to standard error as well\n -S, --size <size>        maximum size for a single message\n -t, --tag <tag>          mark every line with this tag\n -n, --server <name>      write to this remote syslog server\n -P, --port <port>        use this port for UDP or TCP connection\n -T, --tcp                use TCP only\n -d, --udp                use UDP only\n     --rfc3164            use the obsolete BSD syslog protocol\n     --rfc5424[=<snip>]   use the syslog protocol (the default for remote);\n                            <snip> can be notime, or notq, and/or nohost\n     --sd-id <id>         rfc5424 structured data ID\n     --sd-param <data>    rfc5424 structured data name=value\n     --msgid <msgid>      set rfc5424 message id field\n -u, --socket <socket>    write to this Unix socket\n     --socket-errors on|off|auto\n                          print connection errors when using Unix sockets\n     --journald[=<file>]  write journald entry\n\n -h, --help               display this help\n -V, --version            display version\n\nFor more details see logger(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "logger-missing-file": {
+    "stdout": "",
+    "stderr": "logger: file /nonexistent/file: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "logger-stderr-tag": {
+    "stdout": "",
+    "stderr": "logger: socket /dev/log: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "logger-version": {
+    "stdout": "logger from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
