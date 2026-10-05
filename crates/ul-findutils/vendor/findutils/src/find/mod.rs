@@ -236,7 +236,7 @@ fn process_dir(
         match WalkEntry::from_walkdir(result, config.follow) {
             Err(err) => {
                 ret = 1;
-                writeln!(&mut stderr(), "Error: {err}").unwrap();
+                writeln!(&mut stderr(), "find: {err}").unwrap();
             }
             Ok(entry) => {
                 let mut matcher_io = matchers::MatcherIO::new(deps);

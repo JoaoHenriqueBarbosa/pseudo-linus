@@ -474,14 +474,14 @@ fn build_matcher_tree(
             "-print0" => Some(Printer::new(PrintDelimiter::Null, None).into_box()),
             "-printf" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(Printf::new(args[i], None)?.into_box())
             }
             "-fprint" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
 
@@ -490,7 +490,7 @@ fn build_matcher_tree(
             }
             "-fprintf" => {
                 if i + 2 >= args.len() {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
 
                 // Action: -fprintf file format
@@ -503,7 +503,7 @@ fn build_matcher_tree(
             }
             "-fprint0" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
 
@@ -513,7 +513,7 @@ fn build_matcher_tree(
             "-ls" => Some(Ls::new(None).into_box()),
             "-fls" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
 
@@ -524,21 +524,21 @@ fn build_matcher_tree(
             "-false" => Some(FalseMatcher.into_box()),
             "-lname" | "-ilname" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(LinkNameMatcher::new(args[i], args[i - 1].starts_with("-i")).into_box())
             }
             "-name" | "-iname" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(NameMatcher::new(args[i], args[i - 1].starts_with("-i")).into_box())
             }
             "-path" | "-ipath" | "-wholename" | "-iwholename" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(PathMatcher::new(args[i], args[i - 1].starts_with("-i")).into_box())
@@ -546,7 +546,7 @@ fn build_matcher_tree(
             "-readable" => Some(AccessMatcher::Readable.into_box()),
             "-regextype" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 regex_type = regex::RegexType::from_str(args[i])?;
@@ -554,35 +554,35 @@ fn build_matcher_tree(
             }
             "-regex" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(RegexMatcher::new(regex_type, args[i], false)?.into_box())
             }
             "-iregex" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(RegexMatcher::new(regex_type, args[i], true)?.into_box())
             }
             "-type" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(TypeMatcher::new(args[i])?.into_box())
             }
             "-xtype" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(XtypeMatcher::new(args[i])?.into_box())
             }
             "-fstype" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(FileSystemMatcher::new(args[i].to_string()).into_box())
@@ -594,14 +594,14 @@ fn build_matcher_tree(
             }
             "-newer" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(NewerMatcher::new(args[i], config.follow)?.into_box())
             }
             "-mtime" | "-atime" | "-ctime" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 let file_time_type = match args[i] {
                     "-atime" => FileTimeType::Accessed,
@@ -617,7 +617,7 @@ fn build_matcher_tree(
             }
             "-amin" | "-cmin" | "-mmin" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 let file_time_type = match args[i] {
                     "-amin" => FileTimeType::Accessed,
@@ -634,7 +634,7 @@ fn build_matcher_tree(
             }
             "-size" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 let (size, unit) =
                     convert_arg_to_comparable_value_and_suffix(args[i], args[i + 1])?;
@@ -658,7 +658,7 @@ fn build_matcher_tree(
                 if arg_index < i + required_arg || arg_index == args.len() {
                     // at the minimum we need the executable and the ';'
                     // or the executable and the '{} +'
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 let expression = args[i];
                 let executable = args[i + 1];
@@ -698,7 +698,7 @@ fn build_matcher_tree(
                 }
                 if arg_index < i + 2 || arg_index == args.len() {
                     // Need at least the executable and the terminating ';'.
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 let expression = args[i];
                 let executable = args[i + 1];
@@ -716,7 +716,7 @@ fn build_matcher_tree(
             #[cfg(unix)]
             "-inum" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 let inum = convert_arg_to_comparable_value(args[i], args[i + 1])?;
                 i += 1;
@@ -731,7 +731,7 @@ fn build_matcher_tree(
             #[cfg(unix)]
             "-links" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 let inum = convert_arg_to_comparable_value(args[i], args[i + 1])?;
                 i += 1;
@@ -743,7 +743,7 @@ fn build_matcher_tree(
             }
             "-samefile" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 let path = args[i];
@@ -753,7 +753,7 @@ fn build_matcher_tree(
             }
             "-user" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
 
                 let user = args[i + 1];
@@ -773,7 +773,7 @@ fn build_matcher_tree(
             "-nouser" => Some(NoUserMatcher {}.into_box()),
             "-uid" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 // check if the argument is a number
                 let uid = convert_arg_to_comparable_value(args[i], args[i + 1])?;
@@ -782,7 +782,7 @@ fn build_matcher_tree(
             }
             "-group" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
 
                 let group = args[i + 1];
@@ -804,7 +804,7 @@ fn build_matcher_tree(
             "-nogroup" => Some(NoGroupMatcher {}.into_box()),
             "-gid" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 // check if the argument is a number
                 let gid = convert_arg_to_comparable_value(args[i], args[i + 1])?;
@@ -814,7 +814,7 @@ fn build_matcher_tree(
             "-executable" => Some(AccessMatcher::Executable.into_box()),
             "-perm" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 i += 1;
                 Some(PermMatcher::new(args[i])?.into_box())
@@ -924,7 +924,7 @@ fn build_matcher_tree(
             }
             "-maxdepth" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 config.max_depth = convert_arg_to_number(args[i], args[i + 1])?;
                 i += 1;
@@ -932,7 +932,7 @@ fn build_matcher_tree(
             }
             "-mindepth" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 config.min_depth = convert_arg_to_number(args[i], args[i + 1])?;
                 i += 1;
@@ -948,7 +948,7 @@ fn build_matcher_tree(
             }
             "-files0-from" => {
                 if i >= args.len() - 1 {
-                    return Err(From::from(format!("missing argument to {}", args[i])));
+                    return Err(From::from(format!("missing argument to `{}'", args[i])));
                 }
                 let _ = config.files0_argument.insert(args[i + 1].to_string());
                 i += 1;
@@ -959,7 +959,7 @@ fn build_matcher_tree(
                 match parse_str_to_newer_args(args[i]) {
                     Some((x_option, y_option)) => {
                         if i >= args.len() - 1 {
-                            return Err(From::from(format!("missing argument to {}", args[i])));
+                            return Err(From::from(format!("missing argument to `{}'", args[i])));
                         }
                         #[cfg(target_os = "linux")]
                         if x_option == "B" {
