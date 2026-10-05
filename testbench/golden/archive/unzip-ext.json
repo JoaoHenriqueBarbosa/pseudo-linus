@@ -1,0 +1,58 @@
+{
+  "unzip-riscos-filetype-F": {
+    "stdout": "Archive:  r.zip\n extracting: prog,ffe                \nexit=0\nprog,ffe\n0000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "prog,ffe": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "unzip-riscos-filetype-plain": {
+    "stdout": "Archive:  r.zip\n extracting: prog                    \nexit=0\nprog\n0000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "prog": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "unzip-vms-varlen-a": {
+    "stdout": "Archive:  v.zip\n extracting: t.txt                   [text]  \nexit=0\nt.txt\n0000000   A  \\n   B  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "t.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "daee1cd25194ae952d046ad9b9c81d3c07dc5332440b58d6d7461b248be56712",
+        "data": "A\nB\n"
+      }
+    }
+  },
+  "unzip-vms-varlen-binary": {
+    "stdout": "Archive:  v.zip\n extracting: t.txt                   \nexit=0\nt.txt\n0000000 001  \\0   A  \\0 001  \\0   B  \\0\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "t.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "6eb97c7a8ceb9efa3fdfde0f7e0c2c3878f5b09b2a65206ee04ecf7b8a80a0e2",
+        "data": "\u0001\u0000A\u0000\u0001\u0000B\u0000"
+      }
+    }
+  }
+}
