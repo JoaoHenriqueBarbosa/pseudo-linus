@@ -50,16 +50,22 @@ impl Shell {
     pub fn report_syntax_error(&self, e: &SyntaxError) {
         let ename = self.error_name();
         let iname = self.input_name.to_string();
-        let prefix = if self.interactive {
-            format!("{ename}: ")
-        } else if ename == iname {
-            format!("{ename}: line {}: ", e.line)
-        } else {
-            format!("{ename}: {iname}: line {}: ", e.line)
+        let prefix_at = |line: Line| {
+            if self.interactive {
+                format!("{ename}: ")
+            } else if ename == iname {
+                format!("{ename}: line {line}: ")
+            } else {
+                format!("{ename}: {iname}: line {line}: ")
+            }
         };
+        let prefix = prefix_at(e.line);
         let mut out = format!("{prefix}{}\n", e.message);
         if let Some(ctx) = &e.context {
             out.push_str(&format!("{prefix}`{ctx}'\n"));
+        }
+        if let Some((line, message)) = &e.follow {
+            out.push_str(&format!("{}{message}\n", prefix_at(*line)));
         }
         let _ = write_fd(Fd::STDERR, out.as_bytes());
     }
