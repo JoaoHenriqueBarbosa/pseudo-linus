@@ -2,7 +2,8 @@
 //! `file` (5.46), `column`, `hexdump`/`hd` e `more` (util-linux 2.41), `tree` (2.2.1), `xxd`
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst` (gettext 0.23),
 //! `less` não interativo, `clear`/`tput` (ncurses 6.5), `iconv`, `getconf` e `locale` (glibc 2.41).
-//! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`.
+//! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
+//! `whereis`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
@@ -24,6 +25,7 @@ pub mod strings;
 pub mod tree;
 pub mod underline;
 pub mod util;
+pub mod whereis;
 pub mod which;
 pub mod xxd;
 
@@ -51,6 +53,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("strings", strings::main),
         Program::bin("tree", tree::main),
         Program::bin("ul", underline::main),
+        Program::bin("whereis", whereis::main),
         Program::bin("which", which::main),
         Program::bin("xxd", xxd::main),
     ]

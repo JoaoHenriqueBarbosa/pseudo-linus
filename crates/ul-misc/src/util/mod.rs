@@ -1,6 +1,7 @@
 //! Peças comuns dos programas do crate: `getopt_long` da glibc, E/S sobre `sysabi`, hora local e
 //! largura de exibição.
 
+pub mod fnmatch;
 pub mod getopt;
 pub mod io;
 pub mod time;
