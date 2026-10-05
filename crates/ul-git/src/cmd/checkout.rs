@@ -369,12 +369,24 @@ fn switch_to(repo: &Repo, co: &Co, target: Option<Target>, new_branch_start: Opt
         let _ = os::unlink(&repo.path(f));
     }
     if !quiet && !co.detach {
-        let report = match &new_path {
-            Some(_) => created.is_none() || had_upstream,
-            None => false,
+        let report_path: Option<String> = match &new_path {
+            Some(np) => {
+                if created.is_none() || had_upstream {
+                    Some(np.clone())
+                } else {
+                    None
+                }
+            }
+            None => {
+                if new_name == "HEAD" {
+                    old.path.clone()
+                } else {
+                    None
+                }
+            }
         };
-        if report && let Some(np) = &new_path {
-            report_tracking(repo, np)?;
+        if let Some(np) = report_path {
+            report_tracking(repo, &np)?;
         }
     }
     Ok(0)
