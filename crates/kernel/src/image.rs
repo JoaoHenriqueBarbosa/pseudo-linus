@@ -23,7 +23,8 @@ enum Item {
 
 use Item::*;
 
-// `/usr/share/zoneinfo` do tzdata do Debian 13 (copiado do oráculo; ver build.rs).
+// `/usr/share/zoneinfo` do tzdata e `/usr/share/terminfo`, `/usr/share/tabset` e `/etc/terminfo` do
+// ncurses-base do Debian 13 (copiados do oráculo; ver build.rs).
 include!(concat!(env!("OUT_DIR"), "/copied_trees.rs"));
 
 const ROOT_TREE: &[Item] = &[

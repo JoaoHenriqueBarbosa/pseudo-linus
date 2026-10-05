@@ -1,0 +1,95 @@
+tool = "tset"
+source = "manual"
+
+# tset e reset do ncurses 6.5.20250216. O oráculo roda sem terminal: depois da leitura das opções
+# (e dos mapeamentos -m, que já morrem com a mensagem própria) o programa precisa dos atributos do
+# terminal e termina com "terminal attributes: No such device or address" e saída 10.
+
+[[case]]
+id = "tset-version"
+argv = ["tset", "-V"]
+
+[[case]]
+id = "reset-version"
+argv = ["reset", "-V"]
+
+[[case]]
+id = "tset-no-tty"
+argv = ["tset"]
+
+[[case]]
+id = "reset-no-tty"
+argv = ["reset"]
+
+[[case]]
+id = "tset-no-tty-with-type"
+argv = ["tset", "xterm"]
+
+[[case]]
+id = "tset-no-tty-query"
+argv = ["tset", "-q", "xterm"]
+
+[[case]]
+id = "tset-no-tty-show-and-shell"
+argv = ["tset", "-r", "-s", "xterm"]
+
+[[case]]
+id = "tset-no-tty-env-term"
+argv = ["tset", "-s"]
+env = { TERM = "vt100" }
+
+[[case]]
+id = "tset-no-tty-erase-defaults"
+script = "tset -e; echo rc=$?; tset -i; echo rc=$?; tset -k; echo rc=$?; tset -e ^H -i ^C -k ^U; echo rc=$?; tset -e^? -I -Q -c -w; echo rc=$?"
+
+[[case]]
+id = "tset-obsolete-dash"
+script = "tset -; echo rc=$?"
+
+[[case]]
+id = "tset-obsolete-options-S"
+argv = ["tset", "-S"]
+
+[[case]]
+id = "tset-invalid-option"
+argv = ["tset", "-x"]
+
+[[case]]
+id = "tset-missing-argument"
+argv = ["tset", "-m"]
+
+[[case]]
+id = "tset-too-many-operands"
+argv = ["tset", "a", "b"]
+
+[[case]]
+id = "tset-capital-T-is-not-an-option"
+argv = ["tset", "-T"]
+
+[[case]]
+id = "tset-mapping-valid-forms"
+script = "tset -m foo; echo rc=$?; tset -m foo:; echo rc=$?; tset -m ':b'; echo rc=$?; tset -m '>50:b'; echo rc=$?; tset -m 'dialup>50:vt100'; echo rc=$?; tset -m 'dialup>134:vt100'; echo rc=$?; tset -m 'a@110:b'; echo rc=$?; tset -m 'a=75:b' -m 'c!0:d'; echo rc=$?"
+
+[[case]]
+id = "tset-mapping-unknown-baud-rate"
+script = "tset -m 'dialup>9600:vt100'; echo rc=$?; tset -m 'a<b:c'; echo rc=$?; tset -m 'dialup>134.5:vt100'; echo rc=$?; tset -m 'dialup>B50:vt100'; echo rc=$?"
+
+[[case]]
+id = "tset-mapping-illegal-format"
+script = "tset -m '<:x'; echo rc=$?; tset -m 'a>:b'; echo rc=$?; tset -d 'foo:bar'; echo rc=$?; tset -a 'x:y'; echo rc=$?; tset -p 'x:y'; echo rc=$?"
+
+[[case]]
+id = "tset-mapping-with-port-option"
+script = "tset -d 'dialup'; echo rc=$?; tset -a '>50:x'; echo rc=$?; tset -p '9:x'; echo rc=$?"
+
+[[case]]
+id = "tset-mapping-conflicting-conditions"
+script = "tset -m '<>50:x'; echo rc=$?; tset -m '><50:x'; echo rc=$?; tset -m '<=50:x'; echo rc=$?"
+
+[[case]]
+id = "reset-invalid-option"
+argv = ["reset", "-x"]
+
+[[case]]
+id = "reset-no-tty-with-options"
+script = "reset -q; echo rc=$?; reset -Q xterm; echo rc=$?"

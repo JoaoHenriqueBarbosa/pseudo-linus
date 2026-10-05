@@ -1,0 +1,120 @@
+tool = "toe"
+source = "manual"
+
+# toe do ncurses 6.5.20250216: a tabela das entradas do banco terminfo. A ordem de readdir não é
+# estável entre sistemas de arquivos, então os casos usam -s (ordenado) ou ordenam a saída.
+
+[[case]]
+id = "toe-default-first-directory-is-empty"
+argv = ["toe"]
+
+[[case]]
+id = "toe-sorted-default-directory"
+argv = ["toe", "-s"]
+
+[[case]]
+id = "toe-sorted-all-directories"
+argv = ["toe", "-a", "-s"]
+
+[[case]]
+id = "toe-sorted-all-directories-header"
+argv = ["toe", "-a", "-s", "-h"]
+
+[[case]]
+id = "toe-sorted-one-directory"
+argv = ["toe", "-s", "/usr/share/terminfo"]
+
+[[case]]
+id = "toe-sorted-one-directory-header"
+argv = ["toe", "-s", "-h", "/usr/share/terminfo"]
+
+[[case]]
+id = "toe-unsorted-piped-through-sort"
+script = "toe /usr/share/terminfo | sort"
+
+[[case]]
+id = "toe-unsorted-count"
+script = "toe -a | wc -l"
+
+[[case]]
+id = "toe-subdirectory-only"
+argv = ["toe", "-s", "-h", "/usr/share/terminfo/x"]
+
+[[case]]
+id = "toe-nonexistent-directory"
+argv = ["toe", "-s", "-h", "/usr/share/terminfo/x", "/nonexistent"]
+
+[[case]]
+id = "toe-two-directories-marks"
+argv = ["toe", "-s", "/usr/share/terminfo", "/etc/terminfo", "/usr/share/terminfo"]
+
+[[case]]
+id = "toe-same-directory-twice"
+argv = ["toe", "-s", "/usr/share/terminfo", "/usr/share/terminfo"]
+
+[[case]]
+id = "toe-custom-directories-differ"
+script = "toe -s \"$PWD/a\" \"$PWD/b\" | sed \"s|$PWD|PWD|g\""
+[case.files]
+"a/d/dumb" = { content_b64 = "GgEYAAIAAQCCAAgAZHVtYnw4MC1jb2x1bW4gZHVtYiB0dHkAAAFQAP//AAACAP////////////////////8EAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wYABwANAAoACgA=" }
+"a/v/vt100" = { content_b64 = "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA==" }
+"b/v/vt100" = { content_b64 = "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA==" }
+"b/v/vt102" = { content_b64 = "GgEQACYABwApAVoCdnQxMDJ8REVDIFZUMTAyAAABAAABAAAAAAAAAAAAAQAAAAAAAQABAAAAAAAAAAAAAAAAAAABUAAIABgA////////AwD//wAAAgAEABUAGgAmAC4A/////zcATABOAP//UgD/////VAD//1wA//9kAGgA/////2wAbgB3AP///////4AA/////4UAjgCXAP//oACiAP////+rALAAuAD/////////////////////wAD//8QA/////////////8YA////////ygDOANIA1gDaAN4A4gDmAOoA7gDyAP////////YA////////+gD////////+AAIBCgH//xIB//8WARoBHgH/////////////////////////////IgH///////8rATQB//89Af///////0YBSwFQAf////9VAf////9tAf//cAFzAXUBfAHIAf//ywH//////////80B0QHVAdkB3QH/////4QH//////////xQCGgL/////IAL///////////////////////8nAv//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////KwL/////////////////////////////////////////////////////////////NAI/AkQCVwIHAA0AG1slaSVwMSVkOyVwMiVkcgAbWzNnABtbSBtbSiQ8NTA+ABtbSyQ8Mz4AG1tKJDw1MD4AG1slaSVwMSVkOyVwMiVkSCQ8NT4ACgAbW0gACAAbW0MkPDI+ABtbQSQ8Mj4AG1tQABtbTQAOABtbNW0kPDI+ABtbMW0kPDI+ABtbNGgAG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbWzRsABtbbSQ8Mj4AG1ttJDwyPgAbW0wACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA==" }
+
+[[case]]
+id = "toe-custom-directory-header"
+script = "toe -s -h \"$PWD/a\" | sed \"s|$PWD|PWD|g\""
+[case.files]
+"a/d/dumb" = { content_b64 = "GgEYAAIAAQCCAAgAZHVtYnw4MC1jb2x1bW4gZHVtYiB0dHkAAAFQAP//AAACAP////////////////////8EAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wYABwANAAoACgA=" }
+"a/v/vt100" = { content_b64 = "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA==" }
+
+[[case]]
+id = "toe-alias-files-are-skipped"
+script = "toe -s \"$PWD/a\""
+[case.files]
+"a/v/vt100" = { content_b64 = "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA==" }
+"a/v/vt100-am" = { content_b64 = "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA==" }
+"a/x/not-a-terminal" = "texto qualquer\n"
+"a/README" = "arquivo solto\n"
+
+[[case]]
+id = "toe-version"
+argv = ["toe", "-V"]
+
+[[case]]
+id = "toe-invalid-option"
+argv = ["toe", "-x"]
+
+[[case]]
+id = "toe-usage-missing-argument"
+argv = ["toe", "-u"]
+
+[[case]]
+id = "toe-source-file-missing"
+argv = ["toe", "-u", "/nonexistent"]
+
+[[case]]
+id = "toe-dependencies-direct"
+argv = ["toe", "-u", "src.ti"]
+[case.files]
+"src.ti" = "alpha|first terminal,\n\tam, cols#80,\nbeta|second one,\n\tuse=alpha, xon,\ngamma|third entry,\n\tuse=alpha, use=beta,\ndelta|fourth entry,\n\tbw,\n"
+
+[[case]]
+id = "toe-dependencies-reverse"
+argv = ["toe", "-U", "src.ti"]
+[case.files]
+"src.ti" = "alpha|first terminal,\n\tam, cols#80,\nbeta|second one,\n\tuse=alpha, xon,\ngamma|third entry,\n\tuse=alpha, use=beta,\ndelta|fourth entry,\n\tbw,\n"
+
+[[case]]
+id = "toe-dependencies-with-comments"
+argv = ["toe", "-u", "src.ti"]
+[case.files]
+"src.ti" = "# comentário\nbase|base entry,\n\tam,\n\n# outro\nchild|child entry,\n\tuse=base,\n"
+
+[[case]]
+id = "toe-verbose-flag-with-number"
+argv = ["toe", "-s", "-v2", "/usr/share/terminfo/x"]
+
+[[case]]
+id = "toe-digits-as-options"
+argv = ["toe", "-s", "-12", "/usr/share/terminfo/d"]

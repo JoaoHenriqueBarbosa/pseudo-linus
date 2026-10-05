@@ -1,0 +1,335 @@
+tool = "tput"
+source = "manual"
+
+# tput do ncurses 6.5.20250216 (ncurses-bin do Debian 13) sobre o banco terminfo do ncurses-base.
+# No oráculo o ambiente não tem TERM: os casos passam -T ou definem TERM. Sem terminal, as
+# dimensões vêm do terminfo (com -T) ou de LINES/COLUMNS (sem -T). A saída com escapes passa por
+# od -c pra ficar legível e determinística.
+
+[[case]]
+id = "tput-cols-lines-colors-terminals"
+script = "for t in xterm xterm-256color xterm-mono vt100 vt102 vt220 vt52 linux screen screen-256color tmux ansi cons25 dumb sun rxvt wsvt25 hurd mach; do echo \"$t cols=$(tput -T $t cols) lines=$(tput -T $t lines) colors=$(tput -T $t colors)\"; done"
+
+[[case]]
+id = "tput-numerics-terminals"
+script = "for t in xterm xterm-256color vt100 linux screen dumb; do echo \"$t it=$(tput -T $t it) ncv=$(tput -T $t ncv) pairs=$(tput -T $t pairs) lm=$(tput -T $t lm) ma=$(tput -T $t ma)\"; done"
+
+[[case]]
+id = "tput-booleans-exit-codes"
+script = "for t in xterm vt100 linux dumb; do for cap in am bw xenl km hs mir ccc bce msgr xon eo gn hc; do tput -T $t $cap; echo \"$t $cap=$?\"; done; done"
+
+[[case]]
+id = "tput-boolean-no-output"
+argv = ["tput", "-T", "xterm", "am"]
+
+[[case]]
+id = "tput-boolean-false-exit"
+argv = ["tput", "-T", "xterm", "hs"]
+
+[[case]]
+id = "tput-numeric-cols"
+argv = ["tput", "-T", "xterm", "cols"]
+
+[[case]]
+id = "tput-numeric-lines"
+argv = ["tput", "-T", "xterm", "lines"]
+
+[[case]]
+id = "tput-numeric-colors-256"
+argv = ["tput", "-T", "xterm-256color", "colors"]
+
+[[case]]
+id = "tput-numeric-pairs-256"
+argv = ["tput", "-T", "xterm-256color", "pairs"]
+
+[[case]]
+id = "tput-numeric-absent-is-minus-one"
+argv = ["tput", "-T", "dumb", "colors"]
+
+[[case]]
+id = "tput-numeric-lines-dumb-with-T"
+argv = ["tput", "-T", "dumb", "lines"]
+
+[[case]]
+id = "tput-numeric-cols-dumb-with-T"
+argv = ["tput", "-T", "dumb", "cols"]
+
+[[case]]
+id = "tput-env-term-vt100-cols"
+argv = ["tput", "cols"]
+env = { TERM = "vt100" }
+
+[[case]]
+id = "tput-env-term-dumb-lines-default-24"
+argv = ["tput", "lines"]
+env = { TERM = "dumb" }
+
+[[case]]
+id = "tput-env-term-dumb-colors"
+argv = ["tput", "colors"]
+env = { TERM = "dumb" }
+
+[[case]]
+id = "tput-env-term-256-colors"
+argv = ["tput", "colors"]
+env = { TERM = "xterm-256color" }
+
+[[case]]
+id = "tput-env-size-overrides"
+script = "tput cols; tput lines"
+env = { TERM = "vt100", COLUMNS = "132", LINES = "50" }
+
+[[case]]
+id = "tput-env-size-ignored-with-T"
+script = "tput -T vt100 cols; tput -T vt100 lines"
+env = { TERM = "xterm", COLUMNS = "132", LINES = "50" }
+
+[[case]]
+id = "tput-env-size-invalid-values"
+script = "for v in abc 0 -3 '7 ' 0x20 010 99999 +9 ''; do echo \"[$v] $(COLUMNS=$v LINES=$v tput cols) $(COLUMNS=$v LINES=$v tput lines)\"; done"
+env = { TERM = "vt100" }
+
+[[case]]
+id = "tput-env-term-overridden-by-T"
+argv = ["tput", "-T", "xterm", "cols"]
+env = { TERM = "nosuch" }
+
+[[case]]
+id = "tput-env-term-empty-and-unset"
+script = "TERM= tput cols; echo rc=$?; env -u TERM tput cols; echo rc=$?"
+
+[[case]]
+id = "tput-env-term-nosuch"
+argv = ["tput", "cols"]
+env = { TERM = "nosuch" }
+
+[[case]]
+id = "tput-env-term-with-slash"
+argv = ["tput", "cols"]
+env = { TERM = "a/b" }
+
+[[case]]
+id = "tput-env-term-dot-names"
+script = "TERM=. tput cols; echo rc=$?; TERM=.. tput cols; echo rc=$?; TERM=xterm:x tput cols; echo rc=$?"
+
+[[case]]
+id = "tput-env-term-too-long"
+script = "tput -T \"$(head -c 600 /dev/zero | tr '\\0' a)\" cols; echo rc=$?"
+
+[[case]]
+id = "tput-longname"
+script = "for t in xterm xterm-256color vt100 linux screen dumb tmux ansi; do tput -T $t longname; echo; done"
+
+[[case]]
+id = "tput-longname-then-cap"
+script = "tput -T xterm longname bold | od -c"
+
+[[case]]
+id = "tput-bold-sgr0-od"
+script = "tput -T xterm bold sgr0 | od -c"
+
+[[case]]
+id = "tput-vt100-padding-stripped"
+script = "tput -T vt100 bold | od -c; tput -T vt100 clear | od -c; tput -T vt100 cup 3 4 | od -c; tput -T vt100 el | od -c; tput -T vt100 sgr0 | od -c"
+
+[[case]]
+id = "tput-vt100-flash-absent"
+argv = ["tput", "-T", "vt100", "flash"]
+
+[[case]]
+id = "tput-linux-flash-mandatory-delay"
+script = "tput -T linux flash | od -c"
+
+[[case]]
+id = "tput-bel"
+script = "for t in vt100 xterm linux screen dumb; do tput -T $t bel | od -c; done"
+
+[[case]]
+id = "tput-simple-strings-od"
+script = "for cap in bold dim rev smul rmul smso rmso sitm ritm blink sgr0 smcup rmcup civis cnorm cvvis home el ed il1 dl1 ich1 dch1 kcuu1 kcud1 kf1 kf12 kbs khome kend knp kpp kmous op oc; do printf '%s: ' $cap; tput -T xterm-256color $cap | od -c | head -3; done"
+
+[[case]]
+id = "tput-clear-od"
+script = "for t in xterm xterm-256color vt100 linux screen ansi tmux; do tput -T $t clear | od -c; done"
+
+[[case]]
+id = "tput-clear-x-flag"
+script = "tput -T xterm -x clear | od -c; tput -T xterm clear -x | od -c"
+
+[[case]]
+id = "tput-clear-dumb-fails"
+argv = ["tput", "-T", "dumb", "clear"]
+
+[[case]]
+id = "tput-clear-env-term"
+script = "tput clear | od -c"
+env = { TERM = "linux" }
+
+[[case]]
+id = "tput-E3-capability"
+script = "tput -T xterm E3 | od -c; tput -T linux E3; echo rc=$?"
+
+[[case]]
+id = "tput-string-absent-exit-one"
+script = "tput -T xterm pfkey 1 abc; echo rc=$?; tput -T xterm pfx; echo rc=$?; tput -T dumb cup; echo rc=$?"
+
+[[case]]
+id = "tput-raw-parameterized-string"
+script = "tput -T xterm cup | od -c; tput -T xterm setaf | od -c; tput -T xterm-256color setab | od -c"
+
+[[case]]
+id = "tput-chain-of-commands"
+script = "tput -T xterm bold clear sgr0 cup 1 2 el | od -c"
+
+[[case]]
+id = "tput-chain-stops-at-failure"
+script = "tput -T xterm bold hs sgr0 | od -c; echo rc=$?; tput -T xterm bold nosuch sgr0 | od -c"
+
+[[case]]
+id = "tput-chain-stops-at-failure-rc"
+script = "tput -T xterm bold hs sgr0 >/dev/null; echo rc=$?"
+
+[[case]]
+id = "tput-chain-numeric-and-string"
+script = "tput -T xterm cols lines bold | od -c"
+
+[[case]]
+id = "tput-option-after-command"
+script = "tput -T xterm clear -x | od -c; tput clear -T xterm | od -c; tput bold -T vt100 | od -c"
+
+[[case]]
+id = "tput-T-last-wins"
+argv = ["tput", "-T", "xterm", "-T", "dumb", "cols"]
+
+[[case]]
+id = "tput-version"
+argv = ["tput", "-V"]
+
+[[case]]
+id = "tput-version-with-term"
+argv = ["tput", "-T", "xterm", "-V"]
+
+[[case]]
+id = "tput-verbose-missing-parameters"
+script = "tput -v -T xterm bold; tput -v -T xterm cup; tput -v -T xterm cup 1"
+
+[[case]]
+id = "tput-verbose-extra-parameters"
+script = "tput -v -T xterm cup 1 2 3 | od -c; tput -v -T xterm bold 5 | od -c"
+
+[[case]]
+id = "tput-verbose-numeric-cap"
+script = "tput -v -T xterm cols"
+
+[[case]]
+id = "tput-init-without-tty"
+argv = ["tput", "-T", "xterm", "init"]
+
+[[case]]
+id = "tput-reset-without-tty"
+argv = ["tput", "-T", "xterm", "reset"]
+
+[[case]]
+id = "tput-init-env-term-without-tty"
+argv = ["tput", "init"]
+env = { TERM = "vt100" }
+
+[[case]]
+id = "tput-init-needs-term-first"
+argv = ["tput", "init"]
+
+[[case]]
+id = "tput-S-several-lines"
+script = "printf 'bold\\nsgr0\\ncup 1 2\\nlines\\ncols\\n' | tput -T xterm -S | od -c"
+
+[[case]]
+id = "tput-S-several-per-line"
+script = "printf 'bold bold\\n\\ncup 1 2   cup 3 4\\n\\t el \\n' | tput -T xterm -S | od -c"
+
+[[case]]
+id = "tput-S-boolean-results"
+script = "printf 'hs\\nam\\nhs\\n' | tput -T xterm -S; echo rc=$?"
+
+[[case]]
+id = "tput-S-unknown-cap-exits"
+script = "printf 'nosuch\\nbold\\n' | tput -T xterm -S; echo rc=$?"
+
+[[case]]
+id = "tput-S-clear-fails-on-dumb"
+script = "printf 'clear\\n' | tput -T dumb -S; echo rc=$?"
+
+[[case]]
+id = "tput-S-verbose"
+script = "printf 'bold\\ncup 1\\n' | tput -T xterm -S -v | od -c"
+
+[[case]]
+id = "tput-S-empty-stdin"
+script = "tput -T xterm -S </dev/null; echo rc=$?"
+
+[[case]]
+id = "tput-S-ignores-operands"
+script = "printf 'cup 1 2\\n' | tput -T xterm -S cols | od -c"
+
+[[case]]
+id = "tput-S-no-newline-at-end"
+script = "printf 'bold' | tput -T xterm -S | od -c"
+
+[[case]]
+id = "tput-S-longname-and-numbers"
+script = "printf 'longname\\ncols\\ncolors\\n' | tput -T xterm-256color -S | od -c"
+
+[[case]]
+id = "tput-terminfo-env-directory"
+script = "TERMINFO=ti tput -T zzz cols; TERMINFO=ti TERM=zzz tput lines; TERMINFO=ti tput -T zzz longname; echo; TERMINFO=nosuchdir tput -T xterm cols; TERMINFO_DIRS=ti:nosuchdir tput -T zzz cols"
+[case.files]
+"ti/z/zzz" = { content_b64 = "GgEYAAIAAQCCAAgAZHVtYnw4MC1jb2x1bW4gZHVtYiB0dHkAAAFQAP//AAACAP////////////////////8EAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wYABwANAAoACgA=" }
+
+[[case]]
+id = "tput-terminfo-quickdump-hex"
+script = "TERMINFO=hex:1a011800020001008200080064756d627c38302d636f6c756d6e2064756d62207474790000015000ffff00000200ffffffffffffffffffffffffffffffff0400ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff060007000d000a000a00 tput -T dumb cols"
+
+[[case]]
+id = "tput-terminfo-home-directory"
+script = "HOME=$PWD tput -T zzz cols; echo rc=$?"
+[case.files]
+".terminfo/z/zzz" = { content_b64 = "GgEYAAIAAQCCAAgAZHVtYnw4MC1jb2x1bW4gZHVtYiB0dHkAAAFQAP//AAACAP////////////////////8EAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wYABwANAAoACgA=" }
+
+[[case]]
+id = "tput-terminfo-garbage-file"
+script = "TERMINFO=ti tput -T bad cols; echo rc=$?"
+[case.files]
+"ti/b/bad" = "not a terminfo file\n"
+
+[[case]]
+id = "tput-terminfo-empty-file"
+script = "TERMINFO=ti tput -T bad cols; echo rc=$?"
+[case.files]
+"ti/b/bad" = ""
+
+[[case]]
+id = "tput-unknown-capability"
+argv = ["tput", "-T", "xterm", "foo"]
+
+[[case]]
+id = "tput-unknown-capability-termcap-name"
+script = "tput -T xterm co; echo rc=$?; tput -T xterm Co; echo rc=$?; tput -T xterm li; echo rc=$?"
+
+[[case]]
+id = "tput-numeric-looking-capability"
+script = "tput -T xterm 0; echo rc=$?; tput -T xterm 1; echo rc=$?"
+
+[[case]]
+id = "tput-unknown-terminal"
+argv = ["tput", "-T", "nosuch", "cols"]
+
+[[case]]
+id = "tput-no-term"
+argv = ["tput", "cols"]
+
+[[case]]
+id = "tput-empty-T"
+argv = ["tput", "-T", "", "cols"]
+
+[[case]]
+id = "tput-no-command"
+argv = ["tput", "-T", "xterm"]

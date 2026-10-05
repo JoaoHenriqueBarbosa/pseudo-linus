@@ -1,0 +1,153 @@
+tool = "tput"
+source = "manual"
+
+# Parâmetros de capacidades do tput (o interpretador de tparm do ncurses 6.5.20250216): pilha,
+# variáveis, condicionais, formatos e as regras de quais argumentos o tput consome.
+
+[[case]]
+id = "tparm-cup"
+script = "tput -T xterm cup 3 4 | od -c; tput -T vt100 cup 0 0 | od -c; tput -T linux cup 23 79 | od -c"
+
+[[case]]
+id = "tparm-cup-numeric-forms"
+script = "tput -T xterm cup 0x10 010 | od -c; tput -T xterm cup 1e2 7 | od -c; tput -T xterm cup ' 5' 6 | od -c"
+
+[[case]]
+id = "tparm-cup-non-numeric-arguments"
+script = "tput -T xterm cup x y; echo rc=$?; tput -T xterm cup 5 y; echo rc=$?"
+
+[[case]]
+id = "tparm-cup-missing-and-extra"
+script = "tput -T xterm cup 7 | od -c; tput -T xterm cup 1 2 3 4 | od -c"
+
+[[case]]
+id = "tparm-cup-two-in-a-row"
+script = "tput -T xterm cup 1 2 cup 3 4 | od -c"
+
+[[case]]
+id = "tparm-negative-argument-is-an-option"
+argv = ["tput", "-T", "xterm", "cup", "-5", "3"]
+
+[[case]]
+id = "tparm-negative-argument-after-double-dash"
+script = "tput -T xterm -- cup -5 3 | od -c; echo rc=$?"
+
+[[case]]
+id = "tparm-setaf-setab-8-colors"
+script = "for c in 0 1 2 3 4 5 6 7; do tput -T xterm setaf $c; tput -T xterm setab $c; done | od -c"
+
+[[case]]
+id = "tparm-setaf-256-conditional"
+script = "for c in 0 7 8 9 15 16 100 255 256 1000; do tput -T xterm-256color setaf $c | od -c | head -2; done"
+
+[[case]]
+id = "tparm-setab-256-conditional"
+script = "for c in 0 7 8 15 16 200; do tput -T xterm-256color setab $c | od -c | head -2; done"
+
+[[case]]
+id = "tparm-setf-setb-reordered-colors"
+script = "for c in 0 1 2 3 4 5 6 7; do tput -T linux setf $c | od -c | head -1; tput -T xterm setb $c | od -c | head -1; done"
+
+[[case]]
+id = "tparm-sgr-xterm"
+script = "tput -T xterm sgr 1 0 0 0 0 0 0 0 0 | od -c; tput -T xterm sgr 0 0 0 0 0 0 0 0 1 | od -c; tput -T xterm sgr 0 1 0 1 1 0 1 1 0 | od -c"
+
+[[case]]
+id = "tparm-sgr-fewer-arguments"
+script = "tput -T xterm sgr 1 0 | od -c; tput -T xterm sgr 1 | od -c; tput -T xterm sgr | od -c | head -2"
+
+[[case]]
+id = "tparm-sgr-vt100-padding"
+script = "tput -T vt100 sgr 0 0 0 0 0 0 0 0 0 | od -c; tput -T vt100 sgr 1 1 1 1 1 1 1 1 1 | od -c"
+
+[[case]]
+id = "tparm-sgr-linux"
+script = "tput -T linux sgr 0 1 0 0 1 0 0 0 1 | od -c"
+
+[[case]]
+id = "tparm-sgr0-all-terminals"
+script = "for t in xterm xterm-256color vt100 linux screen ansi tmux rxvt sun; do tput -T $t sgr0 | od -c | head -2; done"
+
+[[case]]
+id = "tparm-csr-vpa-hpa"
+script = "tput -T xterm csr 3 5 | od -c; tput -T xterm vpa 10 | od -c; tput -T xterm hpa 5 | od -c; tput -T vt100 csr 1 22 | od -c"
+
+[[case]]
+id = "tparm-parm-motion-caps"
+script = "for cap in cub cud cuf cuu dch dl ech ich il indn rin; do printf '%s: ' $cap; tput -T xterm-256color $cap 3 | od -c | head -1; done"
+
+[[case]]
+id = "tparm-initc-with-arithmetic"
+script = "tput -T xterm-256color initc 1 500 500 500 | od -c; tput -T xterm-256color initc 15 0 1000 250 | od -c; tput -T linux initc 3 1000 0 500 | od -c"
+
+[[case]]
+id = "tparm-initc-missing-on-xterm"
+script = "tput -T xterm initc 1 2 3 4; echo rc=$?"
+
+[[case]]
+id = "tparm-tsl-and-ts"
+script = "tput -T xterm-256color tsl 5 | od -c; echo rc=$?; tput -T xterm-256color fsl | od -c"
+
+[[case]]
+id = "tparm-extended-cap-with-number"
+script = "tput -T xterm Ss 2 | od -c; tput -T xterm-256color Ss 6 | od -c; tput -T xterm-256color Se | od -c"
+
+[[case]]
+id = "tparm-extended-cap-with-string"
+script = "tput -T xterm-256color Cs red | od -c; tput -T xterm-256color Cs | od -c"
+
+[[case]]
+id = "tparm-extended-two-strings"
+script = "tput -T xterm Ms c abc | od -c; tput -T xterm Ms | od -c; tput -T xterm Ms c | od -c"
+
+[[case]]
+id = "tparm-extended-numeric-and-boolean"
+script = "tput -T xterm-256color AX; echo rc=$?; tput -T xterm U8; echo rc=$?; tput -T xterm-256color XT; echo rc=$?; tput -T linux U8; echo rc=$?"
+
+[[case]]
+id = "tparm-extended-xm-mouse"
+script = "tput -T xterm-256color xm | od -c; tput -T xterm-256color xm 1 2 3 1 | od -c"
+
+[[case]]
+id = "tparm-extended-unknown-names"
+script = "tput -T xterm-256color RGB; echo rc=$?; tput -T xterm-256color setrgbf 1 2 3; echo rc=$?"
+
+[[case]]
+id = "tparm-string-parameters-pkey"
+script = "tput -T xterm pfkey 1 abc; echo rc=$?; tput -T ansi pfkey 1 abc | od -c"
+
+[[case]]
+id = "tparm-non-parameterized-with-number"
+script = "tput -T xterm bold 5 | od -c; tput -T xterm -v bold 5 6 | od -c; tput -T xterm sgr0 1 2 clear | od -c"
+
+[[case]]
+id = "tparm-numeric-cap-ignores-arguments"
+script = "tput -T xterm cols 5 | od -c; tput -T xterm cols 5 lines | od -c"
+
+[[case]]
+id = "tparm-large-and-hex-numbers"
+script = "tput -T xterm cup 99999 2147483647 | od -c; tput -T xterm cup 4294967296 1 | od -c; tput -T xterm cup 0xffffffff 0 | od -c"
+
+[[case]]
+id = "tparm-static-variables-reset-between-commands"
+script = "tput -T linux initc 1 100 200 300 initc 2 400 500 600 | od -c"
+
+[[case]]
+id = "tparm-setaf-no-argument-prints-raw"
+script = "tput -T xterm-256color setaf | od -c | head -3"
+
+[[case]]
+id = "tparm-hex-colors"
+script = "tput -T xterm-256color setaf 0x20 | od -c; tput -T xterm-256color setaf 0377 | od -c"
+
+[[case]]
+id = "tparm-ansi-and-pcansi-cup"
+script = "tput -T ansi cup 4 9 | od -c; tput -T pcansi cup 4 9 | od -c; tput -T cons25 cup 4 9 | od -c; tput -T sun cup 4 9 | od -c"
+
+[[case]]
+id = "tparm-vt52-cup-char-arithmetic"
+script = "tput -T vt52 cup 4 9 | od -c; tput -T vt52 cup 0 0 | od -c"
+
+[[case]]
+id = "tparm-wsvt25-and-rxvt-cup"
+script = "tput -T wsvt25 cup 4 9 | od -c; tput -T rxvt cup 4 9 | od -c; tput -T hurd cup 4 9 | od -c"

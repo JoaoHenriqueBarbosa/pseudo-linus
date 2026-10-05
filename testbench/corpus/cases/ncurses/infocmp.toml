@@ -1,0 +1,494 @@
+tool = "infocmp"
+source = "manual"
+
+# infocmp do ncurses 6.5.20250216: decompila entradas do banco compilado e compara terminais.
+# Sem TERM no ambiente do oráculo, os casos passam o nome do terminal.
+
+[[case]]
+id = "infocmp-default-dumb"
+argv = ["infocmp", "dumb"]
+
+[[case]]
+id = "infocmp-default-vt100"
+argv = ["infocmp", "vt100"]
+
+[[case]]
+id = "infocmp-default-xterm"
+argv = ["infocmp", "xterm"]
+
+[[case]]
+id = "infocmp-default-xterm-256color"
+argv = ["infocmp", "xterm-256color"]
+
+[[case]]
+id = "infocmp-default-linux"
+argv = ["infocmp", "linux"]
+
+[[case]]
+id = "infocmp-default-screen"
+argv = ["infocmp", "screen"]
+
+[[case]]
+id = "infocmp-default-ansi"
+argv = ["infocmp", "ansi"]
+
+[[case]]
+id = "infocmp-default-tmux-256color"
+argv = ["infocmp", "tmux-256color"]
+
+[[case]]
+id = "infocmp-default-vt52"
+argv = ["infocmp", "vt52"]
+
+[[case]]
+id = "infocmp-default-sun"
+argv = ["infocmp", "sun"]
+
+[[case]]
+id = "infocmp-default-rxvt-unicode-256color"
+argv = ["infocmp", "rxvt-unicode-256color"]
+
+[[case]]
+id = "infocmp-default-hurd"
+argv = ["infocmp", "hurd"]
+
+[[case]]
+id = "infocmp-alias-symlink"
+argv = ["infocmp", "xterm-debian"]
+
+[[case]]
+id = "infocmp-env-term"
+argv = ["infocmp"]
+env = { TERM = "vt100" }
+
+[[case]]
+id = "infocmp-single-column"
+argv = ["infocmp", "-1", "vt100"]
+
+[[case]]
+id = "infocmp-single-column-xterm-256color"
+argv = ["infocmp", "-1", "xterm-256color"]
+
+[[case]]
+id = "infocmp-single-row"
+argv = ["infocmp", "-0", "vt100"]
+
+[[case]]
+id = "infocmp-long-names"
+argv = ["infocmp", "-L", "vt100"]
+
+[[case]]
+id = "infocmp-long-names-single-column"
+argv = ["infocmp", "-L1", "linux"]
+
+[[case]]
+id = "infocmp-terminfo-names-I"
+argv = ["infocmp", "-I", "vt100"]
+
+[[case]]
+id = "infocmp-termcap-C"
+argv = ["infocmp", "-C", "vt100"]
+
+[[case]]
+id = "infocmp-termcap-C-linux"
+argv = ["infocmp", "-C", "linux"]
+
+[[case]]
+id = "infocmp-termcap-C-xterm-256color"
+argv = ["infocmp", "-C", "xterm-256color"]
+
+[[case]]
+id = "infocmp-termcap-C-xterm"
+argv = ["infocmp", "-C", "xterm"]
+
+[[case]]
+id = "infocmp-termcap-C-dumb"
+argv = ["infocmp", "-C", "dumb"]
+
+[[case]]
+id = "infocmp-termcap-C-screen"
+argv = ["infocmp", "-C", "screen"]
+
+[[case]]
+id = "infocmp-termcap-C-no-limit"
+argv = ["infocmp", "-C", "-T", "xterm-256color"]
+
+[[case]]
+id = "infocmp-termcap-C-suppress-untranslatable"
+argv = ["infocmp", "-C", "-t", "-T", "xterm-256color"]
+
+[[case]]
+id = "infocmp-termcap-C-single-column"
+argv = ["infocmp", "-C", "-1", "vt100"]
+
+[[case]]
+id = "infocmp-termcap-C-resolved-all-caps"
+argv = ["infocmp", "-C", "-r", "vt100"]
+
+[[case]]
+id = "infocmp-termcap-K-bsd"
+argv = ["infocmp", "-K", "vt100"]
+
+[[case]]
+id = "infocmp-termcap-C-with-x"
+argv = ["infocmp", "-C", "-x", "xterm"]
+
+[[case]]
+id = "infocmp-termcap-C-terminals"
+script = "for t in ansi cons25 cygwin pcansi rxvt sun vt102 vt220 wsvt25 tmux xterm-color xterm-mono mach-color; do infocmp -C $t; done"
+
+[[case]]
+id = "infocmp-extended-x"
+argv = ["infocmp", "-x", "xterm"]
+
+[[case]]
+id = "infocmp-extended-x-linux"
+argv = ["infocmp", "-x", "linux"]
+
+[[case]]
+id = "infocmp-extended-x-single-column"
+argv = ["infocmp", "-x", "-1", "xterm-256color"]
+
+[[case]]
+id = "infocmp-extended-x-screen"
+argv = ["infocmp", "-x", "screen-256color"]
+
+[[case]]
+id = "infocmp-extended-a-flag"
+argv = ["infocmp", "-a", "tmux"]
+
+[[case]]
+id = "infocmp-width-40"
+argv = ["infocmp", "-w", "40", "vt100"]
+
+[[case]]
+id = "infocmp-width-100"
+argv = ["infocmp", "-w", "100", "xterm"]
+
+[[case]]
+id = "infocmp-width-zero"
+argv = ["infocmp", "-w", "0", "vt100"]
+
+[[case]]
+id = "infocmp-width-hex"
+argv = ["infocmp", "-w", "0x30", "vt100"]
+
+[[case]]
+id = "infocmp-wrap-strings"
+argv = ["infocmp", "-W", "-w", "40", "xterm-256color"]
+
+[[case]]
+id = "infocmp-wrap-strings-termcap"
+argv = ["infocmp", "-W", "-w", "40", "-C", "-T", "xterm-256color"]
+
+[[case]]
+id = "infocmp-formatted-f"
+argv = ["infocmp", "-1", "-f", "xterm-256color"]
+
+[[case]]
+id = "infocmp-formatted-f-vt100"
+argv = ["infocmp", "-1", "-f", "vt100"]
+
+[[case]]
+id = "infocmp-no-limit-T"
+argv = ["infocmp", "-T", "vt100"]
+
+[[case]]
+id = "infocmp-quiet"
+argv = ["infocmp", "-q", "vt100"]
+
+[[case]]
+id = "infocmp-quiet-single-column"
+argv = ["infocmp", "-q", "-1", "dumb"]
+
+[[case]]
+id = "infocmp-sort-none"
+argv = ["infocmp", "-s", "d", "-1", "dumb"]
+
+[[case]]
+id = "infocmp-sort-none-vt100"
+argv = ["infocmp", "-s", "d", "vt100"]
+
+[[case]]
+id = "infocmp-sort-terminfo"
+argv = ["infocmp", "-s", "i", "-1", "vt100"]
+
+[[case]]
+id = "infocmp-sort-variable"
+argv = ["infocmp", "-s", "l", "-1", "vt100"]
+
+[[case]]
+id = "infocmp-sort-termcap"
+argv = ["infocmp", "-s", "c", "-1", "vt100"]
+
+[[case]]
+id = "infocmp-sort-invalid"
+argv = ["infocmp", "-s", "x", "vt100"]
+
+[[case]]
+id = "infocmp-literal-l"
+argv = ["infocmp", "-l", "dumb"]
+
+[[case]]
+id = "infocmp-numbers-to-char-G"
+argv = ["infocmp", "-G", "-1", "xterm-256color"]
+
+[[case]]
+id = "infocmp-char-to-numbers-g"
+argv = ["infocmp", "-g", "-1", "vt100"]
+
+[[case]]
+id = "infocmp-numbers-G-linux"
+argv = ["infocmp", "-G", "linux"]
+
+[[case]]
+id = "infocmp-svr1-subset"
+argv = ["infocmp", "-R", "SVr1", "vt100"]
+
+[[case]]
+id = "infocmp-hp-subset"
+argv = ["infocmp", "-R", "HP", "vt100"]
+
+[[case]]
+id = "infocmp-aix-subset"
+argv = ["infocmp", "-R", "AIX", "vt100"]
+
+[[case]]
+id = "infocmp-bsd-subset"
+argv = ["infocmp", "-R", "BSD", "vt100"]
+
+[[case]]
+id = "infocmp-unknown-subset-is-allcaps"
+argv = ["infocmp", "-R", "nosuch", "dumb"]
+
+[[case]]
+id = "infocmp-compare-two-terminals"
+argv = ["infocmp", "vt100", "vt102"]
+
+[[case]]
+id = "infocmp-compare-xterm-and-256color"
+argv = ["infocmp", "xterm", "xterm-256color"]
+
+[[case]]
+id = "infocmp-compare-d-vt100-xterm"
+argv = ["infocmp", "-d", "vt100", "xterm"]
+
+[[case]]
+id = "infocmp-compare-d-quiet"
+argv = ["infocmp", "-d", "-q", "vt100", "xterm"]
+
+[[case]]
+id = "infocmp-compare-d-ignore-padding"
+argv = ["infocmp", "-d", "-p", "vt100", "xterm"]
+
+[[case]]
+id = "infocmp-compare-d-long-names"
+argv = ["infocmp", "-d", "-L", "vt100", "vt102"]
+
+[[case]]
+id = "infocmp-compare-d-termcap-names"
+argv = ["infocmp", "-d", "-C", "vt100", "vt102"]
+
+[[case]]
+id = "infocmp-compare-d-extended"
+argv = ["infocmp", "-d", "-x", "xterm", "xterm-256color"]
+
+[[case]]
+id = "infocmp-compare-d-extended-different-sets"
+argv = ["infocmp", "-d", "-x", "xterm", "linux"]
+
+[[case]]
+id = "infocmp-compare-d-same-terminal"
+argv = ["infocmp", "-d", "vt100", "vt100"]
+
+[[case]]
+id = "infocmp-compare-d-alias"
+argv = ["infocmp", "-d", "xterm", "xterm-debian"]
+
+[[case]]
+id = "infocmp-compare-c-common"
+argv = ["infocmp", "-c", "vt100", "vt102"]
+
+[[case]]
+id = "infocmp-compare-c-common-quiet"
+argv = ["infocmp", "-c", "-q", "xterm", "xterm-256color"]
+
+[[case]]
+id = "infocmp-compare-c-three-terminals"
+argv = ["infocmp", "-c", "vt100", "vt102", "vt220"]
+
+[[case]]
+id = "infocmp-compare-n-neither"
+argv = ["infocmp", "-n", "vt100", "vt102"]
+
+[[case]]
+id = "infocmp-compare-n-neither-quiet"
+argv = ["infocmp", "-n", "-q", "linux", "dumb"]
+
+[[case]]
+id = "infocmp-compare-one-name-uses-term-env"
+argv = ["infocmp", "-d", "vt100"]
+env = { TERM = "vt102" }
+
+[[case]]
+id = "infocmp-compare-three-names-default"
+argv = ["infocmp", "vt100", "vt102", "xterm"]
+
+[[case]]
+id = "infocmp-use-form-u"
+argv = ["infocmp", "-u", "xterm-256color", "xterm"]
+
+[[case]]
+id = "infocmp-use-form-u-vt102"
+argv = ["infocmp", "-u", "vt102", "vt100"]
+
+[[case]]
+id = "infocmp-use-form-u-single-column"
+argv = ["infocmp", "-u", "-1", "xterm-256color", "xterm"]
+
+[[case]]
+id = "infocmp-use-form-u-two-uses"
+argv = ["infocmp", "-u", "screen-256color", "screen", "xterm-256color"]
+
+[[case]]
+id = "infocmp-use-form-u-termcap"
+argv = ["infocmp", "-u", "-C", "vt102", "vt100"]
+
+[[case]]
+id = "infocmp-use-form-u-same-terminal"
+argv = ["infocmp", "-u", "vt100", "vt100"]
+
+[[case]]
+id = "infocmp-analyze-init-i"
+argv = ["infocmp", "-i", "xterm"]
+
+[[case]]
+id = "infocmp-analyze-init-i-vt100"
+argv = ["infocmp", "-i", "vt100"]
+
+[[case]]
+id = "infocmp-analyze-init-i-linux"
+argv = ["infocmp", "-i", "linux"]
+
+[[case]]
+id = "infocmp-analyze-init-i-screen"
+argv = ["infocmp", "-i", "screen"]
+
+[[case]]
+id = "infocmp-c-initializer-e"
+argv = ["infocmp", "-e", "dumb"]
+
+[[case]]
+id = "infocmp-c-tables-E"
+argv = ["infocmp", "-E", "dumb"]
+
+[[case]]
+id = "infocmp-c-tables-E-extended"
+argv = ["infocmp", "-E", "-x", "xterm"]
+
+[[case]]
+id = "infocmp-database-locations"
+argv = ["infocmp", "-D"]
+
+[[case]]
+id = "infocmp-database-locations-with-env"
+script = "TERMINFO=/usr/share/terminfo infocmp -D; TERMINFO_DIRS=/tmp:/usr/share/terminfo infocmp -D; HOME=/nonexistent infocmp -D"
+
+[[case]]
+id = "infocmp-version"
+argv = ["infocmp", "-V"]
+
+[[case]]
+id = "infocmp-first-directory-A"
+argv = ["infocmp", "-A", "/usr/share/terminfo", "dumb"]
+
+[[case]]
+id = "infocmp-compare-directories-A-B"
+argv = ["infocmp", "-d", "-A", "/usr/share/terminfo", "-B", "/usr/share/terminfo", "vt100", "vt102"]
+
+[[case]]
+id = "infocmp-first-directory-missing-entry"
+argv = ["infocmp", "-A", "/usr/share/terminfo", "nosuch"]
+
+[[case]]
+id = "infocmp-first-directory-bad-directory"
+argv = ["infocmp", "-A", "/nonexistent", "vt100"]
+
+[[case]]
+id = "infocmp-terminfo-env-dir"
+script = "TERMINFO=ti infocmp zzz"
+[case.files]
+"ti/z/zzz" = { content_b64 = "GgEYAAIAAQCCAAgAZHVtYnw4MC1jb2x1bW4gZHVtYiB0dHkAAAFQAP//AAACAP////////////////////8EAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wYABwANAAoACgA=" }
+
+[[case]]
+id = "infocmp-no-match"
+argv = ["infocmp", "nosuch"]
+
+[[case]]
+id = "infocmp-no-match-second"
+argv = ["infocmp", "vt100", "nosuch"]
+
+[[case]]
+id = "infocmp-no-term"
+argv = ["infocmp"]
+
+[[case]]
+id = "infocmp-no-term-compare"
+argv = ["infocmp", "-d", "vt100"]
+
+[[case]]
+id = "infocmp-empty-name"
+argv = ["infocmp", ""]
+
+[[case]]
+id = "infocmp-name-with-slash"
+argv = ["infocmp", "x/xterm"]
+
+[[case]]
+id = "infocmp-too-many-names"
+argv = ["infocmp", "vt100", "vt102", "vt220", "xterm"]
+
+[[case]]
+id = "infocmp-width-not-a-number"
+argv = ["infocmp", "-w", "abc", "vt100"]
+
+[[case]]
+id = "infocmp-verbose-not-a-number"
+argv = ["infocmp", "-v", "x", "vt100"]
+
+[[case]]
+id = "infocmp-invalid-option"
+argv = ["infocmp", "-h"]
+
+[[case]]
+id = "infocmp-missing-option-argument"
+argv = ["infocmp", "-w"]
+
+[[case]]
+id = "infocmp-file-compare-needs-two"
+argv = ["infocmp", "-F", "a.ti"]
+[case.files]
+"a.ti" = "t|t,\n\tam,\n"
+
+[[case]]
+id = "infocmp-file-compare-with-u"
+argv = ["infocmp", "-F", "-u", "a.ti", "b.ti"]
+[case.files]
+"a.ti" = "t|t,\n\tam,\n"
+"b.ti" = "t|t,\n\tam,\n"
+
+[[case]]
+id = "infocmp-trace-reading-messages"
+argv = ["infocmp", "-v", "1", "dumb"]
+
+[[case]]
+id = "infocmp-terminals-each-default"
+script = "for t in cons25 cygwin pcansi mach mach-bold mach-color mach-gnu mach-gnu-color rxvt rxvt-basic rxvt-unicode screen-bce screen-s screen-w screen.xterm-256color tmux vt102 vt220 wsvt25 wsvt25m xterm-color xterm-mono xterm-r5 xterm-r6 xterm-vt220 xterm-xfree86 Eterm; do infocmp -1 $t; done"
+
+[[case]]
+id = "infocmp-terminals-each-extended"
+script = "for t in screen-256color screen-bce screen.xterm-256color tmux tmux-256color rxvt-unicode-256color xterm-256color xterm-vt220 xterm-xfree86; do infocmp -x -1 $t; done"
+
+[[case]]
+id = "infocmp-terminals-each-termcap-unlimited"
+script = "for t in screen-256color tmux-256color rxvt-unicode-256color xterm-xfree86 xterm-vt220 Eterm; do infocmp -C -T $t; done"
