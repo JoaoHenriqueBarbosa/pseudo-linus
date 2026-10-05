@@ -5,20 +5,32 @@
 //! módulos); o diff de linhas vem do `gix-imara-diff`. A meta é a saída do git 2.47.3 do Debian 13
 //! byte a byte.
 
+pub mod cmd;
 pub mod config;
 pub mod date;
+pub mod diff;
+pub mod editor;
 pub mod error;
+pub mod graph;
 pub mod hash;
 pub mod ident;
 pub mod ignore;
 pub mod index;
+pub mod msg;
 pub mod object;
 pub mod odb;
+pub mod opts;
 pub mod os;
 pub mod pathspec;
+pub mod quote;
+pub mod re;
 pub mod refs;
 pub mod repo;
+pub mod rev;
+pub mod store;
+pub mod usage;
 pub mod wildmatch;
+pub mod worktree;
 
 use std::ffi::OsString;
 
@@ -33,21 +45,8 @@ fn git_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     use std::os::unix::ffi::OsStrExt;
     let argv: Vec<Vec<u8>> = args.iter().map(|a| a.as_bytes().to_vec()).collect();
     let saved = os::swap_out(Vec::new());
-    let code = run(&argv);
+    let code = cmd::main(&argv);
     os::flush_out();
     os::swap_out(saved);
     code
-}
-
-fn run(argv: &[Vec<u8>]) -> i32 {
-    match argv.get(1) {
-        None => {
-            os::outs("usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]\n");
-            1
-        }
-        Some(sub) => {
-            os::err_line("", &format!("git: '{}' is not a git command. See 'git --help'.", os::lossy(sub)));
-            1
-        }
-    }
 }

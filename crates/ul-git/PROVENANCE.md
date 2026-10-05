@@ -45,3 +45,4 @@ Mesmo assim, não é sala limpa estrita, porque é o mesmo autor. A decisão fic
 | `worktree.rs` | git-status(1) (`--untracked-files`, `--ignored`) e o oráculo. |
 | `cmd/mod.rs` | Opções globais do git(1). A sugestão de comando parecido é distância de edição ponderada (Damerau-Levenshtein, algoritmo de livro-texto), com pesos lembrados da implementação e confirmados pela tabela de 40 erros de digitação medida no oráculo (teste `typo_suggestions_match_oracle`). Lista de comandos de `git --list-cmds`. |
 | `cmd/*.rs` | Man pages de cada comando e as saídas do oráculo. |
+| `cmd/status.rs`, `cmd/commit.rs`, `cmd/log.rs`, `cmd/diff_cmd.rs` | git-status(1), git-commit(1), git-log(1), git-show(1), git-rev-list(1), git-shortlog(1), git-diff(1) e as saídas medidas no oráculo (git 2.47.3). Nenhum arquivo do git foi aberto: a ordem de decoração, a linha em branco antes do diff, os rótulos e larguras do status e os separadores de registro vêm de sondas no oráculo. |

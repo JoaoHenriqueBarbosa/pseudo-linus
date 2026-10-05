@@ -46,7 +46,7 @@ pub fn hash_object(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     };
     let write = p.has("write");
     if write && git.repo.is_none() {
-        return Err(Fail::Fatal("not a git repository (or any of the parent directories): .git".into()));
+        return Err(crate::repo::not_a_repository());
     }
     let prefix = git.repo.as_ref().map(|r| r.prefix.clone()).unwrap_or_default();
     let mut inputs: Vec<(Option<Vec<u8>>, Vec<u8>)> = Vec::new();

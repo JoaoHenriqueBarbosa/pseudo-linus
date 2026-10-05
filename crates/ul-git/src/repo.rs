@@ -304,6 +304,38 @@ fn ceiling_dirs() -> Vec<Vec<u8>> {
         .unwrap_or_default()
 }
 
+/// A falha de quem precisa de repositório e não achou nenhum: a mensagem depende de onde a busca
+/// parou. Subindo a partir do cwd, a primeira vez que o pai está em outro dispositivo (outro
+/// ponto de montagem) o git desiste e nomeia o pai; chegando na raiz, ou num diretório do
+/// `GIT_CEILING_DIRECTORIES`, a mensagem é a curta. `GIT_DISCOVERY_ACROSS_FILESYSTEM=1` desliga a
+/// checagem de dispositivo.
+pub fn not_a_repository() -> Fail {
+    Fail::Fatal(not_a_repository_message())
+}
+
+fn not_a_repository_message() -> String {
+    const SHORT: &str = "not a git repository (or any of the parent directories): .git";
+    let across = os::getenv("GIT_DISCOVERY_ACROSS_FILESYSTEM").is_some_and(|v| config::parse_bool(Some(v.as_slice())) == Some(true));
+    let ceilings = ceiling_dirs();
+    let Ok(mut dir) = os::getcwd() else { return SHORT.to_string() };
+    loop {
+        if dir == b"/" || dir.is_empty() || ceilings.iter().any(|c| *c == dir) {
+            return SHORT.to_string();
+        }
+        let parent = os::dirname(&dir).to_vec();
+        if !across
+            && let (Ok(a), Ok(b)) = (os::stat(&dir), os::stat(&parent))
+            && a.dev != b.dev
+        {
+            return format!(
+                "not a git repository (or any parent up to mount point {})\nStopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).",
+                os::lossy(&parent)
+            );
+        }
+        dir = parent;
+    }
+}
+
 /// Encontra o repositório a partir do cwd. `Ok(None)` fora de um repositório.
 pub fn discover(g: &Globals) -> R<Option<Repo>> {
     let cwd = os::getcwd().map_err(|e| Fail::Fatal(format!("unable to get current working directory: {}", e.message())))?;

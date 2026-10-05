@@ -947,7 +947,8 @@ pub fn raw_line(repo: &Repo, p: &Pair, o: &DiffOpts) -> Vec<u8> {
     if p.status == b'U' {
         out.extend_from_slice(format!(":000000 000000 {} {} U", ab(&Oid::ZERO), ab(&Oid::ZERO)).as_bytes());
     } else {
-        let two_id = if p.two.wt && !o.raw_full { p.two.oid } else { p.two.oid };
+        // O lado da árvore de trabalho não tem id gravado: o git mostra zeros.
+        let two_id = if p.two.wt { Oid::ZERO } else { p.two.oid };
         out.extend_from_slice(format!(":{:06o} {:06o} {} {} ", p.one.mode, p.two.mode, ab(&p.one.oid), ab(&two_id)).as_bytes());
         out.push(p.status);
         if matches!(p.status, b'R' | b'C') {

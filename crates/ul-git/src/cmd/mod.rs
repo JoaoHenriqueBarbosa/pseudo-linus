@@ -2,9 +2,7 @@
 //! opções globais, aliases e a sugestão de comando parecido.
 
 pub mod add;
-pub mod branch;
 pub mod cat_file;
-pub mod checkout;
 pub mod commit;
 pub mod config_cmd;
 pub mod diff_cmd;
@@ -13,11 +11,8 @@ pub mod log;
 pub mod ls;
 pub mod misc;
 pub mod plumbing;
-pub mod reset;
 pub mod rev_parse;
-pub mod rm_mv;
 pub mod status;
-pub mod tag;
 
 use crate::config::Config;
 use crate::error::{Fail, R};
@@ -49,7 +44,7 @@ pub struct Git {
 
 impl Git {
     pub fn repo(&self) -> R<&Repo> {
-        self.repo.as_ref().ok_or_else(|| Fail::Fatal("not a git repository (or any of the parent directories): .git".into()))
+        self.repo.as_ref().ok_or_else(repo::not_a_repository)
     }
 
     pub fn config(&self) -> &Config {
@@ -112,14 +107,6 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "count-objects" => (Setup::Repo, plumbing::count_objects),
         "ls-files" => (Setup::Repo, ls::ls_files),
         "ls-tree" => (Setup::Repo, ls::ls_tree),
-        "rm" => (Setup::WorkTree, rm_mv::rm),
-        "mv" => (Setup::WorkTree, rm_mv::mv),
-        "branch" => (Setup::Repo, branch::run),
-        "checkout" => (Setup::Repo, checkout::run_checkout),
-        "switch" => (Setup::WorkTree, checkout::run_switch),
-        "restore" => (Setup::WorkTree, checkout::run_restore),
-        "reset" => (Setup::Repo, reset::run),
-        "tag" => (Setup::Repo, tag::run),
         "config" => (Setup::Gently, config_cmd::run),
         "version" => (Setup::None, misc::version),
         "var" => (Setup::Gently, misc::var),
@@ -420,7 +407,7 @@ fn run(argv: &[Vec<u8>]) -> R<i32> {
         Setup::Repo | Setup::WorkTree => {
             git.repo = repo::discover(&g)?;
             let Some(r) = &git.repo else {
-                return Err(Fail::Fatal("not a git repository (or any of the parent directories): .git".into()));
+                return Err(repo::not_a_repository());
             };
             if setup == Setup::WorkTree && r.work_tree.is_none() {
                 return Err(Fail::Fatal("this operation must be run in a work tree".into()));
