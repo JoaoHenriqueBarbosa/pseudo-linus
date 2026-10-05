@@ -12,6 +12,40 @@ const CR: u8 = b'\r';
 const LF: u8 = b'\n';
 const CTRLZ: u8 = 0x1a;
 
+/// A compressão de bits dos blocos "IM" (`decompress_bits`): bit 0 é um byte zero, bit 1 seguido
+/// de 8 bits é um byte literal. Lê zeros depois do fim da entrada.
+fn decompress_bits(src: &[u8], needlen: usize) -> Vec<u8> {
+    let mut out = Vec::with_capacity(needlen);
+    let mut bitbuf: u64 = 0;
+    let mut bitcnt: i32 = 0;
+    let mut i = 0;
+    let mut fill = |bitbuf: &mut u64, bitcnt: &mut i32| {
+        *bitbuf |= u64::from(src.get(i).copied().unwrap_or(0)) << *bitcnt;
+        i += 1;
+        *bitcnt += 8;
+    };
+    for _ in 0..needlen {
+        if bitcnt <= 0 {
+            fill(&mut bitbuf, &mut bitcnt);
+        }
+        if bitbuf & 1 != 0 {
+            bitbuf >>= 1;
+            bitcnt -= 1;
+            if bitcnt < 8 {
+                fill(&mut bitbuf, &mut bitcnt);
+            }
+            out.push(bitbuf as u8);
+            bitcnt -= 8;
+            bitbuf >>= 8;
+        } else {
+            out.push(0);
+            bitcnt -= 1;
+            bitbuf >>= 1;
+        }
+    }
+    out
+}
+
 impl Uz {
     /// Os bytes descomprimidos de um pedaço do membro (`flush`): soma no CRC e, fora do teste,
     /// escreve, convertendo os fins de linha no modo texto (CR/LF, CR sozinho e LF viram LF; os ^Z
@@ -36,6 +70,13 @@ impl Uz {
             p = 1;
         }
         self.x.did_cr_last = false;
+        if self.x.vms_line_state >= 0 {
+            let out = self.vms_text_conv(raw);
+            if out.is_empty() {
+                return PK_OK;
+            }
+            return self.write_out(&out);
+        }
         let mut out = Vec::with_capacity(raw.len());
         while p < raw.len() {
             match raw[p] {
@@ -57,6 +98,172 @@ impl Uz {
             return PK_OK;
         }
         self.write_out(&out)
+    }
+
+    /// O texto de registro variável do VMS (o ramo `VMS_TEXT_CONV` do `flush`): cada registro é um
+    /// comprimento de 2 bytes, os bytes da linha e, se o comprimento é ímpar, um byte de
+    /// alinhamento; o comprimento some e a linha ganha o LF. O estado atravessa os pedaços, e o
+    /// fim de linha só sai quando chega o byte seguinte (a última linha do arquivo fica sem ele).
+    fn vms_text_conv(&mut self, raw: &[u8]) -> Vec<u8> {
+        let x = &mut self.x;
+        let mut out = Vec::with_capacity(raw.len());
+        let mut p = 0;
+        while p < raw.len() {
+            match x.vms_line_state {
+                0 => {
+                    if p == raw.len() - 1 {
+                        x.vms_line_length = u32::from(raw[p]);
+                        p += 1;
+                        x.vms_line_state = 1;
+                    } else {
+                        x.vms_line_length = u32::from(u16::from_le_bytes([raw[p], raw[p + 1]]));
+                        p += 2;
+                        x.vms_line_state = 2;
+                    }
+                    x.vms_line_pad = x.vms_line_length & 1 != 0;
+                }
+                1 => {
+                    x.vms_line_length += u32::from(raw[p]) << 8;
+                    p += 1;
+                    x.vms_line_state = 2;
+                }
+                2 => {
+                    let mut remaining = raw.len() - p;
+                    if (x.vms_line_length as usize) < remaining {
+                        remaining = x.vms_line_length as usize;
+                        x.vms_line_state = 3;
+                    }
+                    x.vms_line_length -= remaining as u32;
+                    out.extend_from_slice(&raw[p..p + remaining]);
+                    p += remaining;
+                }
+                3 => {
+                    out.push(LF);
+                    x.vms_line_state = if x.vms_line_pad { 4 } else { 0 };
+                }
+                _ => {
+                    p += 1;
+                    x.vms_line_state = 0;
+                }
+            }
+        }
+        out
+    }
+
+    /// O membro veio do VMS com formato de registro variável (`is_vms_varlen_txt`): o atributo de
+    /// registro do bloco de VMS da PKWARE (com o CRC conferido) ou o FAB do bloco "IM" do Info-ZIP.
+    pub fn is_vms_varlen_txt(&mut self, mut ef: &[u8]) -> bool {
+        const EF_PKVMS: u16 = 0x000c;
+        const EF_IZVMS: u16 = 0x4d49;
+        const VMSATR_C_RECATTR: u16 = 4;
+        const VMS_FABSIG: u32 = 0x4241_4656;
+        const VMSFAB_B_RFM: usize = 31;
+        const VMSREC_C_VAR: u8 = 2;
+        let word = |b: &[u8], o: usize| u16::from_le_bytes([b[o], b[o + 1]]);
+        let long = |b: &[u8], o: usize| u32::from_le_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]]);
+        let mut rectype = 0u8;
+        while ef.len() >= 4 {
+            let id = word(ef, 0);
+            let len = usize::from(word(ef, 2));
+            if len > ef.len() - 4 {
+                return false;
+            }
+            let data = &ef[4..4 + len];
+            match id {
+                EF_PKVMS if len >= 4 => {
+                    let mut items = &data[4..];
+                    if long(data, 0) != crc32fast::hash(items) {
+                        self.info(1, "[Warning: CRC error, discarding PKWARE extra field]\n");
+                    } else {
+                        while items.len() > 4 {
+                            let fldsize = usize::from(word(items, 2));
+                            if word(items, 0) == VMSATR_C_RECATTR && fldsize >= 1 {
+                                rectype = items[4] & 15;
+                            }
+                            // O C segue com o tamanho sem sinal; um item que passa do fim encerra.
+                            let Some(rest) = items.get(fldsize + 4..) else { break };
+                            items = rest;
+                        }
+                    }
+                }
+                EF_IZVMS if len >= 4 && long(data, 0) == VMS_FABSIG => {
+                    if let Some(fab) = self.extract_izvms_block(data)
+                        && fab.len() > VMSFAB_B_RFM
+                    {
+                        rectype = fab[VMSFAB_B_RFM] & 15;
+                    }
+                }
+                _ => {}
+            }
+            ef = &ef[4 + len..];
+        }
+        rectype == VMSREC_C_VAR
+    }
+
+    /// Os dados de um bloco "IM" do Info-ZIP (`extract_izvms_block`): guardados, comprimidos pelo
+    /// esquema de bits do Info-ZIP (`decompress_bits`) ou deflate (`memextract`).
+    fn extract_izvms_block(&mut self, data: &[u8]) -> Option<Vec<u8>> {
+        const EB_IZVMS_HLEN: usize = 12;
+        if data.len() < EB_IZVMS_HLEN {
+            return None;
+        }
+        let cmptype = u16::from_le_bytes([data[4], data[5]]) & 7;
+        let src = &data[EB_IZVMS_HLEN..];
+        let usiz = if cmptype == 0 { src.len() } else { usize::from(u16::from_le_bytes([data[6], data[7]])) };
+        match cmptype {
+            0 => Some(src.to_vec()),
+            1 => Some(decompress_bits(src, usiz)),
+            2 => Some(self.vms_memextract(usiz, src)),
+            _ => None,
+        }
+    }
+
+    /// O `memextract` fora do teste: os erros viram mensagem e o buffer (zerado onde não foi
+    /// escrito) volta mesmo assim, como no C, que ignora o retorno.
+    fn vms_memextract(&mut self, tgtsize: usize, src: &[u8]) -> Vec<u8> {
+        use super::extract::{DEFLATED, ENHDEFLATED, STORED};
+        let mut padded = src.to_vec();
+        if padded.len() < 6 {
+            padded.resize(6, 0);
+        }
+        let method = u16::from_le_bytes([padded[0], padded[1]]);
+        let crc_expected = u32::from_le_bytes([padded[2], padded[3], padded[4], padded[5]]);
+        let data = padded[6..].to_vec();
+        let test = self.o.tflag != 0;
+        let mut ok = true;
+        let out = match method {
+            STORED => data,
+            DEFLATED | ENHDEFLATED => {
+                let (r, out) = self.inflate_in_memory(&data, tgtsize, method == ENHDEFLATED);
+                if r != 0 {
+                    ok = false;
+                    if !test {
+                        let what = if r == 3 { "not enough memory to " } else { "invalid compressed data to " };
+                        self.info(0x401, format!("\n  error:  {what}inflate\n"));
+                    }
+                }
+                out
+            }
+            _ => {
+                ok = false;
+                if !test {
+                    self.info(0x401, format!("\nerror:  unsupported extra-field compression type ({method})--skipping\n"));
+                }
+                Vec::new()
+            }
+        };
+        if ok {
+            let crcval = crc32fast::hash(&out);
+            if crcval != crc_expected && !test {
+                let mut m = b"error [".to_vec();
+                m.extend_from_slice(&self.zipfn);
+                m.extend_from_slice(format!("]:  bad extra-field CRC {crcval:08x} (should be {crc_expected:08x})\n").as_bytes());
+                self.info(0x401, m);
+            }
+        }
+        let mut buf = out;
+        buf.resize(tgtsize, 0);
+        buf
     }
 
     /// Escreve no arquivo de saída (o `write` cru, sem stdio) ou, com `-c`/`-p`, pelo `Info` sem

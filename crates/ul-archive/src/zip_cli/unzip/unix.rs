@@ -43,6 +43,26 @@ pub struct Slink {
     pub uidgid: Option<(u64, u64)>,
 }
 
+/// O endereço de carga do bloco SparkFS do RISC OS (`getRISCOSexfield`): o primeiro bloco "AC"
+/// com 20 ou 24 bytes e assinatura "ARC0"; para num bloco com tamanho incoerente.
+fn riscos_load_addr(mut ef: &[u8]) -> Option<u32> {
+    const EF_SPARK: u16 = 0x4341;
+    const SPARKID_2: u32 = 0x3043_5241;
+    let long = |b: &[u8], o: usize| u32::from_le_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]]);
+    while ef.len() >= 4 {
+        let id = u16::from_le_bytes([ef[0], ef[1]]);
+        let len = usize::from(u16::from_le_bytes([ef[2], ef[3]]));
+        if len > ef.len() - 4 {
+            return None;
+        }
+        if id == EF_SPARK && (len == 24 || len == 20) && long(ef, 4) == SPARKID_2 {
+            return Some(long(ef, 8));
+        }
+        ef = &ef[4 + len..];
+    }
+    None
+}
+
 /// O texto do `strerror`.
 pub fn strerror(e: Errno) -> String {
     e.message()
@@ -214,10 +234,27 @@ impl Uz {
         let mut error = MPN_OK;
         let mut comp: Vec<u8> = Vec::new();
         let mut lastsemi: Option<usize> = None;
+        // O `pathcomp` do C é reaproveitado a cada componente sem ser limpo, e o `lastcomma` não
+        // volta a NULL na barra: a conferência do ",xxx" do Acorn pode ler bytes de componentes
+        // anteriores. `raw` imita esse buffer.
+        let mut lastcomma: Option<usize> = None;
+        let mut raw: Vec<u8> = Vec::new();
+        let put = |raw: &mut Vec<u8>, pos: usize, c: u8| {
+            if raw.len() <= pos {
+                raw.resize(pos + 1, 0);
+            }
+            raw[pos] = c;
+        };
         let mut killed_ddot = false;
         for &c in &name[start..] {
             match c {
+                b',' => {
+                    lastcomma = Some(comp.len());
+                    put(&mut raw, comp.len(), c);
+                    comp.push(c);
+                }
                 b'/' => {
+                    put(&mut raw, comp.len(), 0);
                     if comp == b"." {
                         comp.clear();
                     } else if self.o.ddotflag == 0 && comp == b".." {
@@ -235,15 +272,18 @@ impl Uz {
                 }
                 b';' => {
                     lastsemi = Some(comp.len());
+                    put(&mut raw, comp.len(), c);
                     comp.push(c);
                 }
                 _ => {
                     if self.o.cflxflag != 0 || (0x20..0x7f).contains(&c) || (128..=254).contains(&c) {
+                        put(&mut raw, comp.len(), c);
                         comp.push(c);
                     }
                 }
             }
         }
+        put(&mut raw, comp.len(), 0);
         if killed_ddot && self.o.qflag == 0 {
             let mut m = b"warning:  skipped \"../\" path component(s) in ".to_vec();
             m.extend(fnfilter(&self.filename));
@@ -266,11 +306,34 @@ impl Uz {
             && let Some(i) = lastsemi
                 && comp[i + 1..].iter().all(u8::is_ascii_digit) {
                     comp.truncate(i);
+                    raw[i] = 0;
                 }
         if comp == b"." {
             comp = b"_".to_vec();
+            raw[0] = b'_';
         } else if comp == b".." {
             comp = b"__".to_vec();
+            raw[..3].copy_from_slice(b"__\0");
+        }
+        // Com `-F`, um membro com o bloco SparkFS do RISC OS ganha o tipo de arquivo no estilo do
+        // NFS (",xxx"), trocando um ",xxx" que o nome já tenha no fim.
+        if self.o.acorn_nfs_ext
+            && let Some(ef) = self.extra_field.as_ref()
+            && let Some(load) = riscos_load_addr(&ef[..ef.len().min(usize::from(self.lrec.extra_field_length))])
+        {
+            if let Some(lc) = lastcomma {
+                let at = |i: usize| raw.get(i).copied().unwrap_or(0);
+                let mut p = lc + 1;
+                while at(p).is_ascii_hexdigit() {
+                    p += 1;
+                }
+                if p == lc + 4 && at(p) == 0 {
+                    put(&mut raw, lc, 0);
+                    comp.truncate(lc);
+                }
+            }
+            let ft = if load & 0x8000_0000 == 0 { 0x000F_FD00 } else { load };
+            comp.extend_from_slice(format!(",{:03x}", (ft >> 8) & 0xFFF).as_bytes());
         }
         if comp.is_empty() {
             let mut m = b"mapname:  conversion of ".to_vec();

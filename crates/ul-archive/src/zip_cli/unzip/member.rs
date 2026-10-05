@@ -17,6 +17,14 @@ impl Uz {
     pub fn extract_or_test_member(&mut self) -> i32 {
         let mut error = PK_OK;
         self.x.newfile = true;
+        let mut varlen = false;
+        if self.pinfo.hostnum == super::process::VMS
+            && let Some(ef) = self.extra_field.clone()
+        {
+            let n = ef.len().min(usize::from(self.lrec.extra_field_length));
+            varlen = self.is_vms_varlen_txt(&ef[..n]);
+        }
+        self.x.vms_line_state = if varlen { 0 } else { -1 };
         self.x.crc = crc32fast::Hasher::new();
         self.x.symlnk = self.pinfo.symlink && self.o.tflag == 0 && !self.o.cflag && self.lrec.ucsize > 0;
         if self.o.tflag != 0 {

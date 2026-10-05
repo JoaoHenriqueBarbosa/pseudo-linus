@@ -107,6 +107,12 @@ pub struct Ex {
     /// Primeiro `flush` do membro (zera o estado da conversão de texto) e CR no fim do bloco anterior.
     pub newfile: bool,
     pub did_cr_last: bool,
+    /// A conversão do texto de registro variável do VMS no `-a` (`G.VMS_line_state`): -1 desligada,
+    /// 0 esperando o comprimento, 1 com meio comprimento lido, 2 copiando a linha, 3 pondo o fim de
+    /// linha, 4 pulando o byte de alinhamento das linhas ímpares.
+    pub vms_line_state: i32,
+    pub vms_line_length: u32,
+    pub vms_line_pad: bool,
     /// O membro é um link simbólico sendo extraído pro disco (`G.symlnk`).
     pub symlnk: bool,
     /// O arquivo de saída aberto.
