@@ -87,7 +87,6 @@ pub struct FileInfo {
 }
 
 pub struct Zip {
-    pub argv0: Vec<u8>,
     pub tz: TimeZone,
 
     // Opções de ação.
@@ -183,7 +182,6 @@ pub struct Zip {
     pub zsort: Vec<usize>,
     pub zusort: Vec<usize>,
     pub zcomment: Vec<u8>,
-    pub zcount_at_read: usize,
 
     // Saída e posição (bfwrite).
     pub current_disk: u64,
@@ -234,9 +232,8 @@ pub struct Zip {
 }
 
 impl Zip {
-    pub fn new(argv0: Vec<u8>) -> Zip {
+    pub fn new() -> Zip {
         Zip {
-            argv0,
             tz: crate::tz::local(),
             action: ADD,
             comadd: false,
@@ -328,7 +325,6 @@ impl Zip {
             zsort: Vec::new(),
             zusort: Vec::new(),
             zcomment: Vec::new(),
-            zcount_at_read: 0,
             current_disk: 0,
             cd_start_disk: -1,
             cd_start_offset: 0,
@@ -365,9 +361,5 @@ impl Zip {
             split_requested: false,
             args_final: Vec::new(),
         }
-    }
-
-    pub fn is_stdout_zip(&self) -> bool {
-        self.zipfile == b"-"
     }
 }

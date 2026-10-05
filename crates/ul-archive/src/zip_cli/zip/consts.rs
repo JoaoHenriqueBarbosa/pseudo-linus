@@ -6,10 +6,8 @@ pub const ZE_MISS: i32 = -1;
 pub const ZE_OK: i32 = 0;
 pub const ZE_EOF: i32 = 2;
 pub const ZE_FORM: i32 = 3;
-pub const ZE_MEM: i32 = 4;
 pub const ZE_LOGIC: i32 = 5;
 pub const ZE_BIG: i32 = 6;
-pub const ZE_NOTE: i32 = 7;
 pub const ZE_TEST: i32 = 8;
 pub const ZE_ABORT: i32 = 9;
 pub const ZE_TEMP: i32 = 10;
@@ -21,7 +19,6 @@ pub const ZE_CREAT: i32 = 15;
 pub const ZE_PARMS: i32 = 16;
 pub const ZE_OPEN: i32 = 18;
 pub const ZE_COMPERR: i32 = 19;
-pub const ZE_ZIP64: i32 = 20;
 
 /// A mensagem de `ziperrors[c].string` e se o erro imprime também o `strerror` (`ZE_S_PERR`).
 pub fn ze_string(c: i32) -> &'static str {
@@ -80,6 +77,8 @@ pub const UTF8_BIT: u16 = 1 << 11;
 /// Campos extras do Unix.
 pub const EF_IZUNIX: u16 = 0x5855;
 pub const EF_IZUNIX2: u16 = 0x7855;
+/// O "ux" novo (UID e GID de tamanho variável), o que o zip 3.0 grava.
+pub const EF_IZUNIX3: u16 = 0x7875;
 pub const EF_TIME: u16 = 0x5455;
 pub const EB_HEADSIZE: usize = 4;
 pub const EB_UX_MINLEN: usize = 8;
@@ -133,7 +132,6 @@ pub const IZ_PWLEN: usize = 80;
 pub const SBSZ: usize = 16384;
 pub const CBSZ: usize = 16384;
 pub const MAXCOM: usize = 256;
-pub const FNMAX: usize = 1024;
 
 pub const MIN_MATCH: usize = 3;
 pub const MAX_MATCH: usize = 258;

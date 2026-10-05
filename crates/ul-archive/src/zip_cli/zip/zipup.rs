@@ -188,8 +188,8 @@ impl DeflateIo for ZipIo<'_> {
         }
     }
 
-    fn seekable(&self) -> bool {
-        self.zip.y.as_ref().map(|y| y.seekable).unwrap_or(false)
+    fn seekable(&mut self) -> bool {
+        self.zip.y.as_mut().map(|y| y.fseekable()).unwrap_or(true)
     }
 
     fn use_descriptors(&self) -> bool {
@@ -219,7 +219,7 @@ impl Zip {
     /// `set_new_unix_extra_field`: o campo "ux" com UID e GID de 4 bytes.
     fn set_new_unix_extra_field(z: &mut Zlist, uid: u32, gid: u32) {
         let mut ux = Vec::new();
-        put_sh(&mut ux, EF_IZUNIX2);
+        put_sh(&mut ux, EF_IZUNIX3);
         put_sh(&mut ux, 11);
         ux.push(1);
         ux.push(4);
@@ -602,7 +602,6 @@ impl Zip {
         z.att = if file_binary_final { BINARY } else { ASCII };
         // Fim: termina a corrente.
         let mut off = 0usize;
-        let seekable = self.y.as_ref().map(|y| y.seekable).unwrap_or(false);
         let input_len = if maybe_stored { avail } else { 0 };
         loop {
             out.clear();
@@ -610,7 +609,11 @@ impl Zip {
             let input: &[u8] = if maybe_stored { &ibuf[off..input_len] } else { &[] };
             let st = bz.compress_vec(input, &mut out, Action::Finish);
             off += (bz.total_in() - before) as usize;
-            if maybe_stored && matches!(st, Ok(bzip2::Status::StreamEnd)) && bz.total_out() >= bz.total_in() && seekable {
+            if maybe_stored
+                && matches!(st, Ok(bzip2::Status::StreamEnd))
+                && bz.total_out() >= bz.total_in()
+                && self.y.as_mut().map(|y| y.fseekable()).unwrap_or(true)
+            {
                 // O bzip2 não reduziu: grava a entrada como está.
                 let raw = ibuf[..input_len].to_vec();
                 self.zfwrite(&raw)?;

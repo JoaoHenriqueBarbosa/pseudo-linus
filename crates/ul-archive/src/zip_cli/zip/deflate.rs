@@ -25,7 +25,9 @@ const CONFIG: [(u32, u32, i32, u32); 10] =
 pub trait DeflateIo {
     fn read(&mut self, buf: &mut [u8]) -> usize;
     fn write(&mut self, data: &[u8]);
-    fn seekable(&self) -> bool;
+    /// `fseekable(y)`: o `fseeko` da glibc despeja o buffer antes de tentar, então isto também
+    /// despeja a saída.
+    fn seekable(&mut self) -> bool;
     fn use_descriptors(&self) -> bool;
     /// Chamado a cada deslize da janela (pontos do `-dd`).
     fn slide(&mut self) {}
@@ -167,15 +169,13 @@ impl Deflate {
 
     fn flush_block_now(&mut self, eof: bool, io: &mut dyn DeflateIo) -> u64 {
         let stored_len = (self.strstart as i64 - self.block_start) as u64;
-        let seekable = io.seekable();
-        let use_desc = io.use_descriptors();
         let buf = if self.block_start >= 0 {
             let a = self.block_start as usize;
             Some(&self.window[a..a + stored_len as usize])
         } else {
             None
         };
-        self.ct.flush_block(buf, stored_len, eof, seekable, use_desc, &mut |d| io.write(d))
+        self.ct.flush_block(buf, stored_len, eof, io)
     }
 
     fn fill_window(&mut self, io: &mut dyn DeflateIo) {

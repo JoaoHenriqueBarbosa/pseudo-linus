@@ -91,7 +91,6 @@ pub const UNIX: u8 = 3;
 pub const VM_CMS: u8 = 4;
 pub const ATARI: u8 = 5;
 pub const FS_HPFS: u8 = 6;
-pub const MAC: u8 = 7;
 pub const CPM: u8 = 9;
 pub const TOPS20: u8 = 10;
 pub const FS_NTFS: u8 = 11;
@@ -102,7 +101,6 @@ pub const MVS: u8 = 15;
 pub const BEOS: u8 = 16;
 pub const TANDEM: u8 = 17;
 pub const THEOS: u8 = 18;
-pub const MAC_OSX: u8 = 19;
 pub const ATHEOS: u8 = 30;
 pub const NUM_HOSTS: u8 = 31;
 

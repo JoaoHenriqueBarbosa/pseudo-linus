@@ -690,7 +690,7 @@ impl Zip {
             Ok(fd) => fd,
             Err(_) => return Err(self.ziperr(ZE_PARMS, "stderr is not a tty")),
         };
-        let mut read_line = |this: &mut Zip, prompt: &str| -> Vec<u8> {
+        let read_line = |this: &mut Zip, prompt: &str| -> Vec<u8> {
             this.stderr_raw(prompt.as_bytes());
             let mut line = Vec::new();
             let mut c = [0u8; 1];

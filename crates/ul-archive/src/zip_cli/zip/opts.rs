@@ -179,13 +179,6 @@ impl OptState {
     fn at(&self, i: i64) -> Option<&Vec<u8>> {
         if i < 0 { None } else { self.args.get(i as usize) }
     }
-
-    fn byte(&self, argn: i64, off: i64) -> u8 {
-        match self.at(argn) {
-            Some(a) if off >= 0 => a.get(off as usize).copied().unwrap_or(0),
-            _ => 0,
-        }
-    }
 }
 
 fn optionerr(err: &str, optind: usize, islong: bool) -> String {

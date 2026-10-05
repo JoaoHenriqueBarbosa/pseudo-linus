@@ -20,20 +20,44 @@ pub struct OutFile {
 }
 
 impl OutFile {
+    /// A posição lógica começa em 0 mesmo que o fd já tenha offset (stdout num arquivo que as
+    /// mensagens dividem): o C conta os bytes escritos (`tempzn`), não usa `ftell`.
     pub fn from_fd(fd: Fd) -> OutFile {
         let cur = sys::current().lseek(fd, 0, Whence::Cur);
-        OutFile { fd, buf: Vec::new(), pos: cur.unwrap_or(0), seekable: cur.is_ok(), err: None }
+        OutFile { fd, buf: Vec::new(), pos: 0, seekable: cur.is_ok(), err: None }
     }
 
+    /// `fwrite` com o buffer de `setvbuf(y, zipbuf, _IOFBF, ZBSZ)`, como o `_IO_new_file_xsputn` da
+    /// glibc: o que cabe fica no buffer (mesmo enchendo-o); o que não cabe completa o buffer, que é
+    /// despejado, os múltiplos de `ZBSZ` do resto vão direto e a sobra volta ao buffer. A ordem dos
+    /// despejos aparece quando a saída é um pipe que divide o terminal com as mensagens.
     pub fn write(&mut self, data: &[u8]) {
         if self.err.is_some() {
             return;
         }
-        self.buf.extend_from_slice(data);
         self.pos += data.len() as u64;
-        if self.buf.len() >= OUT_BUF {
-            self.flush();
+        let space = OUT_BUF - self.buf.len();
+        if data.len() <= space {
+            self.buf.extend_from_slice(data);
+            return;
         }
+        let (head, rest) = data.split_at(space);
+        self.buf.extend_from_slice(head);
+        self.flush();
+        let direct = rest.len() - rest.len() % OUT_BUF;
+        if direct > 0 && self.err.is_none() {
+            if let Err(e) = sys::write_all(self.fd, &rest[..direct]) {
+                self.err = Some(e);
+            }
+        }
+        self.buf.extend_from_slice(&rest[direct..]);
+    }
+
+    /// `fseekable(fp)`: o `fseeko` da glibc despeja o buffer de escrita mesmo quando o seek falha
+    /// (pipe), e essa ordem aparece quando a saída e as mensagens dividem o terminal.
+    pub fn fseekable(&mut self) -> bool {
+        self.flush();
+        self.seekable
     }
 
     pub fn flush(&mut self) {
@@ -48,31 +72,27 @@ impl OutFile {
         }
     }
 
-    pub fn tell(&self) -> u64 {
-        self.pos
-    }
-
-    /// Reescreve `data` na posição `off` sem mexer na posição de escrita.
+    /// Reescreve `data` na posição `off` e volta para a posição de escrita, como o C faz com
+    /// `fseeko(y, off)`, a escrita e `fseeko(y, posição)`. Não é `pwrite`: o offset do arquivo pode
+    /// ser compartilhado com as mensagens (`zip - x >f 2>&1`), e o C deixa esse offset na posição
+    /// lógica do zip.
     pub fn write_at(&mut self, off: u64, data: &[u8]) -> bool {
         self.flush();
         if self.err.is_some() {
             return false;
         }
         let s = sys::current();
-        let mut done = 0usize;
-        while done < data.len() {
-            match s.pwrite(self.fd, &data[done..], off + done as u64) {
-                Ok(0) => {
-                    self.err = Some(Errno::EIO);
-                    return false;
-                }
-                Ok(n) => done += n,
-                Err(Errno::EINTR) => {}
-                Err(e) => {
-                    self.err = Some(e);
-                    return false;
-                }
-            }
+        if let Err(e) = s.lseek(self.fd, off as i64, Whence::Set) {
+            self.err = Some(e);
+            return false;
+        }
+        if let Err(e) = sys::write_all(self.fd, data) {
+            self.err = Some(e);
+            return false;
+        }
+        if let Err(e) = s.lseek(self.fd, self.pos as i64, Whence::Set) {
+            self.err = Some(e);
+            return false;
         }
         true
     }

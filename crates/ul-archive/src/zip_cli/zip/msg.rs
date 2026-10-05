@@ -4,7 +4,7 @@
 //! mensagem; aqui cada escrita vai direto ao descritor, o que dá a mesma ordem de saída.
 
 use sysabi::sys;
-use sysabi::{Errno, Fd};
+use sysabi::Fd;
 
 use super::consts::*;
 use super::state::{Exit, Zip};
@@ -35,12 +35,6 @@ impl Zip {
     /// `fprintf(stderr, ...)`.
     pub fn stderr_raw(&mut self, s: &[u8]) {
         let _ = sys::write_all(Fd::STDERR, s);
-    }
-
-    /// `perror(prefix)`: "prefixo: mensagem do errno".
-    pub fn perror(&mut self, prefix: &str, e: Errno) {
-        let msg = format!("{prefix}: {}\n", e.message());
-        self.stderr_raw(msg.as_bytes());
     }
 
     pub fn strerror(&self) -> String {

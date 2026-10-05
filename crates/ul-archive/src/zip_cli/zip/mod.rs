@@ -34,7 +34,7 @@ use state::{Exit, Zip};
 
 /// `zip`: o código de saída do programa.
 pub fn main(argv: &[Vec<u8>]) -> i32 {
-    let mut z = Zip::new(argv.first().cloned().unwrap_or_default());
+    let mut z = Zip::new();
     match z.run_main(argv.to_vec()) {
         Ok(code) => code,
         Err(Exit(code)) => code,

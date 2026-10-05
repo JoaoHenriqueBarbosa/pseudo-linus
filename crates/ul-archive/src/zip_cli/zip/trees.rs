@@ -2,6 +2,7 @@
 //! ser idêntica à do zip do Debian, que usa o `deflate.c`/`trees.c` próprios (não o zlib).
 
 use super::consts::{ASCII, BINARY, MAX_MATCH, MIN_MATCH, STORE, UNKNOWN};
+use super::deflate::DeflateIo;
 
 const MAX_BITS: usize = 15;
 const MAX_BL_BITS: i32 = 7;
@@ -686,8 +687,10 @@ impl Trees {
 
     /// `flush_block`: escolhe a melhor codificação do bloco (armazenado, estático ou dinâmico),
     /// escreve na saída em bits e devolve o tamanho comprimido do arquivo até aqui. `buf` é o bloco
-    /// de entrada, ou `None` se já saiu da janela. `write` recebe os bytes prontos (e os cifra).
-    pub fn flush_block(&mut self, buf: Option<&[u8]>, stored_len: u64, eof: bool, seekable: bool, use_descriptors: bool, write: &mut dyn FnMut(&[u8])) -> u64 {
+    /// de entrada, ou `None` se já saiu da janela. `io.write` recebe os bytes prontos (e os cifra).
+    /// `io.seekable` só é consultado onde o C chama `seekable()`, porque o `fseeko` dele despeja a
+    /// saída e isso muda a ordem do que aparece num pipe.
+    pub fn flush_block(&mut self, buf: Option<&[u8]>, stored_len: u64, eof: bool, io: &mut dyn DeflateIo) -> u64 {
         self.flag_buf[self.last_flags] = self.flags;
         if self.file_type == UNKNOWN {
             self.set_file_type();
@@ -709,10 +712,10 @@ impl Trees {
             opt_lenb = static_lenb;
         }
         let eof_bit = eof as i32;
-        if stored_len <= opt_lenb && eof && self.cmpr_bytelen == 0 && self.cmpr_len_bits == 0 && seekable && !use_descriptors {
+        if stored_len <= opt_lenb && eof && self.cmpr_bytelen == 0 && self.cmpr_len_bits == 0 && io.seekable() && !io.use_descriptors() {
             // A compressão falhou no primeiro e último bloco: o arquivo inteiro vira armazenado.
             let block = buf.expect("block vanished");
-            self.copy_block(block, stored_len as usize, false, write);
+            self.copy_block(block, stored_len as usize, false, &mut |d| io.write(d));
             self.cmpr_bytelen = stored_len;
             self.file_method = STORE;
         } else if stored_len + 4 <= opt_lenb && buf.is_some() {
@@ -720,7 +723,7 @@ impl Trees {
             self.cmpr_bytelen += ((self.cmpr_len_bits + 3 + 7) >> 3) + stored_len + 4;
             self.cmpr_len_bits = 0;
             let block = buf.unwrap();
-            self.copy_block(block, stored_len as usize, true, write);
+            self.copy_block(block, stored_len as usize, true, &mut |d| io.write(d));
         } else if static_lenb == opt_lenb {
             self.bits.send_bits((1 << 1) + eof_bit, 3);
             self.compress_block(false);
@@ -743,7 +746,7 @@ impl Trees {
         }
         if !self.bits.out.is_empty() {
             let out = std::mem::take(&mut self.bits.out);
-            write(&out);
+            io.write(&out);
         }
         self.cmpr_bytelen + (self.cmpr_len_bits >> 3)
     }
