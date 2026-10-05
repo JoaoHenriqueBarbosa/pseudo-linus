@@ -2,6 +2,7 @@
 //! opções globais, aliases e a sugestão de comando parecido.
 
 pub mod add;
+pub mod branch;
 pub mod cat_file;
 pub mod commit;
 pub mod config_cmd;
@@ -90,6 +91,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "mv" => (Setup::WorkTree, mv::run),
         "for-each-ref" => (Setup::Repo, for_each_ref::run),
         "tag" => (Setup::Repo, tag::run),
+        "branch" => (Setup::Repo, branch::run),
         "log" => (Setup::Repo, log::run_log),
         "show" => (Setup::Repo, log::run_show),
         "whatchanged" => (Setup::Repo, log::run_whatchanged),

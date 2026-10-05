@@ -858,7 +858,7 @@ fn root_ref_names(repo: &Repo) -> Vec<String> {
     names
 }
 
-fn keep_by_graph(ctx: &mut Ctx, f: &Filter, oid: &Oid) -> R<bool> {
+pub fn keep_by_graph(ctx: &mut Ctx, f: &Filter, oid: &Oid) -> R<bool> {
     let graph_filters = !(f.contains.is_empty() && f.no_contains.is_empty() && f.merged.is_empty() && f.no_merged.is_empty());
     if graph_filters {
         let Some(c) = ctx.repo.peel_to_commit(oid)? else { return Ok(false) };

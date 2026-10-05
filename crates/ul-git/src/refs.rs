@@ -366,6 +366,18 @@ impl Repo {
         Ok(())
     }
 
+    /// Grava o valor de uma ref (solta) sem mexer em reflog: o que a renomeação e a cópia de ramo
+    /// precisam. Checa conflito de diretório/arquivo e pega o `.lock`.
+    pub fn set_ref_no_log(&self, name: &str, new: Oid) -> R<()> {
+        if self.read_ref(name)?.is_none() {
+            self.df_conflict(name)?;
+        }
+        let path = self.ref_file(name);
+        let mut lock = self.lock_ref(name, &path)?;
+        lock.write(format!("{new}\n").as_bytes()).map_err(|e| Fail::Fatal(format!("couldn't write '{}': {}", os::lossy(lock.lock_path()), e.message())))?;
+        lock.commit().map_err(|e| Fail::Fatal(format!("couldn't set '{name}': {}", e.message())))
+    }
+
     fn lock_ref(&self, name: &str, path: &[u8]) -> R<os::LockFile> {
         if let Err(e) = os::mkdir_parents(path) {
             return Err(Fail::Fatal(format!("cannot lock ref '{name}': unable to create directory for '{}': {}", os::lossy(path), e.message())));
