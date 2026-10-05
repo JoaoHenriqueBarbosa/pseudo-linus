@@ -51,6 +51,57 @@ bitflags! {
     }
 }
 
+bitflags! {
+    /// Modo do `fallocate(2)` (`FALLOC_FL_*` de `linux/falloc.h`). Zero é a alocação comum, que estende o
+    /// tamanho. Use `from_bits_retain` pra passar bits desconhecidos: o kernel responde EOPNOTSUPP.
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+    pub struct FallocFlags: u32 {
+        const KEEP_SIZE = 0x01;
+        const PUNCH_HOLE = 0x02;
+        const NO_HIDE_STALE = 0x04;
+        const COLLAPSE_RANGE = 0x08;
+        const ZERO_RANGE = 0x10;
+        const INSERT_RANGE = 0x20;
+        const UNSHARE_RANGE = 0x40;
+    }
+}
+
+impl FallocFlags {
+    /// `FALLOC_FL_SUPPORTED_MASK` do `fs/open.c`.
+    pub const SUPPORTED_MASK: u32 = 0x7f;
+
+    /// As checagens genéricas do `vfs_fallocate` (Linux 6.12) que só dependem de `mode`, `offset` e
+    /// `len`, na ordem do kernel: EINVAL pra `offset < 0` ou `len <= 0`, EOPNOTSUPP pra bit desconhecido,
+    /// pra PUNCH_HOLE junto com ZERO_RANGE e pra PUNCH_HOLE sem KEEP_SIZE, EINVAL pra COLLAPSE_RANGE ou
+    /// INSERT_RANGE combinados com outra flag e pra UNSHARE_RANGE com algo além de KEEP_SIZE.
+    pub fn validate(self, offset: i64, len: i64) -> Result<(), crate::linux::Errno> {
+        use crate::linux::Errno;
+        if offset < 0 || len <= 0 {
+            return Err(Errno::EINVAL);
+        }
+        let m = self.bits();
+        if m & !Self::SUPPORTED_MASK != 0 {
+            return Err(Errno::EOPNOTSUPP);
+        }
+        if self.contains(Self::PUNCH_HOLE | Self::ZERO_RANGE) {
+            return Err(Errno::EOPNOTSUPP);
+        }
+        if self.contains(Self::PUNCH_HOLE) && !self.contains(Self::KEEP_SIZE) {
+            return Err(Errno::EOPNOTSUPP);
+        }
+        if self.contains(Self::COLLAPSE_RANGE) && m & !Self::COLLAPSE_RANGE.bits() != 0 {
+            return Err(Errno::EINVAL);
+        }
+        if self.contains(Self::INSERT_RANGE) && m & !Self::INSERT_RANGE.bits() != 0 {
+            return Err(Errno::EINVAL);
+        }
+        if self.contains(Self::UNSHARE_RANGE) && m & !(Self::UNSHARE_RANGE | Self::KEEP_SIZE).bits() != 0 {
+            return Err(Errno::EINVAL);
+        }
+        Ok(())
+    }
+}
+
 impl OFlags {
     /// `O_RDONLY` é zero; ficam aqui pra deixar a intenção explícita.
     pub const RDONLY: OFlags = OFlags::empty();

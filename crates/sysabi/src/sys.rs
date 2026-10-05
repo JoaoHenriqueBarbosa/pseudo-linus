@@ -50,6 +50,10 @@ pub trait Syscalls: Send + Sync {
     fn utimensat(&self, dirfd: Fd, path: &[u8], atime: SetTime, mtime: SetTime, flags: AtFlags) -> SysResult<()>;
     fn futimens(&self, fd: Fd, atime: SetTime, mtime: SetTime) -> SysResult<()>;
     fn ftruncate(&self, fd: Fd, len: u64) -> SysResult<()>;
+    /// `fallocate(2)`: reserva (ou, com PUNCH_HOLE, libera) o intervalo `[offset, offset + len)`.
+    /// `offset` e `len` são `loff_t` com sinal, como no Linux, pra que os EINVAL de valor negativo saiam
+    /// do kernel. Os errnos e a ordem seguem o `vfs_fallocate` e o `shmem_fallocate` do Linux 6.12.
+    fn fallocate(&self, fd: Fd, mode: FallocFlags, offset: i64, len: i64) -> SysResult<()>;
     fn fsync(&self, fd: Fd) -> SysResult<()>;
     /// Próximo lote de entradas de um diretório aberto (como `getdents64`); vazio no fim. Inclui `.` e
     /// `..`, na ordem do sistema de arquivos.
@@ -253,6 +257,11 @@ pub fn read_to_end(fd: Fd) -> SysResult<Vec<u8>> {
             Err(e) => return Err(e),
         }
     }
+}
+
+/// `fallocate(2)` sobre o processo corrente.
+pub fn fallocate(fd: Fd, mode: FallocFlags, offset: i64, len: i64) -> SysResult<()> {
+    current().fallocate(fd, mode, offset, len)
 }
 
 pub fn stat(path: &[u8]) -> SysResult<Stat> {

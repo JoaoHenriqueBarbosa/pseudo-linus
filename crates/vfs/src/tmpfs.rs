@@ -411,10 +411,11 @@ impl Tmpfs {
         if written_end > f.size {
             f.size = written_end;
         }
-        // Blocos de buraco criados além do que foi escrito (cota esgotada) não mudam o tamanho.
+        // Blocos de buraco criados além do que foi escrito (cota esgotada) não mudam o tamanho. Páginas
+        // alocadas além do fim por `fallocate` com KEEP_SIZE ficam.
         let keep = blocks_for(f.size);
-        if f.blocks.len() > keep {
-            f.blocks.truncate(keep);
+        while f.blocks.len() > keep && matches!(f.blocks.back(), Some(None)) {
+            f.blocks.pop_back();
         }
         done
     }
@@ -551,7 +552,123 @@ impl Tmpfs {
             if bi >= nb {
                 return Err(Errno::ENXIO);
             }
-            Ok((bi as u64 * PAGE_SIZE).max(off))
+            // Páginas reservadas além do fim (KEEP_SIZE) não são dado visível.
+            let at = (bi as u64 * PAGE_SIZE).max(off);
+            if at >= f.size {
+                return Err(Errno::ENXIO);
+            }
+            Ok(at)
+        }
+    }
+
+    /// `shmem_fallocate` (Linux 6.12). O VFS já validou o modo (só sobra o que o tmpfs não faz),
+    /// `offset`/`len` e `s_maxbytes`.
+    fn file_fallocate(&self, cx: &Caller, ino: Ino, mode: FallocFlags, offset: u64, len: u64) -> SysResult<()> {
+        if mode.bits() & !(FallocFlags::KEEP_SIZE | FallocFlags::PUNCH_HOLE).bits() != 0 {
+            return Err(Errno::EOPNOTSUPP);
+        }
+        let end = offset.checked_add(len).ok_or(Errno::EFBIG)?;
+        let mut g = self.inner.write();
+        let max_blocks = self.limits.max_blocks;
+        let Inner { state, .. } = &mut *g;
+        let mut used = state.used_blocks;
+        let i = Self::get_mut(state, ino)?;
+        let f = match &mut i.data {
+            Data::File(f) => f,
+            Data::Dir(_) => return Err(Errno::EISDIR),
+            _ => return Err(Errno::ENODEV),
+        };
+        if mode.contains(FallocFlags::PUNCH_HOLE) {
+            // shmem_truncate_range(offset, end - 1): páginas inteiras no intervalo saem (inclusive as
+            // reservadas além do fim), as parciais nas pontas ficam alocadas e zeradas.
+            Self::punch_data(f, offset, end, &mut used);
+        } else {
+            // inode_newsize_ok vale mesmo com KEEP_SIZE: RLIMIT_FSIZE (o kernel manda SIGXFSZ) e
+            // s_maxbytes.
+            if end > cx.fsize_limit || end > MAX_FILE_SIZE {
+                return Err(Errno::EFBIG);
+            }
+            let first = (offset / PAGE_SIZE) as usize;
+            let last = blocks_for(end);
+            if let Some(max) = max_blocks
+                && (last - first) as u64 > max
+            {
+                // "Evita uma tempestade de swap se len é impossível de satisfazer."
+                return Err(Errno::ENOSPC);
+            }
+            while f.blocks.len() < last {
+                f.blocks.push_back(None);
+            }
+            // Páginas alocadas por esta chamada, pra desfazer se a cota acabar no meio (o
+            // `shmem_undo_range` com `fallocend`): as que já existiam ficam.
+            let mut fresh: Vec<usize> = Vec::new();
+            for bi in first..last {
+                let slot = f.blocks.get_mut(bi).expect("bloco estendido acima");
+                if slot.is_some() {
+                    continue;
+                }
+                if let Some(max) = max_blocks
+                    && used >= max
+                {
+                    for b in fresh {
+                        *f.blocks.get_mut(b).expect("bloco desta chamada") = None;
+                        f.alloc -= 1;
+                        used -= 1;
+                    }
+                    let keep = blocks_for(f.size);
+                    while f.blocks.len() > keep && matches!(f.blocks.back(), Some(None)) {
+                        f.blocks.pop_back();
+                    }
+                    state.used_blocks = used;
+                    return Err(Errno::ENOSPC);
+                }
+                *slot = Some(Arc::new(Vec::new()));
+                f.alloc += 1;
+                used += 1;
+                fresh.push(bi);
+            }
+            if !mode.contains(FallocFlags::KEEP_SIZE) && end > f.size {
+                f.size = end;
+            }
+        }
+        // file_modified: mtime e ctime, e quem não tem CAP_FSETID perde setuid e setgid.
+        i.mtime = cx.now;
+        i.ctime = cx.now;
+        if let Some(m) = crate::perm::drop_suidgid(&cx.cred, i.mode, i.gid) {
+            i.mode = (i.mode & S_IFMT) | m;
+        }
+        state.used_blocks = used;
+        Ok(())
+    }
+
+    /// Libera as páginas inteiras de `[start, end)` e zera as partes cobertas das páginas das pontas.
+    fn punch_data(f: &mut FileData, start: u64, end: u64, used: &mut u64) {
+        let nb = f.blocks.len() as u64;
+        let mut pos = start;
+        while pos < end {
+            let bi = pos / PAGE_SIZE;
+            if bi >= nb {
+                break;
+            }
+            let in_off = (pos % PAGE_SIZE) as usize;
+            let take = ((PAGE_SIZE - in_off as u64).min(end - pos)) as usize;
+            let slot = f.blocks.get_mut(bi as usize).expect("bloco dentro do vetor");
+            if in_off == 0 && take == BLOCK {
+                if slot.take().is_some() {
+                    f.alloc -= 1;
+                    *used = used.saturating_sub(1);
+                }
+            } else if let Some(b) = slot
+                && b.len() > in_off
+            {
+                let stop = (in_off + take).min(b.len());
+                Arc::make_mut(b)[in_off..stop].fill(0);
+            }
+            pos += take as u64;
+        }
+        let keep = blocks_for(f.size);
+        while f.blocks.len() > keep && matches!(f.blocks.back(), Some(None)) {
+            f.blocks.pop_back();
         }
     }
 
@@ -967,5 +1084,183 @@ impl FileHandle for TmpfsHandle {
 
     fn seek_data(&self, _cx: &Caller, off: u64, hole: bool) -> SysResult<u64> {
         self.fs.seek(self.ino, off, hole)
+    }
+
+    fn fallocate(&self, cx: &Caller, mode: FallocFlags, offset: u64, len: u64) -> SysResult<()> {
+        self.fs.file_fallocate(cx, self.ino, mode, offset, len)
+    }
+}
+
+#[cfg(test)]
+mod fallocate_tests {
+    use super::*;
+    use crate::mount::{Mount, MountFlags};
+
+    const T0: TimeSpec = TimeSpec { sec: 1_768_478_400, nsec: 0 };
+
+    fn setup(limits: TmpfsLimits) -> (Arc<Tmpfs>, Caller, Ino, Box<dyn FileHandle>) {
+        let fs = Tmpfs::new(0x2a, 0o755, T0, limits);
+        let mnt = Arc::new(Mount {
+            id: 1,
+            fs: fs.clone(),
+            parent: None,
+            flags: MountFlags::empty(),
+            source: "tmpfs".to_string(),
+            fs_options: String::new(),
+        });
+        let root = mnt.root();
+        let cx = Caller {
+            cred: Arc::new(Cred::root()),
+            root: root.clone(),
+            cwd: root,
+            umask: 0o022,
+            now: T0,
+            pid: 1,
+            tid: 1,
+            fsize_limit: u64::MAX,
+        };
+        let node = NewNode { kind: NodeKind::Regular, perm: 0o644, uid: 0, gid: 0 };
+        let ino = fs.create(&cx, ROOT_INO, b"f", node).expect("cria");
+        let h = fs.clone().open(&cx, ino, OFlags::RDWR).expect("abre");
+        (fs, cx, ino, h)
+    }
+
+    fn st(fs: &Tmpfs, cx: &Caller, ino: Ino) -> Stat {
+        fs.getattr(cx, ino).expect("stat")
+    }
+
+    const PS: u64 = PAGE_SIZE;
+
+    #[test]
+    fn mode_zero_allocates_and_extends() {
+        let (fs, cx, ino, h) = setup(TmpfsLimits::default());
+        h.fallocate(&cx, FallocFlags::empty(), 100, 3 * PS).unwrap();
+        let s = st(&fs, &cx, ino);
+        assert_eq!(s.size, 100 + 3 * PS);
+        // Páginas 0 a 3: 4 páginas, 32 setores.
+        assert_eq!(s.blocks, 32);
+        assert_eq!(fs.usage().0, 4 * PS);
+        let mut buf = vec![0xffu8; 200];
+        assert_eq!(h.read(&cx, 0, &mut buf).unwrap(), 200);
+        assert!(buf.iter().all(|b| *b == 0));
+        // Reservar de novo o que já existe não muda nada.
+        h.fallocate(&cx, FallocFlags::empty(), 0, PS).unwrap();
+        assert_eq!(st(&fs, &cx, ino).blocks, 32);
+        // Não encolhe.
+        assert_eq!(st(&fs, &cx, ino).size, 100 + 3 * PS);
+    }
+
+    #[test]
+    fn keep_size_allocates_past_eof_without_growing() {
+        let (fs, cx, ino, h) = setup(TmpfsLimits::default());
+        h.write(&cx, WritePos::At(0), b"abc").unwrap();
+        h.fallocate(&cx, FallocFlags::KEEP_SIZE, 0, 8 * PS).unwrap();
+        let s = st(&fs, &cx, ino);
+        assert_eq!(s.size, 3);
+        assert_eq!(s.blocks, 64);
+        // As páginas além do fim sobrevivem a uma escrita e não viram dado no SEEK_DATA.
+        h.write(&cx, WritePos::At(3), b"d").unwrap();
+        assert_eq!(st(&fs, &cx, ino).blocks, 64);
+        assert_eq!(h.seek_data(&cx, 0, false).unwrap(), 0);
+        assert_eq!(h.seek_data(&cx, 0, true).unwrap(), 4);
+        // Estender por truncate expõe zeros nelas.
+        fs.setattr(&cx, ino, &SetAttr { size: Some(2 * PS), ..SetAttr::default() }).unwrap();
+        let mut buf = [0xffu8; 8];
+        h.read(&cx, PS, &mut buf).unwrap();
+        assert_eq!(buf, [0; 8]);
+        // Encolher devolve as páginas além do novo fim.
+        fs.setattr(&cx, ino, &SetAttr { size: Some(1), ..SetAttr::default() }).unwrap();
+        assert_eq!(st(&fs, &cx, ino).blocks, 8);
+        assert_eq!(fs.usage().0, PS);
+    }
+
+    #[test]
+    fn punch_hole_frees_whole_pages_and_zeroes_partial_ones() {
+        let (fs, cx, ino, h) = setup(TmpfsLimits::default());
+        let data = vec![0xaau8; (4 * PS) as usize];
+        h.write(&cx, WritePos::At(0), &data).unwrap();
+        assert_eq!(st(&fs, &cx, ino).blocks, 32);
+        let mode = FallocFlags::PUNCH_HOLE | FallocFlags::KEEP_SIZE;
+        // De 10 na página 0 até 10 na página 3: libera as páginas 1 e 2.
+        h.fallocate(&cx, mode, 10, 3 * PS).unwrap();
+        let s = st(&fs, &cx, ino);
+        assert_eq!(s.size, 4 * PS);
+        assert_eq!(s.blocks, 16);
+        let mut all = vec![0u8; (4 * PS) as usize];
+        h.read(&cx, 0, &mut all).unwrap();
+        assert!(all[..10].iter().all(|b| *b == 0xaa));
+        assert!(all[10..(3 * PS + 10) as usize].iter().all(|b| *b == 0));
+        assert!(all[(3 * PS + 10) as usize..].iter().all(|b| *b == 0xaa));
+        assert_eq!(h.seek_data(&cx, 0, true).unwrap(), PS);
+        assert_eq!(h.seek_data(&cx, PS, false).unwrap(), 3 * PS);
+        // Furar além do fim não muda o tamanho.
+        h.fallocate(&cx, mode, 3 * PS, 10 * PS).unwrap();
+        let s = st(&fs, &cx, ino);
+        assert_eq!(s.size, 4 * PS);
+        assert_eq!(s.blocks, 8);
+        assert_eq!(fs.usage().0, PS);
+    }
+
+    #[test]
+    fn unsupported_modes_are_eopnotsupp() {
+        let (_fs, cx, _ino, h) = setup(TmpfsLimits::default());
+        for m in [
+            FallocFlags::COLLAPSE_RANGE,
+            FallocFlags::ZERO_RANGE,
+            FallocFlags::ZERO_RANGE | FallocFlags::KEEP_SIZE,
+            FallocFlags::INSERT_RANGE,
+            FallocFlags::UNSHARE_RANGE,
+        ] {
+            assert_eq!(h.fallocate(&cx, m, 0, PS), Err(Errno::EOPNOTSUPP), "{m:?}");
+        }
+    }
+
+    #[test]
+    fn generic_validation_order() {
+        let v = |m: FallocFlags, o: i64, l: i64| m.validate(o, l);
+        assert_eq!(v(FallocFlags::empty(), 0, 0), Err(Errno::EINVAL));
+        assert_eq!(v(FallocFlags::empty(), -1, 10), Err(Errno::EINVAL));
+        assert_eq!(v(FallocFlags::empty(), 0, -5), Err(Errno::EINVAL));
+        assert_eq!(v(FallocFlags::from_bits_retain(0x80), 0, 1), Err(Errno::EOPNOTSUPP));
+        assert_eq!(v(FallocFlags::PUNCH_HOLE, 0, 1), Err(Errno::EOPNOTSUPP));
+        assert_eq!(v(FallocFlags::PUNCH_HOLE | FallocFlags::ZERO_RANGE | FallocFlags::KEEP_SIZE, 0, 1), Err(Errno::EOPNOTSUPP));
+        assert_eq!(v(FallocFlags::COLLAPSE_RANGE | FallocFlags::KEEP_SIZE, 0, 1), Err(Errno::EINVAL));
+        assert_eq!(v(FallocFlags::INSERT_RANGE | FallocFlags::KEEP_SIZE, 0, 1), Err(Errno::EINVAL));
+        assert_eq!(v(FallocFlags::UNSHARE_RANGE | FallocFlags::ZERO_RANGE, 0, 1), Err(Errno::EINVAL));
+        assert_eq!(v(FallocFlags::UNSHARE_RANGE | FallocFlags::KEEP_SIZE, 0, 1), Ok(()));
+        assert_eq!(v(FallocFlags::PUNCH_HOLE | FallocFlags::KEEP_SIZE, 0, 1), Ok(()));
+    }
+
+    #[test]
+    fn enospc_respects_limits_and_undoes_partial_allocation() {
+        let (fs, cx, ino, h) = setup(TmpfsLimits { max_blocks: Some(4), max_inodes: None });
+        // Pedido maior que o tmpfs inteiro: ENOSPC antes de alocar.
+        assert_eq!(h.fallocate(&cx, FallocFlags::empty(), 0, 5 * PS), Err(Errno::ENOSPC));
+        h.write(&cx, WritePos::At(0), b"x").unwrap();
+        // Cabe no limite, mas não com a página já usada: desfaz o que esta chamada alocou.
+        assert_eq!(h.fallocate(&cx, FallocFlags::empty(), PS, 4 * PS), Err(Errno::ENOSPC));
+        let s = st(&fs, &cx, ino);
+        assert_eq!((s.size, s.blocks), (1, 8));
+        assert_eq!(fs.usage().0, PS);
+        assert_eq!(fs.statfs().bfree, 3);
+        // A página existente conta como já alocada.
+        h.fallocate(&cx, FallocFlags::empty(), 0, 4 * PS).unwrap();
+        let s = st(&fs, &cx, ino);
+        assert_eq!((s.size, s.blocks), (4 * PS, 32));
+        assert_eq!(fs.statfs().bfree, 0);
+    }
+
+    #[test]
+    fn efbig_from_rlimit_and_updates_times() {
+        let (fs, mut cx, ino, h) = setup(TmpfsLimits::default());
+        cx.fsize_limit = 2 * PS;
+        assert_eq!(h.fallocate(&cx, FallocFlags::KEEP_SIZE, PS, 2 * PS), Err(Errno::EFBIG));
+        assert_eq!(st(&fs, &cx, ino).blocks, 0);
+        // PUNCH_HOLE não passa pelo inode_newsize_ok.
+        let later = TimeSpec { sec: T0.sec + 60, nsec: 0 };
+        cx.now = later;
+        h.fallocate(&cx, FallocFlags::PUNCH_HOLE | FallocFlags::KEEP_SIZE, PS, 2 * PS).unwrap();
+        let s = st(&fs, &cx, ino);
+        assert_eq!((s.mtime, s.ctime), (later, later));
     }
 }

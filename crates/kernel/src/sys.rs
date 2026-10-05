@@ -905,6 +905,41 @@ impl Syscalls for Task {
         }
     }
 
+    fn fallocate(&self, fd: Fd, mode: FallocFlags, offset: i64, len: i64) -> SysResult<()> {
+        self.enter();
+        // ksys_fallocate: o fdget vem antes de tudo, e um fd O_PATH não conta.
+        let ofd = self.ofd(fd)?;
+        if matches!(ofd.obj, FileObj::Path { .. }) {
+            return Err(Errno::EBADF);
+        }
+        // vfs_fallocate, na ordem do fs/open.c.
+        mode.validate(offset, len)?;
+        if !ofd.writable {
+            return Err(Errno::EBADF);
+        }
+        let handle = match &ofd.obj {
+            FileObj::Pipe { .. } => return Err(Errno::ESPIPE),
+            FileObj::Vfs { kind: FileType::Fifo, .. } => return Err(Errno::ESPIPE),
+            FileObj::Vfs { kind: FileType::Directory, .. } => return Err(Errno::EISDIR),
+            FileObj::Vfs { handle, kind: FileType::Regular, .. } => handle,
+            _ => return Err(Errno::ENODEV),
+        };
+        let end = offset.checked_add(len).ok_or(Errno::EFBIG)?;
+        if end as u64 > vfs::MAX_FILE_SIZE {
+            return Err(Errno::EFBIG);
+        }
+        let cx = self.caller();
+        match handle.fallocate(&cx, mode, offset as u64, len as u64) {
+            // inode_newsize_ok passou do RLIMIT_FSIZE: SIGXFSZ antes do EFBIG, como no ftruncate.
+            Err(Errno::EFBIG) if end as u64 > cx.fsize_limit => {
+                generate_signal(&self.proc, Signal::SIGXFSZ);
+                self.enter();
+                Err(Errno::EFBIG)
+            }
+            r => r,
+        }
+    }
+
     fn fsync(&self, fd: Fd) -> SysResult<()> {
         self.enter();
         let ofd = self.ofd(fd)?;

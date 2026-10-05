@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 pub use sysabi::mode::*;
 pub use sysabi::{
-    AccessMode, AtFlags, DirEntry, Errno, FileType, Gid, Mode, OFlags, Pid, RenameFlags, SetTime, Stat, StatFs,
-    TimeSpec, Uid,
+    AccessMode, AtFlags, DirEntry, Errno, FallocFlags, FileType, Gid, Mode, OFlags, Pid, RenameFlags, SetTime, Stat,
+    StatFs, TimeSpec, Uid,
 };
 
 use crate::mount::Loc;

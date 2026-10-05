@@ -167,4 +167,10 @@ pub trait FileHandle: Send + Sync {
     fn seek_end_allowed(&self) -> bool {
         true
     }
+    /// A `f_op->fallocate` do sistema de arquivos. Quem chama já fez as checagens do `vfs_fallocate`
+    /// (modo, `offset`/`len`, abertura pra escrita, tipo do arquivo e `s_maxbytes`). Sem a operação, o
+    /// Linux responde EOPNOTSUPP, que é o padrão aqui.
+    fn fallocate(&self, _cx: &Caller, _mode: FallocFlags, _offset: u64, _len: u64) -> SysResult<()> {
+        Err(Errno::EOPNOTSUPP)
+    }
 }

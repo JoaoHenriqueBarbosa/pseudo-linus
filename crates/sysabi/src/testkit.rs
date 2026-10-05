@@ -1386,6 +1386,46 @@ impl Syscalls for ProcHandle {
         }
     }
 
+    fn fallocate(&self, fd: Fd, mode: FallocFlags, offset: i64, len: i64) -> SysResult<()> {
+        mode.validate(offset, len)?;
+        let e = self.fd_entry(fd)?;
+        let f = lock(&e.file);
+        if !f.flags.writable() {
+            return Err(Errno::EBADF);
+        }
+        let ino = match &f.kind {
+            OpenKind::Inode(ino) => *ino,
+            OpenKind::Dir { .. } => return Err(Errno::EISDIR),
+            OpenKind::PipeRead(_) | OpenKind::PipeWrite(_) => return Err(Errno::ESPIPE),
+            OpenKind::Socket(_) => return Err(Errno::ENODEV),
+        };
+        let mut w = self.w();
+        let now = w.now;
+        let n = w.node_mut(ino);
+        let d = match &mut n.kind {
+            Kind::File(d) => d,
+            Kind::Fifo => return Err(Errno::ESPIPE),
+            _ => return Err(Errno::ENODEV),
+        };
+        let end = offset.checked_add(len).ok_or(Errno::EFBIG)? as u64;
+        // O testkit modela só o tmpfs: os outros modos não existem nele.
+        if mode.bits() & !(FallocFlags::KEEP_SIZE | FallocFlags::PUNCH_HOLE).bits() != 0 {
+            return Err(Errno::EOPNOTSUPP);
+        }
+        let start = offset as usize;
+        if mode.contains(FallocFlags::PUNCH_HOLE) {
+            let stop = (end as usize).min(d.len());
+            if start < stop {
+                d[start..stop].fill(0);
+            }
+        } else if !mode.contains(FallocFlags::KEEP_SIZE) && end as usize > d.len() {
+            d.resize(end as usize, 0);
+        }
+        n.mtime = now;
+        n.ctime = now;
+        Ok(())
+    }
+
     fn fsync(&self, fd: Fd) -> SysResult<()> {
         self.fd_entry(fd).map(|_| ())
     }
