@@ -26,6 +26,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("bc", bc::main),
         Program::bin("column", column::main),
         Program::bin("envsubst", envsubst::main),
+        Program::bin("file", file::cli::main),
         Program::bin("hexdump", hexdump::main),
         Program::bin("hd", hexdump::main),
         Program::bin("less", pager::less_main),

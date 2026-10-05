@@ -21,6 +21,8 @@ num-bigint = "0.4"
 num-traits = "0.2"
 # file: as regex das regras de magic (ERE da glibc no locale C, leftmost-longest).
 regex-automata = "0.4"
+# file -z: inflate do gzip (o descompressor embutido do libmagic), sem unsafe.
+miniz_oxide = "0.8"
 
 [dev-dependencies]
 sysabi = { workspace = true, features = ["testkit"] }

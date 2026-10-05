@@ -5208,6 +5208,7 @@ version = "0.1.0"
 dependencies = [
  "bigdecimal",
  "jiff",
+ "miniz_oxide 0.8.9",
  "num-bigint",
  "num-traits",
  "pl-testing",
