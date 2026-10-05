@@ -1,0 +1,296 @@
+tool = "colrm"
+source = "manual"
+
+# colrm do util-linux 2.41 (bsdextrautils): corte de colunas em largura de exibição, tabulação,
+# backspace, caracteres largos, argumentos inválidos e entrada inválida.
+
+[[case]]
+id = "colrm-help"
+argv = ["colrm", "--help"]
+
+[[case]]
+id = "colrm-help-short"
+argv = ["colrm", "-h"]
+
+[[case]]
+id = "colrm-version"
+argv = ["colrm", "-V"]
+
+[[case]]
+id = "colrm-invalid-option"
+argv = ["colrm", "-x"]
+
+[[case]]
+id = "colrm-negative-first-is-option"
+argv = ["colrm", "-2"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-unrecognized-option"
+argv = ["colrm", "--bogus"]
+
+[[case]]
+id = "colrm-dashdash-first-arg"
+argv = ["colrm", "--", "3"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-dashdash-after-first"
+argv = ["colrm", "2", "--", "3"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-not-number"
+argv = ["colrm", "x"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-second-not-number"
+argv = ["colrm", "2", "y"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-trailing-junk"
+argv = ["colrm", "2x"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-empty"
+argv = ["colrm", ""]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-second-looks-like-option"
+argv = ["colrm", "2", "-1"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-too-big"
+argv = ["colrm", "18446744073709551616"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-plus-sign"
+argv = ["colrm", "+3"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-leading-space"
+argv = ["colrm", " 3"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-hex-rejected"
+argv = ["colrm", "0x3"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-zero"
+argv = ["colrm", "0"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-zero-second"
+argv = ["colrm", "0", "3"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-no-args"
+argv = ["colrm"]
+stdin = "abc\ndef\n"
+
+[[case]]
+id = "colrm-first-only"
+argv = ["colrm", "3"]
+stdin = "abcdef\nxy\nlonger line here\n"
+
+[[case]]
+id = "colrm-first-one"
+argv = ["colrm", "1"]
+stdin = "abcdef\n\nxy\n"
+
+[[case]]
+id = "colrm-first-and-last"
+argv = ["colrm", "2", "4"]
+stdin = "abcdef\nxy\nabcd\nabcde\n"
+
+[[case]]
+id = "colrm-single-column"
+argv = ["colrm", "3", "3"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-last-before-first"
+argv = ["colrm", "4", "2"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-first-beyond-line"
+argv = ["colrm", "20"]
+stdin = "abc\n"
+
+[[case]]
+id = "colrm-last-beyond-line"
+argv = ["colrm", "2", "20"]
+stdin = "abc\nabcdefghijklmnopqrstuvwxyz\n"
+
+[[case]]
+id = "colrm-no-trailing-newline"
+script = "printf 'abcdef' | colrm 2 3 | od -c"
+
+[[case]]
+id = "colrm-no-trailing-newline-first-only"
+script = "printf 'abcdef' | colrm 3 | od -c"
+
+[[case]]
+id = "colrm-empty-input"
+argv = ["colrm", "2", "3"]
+stdin = ""
+
+[[case]]
+id = "colrm-only-newlines"
+argv = ["colrm", "2", "3"]
+stdin = "\n\n\n"
+
+[[case]]
+id = "colrm-extra-args-ignored"
+argv = ["colrm", "2", "3", "99", "junk"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-tab-before-cut"
+script = "printf 'a\\tbcd\\n' | colrm 10 | od -c"
+
+[[case]]
+id = "colrm-tab-straddles-first"
+script = "printf 'a\\tbcd\\n' | colrm 5 | od -c"
+
+[[case]]
+id = "colrm-tab-straddles-first-range"
+script = "printf 'a\\tbcd\\n' | colrm 5 7 | od -c"
+
+[[case]]
+id = "colrm-tab-straddles-last"
+script = "printf 'ab\\tcd\\n' | colrm 2 4 | od -c"
+
+[[case]]
+id = "colrm-tab-inside-cut"
+script = "printf 'abc\\tdef\\n' | colrm 2 9 | od -c"
+
+[[case]]
+id = "colrm-tab-after-cut"
+script = "printf 'abcdefg\\th\\n' | colrm 2 3 | od -c"
+
+[[case]]
+id = "colrm-tab-multiple"
+script = "printf '\\t\\t\\tx\\n' | colrm 9 16 | od -c"
+
+[[case]]
+id = "colrm-backspace-before-cut"
+script = "printf 'ab\\bcde\\n' | colrm 3 | od -c"
+
+[[case]]
+id = "colrm-backspace-in-cut"
+script = "printf 'abcdef\\b\\bgh\\n' | colrm 2 4 | od -c"
+
+[[case]]
+id = "colrm-backspace-at-start"
+script = "printf '\\babc\\n' | colrm 2 | od -c"
+
+[[case]]
+id = "colrm-backspace-brings-first-back"
+script = "printf 'abc\\b\\b\\bxyz\\n' | colrm 2 3 | od -c"
+
+[[case]]
+id = "colrm-backspace-overstrike-kept"
+script = "printf 'a\\bab\\bb\\n' | colrm 3 | od -c"
+
+[[case]]
+id = "colrm-wide-char-before"
+script = "printf '\\346\\227\\245\\346\\234\\254abc\\n' | colrm 5 | od -c"
+
+[[case]]
+id = "colrm-wide-char-straddles-first"
+script = "printf 'a\\346\\227\\245b\\n' | colrm 3 | od -c"
+
+[[case]]
+id = "colrm-wide-char-straddles-first-range"
+script = "printf 'a\\346\\227\\245bcd\\n' | colrm 3 5 | od -c"
+
+[[case]]
+id = "colrm-wide-char-straddles-last"
+script = "printf 'ab\\346\\227\\245cd\\n' | colrm 2 4 | od -c"
+
+[[case]]
+id = "colrm-wide-char-inside-cut"
+script = "printf 'a\\346\\227\\245\\346\\234\\254b\\n' | colrm 2 5 | od -c"
+
+[[case]]
+id = "colrm-wide-char-at-cut-start"
+script = "printf '\\346\\227\\245abc\\n' | colrm 1 2 | od -c"
+
+[[case]]
+id = "colrm-wide-char-after-cut-needs-padding"
+script = "printf 'a\\346\\227\\245b\\n' | colrm 2 2 | od -c"
+
+[[case]]
+id = "colrm-combining-char"
+script = "printf 'e\\314\\201abc\\n' | colrm 2 3 | od -c"
+
+[[case]]
+id = "colrm-utf8-narrow"
+script = "printf 'caf\\303\\251 au lait\\n' | colrm 4 6 | od -c"
+
+[[case]]
+id = "colrm-control-chars-zero-width"
+script = "printf 'a\\001\\002bcd\\n' | colrm 2 3 | od -c"
+
+[[case]]
+id = "colrm-carriage-return-zero-width"
+script = "printf 'ab\\rcd\\n' | colrm 2 3 | od -c"
+
+[[case]]
+id = "colrm-invalid-utf8-before-cut"
+script = "printf 'a\\377bc\\n' | colrm 3 4; echo \"rc=$?\""
+
+[[case]]
+id = "colrm-invalid-utf8-in-cut"
+script = "printf 'abc\\377d\\n' | colrm 2 4; echo \"rc=$?\""
+
+[[case]]
+id = "colrm-invalid-utf8-after-last"
+script = "printf 'abcd\\377\\n' | colrm 2 3; echo \"rc=$?\""
+
+[[case]]
+id = "colrm-invalid-utf8-second-line"
+script = "printf 'abc\\n\\200\\n' | colrm 2 3; echo \"rc=$?\""
+
+[[case]]
+id = "colrm-incomplete-utf8-at-eof"
+script = "printf 'ab\\343\\201' | colrm 5 | od -c; echo \"rc=$?\""
+
+[[case]]
+id = "colrm-stdin-directory"
+script = "colrm 2 < /; echo \"rc=$?\""
+
+[[case]]
+id = "colrm-multiple-lines-state-reset"
+argv = ["colrm", "2", "3"]
+stdin = "abcd\nefgh\nijkl\n"
+
+[[case]]
+id = "colrm-long-line"
+script = "head -c 200 /dev/zero | tr '\\0' 'x' | colrm 10 190 | od -c"
+
+[[case]]
+id = "colrm-last-equals-first-minus-one"
+argv = ["colrm", "3", "2"]
+stdin = "abcdef\n"
+
+[[case]]
+id = "colrm-stdin-file"
+script = "printf 'hello world\\n' > f.txt; colrm 6 < f.txt"
+
+[[case]]
+id = "colrm-pipeline-with-column"
+script = "printf 'a b c\\nd e f\\n' | colrm 3 4"

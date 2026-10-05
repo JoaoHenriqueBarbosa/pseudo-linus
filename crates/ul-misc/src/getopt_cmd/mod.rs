@@ -7,7 +7,7 @@
 //! Códigos de saída: 0 sucesso, 1 o `getopt(3)` achou erro, 2 problema nos argumentos do próprio
 //! `getopt(1)`, 3 erro interno, 4 pra `-T`.
 
-mod engine;
+pub mod engine;
 
 use std::ffi::OsString;
 use std::io::Write;

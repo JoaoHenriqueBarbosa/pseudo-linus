@@ -13,8 +13,8 @@ use std::io::Write;
 use sysabi::{Ctx, KillTarget, Signal, sys};
 
 use crate::util::io;
-use crate::util::ul;
-use crate::util::{Getopt, HasArg, LongOpt, display_width};
+use crate::util::ul::{self, Wide, is_wspace, peek_wide, wcwidth};
+use crate::util::{Getopt, HasArg, LongOpt};
 
 const BS: char = '\u{8}';
 const NL: char = '\n';
@@ -115,20 +115,6 @@ fn crash() -> ! {
     let s = sys::current();
     let _ = s.kill(KillTarget::Pid(s.getpid()), Signal::SIGSEGV);
     sys::exit(139)
-}
-
-/// `wcwidth` do C.UTF-8: -1 pra controle, 0 pra combinante, 1 ou 2 pro resto.
-fn wcwidth(c: char) -> i32 {
-    let u = c as u32;
-    if u < 0x20 || (0x7f..0xa0).contains(&u) {
-        return -1;
-    }
-    display_width(c.encode_utf8(&mut [0; 4])) as i32
-}
-
-/// `iswspace` da glibc: os espaços Unicode exceto os sem quebra.
-fn is_wspace(c: char) -> bool {
-    matches!(c as u32, 0x09..=0x0d | 0x20 | 0x1680 | 0x2000..=0x2006 | 0x2008..=0x200a | 0x2028 | 0x2029 | 0x205f | 0x3000)
 }
 
 /// `iswgraph`: imprimível e não espaço.
@@ -365,6 +351,7 @@ impl<W: Write> Col<W> {
                 } else {
                     if !lns.warned {
                         let what = if lns.cur_line < 0 { "past first line" } else { "-- line already flushed" };
+                        let _ = self.out.flush();
                         io::eprint(format!("{}: warning: can't back up {what}.\n", self.short));
                         lns.warned = true;
                     }
@@ -429,40 +416,12 @@ struct Input {
     pos: usize,
 }
 
-enum Wide {
-    Char(char),
-    /// Byte inválido na posição corrente (EILSEQ): fica sem consumir.
-    Invalid(u8),
-    Eof,
-}
-
 impl Input {
+    /// O próximo caractere sem consumir; sequência incompleta no fim da entrada é fim de arquivo.
     fn peek(&self) -> Wide {
-        let rest = &self.data[self.pos..];
-        let Some(&first) = rest.first() else { return Wide::Eof };
-        if first < 0x80 {
-            return Wide::Char(char::from(first));
-        }
-        let need = match first {
-            0xc2..=0xdf => 2,
-            0xe0..=0xef => 3,
-            0xf0..=0xf4 => 4,
-            _ => return Wide::Invalid(first),
-        };
-        let take = need.min(rest.len());
-        match std::str::from_utf8(&rest[..take]) {
-            Ok(s) => match s.chars().next() {
-                Some(c) => Wide::Char(c),
-                None => Wide::Eof,
-            },
-            Err(e) => {
-                if e.error_len().is_none() && take == rest.len() && take < need {
-                    // Sequência incompleta no fim da entrada: o getwchar devolve WEOF sem EILSEQ.
-                    Wide::Eof
-                } else {
-                    Wide::Invalid(first)
-                }
-            }
+        match peek_wide(&self.data, self.pos) {
+            Wide::Truncated => Wide::Eof,
+            w => w,
         }
     }
 
@@ -579,7 +538,7 @@ fn run(args: &[OsString]) -> i32 {
 
     loop {
         match input.peek() {
-            Wide::Eof => break,
+            Wide::Eof | Wide::Truncated => break,
             Wide::Char(c) => {
                 input.pos += c.len_utf8();
                 lns.ch = c;
