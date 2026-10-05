@@ -98,7 +98,6 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "update-ref" => (Setup::Repo, plumbing::update_ref),
         "symbolic-ref" => (Setup::Repo, plumbing::symbolic_ref),
         "show-ref" => (Setup::Repo, plumbing::show_ref),
-        "for-each-ref" => (Setup::Repo, plumbing::for_each_ref),
         "update-index" => (Setup::WorkTree, plumbing::update_index),
         "read-tree" => (Setup::Repo, plumbing::read_tree),
         "merge-base" => (Setup::Repo, plumbing::merge_base),

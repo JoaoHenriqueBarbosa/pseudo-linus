@@ -53,7 +53,7 @@ fn sorted_dir(path: &[u8]) -> Vec<(Vec<u8>, FileType)> {
         Ok(e) => e.into_iter().map(|d| (d.name, d.kind)).collect(),
         Err(_) => Vec::new(),
     };
-    v.sort();
+    v.sort_by(|a, b| a.0.cmp(&b.0));
     v
 }
 

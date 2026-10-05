@@ -203,7 +203,7 @@ impl Repo {
             Some(rest) => (true, rest),
             None => (false, pattern),
         };
-        let re = regex_posix::Regex::new(pat, regex_posix::Syntax::POSIX_EXTENDED).ok();
+        let re = crate::re::compile(pat, crate::re::Flavor::Extended, false).ok();
         let mut seen = std::collections::HashSet::new();
         let mut queue: Vec<(i64, Oid)> = Vec::new();
         for s in starts {
