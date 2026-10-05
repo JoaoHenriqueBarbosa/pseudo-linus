@@ -3,8 +3,8 @@
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst` (gettext 0.23),
 //! `less` não interativo, `clear`/`tput` (ncurses 6.5), `iconv`, `getconf` e `locale` (glibc 2.41).
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`. Do debianutils 5.23 também: `tempfile`, `run-parts`, `savelog`, `ischroot`,
-//! `add-shell`, `remove-shell` (os três últimos são os scripts originais rodando no `sh`).
+//! `whereis`, `mcookie`, `hardlink`. Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
+//! e, como os scripts originais rodando no `sh`, `savelog`, `add-shell` e `remove-shell`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
@@ -17,6 +17,7 @@ pub mod debscripts;
 pub mod envsubst;
 pub mod file;
 pub mod getopt_cmd;
+pub mod hardlink;
 pub mod hexdump;
 pub mod ischroot;
 pub mod look;
@@ -48,6 +49,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("envsubst", envsubst::main),
         Program::bin("file", file::cli::main),
         Program::bin("getopt", getopt_cmd::main),
+        Program::bin("hardlink", hardlink::main),
         Program::bin("hexdump", hexdump::main),
         Program::bin("hd", hexdump::main),
         Program::bin("ischroot", ischroot::main),
