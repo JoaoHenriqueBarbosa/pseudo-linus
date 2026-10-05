@@ -165,30 +165,38 @@ fn prog_name(argv0: &[u8]) -> String {
 }
 
 fn usage(pname: &str) -> i32 {
-    let text = format!(
-        "Usage:\n       {pname} [options] [infile [outfile]]\n    or\n       {pname} -r [-s [-]offset] [-c cols] [-ps] [infile [outfile]]\n\
-Options:\n\
-    -a          toggle autoskip: A single '*' replaces nul-lines. Default off.\n\
-    -b          binary digit dump (incompatible with -ps). Default hex.\n\
-    -C          capitalize variable names in C include file style (-i).\n\
-    -c cols     format <cols> octets per line. Default 16 (-i: 12, -ps: 30).\n\
-    -E          show characters in EBCDIC. Default ASCII.\n\
-    -e          little-endian dump (incompatible with -ps,-i,-r).\n\
-    -g bytes    number of octets per group in normal output. Default 2 (-e: 4).\n\
-    -h          print this summary.\n\
-    -i          output in C include file style.\n\
-    -l len      stop after <len> octets.\n\
-    -n name     set the variable name used in C include output (-i).\n\
-    -o off      add <off> to the displayed file position.\n\
-    -ps         output in postscript plain hexdump style.\n\
-    -r          reverse operation: convert (or patch) hexdump into binary.\n\
-    -r -s off   revert with <off> added to file positions found in hexdump.\n\
-    -d          show offset in decimal instead of hex.\n\
-    -s [+][-]seek  start at <seek> bytes abs. (or +: rel.) infile offset.\n\
-    -u          use upper case hex letters.\n\
-    -R when     colorize the output; <when> can be 'always', 'auto' or 'never'. Default: 'auto'.\n\
-    -v          show version: \"{VERSION}\".\n"
+    // Uma linha por item: a continuação `\` de string do Rust come o recuo da linha seguinte, e
+    // as opções do original têm quatro espaços na frente.
+    let options = [
+        "-a          toggle autoskip: A single '*' replaces nul-lines. Default off.",
+        "-b          binary digit dump (incompatible with -ps). Default hex.",
+        "-C          capitalize variable names in C include file style (-i).",
+        "-c cols     format <cols> octets per line. Default 16 (-i: 12, -ps: 30).",
+        "-E          show characters in EBCDIC. Default ASCII.",
+        "-e          little-endian dump (incompatible with -ps,-i,-r).",
+        "-g bytes    number of octets per group in normal output. Default 2 (-e: 4).",
+        "-h          print this summary.",
+        "-i          output in C include file style.",
+        "-l len      stop after <len> octets.",
+        "-n name     set the variable name used in C include output (-i).",
+        "-o off      add <off> to the displayed file position.",
+        "-ps         output in postscript plain hexdump style.",
+        "-r          reverse operation: convert (or patch) hexdump into binary.",
+        "-r -s off   revert with <off> added to file positions found in hexdump.",
+        "-d          show offset in decimal instead of hex.",
+        "-s [+][-]seek  start at <seek> bytes abs. (or +: rel.) infile offset.",
+        "-u          use upper case hex letters.",
+        "-R when     colorize the output; <when> can be 'always', 'auto' or 'never'. Default: 'auto'.",
+    ];
+    let mut text = format!(
+        "Usage:\n       {pname} [options] [infile [outfile]]\n    or\n       {pname} -r [-s [-]offset] [-c cols] [-ps] [infile [outfile]]\nOptions:\n"
     );
+    for line in options {
+        text.push_str("    ");
+        text.push_str(line);
+        text.push('\n');
+    }
+    text.push_str(&format!("    -v          show version: \"{VERSION}\".\n"));
     io::eprint(text);
     1
 }
@@ -1401,13 +1409,22 @@ mod tests {
 
     #[test]
     fn bits() {
+        // No `-b` o texto começa na coluna `addrlen + 3 + (grplen * cols - 1) / g`, com
+        // `grplen = 8 * g + 1` e 6 colunas: 65 com `-g 1` e 62 com `-g 2` (o endereço tem 9).
         assert_eq!(
             out(&["-b", "-l", "8", "txt"]),
-            "00000000: 01010100 01101000 01100101 00100000 01110001 01110101  The qu\n00000006: 01101001 01100011                                      ic\n"
+            format!(
+                "00000000: 01010100 01101000 01100101 00100000 01110001 01110101  The qu\n\
+                 00000006: 01101001 01100011{}ic\n",
+                " ".repeat(65 - 27)
+            )
         );
         assert_eq!(
             out(&["-b", "-g", "2", "-l", "3", "txt"]),
-            "00000000: 0101010001101000 01100101                             The\n"
+            format!(
+                "00000000: 0101010001101000 01100101{}The\n",
+                " ".repeat(62 - 35)
+            )
         );
     }
 

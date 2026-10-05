@@ -271,7 +271,9 @@ mod tests {
     #[test]
     fn percent_and_tics() {
         assert_eq!(scale_pcnt(0.04, 5, true, false), b"  0.0 ");
-        assert_eq!(scale_pcnt(99.95, 5, true, false), b"100.0 ");
+        // 99.95 em `float` é 99.9499969..., e o `%.1f` do C arredonda pra baixo, como aqui.
+        assert_eq!(scale_pcnt(99.95, 5, true, false), b" 99.9 ");
+        assert_eq!(scale_pcnt(99.96, 5, true, false), b"100.0 ");
         assert_eq!(scale_tics(17, 100, 9, true, TICS_AS_SECS), b"  0:00.17 ");
         assert_eq!(scale_tics(52_000, 100, 9, true, TICS_AS_SECS), b"  8:40.00 ");
     }

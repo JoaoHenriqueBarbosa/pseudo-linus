@@ -888,9 +888,17 @@ mod tests {
                 .stdout_str(),
             "1\n"
         );
+        // A tabela `vars[]` só tem `_POSIX_V7_LP64_OFF64` (o prefixo `_POSIX_` pode ser omitido,
+        // virando `V7_LP64_OFF64`); `POSIX_V7_LP64_OFF64` sem sublinhado só existe nas
+        // especificações do `-v`, e como variável a glibc não reconhece.
         assert_eq!(
-            k.run(&["getconf", "POSIX_V7_LP64_OFF64"], b"").stdout_str(),
+            k.run(&["getconf", "V7_LP64_OFF64"], b"").stdout_str(),
             "1\n"
+        );
+        let r = k.run(&["getconf", "POSIX_V7_LP64_OFF64"], b"");
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("getconf: Unrecognized variable `POSIX_V7_LP64_OFF64'\n", 2)
         );
         assert_eq!(
             k.run(&["getconf", "TZNAME_MAX"], b"").stdout_str(),
