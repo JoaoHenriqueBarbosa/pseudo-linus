@@ -215,7 +215,8 @@ impl<'a> Getopt<'a> {
                 continue;
             }
             self.idx += 1;
-            if arg.starts_with(b"--") {
+            // Sem tabela de longas é o getopt(3) puro: `--help` são as curtas `-`, `h`, ...
+            if arg.starts_with(b"--") && !self.longs.is_empty() {
                 return Some(self.long(&arg[2..]));
             }
             self.pending = arg[1..].to_vec();

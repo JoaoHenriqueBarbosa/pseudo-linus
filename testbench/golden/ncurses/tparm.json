@@ -1,0 +1,224 @@
+{
+  "tparm-ansi-and-pcansi-cup": {
+    "stdout": "0000000 033   [   5   ;   1   0   H\n0000007\n0000000 033   [   5   ;   1   0   H\n0000007\n0000000 033   [   5   ;   1   0   H\n0000007\n0000000 033   [   5   ;   1   0   H\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-csr-vpa-hpa": {
+    "stdout": "0000000 033   [   4   ;   6   r\n0000006\n0000000 033   [   1   1   d\n0000005\n0000000 033   [   6   G\n0000004\n0000000 033   [   2   ;   2   3   r\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-cup": {
+    "stdout": "0000000 033   [   4   ;   5   H\n0000006\n0000000 033   [   1   ;   1   H\n0000006\n0000000 033   [   2   4   ;   8   0   H\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-cup-missing-and-extra": {
+    "stdout": "0000000 033   [   8   ;   1   H\n0000006\n0000000 033   [   2   ;   3   H\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-cup-non-numeric-arguments": {
+    "stdout": "\u001b[1;1Hrc=4\n\u001b[6;1Hrc=4\n",
+    "stderr": "tput: unknown terminfo capability 'x'\ntput: unknown terminfo capability 'y'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-cup-numeric-forms": {
+    "stdout": "0000000 033   [   1   7   ;   9   H\n0000007\n0000000 033   [   1   ;   8   H\n0000006\n0000000 033   [   6   ;   7   H\n0000006\n",
+    "stderr": "tput: unknown terminfo capability '1e2'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-cup-two-in-a-row": {
+    "stdout": "0000000 033   [   2   ;   3   H 033   [   4   ;   5   H\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-extended-cap-with-number": {
+    "stdout": "0000000 033   [   2       q\n0000005\n0000000 033   [   6       q\n0000005\n0000000 033   [   2       q\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-extended-cap-with-string": {
+    "stdout": "0000000 033   ]   1   2   ;   r   e   d  \\a\n0000011\n0000000 033   ]   1   2   ;   %   p   1   %   s  \\a\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-extended-numeric-and-boolean": {
+    "stdout": "rc=0\nrc=4\nrc=0\n1\nrc=0\n",
+    "stderr": "tput: unknown terminfo capability 'U8'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-extended-two-strings": {
+    "stdout": "0000000 033   ]   5   2   ;   c   ;   a   b   c  \\a\n0000013\n0000000 033   ]   5   2   ;   %   p   1   %   s   ;   %   p   2   %   s\n0000020  \\a\n0000021\n0000000 033   ]   5   2   ;   c   ;  \\a\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-extended-unknown-names": {
+    "stdout": "rc=4\nrc=4\n",
+    "stderr": "tput: unknown terminfo capability 'RGB'\ntput: unknown terminfo capability 'setrgbf'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-extended-xm-mouse": {
+    "stdout": "0000000 033   [   <   %   i   %   p   3   %   d   ;   %   p   1   %   d\n0000020   ;   %   p   2   %   d   ;   %   ?   %   p   4   %   t   M   %\n0000040   e   m   %   ;\n0000044\n0000000 033   [   <   3   ;   2   ;   3   ;   M\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-hex-colors": {
+    "stdout": "0000000 033   [   3   8   ;   5   ;   3   2   m\n0000012\n0000000 033   [   3   8   ;   5   ;   2   5   5   m\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-initc-missing-on-xterm": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-initc-with-arithmetic": {
+    "stdout": "0000000 033   ]   4   ;   1   ;   r   g   b   :   7   F   /   7   F   /\n0000020   7   F 033   \\\n0000024\n0000000 033   ]   4   ;   1   5   ;   r   g   b   :   0   0   /   F   F\n0000020   /   3   F 033   \\\n0000025\n0000000 033   ]   P   3   f   f   0   0   7   f\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-large-and-hex-numbers": {
+    "stdout": "0000000 033   [   1   0   0   0   0   0   ;   -   2   1   4   7   4   8\n0000020   3   6   4   8   H\n0000025\n0000000 033   [   1   ;   2   H\n0000006\n0000000 033   [   0   ;   1   H\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-negative-argument-after-double-dash": {
+    "stdout": "0000000 033   [   -   4   ;   4   H\n0000007\nrc=0\n",
+    "stderr": "tput: unknown terminfo capability '-5'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-negative-argument-is-an-option": {
+    "stdout": "",
+    "stderr": "tput: invalid option -- '5'\nUsage: tput [options] [command]\n\nOptions:\n  -S <<       read commands from standard input\n  -T TERM     use this instead of $TERM\n  -V          print curses-version\n  -v          verbose, show warnings\n  -x          do not try to clear scrollback\n\nCommands:\n  clear       clear the screen\n  init        initialize the terminal\n  reset       reinitialize the terminal\n  capname     unlike clear/init/reset, print value for capability \"capname\"\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tparm-non-parameterized-with-number": {
+    "stdout": "0000000 033   [   1   m\n0000004\n0000000 033   [   1   m\n0000004\n0000000 033   (   B 033   [   m 033   [   H 033   [   2   J 033   [   3\n0000020   J\n0000021\n",
+    "stderr": "tput: extra parameters for \"bold\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-numeric-cap-ignores-arguments": {
+    "stdout": "0000000   8   0  \\n\n0000003\n0000000   8   0  \\n\n0000003\n",
+    "stderr": "tput: unknown terminfo capability '5'\ntput: unknown terminfo capability '5'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-parm-motion-caps": {
+    "stdout": "cub: 0000000 033   [   3   D\ncud: 0000000 033   [   3   B\ncuf: 0000000 033   [   3   C\ncuu: 0000000 033   [   3   A\ndch: 0000000 033   [   3   P\ndl: 0000000 033   [   3   M\nech: 0000000 033   [   3   X\nich: 0000000 033   [   3   @\nil: 0000000 033   [   3   L\nindn: 0000000 033   [   3   S\nrin: 0000000 033   [   3   T\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-setab-256-conditional": {
+    "stdout": "0000000 033   [   4   0   m\n0000005\n0000000 033   [   4   7   m\n0000005\n0000000 033   [   1   0   0   m\n0000006\n0000000 033   [   1   0   7   m\n0000006\n0000000 033   [   4   8   ;   5   ;   1   6   m\n0000012\n0000000 033   [   4   8   ;   5   ;   2   0   0   m\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-setaf-256-conditional": {
+    "stdout": "0000000 033   [   3   0   m\n0000005\n0000000 033   [   3   7   m\n0000005\n0000000 033   [   9   0   m\n0000005\n0000000 033   [   9   1   m\n0000005\n0000000 033   [   9   7   m\n0000005\n0000000 033   [   3   8   ;   5   ;   1   6   m\n0000012\n0000000 033   [   3   8   ;   5   ;   1   0   0   m\n0000013\n0000000 033   [   3   8   ;   5   ;   2   5   5   m\n0000013\n0000000 033   [   3   8   ;   5   ;   2   5   6   m\n0000013\n0000000 033   [   3   8   ;   5   ;   1   0   0   0   m\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-setaf-no-argument-prints-raw": {
+    "stdout": "0000000 033   [   %   ?   %   p   1   %   {   8   }   %   <   %   t   3\n0000020   %   p   1   %   d   %   e   %   p   1   %   {   1   6   }   %\n0000040   <   %   t   9   %   p   1   %   {   8   }   %   -   %   d   %\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-setaf-setab-8-colors": {
+    "stdout": "0000000 033   [   3   0   m 033   [   4   0   m 033   [   3   1   m 033\n0000020   [   4   1   m 033   [   3   2   m 033   [   4   2   m 033   [\n0000040   3   3   m 033   [   4   3   m 033   [   3   4   m 033   [   4\n0000060   4   m 033   [   3   5   m 033   [   4   5   m 033   [   3   6\n0000100   m 033   [   4   6   m 033   [   3   7   m 033   [   4   7   m\n0000120\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-setf-setb-reordered-colors": {
+    "stdout": "0000000\n0000000 033   [   4   0   m\n0000000\n0000000 033   [   4   4   m\n0000000\n0000000 033   [   4   2   m\n0000000\n0000000 033   [   4   6   m\n0000000\n0000000 033   [   4   1   m\n0000000\n0000000 033   [   4   5   m\n0000000\n0000000 033   [   4   3   m\n0000000\n0000000 033   [   4   7   m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-sgr-fewer-arguments": {
+    "stdout": "0000000 033   (   B 033   [   0   ;   7   m\n0000011\n0000000 033   (   B 033   [   0   ;   7   m\n0000011\n0000000   %   ?   %   p   9   %   t 033   (   0   %   e 033   (   B   %\n0000020   ; 033   [   0   %   ?   %   p   6   %   t   ;   1   %   ;   %\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-sgr-linux": {
+    "stdout": "0000000 033   [   0   ;   1   0   ;   4   ;   2   m 016\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-sgr-vt100-padding": {
+    "stdout": "0000000 033   [   0   m 017\n0000005\n0000000 033   [   0   ;   1   ;   4   ;   7   ;   5   m 016\n0000015\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-sgr-xterm": {
+    "stdout": "0000000 033   (   B 033   [   0   ;   7   m\n0000011\n0000000 033   (   0 033   [   0   m\n0000007\n0000000 033   (   B 033   [   0   ;   2   ;   4   ;   5   ;   8   m\n0000017\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-sgr0-all-terminals": {
+    "stdout": "0000000 033   (   B 033   [   m\n0000006\n0000000 033   (   B 033   [   m\n0000006\n0000000 033   [   m 017\n0000004\n0000000 033   [   m 017\n0000004\n0000000 033   [   m 017\n0000004\n0000000 033   [   0   ;   1   0   m\n0000007\n0000000 033   [   m 017\n0000004\n0000000 033   [   m 017\n0000004\n0000000 033   [   m\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-static-variables-reset-between-commands": {
+    "stdout": "0000000 033   ]   P   1   1   9   3   3   4   c 033   ]   P   2   6   6\n0000020   7   f   9   9\n0000024\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-string-parameters-pkey": {
+    "stdout": "rc=1\n0000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-tsl-and-ts": {
+    "stdout": "0000000\nrc=0\n0000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-vt52-cup-char-arithmetic": {
+    "stdout": "0000000 033   Y   $   )\n0000004\n0000000 033   Y        \n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tparm-wsvt25-and-rxvt-cup": {
+    "stdout": "0000000 033   [   5   ;   1   0   H\n0000007\n0000000 033   [   5   ;   1   0   H\n0000007\n0000000 033   [   5   ;   1   0   H\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

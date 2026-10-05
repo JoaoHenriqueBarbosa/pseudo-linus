@@ -1,0 +1,532 @@
+{
+  "tput-E3-capability": {
+    "stdout": "0000000 033   [   3   J\n0000004\n\u001b[3Jrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-boolean-results": {
+    "stdout": "rc=6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-clear-fails-on-dumb": {
+    "stdout": "rc=5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-empty-stdin": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-ignores-operands": {
+    "stdout": "0000000 033   [   2   ;   3   H\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-longname-and-numbers": {
+    "stdout": "0000000   x   t   e   r   m       w   i   t   h       2   5   6       c\n0000020   o   l   o   r   s   8   0  \\n   2   5   6  \\n\n0000034\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-no-newline-at-end": {
+    "stdout": "0000000 033   [   1   m\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-several-lines": {
+    "stdout": "0000000 033   [   1   m 033   (   B 033   [   m 033   [   2   ;   3   H\n0000020   2   4  \\n   8   0  \\n\n0000026\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-several-per-line": {
+    "stdout": "0000000 033   [   1   m 033   [   1   m 033   [   2   ;   3   H 033   [\n0000020   4   ;   5   H 033   [   K\n0000027\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-unknown-cap-exits": {
+    "stdout": "rc=4\n",
+    "stderr": "tput: unknown terminfo capability 'nosuch'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-S-verbose": {
+    "stdout": "0000000 033   [   1   m 033   [   2   ;   1   H\n0000012\n",
+    "stderr": "tput: missing parameters for \"bold\"\ntput: missing parameters for \"cup\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-T-last-wins": {
+    "stdout": "80\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-bel": {
+    "stdout": "0000000  \\a\n0000001\n0000000  \\a\n0000001\n0000000  \\a\n0000001\n0000000  \\a\n0000001\n0000000  \\a\n0000001\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-bold-sgr0-od": {
+    "stdout": "0000000 033   [   1   m 033   (   B 033   [   m\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-boolean-false-exit": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "tput-boolean-no-output": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-booleans-exit-codes": {
+    "stdout": "xterm am=0\nxterm bw=1\nxterm xenl=0\nxterm km=0\nxterm hs=1\nxterm mir=0\nxterm ccc=1\nxterm bce=0\nxterm msgr=0\nxterm xon=1\nxterm eo=1\nxterm gn=1\nxterm hc=1\nvt100 am=0\nvt100 bw=1\nvt100 xenl=0\nvt100 km=1\nvt100 hs=1\nvt100 mir=1\nvt100 ccc=1\nvt100 bce=1\nvt100 msgr=0\nvt100 xon=0\nvt100 eo=1\nvt100 gn=1\nvt100 hc=1\nlinux am=0\nlinux bw=1\nlinux xenl=0\nlinux km=1\nlinux hs=1\nlinux mir=0\nlinux ccc=0\nlinux bce=0\nlinux msgr=0\nlinux xon=0\nlinux eo=0\nlinux gn=1\nlinux hc=1\ndumb am=0\ndumb bw=1\ndumb xenl=1\ndumb km=1\ndumb hs=1\ndumb mir=1\ndumb ccc=1\ndumb bce=1\ndumb msgr=1\ndumb xon=1\ndumb eo=1\ndumb gn=1\ndumb hc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-chain-numeric-and-string": {
+    "stdout": "0000000   8   0  \\n   2   4  \\n 033   [   1   m\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-chain-of-commands": {
+    "stdout": "0000000 033   [   1   m 033   [   H 033   [   2   J 033   [   3   J 033\n0000020   (   B 033   [   m 033   [   2   ;   3   H 033   [   K\n0000036\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-chain-stops-at-failure": {
+    "stdout": "0000000 033   [   1   m\n0000004\nrc=0\n0000000 033   [   1   m\n0000004\n",
+    "stderr": "tput: unknown terminfo capability 'nosuch'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-chain-stops-at-failure-rc": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-clear-dumb-fails": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 2,
+    "files": {}
+  },
+  "tput-clear-env-term": {
+    "stdout": "0000000 033   [   H 033   [   J 033   [   3   J\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-clear-od": {
+    "stdout": "0000000 033   [   H 033   [   2   J 033   [   3   J\n0000013\n0000000 033   [   H 033   [   2   J 033   [   3   J\n0000013\n0000000 033   [   H 033   [   J\n0000006\n0000000 033   [   H 033   [   J 033   [   3   J\n0000012\n0000000 033   [   H 033   [   J\n0000006\n0000000 033   [   H 033   [   J\n0000006\n0000000 033   [   H 033   [   J 033   [   3   J\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-clear-x-flag": {
+    "stdout": "0000000 033   [   H 033   [   2   J\n0000007\n0000000 033   [   H 033   [   2   J\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-cols-lines-colors-terminals": {
+    "stdout": "xterm cols=80 lines=24 colors=8\nxterm-256color cols=80 lines=24 colors=256\nxterm-mono cols=80 lines=24 colors=-1\nvt100 cols=80 lines=24 colors=-1\nvt102 cols=80 lines=24 colors=-1\nvt220 cols=80 lines=24 colors=-1\nvt52 cols=80 lines=24 colors=-1\nlinux cols=-1 lines=-1 colors=8\nscreen cols=80 lines=24 colors=8\nscreen-256color cols=80 lines=24 colors=256\ntmux cols=80 lines=24 colors=8\nansi cols=80 lines=24 colors=8\ncons25 cols=80 lines=25 colors=8\ndumb cols=80 lines=-1 colors=-1\nsun cols=80 lines=34 colors=-1\nrxvt cols=80 lines=24 colors=8\nwsvt25 cols=80 lines=25 colors=8\nhurd cols=-1 lines=-1 colors=8\nmach cols=80 lines=25 colors=-1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-empty-T": {
+    "stdout": "",
+    "stderr": "tput: No value for $TERM and no -T specified\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tput-env-size-ignored-with-T": {
+    "stdout": "80\n24\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-size-invalid-values": {
+    "stdout": "[abc] 80 24\n[0] 80 24\n[-3] 80 24\n[7 ] 80 24\n[0x20] 32 32\n[010] 8 8\n[99999] 512 512\n[+9] 9 9\n[] 80 24\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-size-overrides": {
+    "stdout": "132\n50\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-term-256-colors": {
+    "stdout": "256\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-term-dot-names": {
+    "stdout": "rc=3\nrc=3\nrc=3\n",
+    "stderr": "tput: unknown terminal \".\"\ntput: unknown terminal \"..\"\ntput: unknown terminal \"xterm:x\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-term-dumb-colors": {
+    "stdout": "-1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-term-dumb-lines-default-24": {
+    "stdout": "24\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-term-empty-and-unset": {
+    "stdout": "rc=2\nrc=2\n",
+    "stderr": "tput: No value for $TERM and no -T specified\ntput: No value for $TERM and no -T specified\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-term-nosuch": {
+    "stdout": "",
+    "stderr": "tput: unknown terminal \"nosuch\"\n",
+    "exit": 3,
+    "files": {}
+  },
+  "tput-env-term-overridden-by-T": {
+    "stdout": "80\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-term-too-long": {
+    "stdout": "rc=3\n",
+    "stderr": "tput: unknown terminal \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-term-vt100-cols": {
+    "stdout": "80\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-env-term-with-slash": {
+    "stdout": "",
+    "stderr": "tput: unknown terminal \"a/b\"\n",
+    "exit": 3,
+    "files": {}
+  },
+  "tput-init-env-term-without-tty": {
+    "stdout": "",
+    "stderr": "tput: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "tput-init-needs-term-first": {
+    "stdout": "",
+    "stderr": "tput: No value for $TERM and no -T specified\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tput-init-without-tty": {
+    "stdout": "",
+    "stderr": "tput: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "tput-linux-flash-mandatory-delay": {
+    "stdout": "0000000 033   [   ?   5   h 033   [   ?   5   l\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-longname": {
+    "stdout": "xterm terminal emulator (X Window System)\nxterm with 256 colors\nDEC VT100 (w/advanced video)\nLinux console\nVT 100/ANSI X3.64 virtual terminal\n80-column dumb tty\ntmux terminal multiplexer\nansi/pc-term compatible with color\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-longname-then-cap": {
+    "stdout": "0000000   x   t   e   r   m       t   e   r   m   i   n   a   l       e\n0000020   m   u   l   a   t   o   r       (   X       W   i   n   d   o\n0000040   w       S   y   s   t   e   m   ) 033   [   1   m\n0000055\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-no-command": {
+    "stdout": "",
+    "stderr": "Usage: tput [options] [command]\n\nOptions:\n  -S <<       read commands from standard input\n  -T TERM     use this instead of $TERM\n  -V          print curses-version\n  -v          verbose, show warnings\n  -x          do not try to clear scrollback\n\nCommands:\n  clear       clear the screen\n  init        initialize the terminal\n  reset       reinitialize the terminal\n  capname     unlike clear/init/reset, print value for capability \"capname\"\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tput-no-term": {
+    "stdout": "",
+    "stderr": "tput: No value for $TERM and no -T specified\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tput-numeric-absent-is-minus-one": {
+    "stdout": "-1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-numeric-colors-256": {
+    "stdout": "256\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-numeric-cols": {
+    "stdout": "80\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-numeric-cols-dumb-with-T": {
+    "stdout": "80\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-numeric-lines": {
+    "stdout": "24\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-numeric-lines-dumb-with-T": {
+    "stdout": "-1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-numeric-looking-capability": {
+    "stdout": "rc=4\nrc=4\n",
+    "stderr": "tput: unknown terminfo capability '0'\ntput: unknown terminfo capability '1'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-numeric-pairs-256": {
+    "stdout": "65536\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-numerics-terminals": {
+    "stdout": "xterm it=8 ncv=-1 pairs=64 lm=-1 ma=-1\nxterm-256color it=8 ncv=-1 pairs=65536 lm=-1 ma=-1\nvt100 it=8 ncv=-1 pairs=-1 lm=-1 ma=-1\nlinux it=8 ncv=18 pairs=64 lm=-1 ma=-1\nscreen it=8 ncv=-1 pairs=64 lm=-1 ma=-1\ndumb it=-1 ncv=-1 pairs=-1 lm=-1 ma=-1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-option-after-command": {
+    "stdout": "0000000 033   [   H 033   [   2   J\n0000007\n0000000 033   [   H 033   [   2   J 033   [   3   J\n0000013\n0000000 033   [   1   m\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-raw-parameterized-string": {
+    "stdout": "0000000 033   [   %   i   %   p   1   %   d   ;   %   p   2   %   d   H\n0000020\n0000000 033   [   3   %   p   1   %   d   m\n0000011\n0000000 033   [   %   ?   %   p   1   %   {   8   }   %   <   %   t   4\n0000020   %   p   1   %   d   %   e   %   p   1   %   {   1   6   }   %\n0000040   <   %   t   1   0   %   p   1   %   {   8   }   %   -   %   d\n0000060   %   e   4   8   ;   5   ;   %   p   1   %   d   %   ;   m\n0000077\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-reset-without-tty": {
+    "stdout": "",
+    "stderr": "tput: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "tput-simple-strings-od": {
+    "stdout": "bold: 0000000 033   [   1   m\n0000004\ndim: 0000000 033   [   2   m\n0000004\nrev: 0000000 033   [   7   m\n0000004\nsmul: 0000000 033   [   4   m\n0000004\nrmul: 0000000 033   [   2   4   m\n0000005\nsmso: 0000000 033   [   7   m\n0000004\nrmso: 0000000 033   [   2   7   m\n0000005\nsitm: 0000000 033   [   3   m\n0000004\nritm: 0000000 033   [   2   3   m\n0000005\nblink: 0000000 033   [   5   m\n0000004\nsgr0: 0000000 033   (   B 033   [   m\n0000006\nsmcup: 0000000 033   [   ?   1   0   4   9   h 033   [   2   2   ;   0   ;   0\n0000020   t\n0000021\nrmcup: 0000000 033   [   ?   1   0   4   9   l 033   [   2   3   ;   0   ;   0\n0000020   t\n0000021\ncivis: 0000000 033   [   ?   2   5   l\n0000006\ncnorm: 0000000 033   [   ?   1   2   l 033   [   ?   2   5   h\n0000014\ncvvis: 0000000 033   [   ?   1   2   ;   2   5   h\n0000011\nhome: 0000000 033   [   H\n0000003\nel: 0000000 033   [   K\n0000003\ned: 0000000 033   [   J\n0000003\nil1: 0000000 033   [   L\n0000003\ndl1: 0000000 033   [   M\n0000003\nich1: 0000000\ndch1: 0000000 033   [   P\n0000003\nkcuu1: 0000000 033   O   A\n0000003\nkcud1: 0000000 033   O   B\n0000003\nkf1: 0000000 033   O   P\n0000003\nkf12: 0000000 033   [   2   4   ~\n0000005\nkbs: 0000000 177\n0000001\nkhome: 0000000 033   O   H\n0000003\nkend: 0000000 033   O   F\n0000003\nknp: 0000000 033   [   6   ~\n0000004\nkpp: 0000000 033   [   5   ~\n0000004\nkmous: 0000000 033   [   <\n0000003\nop: 0000000 033   [   3   9   ;   4   9   m\n0000010\noc: 0000000 033   ]   1   0   4  \\a\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-string-absent-exit-one": {
+    "stdout": "rc=1\nrc=1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-terminfo-empty-file": {
+    "stdout": "rc=3\n",
+    "stderr": "tput: unknown terminal \"bad\"\n",
+    "exit": 0,
+    "files": {
+      "ti": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "ti/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "ti/b/bad": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "tput-terminfo-env-directory": {
+    "stdout": "80\n24\n80-column dumb tty\n80\n80\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ti": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "ti/z": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "ti/z/zzz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 500,
+        "sha256": "ffa343bd9f26c193a4155c1a69947504092983c55aff553f44ab281bd8164d51",
+        "data": {
+          "b64": "GgEYAAIAAQCCAAgAZHVtYnw4MC1jb2x1bW4gZHVtYiB0dHkAAAFQAP//AAACAP////////////////////8EAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wYABwANAAoACgA="
+        }
+      }
+    }
+  },
+  "tput-terminfo-garbage-file": {
+    "stdout": "rc=3\n",
+    "stderr": "tput: unknown terminal \"bad\"\n",
+    "exit": 0,
+    "files": {
+      "ti": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "ti/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "ti/b/bad": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "0292bb6b7fe3f8645642ccb9e671b1858527aa628a48f1c3b1ac69a04e81edc3",
+        "data": "not a terminfo file\n"
+      }
+    }
+  },
+  "tput-terminfo-home-directory": {
+    "stdout": "80\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      ".terminfo": {
+        "kind": "dir",
+        "mode": 493
+      },
+      ".terminfo/z": {
+        "kind": "dir",
+        "mode": 493
+      },
+      ".terminfo/z/zzz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 500,
+        "sha256": "ffa343bd9f26c193a4155c1a69947504092983c55aff553f44ab281bd8164d51",
+        "data": {
+          "b64": "GgEYAAIAAQCCAAgAZHVtYnw4MC1jb2x1bW4gZHVtYiB0dHkAAAFQAP//AAACAP////////////////////8EAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wYABwANAAoACgA="
+        }
+      }
+    }
+  },
+  "tput-terminfo-quickdump-hex": {
+    "stdout": "80\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-unknown-capability": {
+    "stdout": "",
+    "stderr": "tput: unknown terminfo capability 'foo'\n",
+    "exit": 4,
+    "files": {}
+  },
+  "tput-unknown-capability-termcap-name": {
+    "stdout": "rc=4\nrc=4\nrc=4\n",
+    "stderr": "tput: unknown terminfo capability 'co'\ntput: unknown terminfo capability 'Co'\ntput: unknown terminfo capability 'li'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-unknown-terminal": {
+    "stdout": "",
+    "stderr": "tput: unknown terminal \"nosuch\"\n",
+    "exit": 3,
+    "files": {}
+  },
+  "tput-verbose-extra-parameters": {
+    "stdout": "0000000 033   [   2   ;   3   H\n0000006\n0000000 033   [   1   m\n0000004\n",
+    "stderr": "tput: extra parameters for \"cup\"\ntput: extra parameters for \"bold\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-verbose-missing-parameters": {
+    "stdout": "\u001b[1m\u001b[%i%p1%d;%p2%dH\u001b[2;1H",
+    "stderr": "tput: missing parameters for \"bold\"\ntput: missing parameters for \"cup\"\ntput: missing parameters for \"cup\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-verbose-numeric-cap": {
+    "stdout": "80\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-version": {
+    "stdout": "ncurses 6.5.20250216\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-version-with-term": {
+    "stdout": "ncurses 6.5.20250216\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tput-vt100-flash-absent": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "tput-vt100-padding-stripped": {
+    "stdout": "0000000 033   [   1   m\n0000004\n0000000 033   [   H 033   [   J\n0000006\n0000000 033   [   4   ;   5   H\n0000006\n0000000 033   [   K\n0000003\n0000000 033   [   m 017\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

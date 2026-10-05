@@ -1,0 +1,303 @@
+{
+  "toe-alias-files-are-skipped": {
+    "stdout": "vt100     \tDEC VT100 (w/advanced video)\n",
+    "stderr": "toe: couldn't open terminfo file not-a-terminal.\n",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/README": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "2be3b1b58ec1d1fe6c564b0f6a7fc0216bee5ffa1e413587a97e5f51b956e52f",
+        "data": "arquivo solto\n"
+      },
+      "a/v": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/v/vt100": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1282,
+        "sha256": "779a219d6ed2ed282f9416ee04fe65f92a1c90606cf6e93a61cebfc3aa96c982",
+        "data": {
+          "b64": "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA=="
+        }
+      },
+      "a/v/vt100-am": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1282,
+        "sha256": "779a219d6ed2ed282f9416ee04fe65f92a1c90606cf6e93a61cebfc3aa96c982",
+        "data": {
+          "b64": "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA=="
+        }
+      },
+      "a/x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/x/not-a-terminal": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "7a1487b089c1c33b2e2b58f2d0449babc961bfd6f0fb796cc509575d8e88fb7d",
+        "data": "texto qualquer\n"
+      }
+    }
+  },
+  "toe-custom-directories-differ": {
+    "stdout": "--> PWD/a\n----> PWD/b\n*---:\tdumb      \t80-column dumb tty\n*-+-:\tvt100     \tDEC VT100 (w/advanced video)\n--*-:\tvt102     \tDEC VT102\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/d/dumb": {
+        "kind": "file",
+        "mode": 420,
+        "size": 308,
+        "sha256": "123c85a2812a517d967db5f31660db0e6aded4a0b95ed943c5ab435368e7a25c",
+        "data": {
+          "b64": "GgEYAAIAAQCCAAgAZHVtYnw4MC1jb2x1bW4gZHVtYiB0dHkAAAFQAP//AAACAP////////////////////8EAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wYABwANAAoACgA="
+        }
+      },
+      "a/v": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/v/vt100": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1282,
+        "sha256": "779a219d6ed2ed282f9416ee04fe65f92a1c90606cf6e93a61cebfc3aa96c982",
+        "data": {
+          "b64": "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA=="
+        }
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/v": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/v/vt100": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1282,
+        "sha256": "779a219d6ed2ed282f9416ee04fe65f92a1c90606cf6e93a61cebfc3aa96c982",
+        "data": {
+          "b64": "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA=="
+        }
+      },
+      "b/v/vt102": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1276,
+        "sha256": "7fe8275bde4dc821f6b89ca2fd99badff00d02db7d92fe9a419ebe7331426e36",
+        "data": {
+          "b64": "GgEQACYABwApAVoCdnQxMDJ8REVDIFZUMTAyAAABAAABAAAAAAAAAAAAAQAAAAAAAQABAAAAAAAAAAAAAAAAAAABUAAIABgA////////AwD//wAAAgAEABUAGgAmAC4A/////zcATABOAP//UgD/////VAD//1wA//9kAGgA/////2wAbgB3AP///////4AA/////4UAjgCXAP//oACiAP////+rALAAuAD/////////////////////wAD//8QA/////////////8YA////////ygDOANIA1gDaAN4A4gDmAOoA7gDyAP////////YA////////+gD////////+AAIBCgH//xIB//8WARoBHgH/////////////////////////////IgH///////8rATQB//89Af///////0YBSwFQAf////9VAf////9tAf//cAFzAXUBfAHIAf//ywH//////////80B0QHVAdkB3QH/////4QH//////////xQCGgL/////IAL///////////////////////8nAv//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////KwL/////////////////////////////////////////////////////////////NAI/AkQCVwIHAA0AG1slaSVwMSVkOyVwMiVkcgAbWzNnABtbSBtbSiQ8NTA+ABtbSyQ8Mz4AG1tKJDw1MD4AG1slaSVwMSVkOyVwMiVkSCQ8NT4ACgAbW0gACAAbW0MkPDI+ABtbQSQ8Mj4AG1tQABtbTQAOABtbNW0kPDI+ABtbMW0kPDI+ABtbNGgAG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbWzRsABtbbSQ8Mj4AG1ttJDwyPgAbW0wACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA=="
+        }
+      }
+    }
+  },
+  "toe-custom-directory-header": {
+    "stdout": "#\n#PWD/a:\n#\ndumb      \t80-column dumb tty\nvt100     \tDEC VT100 (w/advanced video)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/d/dumb": {
+        "kind": "file",
+        "mode": 420,
+        "size": 308,
+        "sha256": "123c85a2812a517d967db5f31660db0e6aded4a0b95ed943c5ab435368e7a25c",
+        "data": {
+          "b64": "GgEYAAIAAQCCAAgAZHVtYnw4MC1jb2x1bW4gZHVtYiB0dHkAAAFQAP//AAACAP////////////////////8EAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wYABwANAAoACgA="
+        }
+      },
+      "a/v": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/v/vt100": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1282,
+        "sha256": "779a219d6ed2ed282f9416ee04fe65f92a1c90606cf6e93a61cebfc3aa96c982",
+        "data": {
+          "b64": "GgEsACYABwApAUQCdnQxMDB8dnQxMDAtYW18REVDIFZUMTAwICh3L2FkdmFuY2VkIHZpZGVvKQAAAQAAAQAAAAAAAAAAAAEAAAAAAAEAAQAAAAAAAAAAAAAAAAAAAVAACAAYAP///////wMA//8AAAIABAAVABoAJgAuAP////83AEwATgD//1IA/////1QA//9cAP////////////9kAGYAbwD///////////////94AIEAigD//5MAlQD///////+eAKYA//////////////////////////+uAP////////////+wAP///////7QAuAC8AMAAxADIAMwA0ADUANgA3AD////////gAP///////+QA////////6ADsAPQA///8AP//AAEEAQgB/////////////////////////////wwB////////FQEeAf//JwH///////8wATUBOgH/////PwH/////VwH//1oBXQFfAWYBsgH//7UB//////////+3AbsBvwHDAccB/////8sB///////////+AQQC/////woC////////////////////////EQL//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////xUC/////////////////////////////////////////////////////////////x4CKQIuAkECBwANABtbJWklcDElZDslcDIlZHIAG1szZwAbW0gbW0okPDUwPgAbW0skPDM+ABtbSiQ8NTA+ABtbJWklcDElZDslcDIlZEgkPDU+AAoAG1tIAAgAG1tDJDwyPgAbW0EkPDI+AA4AG1s1bSQ8Mj4AG1sxbSQ8Mj4AG1s3bSQ8Mj4AG1s3bSQ8Mj4AG1s0bSQ8Mj4ADwAbW20PJDwyPgAbW20kPDI+ABtbbSQ8Mj4ACAAbT0IAG095ABtPUAAbT3gAG09RABtPUgAbT1MAG090ABtPdQAbT3YAG09sABtPdwAbT0QAG09DABtPQQAbWz8xbBs+ABtbPzFoGz0AcGYxAHBmMgBwZjMAcGY0ABtbJXAxJWRCABtbJXAxJWREABtbJXAxJWRDABtbJXAxJWRBABtbMGkAG1s0aQAbWzVpABs8Gz4bWz8zOzQ7NWwbWz83OzhoG1tyABs4ABs3AAoAG00kPDU+ABtbMCU/JXAxJXA2JXwldDsxJTslPyVwMiV0OzQlOyU/JXAxJXAzJXwldDs3JTslPyVwNCV0OzUlO20lPyVwOSV0DiVlDyU7JDwyPgAbSAAJABtPcQAbT3MAG09yABtPcAAbT24AYGBhYWZmZ2dqamtrbGxtbW5ub29wcHFxcnJzc3R0dXV2dnd3eHh5eXp6e3t8fH19fn4AG1s/N2gAG1s/N2wAGyhCGykwABtPTQAbWzFLJDwzPgAbWyVpJWQ7JWRSABtbNm4AG1s/JVs7MDEyMzQ1Njc4OV1jABtaAA=="
+        }
+      }
+    }
+  },
+  "toe-default-first-directory-is-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-dependencies-direct": {
+    "stdout": "beta: alpha\ngamma: alpha beta\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "src.ti": {
+        "kind": "file",
+        "mode": 420,
+        "size": 136,
+        "sha256": "02f55fb737404b46a3878ef37205ffcc591b2f22321028feae2840986b8a6b73",
+        "data": "alpha|first terminal,\n\tam, cols#80,\nbeta|second one,\n\tuse=alpha, xon,\ngamma|third entry,\n\tuse=alpha, use=beta,\ndelta|fourth entry,\n\tbw,\n"
+      }
+    }
+  },
+  "toe-dependencies-reverse": {
+    "stdout": "alpha: beta gamma\nbeta: gamma\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "src.ti": {
+        "kind": "file",
+        "mode": 420,
+        "size": 136,
+        "sha256": "02f55fb737404b46a3878ef37205ffcc591b2f22321028feae2840986b8a6b73",
+        "data": "alpha|first terminal,\n\tam, cols#80,\nbeta|second one,\n\tuse=alpha, xon,\ngamma|third entry,\n\tuse=alpha, use=beta,\ndelta|fourth entry,\n\tbw,\n"
+      }
+    }
+  },
+  "toe-dependencies-with-comments": {
+    "stdout": "child: base\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "src.ti": {
+        "kind": "file",
+        "mode": 420,
+        "size": 75,
+        "sha256": "61eb813709b078c223a5c1a2ca85a30e75c2c55b3463e7708f636f8f540aaec4",
+        "data": "# comentário\nbase|base entry,\n\tam,\n\n# outro\nchild|child entry,\n\tuse=base,\n"
+      }
+    }
+  },
+  "toe-digits-as-options": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-invalid-option": {
+    "stdout": "",
+    "stderr": "toe: invalid option -- 'x'\nusage: toe [-ahsuUV] [-v n] [file...]\n",
+    "exit": 1,
+    "files": {}
+  },
+  "toe-nonexistent-directory": {
+    "stdout": "#\n#/usr/share/terminfo/x:\n#\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-same-directory-twice": {
+    "stdout": "--> /usr/share/terminfo\n----> /usr/share/terminfo\n*-+-:\tEterm     \tEterm with xterm-style color support (X Window System)\n*-+-:\tansi      \tansi/pc-term compatible with color\n*-+-:\tcons25    \tFreeBSD console (25-line ANSI mode)\n*-+-:\tcygwin    \tANSI emulation for Cygwin\n*-+-:\tdumb      \t80-column dumb tty\n*-+-:\thurd      \tThe GNU Hurd console server\n*-+-:\tlinux     \tLinux console\n*-+-:\tmach      \tMach console\n*-+-:\tmach-bold \tMach console with bold instead of underline\n*-+-:\tmach-color\tMach console with ANSI color\n*-+-:\tmach-gnu  \tGNU Mach\n*-+-:\tmach-gnu-color\tGNU Mach console with ANSI color\n*-+-:\tpcansi    \tibm-pc terminal programs claiming to be ANSI\n*-+-:\trxvt      \trxvt terminal emulator (X Window System)\n*-+-:\trxvt-basic\trxvt terminal base (X Window System)\n*-+-:\trxvt-unicode\trxvt-unicode terminal (X Window System)\n*-+-:\trxvt-unicode-256color\trxvt-unicode terminal with 256 colors (X Window System)\n*-+-:\tscreen    \tVT 100/ANSI X3.64 virtual terminal\n*-+-:\tscreen-256color\tGNU Screen with 256 colors\n*-+-:\tscreen-256color-bce\tGNU Screen with 256 colors and BCE\n*-+-:\tscreen-bce\tVT 100/ANSI X3.64 virtual terminal with bce\n*-+-:\tscreen-s  \tVT 100/ANSI X3.64 virtual terminal with hardstatus line\n*-+-:\tscreen-w  \tVT 100/ANSI X3.64 virtual terminal with 132 cols\n*-+-:\tscreen.xterm-256color\tGNU Screen with xterm using 256 colors\n*-+-:\tsun       \tSun Microsystems Inc. workstation console\n*-+-:\ttmux      \ttmux terminal multiplexer\n*-+-:\ttmux-256color\ttmux with 256 colors\n*-+-:\tvt100     \tDEC VT100 (w/advanced video)\n*-+-:\tvt102     \tDEC VT102\n*-+-:\tvt220     \tDEC VT220\n*-+-:\tvt52      \tDEC VT52\n*-+-:\twsvt25    \tNetBSD wscons in 25 line DEC VT220 mode\n*-+-:\twsvt25m   \tNetBSD wscons in 25 line DEC VT220 mode with Meta\n*-+-:\txterm     \txterm terminal emulator (X Window System)\n*-+-:\txterm-256color\txterm with 256 colors\n*-+-:\txterm-color\tgeneric color xterm\n*-+-:\txterm-mono\tmonochrome xterm\n*-+-:\txterm-r5  \txterm R5 version\n*-+-:\txterm-r6  \txterm X11R6 version\n*-+-:\txterm-vt220\txterm emulating VT220\n*-+-:\txterm-xfree86\txterm terminal emulator (XFree86)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-sorted-all-directories": {
+    "stdout": "--> /etc/terminfo\n----> /usr/share/terminfo\n--*-:\tEterm     \tEterm with xterm-style color support (X Window System)\n--*-:\tansi      \tansi/pc-term compatible with color\n--*-:\tcons25    \tFreeBSD console (25-line ANSI mode)\n--*-:\tcygwin    \tANSI emulation for Cygwin\n--*-:\tdumb      \t80-column dumb tty\n--*-:\thurd      \tThe GNU Hurd console server\n--*-:\tlinux     \tLinux console\n--*-:\tmach      \tMach console\n--*-:\tmach-bold \tMach console with bold instead of underline\n--*-:\tmach-color\tMach console with ANSI color\n--*-:\tmach-gnu  \tGNU Mach\n--*-:\tmach-gnu-color\tGNU Mach console with ANSI color\n--*-:\tpcansi    \tibm-pc terminal programs claiming to be ANSI\n--*-:\trxvt      \trxvt terminal emulator (X Window System)\n--*-:\trxvt-basic\trxvt terminal base (X Window System)\n--*-:\trxvt-unicode\trxvt-unicode terminal (X Window System)\n--*-:\trxvt-unicode-256color\trxvt-unicode terminal with 256 colors (X Window System)\n--*-:\tscreen    \tVT 100/ANSI X3.64 virtual terminal\n--*-:\tscreen-256color\tGNU Screen with 256 colors\n--*-:\tscreen-256color-bce\tGNU Screen with 256 colors and BCE\n--*-:\tscreen-bce\tVT 100/ANSI X3.64 virtual terminal with bce\n--*-:\tscreen-s  \tVT 100/ANSI X3.64 virtual terminal with hardstatus line\n--*-:\tscreen-w  \tVT 100/ANSI X3.64 virtual terminal with 132 cols\n--*-:\tscreen.xterm-256color\tGNU Screen with xterm using 256 colors\n--*-:\tsun       \tSun Microsystems Inc. workstation console\n--*-:\ttmux      \ttmux terminal multiplexer\n--*-:\ttmux-256color\ttmux with 256 colors\n--*-:\tvt100     \tDEC VT100 (w/advanced video)\n--*-:\tvt102     \tDEC VT102\n--*-:\tvt220     \tDEC VT220\n--*-:\tvt52      \tDEC VT52\n--*-:\twsvt25    \tNetBSD wscons in 25 line DEC VT220 mode\n--*-:\twsvt25m   \tNetBSD wscons in 25 line DEC VT220 mode with Meta\n--*-:\txterm     \txterm terminal emulator (X Window System)\n--*-:\txterm-256color\txterm with 256 colors\n--*-:\txterm-color\tgeneric color xterm\n--*-:\txterm-mono\tmonochrome xterm\n--*-:\txterm-r5  \txterm R5 version\n--*-:\txterm-r6  \txterm X11R6 version\n--*-:\txterm-vt220\txterm emulating VT220\n--*-:\txterm-xfree86\txterm terminal emulator (XFree86)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-sorted-all-directories-header": {
+    "stdout": "#\n#/etc/terminfo:\n#\n#\n#/usr/share/terminfo:\n#\n--> /etc/terminfo\n----> /usr/share/terminfo\n--*-:\tEterm     \tEterm with xterm-style color support (X Window System)\n--*-:\tansi      \tansi/pc-term compatible with color\n--*-:\tcons25    \tFreeBSD console (25-line ANSI mode)\n--*-:\tcygwin    \tANSI emulation for Cygwin\n--*-:\tdumb      \t80-column dumb tty\n--*-:\thurd      \tThe GNU Hurd console server\n--*-:\tlinux     \tLinux console\n--*-:\tmach      \tMach console\n--*-:\tmach-bold \tMach console with bold instead of underline\n--*-:\tmach-color\tMach console with ANSI color\n--*-:\tmach-gnu  \tGNU Mach\n--*-:\tmach-gnu-color\tGNU Mach console with ANSI color\n--*-:\tpcansi    \tibm-pc terminal programs claiming to be ANSI\n--*-:\trxvt      \trxvt terminal emulator (X Window System)\n--*-:\trxvt-basic\trxvt terminal base (X Window System)\n--*-:\trxvt-unicode\trxvt-unicode terminal (X Window System)\n--*-:\trxvt-unicode-256color\trxvt-unicode terminal with 256 colors (X Window System)\n--*-:\tscreen    \tVT 100/ANSI X3.64 virtual terminal\n--*-:\tscreen-256color\tGNU Screen with 256 colors\n--*-:\tscreen-256color-bce\tGNU Screen with 256 colors and BCE\n--*-:\tscreen-bce\tVT 100/ANSI X3.64 virtual terminal with bce\n--*-:\tscreen-s  \tVT 100/ANSI X3.64 virtual terminal with hardstatus line\n--*-:\tscreen-w  \tVT 100/ANSI X3.64 virtual terminal with 132 cols\n--*-:\tscreen.xterm-256color\tGNU Screen with xterm using 256 colors\n--*-:\tsun       \tSun Microsystems Inc. workstation console\n--*-:\ttmux      \ttmux terminal multiplexer\n--*-:\ttmux-256color\ttmux with 256 colors\n--*-:\tvt100     \tDEC VT100 (w/advanced video)\n--*-:\tvt102     \tDEC VT102\n--*-:\tvt220     \tDEC VT220\n--*-:\tvt52      \tDEC VT52\n--*-:\twsvt25    \tNetBSD wscons in 25 line DEC VT220 mode\n--*-:\twsvt25m   \tNetBSD wscons in 25 line DEC VT220 mode with Meta\n--*-:\txterm     \txterm terminal emulator (X Window System)\n--*-:\txterm-256color\txterm with 256 colors\n--*-:\txterm-color\tgeneric color xterm\n--*-:\txterm-mono\tmonochrome xterm\n--*-:\txterm-r5  \txterm R5 version\n--*-:\txterm-r6  \txterm X11R6 version\n--*-:\txterm-vt220\txterm emulating VT220\n--*-:\txterm-xfree86\txterm terminal emulator (XFree86)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-sorted-default-directory": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-sorted-one-directory": {
+    "stdout": "Eterm     \tEterm with xterm-style color support (X Window System)\nansi      \tansi/pc-term compatible with color\ncons25    \tFreeBSD console (25-line ANSI mode)\ncygwin    \tANSI emulation for Cygwin\ndumb      \t80-column dumb tty\nhurd      \tThe GNU Hurd console server\nlinux     \tLinux console\nmach      \tMach console\nmach-bold \tMach console with bold instead of underline\nmach-color\tMach console with ANSI color\nmach-gnu  \tGNU Mach\nmach-gnu-color\tGNU Mach console with ANSI color\npcansi    \tibm-pc terminal programs claiming to be ANSI\nrxvt      \trxvt terminal emulator (X Window System)\nrxvt-basic\trxvt terminal base (X Window System)\nrxvt-unicode\trxvt-unicode terminal (X Window System)\nrxvt-unicode-256color\trxvt-unicode terminal with 256 colors (X Window System)\nscreen    \tVT 100/ANSI X3.64 virtual terminal\nscreen-256color\tGNU Screen with 256 colors\nscreen-256color-bce\tGNU Screen with 256 colors and BCE\nscreen-bce\tVT 100/ANSI X3.64 virtual terminal with bce\nscreen-s  \tVT 100/ANSI X3.64 virtual terminal with hardstatus line\nscreen-w  \tVT 100/ANSI X3.64 virtual terminal with 132 cols\nscreen.xterm-256color\tGNU Screen with xterm using 256 colors\nsun       \tSun Microsystems Inc. workstation console\ntmux      \ttmux terminal multiplexer\ntmux-256color\ttmux with 256 colors\nvt100     \tDEC VT100 (w/advanced video)\nvt102     \tDEC VT102\nvt220     \tDEC VT220\nvt52      \tDEC VT52\nwsvt25    \tNetBSD wscons in 25 line DEC VT220 mode\nwsvt25m   \tNetBSD wscons in 25 line DEC VT220 mode with Meta\nxterm     \txterm terminal emulator (X Window System)\nxterm-256color\txterm with 256 colors\nxterm-color\tgeneric color xterm\nxterm-mono\tmonochrome xterm\nxterm-r5  \txterm R5 version\nxterm-r6  \txterm X11R6 version\nxterm-vt220\txterm emulating VT220\nxterm-xfree86\txterm terminal emulator (XFree86)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-sorted-one-directory-header": {
+    "stdout": "#\n#/usr/share/terminfo:\n#\nEterm     \tEterm with xterm-style color support (X Window System)\nansi      \tansi/pc-term compatible with color\ncons25    \tFreeBSD console (25-line ANSI mode)\ncygwin    \tANSI emulation for Cygwin\ndumb      \t80-column dumb tty\nhurd      \tThe GNU Hurd console server\nlinux     \tLinux console\nmach      \tMach console\nmach-bold \tMach console with bold instead of underline\nmach-color\tMach console with ANSI color\nmach-gnu  \tGNU Mach\nmach-gnu-color\tGNU Mach console with ANSI color\npcansi    \tibm-pc terminal programs claiming to be ANSI\nrxvt      \trxvt terminal emulator (X Window System)\nrxvt-basic\trxvt terminal base (X Window System)\nrxvt-unicode\trxvt-unicode terminal (X Window System)\nrxvt-unicode-256color\trxvt-unicode terminal with 256 colors (X Window System)\nscreen    \tVT 100/ANSI X3.64 virtual terminal\nscreen-256color\tGNU Screen with 256 colors\nscreen-256color-bce\tGNU Screen with 256 colors and BCE\nscreen-bce\tVT 100/ANSI X3.64 virtual terminal with bce\nscreen-s  \tVT 100/ANSI X3.64 virtual terminal with hardstatus line\nscreen-w  \tVT 100/ANSI X3.64 virtual terminal with 132 cols\nscreen.xterm-256color\tGNU Screen with xterm using 256 colors\nsun       \tSun Microsystems Inc. workstation console\ntmux      \ttmux terminal multiplexer\ntmux-256color\ttmux with 256 colors\nvt100     \tDEC VT100 (w/advanced video)\nvt102     \tDEC VT102\nvt220     \tDEC VT220\nvt52      \tDEC VT52\nwsvt25    \tNetBSD wscons in 25 line DEC VT220 mode\nwsvt25m   \tNetBSD wscons in 25 line DEC VT220 mode with Meta\nxterm     \txterm terminal emulator (X Window System)\nxterm-256color\txterm with 256 colors\nxterm-color\tgeneric color xterm\nxterm-mono\tmonochrome xterm\nxterm-r5  \txterm R5 version\nxterm-r6  \txterm X11R6 version\nxterm-vt220\txterm emulating VT220\nxterm-xfree86\txterm terminal emulator (XFree86)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-source-file-missing": {
+    "stdout": "",
+    "stderr": "toe: can't open /nonexistent\n",
+    "exit": 1,
+    "files": {}
+  },
+  "toe-subdirectory-only": {
+    "stdout": "#\n#/usr/share/terminfo/x:\n#\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-two-directories-marks": {
+    "stdout": "--> /usr/share/terminfo\n----> /etc/terminfo\n------> /usr/share/terminfo\n*---+-:\tEterm     \tEterm with xterm-style color support (X Window System)\n*---+-:\tansi      \tansi/pc-term compatible with color\n*---+-:\tcons25    \tFreeBSD console (25-line ANSI mode)\n*---+-:\tcygwin    \tANSI emulation for Cygwin\n*---+-:\tdumb      \t80-column dumb tty\n*---+-:\thurd      \tThe GNU Hurd console server\n*---+-:\tlinux     \tLinux console\n*---+-:\tmach      \tMach console\n*---+-:\tmach-bold \tMach console with bold instead of underline\n*---+-:\tmach-color\tMach console with ANSI color\n*---+-:\tmach-gnu  \tGNU Mach\n*---+-:\tmach-gnu-color\tGNU Mach console with ANSI color\n*---+-:\tpcansi    \tibm-pc terminal programs claiming to be ANSI\n*---+-:\trxvt      \trxvt terminal emulator (X Window System)\n*---+-:\trxvt-basic\trxvt terminal base (X Window System)\n*---+-:\trxvt-unicode\trxvt-unicode terminal (X Window System)\n*---+-:\trxvt-unicode-256color\trxvt-unicode terminal with 256 colors (X Window System)\n*---+-:\tscreen    \tVT 100/ANSI X3.64 virtual terminal\n*---+-:\tscreen-256color\tGNU Screen with 256 colors\n*---+-:\tscreen-256color-bce\tGNU Screen with 256 colors and BCE\n*---+-:\tscreen-bce\tVT 100/ANSI X3.64 virtual terminal with bce\n*---+-:\tscreen-s  \tVT 100/ANSI X3.64 virtual terminal with hardstatus line\n*---+-:\tscreen-w  \tVT 100/ANSI X3.64 virtual terminal with 132 cols\n*---+-:\tscreen.xterm-256color\tGNU Screen with xterm using 256 colors\n*---+-:\tsun       \tSun Microsystems Inc. workstation console\n*---+-:\ttmux      \ttmux terminal multiplexer\n*---+-:\ttmux-256color\ttmux with 256 colors\n*---+-:\tvt100     \tDEC VT100 (w/advanced video)\n*---+-:\tvt102     \tDEC VT102\n*---+-:\tvt220     \tDEC VT220\n*---+-:\tvt52      \tDEC VT52\n*---+-:\twsvt25    \tNetBSD wscons in 25 line DEC VT220 mode\n*---+-:\twsvt25m   \tNetBSD wscons in 25 line DEC VT220 mode with Meta\n*---+-:\txterm     \txterm terminal emulator (X Window System)\n*---+-:\txterm-256color\txterm with 256 colors\n*---+-:\txterm-color\tgeneric color xterm\n*---+-:\txterm-mono\tmonochrome xterm\n*---+-:\txterm-r5  \txterm R5 version\n*---+-:\txterm-r6  \txterm X11R6 version\n*---+-:\txterm-vt220\txterm emulating VT220\n*---+-:\txterm-xfree86\txterm terminal emulator (XFree86)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-unsorted-count": {
+    "stdout": "41\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-unsorted-piped-through-sort": {
+    "stdout": "Eterm     \tEterm with xterm-style color support (X Window System)\nansi      \tansi/pc-term compatible with color\ncons25    \tFreeBSD console (25-line ANSI mode)\ncygwin    \tANSI emulation for Cygwin\ndumb      \t80-column dumb tty\nhurd      \tThe GNU Hurd console server\nlinux     \tLinux console\nmach      \tMach console\nmach-bold \tMach console with bold instead of underline\nmach-color\tMach console with ANSI color\nmach-gnu  \tGNU Mach\nmach-gnu-color\tGNU Mach console with ANSI color\npcansi    \tibm-pc terminal programs claiming to be ANSI\nrxvt      \trxvt terminal emulator (X Window System)\nrxvt-basic\trxvt terminal base (X Window System)\nrxvt-unicode\trxvt-unicode terminal (X Window System)\nrxvt-unicode-256color\trxvt-unicode terminal with 256 colors (X Window System)\nscreen    \tVT 100/ANSI X3.64 virtual terminal\nscreen-256color\tGNU Screen with 256 colors\nscreen-256color-bce\tGNU Screen with 256 colors and BCE\nscreen-bce\tVT 100/ANSI X3.64 virtual terminal with bce\nscreen-s  \tVT 100/ANSI X3.64 virtual terminal with hardstatus line\nscreen-w  \tVT 100/ANSI X3.64 virtual terminal with 132 cols\nscreen.xterm-256color\tGNU Screen with xterm using 256 colors\nsun       \tSun Microsystems Inc. workstation console\ntmux      \ttmux terminal multiplexer\ntmux-256color\ttmux with 256 colors\nvt100     \tDEC VT100 (w/advanced video)\nvt102     \tDEC VT102\nvt220     \tDEC VT220\nvt52      \tDEC VT52\nwsvt25    \tNetBSD wscons in 25 line DEC VT220 mode\nwsvt25m   \tNetBSD wscons in 25 line DEC VT220 mode with Meta\nxterm     \txterm terminal emulator (X Window System)\nxterm-256color\txterm with 256 colors\nxterm-color\tgeneric color xterm\nxterm-mono\tmonochrome xterm\nxterm-r5  \txterm R5 version\nxterm-r6  \txterm X11R6 version\nxterm-vt220\txterm emulating VT220\nxterm-xfree86\txterm terminal emulator (XFree86)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-usage-missing-argument": {
+    "stdout": "",
+    "stderr": "toe: option requires an argument -- 'u'\nusage: toe [-ahsuUV] [-v n] [file...]\n",
+    "exit": 1,
+    "files": {}
+  },
+  "toe-verbose-flag-with-number": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "toe-version": {
+    "stdout": "ncurses 6.5.20250216\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "clear-T-overrides-env": {
+    "stdout": "0000000 033   [   H 033   [   J\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-T-terminals": {
+    "stdout": "xterm\n0000000 033   [   H 033   [   2   J 033   [   3   J\n0000013\nxterm-256color\n0000000 033   [   H 033   [   2   J 033   [   3   J\n0000013\nvt100\n0000000 033   [   H 033   [   J\n0000006\nlinux\n0000000 033   [   H 033   [   J 033   [   3   J\n0000012\nscreen\n0000000 033   [   H 033   [   J\n0000006\nansi\n0000000 033   [   H 033   [   J\n0000006\ntmux\n0000000 033   [   H 033   [   J 033   [   3   J\n0000012\nrxvt\n0000000 033   [   H 033   [   2   J\n0000007\nsun\n0000000  \\f\n0000001\ncons25\n0000000 033   [   H 033   [   J\n0000006\nwsvt25\n0000000 033   [   H 033   [   J\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-T-xterm": {
+    "stdout": "0000000 033   [   H 033   [   2   J 033   [   3   J\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-T-xterm-x": {
+    "stdout": "0000000 033   [   H 033   [   2   J\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-dumb-has-no-clear": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-empty-term": {
+    "stdout": "",
+    "stderr": "'': unknown terminal type.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-env-term": {
+    "stdout": "0000000 033   [   H 033   [   J\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-env-term-x-after": {
+    "stdout": "0000000 033   [   H 033   [   J\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-extra-operand": {
+    "stdout": "",
+    "stderr": "Usage: clear [options]\n\nOptions:\n  -T TERM     use this instead of $TERM\n  -V          print curses-version\n  -x          do not try to clear scrollback\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-invalid-option": {
+    "stdout": "",
+    "stderr": "clear: invalid option -- 'Z'\nUsage: clear [options]\n\nOptions:\n  -T TERM     use this instead of $TERM\n  -V          print curses-version\n  -x          do not try to clear scrollback\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-long-option": {
+    "stdout": "",
+    "stderr": "clear: invalid option -- '-'\nUsage: clear [options]\n\nOptions:\n  -T TERM     use this instead of $TERM\n  -V          print curses-version\n  -x          do not try to clear scrollback\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-missing-T-argument": {
+    "stdout": "",
+    "stderr": "clear: option requires an argument -- 'T'\nUsage: clear [options]\n\nOptions:\n  -T TERM     use this instead of $TERM\n  -V          print curses-version\n  -x          do not try to clear scrollback\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-no-term": {
+    "stdout": "",
+    "stderr": "TERM environment variable not set.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-operand-after-options": {
+    "stdout": "",
+    "stderr": "Usage: clear [options]\n\nOptions:\n  -T TERM     use this instead of $TERM\n  -V          print curses-version\n  -x          do not try to clear scrollback\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-padding-vt100": {
+    "stdout": "0000000 033   [   H 033   [   J\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-size-env-ignored-by-output": {
+    "stdout": "0000000 033   [   H 033   [   J\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-terminal-with-slash": {
+    "stdout": "",
+    "stderr": "'a/b': unknown terminal type.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-unknown-terminal": {
+    "stdout": "",
+    "stderr": "'nosuch': unknown terminal type.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-unknown-terminal-env": {
+    "stdout": "",
+    "stderr": "'nosuch': unknown terminal type.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "clear-version": {
+    "stdout": "ncurses 6.5.20250216\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "clear-version-ignores-rest": {
+    "stdout": "ncurses 6.5.20250216\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

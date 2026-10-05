@@ -1,0 +1,134 @@
+{
+  "reset-invalid-option": {
+    "stdout": "",
+    "stderr": "reset: invalid option -- 'x'\nUsage: reset [options] [terminal]\n\nOptions:\n  -c          set control characters\n  -e ch       erase character\n  -I          no initialization strings\n  -i ch       interrupt character\n  -k ch       kill character\n  -m mapping  map identifier to type\n  -Q          do not output control key settings\n  -q          display term only, do no changes\n  -r          display term on stderr\n  -s          output TERM set command\n  -V          print curses-version\n  -w          set window-size\n\nIf neither -c/-w are given, both are assumed.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "reset-no-tty": {
+    "stdout": "",
+    "stderr": "reset: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "reset-no-tty-with-options": {
+    "stdout": "rc=10\nrc=10\n",
+    "stderr": "reset: terminal attributes: No such device or address\n\nreset: terminal attributes: No such device or address\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "reset-version": {
+    "stdout": "ncurses 6.5.20250216\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tset-capital-T-is-not-an-option": {
+    "stdout": "",
+    "stderr": "tset: invalid option -- 'T'\nUsage: tset [options] [terminal]\n\nOptions:\n  -c          set control characters\n  -e ch       erase character\n  -I          no initialization strings\n  -i ch       interrupt character\n  -k ch       kill character\n  -m mapping  map identifier to type\n  -Q          do not output control key settings\n  -q          display term only, do no changes\n  -r          display term on stderr\n  -s          output TERM set command\n  -V          print curses-version\n  -w          set window-size\n\nIf neither -c/-w are given, both are assumed.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tset-invalid-option": {
+    "stdout": "",
+    "stderr": "tset: invalid option -- 'x'\nUsage: tset [options] [terminal]\n\nOptions:\n  -c          set control characters\n  -e ch       erase character\n  -I          no initialization strings\n  -i ch       interrupt character\n  -k ch       kill character\n  -m mapping  map identifier to type\n  -Q          do not output control key settings\n  -q          display term only, do no changes\n  -r          display term on stderr\n  -s          output TERM set command\n  -V          print curses-version\n  -w          set window-size\n\nIf neither -c/-w are given, both are assumed.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tset-mapping-conflicting-conditions": {
+    "stdout": "rc=1\nrc=1\nrc=10\n",
+    "stderr": "tset: illegal -m option format: <>50:x\ntset: illegal -m option format: ><50:x\ntset: terminal attributes: No such device or address\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tset-mapping-illegal-format": {
+    "stdout": "rc=1\nrc=1\nrc=1\nrc=1\nrc=1\n",
+    "stderr": "tset: illegal -m option format: <:x\ntset: illegal -m option format: a>:b\ntset: illegal -m option format: foo:bar\ntset: illegal -m option format: x:y\ntset: illegal -m option format: x:y\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tset-mapping-unknown-baud-rate": {
+    "stdout": "rc=1\nrc=1\nrc=1\nrc=10\n",
+    "stderr": "tset: unknown baud rate 9600\ntset: unknown baud rate b\ntset: unknown baud rate 134.5\ntset: terminal attributes: No such device or address\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tset-mapping-valid-forms": {
+    "stdout": "rc=10\nrc=10\nrc=10\nrc=10\nrc=10\nrc=10\nrc=10\nrc=10\n",
+    "stderr": "tset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tset-mapping-with-port-option": {
+    "stdout": "rc=10\nrc=10\nrc=1\n",
+    "stderr": "tset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: illegal -m option format: 9:x\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tset-missing-argument": {
+    "stdout": "",
+    "stderr": "tset: option requires an argument -- 'm'\nUsage: tset [options] [terminal]\n\nOptions:\n  -c          set control characters\n  -e ch       erase character\n  -I          no initialization strings\n  -i ch       interrupt character\n  -k ch       kill character\n  -m mapping  map identifier to type\n  -Q          do not output control key settings\n  -q          display term only, do no changes\n  -r          display term on stderr\n  -s          output TERM set command\n  -V          print curses-version\n  -w          set window-size\n\nIf neither -c/-w are given, both are assumed.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tset-no-tty": {
+    "stdout": "",
+    "stderr": "tset: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "tset-no-tty-env-term": {
+    "stdout": "",
+    "stderr": "tset: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "tset-no-tty-erase-defaults": {
+    "stdout": "rc=10\nrc=10\nrc=10\nrc=10\nrc=10\n",
+    "stderr": "tset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\ntset: terminal attributes: No such device or address\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tset-no-tty-query": {
+    "stdout": "",
+    "stderr": "tset: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "tset-no-tty-show-and-shell": {
+    "stdout": "",
+    "stderr": "tset: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "tset-no-tty-with-type": {
+    "stdout": "",
+    "stderr": "tset: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "tset-obsolete-dash": {
+    "stdout": "rc=10\n",
+    "stderr": "tset: terminal attributes: No such device or address\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tset-obsolete-options-S": {
+    "stdout": "",
+    "stderr": "tset: terminal attributes: No such device or address\n\n",
+    "exit": 10,
+    "files": {}
+  },
+  "tset-too-many-operands": {
+    "stdout": "",
+    "stderr": "Usage: tset [options] [terminal]\n\nOptions:\n  -c          set control characters\n  -e ch       erase character\n  -I          no initialization strings\n  -i ch       interrupt character\n  -k ch       kill character\n  -m mapping  map identifier to type\n  -Q          do not output control key settings\n  -q          display term only, do no changes\n  -r          display term on stderr\n  -s          output TERM set command\n  -V          print curses-version\n  -w          set window-size\n\nIf neither -c/-w are given, both are assumed.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tset-version": {
+    "stdout": "ncurses 6.5.20250216\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
