@@ -160,9 +160,13 @@ fn chage(args: &[OsString]) -> i32 {
     }
     let name = o.rest[0].clone();
     let prefix = o.get(b'P').or_else(|| o.get(b'R')).unwrap_or_default();
-    // O oráculo concatena o prefixo sem normalizar (`/work/case//etc/passwd`).
+    // O oráculo guarda o prefixo com barra final e concatena sem normalizar
+    // (`-P /work/case` vira `/work/case//etc/passwd`).
     let raw = |p: &str| {
         let mut v = prefix.clone();
+        if !v.is_empty() {
+            v.push(b'/');
+        }
         v.extend_from_slice(p.as_bytes());
         v
     };

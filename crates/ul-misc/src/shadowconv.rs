@@ -431,13 +431,13 @@ fn expiry(args: &[OsString]) -> i32 {
         (b'h', "help", false),
     ];
     let Some(o) = parse(P, &argv, spec) else {
-        return usage(expiry_usage(), 1);
+        return usage(expiry_usage(), 2);
     };
     if o.has(b'h') {
         return usage(expiry_usage(), 0);
     }
     if !o.rest.is_empty() || o.has(b'c') == o.has(b'f') {
-        return usage(expiry_usage(), 1);
+        return usage(expiry_usage(), 2);
     }
     // Checar o vencimento exige o uid real e a data de hoje, que o sandbox ainda não expõe.
     io::eprint(format!("{P}: unknown user: 0\n"));

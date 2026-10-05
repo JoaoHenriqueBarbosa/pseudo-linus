@@ -732,7 +732,6 @@ fn run(args: &[OsString]) -> i32 {
             &short,
             "options --target and --source can't be used together with command line element that is not an option",
         );
-        ul::errtryhelp(&short);
         return 1;
     }
     let mut swap_arg: Option<String> = None;
