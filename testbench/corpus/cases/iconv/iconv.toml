@@ -1,0 +1,249 @@
+tool = "iconv"
+source = "manual"
+
+# iconv da glibc 2.41 (libc-bin). O ambiente da bancada é LC_ALL=C.UTF-8, então o codeset padrão
+# é UTF-8 e o //TRANSLIT usa a tabela do C.UTF-8 (translit_combining).
+
+[[case]]
+id = "iconv-utf8-to-latin1"
+argv = ["iconv", "-f", "UTF-8", "-t", "ISO-8859-1", "in.txt"]
+tags = ["basic", "latin1"]
+[case.files]
+"in.txt" = "olá, café\n"
+
+[[case]]
+id = "iconv-latin1-to-utf8-stdin"
+argv = ["iconv", "-f", "latin1", "-t", "utf-8"]
+stdin_b64 = "b2zhLCBjYWbpCg=="
+tags = ["basic", "stdin", "case"]
+
+[[case]]
+id = "iconv-default-to-code"
+argv = ["iconv", "-f", "ISO-8859-15"]
+stdin_b64 = "pCC8Cg=="
+tags = ["default"]
+
+[[case]]
+id = "iconv-utf16-bom"
+script = "printf 'a\\xc3\\xa9\\n' | iconv -f utf-8 -t utf-16 | od -An -tx1"
+tags = ["utf16", "bom"]
+
+[[case]]
+id = "iconv-utf16le-be"
+script = "printf 'ab' | iconv -t UTF-16LE | od -An -tx1; printf 'ab' | iconv -t UTF-16BE | od -An -tx1"
+tags = ["utf16"]
+
+[[case]]
+id = "iconv-utf16-decode-bom-le"
+script = "printf '\\xff\\xfeh\\x00i\\x00' | iconv -f UTF-16 -t UTF-8"
+tags = ["utf16", "bom"]
+
+[[case]]
+id = "iconv-utf16-decode-no-bom"
+script = "printf '\\x00h\\x00i' | iconv -f UTF-16 -t UTF-8"
+tags = ["utf16"]
+
+[[case]]
+id = "iconv-utf16-surrogates"
+script = "printf '\\xf0\\x9f\\x98\\x80' | iconv -t UTF-16BE | od -An -tx1"
+tags = ["utf16", "astral"]
+
+[[case]]
+id = "iconv-utf32"
+script = "printf 'A' | iconv -t UTF-32 | od -An -tx1; printf 'A' | iconv -t UTF-32BE | od -An -tx1; printf 'A' | iconv -t utf32le | od -An -tx1"
+tags = ["utf32", "bom"]
+
+[[case]]
+id = "iconv-ucs2-ucs4"
+script = "printf 'A' | iconv -t UCS-2 | od -An -tx1; printf 'A' | iconv -t UCS-2BE | od -An -tx1; printf 'A' | iconv -t UCS-4 | od -An -tx1; printf 'A' | iconv -t UCS-4LE | od -An -tx1"
+tags = ["ucs"]
+
+[[case]]
+id = "iconv-ucs2-astral"
+script = "printf '\\xf0\\x9f\\x98\\x80' | iconv -t UCS-2; echo \"exit=$?\""
+tags = ["ucs", "error"]
+
+[[case]]
+id = "iconv-ascii-illegal"
+script = "printf 'abc\\xc3\\xa9def\\n' | iconv -f utf-8 -t ascii; echo \"exit=$?\""
+tags = ["error", "ascii"]
+
+[[case]]
+id = "iconv-invalid-utf8"
+script = "printf 'ab\\xffcd\\n' | iconv -f utf-8 -t utf-16le | od -An -tx1; printf 'ab\\xffcd\\n' | iconv -f utf-8 -t latin1; echo \"exit=$?\""
+tags = ["error", "utf8"]
+
+[[case]]
+id = "iconv-incomplete"
+script = "printf 'ab\\xc3' | iconv -f utf-8 -t latin1; echo \"exit=$?\""
+tags = ["error", "incomplete"]
+
+[[case]]
+id = "iconv-c-omits"
+script = "printf 'a\\xc3\\xa9b\\xffc\\n' | iconv -c -f utf-8 -t ascii; echo \"exit=$?\""
+tags = ["omit"]
+
+[[case]]
+id = "iconv-ignore-suffix"
+script = "printf 'a\\xc3\\xa9b\\n' | iconv -f utf-8 -t ASCII//IGNORE; echo \"exit=$?\""
+tags = ["ignore"]
+
+[[case]]
+id = "iconv-translit"
+script = "printf 'ma\\xc3\\xa7\\xc3\\xa3 \\xc5\\x82\\xc3\\xb3d\\xc5\\xba \\xe2\\x82\\xac\\n' | iconv -f utf-8 -t ascii//TRANSLIT; echo \"exit=$?\""
+tags = ["translit"]
+
+[[case]]
+id = "iconv-translit-latin1-target"
+script = "printf 'caf\\xc3\\xa9 \\xc5\\x81\\xc3\\xb3d\\xc5\\xba\\n' | iconv -f utf-8 -t iso-8859-1//translit | od -An -tx1"
+tags = ["translit", "latin1"]
+
+[[case]]
+id = "iconv-windows-1252"
+script = "printf '\\x80 \\x93x\\x94 \\x85\\n' | iconv -f WINDOWS-1252 -t UTF-8; printf '\\xe2\\x82\\xac\\n' | iconv -f utf8 -t cp1252 | od -An -tx1"
+tags = ["windows"]
+
+[[case]]
+id = "iconv-cp1252-undefined"
+script = "printf 'a\\x81b' | iconv -f CP1252 -t UTF-8; echo \"exit=$?\""
+tags = ["windows", "error"]
+
+[[case]]
+id = "iconv-cyrillic"
+script = "printf '\\xd0\\x9f\\xd1\\x80\\xd0\\xb8\\xd0\\xb2\\xd0\\xb5\\xd1\\x82\\n' > in.txt; for c in KOI8-R KOI8-U CP1251 ISO-8859-5; do iconv -f utf-8 -t $c in.txt | od -An -tx1; done"
+tags = ["cyrillic"]
+
+[[case]]
+id = "iconv-dos-codepages"
+script = "printf '\\x82\\x87\\xb0\\xdb\\n' | iconv -f CP437 -t UTF-8; printf '\\x82\\x9b\\xb5\\n' | iconv -f 850 -t UTF-8"
+tags = ["dos"]
+
+[[case]]
+id = "iconv-macintosh"
+script = "printf '\\x8e\\xa5\\xd2\\xd3\\n' | iconv -f MAC -t UTF-8; printf '\\x8e\\n' | iconv -f macintosh -t utf-8"
+tags = ["mac"]
+
+[[case]]
+id = "iconv-iso8859-family"
+script = "for n in 2 3 4 5 6 7 8 9 10 11 13 14 15 16; do printf '\\xc0\\xe9\\xff' | iconv -f ISO-8859-$n -t UTF-8 | od -An -tx1; echo \"$n exit=$?\"; done"
+tags = ["iso8859"]
+
+[[case]]
+id = "iconv-windows-family"
+script = "for n in 0 1 2 3 4 5 6 7 8; do printf '\\x80\\xc0\\xe9' | iconv -f WINDOWS-125$n -t UTF-8 | od -An -tx1; done"
+tags = ["windows"]
+
+[[case]]
+id = "iconv-unsupported-from"
+script = "echo x | iconv -f BOGUS -t UTF-8; echo \"exit=$?\""
+tags = ["error", "unsupported"]
+
+[[case]]
+id = "iconv-unsupported-to"
+script = "echo x | iconv -f utf-8 -t nope//TRANSLIT; echo \"exit=$?\""
+tags = ["error", "unsupported"]
+
+[[case]]
+id = "iconv-unsupported-both"
+script = "echo x | iconv -f foo -t bar; echo \"exit=$?\""
+tags = ["error", "unsupported"]
+
+[[case]]
+id = "iconv-output-file"
+script = "printf 'caf\\xc3\\xa9\\n' | iconv -t latin1 -o out.txt; echo \"exit=$?\"; od -An -tx1 out.txt"
+tags = ["output"]
+
+[[case]]
+id = "iconv-multiple-files"
+argv = ["iconv", "-f", "latin1", "-t", "utf-8", "a.txt", "-", "b.txt"]
+stdin = "meio\n"
+tags = ["files"]
+[case.files]
+"a.txt" = { content_b64 = "4QoK" }
+"b.txt" = { content_b64 = "6QoK" }
+
+[[case]]
+id = "iconv-missing-file"
+script = "iconv -f utf-8 -t latin1 nao-existe.txt a.txt; echo \"exit=$?\""
+tags = ["files", "error"]
+[case.files]
+"a.txt" = "ok\n"
+
+[[case]]
+id = "iconv-error-stops-files"
+script = "iconv -f utf-8 -t ascii a.txt b.txt; echo \"exit=$?\""
+tags = ["files", "error"]
+[case.files]
+"a.txt" = "um é\n"
+"b.txt" = "dois\n"
+
+[[case]]
+id = "iconv-error-position-later-file"
+script = "iconv -f utf-8 -t ascii a.txt b.txt; echo \"exit=$?\""
+tags = ["files", "error"]
+[case.files]
+"a.txt" = "um\n"
+"b.txt" = "dois é\n"
+
+[[case]]
+id = "iconv-verbose"
+script = "iconv --verbose -f utf-8 -t ascii a.txt b.txt 2>&1"
+tags = ["verbose"]
+[case.files]
+"a.txt" = "um\n"
+"b.txt" = "dois\n"
+
+[[case]]
+id = "iconv-empty-input"
+script = "printf '' | iconv -t UTF-16 | od -An -tx1; echo \"exit=$?\""
+tags = ["empty", "bom"]
+
+[[case]]
+id = "iconv-ascii-aliases"
+script = "printf 'ok\\n' | iconv -f ANSI_X3.4-1968 -t US-ASCII; printf 'ok\\n' | iconv -f csascii -t iso646-us; printf 'ok\\n' | iconv -f us -t ibm367"
+tags = ["aliases"]
+
+[[case]]
+id = "iconv-help"
+argv = ["iconv", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "iconv-help-short"
+argv = ["iconv", "-?"]
+tags = ["help"]
+
+[[case]]
+id = "iconv-usage"
+argv = ["iconv", "--usage"]
+tags = ["help"]
+
+[[case]]
+id = "iconv-version"
+argv = ["iconv", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "iconv-bad-option"
+argv = ["iconv", "-x"]
+tags = ["error", "options"]
+
+[[case]]
+id = "iconv-bad-long-option"
+argv = ["iconv", "--frobnicate"]
+tags = ["error", "options"]
+
+[[case]]
+id = "iconv-missing-argument"
+argv = ["iconv", "-f"]
+tags = ["error", "options"]
+
+[[case]]
+id = "iconv-long-options"
+script = "printf 'caf\\xc3\\xa9\\n' | iconv --from-code=UTF-8 --to-code=LATIN1 --silent | od -An -tx1"
+tags = ["options"]
+
+[[case]]
+id = "iconv-list-has-names"
+script = "iconv -l | grep -x -e 'UTF-8//' -e 'ISO-8859-1//' -e 'KOI8-R//' -e 'WINDOWS-1252//' -e 'ISO-10646/UCS4/' -e 'CP437//' -e 'MACINTOSH//'"
+tags = ["list"]

@@ -1062,11 +1062,13 @@ mod tests {
         ld.set_termios(t);
         ld.receive(b"a\rb\n");
         let mut b = [0u8; 8];
-        assert_eq!(&b[..ld.read_raw(&mut b)], b"ab\n");
+        let n = ld.read_raw(&mut b);
+        assert_eq!(&b[..n], b"ab\n");
         t.c_iflag = INLCR;
         ld.set_termios(t);
         ld.receive(b"\n");
-        assert_eq!(&b[..ld.read_raw(&mut b)], b"\r");
+        let n = ld.read_raw(&mut b);
+        assert_eq!(&b[..n], b"\r");
     }
 
     #[test]
@@ -1113,7 +1115,8 @@ mod tests {
         t.c_lflag &= !ICANON;
         ld.set_termios(t);
         let mut b = [0u8; 16];
-        assert_eq!(&b[..ld.read_raw(&mut b)], b"line\nhalf");
+        let n = ld.read_raw(&mut b);
+        assert_eq!(&b[..n], b"line\nhalf");
     }
 
     #[test]

@@ -3,7 +3,7 @@
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst`, `gettext` e
 //! `ngettext` (gettext 0.23), `less` não interativo, `tput`, `clear`, `tset`/`reset`, `tabs`,
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
-//! `getent` e `locale` (glibc 2.41).
+//! `getent`, `locale` e `iconv` (glibc 2.41).
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
 //! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
 //! e, como os scripts originais rodando no `sh`, `savelog`, `add-shell` e `remove-shell`.
@@ -26,6 +26,7 @@ pub mod getopt_cmd;
 pub mod gettext;
 pub mod hardlink;
 pub mod hexdump;
+pub mod iconv;
 pub mod ischroot;
 pub mod locale;
 pub mod look;
@@ -71,6 +72,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("hardlink", hardlink::main),
         Program::bin("hexdump", hexdump::main),
         Program::bin("hd", hexdump::main),
+        Program::bin("iconv", iconv::main),
         Program::bin("infocmp", term::infocmp::main),
         Program::bin("ischroot", ischroot::main),
         Program::bin("less", pager::less_main),
