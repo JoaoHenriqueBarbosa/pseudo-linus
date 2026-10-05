@@ -1,0 +1,122 @@
+{
+  "agetty-bad-option": {
+    "stdout": "",
+    "stderr": "agetty: unrecognized option '--bogus'\nTry 'agetty --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "agetty-help": {
+    "stdout": "\nUsage:\n agetty [options] <line> [<baud_rate>,...] [<termtype>]\n agetty [options] <baud_rate>,... <line> [<termtype>]\n\nOpen a terminal and set its mode.\n\nOptions:\n -8, --8bits                assume 8-bit tty\n -a, --autologin <user>     login the specified user automatically\n -c, --noreset              do not reset control mode\n -E, --remote               use -r <hostname> for login(1)\n -f, --issue-file <list>    display issue files or directories\n     --show-issue           display issue file and exit\n -h, --flow-control         enable hardware flow control\n -H, --host <hostname>      specify login host\n -i, --noissue              do not display issue file\n -I, --init-string <string> set init string\n -J, --noclear              do not clear the screen before prompt\n -l, --login-program <file> specify login program\n -L, --local-line[=<mode>]  control the local line flag\n -m, --extract-baud         extract baud rate during connect\n -n, --skip-login           do not prompt for login\n -N, --nonewline            do not print a newline before issue\n -o, --login-options <opts> options that are passed to login\n -p, --login-pause          wait for any key before the login\n -r, --chroot <dir>         change root to the directory\n -R, --hangup               do virtually hangup on the tty\n -s, --keep-baud            try to keep baud rate after break\n -t, --timeout <number>     login process timeout\n -U, --detect-case          detect uppercase terminal\n -w, --wait-cr              wait carriage-return\n     --nohints              do not print hints\n     --nohostname           no hostname at all will be shown\n     --long-hostname        show full qualified hostname\n     --erase-chars <string> additional backspace chars\n     --kill-chars <string>  additional kill chars\n     --chdir <directory>    chdir before the login\n     --delay <number>       sleep seconds before prompt\n     --nice <number>        run login with this priority\n     --reload               reload prompts on running agetty instances\n     --list-speeds          display supported baud rates\n     --help                 display this help\n     --version              display version\n\nFor more details see agetty(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "agetty-missing-line": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "agetty-no-args": {
+    "stdout": "",
+    "stderr": "agetty: not enough arguments\n",
+    "exit": 1,
+    "files": {}
+  },
+  "agetty-version": {
+    "stdout": "",
+    "stderr": "agetty: invalid option -- 'V'\nTry 'agetty --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkzone-help": {
+    "stdout": "\nUsage:\n blkzone <command> [options] <device>\n\nRun zone command on the given block device.\n\nCommands:\n report       Report zone information about the given device\n capacity     Report sum of zone capacities for the given device\n reset        Reset a range of zones.\n open         Open a range of zones.\n close        Close a range of zones.\n finish       Set a range of zones to Full.\n\nOptions:\n -o, --offset <sector>  start sector of zone to act (in 512-byte sectors)\n -l, --length <sectors> maximum sectors to act (in 512-byte sectors)\n -c, --count <number>   maximum number of zones\n -f, --force            enforce on block devices used by the system\n -v, --verbose          display more details\n\n -h, --help             display this help\n -V, --version          display version\n\nArguments:\n Values for <sector> and <sectors> may be followed by a suffix: KiB, MiB,\n GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).\n\nFor more details see blkzone(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "blkzone-missing-device": {
+    "stdout": "",
+    "stderr": "blkzone: cannot open /nonexistent/device: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkzone-no-args": {
+    "stdout": "",
+    "stderr": "blkzone: no command specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkzone-no-device": {
+    "stdout": "",
+    "stderr": "blkzone: no device specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkzone-unknown-command": {
+    "stdout": "",
+    "stderr": "blkzone: bogus is not valid command name\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkzone-version": {
+    "stdout": "blkzone from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ldattach-bad-ldisc": {
+    "stdout": "",
+    "stderr": "ldattach: invalid line discipline argument: 'BOGUS'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ldattach-bad-speed": {
+    "stdout": "",
+    "stderr": "ldattach: invalid speed argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ldattach-help": {
+    "stdout": "\nUsage:\n ldattach [options] <ldisc> <device>\n\nAttach a line discipline to a serial line.\n\nOptions:\n -d, --debug             print verbose messages to stderr\n -s, --speed <value>     set serial line speed\n -c, --intro-command <string> intro sent before ldattach\n -p, --pause <seconds>   pause between intro and ldattach\n -7, --sevenbits         set character size to 7 bits\n -8, --eightbits         set character size to 8 bits\n -n, --noparity          set parity to none\n -e, --evenparity        set parity to even\n -o, --oddparity         set parity to odd\n -1, --onestopbit        set stop bits to one\n -2, --twostopbits       set stop bits to two\n -i, --iflag [-]<iflag>  set input mode flag\n\n -h, --help              display this help\n -V, --version           display version\n\nKnown <ldisc> names:\n  TTY           SLIP          MOUSE         PPP           STRIP       \n  AX25          X25           6PACK         R3964         IRDA        \n  HDLC          SYNC_PPP      SYNCPPP       HCI           GIGASET_M101\n  M101          GIGASET       PPS           GSM0710     \n\nKnown <iflag> names:\n  IGNBRK        BRKINT        IGNPAR        PARMRK        INPCK       \n  ISTRIP        INLCR         IGNCR         ICRNL         IUCLC       \n  IXON          IXANY         IXOFF         IMAXBEL       IUTF8       \n\nFor more details see ldattach(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ldattach-missing-device": {
+    "stdout": "",
+    "stderr": "ldattach: cannot open /nonexistent/device: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ldattach-no-args": {
+    "stdout": "",
+    "stderr": "ldattach: not enough arguments\nTry 'ldattach --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ldattach-version": {
+    "stdout": "ldattach from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sulogin-bad-option": {
+    "stdout": "",
+    "stderr": "sulogin: invalid option -- 'Z'\nsulogin: tcgetattr failed: Invalid argument\n",
+    "exit": 0,
+    "files": {}
+  },
+  "sulogin-help": {
+    "stdout": "\nUsage:\n sulogin [options] [tty device]\n\nSingle-user login.\n\nOptions:\n -p, --login-shell        start a login shell\n -t, --timeout <seconds>  max time to wait for a password (default: no limit)\n -e, --force              examine password files directly if getpwnam(3) fails\n\n -h, --help               display this help\n -V, --version            display version\n\nFor more details see sulogin(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sulogin-version": {
+    "stdout": "sulogin from util-linux 2.41.5 (features: selinux, plymouth, keyboard mode, widechar, serial-info)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

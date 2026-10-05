@@ -1,0 +1,152 @@
+{
+  "fsck-cramfs-help": {
+    "stdout": "",
+    "stderr": "fsck.cramfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "fsck-cramfs-missing-file": {
+    "stdout": "",
+    "stderr": "fsck.cramfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "fsck-cramfs-version": {
+    "stdout": "",
+    "stderr": "fsck.cramfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "fsck-help": {
+    "stdout": "\nUsage:\n fsck [options] -- [fs-options] [<filesystem> ...]\n\nCheck and repair a Linux filesystem.\n\nOptions:\n -A         check all filesystems\n -C [<fd>]  display progress bar; file descriptor is for GUIs\n -l         lock the device to guarantee exclusive access\n -M         do not check mounted filesystems\n -N         do not execute, just show what would be done\n -P         check filesystems in parallel, including root\n -R         skip root filesystem; useful only with '-A'\n -r [<fd>]  report statistics for each device checked;\n            file descriptor is for GUIs\n -s         serialize the checking operations\n -T         do not show the title on startup\n -t <type>  specify filesystem types to be checked;\n            <type> is allowed to be a comma-separated list\n -V         explain what is being done\n\n -?, --help     display this help\n     --version  display version\n\nSee the specific fsck.* commands for available fs-options.\nFor more details see fsck(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fsck-minix-bad-option": {
+    "stdout": "",
+    "stderr": "fsck.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "fsck-minix-help": {
+    "stdout": "",
+    "stderr": "fsck.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "fsck-minix-missing-device": {
+    "stdout": "",
+    "stderr": "fsck.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "fsck-minix-version": {
+    "stdout": "",
+    "stderr": "fsck.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "fsck-version": {
+    "stdout": "fsck from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mkfs-bfs-bad-option": {
+    "stdout": "",
+    "stderr": "mkfs.bfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-bfs-help": {
+    "stdout": "",
+    "stderr": "mkfs.bfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-bfs-long-volume-name": {
+    "stdout": "",
+    "stderr": "mkfs.bfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-bfs-missing-device": {
+    "stdout": "",
+    "stderr": "mkfs.bfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-bfs-version": {
+    "stdout": "",
+    "stderr": "mkfs.bfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-cramfs-help": {
+    "stdout": "",
+    "stderr": "mkfs.cramfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-cramfs-missing-dir": {
+    "stdout": "",
+    "stderr": "mkfs.cramfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-cramfs-no-args": {
+    "stdout": "",
+    "stderr": "mkfs.cramfs: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-help": {
+    "stdout": "\nUsage:\n mkfs [options] [-t <type>] [fs-options] <device> [<size>]\n\nMake a Linux filesystem.\n\nOptions:\n -t, --type=<type>  filesystem type; when unspecified, ext2 is used\n     fs-options     parameters for the real filesystem builder\n     <device>       path to the device to be used\n     <size>         number of blocks to be used on the device\n -V, --verbose      explain what is being done;\n                      specifying -V more than once will cause a dry-run\n -h, --help         display this help\n -V, --version      display version\n\nFor more details see mkfs(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mkfs-minix-bad-blocks": {
+    "stdout": "",
+    "stderr": "mkfs.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-minix-bad-option": {
+    "stdout": "",
+    "stderr": "mkfs.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-minix-help": {
+    "stdout": "",
+    "stderr": "mkfs.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-minix-missing-device": {
+    "stdout": "",
+    "stderr": "mkfs.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-minix-no-device": {
+    "stdout": "",
+    "stderr": "mkfs.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-minix-version": {
+    "stdout": "",
+    "stderr": "mkfs.minix: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "mkfs-version": {
+    "stdout": "mkfs from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
