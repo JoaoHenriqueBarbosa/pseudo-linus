@@ -17,7 +17,7 @@ use crate::groupmgmt::{
 use crate::util::io;
 
 /// Campo livre de passwd/shadow: sem `:` nem quebra de linha.
-fn valid_field(s: &[u8]) -> bool {
+pub(crate) fn valid_field(s: &[u8]) -> bool {
     !s.iter().any(|b| *b == b':' || *b == b'\n')
 }
 
@@ -76,7 +76,7 @@ fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
 }
 
 /// `YYYY-MM-DD` ou número de dias desde a época; vazio e `-1` viram "sem expiração" (`Some(None)`).
-fn parse_date(s: &[u8]) -> Option<Option<i64>> {
+pub(crate) fn parse_date(s: &[u8]) -> Option<Option<i64>> {
     let t = std::str::from_utf8(s).ok()?;
     if t.is_empty() || t == "-1" {
         return Some(None);
@@ -97,7 +97,7 @@ fn parse_date(s: &[u8]) -> Option<Option<i64>> {
     Some(Some(days_from_civil(y, m, d)))
 }
 
-fn today() -> i64 {
+pub(crate) fn today() -> i64 {
     sys::try_current()
         .and_then(|s| s.clock_gettime(Clock::Realtime).ok())
         .map_or(0, |t| t.sec / 86_400)
@@ -108,7 +108,7 @@ fn today() -> i64 {
 const USERDEL_USAGE: &str = "Usage: userdel [options] LOGIN\n\nOptions:\n  -f, --force                   force some actions that would fail otherwise\n                                e.g. removal of user still logged in\n                                or files, even if not owned by the user\n  -h, --help                    display this help message and exit\n  -r, --remove                  remove home directory and mail spool\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -Z, --selinux-user            remove any SELinux user mapping for the user\n\n";
 
 /// Caminho sob o prefixo como o original concatena: `PREFIXO` + `/` + caminho cru (barra dupla).
-fn under_prefix(prefix: &[u8], p: &[u8]) -> Vec<u8> {
+pub(crate) fn under_prefix(prefix: &[u8], p: &[u8]) -> Vec<u8> {
     if prefix.is_empty() {
         return p.to_vec();
     }
@@ -119,7 +119,7 @@ fn under_prefix(prefix: &[u8], p: &[u8]) -> Vec<u8> {
 }
 
 /// Grava o backup `arquivo-` com o conteúdo anterior e depois o novo conteúdo.
-fn write_with_backup(path: &[u8], old: &[Vec<u8>], new: &[Vec<u8>]) -> bool {
+pub(crate) fn write_with_backup(path: &[u8], old: &[Vec<u8>], new: &[Vec<u8>]) -> bool {
     write_backup(path, old) && write_lines(path, new)
 }
 

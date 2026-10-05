@@ -1,0 +1,48 @@
+tool = "useradd"
+source = "manual"
+
+# useradd do shadow 4.17 sobre um prefixo (-P $PWD) montado no caso.
+
+[[case]]
+id = "useradd-defaults-print"
+script = "mkdir etc; useradd -P $PWD -D; echo \"rc=$?\""
+
+[[case]]
+id = "useradd-basic"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; printf 'root:x:0:\\n' > etc/group; useradd -P $PWD -c 'Bob S' -s /bin/bash bob; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "useradd-explicit-uid-gid"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; printf 'root:x:0:\\nstaff:x:50:\\n' > etc/group; useradd -P $PWD -u 2000 -g staff -d /srv/bob bob; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "useradd-user-group"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; printf 'root:x:0:\\n' > etc/group; printf 'root:*::\\n' > etc/gshadow; useradd -P $PWD -U -u 1500 bob; echo \"rc=$?\"; cat etc/passwd etc/group etc/gshadow"
+
+[[case]]
+id = "useradd-supplementary-groups"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; printf 'root:x:0:\\na:x:50:\\nb:x:51:ann\\n' > etc/group; useradd -P $PWD -G a,b bob; echo \"rc=$?\"; cat etc/group"
+
+[[case]]
+id = "useradd-exists"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\n' > etc/group; useradd -P $PWD bob 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "useradd-invalid-name"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; printf 'root:x:0:\\n' > etc/group; useradd -P $PWD 'Bad Name' 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "useradd-uid-duplicate"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\n' > etc/group; useradd -P $PWD -u 1000 ann 2>&1; echo \"rc=$?\"; useradd -P $PWD -o -u 1000 ann; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "useradd-group-missing"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; printf 'root:x:0:\\n' > etc/group; useradd -P $PWD -g nope bob 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "useradd-create-home-skel"
+script = "mkdir -p etc etc/skel; echo hi > etc/skel/.profile; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; printf 'root:x:0:\\n' > etc/group; useradd -P $PWD -m bob; echo \"rc=$?\"; cat home/bob/.profile"
+
+[[case]]
+id = "useradd-no-login"
+script = "mkdir etc; useradd -P $PWD 2>&1 | head -1; echo \"rc=$?\""
