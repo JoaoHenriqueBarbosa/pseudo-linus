@@ -178,6 +178,32 @@ pub fn upper_bytes(s: &[u8]) -> Vec<u8> {
     map_case(s, true)
 }
 
+/// `substr` do mawk 1.3.4 (medido contra o golden): início e comprimento truncados em direção a zero;
+/// com início menor que 1 o comprimento vira `n - início` e o início passa a 1.
+fn mawk_substr(s: &[u8], m: f64, n: Option<f64>) -> Vec<u8> {
+    if m.is_nan() || n.is_some_and(f64::is_nan) {
+        return Vec::new();
+    }
+    let len = s.len() as f64;
+    let begin = m.trunc();
+    let mut length = match n {
+        Some(n) => n.trunc(),
+        None => f64::INFINITY,
+    };
+    let mut start = begin;
+    if start < 1.0 {
+        length -= start;
+        start = 1.0;
+    }
+    if length <= 0.0 || start > len {
+        return Vec::new();
+    }
+    let from = start as usize - 1;
+    let avail = (len - start + 1.0).min(length);
+    let to = from + avail as usize;
+    s[from..to.min(s.len())].to_vec()
+}
+
 fn fmt_g(x: f64) -> String {
     String::from_utf8_lossy(&crate::format::num_to_str(x, b"%g")).into_owned()
 }
@@ -196,6 +222,9 @@ impl<'p> Interp<'p> {
                     Some(e) => Some(self.eval_num(e)?),
                     None => None,
                 };
+                if self.cfg.mawk {
+                    return Ok(Value::Str(Rc::from(mawk_substr(&s, m, n))));
+                }
                 Ok(Value::Str(Rc::from(substr(&s, m, n))))
             }
             Index => {

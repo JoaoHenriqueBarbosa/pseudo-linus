@@ -72,6 +72,8 @@ pub struct Config {
     pub sandbox: bool,
     /// A linha de comando inteira (`PROCINFO["argv"]`).
     pub full_argv: Vec<Vec<u8>>,
+    /// Modo mawk 1.3.4: divisão por zero sem erro, `%c` de um byte, `substr` do mawk e mensagens dele.
+    pub mawk: bool,
 }
 
 /// Como o registro corrente é dividido em campos.
@@ -702,6 +704,11 @@ impl<'p> Interp<'p> {
             }
             Err(e) => {
                 let n = String::from_utf8_lossy(&name).into_owned();
+                if self.cfg.mawk {
+                    let line = format!("{}: cannot open \"{n}\" ({})\n", self.name, e.message());
+                    self.write_stderr(line.as_bytes());
+                    return Err(Flow::Fatal);
+                }
                 Err(self.fatal(format!("cannot open file `{n}' for reading: {}", e.message())))
             }
         }
@@ -962,7 +969,7 @@ impl<'p> Interp<'p> {
         let args: Vec<FmtValue> = vals[1..].iter().map(|v| FmtValue { v, convfmt: &convfmt }).collect();
         let refs: Vec<&dyn format::FmtArg> = args.iter().map(|a| a as &dyn format::FmtArg).collect();
         let mut warnings = Vec::new();
-        let r = format::format(&fmt, &refs, &mut warnings);
+        let r = format::format_mode(&fmt, &refs, &mut warnings, self.cfg.mawk);
         for w in warnings {
             self.warning(w);
         }
@@ -2262,13 +2269,17 @@ impl<'p> Interp<'p> {
             BinOp::Sub => x - y,
             BinOp::Mul => x * y,
             BinOp::Div => {
-                if y == 0.0 {
+                if y == 0.0 && !self.cfg.mawk {
                     return Err(self.fatal("division by zero attempted"));
                 }
                 x / y
             }
             BinOp::Mod => {
                 if y == 0.0 {
+                    if self.cfg.mawk {
+                        // O `fmod(x, 0)` do glibc no x86 devolve NaN com o bit de sinal ligado.
+                        return Ok(nan(true));
+                    }
                     return Err(self.fatal("division by zero attempted in `%'"));
                 }
                 x % y

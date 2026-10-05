@@ -79,10 +79,16 @@ pub struct FormatError(pub String);
 
 /// Formata `fmt` com `args` como o `sprintf` do gawk 5.2.1 em `LC_ALL=C.UTF-8`.
 pub fn format(fmt: &[u8], args: &[&dyn FmtArg], warnings: &mut Vec<String>) -> Result<Vec<u8>, FormatError> {
+    format_mode(fmt, args, warnings, false)
+}
+
+/// Como [`format`], com o modo mawk opcional: `%c` numérico vira um byte só (valor módulo 256) e
+/// `%d`/`%i` com valor fora do intervalo de `i64` caem para `%g`.
+pub fn format_mode(fmt: &[u8], args: &[&dyn FmtArg], warnings: &mut Vec<String>, mawk: bool) -> Result<Vec<u8>, FormatError> {
     // Sem `--lint` o gawk não avisa nada ao formatar; o parâmetro fica para o contrato.
     let _ = warnings;
     let mut out = Vec::with_capacity(fmt.len() + 16);
-    Formatter { fmt, args, cur_arg: 0, used_dollar: false, osiz: OBUF_INITIAL }.run(&mut out)?;
+    Formatter { fmt, args, cur_arg: 0, used_dollar: false, osiz: OBUF_INITIAL, mawk }.run(&mut out)?;
     Ok(out)
 }
 
@@ -178,6 +184,8 @@ struct Spec {
     mod_j: bool,
     mod_z: bool,
     mod_t: bool,
+    /// Modo mawk, copiado do formatador.
+    mawk: bool,
 }
 
 impl Spec {
@@ -199,6 +207,7 @@ impl Spec {
             mod_j: false,
             mod_z: false,
             mod_t: false,
+            mawk: false,
         }
     }
 
@@ -238,6 +247,8 @@ struct Formatter<'a, 'b> {
     /// Tamanho emulado do buffer de saída do gawk (`osiz`), para reproduzir o erro fatal de
     /// realocação do caminho de ponto flutuante (ver [`Formatter::float_out`]).
     osiz: u64,
+    /// Modo mawk (ver [`format_mode`]).
+    mawk: bool,
 }
 
 const MUST_USE_COUNT: &str = "must use `count$' on all formats or none";
@@ -280,6 +291,7 @@ impl Formatter<'_, '_> {
             s0 = i;
             i += 1;
             let mut sp = Spec::new();
+            sp.mawk = self.mawk;
             loop {
                 let Some(&c) = fmt.get(i) else { break 'scan };
                 i += 1;
@@ -604,6 +616,16 @@ fn pr_tail(out: &mut Vec<u8>, fill: u8, lj: bool, fw: i64, units: i64, body: &[u
 
 /// `%c`.
 fn conv_char(out: &mut Vec<u8>, sp: &Spec, arg: &dyn FmtArg) -> Result<(), FormatError> {
+    if sp.mawk {
+        // mawk: o valor numérico vira `int` e depois um byte só (módulo 256); texto dá o primeiro byte.
+        let byte: [u8; 1] = if arg.is_numeric() {
+            [cvt_i64(arg.to_num()) as u8]
+        } else {
+            let s = arg.to_str();
+            [s.first().copied().unwrap_or(0)]
+        };
+        return pr_tail(out, b' ', sp.lj, sp.fw, 1, &byte);
+    }
     if arg.is_numeric() {
         // `get_number_uj` seguido da conversão para `wchar_t` (32 bits com sinal).
         let uval = cvt_u64(arg.to_num());
@@ -672,6 +694,10 @@ fn conv_signed(out: &mut Vec<u8>, sp: &Spec, x: f64, c: u8) -> Result<Option<u8>
         return Ok(int_nan_inf(out, sp, x, c));
     }
     let t = x.trunc();
+    if sp.mawk && (t >= 9_223_372_036_854_775_808.0 || t < -9_223_372_036_854_775_808.0) {
+        // mawk: fora do intervalo de inteiro de 64 bits o `%d` vira `%g`.
+        return Ok(Some(b'g'));
+    }
     if sp.have_prec && sp.prec == 0 && t == 0.0 {
         // "O resultado de converter zero com precisão zero é nenhum caractere."
         return empty_field(out, sp);

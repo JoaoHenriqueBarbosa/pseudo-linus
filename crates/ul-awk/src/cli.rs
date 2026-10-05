@@ -158,7 +158,7 @@ enum SrcSpec {
 
 /// Entrada do programa: devolve o código de saída.
 pub fn run(sys: Arc<dyn Syscalls>, prog: &str, argv: Vec<Vec<u8>>) -> i32 {
-    let mut cfg = Config { prog_name: prog.to_string(), full_argv: argv.clone(), ..Config::default() };
+    let mut cfg = Config { prog_name: prog.to_string(), full_argv: argv.clone(), mawk: prog == "mawk", ..Config::default() };
     let mut sources: Vec<SrcSpec> = Vec::new();
     let mut i = 1;
     let mut stop_at_exec = false;
@@ -390,6 +390,11 @@ pub fn run(sys: Arc<dyn Syscalls>, prog: &str, argv: Vec<Vec<u8>>) -> i32 {
     let parsed = match crate::parser::parse(prog, srcs, &mut loader) {
         Ok(p) => p,
         Err(f) => {
+            if cfg.mawk {
+                let (text, code) = mawk_syntax_error(&f.stderr);
+                write_fd(&sys, Fd::STDERR, text.as_bytes());
+                return code;
+            }
             write_fd(&sys, Fd::STDERR, f.stderr.as_bytes());
             return f.code;
         }
@@ -426,6 +431,71 @@ pub fn run(sys: Arc<dyn Syscalls>, prog: &str, argv: Vec<Vec<u8>>) -> i32 {
     let mut it = Interp::new(&parsed.program, cfg, sys);
     it.regex_warned = warned;
     it.run()
+}
+
+/// Texto do token que começa em `b`, como o mawk o cita depois de `near`.
+fn mawk_token(b: &[u8]) -> String {
+    let Some(&c) = b.first() else { return "end of line".to_string() };
+    let n = if c.is_ascii_alphanumeric() || c == b'_' || c == b'.' {
+        b.iter().take_while(|x| x.is_ascii_alphanumeric() || **x == b'_' || **x == b'.').count()
+    } else if c == b'"' {
+        let mut i = 1;
+        while i < b.len() && b[i] != b'"' {
+            i += if b[i] == b'\\' { 2 } else { 1 };
+        }
+        (i + 1).min(b.len())
+    } else if b.len() >= 2
+        && matches!(&b[..2], b"==" | b"!=" | b"<=" | b">=" | b"&&" | b"||" | b"++" | b"--" | b"+=" | b"-=" | b"*=" | b"/=" | b"%=" | b"^=" | b">>" | b"!~")
+    {
+        2
+    } else {
+        1
+    };
+    String::from_utf8_lossy(&b[..n]).into_owned()
+}
+
+/// Reescreve o erro de sintaxe de duas linhas do gawk (`prog: fonte:N: texto` e a linha do circunflexo)
+/// no formato do mawk: `mawk: line N: syntax error at or near X`, ou `missing ) near X` quando há
+/// parêntese aberto antes do ponto do erro. O mawk sai com 2.
+fn mawk_syntax_error(gawk: &str) -> (String, i32) {
+    let fallback = || (gawk.to_string(), 2);
+    let mut lines = gawk.lines();
+    let (Some(l1), Some(l2)) = (lines.next(), lines.next()) else { return fallback() };
+    let Some(idx) = l2.find('^') else { return fallback() };
+    let Some(colon) = l2[..idx].rfind(':') else { return fallback() };
+    let prefix_len = colon + 2;
+    if prefix_len > idx || l1.len() < prefix_len || !l1.is_char_boundary(prefix_len) {
+        return fallback();
+    }
+    let Some(head) = l2[..colon].strip_prefix("mawk: ") else { return fallback() };
+    let Some((name, lineno)) = head.rsplit_once(':') else { return fallback() };
+    if lineno.parse::<u32>().is_err() {
+        return fallback();
+    }
+    let msg = l2.get(idx + 1..).unwrap_or("").trim_start();
+    let text = l1[prefix_len..].as_bytes();
+    let col = idx - prefix_len;
+    let origin = if name == "cmd. line" { String::new() } else { format!("{name}: ") };
+    if msg.starts_with("source files") {
+        return (format!("mawk: {origin}line {lineno}: syntax error at or near end of file\n"), 2);
+    }
+    let near = if col >= text.len() { "end of line".to_string() } else { mawk_token(&text[col..]) };
+    // Parênteses abertos antes do erro (ignorando o que está em strings).
+    let mut depth = 0i32;
+    let mut in_str = false;
+    let mut i = 0;
+    while i < col.min(text.len()) {
+        match text[i] {
+            b'\\' if in_str => i += 1,
+            b'"' => in_str = !in_str,
+            b'(' if !in_str => depth += 1,
+            b')' if !in_str => depth -= 1,
+            _ => {}
+        }
+        i += 1;
+    }
+    let what = if depth > 0 { format!("missing ) near {near}") } else { format!("syntax error at or near {near}") };
+    (format!("mawk: {origin}line {lineno}: {what}\n"), 2)
 }
 
 /// `-F`: escapes processados; `t` sozinho não é tab no gawk fora do modo de compatibilidade.

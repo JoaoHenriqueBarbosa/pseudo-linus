@@ -6,15 +6,16 @@ use std::sync::Arc;
 
 use sysabi::{Fd, Syscalls};
 
-const VERSION_TEXT: &str = "mawk 1.3.4 20240123
-Copyright 2008-2023,2024, Thomas E. Dickey
+const VERSION_TEXT: &str = "mawk 1.3.4 20250131
+Copyright 2008-2024,2025, Thomas E. Dickey
 Copyright 1991-1996,2014, Michael D. Brennan
 
 random-funcs:       srandom/random
 regex-funcs:        internal
+
 compiled limits:
 sprintf buffer      8192
-maximum-integer     2147483647
+maximum-integer     9223372036854775808
 ";
 
 fn usage_text() -> String {
@@ -40,9 +41,10 @@ Options:
     -W help          show this message and exit.
     -W interactive   set unbuffered output, line-buffered input.
     -W exec file     use file as program as well as last option.
+    -W posix         stricter POSIX checking.
     -W random=number set initial random seed.
     -W sprintf=number adjust size of sprintf buffer.
-    -W posix_space   do not consider \"\\n\" a space.
+    -W traditional   pre-POSIX 2001.
     -W usage         show this message and exit.
 "
     .to_string()
@@ -69,7 +71,7 @@ fn classify_w(word: &[u8]) -> Wopt {
     if name.is_empty() {
         return Wopt::Unknown;
     }
-    let table: [(&[u8], Wopt); 9] = [
+    let table: [(&[u8], Wopt); 10] = [
         (b"version", Wopt::Version),
         (b"help", Wopt::Help),
         (b"usage", Wopt::Help),
@@ -78,7 +80,8 @@ fn classify_w(word: &[u8]) -> Wopt {
         (b"interactive", Wopt::Ignored),
         (b"random", Wopt::Ignored),
         (b"sprintf", Wopt::Ignored),
-        (b"posix_space", Wopt::Ignored),
+        (b"posix", Wopt::Ignored),
+        (b"traditional", Wopt::Ignored),
     ];
     for (full, w) in table {
         if full.starts_with(name) {
@@ -185,7 +188,7 @@ pub fn run(sys: Arc<dyn Syscalls>, argv: Vec<Vec<u8>>) -> i32 {
                     Wopt::Ignored => {}
                     Wopt::Unknown => {
                         let w = String::from_utf8_lossy(&word).into_owned();
-                        put(&sys, Fd::STDERR, &format!("mawk: vacuous option: -W {w}\n"));
+                        put(&sys, Fd::STDERR, &format!("mawk: vacuous option: -W \"{w}\"\n"));
                     }
                 }
             }
@@ -198,8 +201,9 @@ pub fn run(sys: Arc<dyn Syscalls>, argv: Vec<Vec<u8>>) -> i32 {
         i += 1;
     }
     if !has_file && i >= argv.len() {
+        // Sem programa o mawk mostra o uso no stderr e sai com 0.
         put(&sys, Fd::STDERR, &usage_text());
-        return 2;
+        return 0;
     }
     out.push(b"--".to_vec());
     out.extend(argv[i.min(argv.len())..].iter().cloned());
