@@ -33,7 +33,7 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("user", HasArg::Optional, b'U' as i32),
     LongOpt::new("cgroup", HasArg::Optional, b'C' as i32),
     LongOpt::new("time", HasArg::Optional, b'T' as i32),
-    LongOpt::new("setuid", HasArg::Optional, b'S' as i32),
+    LongOpt::new("setuid", HasArg::Required, b'S' as i32),
     LongOpt::new("setgid", HasArg::Optional, b'G' as i32),
     LongOpt::new("root", HasArg::Optional, b'r' as i32),
     LongOpt::new("wd", HasArg::Optional, b'w' as i32),
@@ -150,7 +150,7 @@ fn run(args: &[OsString]) -> i32 {
 
     let mut g = Getopt::from_env(
         &argv[1..],
-        "+ahVt:m::u::i::n::N:p::C::U::T::S::G::r::w::W:ecFZ",
+        "+ahVt:m::u::i::n::N:p::C::U::T::S:G::r::w::W:ecFZ",
         LONGS,
     );
     while let Some(r) = g.next_opt() {
