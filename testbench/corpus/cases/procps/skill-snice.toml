@@ -1,0 +1,101 @@
+tool = "procps"
+source = "manual"
+
+# skill e snice do procps-ng 4.0.4: ajuda, versão, listas de sinais e erros de argumento. Nada aqui
+# manda sinal nem muda prioridade de processo vivo (os pids do oráculo e do candidato não batem);
+# os casos de ação usam -n ou pids que não existem.
+
+[[case]]
+id = "skill-help"
+argv = ["skill", "--help"]
+tags = ["skill", "usage"]
+
+[[case]]
+id = "skill-h"
+argv = ["skill", "-h"]
+tags = ["skill", "usage"]
+
+[[case]]
+id = "skill-version"
+argv = ["skill", "-V"]
+tags = ["skill", "version"]
+
+[[case]]
+id = "skill-no-args"
+argv = ["skill"]
+tags = ["skill", "usage", "error"]
+
+[[case]]
+id = "skill-list"
+argv = ["skill", "-l"]
+tags = ["skill", "list"]
+
+[[case]]
+id = "skill-table"
+argv = ["skill", "-L"]
+tags = ["skill", "list"]
+
+[[case]]
+id = "skill-signal-without-expression"
+argv = ["skill", "-9"]
+tags = ["skill", "error"]
+
+[[case]]
+id = "skill-invalid-option"
+argv = ["skill", "-Z", "x"]
+tags = ["skill", "error"]
+
+[[case]]
+id = "skill-unknown-user"
+argv = ["skill", "-u", "no-such-user-xyz"]
+tags = ["skill", "error"]
+
+[[case]]
+id = "skill-invalid-pid"
+argv = ["skill", "-p", "abc"]
+tags = ["skill", "error"]
+
+[[case]]
+id = "skill-no-action-missing-pid"
+argv = ["skill", "-n", "-KILL", "-p", "4194000"]
+tags = ["skill", "no-action"]
+
+[[case]]
+id = "skill-verbose-missing-command"
+argv = ["skill", "-v", "-HUP", "-c", "no-such-command-xyz"]
+tags = ["skill", "no-action"]
+
+[[case]]
+id = "skill-kill-missing-pid"
+argv = ["skill", "-TERM", "-p", "4194000"]
+tags = ["skill", "no-action"]
+
+[[case]]
+id = "snice-help"
+argv = ["snice", "--help"]
+tags = ["snice", "usage"]
+
+[[case]]
+id = "snice-version"
+argv = ["snice", "-V"]
+tags = ["snice", "version"]
+
+[[case]]
+id = "snice-no-args"
+argv = ["snice"]
+tags = ["snice", "usage", "error"]
+
+[[case]]
+id = "snice-no-expression"
+argv = ["snice", "+5"]
+tags = ["snice", "error"]
+
+[[case]]
+id = "snice-no-action-missing-pid"
+argv = ["snice", "-n", "+5", "-p", "4194000"]
+tags = ["snice", "no-action"]
+
+[[case]]
+id = "snice-missing-pid"
+argv = ["snice", "-5", "-p", "4194000"]
+tags = ["snice", "no-action"]

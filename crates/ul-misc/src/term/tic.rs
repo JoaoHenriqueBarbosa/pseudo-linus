@@ -67,6 +67,8 @@ struct Entry {
     uses: Vec<Vec<u8>>,
     /// O trecho de comentários que antecede a entrada na fonte (`cstart` a `cend`), com os `\n`.
     comment: Vec<u8>,
+    /// A linha da fonte onde a entrada começa (zero quando veio do banco).
+    line: usize,
 }
 
 impl Entry {
@@ -79,6 +81,7 @@ impl Entry {
             ext: Vec::new(),
             uses: Vec::new(),
             comment: Vec::new(),
+            line: 0,
         }
     }
 
@@ -414,8 +417,37 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
     if names.is_empty() {
         return None;
     }
+    // O scanner já leu o caractere depois da vírgula do campo de nomes: a coluna avisada é a seguinte.
+    let (nline, ncol) = (first.end.0, first.end.1 + 1);
+    // `check_name`/`_nc_parse_entry`: um nome com barra não vale, e uma descrição sem espaço pode
+    // ser tomada por apelido pelos tics antigos.
+    if names.contains(&b'/') {
+        diag.warn(
+            Some(nline),
+            Some(ncol),
+            &names,
+            "slashes aren't allowed in names or aliases",
+        );
+        diag.warn(
+            Some(nline),
+            Some(ncol),
+            &names,
+            &format!("invalid entry name \"{}\"", io::lossy(&names)),
+        );
+    }
+    if let Some(p) = names.iter().rposition(|b| *b == b'|') {
+        if !names[p + 1..].contains(&b' ') {
+            diag.warn(
+                Some(nline),
+                Some(ncol),
+                &names,
+                "older tic versions may treat the description field as an alias",
+            );
+        }
+    }
     let mut e = Entry::new(names);
     e.comment = raw.comment.clone();
+    e.line = raw.line;
     for fld in &fields[1..] {
         let mut f: &[u8] = trim_start(&fld.text);
         if f.is_empty() {
@@ -791,9 +823,9 @@ fn ensure_dir(path: &[u8], progname: &str) -> Result<(), String> {
 }
 
 /// `_nc_write_entry`: grava `dir/c/nome` e liga os apelidos a ele.
-fn write_entry(dir: &[u8], e: &Entry, progname: &str) -> Result<(), String> {
+fn write_entry(dir: &[u8], e: &Entry, progname: &str, diag: &Diag) -> Result<(), String> {
     let primary = first_name(&e.names).to_vec();
-    if primary.is_empty() || primary.contains(&b'/') {
+    if primary.is_empty() {
         return Err(format!(
             "{progname}: invalid terminal name '{}'",
             io::lossy(&primary)
@@ -820,8 +852,18 @@ fn write_entry(dir: &[u8], e: &Entry, progname: &str) -> Result<(), String> {
     path.push(b'/');
     path.extend_from_slice(&primary);
     let _ = sys::current().unlinkat(Fd::CWD, &path, AtFlags::empty());
-    let fd = sys::open(&path, OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC, 0o644)
-        .map_err(|er| fail(&path, er))?;
+    let fd = sys::open(&path, OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC, 0o644).map_err(|er| {
+        // `_nc_syserr_abort` do `write_entry.c`, com a linha em que a entrada começa.
+        format!(
+            "\"{}\", line {}, terminal '{}': cannot open {}: (errno {}) {}",
+            diag.file,
+            e.line,
+            io::lossy(&primary),
+            io::lossy(&path),
+            er.0,
+            er.message()
+        )
+    })?;
     let w = sys::write_all(fd, &data);
     let _ = sys::close(fd);
     w.map_err(|er| fail(&path, er))?;
@@ -964,11 +1006,11 @@ fn optarg_to_number(arg: &[u8]) -> i32 {
 
 fn usage(progname: &str) -> ! {
     const OPTIONS: &[&str] = &[
-        "  -0         format entries on one line",
-        "  -1         format entries one capability per line",
+        "  -0         format translation output all capabilities on one line",
+        "  -1         format translation output one capability per line",
+        "  -a         retain commented-out capabilities (sets -x also)",
         "  -C         translate entries to termcap source form",
         "  -D         print list of tic's database locations (first must be writable)",
-        "  -a         retain commented-out capabilities (sets -x also)",
         "  -c         check only, validate input without compiling or translating",
         "  -e<names>  translate/compile only entries named by comma-separated list",
         "  -f         format complex strings for readability",
@@ -980,7 +1022,7 @@ fn usage(progname: &str) -> ! {
         "  -N         disable smart defaults for source translation",
         "  -o<dir>    set output directory for compiled entry writes",
         "  -Q[n]      dump compiled description",
-        "  -q         brief listing, removes headers",
+        "  -q    brief listing, removes headers",
         "  -R<name>   restrict translation to given terminfo/termcap version",
         "  -r         force resolution of all use entries in source translation",
         "  -s         print summary statistics",
@@ -988,18 +1030,29 @@ fn usage(progname: &str) -> ! {
         "  -t         suppress commented-out capabilities",
         "  -U         suppress post-processing of entries",
         "  -V         print version",
-        "  -v[n]      set verbosity level",
         "  -W         wrap long strings according to -w[n] option",
+        "  -v[n]      set verbosity level",
         "  -w[n]      set format width for translation output",
         "  -x         treat unknown capabilities as user-defined",
     ];
-    let mut text = format!("Usage: {progname} [options] file\n\nOptions:\n");
+    let mut text = format!("Usage: {progname} {USAGE_SYNOPSIS}\n\nOptions:\n");
     for line in OPTIONS {
         text.push_str(line);
         text.push('\n');
     }
-    text.push_str("\nParameters:\n  <file>     name of file containing terminfo source descriptions\n");
+    text.push_str("\nParameters:\n  <file>     file to translate or compile\n");
     io::eprint(text);
+    sys::exit(1)
+}
+
+/// A sinopse que o `tic` repete nas mensagens curtas e no texto de uso completo.
+const USAGE_SYNOPSIS: &str = "[-e names] [-o dir] [-R name] [-v[n]] [-V] [-w[n]] [-1aCDcfGgIKLNrsTtUx] source-file";
+
+/// `_nc_err_abort` do `tic.c`: a mensagem curta seguida da sinopse, e saída com 1.
+fn usage_short(progname: &str, msg: &str) -> ! {
+    io::eprint(format!(
+        "{progname}: {msg}.  Usage:\n\t{progname} {USAGE_SYNOPSIS}\n"
+    ));
     sys::exit(1)
 }
 
@@ -1101,7 +1154,17 @@ fn run(args: &[OsString]) -> i32 {
             }
             'D' => {
                 let mut out = io::stdout();
+                // Com `TERMINFO` definido, os diretórios de sistema não entram na lista.
+                let from_env = sys::getenv("TERMINFO").is_some_and(|v| !v.is_empty());
                 for d in db_dirs(None) {
+                    if from_env
+                        && matches!(
+                            d.as_slice(),
+                            b"/etc/terminfo" | b"/lib/terminfo" | b"/usr/share/terminfo"
+                        )
+                    {
+                        continue;
+                    }
                     let _ = out.write_all(&d);
                     let _ = out.write_all(b"\n");
                 }
@@ -1161,8 +1224,7 @@ fn run(args: &[OsString]) -> i32 {
 
     let operands = g.operands();
     if operands.len() > 1 {
-        io::eprint(format!("{progname}: Too many file names.\n"));
-        usage(&progname);
+        usage_short(&progname, "Too many file names");
     }
     let file: Vec<u8> = match operands.first() {
         Some(f) => f.clone(),
@@ -1170,8 +1232,7 @@ fn run(args: &[OsString]) -> i32 {
             if progname == "captoinfo" {
                 b"/etc/termcap".to_vec()
             } else {
-                io::eprint(format!("{progname}: File name needed.  Usage:\n\n"));
-                usage(&progname);
+                usage_short(&progname, "File name needed");
             }
         }
     };
@@ -1192,7 +1253,10 @@ fn run(args: &[OsString]) -> i32 {
                 }
             };
             let _ = io::flush_stdout();
-            io::eprint(format!("{}: {reason}\n", io::lossy(&file)));
+            io::eprint(format!(
+                "{progname}: cannot open '{}': {reason}\n",
+                io::lossy(&file)
+            ));
             return 1;
         }
     };
@@ -1287,7 +1351,7 @@ fn run(args: &[OsString]) -> i32 {
             if !matches_list(&namelst, &e.names) {
                 continue;
             }
-            if let Err(msg) = write_entry(&dir, e, &progname) {
+            if let Err(msg) = write_entry(&dir, e, &progname, &diag) {
                 let _ = io::flush_stdout();
                 io::eprint(format!("{msg}\n"));
                 return 1;

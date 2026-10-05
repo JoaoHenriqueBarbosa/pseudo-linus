@@ -1,0 +1,74 @@
+tool = "taskset"
+source = "manual"
+
+# taskset do util-linux 2.41. Só o modo -p: o de execução não está portado.
+
+[[case]]
+id = "taskset-help"
+argv = ["taskset", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "taskset-version"
+argv = ["taskset", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "taskset-set-mask"
+script = "taskset -p 1 $$"
+tags = ["set"]
+
+[[case]]
+id = "taskset-set-list"
+script = "taskset -pc 0 $$"
+tags = ["set", "list"]
+
+[[case]]
+id = "taskset-set-then-get"
+script = "taskset -pc 0 $$ >/dev/null && taskset -p $$ && taskset -pc $$"
+tags = ["get"]
+
+[[case]]
+id = "taskset-list-stride"
+script = "taskset -pc 0-3:2 $$"
+tags = ["set", "list"]
+
+[[case]]
+id = "taskset-mask-0x"
+script = "taskset -p 0x1 $$"
+tags = ["set"]
+
+[[case]]
+id = "taskset-bad-mask"
+script = "taskset -p zz $$"
+tags = ["error"]
+
+[[case]]
+id = "taskset-bad-list"
+script = "taskset -pc 1-x $$"
+tags = ["error"]
+
+[[case]]
+id = "taskset-empty-mask"
+script = "taskset -p 0 $$"
+tags = ["error"]
+
+[[case]]
+id = "taskset-no-such-pid"
+argv = ["taskset", "-p", "99999"]
+tags = ["error"]
+
+[[case]]
+id = "taskset-bad-pid"
+argv = ["taskset", "-p", "abc"]
+tags = ["error"]
+
+[[case]]
+id = "taskset-no-args"
+argv = ["taskset"]
+tags = ["error"]
+
+[[case]]
+id = "taskset-invalid-option"
+argv = ["taskset", "-q", "1"]
+tags = ["error"]

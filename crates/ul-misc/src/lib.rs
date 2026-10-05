@@ -1,16 +1,17 @@
 //! Ferramentas diversas do pseudo-linus, fiéis às do Debian 13 byte a byte: `bc` e `dc` (GNU bc
 //! 1.07.1), `file` (5.46), `column`, `hexdump`/`hd` e `more` (util-linux 2.41), `tree` (2.2.1), `xxd`
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst`, `gettext` e
-//! `ngettext` (gettext 0.23), `less` não interativo, `tput`, `clear`, `tset`/`reset`, `tabs`,
+//! `ngettext` (gettext 0.23), `less` não interativo, `lessecho` (less 668), `tput`, `clear`, `tset`/`reset`, `tabs`,
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
 //! `getent`, `locale` e `iconv` (glibc 2.41).
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
+//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`, `setarch` (e links) e `chrt`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
 //! e, como os scripts originais rodando no `sh`, `savelog`, `add-shell` e `remove-shell`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
 pub mod bc;
+pub mod chrt;
 pub mod col;
 pub mod colcrt;
 pub mod colrm;
@@ -20,6 +21,7 @@ pub mod debscripts;
 pub mod envsubst;
 pub mod fallocate;
 pub mod file;
+pub mod fstab_decode;
 pub mod getconf;
 pub mod getent;
 pub mod getopt_cmd;
@@ -27,19 +29,25 @@ pub mod gettext;
 pub mod hardlink;
 pub mod hexdump;
 pub mod iconv;
+pub mod ionice;
 pub mod ischroot;
+pub mod isosize;
+pub mod lessecho;
 pub mod locale;
 pub mod look;
 pub mod mcookie;
 pub mod mountpoint;
 pub mod namei;
+pub mod nologin;
 pub mod pager;
 pub mod rename_ul;
 pub mod renice;
 pub mod rev;
 pub mod run_parts;
+pub mod setarch;
 pub mod setsid;
 pub mod strings;
+pub mod taskset;
 pub mod tempfile;
 pub mod term;
 pub mod tree;
@@ -56,6 +64,7 @@ use sysabi::Program;
 pub fn programs() -> Vec<Program> {
     vec![
         Program::bin("bc", bc::main),
+        Program::bin("chrt", chrt::main),
         Program::bin("clear", term::clear::main),
         Program::bin("col", col::main),
         Program::bin("colcrt", colcrt::main),
@@ -65,6 +74,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("envsubst", envsubst::main),
         Program::bin("fallocate", fallocate::main),
         Program::bin("file", file::cli::main),
+        Program::bin("fstab-decode", fstab_decode::main),
         Program::bin("getconf", getconf::main),
         Program::bin("getent", getent::main),
         Program::bin("getopt", getopt_cmd::main),
@@ -74,8 +84,11 @@ pub fn programs() -> Vec<Program> {
         Program::bin("hd", hexdump::main),
         Program::bin("iconv", iconv::main),
         Program::bin("infocmp", term::infocmp::main),
+        Program::bin("ionice", ionice::main),
         Program::bin("ischroot", ischroot::main),
+        Program::bin("isosize", isosize::main),
         Program::bin("less", pager::less_main),
+        Program::bin("lessecho", lessecho::main),
         Program::bin("locale", locale::main),
         Program::bin("look", look::main),
         Program::bin("mcookie", mcookie::main),
@@ -89,9 +102,16 @@ pub fn programs() -> Vec<Program> {
         Program::bin("rev", rev::main),
         Program::bin("run-parts", run_parts::main),
         Program::bin("savelog", debscripts::savelog_main),
+        Program::bin("setarch", setarch::main),
+        Program::bin("linux32", setarch::main),
+        Program::bin("linux64", setarch::main),
+        Program::bin("i386", setarch::main),
+        Program::bin("x86_64", setarch::main),
+        Program::bin("uname26", setarch::main),
         Program::bin("setsid", setsid::main),
         Program::bin("strings", strings::main),
         Program::bin("tabs", term::tabs::main),
+        Program::bin("taskset", taskset::main),
         Program::bin("tempfile", tempfile::main),
         Program::bin("tic", term::tic::main),
         Program::bin("toe", term::toe::main),
@@ -104,6 +124,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("xxd", xxd::main),
         Program::bin("zdump", zdump::main),
         Program::sbin("add-shell", debscripts::add_shell_main),
+        Program::sbin("nologin", nologin::main),
         Program::sbin("remove-shell", debscripts::remove_shell_main),
     ]
 }

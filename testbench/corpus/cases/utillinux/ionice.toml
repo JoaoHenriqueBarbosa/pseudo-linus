@@ -1,0 +1,94 @@
+tool = "ionice"
+source = "manual"
+
+# ionice do util-linux 2.41. Só consulta e mudança por -p, -P e -u: o modo de execução não está portado.
+
+[[case]]
+id = "ionice-help"
+argv = ["ionice", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "ionice-version"
+argv = ["ionice", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "ionice-query-self"
+argv = ["ionice"]
+tags = ["query"]
+
+[[case]]
+id = "ionice-query-pid"
+script = "ionice -p $$"
+tags = ["query"]
+
+[[case]]
+id = "ionice-set-idle"
+script = "ionice -c 3 -p $$ && ionice -p $$"
+tags = ["set"]
+
+[[case]]
+id = "ionice-set-best-effort"
+script = "ionice -c 2 -n 7 -p $$ && ionice -p $$"
+tags = ["set"]
+
+[[case]]
+id = "ionice-class-by-name"
+script = "ionice -c best-effort -n 1 -p $$ && ionice -p $$"
+tags = ["set"]
+
+[[case]]
+id = "ionice-only-data"
+script = "ionice -n 2 -p $$ && ionice -p $$"
+tags = ["set"]
+
+[[case]]
+id = "ionice-none-ignores-data"
+script = "ionice -c 0 -n 3 -p $$; echo \"exit $?\""
+tags = ["set"]
+
+[[case]]
+id = "ionice-realtime-eperm"
+script = "ionice -c 1 -n 0 -p $$; echo \"exit $?\""
+tags = ["error"]
+
+[[case]]
+id = "ionice-realtime-ignore"
+script = "ionice -t -c 1 -n 0 -p $$; echo \"exit $?\""
+tags = ["error", "ignore"]
+
+[[case]]
+id = "ionice-pgid"
+script = "ionice -P 0 -c 3; echo \"exit $?\""
+tags = ["set"]
+
+[[case]]
+id = "ionice-no-such-pid"
+argv = ["ionice", "-p", "99999"]
+tags = ["error"]
+
+[[case]]
+id = "ionice-bad-class"
+argv = ["ionice", "-c", "9", "-p", "1"]
+tags = ["error"]
+
+[[case]]
+id = "ionice-unknown-class-name"
+argv = ["ionice", "-c", "turbo", "-p", "1"]
+tags = ["error"]
+
+[[case]]
+id = "ionice-bad-data"
+argv = ["ionice", "-c", "2", "-n", "8", "-p", "1"]
+tags = ["error"]
+
+[[case]]
+id = "ionice-bad-pid"
+argv = ["ionice", "-p", "abc"]
+tags = ["error"]
+
+[[case]]
+id = "ionice-invalid-option"
+argv = ["ionice", "-q"]
+tags = ["error"]

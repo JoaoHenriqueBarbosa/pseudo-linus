@@ -1,0 +1,48 @@
+tool = "nologin"
+source = "manual"
+
+# nologin do util-linux 2.41: ajuda, versão, erros de opção e a recusa com a mensagem padrão (saída 1).
+
+[[case]]
+id = "nologin-help"
+argv = ["nologin", "--help"]
+
+[[case]]
+id = "nologin-help-short"
+argv = ["nologin", "-h"]
+
+[[case]]
+id = "nologin-version"
+argv = ["nologin", "--version"]
+
+[[case]]
+id = "nologin-version-short"
+argv = ["nologin", "-V"]
+
+[[case]]
+id = "nologin-invalid-option"
+argv = ["nologin", "-x"]
+
+[[case]]
+id = "nologin-unrecognized-option"
+argv = ["nologin", "--bogus"]
+
+[[case]]
+id = "nologin-double-dash"
+argv = ["nologin", "--"]
+
+[[case]]
+id = "nologin-default-message"
+script = "nologin; echo \"rc=$?\""
+
+[[case]]
+id = "nologin-operands-ignored"
+script = "nologin -c 'ls' extra; echo \"rc=$?\""
+
+[[case]]
+id = "nologin-custom-text"
+script = "printf 'Closed for maintenance.\\n' > /etc/nologin.txt; nologin; echo \"rc=$?\"; rm -f /etc/nologin.txt"
+
+[[case]]
+id = "nologin-empty-text"
+script = ": > /etc/nologin.txt; nologin; echo \"rc=$?\"; rm -f /etc/nologin.txt"

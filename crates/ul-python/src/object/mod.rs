@@ -47,6 +47,71 @@ pub enum Value {
     Range(Range),
     /// Função embutida, pelo nome (`print`, `len`...); o interpretador resolve a chamada.
     Builtin(&'static str),
+    /// Instância de exceção (`ValueError('x')`): classe pelo nome e os `args`.
+    Exception(Rc<ExcObj>),
+}
+
+/// Instância de uma exceção embutida.
+#[derive(Debug)]
+pub struct ExcObj {
+    pub kind: &'static str,
+    pub args: Vec<Value>,
+}
+
+/// Classes de exceção embutidas e a classe pai de cada uma (`BaseException` não tem).
+pub const EXC_CLASSES: &[(&str, &str)] = &[
+    ("BaseException", ""),
+    ("Exception", "BaseException"),
+    ("ArithmeticError", "Exception"),
+    ("ZeroDivisionError", "ArithmeticError"),
+    ("OverflowError", "ArithmeticError"),
+    ("LookupError", "Exception"),
+    ("IndexError", "LookupError"),
+    ("KeyError", "LookupError"),
+    ("TypeError", "Exception"),
+    ("ValueError", "Exception"),
+    ("NameError", "Exception"),
+    ("AssertionError", "Exception"),
+    ("RuntimeError", "Exception"),
+    ("NotImplementedError", "RuntimeError"),
+    ("SystemError", "Exception"),
+    ("AttributeError", "Exception"),
+];
+
+/// `issubclass(kind, base)` entre exceções embutidas.
+pub fn exc_is_subclass(kind: &str, base: &str) -> bool {
+    let mut cur = kind;
+    loop {
+        if cur == base {
+            return true;
+        }
+        match EXC_CLASSES.iter().find(|(n, _)| *n == cur) {
+            Some((_, parent)) if !parent.is_empty() => cur = parent,
+            _ => return false,
+        }
+    }
+}
+
+/// `str(exc)`: vazio sem args, o próprio arg com um, a tupla com vários (`KeyError` usa o repr).
+pub fn exc_str(e: &ExcObj) -> String {
+    match e.args.as_slice() {
+        [] => String::new(),
+        [one] if e.kind == "KeyError" => repr(one),
+        [one] => to_str(one),
+        many => repr(&Value::tuple(many.to_vec())),
+    }
+}
+
+/// `repr(exc)`: `ValueError('x')`.
+pub fn exc_repr(e: &ExcObj) -> String {
+    match e.args.as_slice() {
+        [one] => format!("{}({})", e.kind, repr(one)),
+        [] => format!("{}()", e.kind),
+        many => {
+            let t = repr(&Value::tuple(many.to_vec()));
+            format!("{}{}", e.kind, t)
+        }
+    }
 }
 
 /// Valor de um `range` (`Objects/rangeobject.c`), com `step != 0`.
@@ -138,6 +203,7 @@ impl Value {
             Value::Range(_) => "range",
             Value::Builtin(name) if is_builtin_type(name) => "type",
             Value::Builtin(_) => "builtin_function_or_method",
+            Value::Exception(e) => e.kind,
         }
     }
 
@@ -155,7 +221,7 @@ impl Value {
             Value::Dict(d) => !d.borrow().is_empty(),
             Value::Set(s) => !s.borrow().is_empty(),
             Value::Range(r) => !r.is_empty(),
-            Value::Builtin(_) => true,
+            Value::Builtin(_) | Value::Exception(_) => true,
         }
     }
 }
@@ -170,6 +236,7 @@ impl fmt::Debug for Value {
 /// `<class 'str'>` e o tipo é `type`.
 pub fn is_builtin_type(name: &str) -> bool {
     matches!(name, "bool" | "int" | "float" | "str" | "list" | "tuple" | "dict" | "set" | "range")
+        || EXC_CLASSES.iter().any(|(n, _)| *n == name)
 }
 
 /// Endereço de um objeto compartilhado, para identidade e para a pilha do `repr`.
@@ -211,6 +278,7 @@ pub fn repr(v: &Value) -> String {
 pub fn to_str(v: &Value) -> String {
     match v {
         Value::Str(s) => s.as_str().to_string(),
+        Value::Exception(e) => exc_str(e),
         _ => repr(v),
     }
 }
@@ -232,6 +300,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Range(r) => out.push_str(&format!("range({}, {}, {})", r.start, r.stop, r.step)),
         Value::Builtin(name) if is_builtin_type(name) => out.push_str(&format!("<class '{name}'>")),
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
+        Value::Exception(e) => out.push_str(&exc_repr(e)),
     }
 }
 
@@ -248,6 +317,7 @@ pub fn is(a: &Value, b: &Value) -> bool {
         (Value::Dict(x), Value::Dict(y)) => Rc::ptr_eq(x, y),
         (Value::Set(x), Value::Set(y)) => Rc::ptr_eq(x, y),
         (Value::Builtin(x), Value::Builtin(y)) => x == y,
+        (Value::Exception(x), Value::Exception(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -308,6 +378,7 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
         (Value::Set(x), Value::Set(y)) => Rc::ptr_eq(x, y) || set::set_eq(&x.borrow(), &y.borrow()),
         (Value::Range(x), Value::Range(y)) => range_eq(x, y),
         (Value::Builtin(x), Value::Builtin(y)) => x == y,
+        (Value::Exception(x), Value::Exception(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -334,6 +405,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         }
         // O CPython usa o endereço; aqui basta um valor estável por função.
         Value::Builtin(name) => Ok(PyStr::new(*name).hash()),
+        Value::Exception(e) => Ok((Rc::as_ptr(e) as usize >> 4) as i64),
         Value::List(_) | Value::Dict(_) | Value::Set(_) => {
             Err(ObjError::TypeError(format!("unhashable type: '{}'", v.type_name())))
         }

@@ -1,0 +1,135 @@
+tool = "chrt"
+source = "manual"
+
+# chrt do util-linux 2.41. O oráculo é um contêiner docker padrão: root sem CAP_SYS_NICE, então
+# tempo real (-f, -r) e -d dão "Operation not permitted", e -b, -i e -o passam.
+
+[[case]]
+id = "chrt-help"
+argv = ["chrt", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "chrt-version"
+argv = ["chrt", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "chrt-max"
+argv = ["chrt", "-m"]
+tags = ["max"]
+
+[[case]]
+id = "chrt-show-self"
+script = "chrt -p $$"
+tags = ["show"]
+
+[[case]]
+id = "chrt-show-init"
+argv = ["chrt", "-p", "1"]
+tags = ["show"]
+
+[[case]]
+id = "chrt-show-missing-pid"
+argv = ["chrt", "-p", "999999"]
+tags = ["show", "error"]
+
+[[case]]
+id = "chrt-fifo-eperm"
+argv = ["chrt", "-f", "10", "true"]
+tags = ["eperm"]
+
+[[case]]
+id = "chrt-rr-eperm"
+argv = ["chrt", "-r", "1", "true"]
+tags = ["eperm"]
+
+[[case]]
+id = "chrt-default-rr-eperm"
+argv = ["chrt", "5", "true"]
+tags = ["eperm"]
+
+[[case]]
+id = "chrt-fifo-pid-eperm"
+script = "chrt -f -p 10 $$; echo \"exit $?\""
+tags = ["eperm"]
+
+[[case]]
+id = "chrt-deadline-eperm"
+argv = ["chrt", "-d", "-T", "1000000", "-P", "10000000", "-D", "5000000", "true"]
+tags = ["eperm"]
+
+[[case]]
+id = "chrt-fifo-verbose-eperm"
+argv = ["chrt", "-v", "-f", "10", "true"]
+tags = ["eperm", "verbose"]
+
+[[case]]
+id = "chrt-batch"
+script = "chrt -b 0 sh -c 'chrt -p $$'"
+tags = ["batch"]
+
+[[case]]
+id = "chrt-idle"
+script = "chrt -i 0 sh -c 'chrt -p $$'"
+tags = ["idle"]
+
+[[case]]
+id = "chrt-other"
+script = "chrt -o 0 sh -c 'chrt -p $$'"
+tags = ["other"]
+
+[[case]]
+id = "chrt-batch-pid-verbose"
+script = "chrt -v -b -p 0 $$ && chrt -p $$"
+tags = ["batch", "verbose"]
+
+[[case]]
+id = "chrt-batch-reset-on-fork"
+script = "chrt -b -R 0 sh -c 'chrt -p $$'"
+tags = ["batch", "reset"]
+
+[[case]]
+id = "chrt-batch-bad-priority"
+argv = ["chrt", "-b", "5", "true"]
+tags = ["error"]
+
+[[case]]
+id = "chrt-exit-status"
+script = "chrt -o 0 sh -c 'exit 5'; echo \"exit $?\""
+tags = ["exec"]
+
+[[case]]
+id = "chrt-missing-command"
+argv = ["chrt", "-o", "0", "nao-existe-programa"]
+tags = ["error", "exec"]
+
+[[case]]
+id = "chrt-no-args"
+argv = ["chrt"]
+tags = ["error"]
+
+[[case]]
+id = "chrt-priority-only"
+argv = ["chrt", "-f", "10"]
+tags = ["error"]
+
+[[case]]
+id = "chrt-invalid-priority"
+argv = ["chrt", "-f", "abc", "true"]
+tags = ["error"]
+
+[[case]]
+id = "chrt-invalid-pid"
+argv = ["chrt", "-p", "abc"]
+tags = ["error"]
+
+[[case]]
+id = "chrt-invalid-option"
+argv = ["chrt", "-q", "-p", "1"]
+tags = ["error"]
+
+[[case]]
+id = "chrt-missing-option-arg"
+argv = ["chrt", "-d", "-T"]
+tags = ["error"]

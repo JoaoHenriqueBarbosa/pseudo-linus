@@ -1,0 +1,45 @@
+tool = "utillinux"
+source = "manual"
+
+# isosize do util-linux 2.41: ajuda, versão e erros de argumento. Sem imagem ISO de fixture, os
+# casos cobrem só os caminhos que não dependem do conteúdo do arquivo.
+
+[[case]]
+id = "isosize-help"
+argv = ["isosize", "--help"]
+tags = ["isosize", "usage"]
+
+[[case]]
+id = "isosize-h"
+argv = ["isosize", "-h"]
+tags = ["isosize", "usage"]
+
+[[case]]
+id = "isosize-version"
+argv = ["isosize", "-V"]
+tags = ["isosize", "version"]
+
+[[case]]
+id = "isosize-no-args"
+argv = ["isosize"]
+tags = ["isosize", "usage", "error"]
+
+[[case]]
+id = "isosize-bad-option"
+argv = ["isosize", "-Z", "/dev/null"]
+tags = ["isosize", "usage", "error"]
+
+[[case]]
+id = "isosize-bad-divisor"
+argv = ["isosize", "-d", "abc", "/dev/null"]
+tags = ["isosize", "error"]
+
+[[case]]
+id = "isosize-missing-file"
+argv = ["isosize", "/nonexistent/image.iso"]
+tags = ["isosize", "error"]
+
+[[case]]
+id = "isosize-missing-file-sectors"
+argv = ["isosize", "-x", "/nonexistent/image.iso"]
+tags = ["isosize", "error"]

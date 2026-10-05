@@ -1,0 +1,121 @@
+tool = "lessecho"
+source = "manual"
+
+# lessecho do less 668 (Debian 13): citação com aspas, escape de metacaracteres (-m, -n, -e, -f),
+# números em decimal, octal e hexadecimal, `--`, ajuda, versão e as mensagens de erro de opção.
+
+[[case]]
+id = "lessecho-plain"
+argv = ["lessecho", "a", "b", "c"]
+
+[[case]]
+id = "lessecho-no-args"
+argv = ["lessecho"]
+
+[[case]]
+id = "lessecho-space-no-meta"
+argv = ["lessecho", "a b", "c"]
+
+[[case]]
+id = "lessecho-quote-all"
+argv = ["lessecho", "-a", "a", "b c"]
+
+[[case]]
+id = "lessecho-open-close-chars"
+argv = ["lessecho", "-a", "-o[", "-c]", "x", "y"]
+
+[[case]]
+id = "lessecho-open-close-numbers"
+argv = ["lessecho", "-a", "-p39", "-d39", "x y"]
+
+[[case]]
+id = "lessecho-open-close-hex-octal"
+argv = ["lessecho", "-a", "-p0x28", "-d051", "x"]
+
+[[case]]
+id = "lessecho-meta-escape-default"
+argv = ["lessecho", "-m ", "a b", "c d"]
+
+[[case]]
+id = "lessecho-meta-escape-custom"
+argv = ["lessecho", "-m$", "-e^", "a$b", "$c"]
+
+[[case]]
+id = "lessecho-meta-escape-number"
+argv = ["lessecho", "-m*", "-f92", "a*b"]
+
+[[case]]
+id = "lessecho-meta-number"
+argv = ["lessecho", "-n42", "a*b", "c"]
+
+[[case]]
+id = "lessecho-meta-empty-escape-quotes"
+argv = ["lessecho", "-m ", "-e-", "a b", "c"]
+
+[[case]]
+id = "lessecho-meta-empty-escape-quotes-chars"
+argv = ["lessecho", "-m;", "-e-", "-o<", "-c>", "a;b", "plain"]
+
+[[case]]
+id = "lessecho-meta-empty-arg-escape"
+argv = ["lessecho", "-m!", "-e", "a!b"]
+
+[[case]]
+id = "lessecho-multiple-meta"
+argv = ["lessecho", "-m(", "-m)", "-m&", "f(1)&g"]
+
+[[case]]
+id = "lessecho-double-dash"
+argv = ["lessecho", "--", "-a", "-x"]
+
+[[case]]
+id = "lessecho-options-stop-at-first-file"
+argv = ["lessecho", "x", "-a"]
+
+[[case]]
+id = "lessecho-empty-argument"
+argv = ["lessecho", "", "a"]
+
+[[case]]
+id = "lessecho-empty-argument-quote-all"
+argv = ["lessecho", "-a", ""]
+
+[[case]]
+id = "lessecho-version"
+argv = ["lessecho", "--version"]
+
+[[case]]
+id = "lessecho-help"
+argv = ["lessecho", "--help"]
+
+[[case]]
+id = "lessecho-question"
+argv = ["lessecho", "-?"]
+
+[[case]]
+id = "lessecho-invalid-letter"
+argv = ["lessecho", "-x"]
+
+[[case]]
+id = "lessecho-invalid-dash"
+argv = ["lessecho", "-"]
+
+[[case]]
+id = "lessecho-invalid-long"
+argv = ["lessecho", "--bogus"]
+
+[[case]]
+id = "lessecho-missing-number-p"
+argv = ["lessecho", "-p", "x"]
+
+[[case]]
+id = "lessecho-missing-number-d"
+argv = ["lessecho", "-dz", "x"]
+
+[[case]]
+id = "lessecho-missing-number-f"
+argv = ["lessecho", "-f", "x"]
+
+[[case]]
+id = "lessecho-missing-number-n"
+argv = ["lessecho", "-n", "x"]

@@ -1,0 +1,40 @@
+tool = "fstab-decode"
+source = "manual"
+
+# fstab-decode do initscripts: roda o programa com os argumentos decodificados (\040, \\).
+
+[[case]]
+id = "fstab-decode-space"
+argv = ["fstab-decode", "echo", "a\\040b"]
+
+[[case]]
+id = "fstab-decode-tab-newline"
+script = "fstab-decode printf '%s|' 'a\\011b' 'c\\012d' | od -c"
+
+[[case]]
+id = "fstab-decode-backslash"
+argv = ["fstab-decode", "echo", "a\\\\b"]
+
+[[case]]
+id = "fstab-decode-plain-backslash"
+argv = ["fstab-decode", "echo", "a\\xb", "c\\"]
+
+[[case]]
+id = "fstab-decode-short-octal"
+argv = ["fstab-decode", "echo", "a\\04", "b\\0401"]
+
+[[case]]
+id = "fstab-decode-multiple-args"
+argv = ["fstab-decode", "echo", "/mnt/my\\040disk", "/mnt/other"]
+
+[[case]]
+id = "fstab-decode-no-args"
+script = "fstab-decode; echo \"rc=$?\""
+
+[[case]]
+id = "fstab-decode-command-not-found"
+script = "fstab-decode nao-existe-xyz 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "fstab-decode-exit-status"
+script = "fstab-decode sh -c 'exit 7'; echo \"rc=$?\""

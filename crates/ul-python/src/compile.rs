@@ -15,7 +15,7 @@
 
 use std::collections::HashMap;
 
-use crate::ast::{BoolOp, CmpOp, Constant, Expr, ExprKind as E, Mod, Operator, Stmt, StmtKind as S, UnaryOp};
+use crate::ast::{BoolOp, CmpOp, Constant, ExceptHandler, Expr, ExprKind as E, Mod, Operator, Stmt, StmtKind as S, UnaryOp};
 use crate::object::Value;
 
 /// Instrução da VM. Os operandos `u32` são índices em `consts`/`names` ou alvos de salto.
@@ -63,6 +63,27 @@ pub enum Op {
     StoreSubscript,
     /// Desempacota o topo em `n` valores, o primeiro no topo.
     UnpackSequence(u32),
+    /// Abre um bloco protegido; uma exceção salta para o alvo com a pilha restaurada.
+    SetupTry(u32),
+    /// Fecha o bloco protegido mais interno.
+    PopBlock,
+    /// Move a exceção do topo (mantendo-a) para a pilha de exceções tratadas.
+    PushExc,
+    /// Descarta a exceção tratada mais recente.
+    PopExc,
+    /// `[exc, cls]` vira `[exc, bool]`: a exceção é instância da classe (ou de alguma da tupla).
+    ExcMatch,
+    /// Levanta o topo da pilha.
+    Raise,
+    /// `raise` sem argumento: levanta a exceção tratada mais recente.
+    ReraiseCurrent,
+    /// Relevanta a exceção do topo, descartando a tratada mais recente (fim de `except` sem casamento
+    /// e de `finally`).
+    Reraise,
+    /// `del nome`, ignorando nome ausente.
+    DeleteName(u32),
+    /// `objeto.nome`.
+    LoadAttr(u32),
 }
 
 /// Código compilado de um módulo.
@@ -89,7 +110,7 @@ pub fn compile_module(module: &Mod) -> Result<Code, CompileError> {
     let Mod::Module { body, .. } = module else {
         return Err(CompileError { kind: "NotImplementedError", msg: "only modules can be compiled".into(), lineno: 1 });
     };
-    let mut c = Compiler { code: Code::default(), line: 1, loops: Vec::new(), name_index: HashMap::new() };
+    let mut c = Compiler { code: Code::default(), line: 1, loops: Vec::new(), name_index: HashMap::new(), tries: Vec::new() };
     c.block(body)?;
     Ok(c.code)
 }
@@ -99,6 +120,14 @@ struct LoopCtx {
     breaks: Vec<usize>,
     /// Laço `for`: o `break` descarta o iterador da pilha antes de sair.
     is_for: bool,
+    /// Quantos `try` estavam abertos quando o laço começou.
+    try_depth: usize,
+}
+
+/// `try` aberto durante a compilação: o `finally`, se houver, é repetido onde o controle sai.
+#[derive(Clone)]
+struct TryCtx {
+    finalbody: Vec<Stmt>,
 }
 
 struct Compiler {
@@ -106,6 +135,7 @@ struct Compiler {
     line: usize,
     loops: Vec<LoopCtx>,
     name_index: HashMap<String, u32>,
+    tries: Vec<TryCtx>,
 }
 
 impl Compiler {
@@ -137,6 +167,7 @@ impl Compiler {
             Op::JumpIfFalseOrPop(_) => Op::JumpIfFalseOrPop(t),
             Op::JumpIfTrueOrPop(_) => Op::JumpIfTrueOrPop(t),
             Op::ForIter(_) => Op::ForIter(t),
+            Op::SetupTry(_) => Op::SetupTry(t),
             other => other,
         };
     }
@@ -201,11 +232,11 @@ impl Compiler {
                 self.line = stmt.pos.lineno;
                 self.expr(test)?;
                 let to_else = self.emit(Op::PopJumpIfFalse(0));
-                self.loops.push(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: false });
+                self.loops.push(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: false, try_depth: self.tries.len() });
                 self.block(body)?;
                 self.line = stmt.pos.lineno;
                 self.emit(Op::Jump(top as u32));
-                let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: false });
+                let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: false, try_depth: 0 });
                 let else_start = self.here();
                 self.patch(to_else, else_start);
                 self.block(orelse)?;
@@ -220,11 +251,11 @@ impl Compiler {
                 self.emit(Op::GetIter);
                 let top = self.emit(Op::ForIter(0));
                 self.store(target)?;
-                self.loops.push(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true });
+                self.loops.push(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: self.tries.len() });
                 self.block(body)?;
                 self.line = stmt.pos.lineno;
                 self.emit(Op::Jump(top as u32));
-                let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true });
+                let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: 0 });
                 let else_start = self.here();
                 self.patch(top, else_start);
                 self.block(orelse)?;
@@ -234,9 +265,11 @@ impl Compiler {
                 }
             }
             S::Break => {
-                let Some(is_for) = self.loops.last().map(|ctx| ctx.is_for) else {
+                let Some(ctx) = self.loops.last() else {
                     return Err(CompileError { kind: "SyntaxError", msg: "'break' outside loop".into(), lineno: self.line });
                 };
+                let (is_for, depth) = (ctx.is_for, ctx.try_depth);
+                self.leave_tries(depth)?;
                 if is_for {
                     self.emit(Op::Pop);
                 }
@@ -253,24 +286,165 @@ impl Compiler {
                         lineno: self.line,
                     });
                 };
-                let target = ctx.continue_target as u32;
+                let (target, depth) = (ctx.continue_target as u32, ctx.try_depth);
+                self.leave_tries(depth)?;
                 self.emit(Op::Jump(target));
+            }
+            S::Try { body, handlers, orelse, finalbody } => self.try_stmt(body, handlers, orelse, finalbody)?,
+            S::Raise { exc, cause } => {
+                if cause.is_some() {
+                    return Err(self.unsupported("raise ... from"));
+                }
+                match exc {
+                    Some(e) => {
+                        self.expr(e)?;
+                        self.line = stmt.pos.lineno;
+                        self.emit(Op::Raise);
+                    }
+                    None => {
+                        self.emit(Op::ReraiseCurrent);
+                    }
+                }
+            }
+            S::Assert { test, msg } => {
+                self.expr(test)?;
+                let ok = self.emit(Op::PopJumpIfTrue(0));
+                self.line = stmt.pos.lineno;
+                let n = self.name("AssertionError");
+                self.emit(Op::LoadName(n));
+                let argc = if let Some(m) = msg {
+                    self.expr(m)?;
+                    1
+                } else {
+                    0
+                };
+                self.line = stmt.pos.lineno;
+                self.emit(Op::Call { argc, kwnames: None });
+                self.emit(Op::Raise);
+                let end = self.here();
+                self.patch(ok, end);
             }
             S::FunctionDef { .. } | S::AsyncFunctionDef { .. } | S::Return { .. } => {
                 return Err(self.unsupported("def"))
             }
             S::ClassDef { .. } => return Err(self.unsupported("class")),
             S::Import { .. } | S::ImportFrom { .. } => return Err(self.unsupported("import")),
-            S::Try { .. } | S::TryStar { .. } | S::Raise { .. } => return Err(self.unsupported("exceptions")),
+            S::TryStar { .. } => return Err(self.unsupported("except*")),
             S::Delete { .. } => return Err(self.unsupported("del")),
             S::With { .. } | S::AsyncWith { .. } => return Err(self.unsupported("with")),
-            S::Assert { .. } => return Err(self.unsupported("assert")),
             S::Match { .. } => return Err(self.unsupported("match")),
             S::AnnAssign { .. } | S::TypeAlias { .. } => return Err(self.unsupported("annotations")),
             S::Nonlocal { .. } => return Err(self.unsupported("nonlocal")),
             S::AsyncFor { .. } => return Err(self.unsupported("async for")),
         }
         Ok(())
+    }
+
+    /// `try` completo: o `finally` embrulha o `try/except/else` por fora, e o corpo dele é repetido
+    /// no caminho normal, no excepcional e em cada `break`/`continue` que atravessa o `try`.
+    fn try_stmt(
+        &mut self,
+        body: &[Stmt],
+        handlers: &[ExceptHandler],
+        orelse: &[Stmt],
+        finalbody: &[Stmt],
+    ) -> Result<(), CompileError> {
+        if finalbody.is_empty() {
+            return self.try_except(body, handlers, orelse);
+        }
+        let setup = self.emit(Op::SetupTry(0));
+        self.tries.push(TryCtx { finalbody: finalbody.to_vec() });
+        if handlers.is_empty() {
+            self.block(body)?;
+            self.block(orelse)?;
+        } else {
+            self.try_except(body, handlers, orelse)?;
+        }
+        self.tries.pop();
+        self.emit(Op::PopBlock);
+        self.block(finalbody)?;
+        let to_end = self.emit(Op::Jump(0));
+        let handler = self.here();
+        self.patch(setup, handler);
+        self.emit(Op::PushExc);
+        self.block(finalbody)?;
+        self.emit(Op::Reraise);
+        let end = self.here();
+        self.patch(to_end, end);
+        Ok(())
+    }
+
+    fn try_except(&mut self, body: &[Stmt], handlers: &[ExceptHandler], orelse: &[Stmt]) -> Result<(), CompileError> {
+        let setup = self.emit(Op::SetupTry(0));
+        self.tries.push(TryCtx { finalbody: Vec::new() });
+        self.block(body)?;
+        self.tries.pop();
+        self.emit(Op::PopBlock);
+        self.block(orelse)?;
+        let mut ends = vec![self.emit(Op::Jump(0))];
+        let handler = self.here();
+        self.patch(setup, handler);
+        self.emit(Op::PushExc);
+        let mut pending: Option<usize> = None;
+        for h in handlers {
+            if let Some(at) = pending.take() {
+                let here = self.here();
+                self.patch(at, here);
+            }
+            self.line = h.pos.lineno;
+            if let Some(t) = &h.r#type {
+                self.expr(t)?;
+                self.line = h.pos.lineno;
+                self.emit(Op::ExcMatch);
+                pending = Some(self.emit(Op::PopJumpIfFalse(0)));
+            }
+            match &h.name {
+                Some(name) => {
+                    let n = self.name(name);
+                    self.emit(Op::StoreName(n));
+                }
+                None => {
+                    self.emit(Op::Pop);
+                }
+            }
+            self.block(&h.body)?;
+            if let Some(name) = &h.name {
+                let n = self.name(name);
+                self.emit(Op::DeleteName(n));
+            }
+            self.emit(Op::PopExc);
+            ends.push(self.emit(Op::Jump(0)));
+        }
+        if let Some(at) = pending.take() {
+            let here = self.here();
+            self.patch(at, here);
+            self.emit(Op::Reraise);
+        }
+        let end = self.here();
+        for e in ends {
+            self.patch(e, end);
+        }
+        Ok(())
+    }
+
+    /// Sai dos `try` abertos acima de `depth` (por `break`/`continue`): fecha o bloco de cada um e
+    /// repete o `finally` dele.
+    fn leave_tries(&mut self, depth: usize) -> Result<(), CompileError> {
+        let all = std::mem::take(&mut self.tries);
+        let mut result = Ok(());
+        for i in (depth..all.len()).rev() {
+            self.emit(Op::PopBlock);
+            if all[i].finalbody.is_empty() {
+                continue;
+            }
+            self.tries = all[..i].to_vec();
+            if let Err(e) = self.block(&all[i].finalbody) {
+                result = Err(e);
+                break;
+            }
+        }
+        self.tries = all;
+        result
     }
 
     fn aug_assign(&mut self, target: &Expr, op: Operator, value: &Expr) -> Result<(), CompileError> {
@@ -431,7 +605,12 @@ impl Compiler {
                 self.line = expr.pos.lineno;
                 self.emit(Op::Subscript);
             }
-            E::Attribute { .. } => return Err(self.unsupported("attribute access")),
+            E::Attribute { value, attr, .. } => {
+                self.expr(value)?;
+                let n = self.name(attr);
+                self.line = expr.pos.lineno;
+                self.emit(Op::LoadAttr(n));
+            }
             E::Lambda { .. } => return Err(self.unsupported("lambda")),
             E::NamedExpr { .. } => return Err(self.unsupported("assignment expressions")),
             E::ListComp { .. } | E::SetComp { .. } | E::DictComp { .. } | E::GeneratorExp { .. } => {

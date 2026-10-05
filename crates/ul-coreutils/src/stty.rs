@@ -32,7 +32,7 @@ const HELP: &str = concat!(
     "Print or change terminal characteristics.\n",
     "\n",
     "Mandatory arguments to long options are mandatory for short options too.\n",
-    "  -a,--all          print all current settings in human-readable form\n",
+    "  -a, --all          print all current settings in human-readable form\n",
     "  -g, --save         print all current settings in a stty-readable form\n",
     "  -F, --file=DEVICE  open and use the specified DEVICE instead of stdin\n",
     "      --help        display this help and exit\n",

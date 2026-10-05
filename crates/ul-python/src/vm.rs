@@ -21,18 +21,43 @@ use std::rc::Rc;
 use crate::ast::{CmpOp, Operator, UnaryOp};
 use crate::compile::{Code, Op};
 use crate::object::{
-    int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, Dict, ObjError, PyStr, Range, Set, Value,
+    exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, Dict, ExcObj, ObjError, PyStr,
+    Range, Set, Value, EXC_CLASSES,
 };
 
-/// Exceção Python levantada durante a execução: o nome da classe e a mensagem (`str(exc)`).
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Exceção Python levantada durante a execução: o nome da classe e a mensagem (`str(exc)`). Quando
+/// ela vem de um `raise` ou foi capturada, `value` guarda a instância com os `args` originais.
+#[derive(Debug, Clone)]
 pub struct PyException {
     pub kind: &'static str,
     pub msg: String,
+    pub value: Option<Value>,
+    /// Linha da instrução que a levantou (0 até o laço principal preencher).
+    pub lineno: usize,
+}
+
+impl PyException {
+    /// A instância que `except ... as e` enxerga.
+    fn to_value(&self) -> Value {
+        if let Some(v) = &self.value {
+            return v.clone();
+        }
+        let args = if self.msg.is_empty() { Vec::new() } else { vec![Value::str(self.msg.clone())] };
+        Value::Exception(Rc::new(ExcObj { kind: self.kind, args }))
+    }
+
+    fn from_value(v: &Value) -> PyException {
+        match v {
+            Value::Exception(e) => {
+                PyException { kind: e.kind, msg: exc_str(e), value: Some(v.clone()), lineno: 0 }
+            }
+            _ => type_error("exceptions must derive from BaseException"),
+        }
+    }
 }
 
 /// Exceção não tratada com a linha da instrução que a levantou.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct RuntimeError {
     pub exc: PyException,
     pub lineno: usize,
@@ -41,7 +66,7 @@ pub struct RuntimeError {
 type PyResult<T> = Result<T, PyException>;
 
 fn exc(kind: &'static str, msg: impl Into<String>) -> PyException {
-    PyException { kind, msg: msg.into() }
+    PyException { kind, msg: msg.into(), value: None, lineno: 0 }
 }
 
 fn type_error(msg: impl Into<String>) -> PyException {
@@ -160,6 +185,15 @@ enum Slot {
 pub struct Vm {
     globals: HashMap<String, Value>,
     pub stdout: Vec<u8>,
+    /// Exceções sendo tratadas (a mais recente por último), para `raise` sem argumento.
+    handled: Vec<Value>,
+}
+
+/// Bloco protegido aberto por `SetupTry`.
+struct Block {
+    handler: usize,
+    depth: usize,
+    handled: usize,
 }
 
 fn internal(msg: &str) -> PyException {
@@ -174,13 +208,38 @@ impl Vm {
     /// Executa o código de um módulo.
     pub fn run(&mut self, code: &Code) -> Result<(), RuntimeError> {
         let mut stack: Vec<Slot> = Vec::new();
+        let mut blocks: Vec<Block> = Vec::new();
         let mut pc = 0;
         while pc < code.ops.len() {
             let op = code.ops[pc];
-            match self.step(code, op, &mut stack) {
+            let result = match op {
+                Op::SetupTry(h) => {
+                    blocks.push(Block { handler: h as usize, depth: stack.len(), handled: self.handled.len() });
+                    Ok(None)
+                }
+                Op::PopBlock => {
+                    blocks.pop();
+                    Ok(None)
+                }
+                _ => self.step(code, op, &mut stack),
+            };
+            match result {
                 Ok(Some(target)) => pc = target,
                 Ok(None) => pc += 1,
-                Err(exc) => return Err(RuntimeError { exc, lineno: code.lines[pc] }),
+                Err(mut e) => {
+                    if e.lineno == 0 {
+                        e.lineno = code.lines[pc];
+                    }
+                    match blocks.pop() {
+                        Some(b) => {
+                            stack.truncate(b.depth);
+                            self.handled.truncate(b.handled);
+                            stack.push(Slot::Val(e.to_value()));
+                            pc = b.handler;
+                        }
+                        None => return Err(RuntimeError { lineno: e.lineno, exc: e }),
+                    }
+                }
             }
         }
         Ok(())
@@ -216,7 +275,10 @@ impl Vm {
                     Some(v) => v.clone(),
                     None => match BUILTINS.iter().find(|b| **b == name.as_str()) {
                         Some(b) => Value::Builtin(b),
-                        None => return Err(exc("NameError", format!("name '{name}' is not defined"))),
+                        None => match EXC_CLASSES.iter().find(|(n, _)| *n == name.as_str()) {
+                            Some((n, _)) => Value::Builtin(n),
+                            None => return Err(exc("NameError", format!("name '{name}' is not defined"))),
+                        },
                     },
                 };
                 stack.push(Slot::Val(v));
@@ -356,6 +418,53 @@ impl Vm {
                 let value = pop(stack)?;
                 store_subscript(&container, &index, value)?;
             }
+            Op::SetupTry(_) | Op::PopBlock => {}
+            Op::PushExc => {
+                let v = top(stack)?.clone();
+                self.handled.push(v);
+            }
+            Op::PopExc => {
+                self.handled.pop();
+            }
+            Op::ExcMatch => {
+                let cls = pop(stack)?;
+                let matched = {
+                    let Value::Exception(e) = top(stack)? else { return Err(internal("ExcMatch without exception")) };
+                    exc_matches(e.kind, &cls)?
+                };
+                stack.push(Slot::Val(Value::Bool(matched)));
+            }
+            Op::Raise => {
+                let v = pop(stack)?;
+                return Err(raise_value(v)?);
+            }
+            Op::ReraiseCurrent => {
+                let Some(v) = self.handled.last().cloned() else {
+                    return Err(exc("RuntimeError", "No active exception to reraise"));
+                };
+                return Err(PyException::from_value(&v));
+            }
+            Op::Reraise => {
+                let v = pop(stack)?;
+                self.handled.pop();
+                return Err(PyException::from_value(&v));
+            }
+            Op::DeleteName(i) => {
+                self.globals.remove(&code.names[i as usize]);
+            }
+            Op::LoadAttr(i) => {
+                let obj = pop(stack)?;
+                let name = &code.names[i as usize];
+                match (&obj, name.as_str()) {
+                    (Value::Exception(e), "args") => stack.push(Slot::Val(Value::tuple(e.args.clone()))),
+                    _ => {
+                        return Err(exc(
+                            "AttributeError",
+                            format!("'{}' object has no attribute '{name}'", obj.type_name()),
+                        ))
+                    }
+                }
+            }
             Op::UnpackSequence(n) => {
                 let v = pop(stack)?;
                 let n = n as usize;
@@ -388,6 +497,12 @@ impl Vm {
             return Err(type_error(format!("'{}' object is not callable", func.type_name())));
         };
         let name = *name;
+        if let Some((kind, _)) = EXC_CLASSES.iter().find(|(n, _)| *n == name) {
+            if let Some((kw, _)) = kwargs.first() {
+                return Err(type_error(format!("{name}() takes no keyword arguments ('{kw}' given)")));
+            }
+            return Ok(Value::Exception(Rc::new(ExcObj { kind, args })));
+        }
         if name != "print"
             && let Some((kw, _)) = kwargs.first() {
                 return Err(type_error(match name {
@@ -455,6 +570,34 @@ impl Vm {
         self.stdout.extend_from_slice(parts.join(&sep).as_bytes());
         self.stdout.extend_from_slice(end.as_bytes());
         Ok(Value::None)
+    }
+}
+
+/// `except cls`: `cls` é uma classe de exceção ou uma tupla delas.
+fn exc_matches(kind: &str, cls: &Value) -> PyResult<bool> {
+    match cls {
+        Value::Builtin(name) if EXC_CLASSES.iter().any(|(n, _)| n == name) => Ok(exc_is_subclass(kind, name)),
+        Value::Tuple(items) => {
+            for item in items.iter() {
+                if exc_matches(kind, item)? {
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        }
+        _ => Err(type_error("catching classes that do not inherit from BaseException is not allowed")),
+    }
+}
+
+/// Valor do `raise X`: uma classe vira instância sem argumentos.
+fn raise_value(v: Value) -> PyResult<PyException> {
+    match &v {
+        Value::Exception(_) => Ok(PyException::from_value(&v)),
+        Value::Builtin(name) => match EXC_CLASSES.iter().find(|(n, _)| n == name) {
+            Some((n, _)) => Ok(PyException::from_value(&Value::Exception(Rc::new(ExcObj { kind: n, args: Vec::new() })))),
+            None => Err(type_error("exceptions must derive from BaseException")),
+        },
+        _ => Err(type_error("exceptions must derive from BaseException")),
     }
 }
 
@@ -623,7 +766,12 @@ fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
         }
         Value::Dict(d) => match d.borrow().get(index)? {
             Some(v) => Ok(v),
-            None => Err(exc("KeyError", repr(index))),
+            None => Err(PyException {
+                kind: "KeyError",
+                msg: repr(index),
+                value: Some(Value::Exception(Rc::new(ExcObj { kind: "KeyError", args: vec![index.clone()] }))),
+                lineno: 0,
+            }),
         },
         _ => Err(type_error(format!("'{}' object is not subscriptable", container.type_name()))),
     }
@@ -1206,5 +1354,30 @@ mod tests {
         assert!(error("print(1, sep=2)\n").ends_with("TypeError: sep must be None or a string, not int\n"));
         assert!(error("5 % 0\n").ends_with("ZeroDivisionError: integer modulo by zero\n"));
         assert!(error("1\n\n(1)(2)\n").contains("line 3,"));
+    }
+
+    #[test]
+    fn try_except_flow() {
+        let src = "try:\n    1 / 0\nexcept ZeroDivisionError as e:\n    print('z', e, repr(e), e.args)\n";
+        assert_eq!(out(src), "z division by zero ZeroDivisionError('division by zero') ('division by zero',)\n");
+        let src = "try:\n    {}['k']\nexcept LookupError as e:\n    print(repr(e), str(e))\n";
+        assert_eq!(out(src), "KeyError('k') 'k'\n");
+        let src = "try:\n    raise ValueError('boom')\nexcept (TypeError, ValueError) as e:\n    print('got', e)\nelse:\n    print('no')\nfinally:\n    print('fin')\n";
+        assert_eq!(out(src), "got boom\nfin\n");
+        let src = "try:\n    pass\nexcept:\n    print('no')\nelse:\n    print('else')\nfinally:\n    print('fin')\n";
+        assert_eq!(out(src), "else\nfin\n");
+        let src = "try:\n    try:\n        raise KeyError(1)\n    except ValueError:\n        print('inner')\nexcept Exception as e:\n    print('outer', type_ok)\n";
+        assert!(error(src).ends_with("NameError: name 'type_ok' is not defined\n"));
+        let src = "for i in range(3):\n    try:\n        if i == 1:\n            continue\n        if i == 2:\n            break\n    finally:\n        print('f', i)\nprint('end')\n";
+        assert_eq!(out(src), "f 0\nf 1\nf 2\nend\n");
+        let src = "try:\n    try:\n        raise ValueError('a')\n    except ValueError:\n        raise\nexcept ValueError as e:\n    print('re', e)\n";
+        assert_eq!(out(src), "re a\n");
+        let src = "try:\n    assert 1 == 2, 'nope'\nexcept AssertionError as e:\n    print(e)\nassert 0\n";
+        let (stdout, err) = run(src);
+        assert_eq!(stdout, "nope\n");
+        assert!(err.expect("exceção").ends_with("AssertionError\n"));
+        assert!(error("raise ValueError\n").ends_with("ValueError\n"));
+        assert!(error("raise 5\n").ends_with("TypeError: exceptions must derive from BaseException\n"));
+        assert!(error("try:\n    raise ValueError('x')\nfinally:\n    print('f')\n").ends_with("ValueError: x\n"));
     }
 }

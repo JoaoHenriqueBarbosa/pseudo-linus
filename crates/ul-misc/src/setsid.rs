@@ -53,7 +53,7 @@ For more details see setsid(1).
 /// `execvp(3)` da glibc: com `/` no nome vai direto; senão tenta cada diretório do `PATH` (ou
 /// `/bin:/usr/bin` sem ele), lembrando EACCES e seguindo em ENOENT, ENOTDIR e ESTALE. ENOEXEC roda
 /// o arquivo com `/bin/sh`. Só volta em erro.
-fn execvp(file: &[u8], argv: &[Vec<u8>]) -> Errno {
+pub(crate) fn execvp(file: &[u8], argv: &[Vec<u8>]) -> Errno {
     let sys = sys::current();
     let try_exec = |path: &[u8]| -> Errno {
         let e = sys.execve(path, argv, None);

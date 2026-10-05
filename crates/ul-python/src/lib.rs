@@ -269,7 +269,7 @@ pub fn run_source(src: &str) -> Outcome {
                 format!("  File \"<string>\", line {}\n{}: {}\n", e.lineno, e.kind, e.msg)
             } else {
                 vm::format_traceback(&vm::RuntimeError {
-                    exc: vm::PyException { kind: e.kind, msg: e.msg },
+                    exc: vm::PyException { kind: e.kind, msg: e.msg, value: None, lineno: e.lineno },
                     lineno: e.lineno,
                 })
             };

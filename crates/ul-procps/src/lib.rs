@@ -18,6 +18,7 @@ pub mod procfs;
 pub mod ps;
 pub mod pstree;
 pub mod pwdx;
+pub mod skill;
 pub mod slabtop;
 pub mod sysctl;
 pub mod top;
@@ -42,7 +43,9 @@ pub fn programs() -> Vec<Program> {
         Program::bin("ps", ps::main),
         Program::bin("pstree", pstree::main),
         Program::bin("pwdx", pwdx::main),
+        Program::bin("skill", skill::main),
         Program::bin("slabtop", slabtop::main),
+        Program::bin("snice", skill::main),
         Program::bin("sysctl", sysctl::main),
         Program::bin("top", top::main),
         Program::bin("uptime", uptime::main),

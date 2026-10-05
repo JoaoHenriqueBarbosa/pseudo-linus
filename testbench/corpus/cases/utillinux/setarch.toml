@@ -1,0 +1,110 @@
+tool = "setarch"
+source = "manual"
+
+# setarch do util-linux 2.41 e seus links. O oráculo é um contêiner docker padrão: o seccomp só deixa
+# passar personality 0x0, 0x8, 0x20000, 0x20008 e a leitura, então -R e companhia dão EPERM.
+
+[[case]]
+id = "setarch-help"
+argv = ["setarch", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "setarch-version"
+argv = ["setarch", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "setarch-list"
+argv = ["setarch", "--list"]
+tags = ["list"]
+
+[[case]]
+id = "setarch-uname-i686"
+argv = ["setarch", "i686", "uname", "-m"]
+tags = ["arch"]
+
+[[case]]
+id = "setarch-uname-linux32"
+argv = ["setarch", "linux32", "uname", "-m"]
+tags = ["arch"]
+
+[[case]]
+id = "setarch-uname-x86-64"
+argv = ["setarch", "x86_64", "uname", "-m"]
+tags = ["arch"]
+
+[[case]]
+id = "setarch-linux32-link"
+argv = ["linux32", "uname", "-m"]
+tags = ["link"]
+
+[[case]]
+id = "setarch-linux64-link"
+argv = ["linux64", "uname", "-m"]
+tags = ["link"]
+
+[[case]]
+id = "setarch-i386-link"
+argv = ["i386", "uname", "-m"]
+tags = ["link"]
+
+[[case]]
+id = "setarch-x86-64-link"
+argv = ["x86_64", "uname", "-m"]
+tags = ["link"]
+
+[[case]]
+id = "setarch-uname26-link"
+argv = ["uname26", "uname", "-r"]
+tags = ["link", "uname26"]
+
+[[case]]
+id = "setarch-uname-2-6"
+argv = ["setarch", "x86_64", "--uname-2.6", "uname", "-sr"]
+tags = ["uname26"]
+
+[[case]]
+id = "setarch-verbose"
+argv = ["setarch", "-v", "i686", "true"]
+tags = ["verbose"]
+
+[[case]]
+id = "setarch-exit-status"
+script = "setarch i686 sh -c 'exit 7'; echo \"exit $?\""
+tags = ["exec"]
+
+[[case]]
+id = "setarch-addr-no-randomize-eperm"
+argv = ["setarch", "x86_64", "-R", "true"]
+tags = ["error", "seccomp"]
+
+[[case]]
+id = "setarch-3gb-eperm"
+argv = ["setarch", "i686", "-3", "true"]
+tags = ["error", "seccomp"]
+
+[[case]]
+id = "setarch-unknown-arch"
+argv = ["setarch", "sparc9", "true"]
+tags = ["error"]
+
+[[case]]
+id = "setarch-no-arch"
+argv = ["setarch"]
+tags = ["error"]
+
+[[case]]
+id = "setarch-invalid-option"
+argv = ["setarch", "x86_64", "-q", "true"]
+tags = ["error"]
+
+[[case]]
+id = "setarch-unknown-long"
+argv = ["setarch", "x86_64", "--nada", "true"]
+tags = ["error"]
+
+[[case]]
+id = "setarch-missing-program"
+argv = ["setarch", "x86_64", "nao-existe-programa"]
+tags = ["error", "exec"]
