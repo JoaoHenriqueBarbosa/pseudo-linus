@@ -69,11 +69,15 @@ struct Entry {
     comment: Vec<u8>,
     /// A linha da fonte onde a entrada começa (zero quando veio do banco).
     line: usize,
+    /// Compilada com `-x`: as capacidades predefinidas além do que o formato legado grava (as
+    /// `OT...` do termcap) vão pro arquivo como estendidas.
+    keep_obsolete: bool,
 }
 
 impl Entry {
     fn new(names: Vec<u8>) -> Entry {
         Entry {
+            keep_obsolete: false,
             names,
             bools: vec![0; BOOLCOUNT],
             nums: vec![-1; NUMCOUNT],
@@ -524,6 +528,7 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
     let mut e = Entry::new(names);
     e.comment = raw.comment.clone();
     e.line = raw.line;
+    e.keep_obsolete = xflag;
     let mut queue: Vec<Field> = fields[1..].to_vec();
     let mut qi = 0;
     while qi < queue.len() {
@@ -824,7 +829,37 @@ fn table_offset(table: &mut Vec<u8>, s: &Str) -> i32 {
 
 /// `write_object`: o arquivo compilado (formato legado, ou estendido de 32 bits quando algum número
 /// não cabe em 16 bits) com a parte das capacidades estendidas quando existem.
-fn compile(e: &Entry) -> Vec<u8> {
+fn compile(entry: &Entry) -> Vec<u8> {
+    // As predefinidas que o formato legado não grava (`OTbs`, `OTug`, `OTi2`...) viajam como
+    // estendidas, com o nome terminfo delas.
+    let mut full = entry.clone();
+    if entry.keep_obsolete {
+        for i in BOOLWRITE..BOOLCOUNT.min(entry.bools.len()) {
+            if entry.bools[i] == 1 {
+                full.ext.push(ExtCap {
+                    name: BOOLS[i].info.as_bytes().to_vec(),
+                    val: ExtVal::Bool(1),
+                });
+            }
+        }
+        for i in NUMWRITE..NUMCOUNT.min(entry.nums.len()) {
+            if entry.nums[i] >= 0 {
+                full.ext.push(ExtCap {
+                    name: NUMS[i].info.as_bytes().to_vec(),
+                    val: ExtVal::Num(entry.nums[i]),
+                });
+            }
+        }
+        for i in STRWRITE..STRCOUNT.min(entry.strs.len()) {
+            if entry.strs[i].valid() {
+                full.ext.push(ExtCap {
+                    name: STRS[i].info.as_bytes().to_vec(),
+                    val: ExtVal::Str(entry.strs[i].clone()),
+                });
+            }
+        }
+    }
+    let e = &full;
     let [ext_b, ext_n, ext_s] = e.sorted_ext();
     // Só os números predefinidos decidem o formato; os estendidos seguem o formato escolhido.
     let wide = e.nums.iter().any(|n| *n > 0x7fff);
@@ -1294,7 +1329,10 @@ fn run(args: &[OsString]) -> i32 {
                 }
                 capdump = true;
                 outform = OutForm::Termcap;
-                tversion = Some("BSD".to_string());
+                // Só o `-K` restringe ao subconjunto BSD; o `-C` mantém todas as capacidades.
+                if c == 'K' {
+                    tversion = Some("BSD".to_string());
+                }
                 if sortmode == SortMode::Default {
                     sortmode = SortMode::Termcap;
                 }
