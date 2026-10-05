@@ -2448,7 +2448,7 @@ impl<'p> Interp<'p> {
                     Some(i) => i,
                     None => return Ok(Value::Num(-1.0)),
                 };
-                self.read_input_into(idx, target, false)
+                self.read_input_into(idx, target)
             }
             GetlineSrc::Cmd(e) => {
                 let v = self.eval(e)?;
@@ -2457,7 +2457,7 @@ impl<'p> Interp<'p> {
                     Some(i) => i,
                     None => return Ok(Value::Num(-1.0)),
                 };
-                self.read_input_into(idx, target, true)
+                self.read_input_into(idx, target)
             }
             GetlineSrc::Coproc(e) => {
                 let v = self.eval(e)?;
@@ -2480,7 +2480,7 @@ impl<'p> Interp<'p> {
                     OutKind::Coproc { reader: Some(rd), .. } => rd.read_record(&sys, &rs),
                     _ => return Ok(Value::Num(-1.0)),
                 };
-                self.finish_getline(r, target, true)
+                self.finish_getline(r, target)
             }
         }
     }
@@ -2533,28 +2533,23 @@ impl<'p> Interp<'p> {
         }
     }
 
-    fn read_input_into(&mut self, idx: usize, target: Option<&LValue>, counts_nr: bool) -> R<Value> {
+    fn read_input_into(&mut self, idx: usize, target: Option<&LValue>) -> R<Value> {
         let rs = self.rs_mode.clone();
         let sys = self.sys.clone();
         let r = self.inputs[idx].reader.read_record(&sys, &rs);
-        self.finish_getline(r, target, counts_nr)
+        self.finish_getline(r, target)
     }
 
-    fn finish_getline(&mut self, r: Result<Option<(Vec<u8>, Vec<u8>)>, Errno>, target: Option<&LValue>, counts_nr: bool) -> R<Value> {
+    /// Fim de um `getline` redirecionado (`< arquivo`, `cmd |`, `cmd |&`). No gawk 5.2 nenhum deles
+    /// mexe em NR nem em FNR (o manual diz que `cmd | getline` incrementa NR, o código do
+    /// `do_getline_redir` não): só o `getline` simples conta registros.
+    fn finish_getline(&mut self, r: Result<Option<(Vec<u8>, Vec<u8>)>, Errno>, target: Option<&LValue>) -> R<Value> {
         match r {
             Ok(Some((rec, rt))) => {
-                if counts_nr {
-                    self.nr += 1.0;
-                }
                 self.set_rt(rt);
                 match target {
                     Some(lv) => self.assign(lv, Value::strnum(&rec))?,
-                    None => {
-                        if counts_nr {
-                            // `cmd | getline` muda NR mas não FNR.
-                        }
-                        self.set_record(Rc::from(rec));
-                    }
+                    None => self.set_record(Rc::from(rec)),
                 }
                 Ok(Value::Num(1.0))
             }
