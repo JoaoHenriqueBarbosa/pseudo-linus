@@ -297,9 +297,10 @@ fn write_setting(s: &Setting, o: &Opts) -> i32 {
         return 1;
     }
     if st.mode & 0o200 == 0 || is_dir(&st) {
-        let e = if is_dir(&st) { Errno::EISDIR } else { Errno::EACCES };
+        // Root de contêiner: o oráculo recebe EPERM do kernel e o procps 4.0.4 sai com 0.
+        let (e, rc) = if is_dir(&st) { (Errno::EISDIR, 1) } else { (Errno::EPERM, 0) };
         warn_errno(&format!("setting key \"{key}\""), e);
-        return 1;
+        return rc;
     }
     let mut rc = 0;
     if !o.dry_run {
@@ -354,7 +355,7 @@ fn preload(filename: &str, o: &Opts) -> i32 {
         Ok(d) => d,
         Err(e) => {
             warn_errno(&format!("cannot open \"{filename}\""), e);
-            return -1;
+            return 1;
         }
     };
     let mut rc = 0;

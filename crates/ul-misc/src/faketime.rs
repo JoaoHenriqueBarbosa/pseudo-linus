@@ -14,35 +14,35 @@ use crate::util::io;
 
 const VERSION: &str = "0.9.10";
 
-fn usage(name: &str) -> String {
-    format!(
-        "
-Usage: {name} [switches] <timestamp|-> <program with arguments>
+fn usage(_name: &str) -> String {
+    r#"
+Usage: faketime [switches] <timestamp> <program with arguments>
 
-This will run the specified 'program' with the given 'timestamp'.
+This will run the specified 'program' with the given 'arguments'.
 The program will be tricked into seeing the given 'timestamp' as its starting date and time.
-The clock continues to run from this timestamp. (Please see the manpage for more advanced options.)
-The timestamp must be parsable by the 'date' command. Use '-' to disable fake time.
+The clock will continue to run from this timestamp. Please see the manpage (man faketime)
+for advanced options, such as stopping the wall clock and make it run faster or slower.
 
-Options:
-  -m                        : Use the multi-threaded version of libfaketime
-  -f                        : Use the advanced timestamp specification format (see manpage)
-  --exclude-monotonic       : Don't fake the monotonic clock (Only applicable with -f)
-  --no-cache                : Disable all caching of fake time
-  --date-prog PROG          : Use specified GNU-compatible implementation of 'date' program
+The optional switches are:
+  -m                  : Use the multi-threaded version of libfaketime
+  -f                  : Use the advanced timestamp specification format (see manpage)
+  --exclude-monotonic : Prevent monotonic clock from drifting (not the raw monotonic one)
+  -p PID              : Pretend that the program's process ID is PID
+  --disable-shm       : Disable use of shared memory by libfaketime.
+  --date-prog PROG    : Use specified GNU-compatible implementation of 'date' program
 
 Examples:
-{name} 'last Friday 5 pm' /bin/date
-{name} '2008-12-24 08:15:42' /bin/date
-{name} -f '+2,5y x10,0' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'
-{name} -f '+2,5y x0,50' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'
-{name} -f '+2,5y i2,0' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'
-In this single case all spawned processes will use the same global clock without restarting it at the start of each process.
+faketime 'last friday 5 pm' /bin/date
+faketime '2008-12-24 08:15:42' /bin/date
+faketime -f '+2,5y x10,0' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'
+faketime -f '+2,5y x0,50' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'
+faketime -f '+2,5y i2,0' /bin/bash -c 'date; while true; do date; sleep 1 ; done'
+In this single case all spawned processes will use the same global clock
+without restarting it at the start of each process.
 
-(Please note that it depends on your locale settings whether . or , has to be used for fractions of seconds)
+(Please note that it depends on your locale settings whether . or , has to be used for fractions)
 
-"
-    )
+"#.to_string()
 }
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
@@ -82,7 +82,7 @@ fn run(args: &[OsString]) -> i32 {
             }
             b"-v" | b"--version" => {
                 let mut out = io::stdout();
-                let _ = out.write_all(format!("faketime: Version {VERSION}\n").as_bytes());
+                let _ = out.write_all(format!("\nfaketime: Version {VERSION}\nFor usage information please use 'faketime --help'.\n").as_bytes());
                 return 0;
             }
             _ => break,
@@ -108,7 +108,7 @@ fn run(args: &[OsString]) -> i32 {
             let res = Command::new(&date)
                 .arg("-d")
                 .arg(&spec_s)
-                .arg("+%Y-%m-%d %T")
+                .arg("+%s")
                 .stderr(Stdio::inherit())
                 .output();
             let stamp = match res {
@@ -119,14 +119,15 @@ fn run(args: &[OsString]) -> i32 {
                 _ => String::new(),
             };
             if stamp.is_empty() {
-                io::eprint(String::from(
-                    "Error: Timestamp to fake not recognized, please re-try with a different timestamp.\n",
-                ));
+                let _ = io::stdout().write_all(
+                    b"Error: Timestamp to fake not recognized, please re-try with a different timestamp.\n",
+                );
                 return 1;
             }
-            let mut v = b"@".to_vec();
-            v.extend_from_slice(stamp.as_bytes());
-            setenv("FAKETIME", &v);
+            // O wrapper original grava a diferença, em segundos, entre o instante pedido e o atual.
+            let target: i64 = stamp.trim().parse().unwrap_or(0);
+            let now = sys::current().clock_gettime(sysabi::Clock::Realtime).map_or(0, |t| t.sec);
+            setenv("FAKETIME", format!("{:+}", target - now).as_bytes());
         }
     }
     if no_cache {
@@ -139,6 +140,6 @@ fn run(args: &[OsString]) -> i32 {
     let cmd = &argv[cur + 1..];
     let _ = io::flush_stdout();
     let e = crate::setsid::execvp(&cmd[0], cmd);
-    io::eprint(format!("Running specified command failed: {}\n", e.message()));
+    io::eprint(format!("faketime: Running specified command failed: {}\n", e.message()));
     1
 }
