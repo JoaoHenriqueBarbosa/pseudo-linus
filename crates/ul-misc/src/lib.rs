@@ -2,12 +2,13 @@
 //! `file` (5.46), `column`, `hexdump`/`hd` e `more` (util-linux 2.41), `tree` (2.2.1), `xxd`
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst` (gettext 0.23),
 //! `less` não interativo, `clear`/`tput` (ncurses 6.5), `iconv`, `getconf` e `locale` (glibc 2.41).
-//! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`.
+//! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
 pub mod bc;
 pub mod col;
+pub mod colcrt;
 pub mod column;
 pub mod colrm;
 pub mod envsubst;
@@ -30,6 +31,7 @@ pub fn programs() -> Vec<Program> {
     vec![
         Program::bin("bc", bc::main),
         Program::bin("col", col::main),
+        Program::bin("colcrt", colcrt::main),
         Program::bin("column", column::main),
         Program::bin("colrm", colrm::main),
         Program::bin("envsubst", envsubst::main),
