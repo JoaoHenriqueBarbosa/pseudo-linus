@@ -514,10 +514,28 @@ pub fn open_for_read(t: &mut Tar) -> R<(Reader, compress::Child)> {
     compress::open_read(t, &name)
 }
 
+/// Operandos de uma leitura. O `-K` entra na cabeça da lista como o `add_starting_file` do GNU, então,
+/// depois de achado, também filtra os membros seguintes.
+pub fn read_names(t: &Tar) -> Vec<args::NameArg> {
+    let mut v = t.o.names.clone();
+    if let Some(s) = &t.o.starting_file {
+        let arg = args::NameArg {
+            name: s.clone(),
+            chdir: Vec::new(),
+            flags: Default::default(),
+            recursion: true,
+            from_file: false,
+            list_file: false,
+        };
+        v.insert(0, arg);
+    }
+    v
+}
+
 /// `-t`.
 fn list_mode(t: &mut Tar) -> R<()> {
     let (mut r, child) = open_for_read(t)?;
-    let mut names = names::NameList::new(&t.o.names);
+    let mut names = names::NameList::new(&read_names(t));
     let starting = t.o.starting_file.clone();
     let mut started = starting.is_none();
     let res = t.read_and(&mut r, &mut |t, r, m| {

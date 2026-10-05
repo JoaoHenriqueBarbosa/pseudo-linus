@@ -176,8 +176,6 @@ pub struct Creator {
     top_dev: u64,
     /// Arquivos e diretórios a apagar no fim (`--remove-files`).
     to_remove: Vec<(Vec<u8>, bool)>,
-    /// Membros já no arquivo (pro `-u`): nome -> mtime mais recente.
-    pub existing: Option<HashMap<Vec<u8>, Time>>,
     pax: super::writer::PaxConfig,
 }
 
@@ -240,7 +238,6 @@ impl Creator {
             umask,
             top_dev: 0,
             to_remove: Vec::new(),
-            existing: None,
         })
     }
 
@@ -431,15 +428,7 @@ impl Creator {
                 return Ok(());
             }
         }
-        // `-u`: só o que é mais novo que a cópia do arquivo.
         let stored = self.stored_name(t, path, is_dir);
-        if let Some(existing) = &self.existing
-            && !is_dir
-            && let Some(old) = existing.get(&stored)
-            && st_time(&st) <= *old
-        {
-            return Ok(());
-        }
         let mut shown = path.to_vec();
         if is_dir && !shown.ends_with(b"/") {
             shown.push(b'/');
@@ -468,13 +457,10 @@ impl Creator {
                     return Ok(());
                 }
                 let m = self.base_member(t, stored, &st, kind::DIR);
-                // No `-u` o GNU não acrescenta diretórios, só o conteúdo mais novo.
-                if self.existing.is_none() {
-                    if !self.write_headers(t, &m) {
-                        return Ok(());
-                    }
-                    self.verbose(t, &shown, &m);
+                if !self.write_headers(t, &m) {
+                    return Ok(());
                 }
+                self.verbose(t, &shown, &m);
                 if !recursion {
                     return Ok(());
                 }
@@ -838,16 +824,15 @@ pub fn append(t: &mut Tar, update: bool) -> R<()> {
     if crate::codec::Format::sniff(&data).is_some() {
         return Err(t.fatal("Cannot update compressed archives"));
     }
-    let mut existing: HashMap<Vec<u8>, Time> = HashMap::new();
+    let mut members: Vec<(Vec<u8>, Time, bool)> = Vec::new();
     let mut r = Reader::new(Source::Mem { data: data.clone(), pos: 0 });
     let end: u64 = loop {
         let before = r.offset;
         match r.read_header() {
             Status::Member(m) => {
-                let e = existing.entry(m.name.clone()).or_insert(m.mtime);
-                if m.mtime > *e {
-                    *e = m.mtime;
-                }
+                // Só o formato POSIX (ustar com cabeçalho estendido) guarda nanossegundos.
+                let posix = m.magic == super::header::Magic::Ustar && m.header_block < m.main_block;
+                members.push((m.name.clone(), m.mtime, posix));
                 if r.skip_data(m.data_size()).is_err() {
                     break r.offset.min(data.len() as u64);
                 }
@@ -871,10 +856,7 @@ pub fn append(t: &mut Tar, update: bool) -> R<()> {
     }
     let w = Writer::with_pending(Sink::Fd(fd), rec as usize, pending, end / 512);
     let mut c = Creator::new(t, w, archive_identity(fd))?;
-    if update {
-        c.existing = Some(existing);
-    }
-    let names = t.o.names.clone();
+    let names = if update { update_names(t, &mut c, &members)? } else { t.o.names.clone() };
     let mut result = Ok(());
     for n in &names {
         if let Err(e) = c.dump_operand(t, n) {
@@ -887,6 +869,80 @@ pub fn append(t: &mut Tar, update: bool) -> R<()> {
     let _ = s.close(fd);
     result?;
     res
+}
+
+/// Operando do `-u` durante a leitura do arquivo (a `struct name` do GNU).
+struct UpdateName {
+    arg: NameArg,
+    wildcard: bool,
+    found: bool,
+}
+
+/// O `update_archive` do GNU. Cada membro casado por um operando compara a data com a do disco: um
+/// diretório no disco troca o operando pelas entradas dele; um arquivo que não é mais novo tira o
+/// operando da lista (com `-u dir`, um membro velho debaixo de `dir` basta pra nada entrar); um padrão
+/// com curingas ganha o nome de cada membro mais novo. O que sobra é gravado inteiro, sem comparar
+/// datas.
+fn update_names(t: &mut Tar, c: &mut Creator, members: &[(Vec<u8>, Time, bool)]) -> R<Vec<NameArg>> {
+    let mut list: Vec<UpdateName> = t
+        .o
+        .names
+        .iter()
+        .map(|a| UpdateName { arg: a.clone(), wildcard: is_wildcard(a), found: false })
+        .collect();
+    for (name, mtime, posix) in members {
+        let Some(i) = list.iter().position(|n| update_match(n, name)) else { continue };
+        let chdir = list[i].arg.chdir.clone();
+        c.enter(t, &chdir)?;
+        let flags = if t.o.dereference { AtFlags::empty() } else { AtFlags::SYMLINK_NOFOLLOW };
+        let Ok(st) = sys().fstatat(Fd::CWD, name, flags) else { continue };
+        if st.file_type() == FileType::Directory {
+            if let Ok(entries) = sysabi::sys::read_dir(name) {
+                let base = names::trim_trailing_slashes(name);
+                for e in entries.iter().filter(|e| e.name != b"." && e.name != b"..") {
+                    let mut arg = list[i].arg.clone();
+                    arg.name = join_path(base, &e.name);
+                    let wildcard = is_wildcard(&arg);
+                    list.push(UpdateName { arg, wildcard, found: false });
+                }
+                remove_exact_name(&mut list, i, name);
+            }
+        } else if !newer_than(st_time(&st), *mtime, *posix) {
+            remove_exact_name(&mut list, i, name);
+        } else if list[i].wildcard {
+            let mut arg = list[i].arg.clone();
+            arg.name = name.clone();
+            let wildcard = is_wildcard(&arg);
+            list.push(UpdateName { arg, wildcard, found: false });
+        }
+    }
+    Ok(list.into_iter().filter(|n| !n.wildcard && !n.found).map(|n| n.arg).collect())
+}
+
+/// `tar_timespec_cmp(disco, membro) > 0`: fora do formato POSIX os nanossegundos não contam.
+fn newer_than(disk: Time, member: Time, posix: bool) -> bool {
+    if posix { disk > member } else { disk.sec > member.sec }
+}
+
+fn is_wildcard(a: &NameArg) -> bool {
+    a.flags.wildcards.unwrap_or(false) && super::fnmatch::has_wildcards(&a.name)
+}
+
+fn update_match(n: &UpdateName, member: &[u8]) -> bool {
+    let pattern = names::trim_trailing_slashes(&n.arg.name);
+    names::name_matches(pattern, names::trim_trailing_slashes(member), n.arg.flags, n.arg.recursion, true)
+}
+
+/// `remove_exact_name`: um padrão com curingas fica (marcado como achado) e sai o nome exato que casa.
+fn remove_exact_name(list: &mut Vec<UpdateName>, i: usize, member: &[u8]) {
+    if list[i].wildcard {
+        list[i].found = true;
+        if let Some(j) = list.iter().position(|n| !n.wildcard && update_match(n, member)) {
+            list.remove(j);
+        }
+    } else {
+        list.remove(i);
+    }
 }
 
 /// `-A`: acrescenta os membros de outros arquivos.

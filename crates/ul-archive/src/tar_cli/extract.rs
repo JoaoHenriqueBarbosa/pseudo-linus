@@ -125,7 +125,7 @@ pub fn run(t: &mut Tar) -> R<()> {
         old
     };
     let mut x = Extractor { delayed: Vec::new(), umask };
-    let mut names = names::NameList::new(&t.o.names);
+    let mut names = names::NameList::new(&super::read_names(t));
     let starting = t.o.starting_file.clone();
     let mut started = starting.is_none();
     let res = t.read_and(&mut r, &mut |t, r, m| {
