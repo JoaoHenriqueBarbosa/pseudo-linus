@@ -19,6 +19,9 @@ pub mod lzip;
 pub mod xz;
 pub mod xzenc;
 pub mod xzlist;
+pub mod zstd;
+pub mod zstd_dec;
+pub mod zstd_gen;
 
 /// O `$0` do script: o caminho como foi chamado, ou `/usr/bin/<nome>` quando veio pelo PATH.
 fn script_path(argv0: &[u8], name: &str) -> String {
@@ -121,12 +124,6 @@ pub fn zcat_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     gzip_script(args, "zcat", "-cd", ZCAT_USAGE, ZCAT_VERSION)
 }
 
-fn pending(args: &[OsString]) -> i32 {
-    let argv = sysutil::args_bytes(args);
-    sysutil::error(&sysutil::argv0(&argv), "em construção");
-    2
-}
-
 pub fn bzip2_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     bzip2::main(&sysutil::args_bytes(args))
 }
@@ -165,16 +162,17 @@ pub fn lzcat_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     xz::main(&sysutil::args_bytes(args))
 }
 
+/// `zstd` e os links `unzstd` e `zstdcat`: o binário escolhe o modo pelo nome.
 pub fn zstd_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
-    pending(args)
+    zstd::main(&sysutil::args_bytes(args))
 }
 
 pub fn unzstd_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
-    pending(args)
+    zstd::main(&sysutil::args_bytes(args))
 }
 
 pub fn zstdcat_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
-    pending(args)
+    zstd::main(&sysutil::args_bytes(args))
 }
 
 pub fn lzip_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

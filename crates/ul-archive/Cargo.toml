@@ -15,6 +15,8 @@ flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }
 bzip2 = "0.6"
 lzma-rust2 = "0.21"
 structured-zstd = "0.0.58"
+# Frames lz4 do `zstd --format=lz4` e da leitura de `.lz4` pelo `zstd -d`.
+lz4_flex = "0.14"
 crc32fast = "1.5"
 miniz_oxide = "0.8"
 # SHA-256 da verificação do .xz (a mesma versão que o lzma-rust2 já traz).
