@@ -5,7 +5,7 @@
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
 //! `getent`, `locale` e `iconv` (glibc 2.41). Do dpkg 1.22 também o `update-alternatives`.
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`, `setarch` (e links), `chrt` e `choom`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
+//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`, `setarch` (e links), `chrt`, `choom`, `lsns` e `prlimit`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
 //! e, como os scripts originais rodando no `sh`, `savelog`, `add-shell` e `remove-shell`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
@@ -47,11 +47,13 @@ pub mod lscpu;
 pub mod lsipc;
 pub mod lslocks;
 pub mod lsmem;
+pub mod lsns;
 pub mod mcookie;
 pub mod mountpoint;
 pub mod namei;
 pub mod nologin;
 pub mod pager;
+pub mod prlimit;
 pub mod pwck;
 pub mod rename_ul;
 pub mod renice;
@@ -127,7 +129,9 @@ pub fn programs() -> Vec<Program> {
         Program::bin("lsipc", lsipc::main),
         Program::bin("lslocks", lslocks::main),
         Program::bin("lsmem", lsmem::main),
+        Program::bin("lsns", lsns::main),
         Program::bin("mcookie", mcookie::main),
+        Program::bin("prlimit", prlimit::main),
         Program::bin("mountpoint", mountpoint::main),
         Program::bin("namei", namei::main),
         Program::bin("ngettext", gettext::ngettext_main),

@@ -1,0 +1,55 @@
+tool = "lsns"
+source = "manual"
+
+# lsns do util-linux 2.41. Só saídas determinísticas: ajuda, versão e erros de uso (os namespaces
+# reais dependem do ambiente da bancada).
+
+[[case]]
+id = "lsns-help"
+argv = ["lsns", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "lsns-version"
+argv = ["lsns", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "lsns-bad-option"
+argv = ["lsns", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "lsns-bad-long-option"
+argv = ["lsns", "--nope"]
+tags = ["error"]
+
+[[case]]
+id = "lsns-bad-type"
+argv = ["lsns", "-t", "foo"]
+tags = ["error"]
+
+[[case]]
+id = "lsns-bad-column"
+argv = ["lsns", "-o", "NOPE"]
+tags = ["error"]
+
+[[case]]
+id = "lsns-bad-pid"
+argv = ["lsns", "-p", "abc"]
+tags = ["error"]
+
+[[case]]
+id = "lsns-bad-namespace"
+argv = ["lsns", "abc"]
+tags = ["error"]
+
+[[case]]
+id = "lsns-bad-tree"
+argv = ["lsns", "-T", "foo"]
+tags = ["error"]
+
+[[case]]
+id = "lsns-missing-output-arg"
+argv = ["lsns", "-o"]
+tags = ["error"]

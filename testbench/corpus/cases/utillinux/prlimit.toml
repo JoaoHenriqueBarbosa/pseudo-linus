@@ -1,0 +1,70 @@
+tool = "prlimit"
+source = "manual"
+
+# prlimit do util-linux 2.41. Casos determinísticos: ajuda, versão, erros de uso e leitura de
+# recursos que o contêiner da bancada fixa (a leitura do próprio processo, sem pid).
+
+[[case]]
+id = "prlimit-help"
+argv = ["prlimit", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "prlimit-version"
+argv = ["prlimit", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "prlimit-bad-option"
+argv = ["prlimit", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "prlimit-bad-long-option"
+argv = ["prlimit", "--nope"]
+tags = ["error"]
+
+[[case]]
+id = "prlimit-bad-pid"
+argv = ["prlimit", "-p", "abc"]
+tags = ["error"]
+
+[[case]]
+id = "prlimit-bad-column"
+argv = ["prlimit", "-o", "NOPE"]
+tags = ["error"]
+
+[[case]]
+id = "prlimit-bad-limit"
+argv = ["prlimit", "--nofile=abc"]
+tags = ["error"]
+
+[[case]]
+id = "prlimit-bad-limit-colon"
+argv = ["prlimit", "--core=:"]
+tags = ["error"]
+
+[[case]]
+id = "prlimit-pid-and-command"
+argv = ["prlimit", "-p", "1", "true"]
+tags = ["error"]
+
+[[case]]
+id = "prlimit-nonexistent-pid"
+argv = ["prlimit", "-p", "999999", "--nofile"]
+tags = ["error"]
+
+[[case]]
+id = "prlimit-core-raw-noheadings"
+argv = ["prlimit", "--raw", "--noheadings", "--core", "-o", "RESOURCE,UNITS"]
+tags = ["output"]
+
+[[case]]
+id = "prlimit-cpu-columns"
+argv = ["prlimit", "--cpu", "-o", "RESOURCE,DESCRIPTION,SOFT,HARD,UNITS"]
+tags = ["output"]
+
+[[case]]
+id = "prlimit-set-and-show-via-command"
+argv = ["prlimit", "--nofile=64:128", "sh", "-c", "ulimit -Sn; ulimit -Hn"]
+tags = ["output"]
