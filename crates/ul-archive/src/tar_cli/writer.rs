@@ -475,9 +475,14 @@ mod tests {
     fn pax_record_length_counts_itself() {
         assert_eq!(pax_record(b"atime", b"1790996485.347498756"), b"30 atime=1790996485.347498756\n");
         assert_eq!(pax_record(b"mtime", b"1768478400.5"), b"22 mtime=1768478400.5\n");
-        let r = pax_record(b"a", &[b'x'; 95]);
-        assert_eq!(r.len(), 100);
-        assert!(r.starts_with(b"100 "));
+        // Fronteira dos dígitos: corpo de 97 bytes fecha em 99; com 98, 100 já pede 3 dígitos e vira
+        // 101 (nenhum registro tem 100 bytes).
+        let r = pax_record(b"a", &[b'x'; 93]);
+        assert_eq!(r.len(), 99);
+        assert!(r.starts_with(b"99 "));
+        let r = pax_record(b"a", &[b'x'; 94]);
+        assert_eq!(r.len(), 101);
+        assert!(r.starts_with(b"101 "));
     }
 
     #[test]

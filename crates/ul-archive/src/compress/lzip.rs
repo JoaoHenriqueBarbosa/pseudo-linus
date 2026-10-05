@@ -162,6 +162,13 @@ fn header_dict(b: u8) -> Option<u32> {
     if !(4096..=(512 << 20)).contains(&d) { None } else { Some(d) }
 }
 
+/// O menor tamanho de dicionário representável no cabeçalho que cabe `size` (`2^n - k·2^n/16`).
+fn valid_dict_size(size: u32) -> u32 {
+    let n = 32 - (size - 1).leading_zeros();
+    let base = 1u32 << n;
+    (0..8).rev().map(|k| base - (base / 16) * k).find(|&d| d >= size).unwrap_or(base)
+}
+
 fn trailing_dump(t: &[u8]) -> String {
     let hex: Vec<String> = t.iter().map(|b| format!("{b:02X}")).collect();
     let text: String = t.iter().map(|&b| if (0x20..0x7f).contains(&b) { b as char } else { '.' }).collect();
@@ -455,6 +462,15 @@ impl Lzip {
         let mut opts = lzma_rust2::LzipOptions::with_preset(self.level);
         if let Some(d) = self.dict {
             opts.lzma_options.dict_size = d;
+        }
+        // Entrada regular menor que o limite: o lzip reduz o dicionário ao tamanho dela (mínimo
+        // 4 KiB), arredondado pra cima até um tamanho que o cabeçalho representa.
+        if let Ok(st) = common::fstat(input.fd)
+            && st.file_type() == sysabi::FileType::Regular
+            && st.size > 0
+            && st.size < u64::from(opts.lzma_options.dict_size)
+        {
+            opts.lzma_options.dict_size = valid_dict_size(st.size.max(4096) as u32);
         }
         let mut w = lzma_rust2::LzipWriter::new(&mut *sink, opts);
         loop {

@@ -44,6 +44,9 @@ pub struct Reader {
     buf: Vec<u8>,
     pos: usize,
     eof: bool,
+    /// Bytes já trazidos da fonte pro `buf`: o resto da divisão por 512 é o bloco incompleto do fim do
+    /// `buf`, que só fica disponível quando a fonte o completar (o GNU descarta um bloco final parcial).
+    filled: u64,
     /// Blocos já consumidos (o "ordinal" que o GNU informa).
     pub block: u64,
     global: Vec<PaxRecord>,
@@ -57,11 +60,12 @@ const CHUNK: usize = 64 * 1024;
 
 impl Reader {
     pub fn new(src: Source) -> Reader {
-        Reader { src, buf: Vec::new(), pos: 0, eof: false, block: 0, global: Vec::new(), offset: 0, warnings: Vec::new() }
+        Reader { src, buf: Vec::new(), pos: 0, eof: false, filled: 0, block: 0, global: Vec::new(), offset: 0, warnings: Vec::new() }
     }
 
     /// Devolve bytes já lidos da fonte pra frente do fluxo (a espiada da magia de compressão).
     pub fn prepend(&mut self, data: Vec<u8>) {
+        self.filled += data.len() as u64;
         let mut b = data;
         b.extend_from_slice(&self.buf[self.pos..]);
         self.buf = b;
@@ -74,16 +78,17 @@ impl Reader {
         }
         match &mut self.src {
             Source::Mem { data, pos } => {
-                if self.pos < self.buf.len() {
-                    return Ok(());
+                // Repassa a memória em pedaços pra não duplicar o arquivo inteiro; o que ainda não foi
+                // consumido (um bloco incompleto, no máximo) fica na frente.
+                if self.pos > 0 {
+                    self.buf.drain(..self.pos);
+                    self.pos = 0;
                 }
-                // Repassa a memória em pedaços pra não duplicar o arquivo inteiro.
                 let end = (*pos + CHUNK).min(data.len());
-                self.buf.clear();
                 self.buf.extend_from_slice(&data[*pos..end]);
-                self.pos = 0;
+                self.filled += (end - *pos) as u64;
                 *pos = end;
-                if end == data.len() && self.buf.is_empty() {
+                if end == data.len() {
                     self.eof = true;
                 }
                 Ok(())
@@ -100,6 +105,7 @@ impl Reader {
                     match sysabi::sys::read(fd, &mut self.buf[start..]) {
                         Ok(n) => {
                             self.buf.truncate(start + n);
+                            self.filled += n as u64;
                             if n == 0 {
                                 self.eof = true;
                             }
@@ -116,9 +122,10 @@ impl Reader {
         }
     }
 
-    /// Bytes disponíveis sem bloquear (para o laço de leitura).
+    /// Bytes disponíveis sem bloquear (para o laço de leitura): só blocos completos.
     fn available(&self) -> usize {
-        self.buf.len() - self.pos
+        let partial = (self.filled % BLOCK as u64) as usize;
+        (self.buf.len() - partial).saturating_sub(self.pos)
     }
 
     /// Lê exatamente `out.len()` bytes; devolve quantos conseguiu antes do fim.

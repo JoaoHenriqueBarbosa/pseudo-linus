@@ -159,6 +159,9 @@ fn parse_id_override(t: &mut Tar, spec: &[u8], user: bool) -> IdOverride {
 pub struct Creator {
     pub w: Writer,
     links: HashMap<(u64, u64), Vec<u8>>,
+    /// O `trivial_link_count` do GNU: com um nome só (e sem `-h`), um link é o próprio arquivo e não
+    /// entra na tabela de links; com vários nomes (ou `-T`) até um arquivo de um link entra.
+    trivial_links: u64,
     archive_id: Option<(u64, u64)>,
     excluder: Excluder,
     initial_cwd: Vec<u8>,
@@ -223,6 +226,7 @@ impl Creator {
             pax,
             w,
             links: HashMap::new(),
+            trivial_links: u64::from(t.o.names.len() <= 1 && !t.o.names.iter().any(|n| n.from_file) && !t.o.dereference),
             archive_id,
             excluder,
             initial_cwd: s.getcwd().unwrap_or_else(|_| b"/".to_vec()),
@@ -373,6 +377,21 @@ impl Creator {
         self.dump(t, &path, true, 0, arg.recursion)
     }
 
+    /// `file_count_links`: guarda o nome como alvo de futuros links físicos, avisando da remoção do
+    /// prefixo como alvo de link (o GNU faz isso depois de gravar o membro).
+    fn count_links(&mut self, t: &mut Tar, path: &[u8], st: &sysabi::Stat, stored: Vec<u8>) {
+        if t.o.hard_dereference || st.nlink <= self.trivial_links {
+            return;
+        }
+        if !t.o.absolute_names {
+            let (prefix, _) = names::unsafe_prefix(path);
+            if !prefix.is_empty() {
+                t.warn_prefix(&prefix, true);
+            }
+        }
+        self.links.entry((st.dev, st.ino)).or_insert(stored);
+    }
+
     fn dump(&mut self, t: &mut Tar, path: &[u8], top: bool, depth: usize, recursion: bool) -> R<()> {
         sysabi::sys::checkpoint();
         t.checkpoint(self.w.records, true);
@@ -424,6 +443,21 @@ impl Creator {
         let mut shown = path.to_vec();
         if is_dir && !shown.ends_with(b"/") {
             shown.push(b'/');
+        }
+        // `dump_hard_link`: qualquer não diretório já visto com o mesmo inode vira link físico.
+        if !is_dir
+            && (st.nlink > self.trivial_links || t.o.remove_files)
+            && let Some(first) = self.links.get(&(st.dev, st.ino)).cloned()
+        {
+            let mut m = self.base_member(t, stored, &st, kind::LNK);
+            m.linkname = first;
+            if self.write_headers(t, &m) {
+                self.verbose(t, &shown, &m);
+                if t.o.remove_files {
+                    self.to_remove.push((path.to_vec(), false));
+                }
+            }
+            return Ok(());
         }
         match st.file_type() {
             FileType::Directory => {
@@ -496,28 +530,6 @@ impl Creator {
                 Ok(())
             }
             FileType::Regular => {
-                // O GNU guarda o nome de todo arquivo comum como possível alvo de link físico e avisa
-                // também dessa remoção de prefixo.
-                if !t.o.absolute_names {
-                    let (prefix, _) = names::unsafe_prefix(path);
-                    if !prefix.is_empty() {
-                        t.warn_prefix(&prefix, true);
-                    }
-                }
-                let key = (st.dev, st.ino);
-                if !t.o.hard_dereference
-                    && let Some(first) = self.links.get(&key).cloned()
-                {
-                    let mut m = self.base_member(t, stored, &st, kind::LNK);
-                    m.linkname = first;
-                    if self.write_headers(t, &m) {
-                        self.verbose(t, &shown, &m);
-                        if t.o.remove_files {
-                            self.to_remove.push((path.to_vec(), false));
-                        }
-                    }
-                    return Ok(());
-                }
                 let mut m = self.base_member(t, stored.clone(), &st, kind::REG);
                 m.size = st.size;
                 let fd = match super::open(path, OFlags::RDONLY, 0) {
@@ -534,9 +546,7 @@ impl Creator {
                 self.verbose(t, &shown, &m);
                 self.copy_file(t, fd, path, st.size);
                 let _ = s.close(fd);
-                if !t.o.hard_dereference {
-                    self.links.insert(key, stored);
-                }
+                self.count_links(t, path, &st, stored);
                 if t.o.remove_files {
                     self.to_remove.push((path.to_vec(), false));
                 }
@@ -550,13 +560,14 @@ impl Creator {
                         return Ok(());
                     }
                 };
-                let mut m = self.base_member(t, stored, &st, kind::SYM);
+                let mut m = self.base_member(t, stored.clone(), &st, kind::SYM);
                 m.linkname = transform::apply_all(t, &target, Target::Symlink);
                 if self.write_headers(t, &m) {
                     self.verbose(t, &shown, &m);
                     if t.o.remove_files {
                         self.to_remove.push((path.to_vec(), false));
                     }
+                    self.count_links(t, path, &st, stored);
                 }
                 Ok(())
             }

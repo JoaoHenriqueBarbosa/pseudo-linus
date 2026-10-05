@@ -228,9 +228,9 @@ fn copy_data(t: &mut Tar, r: &mut Reader, m: &Member, fd: Option<Fd>) -> R<()> {
     match res {
         Ok(()) => {}
         Err(ReadError::UnexpectedEof) => {
-            if let Some(fd) = fd {
-                let _ = sysabi::sys::close(fd);
-            }
+            // O GNU avisa nos dados (`extract_file`) e de novo ao procurar o próximo cabeçalho, que é
+            // onde desiste. Quem abriu o fd é quem o fecha.
+            t.error(b"Unexpected EOF in archive");
             return Err(t.fatal(b"Unexpected EOF in archive"));
         }
         Err(ReadError::Io(e)) => {
@@ -559,10 +559,13 @@ fn extract_member(t: &mut Tar, x: &mut Extractor, r: &mut Reader, m: Member) -> 
             let flags = OFlags::WRONLY
                 | OFlags::CREAT
                 | if t.o.overwrite && !t.o.keep_old_files { OFlags::TRUNC } else { OFlags::EXCL };
-            let mode = final_mode(t, &m, umask);
-            let mut fd = super::open(&fname, flags | OFlags::NOFOLLOW, mode & 0o777);
+            // Como o `extract_file` do GNU: quem vai trocar o dono abre sem permissão pro grupo e pros
+            // outros, e o modo final só entra depois dos dados (um membro truncado fica assim).
+            let same_owner = t.o.same_owner.unwrap_or(sys().geteuid() == 0);
+            let mode = final_mode(t, &m, umask) & if same_owner { 0o700 } else { 0o777 };
+            let mut fd = super::open(&fname, flags | OFlags::NOFOLLOW, mode);
             if fd == Err(Errno::ENOENT) && x.make_parents(&fname) {
-                fd = super::open(&fname, flags | OFlags::NOFOLLOW, mode & 0o777);
+                fd = super::open(&fname, flags | OFlags::NOFOLLOW, mode);
             }
             let fd = match fd {
                 Ok(fd) => fd,
