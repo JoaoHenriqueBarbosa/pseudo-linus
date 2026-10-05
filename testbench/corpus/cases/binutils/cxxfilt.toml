@@ -1,0 +1,99 @@
+tool = "c++filt"
+source = "manual"
+
+# c++filt do binutils 2.44. Nenhum golden foi gerado aqui.
+
+[[case]]
+id = "cxxfilt-version"
+argv = ["c++filt", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "cxxfilt-help"
+argv = ["c++filt", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "cxxfilt-bad-option"
+argv = ["c++filt", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "cxxfilt-simple-function"
+argv = ["c++filt", "_Z3foov"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-params"
+argv = ["c++filt", "_Z3fooiPKcRd"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-method-const"
+argv = ["c++filt", "_ZNK3Foo3barEv"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-ctor-dtor"
+argv = ["c++filt", "_ZN3FooC1Ev", "_ZN3FooD0Ev"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-std-vector"
+argv = ["c++filt", "_Z1fSt6vectorIiSaIiEE"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-template-function"
+argv = ["c++filt", "_Z1fIiEvT_"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-substitution"
+argv = ["c++filt", "_Z1fN3FooIiE3BarES1_"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-function-pointer"
+argv = ["c++filt", "_Z1fPFviE"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-vtable-typeinfo"
+argv = ["c++filt", "_ZTV3Foo", "_ZTI3Foo", "_ZTS3Foo"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-operator"
+argv = ["c++filt", "_ZN3FoopLERKS_", "_ZplRK3FooS1_"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-clone-suffix"
+argv = ["c++filt", "_Z3foov.constprop.0"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-no-params"
+argv = ["c++filt", "-p", "_Z3fooiPKc"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-not-mangled"
+argv = ["c++filt", "main", "_Z", "_Zzz"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-stdin-words"
+script = "printf 'call _Z3foov, then _ZN3Foo3barEv; x_y\\n' | c++filt"
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-strip-underscore"
+argv = ["c++filt", "-_", "__Z3foov", "_Z3foov"]
+tags = ["demangle"]
+
+[[case]]
+id = "cxxfilt-types"
+argv = ["c++filt", "-t", "i", "PKc"]
+tags = ["demangle"]

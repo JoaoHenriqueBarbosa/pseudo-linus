@@ -1,0 +1,85 @@
+tool = "readelf"
+source = "manual"
+
+# readelf do binutils 2.44. Nenhum golden foi gerado aqui; os casos com binário usam /bin/true,
+# que existe no oráculo e no bench.
+
+[[case]]
+id = "readelf-version"
+argv = ["readelf", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "readelf-help"
+argv = ["readelf", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "readelf-bad-option"
+argv = ["readelf", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "readelf-nothing-to-do"
+script = "readelf /bin/true 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "readelf-missing-file"
+argv = ["readelf", "-h", "nao-existe"]
+tags = ["error"]
+
+[[case]]
+id = "readelf-not-elf"
+script = "cd $(mktemp -d); printf 'texto\\n' > f.txt; readelf -h f.txt 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "readelf-header"
+argv = ["readelf", "-h", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "readelf-sections"
+argv = ["readelf", "-S", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "readelf-sections-wide"
+argv = ["readelf", "-SW", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "readelf-segments"
+argv = ["readelf", "-l", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "readelf-segments-wide"
+argv = ["readelf", "-lW", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "readelf-dynamic"
+argv = ["readelf", "-d", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "readelf-dyn-syms"
+argv = ["readelf", "--dyn-syms", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "readelf-dyn-syms-wide"
+argv = ["readelf", "--dyn-syms", "-W", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "readelf-headers"
+argv = ["readelf", "-e", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "readelf-two-files"
+argv = ["readelf", "-h", "/bin/true", "/bin/false"]
+tags = ["elf"]

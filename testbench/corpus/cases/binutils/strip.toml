@@ -1,0 +1,55 @@
+tool = "strip"
+source = "manual"
+
+# strip do binutils 2.44. Nenhum golden foi gerado aqui; os casos copiam /bin/true para um
+# diretório temporário e conferem o resultado com readelf e size (que também estão no bench).
+
+[[case]]
+id = "strip-version"
+argv = ["strip", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "strip-help"
+argv = ["strip", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "strip-no-args"
+script = "strip 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "strip-bad-option"
+argv = ["strip", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "strip-missing-file"
+argv = ["strip", "nao-existe"]
+tags = ["error"]
+
+[[case]]
+id = "strip-not-elf"
+script = "cd $(mktemp -d); printf 'texto\\n' > f.txt; strip f.txt 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "strip-all-output-file"
+script = "cd $(mktemp -d); cp /bin/true t; strip -o t.out t; echo $?; readelf -S t.out; readelf -s t.out; size t.out"
+tags = ["elf"]
+
+[[case]]
+id = "strip-in-place"
+script = "cd $(mktemp -d); cp /bin/true t; strip t; echo $?; readelf -h t; readelf -l t; size t"
+tags = ["elf"]
+
+[[case]]
+id = "strip-debug-only"
+script = "cd $(mktemp -d); cp /bin/true t; strip --strip-debug t; echo $?; readelf -S t"
+tags = ["elf"]
+
+[[case]]
+id = "strip-remove-section"
+script = "cd $(mktemp -d); cp /bin/true t; strip -R .comment t; echo $?; readelf -S t"
+tags = ["elf"]
