@@ -1,0 +1,10 @@
+tool = "pam_getenv"
+source = "manual"
+
+[[case]]
+id = "pam-getenv-no-args"
+script = "pam_getenv 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pam-getenv-unset"
+script = "pam_getenv NOSUCHVAR_X 2>&1; echo \"rc=$?\""

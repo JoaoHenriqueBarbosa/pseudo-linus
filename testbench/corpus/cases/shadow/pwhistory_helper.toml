@@ -1,0 +1,6 @@
+tool = "pwhistory_helper"
+source = "manual"
+
+[[case]]
+id = "pwhistory-helper-no-args"
+script = "/usr/sbin/pwhistory_helper 2>&1 </dev/null; echo \"rc=$?\""

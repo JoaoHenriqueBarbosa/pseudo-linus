@@ -21,7 +21,13 @@ pub mod mkfs;
 pub mod sulogin;
 pub mod chfn;
 pub mod chsh;
+pub mod clear_console;
+pub mod localedef;
+pub mod login;
 pub mod newusers;
+pub mod pam_helpers;
+pub mod pldd;
+pub mod rmt;
 pub mod runuser;
 pub mod sg;
 pub mod su;
@@ -142,6 +148,9 @@ use sysabi::Program;
 /// Tabela de programas do crate.
 pub fn programs() -> Vec<Program> {
     vec![
+        Program::bin("addr2line", binutils::addr2line::main),
+        Program::bin("elfedit", binutils::elfedit::main),
+        Program::bin("objcopy", binutils::objcopy::main),
         Program::bin("ar", binutils::ar::main),
         Program::bin("bc", bc::main),
         Program::bin("nm", binutils::nm::main),
@@ -154,6 +163,19 @@ pub fn programs() -> Vec<Program> {
         Program::bin("chage", shadowmisc::chage_main),
         Program::bin("chfn", chfn::main),
         Program::bin("chsh", chsh::main),
+        Program::bin("clear_console", clear_console::main),
+        Program::bin("localedef", localedef::main),
+        Program::bin("login", login::main),
+        Program::bin("pam_getenv", pam_helpers::pam_getenv_main),
+        Program::bin("pldd", pldd::main),
+        Program::sbin("faillock", pam_helpers::faillock_main),
+        Program::sbin("mkhomedir_helper", pam_helpers::mkhomedir_helper_main),
+        Program::sbin("pam_timestamp_check", pam_helpers::pam_timestamp_check_main),
+        Program::sbin("pwhistory_helper", pam_helpers::pwhistory_helper_main),
+        Program::sbin("rmt", rmt::main),
+        Program::sbin("rmt-tar", rmt::main),
+        Program::sbin("unix_chkpwd", pam_helpers::unix_chkpwd_main),
+        Program::sbin("unix_update", pam_helpers::unix_update_main),
         Program::bin("newgrp", sg::newgrp_main),
         Program::bin("sg", sg::sg_main),
         Program::bin("su", su::main),

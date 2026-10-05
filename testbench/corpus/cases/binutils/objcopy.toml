@@ -1,0 +1,140 @@
+tool = "objcopy"
+source = "manual"
+
+# objcopy do binutils 2.44. Nenhum golden foi gerado aqui; os casos copiam /bin/true para um
+# diretório temporário e conferem o resultado com readelf e size (que também estão no bench).
+
+[[case]]
+id = "objcopy-version"
+argv = ["objcopy", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "objcopy-version-short"
+argv = ["objcopy", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "objcopy-help"
+argv = ["objcopy", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "objcopy-no-args"
+script = "objcopy 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objcopy-bad-option"
+script = "objcopy -Z 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objcopy-missing-file"
+script = "objcopy nao-existe out 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objcopy-not-elf"
+script = "cd $(mktemp -d); printf 'texto\\n' > f.txt; objcopy f.txt g.txt 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objcopy-bad-add-section-format"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --add-section nome t t.out 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objcopy-copy"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy t t.out; echo $?; wc -c t t.out; readelf -h t.out; readelf -S t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-copy-in-place"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy t; echo $?; readelf -h t; size t"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-strip-all"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy -S t t.out; echo $?; readelf -S t.out; readelf -s t.out; size t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-strip-all-long"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --strip-all t t.out; echo $?; readelf -S t.out; size t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-strip-debug"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy -g t t.out; echo $?; readelf -S t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-strip-debug-long"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --strip-debug t t.out; echo $?; readelf -S t.out; size t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-strip-unneeded"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --strip-unneeded t t.out; echo $?; readelf -S t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-remove-section"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy -R .comment t t.out; echo $?; readelf -S t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-remove-section-long"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --remove-section=.comment --remove-section=.note.gnu.build-id t t.out; echo $?; readelf -S t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-remove-nonexistent-section"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy -R .nao.existe t t.out; echo $?; wc -c t t.out; readelf -S t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-only-section"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy -j .text -j .data t t.out; echo $?; readelf -S t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-binary-text"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy -O binary -j .text t t.bin; echo $?; wc -c t.bin; od -An -tx1 -N 32 t.bin"
+tags = ["binary"]
+
+[[case]]
+id = "objcopy-binary-all"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy -O binary t t.bin; echo $?; wc -c t.bin; od -An -tx1 -N 32 t.bin"
+tags = ["binary"]
+
+[[case]]
+id = "objcopy-invalid-target"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy -O formato-falso t t.out 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objcopy-add-section"
+script = "cd $(mktemp -d); cp /bin/true t; printf 'dados novos\\n' > s.txt; objcopy --add-section .meu=s.txt t t.out; echo $?; readelf -S t.out; readelf -p .meu t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-add-section-missing-file"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --add-section .meu=nao-existe t t.out 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objcopy-rename-section"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --rename-section .comment=.notas t t.out; echo $?; readelf -S t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-set-section-flags"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --set-section-flags .comment=alloc,readonly t t.out; echo $?; readelf -S t.out"
+tags = ["elf"]
+
+[[case]]
+id = "objcopy-dump-section"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --dump-section .comment=c.bin t; echo $?; wc -c c.bin; od -An -c -N 16 c.bin"
+tags = ["elf"]

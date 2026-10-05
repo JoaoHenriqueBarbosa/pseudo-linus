@@ -1,0 +1,28 @@
+tool = "faillock"
+source = "manual"
+
+# faillock do Linux-PAM 1.7 como root, lendo /var/run/faillock.
+
+[[case]]
+id = "faillock-user-root"
+script = "faillock --user root 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "faillock-unknown-user"
+script = "faillock --user nosuchuser_x 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "faillock-bad-option"
+script = "faillock --nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "faillock-missing-arg"
+script = "faillock --user 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "faillock-missing-dir"
+script = "faillock --dir /nao/existe 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "faillock-reset-root"
+script = "faillock --user root --reset 2>&1; echo \"rc=$?\""

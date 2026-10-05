@@ -1,0 +1,8 @@
+tool = "clear_console"
+source = "manual"
+
+# clear_console sem terminal.
+
+[[case]]
+id = "clear-console-no-tty"
+script = "clear_console 2>&1 </dev/null >/dev/null; echo \"rc=$?\""

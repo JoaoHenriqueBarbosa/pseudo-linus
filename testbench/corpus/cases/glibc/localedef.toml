@@ -1,0 +1,44 @@
+tool = "localedef"
+source = "manual"
+
+# localedef da glibc 2.41 (libc-bin): uso, erros e arquivos inexistentes.
+
+[[case]]
+id = "localedef-version"
+script = "localedef --version; echo \"rc=$?\""
+
+[[case]]
+id = "localedef-help"
+script = "localedef --help; echo \"rc=$?\""
+
+[[case]]
+id = "localedef-usage"
+script = "localedef --usage; echo \"rc=$?\""
+
+[[case]]
+id = "localedef-no-args"
+script = "localedef 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "localedef-bad-option"
+script = "localedef --frobnicate 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "localedef-bad-short-option"
+script = "localedef -Q 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "localedef-list-archive"
+script = "localedef --list-archive 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "localedef-missing-input"
+script = "localedef -i nao-existe out 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "localedef-missing-charmap"
+script = "localedef -f nao-existe -i nao-existe out 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "localedef-too-many-names"
+script = "localedef a b 2>&1; echo \"rc=$?\""

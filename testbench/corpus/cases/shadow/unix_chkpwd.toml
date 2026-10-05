@@ -1,0 +1,16 @@
+tool = "unix_chkpwd"
+source = "manual"
+
+# unix_chkpwd do Linux-PAM 1.7, chamado fora do módulo pam_unix.
+
+[[case]]
+id = "unix-chkpwd-no-args"
+script = "/usr/sbin/unix_chkpwd 2>&1 </dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "unix-chkpwd-one-arg"
+script = "/usr/sbin/unix_chkpwd root 2>&1 </dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "unix-chkpwd-unknown-user"
+script = "echo -n | /usr/sbin/unix_chkpwd nosuchuser_x nullok 2>&1; echo \"rc=$?\""

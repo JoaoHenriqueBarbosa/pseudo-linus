@@ -1,0 +1,32 @@
+tool = "rmt"
+source = "manual"
+
+# rmt do GNU tar 1.35, protocolo pelo stdin.
+
+[[case]]
+id = "rmt-version"
+script = "rmt --version; echo \"rc=$?\""
+
+[[case]]
+id = "rmt-help"
+script = "rmt --help; echo \"rc=$?\""
+
+[[case]]
+id = "rmt-bad-option"
+script = "rmt --nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "rmt-eof"
+script = "rmt </dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "rmt-open-missing"
+script = "printf 'Onao-existe\\n0\\n' | rmt; echo \"rc=$?\""
+
+[[case]]
+id = "rmt-write-read"
+script = "printf 'O%s/fita\\n%s\\nW5\\nhelloC\\n' \"$PWD\" 577 | rmt; echo; cat fita; echo \"rc=$?\""
+
+[[case]]
+id = "rmt-garbage"
+script = "printf 'Z\\n' | rmt; echo \"rc=$?\""

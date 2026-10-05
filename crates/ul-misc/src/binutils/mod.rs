@@ -3,11 +3,14 @@
 //! `c++filt` (demangler Itanium em [`demangle`]). O `strings` fica em [`crate::strings`], de
 //! antes desta pasta.
 
+pub mod addr2line;
 pub mod ar;
 pub mod cxxfilt;
 pub mod demangle;
 pub mod elf;
+pub mod elfedit;
 pub mod nm;
+pub mod objcopy;
 pub mod readelf;
 pub mod size;
 pub mod strip;

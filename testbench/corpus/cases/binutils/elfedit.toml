@@ -1,0 +1,95 @@
+tool = "elfedit"
+source = "manual"
+
+# elfedit do binutils 2.44. Nenhum golden foi gerado aqui; os casos copiam /bin/true para um
+# diretório temporário e conferem o cabeçalho com readelf (que também está no bench).
+
+[[case]]
+id = "elfedit-version"
+argv = ["elfedit", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "elfedit-version-short"
+argv = ["elfedit", "-v"]
+tags = ["help"]
+
+[[case]]
+id = "elfedit-help"
+argv = ["elfedit", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "elfedit-no-args"
+script = "elfedit 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "elfedit-no-action"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit t 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "elfedit-bad-option"
+script = "elfedit -Z 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "elfedit-missing-file"
+script = "elfedit --output-type exec nao-existe 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "elfedit-not-elf"
+script = "cd $(mktemp -d); printf 'texto longo o bastante para passar de sessenta e quatro bytes de comprimento ok\\n' > f.txt; elfedit --output-type exec f.txt 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "elfedit-output-type-exec"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --output-type exec t; echo $?; readelf -h t"
+tags = ["elf"]
+
+[[case]]
+id = "elfedit-output-type-rel"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --output-type rel t; echo $?; readelf -h t"
+tags = ["elf"]
+
+[[case]]
+id = "elfedit-output-osabi"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --output-osabi FreeBSD t; echo $?; readelf -h t"
+tags = ["elf"]
+
+[[case]]
+id = "elfedit-output-osabi-none"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --output-osabi none t; echo $?; readelf -h t"
+tags = ["elf"]
+
+[[case]]
+id = "elfedit-output-mach"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --output-mach i386 t; echo $?; readelf -h t"
+tags = ["elf"]
+
+[[case]]
+id = "elfedit-input-type-match"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --input-type dyn --output-type exec t; echo $?; readelf -h t"
+tags = ["elf"]
+
+[[case]]
+id = "elfedit-input-type-mismatch"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --input-type rel --output-type exec t; echo $?; readelf -h t"
+tags = ["elf"]
+
+[[case]]
+id = "elfedit-input-mach-mismatch"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --input-mach i386 --output-osabi FreeBSD t; echo $?; readelf -h t"
+tags = ["elf"]
+
+[[case]]
+id = "elfedit-all-three"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --output-type exec --output-osabi Linux --output-mach x86_64 t; echo $?; readelf -h t"
+tags = ["elf"]
+
+[[case]]
+id = "elfedit-unknown-type"
+script = "cd $(mktemp -d); cp /bin/true t; elfedit --output-type foo t 2>&1; echo $?"
+tags = ["error"]

@@ -113,7 +113,9 @@ const SHF_ALLOC: u64 = 2;
 const SHF_INFO_LINK: u64 = 0x40;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Mode {
+pub(super) enum Mode {
+    /// Só remove as seções pedidas (usado pelo `objcopy -R`/`-j`).
+    Keep,
     All,
     Debug,
 }
@@ -292,7 +294,7 @@ fn build_shstrtab(names: &[Vec<u8>]) -> (Vec<u8>, Vec<usize>) {
     (tab, result)
 }
 
-fn strip_bytes(d: &[u8], mode: Mode, remove: &[Vec<u8>]) -> Option<Vec<u8>> {
+pub(super) fn strip_bytes(d: &[u8], mode: Mode, remove: &[Vec<u8>]) -> Option<Vec<u8>> {
     let p = parse(d)?;
     let n = p.secs.len();
     if n == 0 || p.shstrndx >= n {
@@ -303,7 +305,7 @@ fn strip_bytes(d: &[u8], mode: Mode, remove: &[Vec<u8>]) -> Option<Vec<u8>> {
     let mut rm = vec![false; n];
     for i in 1..n {
         let s = &p.secs[i];
-        if is_debug_name(&s.name) {
+        if mode != Mode::Keep && is_debug_name(&s.name) {
             rm[i] = true;
         }
         if mode == Mode::All && !(reloc_obj && has_rel) {

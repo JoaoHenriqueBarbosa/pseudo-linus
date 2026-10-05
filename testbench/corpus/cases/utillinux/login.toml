@@ -1,0 +1,24 @@
+tool = "login"
+source = "manual"
+
+# login do util-linux 2.41 sem terminal de controle.
+
+[[case]]
+id = "login-help"
+script = "login --help; echo \"rc=$?\""
+
+[[case]]
+id = "login-version"
+script = "login -V; echo \"rc=$?\""
+
+[[case]]
+id = "login-invalid-option"
+script = "login -Q 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "login-no-tty"
+script = "login root 2>&1 </dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "login-no-tty-no-user"
+script = "login 2>&1 </dev/null; echo \"rc=$?\""

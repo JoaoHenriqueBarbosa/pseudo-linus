@@ -1,0 +1,18 @@
+tool = "mkhomedir_helper"
+source = "manual"
+
+[[case]]
+id = "mkhomedir-helper-no-args"
+script = "/usr/sbin/mkhomedir_helper 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "mkhomedir-helper-too-many"
+script = "/usr/sbin/mkhomedir_helper a b c d e 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "mkhomedir-helper-unknown-user"
+script = "/usr/sbin/mkhomedir_helper nosuchuser_x 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "mkhomedir-helper-existing-home"
+script = "/usr/sbin/mkhomedir_helper root 2>&1; echo \"rc=$?\""

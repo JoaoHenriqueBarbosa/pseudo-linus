@@ -1,0 +1,110 @@
+tool = "addr2line"
+source = "manual"
+
+# addr2line do binutils 2.44. Nenhum golden foi gerado aqui; /bin/true do Debian não tem DWARF,
+# então toda consulta responde ?? e ??:0.
+
+[[case]]
+id = "addr2line-version"
+argv = ["addr2line", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "addr2line-version-short"
+argv = ["addr2line", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "addr2line-help"
+argv = ["addr2line", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "addr2line-bad-option"
+script = "addr2line -Z 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "addr2line-missing-file"
+argv = ["addr2line", "-e", "nao-existe", "0x1000"]
+tags = ["error"]
+
+[[case]]
+id = "addr2line-default-exe-missing"
+script = "cd $(mktemp -d); addr2line 0x1000 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "addr2line-not-elf"
+script = "cd $(mktemp -d); printf 'texto\\n' > f.txt; addr2line -e f.txt 0x1000 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "addr2line-basic"
+argv = ["addr2line", "-e", "/bin/true", "0x1000"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-multiple"
+argv = ["addr2line", "-e", "/bin/true", "0x1000", "0x2010", "4096"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-functions"
+argv = ["addr2line", "-f", "-e", "/bin/true", "0x1000"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-functions-demangle"
+argv = ["addr2line", "-f", "-C", "-e", "/bin/true", "0x1000"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-addresses"
+argv = ["addr2line", "-a", "-e", "/bin/true", "0x1000", "0x2010"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-pretty"
+argv = ["addr2line", "-p", "-e", "/bin/true", "0x1000"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-pretty-functions"
+argv = ["addr2line", "-p", "-f", "-e", "/bin/true", "0x1000"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-pretty-addresses-functions"
+argv = ["addr2line", "-a", "-p", "-f", "-e", "/bin/true", "0x1000", "0x2010"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-basenames"
+argv = ["addr2line", "-s", "-f", "-e", "/bin/true", "0x1000"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-inlines"
+argv = ["addr2line", "-i", "-f", "-e", "/bin/true", "0x1000"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-all-flags"
+argv = ["addr2line", "-a", "-f", "-i", "-C", "-p", "-s", "-e", "/bin/true", "0x1000"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-long-options"
+argv = ["addr2line", "--addresses", "--functions", "--demangle", "--exe=/bin/true", "0x1000"]
+tags = ["query"]
+
+[[case]]
+id = "addr2line-stdin"
+script = "printf '0x1000\\n2010\\n' | addr2line -e /bin/true"
+tags = ["query"]
+
+[[case]]
+id = "addr2line-stdin-addresses-functions"
+script = "printf '0x1000\\n2010\\n' | addr2line -a -f -e /bin/true"
+tags = ["query"]

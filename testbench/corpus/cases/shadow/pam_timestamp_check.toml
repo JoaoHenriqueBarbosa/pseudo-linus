@@ -1,0 +1,14 @@
+tool = "pam_timestamp_check"
+source = "manual"
+
+[[case]]
+id = "pam-timestamp-check-bad-option"
+script = "/usr/sbin/pam_timestamp_check -x 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pam-timestamp-check-too-many"
+script = "/usr/sbin/pam_timestamp_check a b 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pam-timestamp-check-no-tty"
+script = "/usr/sbin/pam_timestamp_check </dev/null 2>&1; echo \"rc=$?\""

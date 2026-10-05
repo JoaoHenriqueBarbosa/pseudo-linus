@@ -1,0 +1,32 @@
+tool = "pldd"
+source = "manual"
+
+# pldd da glibc 2.41 (libc-bin): sem ptrace.
+
+[[case]]
+id = "pldd-version"
+script = "pldd --version; echo \"rc=$?\""
+
+[[case]]
+id = "pldd-help"
+script = "pldd --help; echo \"rc=$?\""
+
+[[case]]
+id = "pldd-no-args"
+script = "pldd 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pldd-bad-option"
+script = "pldd --nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pldd-invalid-pid"
+script = "pldd abc 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pldd-missing-process"
+script = "pldd 4194300 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pldd-attach-denied"
+script = "pldd 1 2>&1; echo \"rc=$?\""
