@@ -1,0 +1,50 @@
+{
+  "faketime-advanced-env": {
+    "stdout": "+2,5y x10,0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "faketime-bad-timestamp": {
+    "stdout": "Error: Timestamp to fake not recognized, please re-try with a different timestamp.\n",
+    "stderr": "date: invalid date ‘not a date at all’\n",
+    "exit": 1,
+    "files": {}
+  },
+  "faketime-command-not-found": {
+    "stdout": "",
+    "stderr": "faketime: Running specified command failed: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "faketime-env": {
+    "stdout": "-213404546\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "faketime-help": {
+    "stdout": "\nUsage: faketime [switches] <timestamp> <program with arguments>\n\nThis will run the specified 'program' with the given 'arguments'.\nThe program will be tricked into seeing the given 'timestamp' as its starting date and time.\nThe clock will continue to run from this timestamp. Please see the manpage (man faketime)\nfor advanced options, such as stopping the wall clock and make it run faster or slower.\n\nThe optional switches are:\n  -m                  : Use the multi-threaded version of libfaketime\n  -f                  : Use the advanced timestamp specification format (see manpage)\n  --exclude-monotonic : Prevent monotonic clock from drifting (not the raw monotonic one)\n  -p PID              : Pretend that the program's process ID is PID\n  --disable-shm       : Disable use of shared memory by libfaketime.\n  --date-prog PROG    : Use specified GNU-compatible implementation of 'date' program\n\nExamples:\nfaketime 'last friday 5 pm' /bin/date\nfaketime '2008-12-24 08:15:42' /bin/date\nfaketime -f '+2,5y x10,0' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'\nfaketime -f '+2,5y x0,50' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'\nfaketime -f '+2,5y i2,0' /bin/bash -c 'date; while true; do date; sleep 1 ; done'\nIn this single case all spawned processes will use the same global clock\nwithout restarting it at the start of each process.\n\n(Please note that it depends on your locale settings whether . or , has to be used for fractions)\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "faketime-missing-command": {
+    "stdout": "\nUsage: faketime [switches] <timestamp> <program with arguments>\n\nThis will run the specified 'program' with the given 'arguments'.\nThe program will be tricked into seeing the given 'timestamp' as its starting date and time.\nThe clock will continue to run from this timestamp. Please see the manpage (man faketime)\nfor advanced options, such as stopping the wall clock and make it run faster or slower.\n\nThe optional switches are:\n  -m                  : Use the multi-threaded version of libfaketime\n  -f                  : Use the advanced timestamp specification format (see manpage)\n  --exclude-monotonic : Prevent monotonic clock from drifting (not the raw monotonic one)\n  -p PID              : Pretend that the program's process ID is PID\n  --disable-shm       : Disable use of shared memory by libfaketime.\n  --date-prog PROG    : Use specified GNU-compatible implementation of 'date' program\n\nExamples:\nfaketime 'last friday 5 pm' /bin/date\nfaketime '2008-12-24 08:15:42' /bin/date\nfaketime -f '+2,5y x10,0' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'\nfaketime -f '+2,5y x0,50' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'\nfaketime -f '+2,5y i2,0' /bin/bash -c 'date; while true; do date; sleep 1 ; done'\nIn this single case all spawned processes will use the same global clock\nwithout restarting it at the start of each process.\n\n(Please note that it depends on your locale settings whether . or , has to be used for fractions)\n\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "faketime-no-args": {
+    "stdout": "\nUsage: faketime [switches] <timestamp> <program with arguments>\n\nThis will run the specified 'program' with the given 'arguments'.\nThe program will be tricked into seeing the given 'timestamp' as its starting date and time.\nThe clock will continue to run from this timestamp. Please see the manpage (man faketime)\nfor advanced options, such as stopping the wall clock and make it run faster or slower.\n\nThe optional switches are:\n  -m                  : Use the multi-threaded version of libfaketime\n  -f                  : Use the advanced timestamp specification format (see manpage)\n  --exclude-monotonic : Prevent monotonic clock from drifting (not the raw monotonic one)\n  -p PID              : Pretend that the program's process ID is PID\n  --disable-shm       : Disable use of shared memory by libfaketime.\n  --date-prog PROG    : Use specified GNU-compatible implementation of 'date' program\n\nExamples:\nfaketime 'last friday 5 pm' /bin/date\nfaketime '2008-12-24 08:15:42' /bin/date\nfaketime -f '+2,5y x10,0' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'\nfaketime -f '+2,5y x0,50' /bin/bash -c 'date; while true; do echo $SECONDS ; sleep 1 ; done'\nfaketime -f '+2,5y i2,0' /bin/bash -c 'date; while true; do date; sleep 1 ; done'\nIn this single case all spawned processes will use the same global clock\nwithout restarting it at the start of each process.\n\n(Please note that it depends on your locale settings whether . or , has to be used for fractions)\n\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "faketime-version": {
+    "stdout": "\nfaketime: Version 0.9.10\nFor usage information please use 'faketime --help'.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

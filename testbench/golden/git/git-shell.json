@@ -1,0 +1,56 @@
+{
+  "git-shell-bad-argument": {
+    "stdout": "",
+    "stderr": "fatal: bad argument\n",
+    "exit": 128,
+    "files": {}
+  },
+  "git-shell-bad-argument-dash": {
+    "stdout": "",
+    "stderr": "fatal: bad argument\n",
+    "exit": 128,
+    "files": {}
+  },
+  "git-shell-bad-mode": {
+    "stdout": "",
+    "stderr": "fatal: Run with no arguments or with -c cmd\n",
+    "exit": 128,
+    "files": {}
+  },
+  "git-shell-command-dir": {
+    "stdout": "",
+    "stderr": "fatal: unrecognized command 'hello 'a b' c'\n",
+    "exit": 128,
+    "files": {
+      "git-shell-commands": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "git-shell-commands/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 37,
+        "sha256": "d5e4e4edb21f660e8a3c22369f8d12bd22ecd8787059456b12def25c35d27cb7",
+        "data": "#!/bin/sh\necho \"hello: $# [$1] [$2]\"\n"
+      }
+    }
+  },
+  "git-shell-interactive-disabled": {
+    "stdout": "",
+    "stderr": "fatal: Interactive git shell is not enabled.\nhint: ~/git-shell-commands should exist and have read and execute access.\n",
+    "exit": 128,
+    "files": {}
+  },
+  "git-shell-invalid-format": {
+    "stdout": "",
+    "stderr": "fatal: invalid command format 'hello 'unclosed': unclosed quote\n",
+    "exit": 128,
+    "files": {}
+  },
+  "git-shell-unrecognized": {
+    "stdout": "",
+    "stderr": "fatal: unrecognized command 'frobnicate'\n",
+    "exit": 128,
+    "files": {}
+  }
+}

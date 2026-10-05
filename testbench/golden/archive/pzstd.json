@@ -1,0 +1,93 @@
+{
+  "pzstd-compress-file": {
+    "stdout": "in.txt\nin.txt.zst\nabc\nabc\nabc\n",
+    "stderr": "\r                                                                               \rin.txt.zst          : 12 bytes \n",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "3597d0b20d8eb4fc1a2e386b181b860fae938547d6f56a848d8c8ec0551433fe",
+        "data": "abc\nabc\nabc\n"
+      },
+      "in.txt.zst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "7e3075f1041ffc98f2f35005c50c55f5f474eaa24a784f425009f4fe9eb089a5",
+        "data": {
+          "b64": "UCpNGAQAAAAZAAAAKLUv/QRYYQAAYWJjCmFiYwphYmMK/eRzcw=="
+        }
+      }
+    }
+  },
+  "pzstd-decompress-output": {
+    "stdout": "one\ntwo\nthree\n",
+    "stderr": "\r                                                                               \rout.zst             : 14 bytes \n",
+    "exit": 0,
+    "files": {
+      "back.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "b6285c57e8797db5d4c51c80d6f11938afda9b11c6a003549709189e9b4b92a2",
+        "data": "one\ntwo\nthree\n"
+      },
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "b6285c57e8797db5d4c51c80d6f11938afda9b11c6a003549709189e9b4b92a2",
+        "data": "one\ntwo\nthree\n"
+      },
+      "out.zst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "4b6fd4f47ae40751fc8a8c4a7ed9bbd15841a533d5663a00c6b0e37a767f6034",
+        "data": {
+          "b64": "UCpNGAQAAAAbAAAAKLUv/QRYcQAAb25lCnR3bwp0aHJlZQqkWIk0"
+        }
+      }
+    }
+  },
+  "pzstd-help": {
+    "stdout": "",
+    "stderr": "Usage:\n  pzstd [args] [FILE(s)]\nParallel ZSTD options:\n  -p, --processes   #    : number of threads to use for (de)compression (default:<numcpus>)\nZSTD options:\n  -#                     : # compression level (1-19, default:<numcpus>)\n  -d, --decompress       : decompression\n  -o                file : result stored into `file` (only if 1 input file)\n  -f, --force            : overwrite output without prompting, (de)compress links\n      --rm               : remove source file(s) after successful (de)compression\n  -k, --keep             : preserve source file(s) (default)\n  -h, --help             : display help and exit\n  -V, --version          : display version number and exit\n  -v, --verbose          : verbose mode; specify multiple times to increase log level (default:2)\n  -q, --quiet            : suppress warnings; specify twice to suppress errors too\n  -c, --stdout           : write to standard output (even if it is the console)\n  -r                     : operate recursively on directories\n      --ultra            : enable levels beyond 19, up to 22 (requires more memory)\n  -C, --check            : integrity check (default)\n      --no-check         : no integrity check\n  -t, --test             : test compressed file integrity\n  --                     : all arguments after \"--\" are treated as files\n",
+    "exit": 0,
+    "files": {}
+  },
+  "pzstd-invalid-option": {
+    "stdout": "",
+    "stderr": "Invalid argument: --bogus\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pzstd-missing-file": {
+    "stdout": "",
+    "stderr": "pzstd: nope.txt: Failed to open input file.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pzstd-roundtrip-stdout": {
+    "stdout": "hello hello hello hello\nworld world world\n",
+    "stderr": "\r                                                                               \rin.txt               :111.90%   (    42 =>     47 bytes, stdout)\n",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "0ae09d55722fcb21f26560f9f881757aea190036be44d6ae0cc1f9c5b6e40bce",
+        "data": "hello hello hello hello\nworld world world\n"
+      }
+    }
+  },
+  "pzstd-version": {
+    "stdout": "",
+    "stderr": "PZSTD version: 1.5.7.\n",
+    "exit": 0,
+    "files": {}
+  }
+}
