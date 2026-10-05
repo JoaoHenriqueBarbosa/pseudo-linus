@@ -99,12 +99,12 @@ fn collect(repo: &Repo, ps: &Pathspec, renames: Option<RenameOpts>, untracked: U
 // ---- ramo e upstream --------------------------------------------------------------------------
 
 /// Upstream do ramo: nome curto e, se a ref existe, `(à frente, atrás)`.
-struct Tracking {
-    name: String,
-    counts: Option<(usize, usize)>,
+pub struct Tracking {
+    pub name: String,
+    pub counts: Option<(usize, usize)>,
 }
 
-fn tracking(repo: &Repo, branch_ref: &str, ahead_behind: bool) -> R<Option<Tracking>> {
+pub fn tracking(repo: &Repo, branch_ref: &str, ahead_behind: bool) -> R<Option<Tracking>> {
     let Some(branch) = branch_ref.strip_prefix("refs/heads/") else { return Ok(None) };
     let Some(up) = repo.upstream_ref(branch)? else { return Ok(None) };
     let name = up.strip_prefix("refs/remotes/").or_else(|| up.strip_prefix("refs/heads/")).unwrap_or(&up).to_string();
@@ -126,7 +126,7 @@ fn plural(n: usize) -> &'static str {
 }
 
 /// Frase sobre o upstream, no fim da linha do ramo, no formato longo.
-fn tracking_text(t: &Tracking, hints: bool) -> String {
+pub fn tracking_text(t: &Tracking, hints: bool) -> String {
     let name = &t.name;
     let mut out = String::new();
     match t.counts {
@@ -500,7 +500,10 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
 fn render_long(repo: &Repo, st: &Status, head: &crate::refs::Head, show_untracked: bool, template: bool, hints: bool, ahead_behind: bool) -> R<Vec<u8>> {
     let fully = super::ls::quote_fully(repo);
     let (branch_line, tracking_line) = match head {
-        crate::refs::Head::Detached(id) => (format!("HEAD detached at {}\n", repo.abbrev_default(id)), String::new()),
+        crate::refs::Head::Detached(id) => {
+            let (text, at) = super::branch::detached_from(repo, id)?;
+            (format!("HEAD detached {} {text}\n", if at { "at" } else { "from" }), String::new())
+        }
         crate::refs::Head::Branch(name, _) => {
             let short_name = name.strip_prefix("refs/heads/").unwrap_or(name);
             let line = format!("On branch {short_name}\n");

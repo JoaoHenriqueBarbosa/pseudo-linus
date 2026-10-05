@@ -4,6 +4,7 @@
 pub mod add;
 pub mod branch;
 pub mod cat_file;
+pub mod checkout;
 pub mod commit;
 pub mod config_cmd;
 pub mod diff_cmd;
@@ -95,6 +96,8 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "tag" => (Setup::Repo, tag::run),
         "branch" => (Setup::Repo, branch::run),
         "restore" => (Setup::WorkTree, restore::run),
+        "checkout" => (Setup::WorkTree, checkout::run_checkout),
+        "switch" => (Setup::WorkTree, checkout::run_switch),
         "log" => (Setup::Repo, log::run_log),
         "show" => (Setup::Repo, log::run_show),
         "whatchanged" => (Setup::Repo, log::run_whatchanged),
