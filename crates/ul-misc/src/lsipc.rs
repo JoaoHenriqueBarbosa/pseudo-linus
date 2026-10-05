@@ -177,58 +177,171 @@ impl Res {
     }
 }
 
-fn usage(short: &str) -> String {
-    let mut s = format!(
-        "
+const USAGE: &str = "
 Usage:
- {short} [options]
+ lsipc [options]
 
-Show information on IPC facilities currently employed in the system.
-
-Options:
- -i, --id <id>  print details on resource identified by <id>
- -g, --global   info about system-wide usage (may be used with -m, -q and -s)
- -c, --creator  show creator and owner
- -e, --export   display in an export-able output format
- -n, --newline  display each piece of information on a new line
- -l, --list     force list output format (for example with --id)
- -J, --json     use the JSON output format
- -b, --bytes    print SIZE in bytes rather than in human readable format
- -r, --raw      display in raw mode
- -t, --time     show attach, detach and change times
- -P, --numeric-perms  print numeric permissions (PERMS column)
- -o, --output <list>  define the columns to output
-     --noheadings     don't print headings
-     --notruncate     don't truncate output
+Show information on IPC facilities.
 
 Resource options:
- -m, --shmems      shared memory segments
- -q, --queues      message queues
- -s, --semaphores  semaphores
+ -m, --shmems             shared memory segments
+ -M, --posix-shmems       POSIX shared memory segments
+ -q, --queues             message queues
+ -Q, --posix-mqueues      POSIX message queues
+ -s, --semaphores         semaphores
+ -S, --posix-semaphores   POSIX semaphores
+ -g, --global             info about system-wide usage
+                            (may be used with -m, -q and -s)
+ -i, --id <id>            System V resource identified by <id>
+ -N, --name <name>        POSIX resource identified by <name>
 
- -h, --help     display this help
- -V, --version  display version
+Options:
+     --noheadings         don't print headings
+     --notruncate         don't truncate output
+     --time-format=<type> display dates in short, full or iso format
+ -b, --bytes              print SIZE in bytes rather
+ -c, --creator            show creator and owner
+ -e, --export             display in an export-able output format
+ -J, --json               use the JSON output format
+ -n, --newline            display each piece of information on a new line
+ -l, --list               force list output format (for example with --id)
+ -o, --output[=<list>]    define the columns to output
+ -P, --numeric-perms      print numeric permissions (PERMS column)
+ -r, --raw                display in raw mode
+ -t, --time               show attach, detach and change times
+ -y, --shell              use column names to be usable as shell variables
 
-Generic columns:
-"
-    );
-    for (n, h, _, _) in SHM_COLS.iter().take(13) {
-        s.push_str(&format!("{n:>10}  {h}\n"));
+ -h, --help               display this help
+ -V, --version            display version
+
+Generic System V columns:
+            KEY  Resource key
+             ID  Resource ID
+          OWNER  Owner's username or UID
+          PERMS  Permissions
+           CUID  Creator UID
+          CUSER  Creator user
+           CGID  Creator GID
+         CGROUP  Creator group
+            UID  User ID
+           USER  User name
+            GID  Group ID
+          GROUP  Group name
+          CTIME  Time of the last change
+
+Generic POSIX columns:
+           NAME  POSIX resource name
+          OWNER  Owner's username or UID
+          PERMS  Permissions
+           CUID  Creator UID
+          CUSER  Creator user
+           CGID  Creator GID
+         CGROUP  Creator group
+          MTIME  Time of last action
+
+System V Shared-memory columns (--shmems):
+           SIZE  Segment size
+         NATTCH  Number of attached processes
+         STATUS  Status
+         ATTACH  Attach time
+         DETACH  Detach time
+        COMMAND  Creator command line
+           CPID  PID of the creator
+           LPID  PID of last user
+
+System V Message-queue columns (--queues):
+      USEDBYTES  Bytes used
+           MSGS  Number of messages
+           SEND  Time of last msg sent
+           RECV  Time of last msg received
+          LSPID  PID of the last msg sender
+          LRPID  PID of the last msg receiver
+
+System V Semaphore columns (--semaphores):
+          NSEMS  Number of semaphores
+          OTIME  Time of the last operation
+
+POSIX Semaphore columns (--posix-semaphores):
+           SVAL  Semaphore value
+
+Summary columns (--global):
+       RESOURCE  Resource name
+    DESCRIPTION  Resource description
+          LIMIT  System-wide limit
+           USED  Currently used
+           USE%  Currently use percentage
+
+For more details see lsipc(1).
+";
+
+fn usage(short: &str) -> String {
+    USAGE.replace("lsipc", short)
+}
+
+fn proc_u64(path: &str, idx: usize) -> u64 {
+    read_text(path)
+        .and_then(|t| t.split_whitespace().nth(idx).and_then(|s| s.parse().ok()))
+        .unwrap_or(0)
+}
+
+/// Linhas de dados (sem o cabeçalho) de um `/proc/sysvipc/*`, já divididas em campos.
+fn sysv_rows(res: Res) -> Vec<Vec<u64>> {
+    read_text(res.path())
+        .unwrap_or_default()
+        .lines()
+        .skip(1)
+        .map(|l| l.split_whitespace().map(|s| s.parse().unwrap_or(0)).collect())
+        .collect()
+}
+
+fn limit_text(v: u64) -> String {
+    if v >= 1024 { human_size(v) } else { v.to_string() }
+}
+
+/// Resumo de uso global do sistema (`lsipc -g`), uma linha por limite do kernel.
+fn global_summary() -> String {
+    let msg_used = sysv_rows(Res::Msg).len() as u64;
+    let shm = sysv_rows(Res::Shm);
+    let shm_used = shm.len() as u64;
+    let shm_pages: u64 = shm.iter().map(|r| r.get(3).copied().unwrap_or(0).div_ceil(4096)).sum();
+    let sem = sysv_rows(Res::Sem);
+    let sem_used = sem.len() as u64;
+    let sem_total: u64 = sem.iter().map(|r| r.get(3).copied().unwrap_or(0)).sum();
+    let mq_used = sys::read_dir(b"/dev/mqueue")
+        .map(|e| e.iter().filter(|x| x.name != b"." && x.name != b"..").count() as u64)
+        .unwrap_or(0);
+    let sem_p = "/proc/sys/kernel/sem";
+    // (recurso, descrição, limite, usado). `None` no usado vira "-".
+    let rows: Vec<(&str, &str, String, Option<u64>)> = vec![
+        ("MSGMNI", "Number of System V message queues", proc_u64("/proc/sys/kernel/msgmni", 0).to_string(), Some(msg_used)),
+        ("MSGMAX", "Max size of System V message (bytes)", limit_text(proc_u64("/proc/sys/kernel/msgmax", 0)), None),
+        ("MSGMNB", "Default max size of System V queue (bytes)", limit_text(proc_u64("/proc/sys/kernel/msgmnb", 0)), None),
+        ("MQUMNI", "Number of POSIX message queues", proc_u64("/proc/sys/fs/mqueue/queues_max", 0).to_string(), Some(mq_used)),
+        ("MQUMAX", "Max size of POSIX message (bytes)", limit_text(proc_u64("/proc/sys/fs/mqueue/msgsize_max", 0)), None),
+        ("MQUMNB", "Number of messages in POSIX message queue", limit_text(proc_u64("/proc/sys/fs/mqueue/msg_max", 0)), None),
+        ("SHMMNI", "Shared memory segments", proc_u64("/proc/sys/kernel/shmmni", 0).to_string(), Some(shm_used)),
+        ("SHMALL", "Shared memory pages", proc_u64("/proc/sys/kernel/shmall", 0).to_string(), Some(shm_pages)),
+        ("SHMMAX", "Max size of shared memory segment (bytes)", limit_text(proc_u64("/proc/sys/kernel/shmmax", 0)), None),
+        ("SHMMIN", "Min size of shared memory segment (bytes)", "1B".to_string(), None),
+        ("SEMMNI", "Number of semaphore identifiers", proc_u64(sem_p, 3).to_string(), Some(sem_used)),
+        ("SEMMNS", "Total number of semaphores", proc_u64(sem_p, 1).to_string(), Some(sem_total)),
+        ("SEMMSL", "Max semaphores per semaphore set.", proc_u64(sem_p, 0).to_string(), None),
+        ("SEMOPM", "Max number of operations per semop(2)", proc_u64(sem_p, 2).to_string(), None),
+        ("SEMVMX", "Semaphore max value", "32767".to_string(), None),
+    ];
+    let mut out = format!("{:<8} {:<42} {:>20} {:>4} {:>5}\n", "RESOURCE", "DESCRIPTION", "LIMIT", "USED", "USE%");
+    for (r, d, lim, used) in rows {
+        let (u, pct) = match used {
+            Some(u) => {
+                let l: f64 = lim.parse().unwrap_or(0.0);
+                let p = if l > 0.0 { u as f64 * 100.0 / l } else { 0.0 };
+                (u.to_string(), format!("{p:.2}%"))
+            }
+            None => ("-".to_string(), "-".to_string()),
+        };
+        out.push_str(&format!("{r:<8} {d:<42} {lim:>20} {u:>4} {pct:>5}\n"));
     }
-    s.push_str("\nShared-memory columns (--shmems):\n");
-    for (n, h, _, _) in SHM_COLS.iter().skip(13) {
-        s.push_str(&format!("{n:>10}  {h}\n"));
-    }
-    s.push_str("\nMessage-queue columns (--queues):\n");
-    for (n, h, _, _) in MSG_COLS.iter().skip(13) {
-        s.push_str(&format!("{n:>10}  {h}\n"));
-    }
-    s.push_str("\nSemaphore columns (--semaphores):\n");
-    for (n, h, _, _) in SEM_COLS.iter().skip(13) {
-        s.push_str(&format!("{n:>10}  {h}\n"));
-    }
-    s.push_str(&format!("\nFor more details see {short}(1).\n"));
-    s
+    out
 }
 
 fn json_escape(s: &str) -> String {
@@ -327,6 +440,7 @@ fn run(args: &[OsString]) -> i32 {
     let mut creator = false;
     let mut time = false;
     let mut noheadings = false;
+    let mut global = false;
     let mut opts = Opts {
         bytes: false,
         numeric_perms: false,
@@ -353,6 +467,12 @@ fn run(args: &[OsString]) -> i32 {
         ("shmems", false),
         ("queues", false),
         ("semaphores", false),
+        ("posix-shmems", false),
+        ("posix-mqueues", false),
+        ("posix-semaphores", false),
+        ("name", true),
+        ("time-format", true),
+        ("shell", false),
         ("help", false),
         ("version", false),
     ];
@@ -413,11 +533,11 @@ fn run(args: &[OsString]) -> i32 {
                 let c = a[k];
                 match c {
                     b'g' | b'c' | b'e' | b'n' | b'l' | b'J' | b'b' | b'r' | b't' | b'P'
-                    | b'm' | b'q' | b's' | b'h' | b'V' => {
+                    | b'm' | b'q' | b's' | b'h' | b'V' | b'M' | b'Q' | b'S' | b'y' => {
                         items.push((format!("-{}", c as char), None));
                         k += 1;
                     }
-                    b'i' | b'o' => {
+                    b'i' | b'o' | b'N' => {
                         let val = if k + 1 < a.len() {
                             a[k + 1..].to_vec()
                         } else {
@@ -457,7 +577,8 @@ fn run(args: &[OsString]) -> i32 {
                     ul::print_version(&short);
                     return 0;
                 }
-                "-g" | "--global" | "-l" | "--list" => {}
+                "-g" | "--global" => global = true,
+                "-l" | "--list" => {}
                 "-c" | "--creator" => creator = true,
                 "-e" | "--export" => export = true,
                 "-n" | "--newline" => newline = true,
@@ -494,10 +615,12 @@ fn run(args: &[OsString]) -> i32 {
             }
         }
     }
-    if !operands.is_empty() {
-        ul::warnx(&short, "bad usage");
-        ul::errtryhelp(&short);
-        return 1;
+    // Operandos são ignorados, como no original (getopt sem checagem de sobra).
+    let _ = operands;
+    if global || (want.is_empty() && id_filter.is_none() && out_cols.is_none()) {
+        let mut so = io::stdout();
+        let _ = so.write_all(global_summary().as_bytes());
+        return 0;
     }
     if id_filter.is_some() && want.is_empty() {
         ul::warnx(&short, "--id <id> requires a resource option (--shmems, --queues or --semaphores)");

@@ -72,22 +72,21 @@ fn usage(short: &str) -> String {
     let mut s = format!(
         "
 Usage:
- {short} [options] [-p PID]
- {short} [options] COMMAND
+ {short} [options] [--<resource>=<limit>] [-p PID]
+ {short} [options] [--<resource>=<limit>] COMMAND
 
 Show or change the resource limits of a process.
 
-General Options:
+Options:
  -p, --pid <pid>        process id
  -o, --output <list>    define which output columns to use
      --noheadings       don't print headings
      --raw              use the raw output format
      --verbose          verbose output
-
  -h, --help             display this help
  -V, --version          display version
 
-Resources Options:
+Resources:
  -c, --core             maximum size of core files created
  -d, --data             maximum size of a process's data segment
  -e, --nice             maximum nice priority allowed to raise
@@ -106,7 +105,11 @@ Resources Options:
  -y, --rttime           CPU time in microseconds a process scheduled
                         under real-time scheduling
 
-Available columns (for --output):
+Arguments:
+ <limit> is defined as a range soft:hard, soft:, :hard or a value to
+         define both limits (e.g. -e=0:10 -r=:10).
+
+Available output columns:
 "
     );
     for (_, name, help, _) in COLS {
@@ -318,7 +321,7 @@ fn run(args: &[OsString]) -> i32 {
                 match text.trim_start().parse::<i32>() {
                     Ok(p) => pid = Some(p),
                     Err(_) => {
-                        ul::warnx(&short, format!("failed to parse PID: '{text}'"));
+                        ul::warnx(&short, format!("invalid PID argument: '{text}'"));
                         return 1;
                     }
                 }
@@ -377,8 +380,7 @@ fn run(args: &[OsString]) -> i32 {
     let cmd: Vec<Vec<u8>> = g.operands();
 
     if !cmd.is_empty() && pid.is_some() {
-        ul::warnx(&short, "--pid <pid> option and COMMAND are mutually exclusive");
-        ul::errtryhelp(&short);
+        ul::warnx(&short, "options --pid and COMMAND are mutually exclusive");
         return 1;
     }
     let target = pid.unwrap_or(0);
@@ -393,7 +395,7 @@ fn run(args: &[OsString]) -> i32 {
         let old = match get_limit(target, d.res) {
             Ok(l) => l,
             Err(e) => {
-                ul::warn(&short, format!("failed to get old {} limit", d.name), e);
+                ul::warn(&short, format!("failed to get the {} resource limit", d.name), e);
                 return 1;
             }
         };

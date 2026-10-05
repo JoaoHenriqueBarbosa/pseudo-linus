@@ -74,25 +74,23 @@ Options:
  -n, --noheadings       don't print headings
  -o, --output <list>    define which output columns to use
      --output-all       output all columns
+ -P, --persistent       namespaces without processes
  -p, --task <pid>       print process namespaces
+ -Q, --filter <expr>    apply display filter
  -r, --raw              use the raw output format
  -u, --notruncate       don't truncate text in columns
  -W, --nowrap           don't use multi-line representation
  -t, --type <name>      namespace type (mnt, net, ipc, user, pid, uts, cgroup, time)
+ -T, --tree[=<rel>]     use tree format (parent, owner, or process)
 
- -T, --tree <rel>       use tree format (parent, owner, or none)
- -H, --persistent       list persistent namespaces
-
+ -H, --list-columns     list the available columns
  -h, --help             display this help
  -V, --version          display version
 
-Available output columns:
+For more details see {short}(8).
 "
     );
-    for (_, name, _, _, help) in COLS {
-        s.push_str(&format!(" {name:>11}  {help}\n"));
-    }
-    s.push_str(&format!("\nFor more details see {short}(8).\n"));
+    s.shrink_to_fit();
     s
 }
 
@@ -244,8 +242,10 @@ fn run(args: &[OsString]) -> i32 {
         LongOpt::new("notruncate", HasArg::No, 'u' as i32),
         LongOpt::new("nowrap", HasArg::No, 'W' as i32),
         LongOpt::new("type", HasArg::Required, 't' as i32),
-        LongOpt::new("tree", HasArg::Required, 'T' as i32),
-        LongOpt::new("persistent", HasArg::No, 'H' as i32),
+        LongOpt::new("tree", HasArg::Optional, 'T' as i32),
+        LongOpt::new("persistent", HasArg::No, 'P' as i32),
+        LongOpt::new("filter", HasArg::Required, 'Q' as i32),
+        LongOpt::new("list-columns", HasArg::No, 'H' as i32),
         LongOpt::new("help", HasArg::No, 'h' as i32),
         LongOpt::new("version", HasArg::No, 'V' as i32),
     ];
@@ -258,7 +258,7 @@ fn run(args: &[OsString]) -> i32 {
     let mut task: Option<i32> = None;
     let mut type_filter: Option<String> = None;
 
-    let mut g = Getopt::from_env(&argv[1.min(argv.len())..], "Jlno:p:ruWt:T:HhV", &longs);
+    let mut g = Getopt::from_env(&argv[1.min(argv.len())..], "Jlno:p:Q:ruWt:T::PHhV", &longs);
     while let Some(r) = g.next_opt() {
         let o = match r {
             Ok(o) => o,
@@ -282,7 +282,17 @@ fn run(args: &[OsString]) -> i32 {
             x if x == 'l' as i32 || x == 'u' as i32 || x == 'W' as i32 => {}
             x if x == 'n' as i32 => noheadings = true,
             x if x == 'r' as i32 => raw = true,
-            x if x == 'H' as i32 => persistent = true,
+            x if x == 'P' as i32 => persistent = true,
+            x if x == 'Q' as i32 => {}
+            x if x == 'H' as i32 => {
+                let mut s = String::new();
+                for (_, name, _, _, help) in COLS {
+                    s.push_str(&format!(" {name:>11}  {help}\n"));
+                }
+                let mut out = io::stdout();
+                let _ = out.write_all(s.as_bytes());
+                return 0;
+            }
             OPT_OUTPUT_ALL => cols = COLS.iter().map(|c| c.0).collect(),
             x if x == 'p' as i32 => {
                 let a = o.arg.clone().unwrap_or_default();
@@ -290,7 +300,7 @@ fn run(args: &[OsString]) -> i32 {
                 match text.trim_start().parse::<i32>() {
                     Ok(p) => task = Some(p),
                     Err(_) => {
-                        ul::warnx(&short, format!("invalid pid argument: '{text}'"));
+                        ul::warnx(&short, format!("invalid PID argument: '{text}'"));
                         return 1;
                     }
                 }
@@ -306,10 +316,12 @@ fn run(args: &[OsString]) -> i32 {
                 }
             }
             x if x == 'T' as i32 => {
-                let a = io::lossy(&o.arg.clone().unwrap_or_default());
-                if !matches!(a.as_str(), "parent" | "owner" | "none") {
-                    ul::warnx(&short, format!("unsupported --tree <relation>: {a}"));
-                    return 1;
+                if let Some(a) = &o.arg {
+                    let a = io::lossy(a);
+                    if !matches!(a.as_str(), "parent" | "owner" | "process" | "none") {
+                        ul::warnx(&short, format!("unsupported --tree <relation>: {a}"));
+                        return 1;
+                    }
                 }
             }
             x if x == 'o' as i32 => {

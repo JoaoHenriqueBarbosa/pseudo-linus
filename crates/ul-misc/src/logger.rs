@@ -111,8 +111,9 @@ Options:
      --prio-prefix        look for a prefix on every line read from stdin
  -s, --stderr             output message to standard error as well
  -S, --size <size>        maximum size for a single message
-     --socket-errors <on|off|auto>
-                          print connection errors when using Unix sockets
+ -t, --tag <tag>          mark every line with this tag
+ -n, --server <name>      write to this remote syslog server
+ -P, --port <port>        use this port for UDP or TCP connection
  -T, --tcp                use TCP only
  -d, --udp                use UDP only
      --rfc3164            use the obsolete BSD syslog protocol
@@ -121,10 +122,9 @@ Options:
      --sd-id <id>         rfc5424 structured data ID
      --sd-param <data>    rfc5424 structured data name=value
      --msgid <msgid>      set rfc5424 message id field
- -t, --tag <tag>          mark every line with this tag
- -n, --server <name>      write to this remote syslog server
- -P, --port <port>        use this port for UDP or TCP connection
  -u, --socket <socket>    write to this Unix socket
+     --socket-errors on|off|auto
+                          print connection errors when using Unix sockets
      --journald[=<file>]  write journald entry
 
  -h, --help               display this help

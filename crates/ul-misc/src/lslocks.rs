@@ -67,20 +67,6 @@ impl Col {
             Col::Blocker => "BLOCKER",
         }
     }
-    fn help(self) -> &'static str {
-        match self {
-            Col::Command => "command of the process holding the lock",
-            Col::Pid => "PID of the process holding the lock",
-            Col::Type => "kind of lock",
-            Col::Size => "size of the tracked file",
-            Col::Mode => "lock access mode",
-            Col::Mandatory => "mandatory state of the lock: 0 (none), 1 (set)",
-            Col::Start => "relative byte offset of the lock",
-            Col::End => "ending offset of the lock",
-            Col::Path => "path of the locked file",
-            Col::Blocker => "PID of the process blocking the lock",
-        }
-    }
     fn numeric(self) -> bool {
         matches!(
             self,
@@ -108,37 +94,47 @@ struct Lock {
     blocker: Option<i64>,
 }
 
-fn usage(short: &str) -> String {
-    let mut s = format!(
-        "
+const USAGE: &str = "
 Usage:
- {short} [options]
+ lslocks [options]
 
 List local system locks.
 
 Options:
  -b, --bytes            print SIZE in bytes rather than in human readable format
- -H, --list-columns     list the available columns
+ -J, --json             use JSON output format
  -i, --noinaccessible   ignore locks without read permissions
  -n, --noheadings       don't print headings
- -o, --output <list>    define which output columns to use
+ -o, --output <list>    output columns (see --list-columns)
      --output-all       output all columns
  -p, --pid <pid>        display only locks held by this process
  -r, --raw              use the raw output format
  -u, --notruncate       don't truncate text in columns
- -J, --json             use JSON output format
 
+ -H, --list-columns     list the available columns
  -h, --help             display this help
  -V, --version          display version
 
-Available output columns:
-"
-    );
-    for c in ALL_COLS {
-        s.push_str(&format!("{:>8}  {}\n", c.name(), c.help()));
-    }
-    s.push_str(&format!("\nFor more details see {short}(1).\n"));
-    s
+For more details see lslocks(8).
+";
+
+const LIST_COLUMNS: &str = "COMMAND <string>        command of the process holding the lock
+    PID <integer>       PID of the process holding the lock
+   TYPE <string>        kind of lock
+   SIZE <string|number> size of the lock, use <number> if --bytes is given
+  INODE <integer>       inode number
+MAJ:MIN <string>        major:minor device number
+   MODE <string>        lock access mode
+      M <boolean>       mandatory state of the lock: 0 (none), 1 (set)
+  START <integer>       relative byte offset of the lock
+    END <integer>       ending offset of the lock
+   PATH <string>        path of the locked file
+BLOCKER <integer>       PID of the process blocking the lock
+HOLDERS <string>        holders of the lock
+";
+
+fn usage(short: &str) -> String {
+    USAGE.replace("lslocks", short)
 }
 
 fn json_escape(s: &str) -> String {
@@ -433,17 +429,12 @@ fn run(args: &[OsString]) -> i32 {
             }
         }
     }
-    if !operands.is_empty() {
-        ul::warnx(&short, "bad usage");
-        ul::errtryhelp(&short);
-        return 1;
-    }
+    // Operandos são ignorados, como no original.
+    let _ = operands;
 
     let mut out = String::new();
     if list_columns {
-        for c in ALL_COLS {
-            out.push_str(&format!("{:>8}  {}\n", c.name(), c.help()));
-        }
+        out.push_str(LIST_COLUMNS);
         let mut so = io::stdout();
         let _ = so.write_all(out.as_bytes());
         return 0;
