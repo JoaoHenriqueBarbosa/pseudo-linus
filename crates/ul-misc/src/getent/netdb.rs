@@ -305,10 +305,10 @@ pub fn host_matches(h: &HostLine, name: &[u8]) -> bool {
     name_eq_ci(name, &h.name) || h.aliases.iter().any(|a| name_eq_ci(name, a))
 }
 
-/// Resultado de uma busca de host: nome, aliases e um ou mais endereços da mesma família.
+/// Resultado de uma busca de host: nome, aliases e um ou mais endereços da mesma família (o
+/// tamanho de cada endereço, 4 ou 16 bytes, já diz qual).
 #[derive(Clone, Debug)]
 pub struct Host {
-    pub af: Af,
     pub name: Vec<u8>,
     pub aliases: Vec<Vec<u8>>,
     pub addrs: Vec<Vec<u8>>,
@@ -398,7 +398,7 @@ pub fn files_host_by_name(name: &[u8], af: Af, multi: bool) -> (super::nss::Stat
     };
     let mut iter = lines.into_iter().filter(|h| host_matches(h, name));
     let Some(first) = iter.next() else { return (Status::NotFound, None) };
-    let mut host = Host { af: first.af, name: first.name.clone(), aliases: first.aliases.clone(), addrs: vec![first.addr.clone()] };
+    let mut host = Host { name: first.name.clone(), aliases: first.aliases.clone(), addrs: vec![first.addr.clone()] };
     if multi {
         for other in iter {
             host.addrs.push(other.addr.clone());
@@ -422,7 +422,7 @@ pub fn files_host_by_addr(addr: &[u8]) -> (super::nss::Status, Option<Host>) {
     };
     for h in lines {
         if h.addr.len() == addr.len() && h.addr == addr {
-            return (Status::Success, Some(Host { af: h.af, name: h.name, aliases: h.aliases, addrs: vec![h.addr] }));
+            return (Status::Success, Some(Host { name: h.name, aliases: h.aliases, addrs: vec![h.addr] }));
         }
     }
     (Status::NotFound, None)

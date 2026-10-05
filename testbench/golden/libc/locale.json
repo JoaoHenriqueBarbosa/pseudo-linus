@@ -1,0 +1,530 @@
+{
+  "locale-all-builtin-present": {
+    "stdout": "C\nC.utf8\nPOSIX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-categories-c": {
+    "stdout": "LC_CTYPE\nctype-class-names=\"upper\";\"lower\";\"alpha\";\"digit\";\"xdigit\";\"space\";\"print\";\"graph\";\"blank\";\"cntrl\";\"punct\";\"alnum\"\nctype-map-names=\"toupper\";\"tolower\"\nctype-width=7\nctype-mb-cur-max=1\ncharmap=\"ANSI_X3.4-1968\"\nctype-class-offset=72\nctype-map-offset=84\nctype-indigits_mb-len=1\nctype-indigits0_mb=\"0\"\nctype-indigits1_mb=\"1\"\nctype-indigits2_mb=\"2\"\nctype-indigits3_mb=\"3\"\nctype-indigits4_mb=\"4\"\nctype-indigits5_mb=\"5\"\nctype-indigits6_mb=\"6\"\nctype-indigits7_mb=\"7\"\nctype-indigits8_mb=\"8\"\nctype-indigits9_mb=\"9\"\nctype-indigits_wc-len=1\nctype-outdigit0_mb=\"0\"\nctype-outdigit1_mb=\"1\"\nctype-outdigit2_mb=\"2\"\nctype-outdigit3_mb=\"3\"\nctype-outdigit4_mb=\"4\"\nctype-outdigit5_mb=\"5\"\nctype-outdigit6_mb=\"6\"\nctype-outdigit7_mb=\"7\"\nctype-outdigit8_mb=\"8\"\nctype-outdigit9_mb=\"9\"\nctype-outdigit0_wc=48\nctype-outdigit1_wc=49\nctype-outdigit2_wc=50\nctype-outdigit3_wc=51\nctype-outdigit4_wc=52\nctype-outdigit5_wc=53\nctype-outdigit6_wc=54\nctype-outdigit7_wc=55\nctype-outdigit8_wc=56\nctype-outdigit9_wc=57\nctype-translit-tab-size=1659\nctype-translit-default-missing-len=1\nctype-translit-ignore-len=0\nctype-translit-ignore=\"\"\nmap-to-nonascii=0\nnonascii-case=0\nLC_NUMERIC\ndecimal_point=\".\"\nthousands_sep=\"\"\ngrouping=-1\nnumeric-decimal-point-wc=46\nnumeric-thousands-sep-wc=0\nnumeric-codeset=\"ANSI_X3.4-1968\"\nLC_TIME\nabday=\"Sun;Mon;Tue;Wed;Thu;Fri;Sat\"\nday=\"Sunday;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday\"\nabmon=\"Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\"\nmon=\"January;February;March;April;May;June;July;August;September;October;November;December\"\nam_pm=\"AM;PM\"\nd_t_fmt=\"%a %b %e %H:%M:%S %Y\"\nd_fmt=\"%m/%d/%y\"\nt_fmt=\"%H:%M:%S\"\nt_fmt_ampm=\"%I:%M:%S %p\"\nera=\nera_year=\"\"\nera_d_fmt=\"\"\nalt_digits=\nera_d_t_fmt=\"\"\nera_t_fmt=\"\"\ntime-era-num-entries=0\ntime-era-entries=\"\"\nweek-ndays=7\nweek-1stday=19971130\nweek-1stweek=4\nfirst_weekday=1\nfirst_workday=2\ncal_direction=1\ntimezone=\"\"\ndate_fmt=\"%a %b %e %H:%M:%S %Z %Y\"\ntime-codeset=\"ANSI_X3.4-1968\"\nalt_mon=\"January;February;March;April;May;June;July;August;September;October;November;December\"\nab_alt_mon=\"Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\"\nLC_COLLATE\ncollate-nrules=0\ncollate-rulesets=\"\"\ncollate-symb-hash-sizemb=0\ncollate-codeset=\"ANSI_X3.4-1968\"\nLC_MONETARY\nint_curr_symbol=\"\"\ncurrency_symbol=\"\"\nmon_decimal_point=\"\"\nmon_thousands_sep=\"\"\nmon_grouping=-1\npositive_sign=\"\"\nnegative_sign=\"\"\nint_frac_digits=-1\nfrac_digits=-1\np_cs_precedes=-1\np_sep_by_space=-1\nn_cs_precedes=-1\nn_sep_by_space=-1\np_sign_posn=-1\nn_sign_posn=-1\ncrncystr=\"-\"\nint_p_cs_precedes=-1\nint_p_sep_by_space=-1\nint_n_cs_precedes=-1\nint_n_sep_by_space=-1\nint_p_sign_posn=-1\nint_n_sign_posn=-1\nduo_int_curr_symbol=\"\"\nduo_currency_symbol=\"\"\nduo_int_frac_digits=-1\nduo_frac_digits=-1\nduo_p_cs_precedes=-1\nduo_p_sep_by_space=-1\nduo_n_cs_precedes=-1\nduo_n_sep_by_space=-1\nduo_int_p_cs_precedes=-1\nduo_int_p_sep_by_space=-1\nduo_int_n_cs_precedes=-1\nduo_int_n_sep_by_space=-1\nduo_p_sign_posn=-1\nduo_n_sign_posn=-1\nduo_int_p_sign_posn=-1\nduo_int_n_sign_posn=-1\nuno_valid_from=10101\nuno_valid_to=99991231\nduo_valid_from=10101\nduo_valid_to=99991231\nconversion_rate=1;1\nmonetary-decimal-point-wc=0\nmonetary-thousands-sep-wc=0\nmonetary-codeset=\"ANSI_X3.4-1968\"\nLC_MESSAGES\nyesexpr=\"^[yY]\"\nnoexpr=\"^[nN]\"\nyesstr=\"\"\nnostr=\"\"\nmessages-codeset=\"ANSI_X3.4-1968\"\nLC_PAPER\nheight=297\nwidth=210\npaper-codeset=\"ANSI_X3.4-1968\"\nLC_NAME\nname_fmt=\"%p%t%g%t%m%t%f\"\nname_gen=\"\"\nname_mr=\"\"\nname_mrs=\"\"\nname_miss=\"\"\nname_ms=\"\"\nname-codeset=\"ANSI_X3.4-1968\"\nLC_ADDRESS\npostal_fmt=\"%a%N%f%N%d%N%b%N%s %h %e %r%N%C-%z %T%N%c%N\"\ncountry_name=\"\"\ncountry_post=\"\"\ncountry_ab2=\"\"\ncountry_ab3=\"\"\ncountry_car=\"\"\ncountry_num=0\ncountry_isbn=\"\"\nlang_name=\"\"\nlang_ab=\"\"\nlang_term=\"\"\nlang_lib=\"\"\naddress-codeset=\"ANSI_X3.4-1968\"\nLC_TELEPHONE\ntel_int_fmt=\"+%c %a %l\"\ntel_dom_fmt=\"\"\nint_select=\"\"\nint_prefix=\"\"\ntelephone-codeset=\"ANSI_X3.4-1968\"\nLC_MEASUREMENT\nmeasurement=1\nmeasurement-codeset=\"ANSI_X3.4-1968\"\nLC_IDENTIFICATION\ntitle=\"ISO/IEC 14652 i18n FDCC-set\"\nsource=\"ISO/IEC JTC1/SC22/WG20 - internationalization\"\naddress=\"C/o Keld Simonsen, Skt. Jorgens Alle 8, DK-1615 Kobenhavn V\"\ncontact=\"Keld Simonsen\"\nemail=\"keld@dkuug.dk\"\ntel=\"+45 3122-6543\"\nfax=\"+45 3325-6543\"\nlanguage=\"\"\nterritory=\"ISO\"\naudience=\"\"\napplication=\"\"\nabbreviation=\"\"\nrevision=\"1.0\"\ndate=\"1997-12-20\"\ncategory=\"i18n:1999;ANSI_X3.4-1968;;;;;;;;;;;\"\nidentification-codeset=\"ANSI_X3.4-1968\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-categories-posix-plain": {
+    "stdout": "upper;lower;alpha;digit;xdigit;space;print;graph;blank;cntrl;punct;alnum\ntoupper;tolower\n7\n1\nANSI_X3.4-1968\n72\n84\n1\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n1\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n1659\n1\n0\n\n0\n0\n.\n\n-1\n46\n0\nANSI_X3.4-1968\nSun;Mon;Tue;Wed;Thu;Fri;Sat\nSunday;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday\nJan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\nJanuary;February;March;April;May;June;July;August;September;October;November;December\nAM;PM\n%a %b %e %H:%M:%S %Y\n%m/%d/%y\n%H:%M:%S\n%I:%M:%S %p\n\n\n\n\n\n\n0\n\n7\n19971130\n4\n1\n2\n1\n\n%a %b %e %H:%M:%S %Z %Y\nANSI_X3.4-1968\nJanuary;February;March;April;May;June;July;August;September;October;November;December\nJan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\n0\n\n0\nANSI_X3.4-1968\n\n\n\n\n-1\n\n\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-\n-1\n-1\n-1\n-1\n-1\n-1\n\n\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n10101\n99991231\n10101\n99991231\n1;1\n0\n0\nANSI_X3.4-1968\n^[yY]\n^[nN]\n\n\nANSI_X3.4-1968\n297\n210\nANSI_X3.4-1968\n%p%t%g%t%m%t%f\n\n\n\n\n\nANSI_X3.4-1968\n%a%N%f%N%d%N%b%N%s %h %e %r%N%C-%z %T%N%c%N\n\n\n\n\n\n0\n\n\n\n\n\nANSI_X3.4-1968\n+%c %a %l\n\n\n\nANSI_X3.4-1968\n1\nANSI_X3.4-1968\nISO/IEC 14652 i18n FDCC-set\nISO/IEC JTC1/SC22/WG20 - internationalization\nC/o Keld Simonsen, Skt. Jorgens Alle 8, DK-1615 Kobenhavn V\nKeld Simonsen\nkeld@dkuug.dk\n+45 3122-6543\n+45 3325-6543\n\nISO\n\n\n\n1.0\n1997-12-20\ni18n:1999;ANSI_X3.4-1968;;;;;;;;;;;\nANSI_X3.4-1968\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-categories-utf8": {
+    "stdout": "LC_CTYPE\nctype-class-names=\"upper\";\"lower\";\"alpha\";\"digit\";\"xdigit\";\"space\";\"print\";\"graph\";\"blank\";\"cntrl\";\"punct\";\"alnum\";\"combining\";\"combining_level3\"\nctype-map-names=\"toupper\";\"tolower\";\"totitle\"\nctype-width=16\nctype-mb-cur-max=6\ncharmap=\"UTF-8\"\nctype-class-offset=72\nctype-map-offset=86\nctype-indigits_mb-len=1\nctype-indigits0_mb=\"0\"\nctype-indigits1_mb=\"1\"\nctype-indigits2_mb=\"2\"\nctype-indigits3_mb=\"3\"\nctype-indigits4_mb=\"4\"\nctype-indigits5_mb=\"5\"\nctype-indigits6_mb=\"6\"\nctype-indigits7_mb=\"7\"\nctype-indigits8_mb=\"8\"\nctype-indigits9_mb=\"9\"\nctype-indigits_wc-len=1\nctype-outdigit0_mb=\"0\"\nctype-outdigit1_mb=\"1\"\nctype-outdigit2_mb=\"2\"\nctype-outdigit3_mb=\"3\"\nctype-outdigit4_mb=\"4\"\nctype-outdigit5_mb=\"5\"\nctype-outdigit6_mb=\"6\"\nctype-outdigit7_mb=\"7\"\nctype-outdigit8_mb=\"8\"\nctype-outdigit9_mb=\"9\"\nctype-outdigit0_wc=48\nctype-outdigit1_wc=49\nctype-outdigit2_wc=50\nctype-outdigit3_wc=51\nctype-outdigit4_wc=52\nctype-outdigit5_wc=53\nctype-outdigit6_wc=54\nctype-outdigit7_wc=55\nctype-outdigit8_wc=56\nctype-outdigit9_wc=57\nctype-translit-tab-size=6492\nctype-translit-default-missing-len=1\nctype-translit-ignore-len=0\nctype-translit-ignore=\"\"\nmap-to-nonascii=0\nnonascii-case=0\nLC_NUMERIC\ndecimal_point=\".\"\nthousands_sep=\"\"\ngrouping=-1\nnumeric-decimal-point-wc=46\nnumeric-thousands-sep-wc=0\nnumeric-codeset=\"UTF-8\"\nLC_TIME\nabday=\"Sun;Mon;Tue;Wed;Thu;Fri;Sat\"\nday=\"Sunday;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday\"\nabmon=\"Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\"\nmon=\"January;February;March;April;May;June;July;August;September;October;November;December\"\nam_pm=\"AM;PM\"\nd_t_fmt=\"%a %b %e %H:%M:%S %Y\"\nd_fmt=\"%m/%d/%y\"\nt_fmt=\"%H:%M:%S\"\nt_fmt_ampm=\"%I:%M:%S %p\"\nera=\nera_year=\"\"\nera_d_fmt=\"\"\nalt_digits=\nera_d_t_fmt=\"\"\nera_t_fmt=\"\"\ntime-era-num-entries=0\ntime-era-entries=\"S\"\nweek-ndays=7\nweek-1stday=19971130\nweek-1stweek=4\nfirst_weekday=1\nfirst_workday=2\ncal_direction=1\ntimezone=\"\"\ndate_fmt=\"%a %b %e %H:%M:%S %Z %Y\"\ntime-codeset=\"UTF-8\"\nalt_mon=\"January;February;March;April;May;June;July;August;September;October;November;December\"\nab_alt_mon=\"Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\"\nLC_COLLATE\ncollate-nrules=0\ncollate-rulesets=\"\"\ncollate-symb-hash-sizemb=0\ncollate-codeset=\"UTF-8\"\nLC_MONETARY\nint_curr_symbol=\"\"\ncurrency_symbol=\"\"\nmon_decimal_point=\"\"\nmon_thousands_sep=\"\"\nmon_grouping=-1\npositive_sign=\"\"\nnegative_sign=\"\"\nint_frac_digits=-1\nfrac_digits=-1\np_cs_precedes=-1\np_sep_by_space=-1\nn_cs_precedes=-1\nn_sep_by_space=-1\np_sign_posn=-1\nn_sign_posn=-1\ncrncystr=\"-\"\nint_p_cs_precedes=-1\nint_p_sep_by_space=-1\nint_n_cs_precedes=-1\nint_n_sep_by_space=-1\nint_p_sign_posn=-1\nint_n_sign_posn=-1\nduo_int_curr_symbol=\"\"\nduo_currency_symbol=\"\"\nduo_int_frac_digits=-1\nduo_frac_digits=-1\nduo_p_cs_precedes=-1\nduo_p_sep_by_space=-1\nduo_n_cs_precedes=-1\nduo_n_sep_by_space=-1\nduo_int_p_cs_precedes=-1\nduo_int_p_sep_by_space=-1\nduo_int_n_cs_precedes=-1\nduo_int_n_sep_by_space=-1\nduo_p_sign_posn=-1\nduo_n_sign_posn=-1\nduo_int_p_sign_posn=-1\nduo_int_n_sign_posn=-1\nuno_valid_from=10101\nuno_valid_to=99991231\nduo_valid_from=10101\nduo_valid_to=99991231\nconversion_rate=1;1\nmonetary-decimal-point-wc=0\nmonetary-thousands-sep-wc=0\nmonetary-codeset=\"UTF-8\"\nLC_MESSAGES\nyesexpr=\"^[yY]\"\nnoexpr=\"^[nN]\"\nyesstr=\"\"\nnostr=\"\"\nmessages-codeset=\"UTF-8\"\nLC_PAPER\nheight=297\nwidth=210\npaper-codeset=\"UTF-8\"\nLC_NAME\nname_fmt=\"%p%t%g%t%m%t%f\"\nname_gen=\"\"\nname_mr=\"\"\nname_mrs=\"\"\nname_miss=\"\"\nname_ms=\"\"\nname-codeset=\"UTF-8\"\nLC_ADDRESS\npostal_fmt=\"%a%N%f%N%d%N%b%N%s %h %e %r%N%C-%z %T%N%c%N\"\ncountry_name=\"\"\ncountry_post=\"\"\ncountry_ab2=\"\"\ncountry_ab3=\"\"\ncountry_car=\"\"\ncountry_num=0\ncountry_isbn=\"\"\nlang_name=\"\"\nlang_ab=\"\"\nlang_term=\"\"\nlang_lib=\"\"\naddress-codeset=\"UTF-8\"\nLC_TELEPHONE\ntel_int_fmt=\"+%c %a %l\"\ntel_dom_fmt=\"\"\nint_select=\"\"\nint_prefix=\"\"\ntelephone-codeset=\"UTF-8\"\nLC_MEASUREMENT\nmeasurement=1\nmeasurement-codeset=\"UTF-8\"\nLC_IDENTIFICATION\ntitle=\"C locale\"\nsource=\"\"\naddress=\"\"\ncontact=\"\"\nemail=\"bug-glibc-locales@gnu.org\"\ntel=\"\"\nfax=\"\"\nlanguage=\"\"\nterritory=\"\"\naudience=\"\"\napplication=\"\"\nabbreviation=\"\"\nrevision=\"2.1\"\ndate=\"2022-01-30\"\ncategory=\"i18n:2012;UTF-8;;;;;;;;;;;\"\nidentification-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-categories-utf8-plain": {
+    "stdout": "upper;lower;alpha;digit;xdigit;space;print;graph;blank;cntrl;punct;alnum;combining;combining_level3\ntoupper;tolower;totitle\n16\n6\nUTF-8\n72\n86\n1\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n1\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n6492\n1\n0\n\n0\n0\n.\n\n-1\n46\n0\nUTF-8\nSun;Mon;Tue;Wed;Thu;Fri;Sat\nSunday;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday\nJan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\nJanuary;February;March;April;May;June;July;August;September;October;November;December\nAM;PM\n%a %b %e %H:%M:%S %Y\n%m/%d/%y\n%H:%M:%S\n%I:%M:%S %p\n\n\n\n\n\n\n0\nS\n7\n19971130\n4\n1\n2\n1\n\n%a %b %e %H:%M:%S %Z %Y\nUTF-8\nJanuary;February;March;April;May;June;July;August;September;October;November;December\nJan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\n0\n\n0\nUTF-8\n\n\n\n\n-1\n\n\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-\n-1\n-1\n-1\n-1\n-1\n-1\n\n\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n10101\n99991231\n10101\n99991231\n1;1\n0\n0\nUTF-8\n^[yY]\n^[nN]\n\n\nUTF-8\n297\n210\nUTF-8\n%p%t%g%t%m%t%f\n\n\n\n\n\nUTF-8\n%a%N%f%N%d%N%b%N%s %h %e %r%N%C-%z %T%N%c%N\n\n\n\n\n\n0\n\n\n\n\n\nUTF-8\n+%c %a %l\n\n\n\nUTF-8\n1\nUTF-8\nC locale\n\n\n\nbug-glibc-locales@gnu.org\n\n\n\n\n\n\n\n2.1\n2022-01-30\ni18n:2012;UTF-8;;;;;;;;;;;\nUTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-first-names": {
+    "stdout": "C\nC.utf8\nPOSIX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-ignores-names": {
+    "stdout": "C\nC.utf8\nPOSIX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-invalid-collate": {
+    "stdout": "locale: Cannot set LC_COLLATE to default locale: No such file or directory\nC\nC.utf8\nPOSIX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-invalid-ctype-locpath": {
+    "stdout": "locale: Cannot set LC_CTYPE to default locale: No such file or directory\nwarning: The LOCPATH variable is set to \"/nonexistent\"\nC\nC.utf8\nPOSIX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-long-option": {
+    "stdout": "C\nC.utf8\nPOSIX\nC\nC.utf8\nPOSIX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-sorted-unique": {
+    "stdout": "sorted\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-verbose-head": {
+    "stdout": "locale: C.utf8          directory: /usr/lib/locale/C.utf8\n-------------------------------------------------------------------------------\n    title | C locale\n    email | bug-glibc-locales@gnu.org\n revision | 2.1\n     date | 2022-01-30\n  codeset | UTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-all-verbose-skips-builtin-names": {
+    "stdout": "0\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-ambiguous-c": {
+    "stdout": "",
+    "stderr": "locale: option '--c' is ambiguous; possibilities: '--charmaps' '--category-name'\nTry `locale --help' or `locale --usage' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "locale-ambiguous-v": {
+    "stdout": "",
+    "stderr": "locale: option '--v' is ambiguous; possibilities: '--verbose' '--version'\nTry `locale --help' or `locale --usage' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "locale-ambiguous-ver": {
+    "stdout": "",
+    "stderr": "locale: option '--ver' is ambiguous; possibilities: '--verbose' '--version'\nTry `locale --help' or `locale --usage' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "locale-both-flags-alone": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-address-keywords": {
+    "stdout": "LC_ADDRESS\npostal_fmt=\"%a%N%f%N%d%N%b%N%s %h %e %r%N%C-%z %T%N%c%N\"\ncountry_name=\"\"\ncountry_post=\"\"\ncountry_ab2=\"\"\ncountry_ab3=\"\"\ncountry_car=\"\"\ncountry_num=0\ncountry_isbn=\"\"\nlang_name=\"\"\nlang_ab=\"\"\nlang_term=\"\"\nlang_lib=\"\"\naddress-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-collate-keywords": {
+    "stdout": "LC_COLLATE\ncollate-nrules=0\ncollate-rulesets=\"\"\ncollate-symb-hash-sizemb=0\ncollate-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-ctype": {
+    "stdout": "upper;lower;alpha;digit;xdigit;space;print;graph;blank;cntrl;punct;alnum;combining;combining_level3\ntoupper;tolower;totitle\n16\n6\nUTF-8\n72\n86\n1\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n1\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n6492\n1\n0\n\n0\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-ctype-keywords": {
+    "stdout": "ctype-class-names=\"upper\";\"lower\";\"alpha\";\"digit\";\"xdigit\";\"space\";\"print\";\"graph\";\"blank\";\"cntrl\";\"punct\";\"alnum\";\"combining\";\"combining_level3\"\nctype-map-names=\"toupper\";\"tolower\";\"totitle\"\nctype-width=16\nctype-mb-cur-max=6\ncharmap=\"UTF-8\"\nctype-class-offset=72\nctype-map-offset=86\nctype-indigits_mb-len=1\nctype-indigits0_mb=\"0\"\nctype-indigits1_mb=\"1\"\nctype-indigits2_mb=\"2\"\nctype-indigits3_mb=\"3\"\nctype-indigits4_mb=\"4\"\nctype-indigits5_mb=\"5\"\nctype-indigits6_mb=\"6\"\nctype-indigits7_mb=\"7\"\nctype-indigits8_mb=\"8\"\nctype-indigits9_mb=\"9\"\nctype-indigits_wc-len=1\nctype-outdigit0_mb=\"0\"\nctype-outdigit1_mb=\"1\"\nctype-outdigit2_mb=\"2\"\nctype-outdigit3_mb=\"3\"\nctype-outdigit4_mb=\"4\"\nctype-outdigit5_mb=\"5\"\nctype-outdigit6_mb=\"6\"\nctype-outdigit7_mb=\"7\"\nctype-outdigit8_mb=\"8\"\nctype-outdigit9_mb=\"9\"\nctype-outdigit0_wc=48\nctype-outdigit1_wc=49\nctype-outdigit2_wc=50\nctype-outdigit3_wc=51\nctype-outdigit4_wc=52\nctype-outdigit5_wc=53\nctype-outdigit6_wc=54\nctype-outdigit7_wc=55\nctype-outdigit8_wc=56\nctype-outdigit9_wc=57\nctype-translit-tab-size=6492\nctype-translit-default-missing-len=1\nctype-translit-ignore-len=0\nctype-translit-ignore=\"\"\nmap-to-nonascii=0\nnonascii-case=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-flag-alone": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-identification-keywords": {
+    "stdout": "LC_IDENTIFICATION\ntitle=\"C locale\"\nsource=\"\"\naddress=\"\"\ncontact=\"\"\nemail=\"bug-glibc-locales@gnu.org\"\ntel=\"\"\nfax=\"\"\nlanguage=\"\"\nterritory=\"\"\naudience=\"\"\napplication=\"\"\nabbreviation=\"\"\nrevision=\"2.1\"\ndate=\"2022-01-30\"\ncategory=\"i18n:2012;UTF-8;;;;;;;;;;;\"\nidentification-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-keyword-charmap": {
+    "stdout": "LC_CTYPE\ncharmap=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-measurement-keywords": {
+    "stdout": "LC_MEASUREMENT\nmeasurement=1\nmeasurement-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-messages-keywords": {
+    "stdout": "LC_MESSAGES\nyesexpr=\"^[yY]\"\nnoexpr=\"^[nN]\"\nyesstr=\"\"\nnostr=\"\"\nmessages-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-monetary": {
+    "stdout": "\n\n\n\n-1\n\n\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-\n-1\n-1\n-1\n-1\n-1\n-1\n\n\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n-1\n10101\n99991231\n10101\n99991231\n1;1\n0\n0\nUTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-monetary-keywords": {
+    "stdout": "LC_MONETARY\nint_curr_symbol=\"\"\ncurrency_symbol=\"\"\nmon_decimal_point=\"\"\nmon_thousands_sep=\"\"\nmon_grouping=-1\npositive_sign=\"\"\nnegative_sign=\"\"\nint_frac_digits=-1\nfrac_digits=-1\np_cs_precedes=-1\np_sep_by_space=-1\nn_cs_precedes=-1\nn_sep_by_space=-1\np_sign_posn=-1\nn_sign_posn=-1\ncrncystr=\"-\"\nint_p_cs_precedes=-1\nint_p_sep_by_space=-1\nint_n_cs_precedes=-1\nint_n_sep_by_space=-1\nint_p_sign_posn=-1\nint_n_sign_posn=-1\nduo_int_curr_symbol=\"\"\nduo_currency_symbol=\"\"\nduo_int_frac_digits=-1\nduo_frac_digits=-1\nduo_p_cs_precedes=-1\nduo_p_sep_by_space=-1\nduo_n_cs_precedes=-1\nduo_n_sep_by_space=-1\nduo_int_p_cs_precedes=-1\nduo_int_p_sep_by_space=-1\nduo_int_n_cs_precedes=-1\nduo_int_n_sep_by_space=-1\nduo_p_sign_posn=-1\nduo_n_sign_posn=-1\nduo_int_p_sign_posn=-1\nduo_int_n_sign_posn=-1\nuno_valid_from=10101\nuno_valid_to=99991231\nduo_valid_from=10101\nduo_valid_to=99991231\nconversion_rate=1;1\nmonetary-decimal-point-wc=0\nmonetary-thousands-sep-wc=0\nmonetary-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-name-charmap": {
+    "stdout": "LC_CTYPE\nUTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-name-keywords": {
+    "stdout": "LC_NAME\nname_fmt=\"%p%t%g%t%m%t%f\"\nname_gen=\"\"\nname_mr=\"\"\nname_mrs=\"\"\nname_miss=\"\"\nname_ms=\"\"\nname-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-numeric": {
+    "stdout": ".\n\n-1\n46\n0\nUTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-numeric-keywords": {
+    "stdout": "LC_NUMERIC\ndecimal_point=\".\"\nthousands_sep=\"\"\ngrouping=-1\nnumeric-decimal-point-wc=46\nnumeric-thousands-sep-wc=0\nnumeric-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-paper-keywords": {
+    "stdout": "LC_PAPER\nheight=297\nwidth=210\npaper-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-telephone-keywords": {
+    "stdout": "LC_TELEPHONE\ntel_int_fmt=\"+%c %a %l\"\ntel_dom_fmt=\"\"\nint_select=\"\"\nint_prefix=\"\"\ntelephone-codeset=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-time": {
+    "stdout": "Sun;Mon;Tue;Wed;Thu;Fri;Sat\nSunday;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday\nJan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\nJanuary;February;March;April;May;June;July;August;September;October;November;December\nAM;PM\n%a %b %e %H:%M:%S %Y\n%m/%d/%y\n%H:%M:%S\n%I:%M:%S %p\n\n\n\n\n\n\n0\nS\n7\n19971130\n4\n1\n2\n1\n\n%a %b %e %H:%M:%S %Z %Y\nUTF-8\nJanuary;February;March;April;May;June;July;August;September;October;November;December\nJan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-category-time-keywords": {
+    "stdout": "LC_TIME\nabday=\"Sun;Mon;Tue;Wed;Thu;Fri;Sat\"\nday=\"Sunday;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday\"\nabmon=\"Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\"\nmon=\"January;February;March;April;May;June;July;August;September;October;November;December\"\nam_pm=\"AM;PM\"\nd_t_fmt=\"%a %b %e %H:%M:%S %Y\"\nd_fmt=\"%m/%d/%y\"\nt_fmt=\"%H:%M:%S\"\nt_fmt_ampm=\"%I:%M:%S %p\"\nera=\nera_year=\"\"\nera_d_fmt=\"\"\nalt_digits=\nera_d_t_fmt=\"\"\nera_t_fmt=\"\"\ntime-era-num-entries=0\ntime-era-entries=\"S\"\nweek-ndays=7\nweek-1stday=19971130\nweek-1stweek=4\nfirst_weekday=1\nfirst_workday=2\ncal_direction=1\ntimezone=\"\"\ndate_fmt=\"%a %b %e %H:%M:%S %Z %Y\"\ntime-codeset=\"UTF-8\"\nalt_mon=\"January;February;March;April;May;June;July;August;September;October;November;December\"\nab_alt_mon=\"Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-charmap": {
+    "stdout": "UTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-charmap-in-c": {
+    "stdout": "ANSI_X3.4-1968\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-charmap-in-posix": {
+    "stdout": "ANSI_X3.4-1968\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-double-dash": {
+    "stdout": "UTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-help": {
+    "stdout": "Usage: locale [OPTION...] NAME\n  or:  locale [OPTION...] [-a|-m]\nGet locale-specific information.\n\n System information:\n  -a, --all-locales          Write names of available locales\n  -m, --charmaps             Write names of available charmaps\n\n Modify output format:\n  -c, --category-name        Write names of selected categories\n  -k, --keyword-name         Write names of selected keywords\n  -v, --verbose              Print more information\n\n  -?, --help                 Give this help list\n      --usage                Give a short usage message\n  -V, --version              Print program version\n\nFor bug reporting instructions, please see:\n<http://www.debian.org/Bugs/>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-help-prefix": {
+    "stdout": "Usage: locale [OPTION...] NAME\n  or:  locale [OPTION...] [-a|-m]\nGet locale-specific information.\n\n System information:\n  -a, --all-locales          Write names of available locales\n  -m, --charmaps             Write names of available charmaps\n\n Modify output format:\n  -c, --category-name        Write names of selected categories\n  -k, --keyword-name         Write names of selected keywords\n  -v, --verbose              Print more information\n\n  -?, --help                 Give this help list\n      --usage                Give a short usage message\n  -V, --version              Print program version\n\nFor bug reporting instructions, please see:\n<http://www.debian.org/Bugs/>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-help-short": {
+    "stdout": "Usage: locale [OPTION...] NAME\n  or:  locale [OPTION...] [-a|-m]\nGet locale-specific information.\n\n System information:\n  -a, --all-locales          Write names of available locales\n  -m, --charmaps             Write names of available charmaps\n\n Modify output format:\n  -c, --category-name        Write names of selected categories\n  -k, --keyword-name         Write names of selected keywords\n  -v, --verbose              Print more information\n\n  -?, --help                 Give this help list\n      --usage                Give a short usage message\n  -V, --version              Print program version\n\nFor bug reporting instructions, please see:\n<http://www.debian.org/Bugs/>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-invalid-ctype-only": {
+    "stdout": "ANSI_X3.4-1968\n.\n",
+    "stderr": "locale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-invalid-lang": {
+    "stdout": "LANG=bogus\nLANGUAGE=\nLC_CTYPE=\"bogus\"\nLC_NUMERIC=\"bogus\"\nLC_TIME=\"bogus\"\nLC_COLLATE=\"bogus\"\nLC_MONETARY=\"bogus\"\nLC_MESSAGES=\"bogus\"\nLC_PAPER=\"bogus\"\nLC_NAME=\"bogus\"\nLC_ADDRESS=\"bogus\"\nLC_TELEPHONE=\"bogus\"\nLC_MEASUREMENT=\"bogus\"\nLC_IDENTIFICATION=\"bogus\"\nLC_ALL=\n",
+    "stderr": "locale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-invalid-lc-all": {
+    "stdout": "LANG=\nLANGUAGE=\nLC_CTYPE=\"bogus\"\nLC_NUMERIC=\"bogus\"\nLC_TIME=\"bogus\"\nLC_COLLATE=\"bogus\"\nLC_MONETARY=\"bogus\"\nLC_MESSAGES=\"bogus\"\nLC_PAPER=\"bogus\"\nLC_NAME=\"bogus\"\nLC_ADDRESS=\"bogus\"\nLC_TELEPHONE=\"bogus\"\nLC_MEASUREMENT=\"bogus\"\nLC_IDENTIFICATION=\"bogus\"\nLC_ALL=bogus\n",
+    "stderr": "locale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-invalid-lc-all-keyword": {
+    "stdout": "ANSI_X3.4-1968\n.\n",
+    "stderr": "locale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-invalid-locpath-quoting": {
+    "stdout": "ANSI_X3.4-1968\n",
+    "stderr": "locale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nwarning: The LOCPATH variable is set to \"a\\\"b\\\\c\\'d\\te\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-invalid-locpath-warning": {
+    "stdout": "ANSI_X3.4-1968\n",
+    "stderr": "locale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nwarning: The LOCPATH variable is set to \"/nonexistent\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-invalid-long-option": {
+    "stdout": "",
+    "stderr": "locale: unrecognized option '--foo'\nTry `locale --help' or `locale --usage' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "locale-invalid-messages-only": {
+    "stdout": "^[yY]\n",
+    "stderr": "locale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-invalid-numeric-only": {
+    "stdout": "UTF-8\n.\nANSI_X3.4-1968\n",
+    "stderr": "locale: Cannot set LC_ALL to default locale: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-invalid-option": {
+    "stdout": "",
+    "stderr": "locale: invalid option -- 'Z'\nTry `locale --help' or `locale --usage' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "locale-invalid-vars-mixed": {
+    "stdout": "LANG=C\nLANGUAGE=\nLC_CTYPE=C.UTF-8\nLC_NUMERIC=bogus\nLC_TIME=\"C\"\nLC_COLLATE=\"C\"\nLC_MONETARY=\"C\"\nLC_MESSAGES=\"C\"\nLC_PAPER=\"C\"\nLC_NAME=\"C\"\nLC_ADDRESS=\"C\"\nLC_TELEPHONE=\"C\"\nLC_MEASUREMENT=\"C\"\nLC_IDENTIFICATION=\"C\"\nLC_ALL=\n",
+    "stderr": "locale: Cannot set LC_ALL to default locale: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-keyword-flag-alone": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-keyword-name-charmap": {
+    "stdout": "charmap=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-keywords-formats": {
+    "stdout": "LC_TIME\n%a %b %e %H:%M:%S %Y\nLC_TIME\n%m/%d/%y\nLC_TIME\n%H:%M:%S\nLC_TIME\n%I:%M:%S %p\nLC_TIME\n%a %b %e %H:%M:%S %Z %Y\nLC_NAME\n%p%t%g%t%m%t%f\nLC_ADDRESS\n%a%N%f%N%d%N%b%N%s %h %e %r%N%C-%z %T%N%c%N\nLC_TELEPHONE\n+%c %a %l\nLC_MESSAGES\n^[yY]\nLC_MESSAGES\n^[nN]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-keywords-list-types": {
+    "stdout": "ctype-class-names=\"upper\";\"lower\";\"alpha\";\"digit\";\"xdigit\";\"space\";\"print\";\"graph\";\"blank\";\"cntrl\";\"punct\";\"alnum\";\"combining\";\"combining_level3\"\nctype-map-names=\"toupper\";\"tolower\";\"totitle\"\nabmon=\"Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\"\nam_pm=\"AM;PM\"\nera=\nalt_digits=\ngrouping=-1\nmon_grouping=-1\nconversion_rate=1;1\nweek-1stday=19971130\ncountry_num=0\nmeasurement=1\nheight=297\nwidth=210\nint_curr_symbol=\"\"\ncrncystr=\"-\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-keywords-list-types-plain": {
+    "stdout": "upper;lower;alpha;digit;xdigit;space;print;graph;blank;cntrl;punct;alnum;combining;combining_level3\ntoupper;tolower;totitle\nJan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec\nAM;PM\n\n\n-1\n-1\n1;1\n19971130\n0\n1\n297\n210\n\n-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-lc-all-is-unknown": {
+    "stdout": "",
+    "stderr": "locale: unknown name \"LC_ALL\"\n",
+    "exit": 1,
+    "files": {}
+  },
+  "locale-locpath-without-failure": {
+    "stdout": "UTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-long-unexpected-arg": {
+    "stdout": "",
+    "stderr": "locale: option '--verbose' doesn't allow an argument\nTry `locale --help' or `locale --usage' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "locale-mixed-categories": {
+    "stdout": "charmap=\"UTF-8\"\nnumeric-codeset=\"ANSI_X3.4-1968\"\ntime-codeset=\"UTF-8\"\ntitle=\"C locale\"\nidentification-codeset=\"UTF-8\"\nmessages-codeset=\"ANSI_X3.4-1968\"\nctype-width=16\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-name-case-sensitive": {
+    "stdout": "",
+    "stderr": "locale: unknown name \"LC_numeric\"\n",
+    "exit": 1,
+    "files": {}
+  },
+  "locale-options-after-names": {
+    "stdout": "charmap=\"UTF-8\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-several-names": {
+    "stdout": ".\n\nUTF-8\n^[yY]\nSun;Mon;Tue;Wed;Thu;Fri;Sat\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-several-names-category": {
+    "stdout": "LC_NUMERIC\n.\nLC_CTYPE\nUTF-8\nLC_MESSAGES\n^[yY]\nLC_TIME\nSun;Mon;Tue;Wed;Thu;Fri;Sat\nLC_IDENTIFICATION\nC locale\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-several-names-keyword": {
+    "stdout": "decimal_point=\".\"\nthousands_sep=\"\"\ncharmap=\"UTF-8\"\nyesexpr=\"^[yY]\"\nabday=\"Sun;Mon;Tue;Wed;Thu;Fri;Sat\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-unknown-name": {
+    "stdout": "",
+    "stderr": "locale: unknown name \"foo\"\n",
+    "exit": 1,
+    "files": {}
+  },
+  "locale-unknown-name-after-output": {
+    "stdout": "UTF-8\n",
+    "stderr": "locale: unknown name \"foo\"\n",
+    "exit": 1,
+    "files": {}
+  },
+  "locale-unknown-name-keyword": {
+    "stdout": "",
+    "stderr": "locale: unknown name \"foo\"\n",
+    "exit": 1,
+    "files": {}
+  },
+  "locale-usage": {
+    "stdout": "Usage: locale [-ckv?V] [--category-name] [--keyword-name] [--verbose] [--help]\n            [--usage] [--version] NAME\n  or:  locale [OPTION...] [-a|-m]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-codeset-spellings": {
+    "stdout": "[C.UTF-8]\nUTF-8\nrc=0\n[C.utf8]\nUTF-8\nrc=0\n[C.UTF8]\nUTF-8\nrc=0\n[C.utf-8]\nUTF-8\nrc=0\n[C.UTF-8@x]\nUTF-8\nrc=0\n[C.utf8@]\nUTF-8\nrc=0\n[C_US.UTF-8]\nUTF-8\nrc=0\n[C.UTF-8 ]\nUTF-8\nrc=0\n[C.utf-8@euro]\nUTF-8\nrc=0\n[C.utf8@a@b]\nUTF-8\nrc=0\n[c.utf-8]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C.ISO-8859-1]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[POSIX.UTF-8]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[POSIX@x]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C@x]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C.]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C.UTF-8.]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C.utf8.x]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C.UTF-8x]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C.UTF_8]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C.U-T-F-8]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C.8]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[C.UTF-8,x]\nlocale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\nANSI_X3.4-1968\nrc=0\n[../C.utf8]\nlocale: Cannot set LC_CTYPE to default locale: Invalid argument\nlocale: Cannot set LC_MESSAGES to default locale: Invalid argument\nlocale: Cannot set LC_ALL to default locale: Invalid argument\nANSI_X3.4-1968\nrc=0\n[C.utf8/]\nlocale: Cannot set LC_CTYPE to default locale: Invalid argument\nlocale: Cannot set LC_MESSAGES to default locale: Invalid argument\nlocale: Cannot set LC_ALL to default locale: Invalid argument\nANSI_X3.4-1968\nrc=0\n[]\nANSI_X3.4-1968\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-default": {
+    "stdout": "LANG=\nLANGUAGE=\nLC_CTYPE=\"C.UTF-8\"\nLC_NUMERIC=\"C.UTF-8\"\nLC_TIME=\"C.UTF-8\"\nLC_COLLATE=\"C.UTF-8\"\nLC_MONETARY=\"C.UTF-8\"\nLC_MESSAGES=\"C.UTF-8\"\nLC_PAPER=\"C.UTF-8\"\nLC_NAME=\"C.UTF-8\"\nLC_ADDRESS=\"C.UTF-8\"\nLC_TELEPHONE=\"C.UTF-8\"\nLC_MEASUREMENT=\"C.UTF-8\"\nLC_IDENTIFICATION=\"C.UTF-8\"\nLC_ALL=C.UTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-individual": {
+    "stdout": "LANG=C\nLANGUAGE=\nLC_CTYPE=\"C\"\nLC_NUMERIC=\"C\"\nLC_TIME=C.UTF-8\nLC_COLLATE=POSIX\nLC_MONETARY=\"C\"\nLC_MESSAGES=C.utf8\nLC_PAPER=\"C\"\nLC_NAME=\"C\"\nLC_ADDRESS=\"C\"\nLC_TELEPHONE=\"C\"\nLC_MEASUREMENT=\"C\"\nLC_IDENTIFICATION=\"C\"\nLC_ALL=\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-individual-special-characters": {
+    "stdout": "LANG=C\nLANGUAGE=\nLC_CTYPE=\"C\"\nLC_NUMERIC=\"C\"\nLC_TIME=x\\ y\\$z\nLC_COLLATE=\"C\"\nLC_MONETARY=\"C\"\nLC_MESSAGES=\"C\"\nLC_PAPER=\"C\"\nLC_NAME=\"C\"\nLC_ADDRESS=\"C\"\nLC_TELEPHONE=\"C\"\nLC_MEASUREMENT=\"C\"\nLC_IDENTIFICATION=\"C\"\nLC_ALL=\n",
+    "stderr": "locale: Cannot set LC_ALL to default locale: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-lang-only": {
+    "stdout": "LANG=C.UTF-8\nLANGUAGE=\nLC_CTYPE=\"C.UTF-8\"\nLC_NUMERIC=\"C.UTF-8\"\nLC_TIME=\"C.UTF-8\"\nLC_COLLATE=\"C.UTF-8\"\nLC_MONETARY=\"C.UTF-8\"\nLC_MESSAGES=\"C.UTF-8\"\nLC_PAPER=\"C.UTF-8\"\nLC_NAME=\"C.UTF-8\"\nLC_ADDRESS=\"C.UTF-8\"\nLC_TELEPHONE=\"C.UTF-8\"\nLC_MEASUREMENT=\"C.UTF-8\"\nLC_IDENTIFICATION=\"C.UTF-8\"\nLC_ALL=\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-lang-posix": {
+    "stdout": "LANG=POSIX\nLANGUAGE=\nLC_CTYPE=\"POSIX\"\nLC_NUMERIC=\"POSIX\"\nLC_TIME=\"POSIX\"\nLC_COLLATE=\"POSIX\"\nLC_MONETARY=\"POSIX\"\nLC_MESSAGES=\"POSIX\"\nLC_PAPER=\"POSIX\"\nLC_NAME=\"POSIX\"\nLC_ADDRESS=\"POSIX\"\nLC_TELEPHONE=\"POSIX\"\nLC_MEASUREMENT=\"POSIX\"\nLC_IDENTIFICATION=\"POSIX\"\nLC_ALL=\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-language": {
+    "stdout": "LANG=C\nLANGUAGE=pt_BR:en\nLC_CTYPE=\"C\"\nLC_NUMERIC=\"C\"\nLC_TIME=\"C\"\nLC_COLLATE=\"C\"\nLC_MONETARY=\"C\"\nLC_MESSAGES=\"C\"\nLC_PAPER=\"C\"\nLC_NAME=\"C\"\nLC_ADDRESS=\"C\"\nLC_TELEPHONE=\"C\"\nLC_MEASUREMENT=\"C\"\nLC_IDENTIFICATION=\"C\"\nLC_ALL=\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-lc-all-c": {
+    "stdout": "LANG=C.UTF-8\nLANGUAGE=\nLC_CTYPE=\"C\"\nLC_NUMERIC=\"C\"\nLC_TIME=\"C\"\nLC_COLLATE=\"C\"\nLC_MONETARY=\"C\"\nLC_MESSAGES=\"C\"\nLC_PAPER=\"C\"\nLC_NAME=\"C\"\nLC_ADDRESS=\"C\"\nLC_TELEPHONE=\"C\"\nLC_MEASUREMENT=\"C\"\nLC_IDENTIFICATION=\"C\"\nLC_ALL=C\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-nothing-set": {
+    "stdout": "LANG=\nLANGUAGE=\nLC_CTYPE=\"POSIX\"\nLC_NUMERIC=\"POSIX\"\nLC_TIME=\"POSIX\"\nLC_COLLATE=\"POSIX\"\nLC_MONETARY=\"POSIX\"\nLC_MESSAGES=\"POSIX\"\nLC_PAPER=\"POSIX\"\nLC_NAME=\"POSIX\"\nLC_ADDRESS=\"POSIX\"\nLC_TELEPHONE=\"POSIX\"\nLC_MEASUREMENT=\"POSIX\"\nLC_IDENTIFICATION=\"POSIX\"\nLC_ALL=\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-posixly-correct": {
+    "stdout": "LANG=\nLC_CTYPE=\"C.UTF-8\"\nLC_NUMERIC=\"C.UTF-8\"\nLC_TIME=\"C.UTF-8\"\nLC_COLLATE=\"C.UTF-8\"\nLC_MONETARY=\"C.UTF-8\"\nLC_MESSAGES=\"C.UTF-8\"\nLC_PAPER=\"C.UTF-8\"\nLC_NAME=\"C.UTF-8\"\nLC_ADDRESS=\"C.UTF-8\"\nLC_TELEPHONE=\"C.UTF-8\"\nLC_MEASUREMENT=\"C.UTF-8\"\nLC_IDENTIFICATION=\"C.UTF-8\"\nLC_ALL=C.UTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-vars-special-characters": {
+    "stdout": "LANG=a\\ b\\$c\\`d\\\"e\\\\f\\'g\\~h\\|i\\&j\\;k\\<l\\>m\\(n\\)o\nLANGUAGE=\nLC_CTYPE=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_NUMERIC=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_TIME=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_COLLATE=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_MONETARY=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_MESSAGES=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_PAPER=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_NAME=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_ADDRESS=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_TELEPHONE=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_MEASUREMENT=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_IDENTIFICATION=\"a b\\$c\\`d\\\"e\\\\f'g~h|i&j;k<l>m(n)o\"\nLC_ALL=\n",
+    "stderr": "locale: Cannot set LC_CTYPE to default locale: No such file or directory\nlocale: Cannot set LC_MESSAGES to default locale: No such file or directory\nlocale: Cannot set LC_ALL to default locale: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-verbose-alone": {
+    "stdout": "LANG=\nLANGUAGE=\nLC_CTYPE=\"C.UTF-8\"\nLC_NUMERIC=\"C.UTF-8\"\nLC_TIME=\"C.UTF-8\"\nLC_COLLATE=\"C.UTF-8\"\nLC_MONETARY=\"C.UTF-8\"\nLC_MESSAGES=\"C.UTF-8\"\nLC_PAPER=\"C.UTF-8\"\nLC_NAME=\"C.UTF-8\"\nLC_ADDRESS=\"C.UTF-8\"\nLC_TELEPHONE=\"C.UTF-8\"\nLC_MEASUREMENT=\"C.UTF-8\"\nLC_IDENTIFICATION=\"C.UTF-8\"\nLC_ALL=C.UTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-verbose-name": {
+    "stdout": "UTF-8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-version": {
+    "stdout": "locale (Debian GLIBC 2.41-12+deb13u4) 2.41\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nWritten by Ulrich Drepper.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-version-prefix": {
+    "stdout": "locale (Debian GLIBC 2.41-12+deb13u4) 2.41\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nWritten by Ulrich Drepper.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "locale-version-short": {
+    "stdout": "locale (Debian GLIBC 2.41-12+deb13u4) 2.41\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nWritten by Ulrich Drepper.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

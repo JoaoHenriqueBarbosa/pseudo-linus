@@ -1,13 +1,14 @@
-//! Gera a lista de itens da imagem base que vêm de árvores inteiras copiadas do oráculo (hoje o
-//! `/usr/share/zoneinfo` do tzdata do Debian 13): diretórios, arquivos (embutidos com
-//! `include_bytes!`) e links simbólicos, em ordem estável.
+//! Gera a lista de itens da imagem base que vêm de árvores inteiras copiadas do oráculo (o
+//! `/usr/share/zoneinfo` do tzdata e o locale `C.utf8` do libc-bin do Debian 13): diretórios,
+//! arquivos (embutidos com `include_bytes!`) e links simbólicos, em ordem estável. O oráculo tem o
+//! `locales-all` inteiro (238 MB); só o `C.utf8`, que todo Debian tem, entra na imagem.
 
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Árvores copiadas do oráculo, relativas a `image/`.
-const TREES: &[&str] = &["usr/share/zoneinfo"];
+const TREES: &[&str] = &["usr/share/zoneinfo", "usr/lib/locale"];
 
 fn walk(root: &Path, rel: &Path, out: &mut Vec<(PathBuf, fs::Metadata)>) {
     let dir = root.join(rel);

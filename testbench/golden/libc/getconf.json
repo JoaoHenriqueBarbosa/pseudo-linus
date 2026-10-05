@@ -1,0 +1,371 @@
+{
+  "getconf-a-empty-path": {
+    "stdout": "LINK_MAX                           \n_POSIX_LINK_MAX                    \nMAX_CANON                          \n_POSIX_MAX_CANON                   \nMAX_INPUT                          \n_POSIX_MAX_INPUT                   \nNAME_MAX                           \n_POSIX_NAME_MAX                    \nPATH_MAX                           \n_POSIX_PATH_MAX                    \nPIPE_BUF                           \n_POSIX_PIPE_BUF                    \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-a-extra": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-a-fixed-lines": {
+    "stdout": "LINK_MAX                           127\n_POSIX_LINK_MAX                    127\nMAX_CANON                          255\n_POSIX_MAX_CANON                   255\nMAX_INPUT                          255\n_POSIX_MAX_INPUT                   255\nNAME_MAX                           255\n_POSIX_NAME_MAX                    255\nPATH_MAX                           4096\n_POSIX_PATH_MAX                    4096\nPIPE_BUF                           4096\n_POSIX_PIPE_BUF                    4096\nSOCK_MAXBUF                        \n_POSIX_ASYNC_IO                    \n_POSIX_CHOWN_RESTRICTED            1\n_POSIX_NO_TRUNC                    1\n_POSIX_PRIO_IO                     \n_POSIX_SYNC_IO                     \n_POSIX_VDISABLE                    0\nATEXIT_MAX                         2147483647\nCHAR_BIT                           8\nCHAR_MAX                           127\nCHAR_MIN                           -128\nCLK_TCK                            100\nINT_MAX                            2147483647\nINT_MIN                            -2147483648\nIOV_MAX                            1024\nLOGNAME_MAX                        256\nLONG_BIT                           64\nMB_LEN_MAX                         16\nNGROUPS_MAX                        65536\nNL_ARGMAX                          4096\nNL_LANGMAX                         2048\nNL_MSGMAX                          2147483647\nNL_NMAX                            2147483647\nNL_SETMAX                          2147483647\nNL_TEXTMAX                         2147483647\nNSS_BUFLEN_GROUP                   1024\nNSS_BUFLEN_PASSWD                  1024\nNZERO                              20\nPAGESIZE                           4096\nPAGE_SIZE                          4096\nPASS_MAX                           8192\nPTHREAD_DESTRUCTOR_ITERATIONS      4\nPTHREAD_KEYS_MAX                   1024\nPTHREAD_STACK_MIN                  16384\nPTHREAD_THREADS_MAX                \nSCHAR_MAX                          127\nSCHAR_MIN                          -128\nSHRT_MAX                           32767\nSHRT_MIN                           -32768\nSSIZE_MAX                          32767\nTTY_NAME_MAX                       32\nTZNAME_MAX                         \nUCHAR_MAX                          255\nUINT_MAX                           4294967295\nUIO_MAXIOV                         1024\nULONG_MAX                          18446744073709551615\nUSHRT_MAX                          65535\nWORD_BIT                           32\n_POSIX_ASYNCHRONOUS_IO             200809\n_POSIX_FSYNC                       200809\n_POSIX_JOB_CONTROL                 1\n_POSIX_MAPPED_FILES                200809\n_POSIX_MEMLOCK                     200809\n_POSIX_MEMLOCK_RANGE               200809\n_POSIX_MEMORY_PROTECTION           200809\n_POSIX_MESSAGE_PASSING             200809\n_POSIX_NGROUPS_MAX                 65536\n_POSIX_PII                         \n_POSIX_PII_INTERNET                \n_POSIX_PII_INTERNET_DGRAM          \n_POSIX_PII_INTERNET_STREAM         \n_POSIX_PII_OSI                     \n_POSIX_PII_OSI_CLTS                \n_POSIX_PII_OSI_COTS                \n_POSIX_PII_OSI_M                   \n_POSIX_PII_SOCKET                  \n_POSIX_PII_XTI                     \n_POSIX_POLL                        \n_POSIX_PRIORITIZED_IO              200809\n_POSIX_PRIORITY_SCHEDULING         200809\n_POSIX_REALTIME_SIGNALS            200809\n_POSIX_SAVED_IDS                   1\n_POSIX_SELECT                      \n_POSIX_SEMAPHORES                  200809\n_POSIX_SHARED_MEMORY_OBJECTS       200809\n_POSIX_SSIZE_MAX                   32767\n_POSIX_STREAM_MAX                  16\n_POSIX_SYNCHRONIZED_IO             200809\n_POSIX_THREADS                     200809\n_POSIX_THREAD_ATTR_STACKADDR       200809\n_POSIX_THREAD_ATTR_STACKSIZE       200809\n_POSIX_THREAD_PRIORITY_SCHEDULING  200809\n_POSIX_THREAD_PRIO_INHERIT         200809\n_POSIX_THREAD_PRIO_PROTECT         200809\n_POSIX_THREAD_ROBUST_PRIO_INHERIT  \n_POSIX_THREAD_ROBUST_PRIO_PROTECT  \n_POSIX_THREAD_PROCESS_SHARED       200809\n_POSIX_THREAD_SAFE_FUNCTIONS       200809\n_POSIX_TIMERS                      200809\nTIMER_MAX                          \n_POSIX_TZNAME_MAX                  \n_POSIX_VERSION                     200809\n_T_IOV_MAX                         \n_XOPEN_CRYPT                       \n_XOPEN_ENH_I18N                    1\n_XOPEN_LEGACY                      1\n_XOPEN_REALTIME                    1\n_XOPEN_REALTIME_THREADS            1\n_XOPEN_SHM                         1\n_XOPEN_UNIX                        1\n_XOPEN_VERSION                     700\n_XOPEN_XCU_VERSION                 4\n_XOPEN_XPG2                        1\n_XOPEN_XPG3                        1\n_XOPEN_XPG4                        1\nBC_BASE_MAX                        99\nBC_DIM_MAX                         2048\nBC_SCALE_MAX                       99\nBC_STRING_MAX                      1000\nCHARCLASS_NAME_MAX                 2048\nCOLL_WEIGHTS_MAX                   255\nEQUIV_CLASS_MAX                    \nEXPR_NEST_MAX                      32\nLINE_MAX                           2048\nPOSIX2_BC_BASE_MAX                 99\nPOSIX2_BC_DIM_MAX                  2048\nPOSIX2_BC_SCALE_MAX                99\nPOSIX2_BC_STRING_MAX               1000\nPOSIX2_CHAR_TERM                   200809\nPOSIX2_COLL_WEIGHTS_MAX            255\nPOSIX2_C_BIND                      200809\nPOSIX2_C_DEV                       200809\nPOSIX2_C_VERSION                   200809\nPOSIX2_EXPR_NEST_MAX               32\nPOSIX2_FORT_DEV                    \nPOSIX2_FORT_RUN                    \n_POSIX2_LINE_MAX                   2048\nPOSIX2_LINE_MAX                    2048\nPOSIX2_LOCALEDEF                   200809\nPOSIX2_RE_DUP_MAX                  32767\nPOSIX2_SW_DEV                      200809\nPOSIX2_UPE                         \nPOSIX2_VERSION                     200809\nRE_DUP_MAX                         32767\nPATH                               /bin:/usr/bin\nCS_PATH                            /bin:/usr/bin\nLFS_CFLAGS                         \nLFS_LDFLAGS                        \nLFS_LIBS                           \nLFS_LINTFLAGS                      \nLFS64_CFLAGS                       -D_LARGEFILE64_SOURCE\nLFS64_LDFLAGS                      \nLFS64_LIBS                         \nLFS64_LINTFLAGS                    -D_LARGEFILE64_SOURCE\n_XBS5_WIDTH_RESTRICTED_ENVS        XBS5_LP64_OFF64\nXBS5_WIDTH_RESTRICTED_ENVS         XBS5_LP64_OFF64\n_XBS5_ILP32_OFF32                  \nXBS5_ILP32_OFF32_CFLAGS            \nXBS5_ILP32_OFF32_LDFLAGS           \nXBS5_ILP32_OFF32_LIBS              \nXBS5_ILP32_OFF32_LINTFLAGS         \n_XBS5_ILP32_OFFBIG                 \nXBS5_ILP32_OFFBIG_CFLAGS           \nXBS5_ILP32_OFFBIG_LDFLAGS          \nXBS5_ILP32_OFFBIG_LIBS             \nXBS5_ILP32_OFFBIG_LINTFLAGS        \n_XBS5_LP64_OFF64                   1\nXBS5_LP64_OFF64_CFLAGS             -m64\nXBS5_LP64_OFF64_LDFLAGS            -m64\nXBS5_LP64_OFF64_LIBS               \nXBS5_LP64_OFF64_LINTFLAGS          \n_XBS5_LPBIG_OFFBIG                 \nXBS5_LPBIG_OFFBIG_CFLAGS           \nXBS5_LPBIG_OFFBIG_LDFLAGS          \nXBS5_LPBIG_OFFBIG_LIBS             \nXBS5_LPBIG_OFFBIG_LINTFLAGS        \n_POSIX_V6_ILP32_OFF32              \nPOSIX_V6_ILP32_OFF32_CFLAGS        \nPOSIX_V6_ILP32_OFF32_LDFLAGS       \nPOSIX_V6_ILP32_OFF32_LIBS          \nPOSIX_V6_ILP32_OFF32_LINTFLAGS     \n_POSIX_V6_WIDTH_RESTRICTED_ENVS    POSIX_V6_LP64_OFF64\nPOSIX_V6_WIDTH_RESTRICTED_ENVS     POSIX_V6_LP64_OFF64\n_POSIX_V6_ILP32_OFFBIG             \nPOSIX_V6_ILP32_OFFBIG_CFLAGS       \nPOSIX_V6_ILP32_OFFBIG_LDFLAGS      \nPOSIX_V6_ILP32_OFFBIG_LIBS         \nPOSIX_V6_ILP32_OFFBIG_LINTFLAGS    \n_POSIX_V6_LP64_OFF64               1\nPOSIX_V6_LP64_OFF64_CFLAGS         -m64\nPOSIX_V6_LP64_OFF64_LDFLAGS        -m64\nPOSIX_V6_LP64_OFF64_LIBS           \nPOSIX_V6_LP64_OFF64_LINTFLAGS      \n_POSIX_V6_LPBIG_OFFBIG             \nPOSIX_V6_LPBIG_OFFBIG_CFLAGS       \nPOSIX_V6_LPBIG_OFFBIG_LDFLAGS      \nPOSIX_V6_LPBIG_OFFBIG_LIBS         \nPOSIX_V6_LPBIG_OFFBIG_LINTFLAGS    \n_POSIX_V7_ILP32_OFF32              \nPOSIX_V7_ILP32_OFF32_CFLAGS        \nPOSIX_V7_ILP32_OFF32_LDFLAGS       \nPOSIX_V7_ILP32_OFF32_LIBS          \nPOSIX_V7_ILP32_OFF32_LINTFLAGS     \n_POSIX_V7_WIDTH_RESTRICTED_ENVS    POSIX_V7_LP64_OFF64\nPOSIX_V7_WIDTH_RESTRICTED_ENVS     POSIX_V7_LP64_OFF64\n_POSIX_V7_ILP32_OFFBIG             \nPOSIX_V7_ILP32_OFFBIG_CFLAGS       \nPOSIX_V7_ILP32_OFFBIG_LDFLAGS      \nPOSIX_V7_ILP32_OFFBIG_LIBS         \nPOSIX_V7_ILP32_OFFBIG_LINTFLAGS    \n_POSIX_V7_LP64_OFF64               1\nPOSIX_V7_LP64_OFF64_CFLAGS         -m64\nPOSIX_V7_LP64_OFF64_LDFLAGS        -m64\nPOSIX_V7_LP64_OFF64_LIBS           \nPOSIX_V7_LP64_OFF64_LINTFLAGS      \n_POSIX_V7_LPBIG_OFFBIG             \nPOSIX_V7_LPBIG_OFFBIG_CFLAGS       \nPOSIX_V7_LPBIG_OFFBIG_LDFLAGS      \nPOSIX_V7_LPBIG_OFFBIG_LIBS         \nPOSIX_V7_LPBIG_OFFBIG_LINTFLAGS    \n_POSIX_ADVISORY_INFO               200809\n_POSIX_BARRIERS                    200809\n_POSIX_BASE                        \n_POSIX_C_LANG_SUPPORT              \n_POSIX_C_LANG_SUPPORT_R            \n_POSIX_CLOCK_SELECTION             200809\n_POSIX_CPUTIME                     200809\n_POSIX_THREAD_CPUTIME              200809\n_POSIX_DEVICE_SPECIFIC             \n_POSIX_DEVICE_SPECIFIC_R           \n_POSIX_FD_MGMT                     \n_POSIX_FIFO                        \n_POSIX_PIPE                        \n_POSIX_FILE_ATTRIBUTES             \n_POSIX_FILE_LOCKING                \n_POSIX_FILE_SYSTEM                 \n_POSIX_MONOTONIC_CLOCK             200809\n_POSIX_MULTI_PROCESS               \n_POSIX_SINGLE_PROCESS              \n_POSIX_NETWORKING                  \n_POSIX_READER_WRITER_LOCKS         200809\n_POSIX_SPIN_LOCKS                  200809\n_POSIX_REGEXP                      1\n_REGEX_VERSION                     \n_POSIX_SHELL                       1\n_POSIX_SIGNALS                     \n_POSIX_SPAWN                       200809\n_POSIX_SPORADIC_SERVER             \n_POSIX_THREAD_SPORADIC_SERVER      \n_POSIX_SYSTEM_DATABASE             \n_POSIX_SYSTEM_DATABASE_R           \n_POSIX_TIMEOUTS                    200809\n_POSIX_TYPED_MEMORY_OBJECTS        \n_POSIX_USER_GROUPS                 \n_POSIX_USER_GROUPS_R               \nPOSIX2_PBS                         \nPOSIX2_PBS_ACCOUNTING              \nPOSIX2_PBS_LOCATE                  \nPOSIX2_PBS_TRACK                   \nPOSIX2_PBS_MESSAGE                 \nSYMLOOP_MAX                        \nSTREAM_MAX                         16\nAIO_LISTIO_MAX                     \nAIO_MAX                            \nAIO_PRIO_DELTA_MAX                 20\nDELAYTIMER_MAX                     2147483647\nHOST_NAME_MAX                      64\nLOGIN_NAME_MAX                     256\nMQ_OPEN_MAX                        \nMQ_PRIO_MAX                        32768\n_POSIX_DEVICE_IO                   \n_POSIX_TRACE                       \n_POSIX_TRACE_EVENT_FILTER          \n_POSIX_TRACE_INHERIT               \n_POSIX_TRACE_LOG                   \nRTSIG_MAX                          32\nSEM_NSEMS_MAX                      \nSEM_VALUE_MAX                      2147483647\nFILESIZEBITS                       32\nPOSIX_ALLOC_SIZE_MIN               4096\nPOSIX_REC_INCR_XFER_SIZE           \nPOSIX_REC_MAX_XFER_SIZE            \nPOSIX_REC_MIN_XFER_SIZE            4096\nPOSIX_REC_XFER_ALIGN               4096\nSYMLINK_MAX                        \nGNU_LIBC_VERSION                   glibc 2.41\nGNU_LIBPTHREAD_VERSION             NPTL 2.41\nPOSIX2_SYMLINKS                    1\nIPV6                               200809\nRAW_SOCKETS                        200809\n_POSIX_IPV6                        200809\n_POSIX_RAW_SOCKETS                 200809\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-a-names": {
+    "stdout": "88090b7c47ff30f86878c3a0e9ac2529  -\n322\nLINK_MAX                           127\n_POSIX_RAW_SOCKETS                 200809\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-a-nonexistent-path": {
+    "stdout": "LINK_MAX                           \n_POSIX_LINK_MAX                    \nMAX_CANON                          255\n_POSIX_MAX_CANON                   255\nMAX_INPUT                          255\n_POSIX_MAX_INPUT                   255\nNAME_MAX                           \n_POSIX_NAME_MAX                    \nPATH_MAX                           4096\n_POSIX_PATH_MAX                    4096\nPIPE_BUF                           4096\n_POSIX_PIPE_BUF                    4096\nSOCK_MAXBUF                        \n_POSIX_ASYNC_IO                    \n_POSIX_CHOWN_RESTRICTED            \n_POSIX_NO_TRUNC                    1\n_POSIX_PRIO_IO                     \n_POSIX_SYNC_IO                     \n_POSIX_VDISABLE                    0\nARG_MAX                            2097152\npipeline done\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-a-padding": {
+    "stdout": "LINK_MAX                           127$\n_POSIX_LINK_MAX                    127$\nMAX_CANON                          255$\nTZNAME_MAX                         $\nUINT_MAX                           4294967295$\nULONG_MAX                          18446744073709551615$\nPATH                               /bin:/usr/bin$\nLFS_CFLAGS                         $\nGNU_LIBC_VERSION                   glibc 2.41$\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-a-with-path": {
+    "stdout": "LINK_MAX                           127\n_POSIX_LINK_MAX                    127\nMAX_CANON                          255\n_POSIX_MAX_CANON                   255\nMAX_INPUT                          255\n_POSIX_MAX_INPUT                   255\nNAME_MAX                           255\n_POSIX_NAME_MAX                    255\nPATH_MAX                           4096\n_POSIX_PATH_MAX                    4096\nPIPE_BUF                           4096\n_POSIX_PIPE_BUF                    4096\nSOCK_MAXBUF                        \n_POSIX_ASYNC_IO                    \n_POSIX_CHOWN_RESTRICTED            1\n_POSIX_NO_TRUNC                    1\n_POSIX_PRIO_IO                     \n_POSIX_SYNC_IO                     \n_POSIX_VDISABLE                    0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-arg-max": {
+    "stdout": "2097152\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-cache-names-defined": {
+    "stdout": "LEVEL1_ICACHE_SIZE rc=0\nLEVEL1_DCACHE_LINESIZE rc=0\nLEVEL2_CACHE_SIZE rc=0\nLEVEL3_CACHE_SIZE rc=0\nLEVEL4_CACHE_SIZE rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-capital-v": {
+    "stdout": "",
+    "stderr": "getconf: Unrecognized variable `-V'\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-confstr-with-path": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-cs-path": {
+    "stdout": "/bin:/usr/bin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-double-dash": {
+    "stdout": "4096\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-double-dash-only": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-environments": {
+    "stdout": "_POSIX_V7_LP64_OFF64=[1]\nPOSIX_V7_LP64_OFF64_CFLAGS=[-m64]\nPOSIX_V7_LP64_OFF64_LDFLAGS=[-m64]\nPOSIX_V7_LP64_OFF64_LIBS=[]\nPOSIX_V7_LP64_OFF64_LINTFLAGS=[]\n_POSIX_V7_ILP32_OFF32=[undefined]\nPOSIX_V7_ILP32_OFF32_CFLAGS=[]\n_POSIX_V7_ILP32_OFFBIG=[undefined]\n_POSIX_V7_LPBIG_OFFBIG=[undefined]\nPOSIX_V7_WIDTH_RESTRICTED_ENVS=[POSIX_V7_LP64_OFF64]\n_POSIX_V7_WIDTH_RESTRICTED_ENVS=[POSIX_V7_LP64_OFF64]\n_POSIX_V6_LP64_OFF64=[1]\nPOSIX_V6_LP64_OFF64_CFLAGS=[-m64]\nPOSIX_V6_WIDTH_RESTRICTED_ENVS=[POSIX_V6_LP64_OFF64]\n_XBS5_LP64_OFF64=[1]\nXBS5_LP64_OFF64_CFLAGS=[-m64]\nXBS5_LP64_OFF64_LDFLAGS=[-m64]\n_XBS5_ILP32_OFF32=[undefined]\nXBS5_WIDTH_RESTRICTED_ENVS=[XBS5_LP64_OFF64]\n_XBS5_WIDTH_RESTRICTED_ENVS=[XBS5_LP64_OFF64]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-help": {
+    "stdout": "Usage: getconf [-v SPEC] VAR\n  or:  getconf [-v SPEC] PATH_VAR PATH\n\nGet the configuration value for variable VAR, or for variable PATH_VAR\nfor path PATH.  If SPEC is given, give values for compilation\nenvironment SPEC.\n\nFor bug reporting instructions, please see:\n<http://www.debian.org/Bugs/>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-lfs": {
+    "stdout": "LFS_CFLAGS=[]\nLFS_LDFLAGS=[]\nLFS_LIBS=[]\nLFS_LINTFLAGS=[]\nLFS64_CFLAGS=[-D_LARGEFILE64_SOURCE]\nLFS64_LDFLAGS=[]\nLFS64_LIBS=[]\nLFS64_LINTFLAGS=[-D_LARGEFILE64_SOURCE]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-libc-version": {
+    "stdout": "glibc 2.41\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-libpthread-version": {
+    "stdout": "NPTL 2.41\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-limits-c": {
+    "stdout": "CHAR_BIT=8\nCHAR_MAX=127\nCHAR_MIN=-128\nSCHAR_MAX=127\nSCHAR_MIN=-128\nUCHAR_MAX=255\nSHRT_MAX=32767\nSHRT_MIN=-32768\nUSHRT_MAX=65535\nINT_MAX=2147483647\nINT_MIN=-2147483648\nUINT_MAX=4294967295\nULONG_MAX=18446744073709551615\nLONG_BIT=64\nWORD_BIT=32\nMB_LEN_MAX=16\nSSIZE_MAX=32767\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-limits-posix2": {
+    "stdout": "BC_BASE_MAX=99\nBC_DIM_MAX=2048\nBC_SCALE_MAX=99\nBC_STRING_MAX=1000\nCHARCLASS_NAME_MAX=2048\nCOLL_WEIGHTS_MAX=255\nEQUIV_CLASS_MAX=undefined\nEXPR_NEST_MAX=32\nLINE_MAX=2048\nRE_DUP_MAX=32767\nPOSIX2_BC_BASE_MAX=99\nPOSIX2_LINE_MAX=2048\n_POSIX2_LINE_MAX=2048\nPOSIX2_RE_DUP_MAX=32767\nPOSIX2_VERSION=200809\nPOSIX2_C_BIND=200809\nPOSIX2_C_DEV=200809\nPOSIX2_C_VERSION=200809\nPOSIX2_CHAR_TERM=200809\nPOSIX2_LOCALEDEF=200809\nPOSIX2_SW_DEV=200809\nPOSIX2_FORT_DEV=undefined\nPOSIX2_FORT_RUN=undefined\nPOSIX2_UPE=undefined\nPOSIX2_PBS=undefined\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-limits-system": {
+    "stdout": "CLK_TCK=100\nIOV_MAX=1024\nUIO_MAXIOV=1024\n_T_IOV_MAX=undefined\nLOGNAME_MAX=256\nLOGIN_NAME_MAX=256\nHOST_NAME_MAX=64\nTTY_NAME_MAX=32\nNL_ARGMAX=4096\nNL_LANGMAX=2048\nNL_MSGMAX=2147483647\nNL_NMAX=2147483647\nNL_SETMAX=2147483647\nNL_TEXTMAX=2147483647\nNSS_BUFLEN_GROUP=1024\nNSS_BUFLEN_PASSWD=1024\nNZERO=20\nPASS_MAX=8192\nATEXIT_MAX=2147483647\nSTREAM_MAX=16\nTZNAME_MAX=undefined\nSYMLOOP_MAX=undefined\nRTSIG_MAX=32\nSEM_VALUE_MAX=2147483647\nSEM_NSEMS_MAX=undefined\nDELAYTIMER_MAX=2147483647\nAIO_MAX=undefined\nAIO_LISTIO_MAX=undefined\nAIO_PRIO_DELTA_MAX=20\nMQ_OPEN_MAX=undefined\nMQ_PRIO_MAX=32768\nTIMER_MAX=undefined\nNGROUPS_MAX=65536\nPTHREAD_KEYS_MAX=1024\nPTHREAD_STACK_MIN=16384\nPTHREAD_THREADS_MAX=undefined\nPTHREAD_DESTRUCTOR_ITERATIONS=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-no-args": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-page-size": {
+    "stdout": "4096\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-pagesize": {
+    "stdout": "4096\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-path": {
+    "stdout": "/bin:/usr/bin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-path-empty": {
+    "stdout": "PATH_MAX rc=3\nNAME_MAX rc=3\nLINK_MAX rc=3\n_POSIX_VDISABLE rc=3\n",
+    "stderr": "getconf: pathconf: : No such file or directory\ngetconf: pathconf: : No such file or directory\ngetconf: pathconf: : No such file or directory\ngetconf: pathconf: : No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-path-nonexistent": {
+    "stdout": "4096\nPATH_MAX rc=0\nNAME_MAX rc=3\nLINK_MAX rc=3\n_POSIX_ASYNC_IO rc=3\n255\nMAX_CANON rc=0\n4096\nPIPE_BUF rc=0\n1\n_POSIX_NO_TRUNC rc=0\n_POSIX_CHOWN_RESTRICTED rc=3\nFILESIZEBITS rc=3\nPOSIX2_SYMLINKS rc=3\nPOSIX_REC_XFER_ALIGN rc=3\nundefined\nSYMLINK_MAX rc=0\nundefined\nSOCK_MAXBUF rc=0\n",
+    "stderr": "getconf: pathconf: /nonexistent/path: No such file or directory\ngetconf: pathconf: /nonexistent/path: No such file or directory\ngetconf: pathconf: /nonexistent/path: No such file or directory\ngetconf: pathconf: /nonexistent/path: No such file or directory\ngetconf: pathconf: /nonexistent/path: No such file or directory\ngetconf: pathconf: /nonexistent/path: No such file or directory\ngetconf: pathconf: /nonexistent/path: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-path-not-a-directory": {
+    "stdout": "rc=3\n4096\nrc=0\n",
+    "stderr": "getconf: pathconf: file.txt/child: Not a directory\n",
+    "exit": 0,
+    "files": {
+      "file.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "6667b2d1aab6a00caa5aee5af8ad9f1465e567abf1c209d15727d57b3e8f6e5f",
+        "data": "data\n"
+      }
+    }
+  },
+  "getconf-path-variable-without-path": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-path-variable-without-path-linkmax": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-path-vars-device": {
+    "stdout": "_POSIX_ASYNC_IO=undefined\nNAME_MAX=255\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-path-vars-dot": {
+    "stdout": "PATH_MAX=4096\nNAME_MAX=255\nLINK_MAX=127\nFILESIZEBITS=32\nPOSIX_REC_XFER_ALIGN=4096\n_POSIX_ASYNC_IO=undefined\nPOSIX2_SYMLINKS=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-path-vars-regular-file": {
+    "stdout": "_POSIX_ASYNC_IO=1\nPATH_MAX=4096\nNAME_MAX=255\nLINK_MAX=127\nPOSIX_REC_MIN_XFER_SIZE=4096\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "file.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "6667b2d1aab6a00caa5aee5af8ad9f1465e567abf1c209d15727d57b3e8f6e5f",
+        "data": "data\n"
+      }
+    }
+  },
+  "getconf-path-vars-root": {
+    "stdout": "PATH_MAX=4096\n_POSIX_PATH_MAX=4096\nNAME_MAX=255\n_POSIX_NAME_MAX=255\nLINK_MAX=127\n_POSIX_LINK_MAX=127\nMAX_CANON=255\nMAX_INPUT=255\nPIPE_BUF=4096\n_POSIX_PIPE_BUF=4096\n_POSIX_CHOWN_RESTRICTED=1\n_POSIX_NO_TRUNC=1\n_POSIX_VDISABLE=0\nSOCK_MAXBUF=undefined\n_POSIX_ASYNC_IO=undefined\n_POSIX_PRIO_IO=undefined\n_POSIX_SYNC_IO=undefined\nFILESIZEBITS=32\nPOSIX2_SYMLINKS=1\nSYMLINK_MAX=undefined\nPOSIX_REC_INCR_XFER_SIZE=undefined\nPOSIX_REC_MAX_XFER_SIZE=undefined\nPOSIX_REC_MIN_XFER_SIZE=4096\nPOSIX_REC_XFER_ALIGN=4096\nPOSIX_ALLOC_SIZE_MIN=4096\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-path-with-spaces": {
+    "stdout": "255\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a b": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "getconf-posix-prefix-stripped": {
+    "stdout": "VERSION=200809\nJOB_CONTROL=1\nTHREADS=200809\nV7_LP64_OFF64=1\nV6_LP64_OFF64=1\nV7_ILP32_OFF32=undefined\nSAVED_IDS=1\nTIMERS=200809\nNO_TRUNC=Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\nV7_WIDTH_RESTRICTED_ENVS=POSIX_V7_LP64_OFF64\nrc=2\n1\nrc=0\n",
+    "stderr": "getconf: Unrecognized variable `POSIX_NO_TRUNC'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-posix-versions": {
+    "stdout": "_POSIX_VERSION=200809\n_POSIX_JOB_CONTROL=1\n_POSIX_SAVED_IDS=1\n_POSIX_THREADS=200809\n_POSIX_TIMERS=200809\n_POSIX_SEMAPHORES=200809\n_POSIX_SHARED_MEMORY_OBJECTS=200809\n_POSIX_SPAWN=200809\n_POSIX_REGEXP=1\n_POSIX_SHELL=1\n_POSIX_MONOTONIC_CLOCK=200809\n_POSIX_CPUTIME=200809\n_POSIX_THREAD_CPUTIME=200809\n_POSIX_TIMEOUTS=200809\n_POSIX_BARRIERS=200809\n_POSIX_SPIN_LOCKS=200809\n_POSIX_READER_WRITER_LOCKS=200809\n_POSIX_CLOCK_SELECTION=200809\n_POSIX_ADVISORY_INFO=200809\n_POSIX_IPV6=200809\n_POSIX_RAW_SOCKETS=200809\nIPV6=200809\nRAW_SOCKETS=200809\n_POSIX_THREAD_ROBUST_PRIO_INHERIT=undefined\n_POSIX_THREAD_PROCESS_SHARED=200809\n_POSIX_ASYNCHRONOUS_IO=200809\n_POSIX_FSYNC=200809\n_POSIX_MAPPED_FILES=200809\n_POSIX_MEMLOCK=200809\n_POSIX_MESSAGE_PASSING=200809\n_POSIX_PRIORITIZED_IO=200809\n_POSIX_PRIORITY_SCHEDULING=200809\n_POSIX_REALTIME_SIGNALS=200809\n_POSIX_SYNCHRONIZED_IO=200809\n_POSIX_SSIZE_MAX=32767\n_POSIX_STREAM_MAX=16\n_POSIX_PII=undefined\n_POSIX_SELECT=undefined\n_POSIX_POLL=undefined\n_POSIX_TRACE=undefined\n_POSIX_USER_GROUPS=undefined\n_POSIX_TYPED_MEMORY_OBJECTS=undefined\n_POSIX_SPORADIC_SERVER=undefined\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-sysconf-with-path": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-too-many-args": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-too-many-args-path": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-ulong-max": {
+    "stdout": "18446744073709551615\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-unknown-long-option-like": {
+    "stdout": "",
+    "stderr": "getconf: Unrecognized variable `--vers'\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-unknown-option-like": {
+    "stdout": "",
+    "stderr": "getconf: Unrecognized variable `-x'\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-unknown-posix-prefix": {
+    "stdout": "",
+    "stderr": "getconf: Unrecognized variable `POSIX_ARG_MAX'\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-unknown-variable": {
+    "stdout": "",
+    "stderr": "getconf: Unrecognized variable `FOO'\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-v-after-variable": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-v-attached": {
+    "stdout": "4096\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-v-attached-only": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-v-separate": {
+    "stdout": "4096\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-v-spec-only": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-v-then-a": {
+    "stdout": "322\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-v-unknown-spec": {
+    "stdout": "4096\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-v-with-flags": {
+    "stdout": "-m64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-v-without-arg": {
+    "stdout": "",
+    "stderr": "Usage: getconf [-v specification] variable_name [pathname]\n       getconf -a [pathname]\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getconf-version": {
+    "stdout": "getconf (Debian GLIBC 2.41-12+deb13u4) 2.41\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nWritten by Roland McGrath.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-version-extra-arg": {
+    "stdout": "getconf (Debian GLIBC 2.41-12+deb13u4) 2.41\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nWritten by Roland McGrath.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getconf-xopen": {
+    "stdout": "_XOPEN_VERSION=700\n_XOPEN_XCU_VERSION=4\n_XOPEN_UNIX=1\n_XOPEN_CRYPT=undefined\n_XOPEN_ENH_I18N=1\n_XOPEN_LEGACY=1\n_XOPEN_REALTIME=1\n_XOPEN_REALTIME_THREADS=1\n_XOPEN_SHM=1\n_XOPEN_XPG2=1\n_XOPEN_XPG3=1\n_XOPEN_XPG4=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

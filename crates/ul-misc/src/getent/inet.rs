@@ -221,35 +221,38 @@ pub fn inet_aton(s: &[u8], exact: bool) -> Option<u32> {
         if !c.is_ascii_digit() {
             return None;
         }
-        let mut base = 10u32;
-        if c == b'0' {
-            i += 1;
-            c = get(i);
-            if c == b'x' || c == b'X' {
-                base = 16;
-                i += 1;
-                c = get(i);
-            } else {
-                base = 8;
-            }
-        }
-        val = 0;
+        // `strtoul(cp, &endp, 0)`: o `0x` só vale com um dígito hexa depois; estouro (`ERANGE`) ou
+        // valor acima de 32 bits invalidam.
+        let base: u64 = if c == b'0' && (get(i + 1) | 0x20) == b'x' && get(i + 2).is_ascii_hexdigit() {
+            i += 2;
+            16
+        } else if c == b'0' {
+            8
+        } else {
+            10
+        };
+        let mut ul: u64 = 0;
+        let mut overflow = false;
         loop {
-            if c.is_ascii_digit() {
-                if base == 8 && (c == b'8' || c == b'9') {
-                    return None;
-                }
-                val = val.wrapping_mul(base).wrapping_add(u32::from(c - b'0'));
-                i += 1;
-                c = get(i);
-            } else if base == 16 && c.is_ascii_hexdigit() {
-                val = (val << 4) | hex_val(c).unwrap_or(0);
-                i += 1;
-                c = get(i);
-            } else {
+            let d = match get(i) {
+                d @ b'0'..=b'9' => u64::from(d - b'0'),
+                d @ (b'a'..=b'f' | b'A'..=b'F') => u64::from((d | 0x20) - b'a' + 10),
+                _ => break,
+            };
+            if d >= base {
                 break;
             }
+            match ul.checked_mul(base).and_then(|v| v.checked_add(d)) {
+                Some(v) => ul = v,
+                None => overflow = true,
+            }
+            i += 1;
         }
+        if overflow || ul > 0xffff_ffff {
+            return None;
+        }
+        val = ul as u32;
+        c = get(i);
         if c == b'.' {
             if parts.len() >= 3 || val > 0xff {
                 return None;

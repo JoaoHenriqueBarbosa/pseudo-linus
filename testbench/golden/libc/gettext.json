@@ -1,0 +1,488 @@
+{
+  "gettext-context": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-context-long": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-domain-attached": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-domain-long": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-domain-long-prefix": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-domain-operand": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-domain-option": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-domain-option-and-operand": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-double-dash": {
+    "stdout": "-n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-empty-msgid": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-escapes-all": {
+    "stdout": "\u0007\b\f\r\u000b|",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-escapes-backslash-c": {
+    "stdout": "xy",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-escapes-basic": {
+    "stdout": "a\tb\nc\\d",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-escapes-nul-truncates": {
+    "stdout": "abc",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-escapes-octal": {
+    "stdout": "AA1\b1\u0007\u00018",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-escapes-off-by-default": {
+    "stdout": "a\\tb",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-escapes-unknown": {
+    "stdout": "a\\qb\\xc\\",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-help": {
+    "stdout": "Usage: gettext [OPTION] [[TEXTDOMAIN] MSGID]\nor:    gettext [OPTION] -s [MSGID]...\n\nDisplay native language translation of a textual message.\n\n  -d, --domain=TEXTDOMAIN   retrieve translated messages from TEXTDOMAIN\n  -c, --context=CONTEXT     specify context for MSGID\n  -e                        enable expansion of some escape sequences\n  -n                        suppress trailing newline\n  -E                        (ignored for compatibility)\n  [TEXTDOMAIN] MSGID        retrieve translated message corresponding\n                            to MSGID from TEXTDOMAIN\n\nInformative output:\n  -h, --help                display this help and exit\n  -V, --version             display version information and exit\n\nIf the TEXTDOMAIN parameter is not given, the domain is determined from the\nenvironment variable TEXTDOMAIN.  If the message catalog is not found in the\nregular directory, another location can be specified with the environment\nvariable TEXTDOMAINDIR.\nWhen used with the -s option the program behaves like the 'echo' command.\nBut it does not simply copy its arguments to stdout.  Instead those messages\nfound in the selected catalog are translated.\nStandard search directory: /usr/share/locale\n\nReport bugs in the bug tracker at <https://savannah.gnu.org/projects/gettext>\nor by email to <bug-gettext@gnu.org>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-help-help2man": {
+    "stdout": "Usage: gettext [OPTION] [[TEXTDOMAIN] MSGID]\nor:    gettext [OPTION] -s [MSGID]...\n\nDisplay native language translation of a textual message.\n\n  -d, --domain=TEXTDOMAIN   retrieve translated messages from TEXTDOMAIN\n  -c, --context=CONTEXT     specify context for MSGID\n  -e                        enable expansion of some escape sequences\n  -n                        suppress trailing newline\n  -E                        (ignored for compatibility)\n  [TEXTDOMAIN] MSGID        retrieve translated message corresponding\n                            to MSGID from TEXTDOMAIN\n\nInformative output:\n  -h, --help                display this help and exit\n  -V, --version             display version information and exit\n\nIf the TEXTDOMAIN parameter is not given, the domain is determined from the\nenvironment variable TEXTDOMAIN.  If the message catalog is not found in the\nregular directory, another location can be specified with the environment\nvariable TEXTDOMAINDIR.\nWhen used with the -s option the program behaves like the 'echo' command.\nBut it does not simply copy its arguments to stdout.  Instead those messages\nfound in the selected catalog are translated.\nStandard search directory: @localedir@\n\nReport bugs in the bug tracker at <https://savannah.gnu.org/projects/gettext>\nor by email to <bug-gettext@gnu.org>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-help-short": {
+    "stdout": "Usage: gettext [OPTION] [[TEXTDOMAIN] MSGID]\nor:    gettext [OPTION] -s [MSGID]...\n\nDisplay native language translation of a textual message.\n\n  -d, --domain=TEXTDOMAIN   retrieve translated messages from TEXTDOMAIN\n  -c, --context=CONTEXT     specify context for MSGID\n  -e                        enable expansion of some escape sequences\n  -n                        suppress trailing newline\n  -E                        (ignored for compatibility)\n  [TEXTDOMAIN] MSGID        retrieve translated message corresponding\n                            to MSGID from TEXTDOMAIN\n\nInformative output:\n  -h, --help                display this help and exit\n  -V, --version             display version information and exit\n\nIf the TEXTDOMAIN parameter is not given, the domain is determined from the\nenvironment variable TEXTDOMAIN.  If the message catalog is not found in the\nregular directory, another location can be specified with the environment\nvariable TEXTDOMAINDIR.\nWhen used with the -s option the program behaves like the 'echo' command.\nBut it does not simply copy its arguments to stdout.  Instead those messages\nfound in the selected catalog are translated.\nStandard search directory: /usr/share/locale\n\nReport bugs in the bug tracker at <https://savannah.gnu.org/projects/gettext>\nor by email to <bug-gettext@gnu.org>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-ignored-E": {
+    "stdout": "a\\tb",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-invalid-long": {
+    "stdout": "",
+    "stderr": "gettext: unrecognized option '--bogus'\nTry 'gettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gettext-invalid-option": {
+    "stdout": "",
+    "stderr": "gettext: invalid option -- 'Z'\nTry 'gettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gettext-long-missing-arg": {
+    "stdout": "",
+    "stderr": "gettext: option '--domain' requires an argument\nTry 'gettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gettext-long-unexpected-arg": {
+    "stdout": "",
+    "stderr": "gettext: option '--help' doesn't allow an argument\nTry 'gettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gettext-missing-arg-c": {
+    "stdout": "",
+    "stderr": "gettext: option requires an argument -- 'c'\nTry 'gettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gettext-missing-arg-d": {
+    "stdout": "",
+    "stderr": "gettext: option requires an argument -- 'd'\nTry 'gettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gettext-n-without-shell": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-no-args": {
+    "stdout": "",
+    "stderr": "gettext: missing arguments\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gettext-no-newline-added": {
+    "stdout": "a b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-operand-then-option": {
+    "stdout": "-n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-plain": {
+    "stdout": "hello world",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-shell-basic": {
+    "stdout": "a b c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-shell-dash-operand": {
+    "stdout": "a -n c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-shell-domain": {
+    "stdout": "a b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-shell-escape-c": {
+    "stdout": "xy z",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-shell-escape-c-last": {
+    "stdout": "x",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-shell-long": {
+    "stdout": "x y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-shell-no-args": {
+    "stdout": "\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-shell-no-args-n": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-shell-no-newline": {
+    "stdout": "a b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-textdomain-env": {
+    "stdout": "msg",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-too-many": {
+    "stdout": "",
+    "stderr": "gettext: too many arguments\n",
+    "exit": 1,
+    "files": {}
+  },
+  "gettext-utf8-msgid": {
+    "stdout": "ação é ótima",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-version": {
+    "stdout": "gettext (GNU gettext-runtime) 0.23.1\nCopyright (C) 1995-2024 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\nWritten by Ulrich Drepper.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-version-beats-help": {
+    "stdout": "gettext (GNU gettext-runtime) 0.23.1\nCopyright (C) 1995-2024 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\nWritten by Ulrich Drepper.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gettext-version-short": {
+    "stdout": "gettext (GNU gettext-runtime) 0.23.1\nCopyright (C) 1995-2024 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\nWritten by Ulrich Drepper.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-context": {
+    "stdout": "a",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-empty": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-float": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-hex": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-leading-space": {
+    "stdout": "a",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-leading-zero": {
+    "stdout": "a",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-max": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-minus": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-overflow": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-plus": {
+    "stdout": "a",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-text": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-trailing": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-trailing-space": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-count-wraps-to-one": {
+    "stdout": "a",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-domain-operand": {
+    "stdout": "a",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-domain-option": {
+    "stdout": "b",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-escape-backslash-c": {
+    "stdout": "x\\cy",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-escape-nul": {
+    "stdout": "c",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-escapes": {
+    "stdout": "c\nd",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-help": {
+    "stdout": "Usage: ngettext [OPTION] [TEXTDOMAIN] MSGID MSGID-PLURAL COUNT\n\nDisplay native language translation of a textual message whose grammatical\nform depends on a number.\n\n  -d, --domain=TEXTDOMAIN   retrieve translated message from TEXTDOMAIN\n  -c, --context=CONTEXT     specify context for MSGID\n  -e                        enable expansion of some escape sequences\n  -E                        (ignored for compatibility)\n  [TEXTDOMAIN]              retrieve translated message from TEXTDOMAIN\n  MSGID MSGID-PLURAL        translate MSGID (singular) / MSGID-PLURAL (plural)\n  COUNT                     choose singular/plural form based on this value\n\nInformative output:\n  -h, --help                display this help and exit\n  -V, --version             display version information and exit\n\nIf the TEXTDOMAIN parameter is not given, the domain is determined from the\nenvironment variable TEXTDOMAIN.  If the message catalog is not found in the\nregular directory, another location can be specified with the environment\nvariable TEXTDOMAINDIR.\nStandard search directory: /usr/share/locale\n\nReport bugs in the bug tracker at <https://savannah.gnu.org/projects/gettext>\nor by email to <bug-gettext@gnu.org>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-help-short": {
+    "stdout": "Usage: ngettext [OPTION] [TEXTDOMAIN] MSGID MSGID-PLURAL COUNT\n\nDisplay native language translation of a textual message whose grammatical\nform depends on a number.\n\n  -d, --domain=TEXTDOMAIN   retrieve translated message from TEXTDOMAIN\n  -c, --context=CONTEXT     specify context for MSGID\n  -e                        enable expansion of some escape sequences\n  -E                        (ignored for compatibility)\n  [TEXTDOMAIN]              retrieve translated message from TEXTDOMAIN\n  MSGID MSGID-PLURAL        translate MSGID (singular) / MSGID-PLURAL (plural)\n  COUNT                     choose singular/plural form based on this value\n\nInformative output:\n  -h, --help                display this help and exit\n  -V, --version             display version information and exit\n\nIf the TEXTDOMAIN parameter is not given, the domain is determined from the\nenvironment variable TEXTDOMAIN.  If the message catalog is not found in the\nregular directory, another location can be specified with the environment\nvariable TEXTDOMAINDIR.\nStandard search directory: /usr/share/locale\n\nReport bugs in the bug tracker at <https://savannah.gnu.org/projects/gettext>\nor by email to <bug-gettext@gnu.org>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-invalid-option": {
+    "stdout": "",
+    "stderr": "ngettext: invalid option -- 'Z'\nTry 'ngettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ngettext-long-prefix": {
+    "stdout": "a",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-missing-arg": {
+    "stdout": "",
+    "stderr": "ngettext: option requires an argument -- 'd'\nTry 'ngettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ngettext-no-args": {
+    "stdout": "",
+    "stderr": "ngettext: missing arguments\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ngettext-plural": {
+    "stdout": "many files",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-rejects-n-option": {
+    "stdout": "",
+    "stderr": "ngettext: invalid option -- 'n'\nTry 'ngettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ngettext-rejects-shell-option": {
+    "stdout": "",
+    "stderr": "ngettext: invalid option -- 's'\nTry 'ngettext --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ngettext-singular": {
+    "stdout": "one file",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-textdomain-env": {
+    "stdout": "a",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-too-many": {
+    "stdout": "",
+    "stderr": "ngettext: too many arguments\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ngettext-two-args": {
+    "stdout": "",
+    "stderr": "ngettext: missing arguments\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ngettext-version": {
+    "stdout": "ngettext (GNU gettext-runtime) 0.23.1\nCopyright (C) 1995-2024 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\nWritten by Ulrich Drepper.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ngettext-zero": {
+    "stdout": "many files",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

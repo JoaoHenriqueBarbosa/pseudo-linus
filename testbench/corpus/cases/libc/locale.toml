@@ -408,8 +408,9 @@ LC_ALL= LC_CTYPE=bogus LOCPATH=/nonexistent locale -a 2>&1 | head -n 5
 
 [[case]]
 id = "locale-all-verbose-head"
+# Só o bloco do C.utf8: o oráculo tem o locales-all e a imagem só o C.utf8 do libc-bin.
 script = '''
-locale -av | head -n 8
+locale -av | head -n 7
 '''
 
 [[case]]

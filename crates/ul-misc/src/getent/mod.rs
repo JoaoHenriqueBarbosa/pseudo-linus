@@ -703,8 +703,8 @@ fn netgroup_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
 // ---- hosts ----
 
 /// Um host numérico sintetizado pelo `__nss_hostname_digits_dots`.
-fn numeric_host(name: &[u8], af: Af, addr: Vec<u8>) -> Host {
-    Host { af, name: name.to_vec(), aliases: Vec::new(), addrs: vec![addr] }
+fn numeric_host(name: &[u8], addr: Vec<u8>) -> Host {
+    Host { name: name.to_vec(), aliases: Vec::new(), addrs: vec![addr] }
 }
 
 /// `__nss_hostname_digits_dots` para `AF_INET` ou `AF_INET6` (sem `RES_USE_INET6`): `Some(resultado)`
@@ -724,9 +724,9 @@ fn digits_dots(name: &[u8], af: Af) -> Option<Option<Host>> {
         }
         if numeric && name.last() != Some(&b'.') {
             if af == Af::Inet {
-                return Some(inet_aton(name, true).map(|v| numeric_host(name, Af::Inet, v.to_be_bytes().to_vec())));
+                return Some(inet_aton(name, true).map(|v| numeric_host(name, v.to_be_bytes().to_vec())));
             }
-            return Some(pton6(name).map(|a| numeric_host(name, Af::Inet6, a.to_vec())));
+            return Some(pton6(name).map(|a| numeric_host(name, a.to_vec())));
         }
     }
     if (first.is_ascii_hexdigit() && name.contains(&b':')) || first == b':' {
@@ -735,7 +735,7 @@ fn digits_dots(name: &[u8], af: Af) -> Option<Option<Host>> {
         }
         let all_hex = name.iter().all(|c| c.is_ascii_hexdigit() || *c == b':' || *c == b'.');
         if all_hex && name.last() != Some(&b'.') {
-            return Some(pton6(name).map(|a| numeric_host(name, Af::Inet6, a.to_vec())));
+            return Some(pton6(name).map(|a| numeric_host(name, a.to_vec())));
         }
     }
     None
@@ -762,7 +762,7 @@ fn hosts_enumeration(env: &Env) -> Vec<Host> {
     env.conf.enumerate("hosts", |_| match read_hosts(Af::Inet, false) {
         Ok(lines) => (
             Status::Success,
-            lines.into_iter().map(|h| Host { af: h.af, name: h.name, aliases: h.aliases, addrs: vec![h.addr] }).collect(),
+            lines.into_iter().map(|h| Host { name: h.name, aliases: h.aliases, addrs: vec![h.addr] }).collect(),
         ),
         Err(_) => (Status::Unavail, Vec::new()),
     })
