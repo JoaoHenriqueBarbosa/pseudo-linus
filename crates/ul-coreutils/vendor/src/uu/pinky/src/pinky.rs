@@ -32,6 +32,7 @@ mod options {
     pub const OMIT_NAME_HOST_TIME: &str = "omit-name-host-time";
     pub const LOOKUP: &str = "lookup";
     pub const HELP: &str = "help";
+    pub const VERSION: &str = "version";
     pub const USER: &str = "user";
 }
 
@@ -302,7 +303,12 @@ impl Pinky {
 
 pub fn uu_app() -> Command {
     Command::new("pinky")
-        .version(uucore::crate_version!())
+        // Texto do `--version` do GNU coreutils 9.7 empacotado pelo Debian (o clap antepõe o nome
+        // do programa e acrescenta a quebra de linha final).
+        .version(
+            "(GNU coreutils) 9.7\nPackaged by Debian (9.7-3)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Joseph Arceneaux, David MacKenzie, and Kaveh Ghazi.",
+        )
+        .disable_version_flag(true)
         .help_template(uucore::localized_help_template("pinky"))
         .about(translate!("pinky-about", "default_file" => utmpx::DEFAULT_FILE))
         .override_usage(format_usage(&translate!("pinky-usage")))
@@ -344,5 +350,6 @@ pub fn uu_app() -> Command {
         )
         .arg(Arg::new(options::LOOKUP).long(options::LOOKUP).help(translate!("pinky-help-lookup")).action(ArgAction::SetTrue))
         .arg(Arg::new(options::HELP).long(options::HELP).action(ArgAction::Help))
+        .arg(Arg::new(options::VERSION).long(options::VERSION).action(ArgAction::Version))
         .arg(Arg::new(options::USER).action(ArgAction::Append).num_args(1..))
 }

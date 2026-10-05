@@ -418,22 +418,16 @@ fn wipe_fd(file: &File, qname: &str, rng: &mut RandomSource, flags: &Flags) -> U
     }
 
     let blksize = meta.blksize().max(1);
-    let mut i_size: u64 = 0;
+    // Como o GNU 9.7: com `-s N` o arquivo passa a ter exatamente N bytes; sem `-s` e sem `-x` o
+    // tamanho é arredondado para cima ao múltiplo de `st_blksize`. O arquivo nunca volta ao
+    // tamanho original (só o `--remove` o trunca, a zero).
     let mut size: Option<u64> = match flags.size {
-        Some(s) => {
-            if ft.is_file() && meta.len() < blksize.min(s) {
-                i_size = meta.len();
-            }
-            Some(s)
-        }
+        Some(s) => Some(s),
         None if ft.is_file() => {
             let mut s = meta.len();
             if !flags.exact {
                 // Arredonda para o próximo bloco, para limpar a sobra do último.
                 let remainder = s % blksize;
-                if s != 0 && s < blksize {
-                    i_size = s;
-                }
                 if remainder != 0 {
                     s = s.saturating_add(blksize - remainder);
                 }
@@ -468,9 +462,6 @@ fn wipe_fd(file: &File, qname: &str, rng: &mut RandomSource, flags: &Flags) -> U
             show!(e.map_err_context(move || ctx));
             return Ok(false);
         }
-    } else if i_size != 0 && ft.is_file() {
-        // Arquivo menor que um bloco: o bloco inteiro foi sobrescrito, e o tamanho original volta.
-        let _ = file.set_len(i_size);
     }
     Ok(ok)
 }
