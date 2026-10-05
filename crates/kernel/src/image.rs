@@ -211,5 +211,11 @@ pub(crate) fn build_dev(ns: &Namespace, cx: &Caller) -> Result<(), Errno> {
     ns.symlink(cx, b"/proc/self/fd/2", s, b"/dev/stderr")?;
     mkdir(ns, cx, b"/dev/shm", 0o1777)?;
     mkdir(ns, cx, b"/dev/pts", 0o755)?;
+    // Como no contêiner (devpts com `ptmxmode=666`): `/dev/pts/ptmx` é o multiplexador e `/dev/ptmx`
+    // aponta pra ele.
+    let (ma, mi) = crate::tty::DEV_PTMX;
+    ns.mknod(cx, s, b"/dev/pts/ptmx", chr | 0o666, makedev(ma, mi))?;
+    ns.chmod(cx, s, b"/dev/pts/ptmx", 0o666, AtFlags::empty())?;
+    ns.symlink(cx, b"pts/ptmx", s, b"/dev/ptmx")?;
     Ok(())
 }

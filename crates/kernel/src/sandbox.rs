@@ -28,6 +28,7 @@ use crate::pipe::Pipe;
 use crate::proc::{INIT_PID, PState, Proc, Table, default_rlimits};
 use crate::procinfo::SbProcProvider;
 use crate::signal::SigState;
+use crate::tty::Pty;
 
 thread_local! {
     /// Sandbox a que a thread corrente pertence (0 = thread do host).
@@ -233,6 +234,9 @@ pub(crate) struct SbInner {
     pub load: Arc<LoadAvg>,
     /// Threads do host esperando algum processo terminar (destroy).
     exit_waiters: Mutex<WaitList>,
+    /// Pseudoterminais vivos, pelo número (o `/dev/pts/N`). O número só volta a ficar livre quando
+    /// todas as pontas do par fecharam.
+    pub ptys: Mutex<BTreeMap<u32, Weak<Pty>>>,
 }
 
 impl SbInner {
@@ -305,6 +309,26 @@ impl SbInner {
         let p = Pipe::new(self.kernel.pipe_ino(), cred.uid, cred.gid, self.now());
         g.insert(key, Arc::downgrade(&p));
         p
+    }
+
+    /// Pty novo com o menor número livre (`devpts_new_index`); ENOSPC passado o máximo.
+    pub(crate) fn alloc_pty(self: &Arc<Self>) -> Result<Arc<Pty>, Errno> {
+        let mut g = self.ptys.lock();
+        g.retain(|_, w| w.strong_count() > 0);
+        let idx = (0..crate::tty::PTY_MAX).find(|i| !g.contains_key(i)).ok_or(Errno::ENOSPC)?;
+        let p = Pty::new(idx, Arc::downgrade(self));
+        g.insert(idx, Arc::downgrade(&p));
+        Ok(p)
+    }
+
+    pub(crate) fn pty(&self, idx: u32) -> Option<Arc<Pty>> {
+        self.ptys.lock().get(&idx).and_then(Weak::upgrade)
+    }
+
+    /// O terminal de controle da sessão `sid`.
+    pub(crate) fn pty_of_session(&self, sid: Pid) -> Option<Arc<Pty>> {
+        let ptys: Vec<Arc<Pty>> = self.ptys.lock().values().filter_map(Weak::upgrade).collect();
+        ptys.into_iter().find(|p| p.master_open() && p.session() == Some(sid))
     }
 }
 
@@ -505,6 +529,7 @@ impl Sandbox {
             cpu_acct: CpuAcct::new(ncpus),
             load: LoadAvg::new(),
             exit_waiters: Mutex::new(WaitList::default()),
+            ptys: Mutex::new(BTreeMap::new()),
         });
         let _ = provider.sb.set(Arc::downgrade(&inner));
         inner.load.bind(&inner);

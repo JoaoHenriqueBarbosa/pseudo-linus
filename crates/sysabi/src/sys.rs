@@ -80,8 +80,48 @@ pub trait Syscalls: Send + Sync {
     fn tcgetattr(&self, fd: Fd) -> SysResult<Termios>;
     /// `TCSETS2`/`TCSETSW2`/`TCSETSF2` conforme `when`. Mesmos erros do [`Syscalls::tcgetattr`].
     fn tcsetattr(&self, fd: Fd, when: SetAttrWhen, termios: &Termios) -> SysResult<()>;
-    /// `TIOCSWINSZ`.
+    /// `TIOCSWINSZ`. Mudar o tamanho manda SIGWINCH pro grupo em primeiro plano.
     fn tcsetwinsize(&self, fd: Fd, ws: Winsize) -> SysResult<()>;
+    /// `TIOCGPTN`: número do pty de um mestre (`/dev/pts/N`). ENOTTY pra fd que não é mestre.
+    fn pty_number(&self, fd: Fd) -> SysResult<u32> {
+        self.fstat(fd)?;
+        Err(Errno::ENOTTY)
+    }
+    /// `TIOCSPTLCK`: trava (`true`) ou destrava o escravo de um mestre (`unlockpt` destrava).
+    fn pty_set_lock(&self, fd: Fd, locked: bool) -> SysResult<()> {
+        let _ = locked;
+        self.fstat(fd)?;
+        Err(Errno::ENOTTY)
+    }
+    /// `TIOCGPGRP`: grupo em primeiro plano. Pelo escravo, só no terminal de controle (ENOTTY).
+    fn tcgetpgrp(&self, fd: Fd) -> SysResult<Pid> {
+        self.fstat(fd)?;
+        Err(Errno::ENOTTY)
+    }
+    /// `TIOCSPGRP`: só no terminal de controle (ENOTTY); EINVAL pra grupo negativo, ESRCH pra grupo
+    /// que não existe, EPERM pra grupo de outra sessão.
+    fn tcsetpgrp(&self, fd: Fd, pgrp: Pid) -> SysResult<()> {
+        let _ = pgrp;
+        self.fstat(fd)?;
+        Err(Errno::ENOTTY)
+    }
+    /// `TIOCGSID`: sessão de que o terminal é terminal de controle.
+    fn tcgetsid(&self, fd: Fd) -> SysResult<Pid> {
+        self.fstat(fd)?;
+        Err(Errno::ENOTTY)
+    }
+    /// `TIOCSCTTY`: o terminal vira o terminal de controle da sessão de quem chama (que tem de ser
+    /// líder e não ter outro). `force` é o argumento 1, que deixa o root roubar de outra sessão.
+    fn tiocsctty(&self, fd: Fd, force: bool) -> SysResult<()> {
+        let _ = force;
+        self.fstat(fd)?;
+        Err(Errno::ENOTTY)
+    }
+    /// `TIOCNOTTY`: solta o terminal de controle.
+    fn tiocnotty(&self, fd: Fd) -> SysResult<()> {
+        self.fstat(fd)?;
+        Err(Errno::ENOTTY)
+    }
     /// Fds abertos (pra `/proc/self/fd` e pra ferramentas que fecham tudo).
     fn open_fds(&self) -> Vec<Fd>;
 
@@ -284,6 +324,47 @@ pub fn tcgetwinsize(fd: Fd) -> SysResult<Winsize> {
 
 pub fn tcsetwinsize(fd: Fd, ws: Winsize) -> SysResult<()> {
     current().tcsetwinsize(fd, ws)
+}
+
+pub fn tcgetpgrp(fd: Fd) -> SysResult<Pid> {
+    current().tcgetpgrp(fd)
+}
+
+pub fn tcsetpgrp(fd: Fd, pgrp: Pid) -> SysResult<()> {
+    current().tcsetpgrp(fd, pgrp)
+}
+
+pub fn tcgetsid(fd: Fd) -> SysResult<Pid> {
+    current().tcgetsid(fd)
+}
+
+/// `posix_openpt` da glibc: `open("/dev/ptmx", flags)`.
+pub fn posix_openpt(flags: OFlags) -> SysResult<Fd> {
+    open(b"/dev/ptmx", flags, 0)
+}
+
+/// `grantpt` da glibc no Linux: o devpts já cria o nó com o dono, o grupo `tty` e o modo certos, então
+/// só confere que o fd é um mestre (EINVAL se não é).
+pub fn grantpt(fd: Fd) -> SysResult<()> {
+    match current().pty_number(fd) {
+        Ok(_) => Ok(()),
+        Err(Errno::ENOTTY) => Err(Errno::EINVAL),
+        Err(e) => Err(e),
+    }
+}
+
+/// `unlockpt`: `TIOCSPTLCK` com 0 (EINVAL se o fd não é mestre).
+pub fn unlockpt(fd: Fd) -> SysResult<()> {
+    match current().pty_set_lock(fd, false) {
+        Err(Errno::ENOTTY) => Err(Errno::EINVAL),
+        r => r,
+    }
+}
+
+/// `ptsname`: `/dev/pts/N` pelo `TIOCGPTN` (ENOTTY se o fd não é mestre).
+pub fn ptsname(fd: Fd) -> SysResult<Vec<u8>> {
+    let n = current().pty_number(fd)?;
+    Ok(format!("/dev/pts/{n}").into_bytes())
 }
 
 pub fn stat(path: &[u8]) -> SysResult<Stat> {

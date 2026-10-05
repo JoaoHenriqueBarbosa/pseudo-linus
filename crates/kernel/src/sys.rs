@@ -22,6 +22,7 @@ use crate::proc::{INIT_PID, Proc, Task, may_signal};
 use crate::sandbox::SbInner;
 use crate::signal::{Action, Generated};
 use crate::spawn::{self, Body, GroupExitUnwind};
+use crate::tty::{self, Pty, PtyEnd};
 
 /// Release do `uname -r` e versão do `uname -v` do Debian 13 da bancada.
 pub(crate) const UNAME_RELEASE: &[u8] = b"6.12.101+deb13-amd64";
@@ -307,7 +308,7 @@ impl Task {
             }
             Opened::Path { loc, .. } => Ok(Ofd::new(FileObj::Path { loc }, flags | OFlags::PATH, locks)),
             Opened::CharDev { loc, stat } => {
-                let dev = Device::open(stat.rdev)?;
+                let dev = self.open_chardev(stat.rdev, flags)?;
                 Ok(Ofd::new(FileObj::Dev { dev, loc: Some(loc) }, flags, locks))
             }
             Opened::Fifo { loc, .. } => {
@@ -318,6 +319,175 @@ impl Task {
                 Some(po) => self.fifo_open(po.pipe.clone(), None, flags),
                 None => Err(Errno::ENXIO),
             },
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------
+    // Terminais
+    // ------------------------------------------------------------------------------------------
+
+    /// Dispositivo de caractere pelo `rdev`: ptmx, escravo de pty, `/dev/tty` e os sem estado.
+    fn open_chardev(&self, rdev: u64, flags: OFlags) -> SysResult<Device> {
+        let id = (vfs::dev_major(rdev), vfs::dev_minor(rdev));
+        if id == tty::DEV_PTMX {
+            return Ok(Device::Pty(self.open_ptmx()?));
+        }
+        if id == crate::dev::DEV_TTY {
+            // `tty_open_current_tty`: o terminal de controle da sessão; ENXIO sem ele.
+            let pty = self.ctty().ok_or(Errno::ENXIO)?;
+            return Ok(Device::Pty(pty.attach(false)));
+        }
+        if id.0 == tty::PTS_MAJOR {
+            let pty = self.sb.pty(id.1).ok_or(Errno::EIO)?;
+            pty.slave_openable()?;
+            let end = pty.attach(false);
+            if !flags.contains(OFlags::NOCTTY) {
+                self.maybe_acquire_ctty(&pty);
+            }
+            return Ok(Device::Pty(end));
+        }
+        Device::open(rdev)
+    }
+
+    /// `ptmx_open`: pty novo e o nó `/dev/pts/N` (dono quem abriu, grupo tty, modo 0620), travado.
+    fn open_ptmx(&self) -> SysResult<PtyEnd> {
+        let uid = self.proc.st.lock().cred.uid;
+        let pty = self.sb.alloc_pty()?;
+        let end = pty.attach(true);
+        let cx = self.sb.root_caller();
+        let path = pty.path();
+        let s = Start::Cwd;
+        let ns = &self.sb.ns;
+        let made = ns
+            .mknod(&cx, &s, &path, mode::S_IFCHR | tty::PTS_MODE, vfs::makedev(tty::PTS_MAJOR, pty.index))
+            .and_then(|()| ns.chmod(&cx, &s, &path, tty::PTS_MODE, AtFlags::empty()))
+            .and_then(|()| ns.chown(&cx, &s, &path, Some(uid), Some(tty::TTY_GID), AtFlags::empty()));
+        match made {
+            Ok(()) => Ok(end),
+            Err(e) => {
+                drop(end);
+                Err(e)
+            }
+        }
+    }
+
+    /// pid, sid e pgid do processo.
+    fn ids(&self) -> SysResult<(Pid, Pid, Pid)> {
+        let t = self.sb.table.lock();
+        let r = t.rel(self.proc.pid).ok_or(Errno::ESRCH)?;
+        Ok((self.proc.pid, r.sid, r.pgid))
+    }
+
+    /// O terminal de controle da sessão do processo.
+    fn ctty(&self) -> Option<Arc<Pty>> {
+        let (_, sid, _) = self.ids().ok()?;
+        self.sb.pty_of_session(sid)
+    }
+
+    /// Abrir um tty sem O_NOCTTY dá terminal de controle ao líder de sessão que ainda não tem um, se o
+    /// tty não é de outra sessão (`tty_open_proc_set_tty`).
+    fn maybe_acquire_ctty(&self, pty: &Pty) {
+        let Ok((me, sid, pgid)) = self.ids() else { return };
+        if sid != me || pty.session().is_some() || self.sb.pty_of_session(sid).is_some() {
+            return;
+        }
+        pty.set_ctty(sid, pgid);
+    }
+
+    /// O pty de um fd e se a ponta é o mestre. EBADF pra fd ruim ou O_PATH, ENOTTY pra não terminal.
+    fn tty_of(&self, fd: Fd) -> SysResult<(Arc<Pty>, bool)> {
+        let ofd = self.ofd(fd)?;
+        match &ofd.obj {
+            FileObj::Dev { dev: Device::Pty(e), .. } => Ok((e.pty.clone(), e.master)),
+            FileObj::Path { .. } => Err(Errno::EBADF),
+            _ => Err(Errno::ENOTTY),
+        }
+    }
+
+    /// Pras ioctls de controle de job pelo escravo, o fd tem de ser o terminal de controle de quem
+    /// chama (`tty == real_tty && current->signal->tty != real_tty` dá ENOTTY); pelo mestre, não.
+    fn job_tty(&self, fd: Fd) -> SysResult<(Arc<Pty>, Pid)> {
+        let (pty, master) = self.tty_of(fd)?;
+        let (_, sid, _) = self.ids()?;
+        if !master && pty.session() != Some(sid) {
+            return Err(Errno::ENOTTY);
+        }
+        Ok((pty, sid))
+    }
+
+    fn tty_read(&self, ofd: &Ofd, end: &PtyEnd, buf: &mut [u8]) -> SysResult<usize> {
+        let pty = &end.pty;
+        let nonblock = ofd.nonblock();
+        let r = if end.master {
+            self.wait_event(None, |p| pty.try_master_read(buf, nonblock, p))
+        } else {
+            self.tty_slave_read(pty, buf, nonblock)
+        };
+        pty.unregister(&self.parker);
+        r
+    }
+
+    /// Leitura do escravo com o VMIN e o VTIME do modo não canônico (`n_tty_read`).
+    fn tty_slave_read(&self, pty: &Pty, buf: &mut [u8], nonblock: bool) -> SysResult<usize> {
+        use sysabi::termios::{ICANON, VMIN, VTIME};
+        let t = pty.termios();
+        if t.c_lflag & ICANON != 0 || buf.is_empty() || nonblock {
+            return self.wait_event(None, |p| pty.try_slave_read(buf, nonblock, 1, p));
+        }
+        let vmin = t.c_cc[VMIN] as usize;
+        let vtime = Duration::from_millis(t.c_cc[VTIME] as u64 * 100);
+        match (vmin, vtime.is_zero()) {
+            (0, true) => self.wait_event(None, |p| pty.try_slave_read(buf, false, 0, p)),
+            (m, true) => {
+                let need = m.min(buf.len());
+                self.wait_event(None, |p| pty.try_slave_read(buf, false, need, p))
+            }
+            (0, false) => match self.wait_event(Some(Instant::now() + vtime), |p| pty.try_slave_read(buf, false, 1, p)) {
+                Err(Errno::ETIMEDOUT) => Ok(0),
+                r => r,
+            },
+            (m, false) => {
+                // Temporizador entre bytes: começa no primeiro byte e reinicia a cada chegada.
+                let target = m.min(buf.len());
+                let mut got = self.wait_event(None, |p| pty.try_slave_read(buf, false, 1, p))?;
+                while got > 0 && got < target {
+                    let deadline = Instant::now() + vtime;
+                    match self.wait_event(Some(deadline), |p| pty.try_slave_read(&mut buf[got..], false, 1, p)) {
+                        Ok(0) | Err(_) => break,
+                        Ok(n) => got += n,
+                    }
+                }
+                Ok(got)
+            }
+        }
+    }
+
+    fn tty_write(&self, ofd: &Ofd, end: &PtyEnd, buf: &[u8]) -> SysResult<usize> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
+        let pty = &end.pty;
+        let nonblock = ofd.nonblock();
+        let mut done = 0usize;
+        let mut sigs = Vec::new();
+        let r = self.wait_event(None, |p| {
+            let r = if end.master {
+                pty.try_master_write(buf, &mut done, nonblock, &mut sigs, p)
+            } else {
+                pty.try_slave_write(buf, &mut done, nonblock, p)
+            };
+            // ISIG: o grupo em primeiro plano recebe na hora, mesmo que a escrita ainda espere.
+            for (pgrp, sig) in sigs.drain(..) {
+                tty::signal_pgrp(&self.sb, pgrp, sig);
+            }
+            r
+        });
+        pty.unregister(&self.parker);
+        // Quem escreveu pode estar no grupo sinalizado.
+        self.enter();
+        match r {
+            Err(e) if done > 0 && e != Errno::EIO => Ok(done),
+            r => r,
         }
     }
 
@@ -400,6 +570,12 @@ impl Task {
                 }
                 r
             }
+            FileObj::Dev { dev: Device::Pty(end), .. } => {
+                if at.is_some() {
+                    return Err(Errno::ESPIPE);
+                }
+                self.tty_read(ofd, end, buf)
+            }
             FileObj::Dev { dev, .. } => dev.read(buf),
             FileObj::Path { .. } => Err(Errno::EBADF),
         }
@@ -478,6 +654,12 @@ impl Task {
                         if done > 0 { Ok(done) } else { Err(e) }
                     }
                 }
+            }
+            FileObj::Dev { dev: Device::Pty(end), .. } => {
+                if at.is_some() {
+                    return Err(Errno::ESPIPE);
+                }
+                self.tty_write(ofd, end, buf)
             }
             FileObj::Dev { dev, .. } => dev.write(buf),
             FileObj::Path { .. } => Err(Errno::EBADF),
@@ -580,6 +762,7 @@ impl Task {
         let w = register.then_some(&self.parker);
         let ready = match &ofd.obj {
             FileObj::Path { .. } => return PollEvents::NVAL,
+            FileObj::Dev { dev: Device::Pty(end), .. } => end.pty.poll(end.master, w),
             FileObj::Vfs { .. } | FileObj::Dev { .. } => PollEvents::IN | PollEvents::OUT,
             FileObj::Pipe { end, .. } => end.pipe.poll(end.read, end.write, w),
         };
@@ -1079,36 +1262,140 @@ impl Syscalls for Task {
         }
     }
 
-    fn isatty(&self, _fd: Fd) -> bool {
-        false
+    fn isatty(&self, fd: Fd) -> bool {
+        self.tty_of(fd).is_ok()
     }
+
+    // Terminais: só os pseudoterminais existem (não há console nem tty virtual). EBADF primeiro, depois
+    // ENOTTY, na ordem do `tty_ioctl`. As ioctls de modo no mestre agem no escravo (`tty_pair_get_tty`).
 
     fn tcgetwinsize(&self, fd: Fd) -> SysResult<Winsize> {
         self.enter();
-        self.ofd(fd)?;
-        Err(Errno::ENOTTY)
+        Ok(self.tty_of(fd)?.0.winsize())
     }
-
-    // O kernel ainda não tem dispositivo de terminal (o /dev/tty dá ENXIO por falta de terminal de
-    // controle, e não há pty nem console), então todo fd válido é não terminal: EBADF primeiro, depois
-    // ENOTTY, na ordem do `tty_ioctl`. Quando houver tty, o estado parte de `Termios::default()`.
 
     fn tcgetattr(&self, fd: Fd) -> SysResult<Termios> {
         self.enter();
-        self.ofd(fd)?;
-        Err(Errno::ENOTTY)
+        Ok(self.tty_of(fd)?.0.termios())
     }
 
-    fn tcsetattr(&self, fd: Fd, _when: SetAttrWhen, _t: &Termios) -> SysResult<()> {
+    fn tcsetattr(&self, fd: Fd, when: SetAttrWhen, t: &Termios) -> SysResult<()> {
         self.enter();
-        self.ofd(fd)?;
-        Err(Errno::ENOTTY)
+        let (pty, _) = self.tty_of(fd)?;
+        // TCSADRAIN e TCSAFLUSH esperam a saída sair; a do pty vai pro buffer do mestre na hora.
+        pty.set_termios(t, when);
+        Ok(())
     }
 
-    fn tcsetwinsize(&self, fd: Fd, _ws: Winsize) -> SysResult<()> {
+    fn tcsetwinsize(&self, fd: Fd, ws: Winsize) -> SysResult<()> {
         self.enter();
-        self.ofd(fd)?;
-        Err(Errno::ENOTTY)
+        let (pty, _) = self.tty_of(fd)?;
+        if let Some(pgrp) = pty.set_winsize(ws) {
+            tty::sigwinch(&self.sb, pgrp);
+            self.enter();
+        }
+        Ok(())
+    }
+
+    fn pty_number(&self, fd: Fd) -> SysResult<u32> {
+        self.enter();
+        match self.tty_of(fd)? {
+            (pty, true) => Ok(pty.index),
+            _ => Err(Errno::ENOTTY),
+        }
+    }
+
+    fn pty_set_lock(&self, fd: Fd, locked: bool) -> SysResult<()> {
+        self.enter();
+        match self.tty_of(fd)? {
+            (pty, true) => {
+                pty.set_locked(locked);
+                Ok(())
+            }
+            _ => Err(Errno::ENOTTY),
+        }
+    }
+
+    fn tcgetpgrp(&self, fd: Fd) -> SysResult<Pid> {
+        self.enter();
+        let (pty, _) = self.job_tty(fd)?;
+        Ok(pty.pgrp().unwrap_or(0))
+    }
+
+    fn tcsetpgrp(&self, fd: Fd, pgrp: Pid) -> SysResult<()> {
+        self.enter();
+        let (pty, _) = self.tty_of(fd)?;
+        let (_, sid, _) = self.ids()?;
+        // `tiocspgrp`: só pelo próprio terminal de controle.
+        if pty.session() != Some(sid) {
+            return Err(Errno::ENOTTY);
+        }
+        if pgrp < 0 {
+            return Err(Errno::EINVAL);
+        }
+        {
+            let t = self.sb.table.lock();
+            let members: Vec<Pid> = t.map.values().filter(|e| e.rel.pgid == pgrp && e.rel.zombie.is_none()).map(|e| e.rel.sid).collect();
+            if members.is_empty() {
+                return Err(Errno::ESRCH);
+            }
+            if !members.contains(&sid) {
+                return Err(Errno::EPERM);
+            }
+        }
+        pty.set_pgrp(pgrp);
+        Ok(())
+    }
+
+    fn tcgetsid(&self, fd: Fd) -> SysResult<Pid> {
+        self.enter();
+        let (pty, _) = self.job_tty(fd)?;
+        pty.session().ok_or(Errno::ENOTTY)
+    }
+
+    fn tiocsctty(&self, fd: Fd, force: bool) -> SysResult<()> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let (pty, _) = self.tty_of(fd)?;
+        let (me, sid, pgid) = self.ids()?;
+        let root = self.proc.st.lock().cred.is_root();
+        // `tiocsctty`, na ordem do kernel.
+        if sid == me && pty.session() == Some(sid) {
+            return Ok(());
+        }
+        if sid != me || self.sb.pty_of_session(sid).is_some() {
+            return Err(Errno::EPERM);
+        }
+        if pty.session().is_some() {
+            if force && root {
+                pty.clear_ctty();
+            } else {
+                return Err(Errno::EPERM);
+            }
+        }
+        if !ofd.readable && !root {
+            return Err(Errno::EPERM);
+        }
+        pty.set_ctty(sid, pgid);
+        Ok(())
+    }
+
+    fn tiocnotty(&self, fd: Fd) -> SysResult<()> {
+        self.enter();
+        let (pty, _) = self.tty_of(fd)?;
+        let (me, sid, _) = self.ids()?;
+        if pty.session() != Some(sid) {
+            return Err(Errno::ENOTTY);
+        }
+        // O líder solta o terminal da sessão inteira (`disassociate_ctty(0)`): SIGHUP e SIGCONT pro
+        // grupo em primeiro plano. Fora do líder, o terminal é da sessão e continua (ver o módulo tty).
+        if sid == me
+            && let Some(pgrp) = pty.clear_ctty()
+        {
+            tty::hangup_pgrp(&self.sb, pgrp);
+            self.enter();
+        }
+        Ok(())
     }
 
     fn open_fds(&self) -> Vec<Fd> {
@@ -1590,12 +1877,14 @@ impl Syscalls for Task {
             }
             if n > 0 || immediate { Try::Ready(Ok(n)) } else { Try::Pending }
         });
-        // Solta os registros nos pipes.
+        // Solta os registros nos pipes e ttys.
         for pfd in fds.iter() {
-            if let Ok(ofd) = self.ofd(pfd.fd)
-                && let FileObj::Pipe { end, .. } = &ofd.obj
-            {
-                end.pipe.unregister(&self.parker);
+            if let Ok(ofd) = self.ofd(pfd.fd) {
+                match &ofd.obj {
+                    FileObj::Pipe { end, .. } => end.pipe.unregister(&self.parker),
+                    FileObj::Dev { dev: Device::Pty(end), .. } => end.pty.unregister(&self.parker),
+                    _ => {}
+                }
             }
         }
         match r {

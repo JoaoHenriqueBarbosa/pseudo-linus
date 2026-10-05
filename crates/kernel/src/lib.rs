@@ -24,6 +24,7 @@ mod sandbox;
 mod signal;
 mod spawn;
 mod sys;
+mod tty;
 
 pub mod config;
 pub mod kernel;
