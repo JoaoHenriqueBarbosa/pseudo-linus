@@ -16,11 +16,12 @@ use crate::groupmgmt::{
 use crate::shadowmisc::civil_from_days;
 use crate::util::io;
 
-const USAGE: &str = "Usage: passwd [options] [LOGIN]\n\nOptions:\n  -a, --all                     report password status on all accounts\n  -d, --delete                  delete the password for the named account\n  -e, --expire                  force expire the password for the named account\n  -h, --help                    display this help message and exit\n  -k, --keep-tokens             change password only if expired\n  -i, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --lock                    lock the password of the named account\n  -n, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -q, --quiet                   quiet mode\n  -r, --repository REPOSITORY   change password in REPOSITORY repository\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -S, --status                  report password status on the named account\n  -u, --unlock                  unlock the password of the named account\n  -w, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n  -x, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n\n";
+const USAGE: &str = "Usage: passwd [options] [LOGIN]\n\nOptions:\n  -a, --all                     report password status on all accounts\n  -d, --delete                  delete the password for the named account\n  -e, --expire                  force expire the password for the named account\n  -h, --help                    display this help message and exit\n  -k, --keep-tokens             change password only if expired\n  -i, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --lock                    lock the password of the named account\n  -n, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -q, --quiet                   quiet mode\n  -r, --repository REPOSITORY   change password in REPOSITORY repository\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -S, --status                  report password status on the named account\n  -u, --unlock                  unlock the password of the named account\n  -w, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n  -x, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -s, --stdin                   read new token from stdin\n\n";
 
 /// Códigos de saída do `passwd.c`.
 const E_NOPERM: i32 = 1;
 const E_USAGE: i32 = 2;
+const E_FAILURE: i32 = 3;
 const E_BAD_ARG: i32 = 6;
 
 pub fn main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
@@ -119,10 +120,18 @@ fn passwd(args: &[OsString]) -> i32 {
         (b'u', "unlock", false),
         (b'w', "warndays", true),
         (b'x', "maxdays", true),
+        (b's', "stdin", false),
     ];
     let Some(o) = parse(P, &argv, spec) else {
-        return usage(USAGE, E_USAGE);
+        return usage(USAGE, E_BAD_ARG);
     };
+    // O prefixo é conferido antes de tudo: no oráculo, `-P` exige caminho absoluto.
+    if let Some(pfx) = o.get(b'P') {
+        if pfx.first() != Some(&b'/') {
+            io::eprint(format!("{P}: prefix must be an absolute path\n"));
+            return E_FAILURE;
+        }
+    }
     if o.has(b'h') {
         return usage(USAGE, 0);
     }
