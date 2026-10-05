@@ -1,7 +1,8 @@
 //! Ferramentas diversas do pseudo-linus, fiéis às do Debian 13 byte a byte: `bc` (GNU bc 1.07.1),
 //! `file` (5.46), `column`, `hexdump`/`hd` e `more` (util-linux 2.41), `tree` (2.2.1), `xxd`
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst` (gettext 0.23),
-//! `less` não interativo, `clear`/`tput` (ncurses 6.5), `iconv`, `getconf` e `locale` (glibc 2.41).
+//! `less` não interativo, `tput`, `clear`, `tset`/`reset`, `tabs`, `infocmp` e `toe` (ncurses
+//! 6.5.20250216, sobre o banco terminfo do ncurses-base), `iconv`, `getconf` e `locale` (glibc 2.41).
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
@@ -13,6 +14,7 @@ pub mod hexdump;
 pub mod pager;
 pub mod rev;
 pub mod strings;
+pub mod term;
 pub mod tree;
 pub mod util;
 pub mod which;
@@ -24,16 +26,23 @@ use sysabi::Program;
 pub fn programs() -> Vec<Program> {
     vec![
         Program::bin("bc", bc::main),
+        Program::bin("clear", term::clear::main),
         Program::bin("column", column::main),
         Program::bin("envsubst", envsubst::main),
         Program::bin("file", file::cli::main),
         Program::bin("hexdump", hexdump::main),
         Program::bin("hd", hexdump::main),
+        Program::bin("infocmp", term::infocmp::main),
         Program::bin("less", pager::less_main),
         Program::bin("more", pager::more_main),
+        Program::bin("reset", term::tset::main),
         Program::bin("rev", rev::main),
         Program::bin("strings", strings::main),
+        Program::bin("tabs", term::tabs::main),
+        Program::bin("toe", term::toe::main),
+        Program::bin("tput", term::tput::main),
         Program::bin("tree", tree::main),
+        Program::bin("tset", term::tset::main),
         Program::bin("which", which::main),
         Program::bin("xxd", xxd::main),
     ]

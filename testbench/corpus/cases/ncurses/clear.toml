@@ -1,0 +1,95 @@
+tool = "clear"
+source = "manual"
+
+# clear do ncurses 6.5.20250216: limpa a tela e, sem -x, o histórico (E3). Sem terminal, as cadeias
+# do terminfo saem no stdout; o erro de TERM ausente ou desconhecido sai com o texto do setupterm.
+
+[[case]]
+id = "clear-T-xterm"
+script = "clear -T xterm | od -c"
+
+[[case]]
+id = "clear-T-xterm-x"
+script = "clear -T xterm -x | od -c"
+
+[[case]]
+id = "clear-T-terminals"
+script = "for t in xterm xterm-256color vt100 linux screen ansi tmux rxvt sun cons25 wsvt25; do echo $t; clear -T $t | od -c; done"
+
+[[case]]
+id = "clear-env-term"
+script = "clear | od -c"
+env = { TERM = "vt100" }
+
+[[case]]
+id = "clear-env-term-x-after"
+script = "clear -x | od -c"
+env = { TERM = "linux" }
+
+[[case]]
+id = "clear-T-overrides-env"
+script = "clear -T vt100 | od -c"
+env = { TERM = "xterm" }
+
+[[case]]
+id = "clear-dumb-has-no-clear"
+script = "clear -T dumb; echo rc=$?"
+
+[[case]]
+id = "clear-no-term"
+argv = ["clear"]
+
+[[case]]
+id = "clear-empty-term"
+argv = ["clear"]
+env = { TERM = "" }
+
+[[case]]
+id = "clear-unknown-terminal"
+argv = ["clear", "-T", "nosuch"]
+
+[[case]]
+id = "clear-unknown-terminal-env"
+argv = ["clear"]
+env = { TERM = "nosuch" }
+
+[[case]]
+id = "clear-terminal-with-slash"
+argv = ["clear", "-T", "a/b"]
+
+[[case]]
+id = "clear-version"
+argv = ["clear", "-V"]
+
+[[case]]
+id = "clear-version-ignores-rest"
+argv = ["clear", "-V", "-Z"]
+
+[[case]]
+id = "clear-invalid-option"
+argv = ["clear", "-Z"]
+
+[[case]]
+id = "clear-missing-T-argument"
+argv = ["clear", "-T"]
+
+[[case]]
+id = "clear-extra-operand"
+argv = ["clear", "xterm"]
+
+[[case]]
+id = "clear-operand-after-options"
+argv = ["clear", "-T", "xterm", "extra"]
+
+[[case]]
+id = "clear-long-option"
+argv = ["clear", "--help"]
+
+[[case]]
+id = "clear-padding-vt100"
+script = "clear -T vt100 | od -c"
+
+[[case]]
+id = "clear-size-env-ignored-by-output"
+script = "clear | od -c"
+env = { TERM = "vt100", LINES = "100", COLUMNS = "200" }

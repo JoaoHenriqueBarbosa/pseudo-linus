@@ -1,0 +1,112 @@
+tool = "tabs"
+source = "manual"
+
+# tabs do ncurses 6.5.20250216: limpa e define as paradas de tabulação. Sem TERM o programa usa
+# ansi+tabs, que o banco do ncurses-base não tem. Sem terminal a saída vai pro stdout.
+
+[[case]]
+id = "tabs-no-term-default-terminal"
+argv = ["tabs"]
+
+[[case]]
+id = "tabs-unknown-terminal"
+argv = ["tabs", "-T", "nosuch"]
+
+[[case]]
+id = "tabs-default-eight"
+script = "tabs -T xterm | od -c"
+
+[[case]]
+id = "tabs-env-term"
+script = "tabs | od -c"
+env = { TERM = "vt100" }
+
+[[case]]
+id = "tabs-standard-lists"
+script = "for o in -0 -1 -2 -3 -4 -5 -8 -a -a2 -c -c2 -c3 -f -p -s -u; do echo \"== $o\"; tabs -T xterm $o | od -c; done"
+
+[[case]]
+id = "tabs-debug-ruler-standard-lists"
+script = "for o in -0 -2 -4 -8 -a -c2 -f; do echo \"== $o\"; tabs -d -n -T xterm $o; done"
+
+[[case]]
+id = "tabs-debug-with-output"
+script = "tabs -d -T xterm 1,10,20,30 | od -c"
+
+[[case]]
+id = "tabs-explicit-lists"
+script = "tabs -n -d -T xterm 1,5,9,13; tabs -n -d -T xterm 1,+4,+4; tabs -n -d -T xterm 5 10 15; tabs -n -d -T xterm 1,,6,11; tabs -n -d -T xterm '3, 9 , 15'"
+
+[[case]]
+id = "tabs-list-beyond-width"
+script = "tabs -n -d -T xterm 10,40,79,80,81,200 | od -c | head -30"
+
+[[case]]
+id = "tabs-relative-stops"
+script = "tabs -n -d -T xterm +5; tabs -n -d -T xterm 1 +4 +4 +4; tabs -n -d -T xterm +1 +2 +3"
+
+[[case]]
+id = "tabs-not-increasing"
+script = "tabs -n -d -T xterm 10,5; echo rc=$?; tabs -T xterm 5,5; echo rc=$?"
+
+[[case]]
+id = "tabs-illegal-lists"
+script = "tabs -T xterm 1,x; echo rc=$?; tabs -T xterm 1,2,; echo rc=$?; tabs -T xterm '1;2'; echo rc=$?"
+
+[[case]]
+id = "tabs-margin-option"
+script = "tabs -n -d -T xterm +m 1,5,9; tabs -n -d -T xterm +m5 1,5,9; tabs -n -d -T xterm +m0 8"
+
+[[case]]
+id = "tabs-margin-bad-digits"
+script = "tabs -T xterm +mx; echo rc=$?"
+
+[[case]]
+id = "tabs-terminals"
+script = "for t in xterm vt100 linux screen ansi tmux rxvt sun cons25 wsvt25 dumb vt52; do echo \"== $t\"; tabs -T $t | od -c; echo rc=$?; done"
+
+[[case]]
+id = "tabs-cannot-reset-or-set"
+script = "tabs -T dumb; echo rc=$?; tabs -T vt52; echo rc=$?; tabs -T sun; echo rc=$?"
+
+[[case]]
+id = "tabs-T-attached-argument"
+script = "tabs -Txterm | od -c; tabs -T xterm -d -n 1,9 | head -3"
+
+[[case]]
+id = "tabs-T-as-last-argument"
+script = "tabs -T; echo rc=$?"
+env = { TERM = "vt100" }
+
+[[case]]
+id = "tabs-T-eats-next-argument"
+script = "tabs -Txterm -4 | od -c"
+
+[[case]]
+id = "tabs-columns-from-env"
+script = "tabs -n -d -T xterm -8"
+env = { COLUMNS = "40" }
+
+[[case]]
+id = "tabs-version"
+argv = ["tabs", "-V"]
+
+[[case]]
+id = "tabs-usage-invalid-option"
+argv = ["tabs", "-Z"]
+
+[[case]]
+id = "tabs-usage-bad-plus-option"
+argv = ["tabs", "+mq"]
+
+[[case]]
+id = "tabs-combined-options"
+script = "tabs -T xterm -n -d -a2; tabs -T xterm -nd -c3; tabs -T xterm -dn -8 | head -2"
+
+[[case]]
+id = "tabs-last-list-wins"
+script = "tabs -n -d -T xterm -a -f; tabs -n -d -T xterm -f 1,3,5"
+
+[[case]]
+id = "tabs-number-with-trailing-list"
+script = "tabs -n -d -T xterm -4,8"
