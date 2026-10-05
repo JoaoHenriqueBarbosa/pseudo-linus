@@ -14,7 +14,16 @@ use crate::groupmgmt::{
 };
 use crate::util::io;
 
-const SPEC_BASIC: Spec = &[(b'h', "help", false), (b'R', "root", true), (b'P', "prefix", true)];
+const SPEC_BASIC: Spec = &[(b'h', "help", false), (b'R', "root", true)];
+
+const SPEC_CHGPASSWD: Spec = &[
+    (b'c', "crypt-method", true),
+    (b'e', "encrypted", false),
+    (b'h', "help", false),
+    (b'm', "md5", false),
+    (b'R', "root", true),
+    (b's', "sha-rounds", true),
+];
 
 const SPEC_CHPASSWD: Spec = &[
     (b'c', "crypt-method", true),
@@ -28,18 +37,19 @@ const SPEC_CHPASSWD: Spec = &[
 
 fn conv_usage(p: &str) -> String {
     format!(
-        "Usage: {p} [options]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n\n"
+        "Usage: {p} [options]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n\n"
     )
 }
 
 fn chpasswd_usage(p: &str) -> String {
+    let prefix = if p == "chgpasswd" { "" } else { "  -P, --prefix PREFIX_DIR       directory prefix\n" };
     format!(
-        "Usage: {p} [options]\n\nOptions:\n  -c, --crypt-method METHOD     the crypt method (one of NONE DES MD5 SHA256 SHA512 YESCRYPT)\n  -e, --encrypted               supplied passwords are encrypted\n  -h, --help                    display this help message and exit\n  -m, --md5                     encrypt the clear text password using\n                                the MD5 algorithm\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -s, --sha-rounds              number of rounds for the SHA, BCRYPT\n                                or YESCRYPT crypt algorithms\n\n"
+        "Usage: {p} [options]\n\nOptions:\n  -c, --crypt-method METHOD     the crypt method (one of NONE DES MD5 SHA256 SHA512 YESCRYPT)\n  -e, --encrypted               supplied passwords are encrypted\n  -h, --help                    display this help message and exit\n  -m, --md5                     encrypt the clear text password using\n                                the MD5 algorithm\n  -R, --root CHROOT_DIR         directory to chroot into\n{prefix}  -s, --sha-rounds              number of rounds for the SHA, BCRYPT\n                                or YESCRYPT crypt algorithms\n\n"
     )
 }
 
 fn expiry_usage() -> &'static str {
-    "Usage: expiry {-c|-f}\n\nOptions:\n  -c, --check                   check the user's password expiration\n  -f, --force                   force password change if the user's password\n                                has expired\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n\n"
+    "Usage: expiry [options]\n\nOptions:\n  -c, --check                   check the user's password expiration\n  -f, --force                   force password change if the user's password\n                                is expired\n  -h, --help                    display this help message and exit\n\n"
 }
 
 /// Copia os campos de uma linha, completando até `min` campos.
@@ -261,7 +271,8 @@ pub fn chgpasswd_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 
 fn chpasswd(p: &str, kind: Kind, args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
-    let Some(o) = parse(p, &argv, SPEC_CHPASSWD) else {
+    let spec = if kind == Kind::Group { SPEC_CHGPASSWD } else { SPEC_CHPASSWD };
+    let Some(o) = parse(p, &argv, spec) else {
         return usage(&chpasswd_usage(p), 1);
     };
     if o.has(b'h') {
@@ -330,6 +341,13 @@ fn chpasswd(p: &str, kind: Kind, args: &[OsString]) -> i32 {
             match (in_shadow, shadow.as_mut()) {
                 (Some(i), Some(s)) => {
                     s[i] = with_field(&s[i], 1, if kind == Kind::Passwd { 9 } else { 4 }, pass);
+                    if kind == Kind::Passwd {
+                        let days = sys::current()
+                            .clock_gettime(sysabi::Clock::Realtime)
+                            .map(|t| t.sec / 86400)
+                            .unwrap_or(0);
+                        s[i] = with_field(&s[i], 2, 9, days.to_string().as_bytes());
+                    }
                     shadow_changed = true;
                 }
                 _ => {
@@ -375,8 +393,6 @@ fn expiry(args: &[OsString]) -> i32 {
         (b'c', "check", false),
         (b'f', "force", false),
         (b'h', "help", false),
-        (b'R', "root", true),
-        (b'P', "prefix", true),
     ];
     let Some(o) = parse(P, &argv, spec) else {
         return usage(expiry_usage(), 1);
