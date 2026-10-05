@@ -7,7 +7,8 @@
 //! - sem opção: uma linha por fuso com a hora atual;
 //! - `-v`/`-V`: cada transição entre os cortes, como o par de linhas "um segundo antes" e "na
 //!   transição", com a hora UTC, `isdst` e `gmtoff`; o `-v` acrescenta os extremos do `time_t`
-//!   (`-9223372036854775808 = NULL` e afins, porque o ano não cabe num `int`);
+//!   (`(gmtime failed)`/`(localtime failed)`) e, como o tzcode 2024, as fronteiras em que o ano
+//!   passa a caber num `int`, achadas pelo `showextrema`;
 //! - `-i`: o formato tabular (`TZ="..."`, data, hora local, deslocamento, abreviação, isdst);
 //! - `-c [L,]U` (anos) e `-t [L,]U` (segundos), com `wild -c argument` e `wild -t argument`;
 //! - `--help` e `--version` são procurados em todo o argv antes do `getopt`.
@@ -109,11 +110,7 @@ struct Dump {
     warned: bool,
 }
 
-fn dumptime(out: &mut Vec<u8>, tm: Option<&Tm>) {
-    let Some(tm) = tm else {
-        out.extend_from_slice(b"NULL");
-        return;
-    };
+fn dumptime(out: &mut Vec<u8>, tm: &Tm) {
     let _ = write!(
         out,
         "{} {}{:3} {:02}:{:02}:{:02} {}",
@@ -169,24 +166,29 @@ impl Dump {
         if v {
             match gmtime(t) {
                 Some(g) => {
-                    dumptime(&mut out, Some(&g));
+                    dumptime(&mut out, &g);
                     out.extend_from_slice(b" UT");
                 }
                 None => {
-                    let _ = write!(out, "{t}");
+                    let _ = write!(out, "{t} (gmtime failed)");
                 }
             }
             out.extend_from_slice(b" = ");
         }
         let tm = tz.localtime(t);
-        dumptime(&mut out, tm.as_ref());
-        if let Some(tm) = &tm {
-            if !tm.zone.is_empty() {
-                out.push(b' ');
-                out.extend_from_slice(&tm.zone);
+        match &tm {
+            None => {
+                let _ = write!(out, "{t} (localtime failed)");
             }
-            if v {
-                let _ = write!(out, " isdst={} gmtoff={}", tm.isdst, tm.gmtoff);
+            Some(tm) => {
+                dumptime(&mut out, tm);
+                if !tm.zone.is_empty() {
+                    out.push(b' ');
+                    out.extend_from_slice(&tm.zone);
+                }
+                if v {
+                    let _ = write!(out, " isdst={} gmtoff={}", tm.isdst, tm.gmtoff);
+                }
             }
         }
         out.push(b'\n');
@@ -195,6 +197,36 @@ impl Dump {
             && !tm.zone.is_empty() {
                 self.abbrok(&tm.zone, zone);
             }
+    }
+
+    /// `showextrema`: entre `lo` e `hi` o `localtime` muda de definição; acha a fronteira com o
+    /// `hunt` e, num dia em volta dela, imprime o par `t-1`/`t` de cada ponto em que o `localtime`
+    /// ou o `gmtime` passa a funcionar ou a falhar.
+    fn showextrema(&mut self, tz: &Zone, zone: &[u8], mut lo: i64, hi: i64) {
+        let boundary = hunt(tz, lo, hi, true);
+        let hi = if i128::from(hi) - i128::from(boundary) > i128::from(SECS_PER_DAY) {
+            boundary + SECS_PER_DAY
+        } else {
+            hi + i64::from(hi < ABS_MAX)
+        };
+        if i128::from(boundary) - i128::from(lo) > i128::from(SECS_PER_DAY) {
+            lo = boundary - SECS_PER_DAY;
+        }
+        let ok = |t: i64| (tz.localtime(t).is_some(), gmtime(t).is_some());
+        let mut old = ok(lo);
+        let mut t = lo + 1;
+        while t < hi {
+            let new = ok(t);
+            if new != old {
+                self.show(tz, zone, t - 1, true);
+                self.show(tz, zone, t, true);
+            }
+            old = new;
+            if t & 0xfff == 0 {
+                sysabi::sys::checkpoint();
+            }
+            t += 1;
+        }
     }
 
     /// `showtrans`: `tm` ausente imprime só o `time_t`.
@@ -411,11 +443,12 @@ fn run(args: &[OsString]) -> i32 {
         let mut t = ABS_MIN;
         if !(iflag || big_v) {
             d.show(&tz, name, t, true);
-            t += SECS_PER_DAY;
-            d.show(&tz, name, t, true);
+            if tz.localtime(t).is_none() && t < cutlotime && tz.localtime(cutlotime).is_some() {
+                d.showextrema(&tz, name, t, cutlotime);
+            }
         }
-        if t < cutlotime {
-            t = cutlotime;
+        if t.saturating_add(1) < cutlotime {
+            t = cutlotime - 1;
         }
         let mut tm = tz.localtime(t);
         let mut ab: Option<Vec<u8>> = tm.as_ref().map(|x| x.zone.clone());
@@ -424,11 +457,12 @@ fn run(args: &[OsString]) -> i32 {
                 d.showtrans(b"\nTZ=%f", Some(x), t, a, name);
                 d.showtrans(b"-\t-\t%Q", Some(x), t, a, name);
             }
-        while t < cuthitime {
-            let mut newt = if t < ABS_MAX - SECS_PER_DAY / 2 && t + SECS_PER_DAY / 2 < cuthitime {
+        let hi_edge = cuthitime.saturating_sub(1);
+        while t < hi_edge {
+            let mut newt = if t < ABS_MAX - SECS_PER_DAY / 2 && t + SECS_PER_DAY / 2 < hi_edge {
                 t + SECS_PER_DAY / 2
             } else {
-                cuthitime
+                hi_edge
             };
             let mut newtm = tz.localtime(newt);
             let changed = match (&tm, &newtm) {
@@ -442,7 +476,7 @@ fn run(args: &[OsString]) -> i32 {
                 _ => true,
             };
             if changed {
-                newt = hunt(&tz, t, newt);
+                newt = hunt(&tz, t, newt, false);
                 newtm = tz.localtime(newt);
                 if iflag {
                     let a = newtm.as_ref().map(|x| x.zone.clone()).unwrap_or_default();
@@ -462,9 +496,11 @@ fn run(args: &[OsString]) -> i32 {
             sysabi::sys::checkpoint();
         }
         if !(iflag || big_v) {
-            let t = ABS_MAX - SECS_PER_DAY;
-            d.show(&tz, name, t, true);
-            d.show(&tz, name, t + SECS_PER_DAY, true);
+            let t = cuthitime;
+            if t < ABS_MAX && tz.localtime(t).is_some() && tz.localtime(ABS_MAX).is_none() {
+                d.showextrema(&tz, name, t, ABS_MAX);
+            }
+            d.show(&tz, name, ABS_MAX, true);
         }
     }
     let mut out = io::stdout();
@@ -474,8 +510,9 @@ fn run(args: &[OsString]) -> i32 {
     0
 }
 
-/// Busca binária do instante exato da transição entre `lot` e `hit`.
-fn hunt(tz: &Zone, mut lot: i64, mut hit: i64) -> i64 {
+/// Busca binária do instante exato da transição entre `lot` e `hit`. Com `only_ok`, a fronteira
+/// procurada é só a de definição (o `localtime` passa a funcionar ou a falhar).
+fn hunt(tz: &Zone, mut lot: i64, mut hit: i64, only_ok: bool) -> i64 {
     let mut lotm = tz.localtime(lot);
     let ab = lotm.as_ref().map(|x| x.zone.clone());
     loop {
@@ -492,9 +529,10 @@ fn hunt(tz: &Zone, mut lot: i64, mut hit: i64) -> i64 {
         let tm = tz.localtime(t);
         let same = match (&lotm, &tm) {
             (Some(o), Some(n)) => {
-                local_secs(t, n) - local_secs(lot, o) == i128::from(t) - i128::from(lot)
-                    && n.isdst == o.isdst
-                    && Some(&n.zone) == ab.as_ref()
+                only_ok
+                    || (local_secs(t, n) - local_secs(lot, o) == i128::from(t) - i128::from(lot)
+                        && n.isdst == o.isdst
+                        && Some(&n.zone) == ab.as_ref())
             }
             (None, None) => true,
             _ => false,
@@ -531,5 +569,15 @@ mod tests {
         assert_eq!(yeartot(2000), 946_684_800);
         assert_eq!(yeartot(i64::MAX), i64::MAX);
         assert_eq!(yeartot(i64::MIN), i64::MIN);
+    }
+
+    #[test]
+    fn hunt_finds_definedness_edges() {
+        use crate::util::tzif::PosixTz;
+        let utc = Zone::Rules(PosixTz::parse(b"UTC0"));
+        assert_eq!(hunt(&utc, ABS_MIN, 0, true), -67_768_040_609_740_800);
+        assert_eq!(hunt(&utc, 0, ABS_MAX, true), 67_768_036_191_676_800);
+        let neg = Zone::Rules(PosixTz::parse(b"<-03>3"));
+        assert_eq!(hunt(&neg, ABS_MIN, 0, true), -67_768_040_609_740_800 + 10_800);
     }
 }

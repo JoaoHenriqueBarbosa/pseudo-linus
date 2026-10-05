@@ -215,7 +215,7 @@ impl Vm {
                 let v = match self.globals.get(name) {
                     Some(v) => v.clone(),
                     None => match BUILTINS.iter().find(|b| **b == name.as_str()) {
-                        Some(b) => Value::Builtin(*b),
+                        Some(b) => Value::Builtin(b),
                         None => return Err(exc("NameError", format!("name '{name}' is not defined"))),
                     },
                 };
@@ -388,14 +388,13 @@ impl Vm {
             return Err(type_error(format!("'{}' object is not callable", func.type_name())));
         };
         let name = *name;
-        if name != "print" {
-            if let Some((kw, _)) = kwargs.first() {
+        if name != "print"
+            && let Some((kw, _)) = kwargs.first() {
                 return Err(type_error(match name {
                     "range" | "len" | "repr" => format!("{name}() takes no keyword arguments"),
                     _ => format!("'{kw}' is an invalid keyword argument for {name}()"),
                 }));
             }
-        }
         match name {
             "print" => self.print(args, kwargs),
             "len" => {
@@ -703,8 +702,8 @@ fn unsupported(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyException
 
 fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> {
     // `list += iterável` e `list *= n` mudam a própria lista.
-    if inplace {
-        if let Value::List(l) = a {
+    if inplace
+        && let Value::List(l) = a {
             match op {
                 Operator::Add => {
                     let items = collect(b)?;
@@ -721,7 +720,6 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
                 _ => {}
             }
         }
-    }
     if let (Some(x), Some(y)) = (num(a), num(b)) {
         // `bool & bool` (e `|`, `^`) continua `bool`.
         if let (Value::Bool(p), Value::Bool(q)) = (a, b) {
