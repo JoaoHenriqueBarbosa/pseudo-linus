@@ -137,13 +137,40 @@ impl WalkError {
     }
 }
 
+/// Nome de arquivo entre aspas como o `safely_quote_err_filename` do GNU (estilo `locale_quoting_style`
+/// num locale UTF-8): ‘nome’, com barra invertida e caracteres de controle em escapes de C.
+fn quote_err_filename(path: &Path) -> String {
+    let mut out = String::from("‘");
+    let text = path.to_string_lossy();
+    for ch in text.chars() {
+        match ch {
+            '\u{7}' => out.push_str("\\a"),
+            '\u{8}' => out.push_str("\\b"),
+            '\u{c}' => out.push_str("\\f"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            '\u{b}' => out.push_str("\\v"),
+            '\\' => out.push_str("\\\\"),
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
+                out.push_str(&format!("\\{:03o}", c as u32));
+            }
+            c => out.push(c),
+        }
+    }
+    out.push('’');
+    out
+}
+
 impl Display for WalkError {
+    /// Mensagem como a do GNU: `‘caminho’: strerror`, sem o " (os error N)" do std.
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let ioe = io::Error::from(self);
+        let msg = sysio::errno::strerror(&ioe);
         if let Some(path) = &self.path {
-            write!(f, "{}: {}", path.display(), ioe)
+            write!(f, "{}: {}", quote_err_filename(path), msg)
         } else {
-            write!(f, "{}", ioe)
+            write!(f, "{}", msg)
         }
     }
 }
