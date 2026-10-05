@@ -379,6 +379,16 @@ pub fn remove_empty_parents(dir: &[u8], stop: &[u8]) {
     }
 }
 
+/// Remove `p` se for uma árvore só de diretórios vazios (`remove_empty_directories` do git);
+/// `true` se removeu tudo.
+pub fn remove_empty_dirs(p: &[u8]) -> bool {
+    let Ok(entries) = read_dir(p) else { return false };
+    entries.iter().all(|e| {
+        let child = join(p, &e.name);
+        lstat(&child).is_ok_and(|s| s.file_type() == FileType::Directory) && remove_empty_dirs(&child)
+    }) && rmdir(p).is_ok()
+}
+
 /// `rm -rf`.
 pub fn remove_tree(p: &[u8]) -> Result<(), Errno> {
     let st = match lstat(p) {

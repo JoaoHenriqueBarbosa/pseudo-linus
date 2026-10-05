@@ -3,6 +3,7 @@
 
 use super::Git;
 use super::reffmt::{self, Ctx, Filter, Row, Upstream};
+use crate::column;
 use crate::config::{self, ConfigFile, Edit, Editor, Scope};
 use crate::error::{Fail, R, error, hint, warning};
 use crate::graph::Graph;
@@ -236,7 +237,7 @@ pub fn resolve_start(repo: &Repo, text: &str) -> R<Start> {
     let Some(oid) = repo.rev_parse_commit(text.as_bytes())? else {
         return Err(Fail::Fatal(format!("not a valid object name: '{text}'")));
     };
-    let ref_name = repo.dwim_ref_name(text)?;
+    let ref_name = repo.dwim_ref_resolved(text)?;
     Ok(Start { text: text.to_string(), oid, ref_name })
 }
 
@@ -253,6 +254,10 @@ pub fn create_branch(repo: &Repo, name: &str, start: &Start, force: bool, clobbe
         return Err(Fail::Fatal(format!("cannot force update the branch '{name}' used by worktree at '{}'", worktree_path(repo))));
     }
     let msg = if existed { format!("branch: Reset to {}", start.text) } else { format!("branch: Created from {}", start.text) };
+    // Como o `dwim_branch_start`: o `--track` sem ramo de partida morre antes de criar o ramo.
+    if mode == TrackMode::Explicit && start.ref_name.as_deref().and_then(|r| tracking_for(repo, r)).is_none() {
+        return Err(Fail::Fatal(format!("cannot set up tracking information; starting point '{}' is not a branch", start.text)));
+    }
     let expect = if existed { None } else { Some(None) };
     repo.update_ref(&full, start.oid, expect, &msg, true)?;
     setup_tracking(repo, name, &start.text, start.ref_name.as_deref(), mode, quiet)?;
@@ -293,8 +298,22 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     let usage = git.usage();
     let args = reffmt::lastarg_default(args);
     let p = opts::parse(SPECS, &args, 0, usage)?;
+    // O git valida o valor do `--track` no callback da opção, antes de qualquer modo.
+    track_mode(&p)?;
     let repo = git.repo()?;
     let quiet = p.has("quiet");
+    // `column.ui`/`column.branch`, depois cada `--column` na ordem, como os callbacks do git.
+    let mut colopts = column::from_config(&repo.config, "branch")?;
+    for h in p.hits.iter().filter(|h| h.id == "column") {
+        column::parse_option(&mut colopts, h.negated, h.value.as_deref())?;
+    }
+    column::finalize(&mut colopts);
+    if p.count("verbose") > 0 {
+        if column::explicitly_enabled(colopts) {
+            return Err(Fail::Fatal("options '--column' and '--verbose' cannot be used together".into()));
+        }
+        colopts = 0;
+    }
 
     let force = p.has("force");
     let delete = p.has("delete") || p.has("force-delete");
@@ -334,7 +353,7 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         list = true;
     }
     if list {
-        return list_branches(repo, &p, usage);
+        return list_branches(repo, &p, usage, colopts);
     }
     if p.args.len() > 2 {
         opts::usage_to_stderr(usage);
@@ -419,7 +438,7 @@ fn delete_branches(repo: &Repo, p: &opts::Parsed, force: bool, quiet: bool) -> R
             continue;
         }
         let Some(oid) = repo.ref_oid(&full)? else {
-            error(&format!("{what} '{name}' not found."));
+            error(&format!("{what} '{name}' not found"));
             code = 1;
             continue;
         };
@@ -500,9 +519,12 @@ fn rename_or_copy(repo: &Repo, p: &opts::Parsed, copy: bool, force: bool) -> R<i
         repo.delete_ref(&new_full, None)?;
         config_remove_branch(repo, &new)?;
     }
-    repo.rename_reflog(&old_full, &new_full)?;
-    repo.set_ref_no_log(&new_full, oid)?;
+    let had_log = repo.stash_reflog(&old_full)?;
     repo.delete_ref(&old_full, None)?;
+    if had_log {
+        repo.unstash_reflog(&new_full)?;
+    }
+    repo.set_ref_no_log(&new_full, oid)?;
     let msg = format!("Branch: renamed {old_full} to {new_full}");
     repo.append_reflog(&new_full, oid, oid, &msg, true)?;
     config_rename_branch(repo, &old, &new)?;
@@ -534,7 +556,7 @@ fn set_upstream(repo: &Repo, p: &opts::Parsed, up: &[u8], quiet: bool) -> R<i32>
     if repo.read_ref(&full)?.is_none() {
         return Err(Fail::Fatal(format!("branch '{branch}' does not exist")));
     }
-    let Some(up_full) = repo.dwim_ref_name(&up_text)? else {
+    let Some(up_full) = repo.dwim_ref_resolved(&up_text)? else {
         let mut msg = format!("the requested upstream branch '{up_text}' does not exist");
         if repo.config.get_bool("advice.setupstreamfailure")?.unwrap_or(true) {
             msg.push_str(
@@ -643,7 +665,7 @@ fn subject_of(ctx: &mut Ctx, oid: &Oid) -> R<Vec<u8>> {
     Ok(Vec::new())
 }
 
-fn list_branches(repo: &Repo, p: &opts::Parsed, usage: &str) -> R<i32> {
+fn list_branches(repo: &Repo, p: &opts::Parsed, usage: &str, colopts: u32) -> R<i32> {
     let all = p.has("all");
     let remotes = p.has("remotes");
     let mut filter = Filter::default();
@@ -675,17 +697,17 @@ fn list_branches(repo: &Repo, p: &opts::Parsed, usage: &str) -> R<i32> {
     if let Some(fmt) = p.value("format") {
         let nodes = reffmt::parse_format(fmt, usage)?;
         let omit_empty = p.has("omit-empty");
-        let mut out: Vec<u8> = Vec::new();
+        let mut lines: Vec<Vec<u8>> = Vec::new();
         for row in &rows {
             let mut line = Vec::new();
             ctx.render(&nodes, row, &mut line)?;
-            if omit_empty && line.is_empty() {
+            // Em colunas a linha vazia entra mesmo com `--omit-empty`, como no git.
+            if omit_empty && line.is_empty() && !column::active(colopts) {
                 continue;
             }
-            out.extend_from_slice(&line);
-            out.push(b'\n');
+            lines.push(line);
         }
-        os::out(&out);
+        emit_lines(&lines, colopts);
         return Ok(0);
     }
 
@@ -723,7 +745,7 @@ fn list_branches(repo: &Repo, p: &opts::Parsed, usage: &str) -> R<i32> {
         items.push(Item { shown, current, oid: Some(row.oid), row_name: row.name.clone(), symref });
     }
     let width = items.iter().map(|i| i.shown.chars().count()).max().unwrap_or(0);
-    let mut out: Vec<u8> = Vec::new();
+    let mut lines: Vec<Vec<u8>> = Vec::new();
     for it in &items {
         let mut line = String::new();
         line.push_str(if it.current { "* " } else { "  " });
@@ -731,8 +753,7 @@ fn list_branches(repo: &Repo, p: &opts::Parsed, usage: &str) -> R<i32> {
         if let Some(t) = &it.symref {
             line.push_str(" -> ");
             line.push_str(t);
-            out.extend_from_slice(line.as_bytes());
-            out.push(b'\n');
+            lines.push(line.into_bytes());
             continue;
         }
         if verbose > 0
@@ -753,14 +774,27 @@ fn list_branches(repo: &Repo, p: &opts::Parsed, usage: &str) -> R<i32> {
             {
                 line.push_str(&tracking_text(repo, &up, verbose > 1));
             }
-            out.extend_from_slice(line.as_bytes());
-            out.extend_from_slice(&subject_of(&mut ctx, &oid)?);
-            out.push(b'\n');
+            let mut bytes = line.into_bytes();
+            bytes.extend_from_slice(&subject_of(&mut ctx, &oid)?);
+            lines.push(bytes);
             continue;
         }
-        out.extend_from_slice(line.as_bytes());
+        lines.push(line.into_bytes());
+    }
+    emit_lines(&lines, colopts);
+    Ok(0)
+}
+
+/// Escreve as linhas da listagem, em colunas quando ligadas (`print_columns` sem opções).
+fn emit_lines(lines: &[Vec<u8>], colopts: u32) {
+    if column::active(colopts) {
+        os::out(&column::print_columns(lines, colopts, &column::Options { padding: 1, ..Default::default() }));
+        return;
+    }
+    let mut out = Vec::new();
+    for l in lines {
+        out.extend_from_slice(l);
         out.push(b'\n');
     }
     os::out(&out);
-    Ok(0)
 }

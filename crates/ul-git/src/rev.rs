@@ -82,6 +82,13 @@ impl Repo {
         Ok(None)
     }
 
+    /// Como `dwim_ref_name`, mas seguindo refs simbólicas até o nome final, como o `dwim_ref` do
+    /// git (`HEAD` vira `refs/heads/<ramo>`).
+    pub fn dwim_ref_resolved(&self, name: &str) -> R<Option<String>> {
+        let Some(full) = self.dwim_ref_name(name)? else { return Ok(None) };
+        Ok(Some(self.resolve_ref(&full)?.map_or(full, |(n, _)| n)))
+    }
+
     fn warn_ambiguous(&self) -> bool {
         self.config.get_bool("core.warnambiguousrefs").ok().flatten().unwrap_or(true)
     }

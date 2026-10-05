@@ -90,13 +90,11 @@ struct OldHead {
     oid: Option<Oid>,
 }
 
-/// `-` e `@{-N}` viram o nome do ramo anterior.
+/// `-` e `@{-N}` viram o nome do ramo anterior; sem ramo anterior, `-` segue como `@{-1}` (é o
+/// texto que o git mostra no erro).
 fn expand_previous(repo: &Repo, text: &str) -> R<String> {
-    let n = if text == "-" {
-        Some(1)
-    } else {
-        text.strip_prefix("@{-").and_then(|r| r.strip_suffix('}')).and_then(|n| n.parse::<usize>().ok())
-    };
+    let text = if text == "-" { "@{-1}" } else { text };
+    let n = text.strip_prefix("@{-").and_then(|r| r.strip_suffix('}')).and_then(|n| n.parse::<usize>().ok());
     match n {
         Some(n) => Ok(repo.nth_prior_branch(n)?.unwrap_or_else(|| text.to_string())),
         None => Ok(text.to_string()),
@@ -302,7 +300,7 @@ fn switch_to(repo: &Repo, co: &Co, target: Option<Target>, new_branch_start: Opt
         let Some(commit) = target_commit else {
             return Err(Fail::Fatal(format!("Cannot switch branch to a non-commit '{start_text}'")));
         };
-        let ref_name = if explicit { repo.dwim_ref_name(&start_text)? } else { None };
+        let ref_name = if explicit { repo.dwim_ref_resolved(&start_text)? } else { None };
         let start = branch::Start { text: start_text.clone(), oid: commit, ref_name };
         branch_existed = branch::create_branch(repo, nb, &start, co.force_new, co.force_new, co.track, quiet)?;
         new_name = nb.clone();
@@ -595,7 +593,8 @@ pub fn run_switch(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
                 }
             }
             if !guessed {
-                return Err(Fail::Fatal(format!("invalid reference: {text}")));
+                let shown = if text == "-" { "@{-1}" } else { text.as_str() };
+                return Err(Fail::Fatal(format!("invalid reference: {shown}")));
             }
         }
         if let Some(t) = &target

@@ -6,6 +6,7 @@
 //! byte a byte.
 
 pub mod cmd;
+pub mod column;
 pub mod config;
 pub mod date;
 pub mod diff;

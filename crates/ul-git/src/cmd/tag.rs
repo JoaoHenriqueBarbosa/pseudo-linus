@@ -3,6 +3,7 @@
 
 use super::Git;
 use super::reffmt::{self, Ctx, Filter};
+use crate::column;
 use crate::error::{Fail, R, error};
 use crate::hash::{Kind, Oid};
 use crate::ident::{self, Who};
@@ -88,15 +89,32 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
             }
         }
     };
+    // Como o builtin/tag.c: pedir objeto de tag (ou -f) fora do modo de criação é erro de uso.
+    let create_tag_object = p.has("sign") || p.value("local-user").is_some() || p.has("annotate") || !p.values("message").is_empty() || p.value("file").is_some();
+    if (create_tag_object || p.has("force")) && mode != "create" {
+        opts::usage_to_stderr(git.usage());
+        return Err(Fail::Exit(129));
+    }
+    let mut colopts = column::from_config(&repo.config, "tag")?;
+    for h in p.hits.iter().filter(|h| h.id == "column") {
+        column::parse_option(&mut colopts, h.negated, h.value.as_deref())?;
+    }
+    column::finalize(&mut colopts);
+    if mode == "list" && lines.is_some() {
+        if column::explicitly_enabled(colopts) {
+            return Err(Fail::Fatal("options '--column' and '-n' cannot be used together".into()));
+        }
+        colopts = 0;
+    }
     match mode {
-        "list" => list(repo, &p, lines),
+        "list" => list(repo, &p, lines, colopts),
         "delete" => delete(repo, &p),
         "verify" => verify(repo, &p),
         _ => create(git, &p),
     }
 }
 
-fn list(repo: &Repo, p: &opts::Parsed, lines: Option<usize>) -> R<i32> {
+fn list(repo: &Repo, p: &opts::Parsed, lines: Option<usize>, colopts: u32) -> R<i32> {
     let usage = crate::usage::of("tag");
     let mut filter = Filter { kinds: vec!["refs/tags/".to_string()], ..Filter::default() };
     filter.patterns = p.args.iter().map(|a| os::lossy(a)).collect();
@@ -134,6 +152,12 @@ fn list(repo: &Repo, p: &opts::Parsed, lines: Option<usize>) -> R<i32> {
         }
         out.extend_from_slice(&line);
         out.push(b'\n');
+    }
+    if column::active(colopts) {
+        // O git passa a listagem pelo filtro `git column --padding=2`, que relê linha a linha.
+        let mut items: Vec<Vec<u8>> = out.split(|c| *c == b'\n').map(|l| l.to_vec()).collect();
+        items.pop();
+        out = column::print_columns(&items, colopts, &column::Options { padding: 2, ..Default::default() });
     }
     os::out(&out);
     Ok(0)
@@ -264,6 +288,10 @@ fn create(git: &Git, p: &opts::Parsed) -> R<i32> {
     };
 
     repo.update_ref(&full, new_id, None, "", true)?;
+    // `--create-reflog` força o reflog que as tags não ganham sozinhas.
+    if p.has("create-reflog") && !repo.has_reflog(&full) {
+        repo.append_reflog(&full, prev.unwrap_or(Oid::ZERO), new_id, "", true)?;
+    }
     if let Some(old) = prev
         && force
         && old != new_id

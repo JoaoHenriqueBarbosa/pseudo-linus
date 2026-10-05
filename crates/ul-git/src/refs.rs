@@ -3,6 +3,8 @@
 
 use std::rc::Rc;
 
+use sysabi::Errno;
+
 use crate::error::{Fail, R};
 use crate::hash::Oid;
 use crate::ident::{self, Who};
@@ -348,15 +350,19 @@ impl Repo {
                 (None, None) => unreachable!(),
             }));
         }
-        if current.is_none() {
-            self.df_conflict(&target)?;
-        }
-        let path = self.ref_file(&target);
-        let mut lock = self.lock_ref(&target, &path)?;
-        lock.write(format!("{new}\n").as_bytes()).map_err(|e| Fail::Fatal(format!("couldn't write '{}': {}", os::lossy(lock.lock_path()), e.message())))?;
-        lock.commit().map_err(|e| Fail::Fatal(format!("couldn't set '{target}': {}", e.message())))?;
         let old_id = current.unwrap_or(Oid::ZERO);
-        self.log_ref_update(&target, old_id, new, msg)?;
+        // Como no backend de arquivos do git: ref que já tem o valor pedido não é regravada nem
+        // ganha linha no reflog; a linha "só de log" do HEAD sai mesmo assim.
+        if current != Some(new) {
+            if current.is_none() {
+                self.df_conflict(&target)?;
+            }
+            let path = self.ref_file(&target);
+            let mut lock = self.lock_ref(&target, &path)?;
+            lock.write(format!("{new}\n").as_bytes()).map_err(|e| Fail::Fatal(format!("couldn't write '{}': {}", os::lossy(lock.lock_path()), e.message())))?;
+            lock.commit().map_err(|e| Fail::Fatal(format!("couldn't set '{target}': {}", e.message())))?;
+            self.log_ref_update(&target, old_id, new, msg)?;
+        }
         // Quem atualiza o ramo do HEAD também deixa entrada no reflog do HEAD.
         if target != "HEAD"
             && (name == "HEAD" && !no_deref || self.symref_target("HEAD")?.as_deref() == Some(target.as_str()))
@@ -530,17 +536,32 @@ impl Repo {
         os::write_locked(&path, &data).map_err(Fail::Fatal)
     }
 
-    /// Renomeia o arquivo de reflog (branch -m).
-    pub fn rename_reflog(&self, old: &str, new: &str) -> R<()> {
+    /// Primeira metade da renomeação de reflog (`branch -m`), como o `files_copy_or_rename_ref`:
+    /// o log sai para `logs/refs/.tmp-renamed-log`, para a ref antiga poder ser apagada (com os
+    /// diretórios que esvaziarem) antes de o log ocupar o caminho novo. Devolve se havia log.
+    pub fn stash_reflog(&self, old: &str) -> R<bool> {
         let a = self.log_file(old);
-        let b = self.log_file(new);
-        if os::exists(&a) {
-            let _ = os::mkdir_parents(&b);
-            os::rename(&a, &b).map_err(|e| Fail::Fatal(format!("unable to move logfile {} to {}: {}", os::lossy(&a), os::lossy(&b), e.message())))?;
-            let base = if is_per_worktree(old) { self.git_dir.clone() } else { self.common_dir.clone() };
-            os::remove_empty_parents(os::dirname(&a), &os::join(&base, b"logs/refs"));
+        if !os::exists(&a) {
+            return Ok(false);
         }
-        Ok(())
+        let tmp = self.common("logs/refs/.tmp-renamed-log");
+        os::rename(&a, &tmp).map_err(|e| Fail::Fatal(format!("unable to move logfile logs/{old} to logs/refs/.tmp-renamed-log: {}", e.message())))?;
+        let base = if is_per_worktree(old) { self.git_dir.clone() } else { self.common_dir.clone() };
+        os::remove_empty_parents(os::dirname(&a), &os::join(&base, b"logs/refs"));
+        Ok(true)
+    }
+
+    /// Segunda metade (`rename_tmp_log`): põe o log guardado no caminho de `new`. Um diretório
+    /// vazio no caminho (sobra de `x/y` virando `x`) é removido e a renomeação tentada de novo.
+    pub fn unstash_reflog(&self, new: &str) -> R<()> {
+        let tmp = self.common("logs/refs/.tmp-renamed-log");
+        let b = self.log_file(new);
+        let _ = os::mkdir_parents(&b);
+        let mut r = os::rename(&tmp, &b);
+        if matches!(r, Err(Errno::EISDIR | Errno::ENOTEMPTY | Errno::EEXIST)) && os::remove_empty_dirs(&b) {
+            r = os::rename(&tmp, &b);
+        }
+        r.map_err(|e| Fail::Fatal(format!("unable to move logfile {} to {}: {}", os::lossy(&tmp), os::lossy(&b), e.message())))
     }
 }
 
