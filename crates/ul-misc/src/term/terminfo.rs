@@ -481,8 +481,8 @@ pub fn name_match(namelst: &[u8], name: &[u8]) -> bool {
 
 /// A lista de diretórios do banco (`_nc_first_db`/`_nc_next_db`): `$TERMINFO`, `$HOME/.terminfo`,
 /// `$TERMINFO_DIRS`, os diretórios compilados no ncurses do Debian, sem repetidos nem inexistentes.
-pub fn db_dirs(tic_dir: Option<&[u8]>) -> Vec<Vec<u8>> {
-    let env = |n: &str| sys::getenv(n).filter(|v| !v.is_empty());
+pub fn db_candidates(tic_dir: Option<&[u8]>) -> Vec<Vec<u8>> {
+    let env =|n: &str| sys::getenv(n).filter(|v| !v.is_empty());
     let mut values: Vec<Vec<u8>> = Vec::new();
     values.push(tic_dir.map(<[u8]>::to_vec).unwrap_or_default());
     values.push(env("TERMINFO").unwrap_or_default());
@@ -538,6 +538,12 @@ pub fn db_dirs(tic_dir: Option<&[u8]>) -> Vec<Vec<u8>> {
             cleaned.push(item);
         }
     }
+    cleaned
+}
+
+/// Os diretórios do banco que existem de fato (sem repetir o mesmo diretório).
+pub fn db_dirs(tic_dir: Option<&[u8]>) -> Vec<Vec<u8>> {
+    let cleaned = db_candidates(tic_dir);
     let mut seen: Vec<(u64, u64)> = Vec::new();
     let mut out: Vec<Vec<u8>> = Vec::new();
     for item in cleaned {

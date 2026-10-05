@@ -1,0 +1,36 @@
+tool = "grpck"
+source = "manual"
+
+# grpck do shadow 4.17, só o modo -r (leitura): arquivos montados no caso.
+
+[[case]]
+id = "grpck-read-only-clean"
+script = "printf 'root:x:0:\\n' > gr; grpck -r gr; echo \"rc=$?\""
+
+[[case]]
+id = "grpck-read-only-bad-field-count"
+script = "printf 'dev:x:50\\n' > gr; grpck -r gr 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "grpck-read-only-duplicate"
+script = "printf 'dev:x:50:\\ndev:x:51:\\n' > gr; grpck -r gr 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "grpck-read-only-unknown-member"
+script = "printf 'dev:x:50:ghost\\n' > gr; printf 'root:x:0:0:r:/:/bin/sh\\n' > pw; grpck -r gr 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "grpck-read-only-gshadow-orphan"
+script = "printf 'root:x:0:\\n' > gr; printf 'root:*::\\nghost:!::\\n' > sh; grpck -r gr sh 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "grpck-missing-file"
+script = "grpck -r nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "grpck-invalid-option"
+script = "grpck -Z 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "grpck-help"
+script = "grpck -h; echo \"rc=$?\""

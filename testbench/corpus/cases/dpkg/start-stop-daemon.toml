@@ -1,0 +1,82 @@
+tool = "start-stop-daemon"
+source = "manual"
+
+# start-stop-daemon do dpkg 1.22.21. Casos determinísticos: ajuda, versão, erros de uso, --test e
+# --status sem processo.
+
+[[case]]
+id = "ssd-help"
+argv = ["start-stop-daemon", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "ssd-version"
+argv = ["start-stop-daemon", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "ssd-no-command"
+argv = ["start-stop-daemon", "--name", "x"]
+tags = ["usage"]
+
+[[case]]
+id = "ssd-no-match-option"
+argv = ["start-stop-daemon", "--start"]
+tags = ["usage"]
+
+[[case]]
+id = "ssd-start-needs-exec"
+argv = ["start-stop-daemon", "--start", "--name", "x"]
+tags = ["usage"]
+
+[[case]]
+id = "ssd-bad-signal"
+argv = ["start-stop-daemon", "--stop", "--signal", "NOPE", "--name", "x"]
+tags = ["usage"]
+
+[[case]]
+id = "ssd-bad-option"
+argv = ["start-stop-daemon", "--bogus"]
+tags = ["usage"]
+
+[[case]]
+id = "ssd-stop-none"
+script = "start-stop-daemon --stop --name inexistente-zz; echo $?"
+tags = ["stop"]
+
+[[case]]
+id = "ssd-stop-none-oknodo"
+script = "start-stop-daemon --stop --oknodo --name inexistente-zz; echo $?"
+tags = ["stop"]
+
+[[case]]
+id = "ssd-stop-none-quiet"
+script = "start-stop-daemon --stop --quiet --name inexistente-zz; echo $?"
+tags = ["stop"]
+
+[[case]]
+id = "ssd-status-stopped"
+script = "start-stop-daemon --status --name inexistente-zz; echo $?"
+tags = ["status"]
+
+[[case]]
+id = "ssd-status-stale-pidfile"
+script = "start-stop-daemon --status --pidfile p; echo $?"
+tags = ["status"]
+[case.files]
+"p" = "999999\n"
+
+[[case]]
+id = "ssd-start-test"
+script = "start-stop-daemon --start --test --exec /bin/true -- a b; echo $?"
+tags = ["start", "test"]
+
+[[case]]
+id = "ssd-start-test-startas"
+script = "start-stop-daemon -S -t -x /bin/true -a /bin/echo -- oi; echo $?"
+tags = ["start", "test"]
+
+[[case]]
+id = "ssd-start-foreground"
+script = "start-stop-daemon --start --exec /bin/echo -- ola mundo; echo $?"
+tags = ["start"]

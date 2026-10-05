@@ -1,0 +1,32 @@
+tool = "groupdel"
+source = "manual"
+
+# groupdel do shadow 4.17 sobre um prefixo (-P .) montado no caso.
+
+[[case]]
+id = "groupdel-basic"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'root:*::\\ndev:!::\\n' > etc/gshadow; groupdel -P . dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+
+[[case]]
+id = "groupdel-missing"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupdel -P . nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "groupdel-primary-group"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'bob:x:1000:50:b:/:/bin/sh\\n' > etc/passwd; groupdel -P . dev 2>&1; echo \"rc=$?\"; cat etc/group"
+
+[[case]]
+id = "groupdel-primary-group-force"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'bob:x:1000:50:b:/:/bin/sh\\n' > etc/passwd; groupdel -P . -f dev 2>&1; echo \"rc=$?\"; cat etc/group"
+
+[[case]]
+id = "groupdel-no-args"
+script = "groupdel 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "groupdel-invalid-option"
+script = "groupdel -Z dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "groupdel-help"
+script = "groupdel -h; echo \"rc=$?\""

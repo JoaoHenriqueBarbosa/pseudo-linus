@@ -18,7 +18,7 @@ use std::io::Write;
 use sysabi::{AtFlags, Ctx, Errno, Fd, FileType, OFlags, sys};
 
 use super::dump::{Dump, OutForm, PredFn, SortMode, dump_predicate, repair_acsc};
-use super::terminfo::{Str, TermType, db_dirs, name_match, read_file_entry};
+use super::terminfo::{Str, TermType, db_candidates, db_dirs, name_match, read_file_entry};
 use super::{
     BOOLCOUNT, BOOLS, BOOLWRITE, Kind, NUMCOUNT, NUMS, NUMWRITE, STRCOUNT, STRS, STRWRITE, VERSION,
     find_type_entry, first_name, rootname, strtol,
@@ -253,6 +253,8 @@ struct Raw {
     pos: Vec<Pos>,
     line: usize,
     comment: Vec<u8>,
+    /// A fonte termina em `\n`.
+    eof_newline: bool,
 }
 
 /// Um campo terminado por vírgula: o texto e onde o scanner estava ao consumir a vírgula.
@@ -294,12 +296,12 @@ fn split_fields(raw: &Raw) -> Vec<Field> {
         i += 1;
     }
     // Uma capacidade no fim do arquivo sem vírgula ainda vale, com um aviso (o scanner avisa depois de
-    // ler o fim do arquivo, uma coluna adiante do último caractere).
+    // ler o fim do arquivo: uma coluna adiante do último caractere, duas se não há `\n` no fim).
     if !fields.is_empty() && !trim_start(&cur).is_empty() {
         if let Some(&(l, c)) = raw.pos.last() {
             fields.push(Field {
                 text: cur,
-                end: (l, c + 1),
+                end: (l, c + if raw.eof_newline { 1 } else { 2 }),
                 start,
                 unterminated: true,
             });
@@ -363,6 +365,7 @@ fn split_entries(data: &[u8]) -> (Vec<Raw>, Pos) {
                 pos: Vec::new(),
                 line: lineno,
                 comment: std::mem::take(&mut pending),
+                eof_newline: data.last() == Some(&b'\n'),
             };
             for (i, b) in line.iter().enumerate() {
                 r.body.push(*b);
@@ -375,6 +378,22 @@ fn split_entries(data: &[u8]) -> (Vec<Raw>, Pos) {
         out.push(r);
     }
     (out, (last_line, last_col))
+}
+
+/// A primeira linha que não é comentário nem está em branco, quando ela começa com espaço (a fonte
+/// não abre com os nomes de um terminal em coluna um).
+fn leading_indented_line(data: &[u8]) -> Option<(usize, &[u8])> {
+    for (n, line) in data.split(|b| *b == b'\n').enumerate() {
+        if line.first() == Some(&b'#') || line.iter().all(|b| super::c_isspace(*b)) {
+            continue;
+        }
+        return if super::c_isspace(line[0]) {
+            Some((n + 1, line))
+        } else {
+            None
+        };
+    }
+    None
 }
 
 fn trim_start(s: &[u8]) -> &[u8] {
@@ -440,11 +459,21 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
     if names.is_empty() {
         return None;
     }
-    // O scanner já leu o caractere depois da vírgula do campo de nomes: a coluna avisada é a seguinte.
-    let (nline, ncol) = (first.end.0, first.end.1 + 1);
-    // `check_name`/`_nc_parse_entry`: um nome com barra não vale, e uma descrição sem espaço pode
-    // ser tomada por apelido pelos tics antigos.
-    if names.contains(&b'/') {
+    // O scanner já leu o caractere depois da vírgula do campo de nomes: se ele é o fim da linha, a
+    // coluna avisada é a seguinte; se é outro caractere da mesma linha, fica na própria vírgula.
+    let comma_idx = first.start + first.text.len();
+    let at_eol = match raw.pos.get(comma_idx + 1) {
+        Some(&(l, _)) => l != first.end.0,
+        None => true,
+    };
+    let (nline, ncol) = (first.end.0, if at_eol { first.end.1 + 1 } else { first.end.1 });
+    // `check_name`/`_nc_parse_entry`: um nome com barra não vale (a descrição, depois do último
+    // `|`, pode ter barra), e uma descrição sem espaço pode ser tomada por apelido pelos tics antigos.
+    let name_part: &[u8] = match names.iter().rposition(|b| *b == b'|') {
+        Some(p) => &names[..p],
+        None => &names,
+    };
+    if name_part.contains(&b'/') {
         diag.warn(
             Some(nline),
             Some(ncol),
@@ -495,10 +524,18 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
         let warn = |msg: String| diag.warn(Some(line), Some(col), &term, &msg);
         let c0 = f[0];
         if !(c0.is_ascii_alphanumeric() || c0 == b'_' || b"@%&*!#".contains(&c0)) {
-            warn(format!(
-                "Illegal character (expected alphanumeric or @%&*!#) - '{}'",
-                unctrl(c0)
-            ));
+            // O scanner leu o caractere ilegal: a coluna avisada é a do caractere mais um.
+            let off = f.as_ptr() as usize - fld.text.as_ptr() as usize;
+            let (il, ic) = raw.pos[fld.start + off];
+            diag.warn(
+                Some(il),
+                Some(ic + 1),
+                &term,
+                &format!(
+                    "Illegal character (expected alphanumeric or @%&*!#) - '{}'",
+                    unctrl(c0)
+                ),
+            );
             continue;
         }
         // Um ':' no lugar do separador do nome da capacidade é sintaxe termcap misturada.
@@ -670,7 +707,10 @@ fn lookup_db(name: &[u8]) -> Option<Entry> {
 /// O problema que a resolução dos `use=` encontrou: o terminal e a mensagem do `_nc_warning`.
 struct ResolveErr {
     term: Vec<u8>,
-    msg: String,
+    /// As mensagens, na ordem em que o `_nc_resolve_uses2` as emite.
+    msgs: Vec<String>,
+    /// Uma referência circular: cada nível acima acrescenta o seu `problem with use=`.
+    circular: bool,
 }
 
 /// `_nc_resolve_uses2`: aplica os `use=` da entrada `idx`, recursivamente. Os `use=` valem na ordem
@@ -688,16 +728,26 @@ fn resolve(
     let uses = entries[idx].uses.clone();
     let mut merged = entries[idx].clone();
     for u in &uses {
-        let found = (0..entries.len()).find(|j| name_match(&entries[*j].names, u));
+        // Uma entrada não é candidata ao próprio `use=`: ele cai no banco instalado.
+        let found = (0..entries.len()).find(|j| *j != idx && name_match(&entries[*j].names, u));
         let base = match found {
             Some(j) => {
                 if stack.contains(&j) {
                     return Err(ResolveErr {
                         term: entries[idx].names.clone(),
-                        msg: format!("circular use= (or like) reference to {}", io::lossy(u)),
+                        msgs: vec![
+                            format!("problem with use={}", io::lossy(u)),
+                            "merge failed, infinite loop".to_string(),
+                        ],
+                        circular: true,
                     });
                 }
-                resolve(entries, done, j, stack)?;
+                if let Err(mut er) = resolve(entries, done, j, stack) {
+                    if er.circular {
+                        er.msgs.insert(0, format!("problem with use={}", io::lossy(u)));
+                    }
+                    return Err(er);
+                }
                 entries[j].clone()
             }
             None => match lookup_db(u) {
@@ -705,7 +755,8 @@ fn resolve(
                 None => {
                     return Err(ResolveErr {
                         term: entries[idx].names.clone(),
-                        msg: format!("resolution of use={} failed", io::lossy(u)),
+                        msgs: vec![format!("resolution of use={} failed", io::lossy(u))],
+                        circular: false,
                     });
                 }
             },
@@ -1175,6 +1226,7 @@ fn run(args: &[OsString]) -> i32 {
     let mut width: i32 = 60;
     let mut height: i32 = 65535;
     let mut v_opt: i32 = -1;
+    let mut v_seen = false;
     let mut last_opt = '?';
     let mut formatted = false;
     let mut literal = false;
@@ -1247,7 +1299,7 @@ fn run(args: &[OsString]) -> i32 {
                 let mut out = io::stdout();
                 // Com `TERMINFO` definido, os diretórios de sistema não entram na lista.
                 let from_env = sys::getenv("TERMINFO").is_some_and(|v| !v.is_empty());
-                for d in db_dirs(None) {
+                for d in db_candidates(None) {
                     if from_env
                         && matches!(
                             d.as_slice(),
@@ -1304,7 +1356,10 @@ fn run(args: &[OsString]) -> i32 {
             'r' => forceresolve = true,
             's' => showsummary = true,
             't' => suppress_untranslatable = true,
-            'v' => v_opt = 0,
+            'v' => {
+                v_opt = 0;
+                v_seen = true;
+            }
             'w' => width = 0,
             'x' => xflag = true,
             _ => usage(&progname),
@@ -1362,6 +1417,35 @@ fn run(args: &[OsString]) -> i32 {
     };
     let text_mode = infodump || capdump;
 
+    // Uma fonte cuja primeira linha útil começa com espaço não tem nomes na coluna um: o scanner
+    // a toma por lista de capacidades e para no primeiro caractere ilegal.
+    if let Some((lineno, line)) = leading_indented_line(&data) {
+        let start = line.iter().position(|b| !super::c_isspace(*b)).unwrap_or(0);
+        let bad = line[start..]
+            .iter()
+            .position(|b| !(b.is_ascii_alphanumeric() || *b == b'_' || b"@%&*!#".contains(b)));
+        let col = match bad {
+            Some(p) => {
+                let col = start + p + 1;
+                diag.warn(
+                    Some(lineno),
+                    Some(col),
+                    b"",
+                    &format!("Illegal character - '{}'", unctrl(line[start + p])),
+                );
+                col
+            }
+            None => line.len() + 1,
+        };
+        diag.warn(
+            Some(lineno),
+            Some(col),
+            b"",
+            "Entry does not start with terminal names in column one",
+        );
+        return 1;
+    }
+
     let (raws, eof_pos) = split_entries(&data);
     let mut entries: Vec<Entry> = Vec::new();
     for raw in &raws {
@@ -1388,7 +1472,14 @@ fn run(args: &[OsString]) -> i32 {
         for i in 0..entries.len() {
             let mut stack = Vec::new();
             if let Err(re) = resolve(&mut entries, &mut done, i, &mut stack) {
-                diag.warn(Some(eof_pos.0), Some(eof_pos.1), &re.term, &re.msg);
+                // Sem coluna: o `_nc_warning` sai com a linha onde o scanner parou (o fim da fonte).
+                for m in &re.msgs {
+                    diag.warn(Some(eof_pos.0), None, &re.term, m);
+                }
+                // Com `-c` o `tic` só avisa e segue conferindo as demais entradas.
+                if check_only {
+                    continue;
+                }
                 return 1;
             }
         }
@@ -1445,11 +1536,47 @@ fn run(args: &[OsString]) -> i32 {
             io::eprint(format!("{msg}\n"));
             return 1;
         }
+        // `_nc_set_writedir` guarda o caminho absoluto depois de conferir o diretório.
+        let dir = if dir.first() == Some(&b'/') {
+            dir
+        } else {
+            match sys::current().getcwd() {
+                Ok(mut cwd) => {
+                    if cwd.last() != Some(&b'/') {
+                        cwd.push(b'/');
+                    }
+                    cwd.extend_from_slice(&dir);
+                    cwd
+                }
+                Err(_) => dir,
+            }
+        };
         let mut written = 0usize;
+        let mut written_names: Vec<Vec<u8>> = Vec::new();
         for e in &entries {
             if !matches_list(&namelst, &e.names) {
                 continue;
             }
+            // Com `-v`, as conferências de `_nc_check_termtype2` avisam o que faz falta.
+            if v_seen {
+                let has = |n: &[u8]| {
+                    find_type_entry(n, Kind::Str).is_some_and(|i| e.strs[i].valid())
+                };
+                if !(has(b"cup") || (has(b"hpa") && has(b"vpa"))) {
+                    diag.warn(
+                        Some(e.line),
+                        None,
+                        &e.names,
+                        "terminal lacks cursor addressing",
+                    );
+                }
+            }
+            // `_nc_write_entry`: um nome já gravado nesta execução é definido duas vezes.
+            let primary = first_name(&e.names).to_vec();
+            if written_names.contains(&primary) {
+                diag.warn(Some(e.line), None, &e.names, "name multiply defined.");
+            }
+            written_names.push(primary);
             if let Err(msg) = write_entry(&dir, e, &progname, &diag) {
                 let _ = io::flush_stdout();
                 io::eprint(format!("{msg}\n"));
@@ -1552,7 +1679,7 @@ mod tests {
         let mut done = vec![false; 2];
         for i in 0..2 {
             resolve(&mut entries, &mut done, i, &mut Vec::new())
-                .map_err(|e| e.msg)
+                .map_err(|e| e.msgs)
                 .unwrap();
         }
         assert_eq!(entries[1].nums[find_type_entry(b"cols", Kind::Num).unwrap()], 100);

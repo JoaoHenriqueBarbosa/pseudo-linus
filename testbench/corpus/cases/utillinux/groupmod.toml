@@ -1,0 +1,60 @@
+tool = "groupmod"
+source = "manual"
+
+# groupmod do shadow 4.17 sobre um prefixo (-P .) montado no caso.
+
+[[case]]
+id = "groupmod-rename"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'root:*::\\ndev:!::\\n' > etc/gshadow; groupmod -P . -n ops dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+
+[[case]]
+id = "groupmod-gid"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; groupmod -P . -g 77 dev; echo \"rc=$?\"; cat etc/group"
+
+[[case]]
+id = "groupmod-gid-in-use"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; groupmod -P . -g 0 dev 2>&1; echo \"rc=$?\"; cat etc/group"
+
+[[case]]
+id = "groupmod-gid-non-unique"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; groupmod -P . -o -g 0 dev 2>&1; echo \"rc=$?\"; cat etc/group"
+
+[[case]]
+id = "groupmod-name-in-use"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; groupmod -P . -n root dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "groupmod-missing"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupmod -P . -g 5 nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "groupmod-password"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; printf 'dev:!::\\n' > etc/gshadow; groupmod -P . -p 'hash' dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+
+[[case]]
+id = "groupmod-users"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; printf 'dev:!::\\n' > etc/gshadow; printf 'bob:x:1000:1000:b:/:/bin/sh\\nann:x:1001:1001:a:/:/bin/sh\\n' > etc/passwd; groupmod -P . -U bob,ann dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+
+[[case]]
+id = "groupmod-users-append"
+script = "mkdir etc; printf 'dev:x:50:bob\\n' > etc/group; printf 'bob:x:1000:1000:b:/:/bin/sh\\nann:x:1001:1001:a:/:/bin/sh\\n' > etc/passwd; groupmod -P . -a -U ann dev; echo \"rc=$?\"; cat etc/group"
+
+[[case]]
+id = "groupmod-users-unknown"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; printf 'bob:x:1000:1000:b:/:/bin/sh\\n' > etc/passwd; groupmod -P . -U ghost dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "groupmod-append-without-users"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; groupmod -P . -a dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "groupmod-bad-gid"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; groupmod -P . -g xyz dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "groupmod-no-args"
+script = "groupmod 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "groupmod-help"
+script = "groupmod -h; echo \"rc=$?\""

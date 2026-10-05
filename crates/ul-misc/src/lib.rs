@@ -29,6 +29,7 @@ pub mod getconf;
 pub mod getent;
 pub mod getopt_cmd;
 pub mod gettext;
+pub mod groupmgmt;
 pub mod hardlink;
 pub mod hexdump;
 pub mod iconv;
@@ -52,6 +53,7 @@ pub mod run_parts;
 pub mod scriptreplay;
 pub mod setarch;
 pub mod setsid;
+pub mod start_stop_daemon;
 pub mod strings;
 pub mod taskset;
 pub mod tempfile;
@@ -137,8 +139,13 @@ pub fn programs() -> Vec<Program> {
         Program::bin("xxd", xxd::main),
         Program::bin("zdump", zdump::main),
         Program::sbin("add-shell", debscripts::add_shell_main),
+        Program::sbin("groupadd", groupmgmt::groupadd_main),
+        Program::sbin("groupdel", groupmgmt::groupdel_main),
+        Program::sbin("groupmod", groupmgmt::groupmod_main),
+        Program::sbin("grpck", groupmgmt::grpck_main),
         Program::sbin("nologin", nologin::main),
         Program::sbin("pwck", pwck::main),
         Program::sbin("remove-shell", debscripts::remove_shell_main),
+        Program::sbin("start-stop-daemon", start_stop_daemon::main),
     ]
 }
