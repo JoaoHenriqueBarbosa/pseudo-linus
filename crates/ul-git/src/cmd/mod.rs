@@ -16,6 +16,7 @@ pub mod misc;
 pub mod mv;
 pub mod plumbing;
 pub mod reffmt;
+pub mod reset;
 pub mod restore;
 pub mod rev_parse;
 pub mod rm;
@@ -96,6 +97,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "tag" => (Setup::Repo, tag::run),
         "branch" => (Setup::Repo, branch::run),
         "restore" => (Setup::WorkTree, restore::run),
+        "reset" => (Setup::Repo, reset::run),
         "checkout" => (Setup::WorkTree, checkout::run_checkout),
         "switch" => (Setup::WorkTree, checkout::run_switch),
         "log" => (Setup::Repo, log::run_log),

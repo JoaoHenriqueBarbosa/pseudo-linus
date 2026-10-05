@@ -218,6 +218,9 @@ fn reset_paths(git: &Git, p: &opts::Parsed, rev_text: Option<String>, paths: &[V
 }
 
 fn reset_commit(repo: &Repo, p: &opts::Parsed, mode: Mode, rev_text: Option<String>, quiet: bool) -> R<i32> {
+    if repo.work_tree.is_none() && mode != Mode::Soft {
+        return Err(Fail::Fatal(format!("{} reset is not allowed in a bare repository", mode.name())));
+    }
     let head_oid = repo.head_oid()?;
     let ipath = repo.index_path();
     let idx = Index::load(&ipath)?;
