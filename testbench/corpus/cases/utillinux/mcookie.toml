@@ -1,0 +1,237 @@
+tool = "mcookie"
+source = "manual"
+
+# mcookie do util-linux 2.41: a saída é aleatória, então os casos conferem só o formato (32 dígitos
+# hexadecimais e uma quebra de linha), as mensagens de -v no stderr, -f/-m e os erros.
+
+[[case]]
+id = "mcookie-help"
+argv = ["mcookie", "--help"]
+
+[[case]]
+id = "mcookie-help-short"
+argv = ["mcookie", "-h"]
+
+[[case]]
+id = "mcookie-version"
+argv = ["mcookie", "-V"]
+
+[[case]]
+id = "mcookie-invalid-option"
+argv = ["mcookie", "-x"]
+
+[[case]]
+id = "mcookie-unrecognized-option"
+argv = ["mcookie", "--bogus"]
+
+[[case]]
+id = "mcookie-file-missing-arg"
+argv = ["mcookie", "-f"]
+
+[[case]]
+id = "mcookie-max-size-missing-arg"
+argv = ["mcookie", "-m"]
+
+[[case]]
+id = "mcookie-long-prefix"
+script = "mcookie --verb 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-format"
+script = "mcookie | grep -cE '^[0-9a-f]{32}$'; mcookie | wc -c"
+
+[[case]]
+id = "mcookie-exit-status"
+script = "mcookie >/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "mcookie-two-runs-differ"
+script = "a=$(mcookie); b=$(mcookie); [ \"$a\" != \"$b\" ] && echo different"
+
+[[case]]
+id = "mcookie-same-seed-still-differs"
+script = "printf 'seed' > s; a=$(mcookie -f s); b=$(mcookie -f s); [ \"$a\" != \"$b\" ] && echo different"
+
+[[case]]
+id = "mcookie-stderr-empty-by-default"
+script = "mcookie 2>&1 >/dev/null | wc -c"
+
+[[case]]
+id = "mcookie-extra-operands-ignored"
+script = "mcookie extra operands | grep -cE '^[0-9a-f]{32}$'"
+
+[[case]]
+id = "mcookie-verbose"
+script = "mcookie -v 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-verbose-long"
+script = "mcookie --verbose 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-verbose-stdout-format"
+script = "mcookie -v 2>/dev/null | grep -cE '^[0-9a-f]{32}$'"
+
+[[case]]
+id = "mcookie-file-verbose"
+script = "printf 'abc' > f; mcookie -v -f f 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-file-verbose-one-byte"
+script = "printf 'a' > f; mcookie -v -f f 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-file-verbose-empty"
+script = ": > f; mcookie -v -f f 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-file-long-option"
+script = "printf 'abc' > f; mcookie --file=f -v 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-file-default-limit-4096"
+script = "head -c 10000 /dev/zero > big; mcookie -v -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-file-multiple"
+script = "printf 'abc' > a; printf 'de' > b; mcookie -v -f a -f b 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-file-missing"
+script = "mcookie -v -f nope 2>&1 >/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "mcookie-file-missing-then-good"
+script = "printf 'abc' > f; mcookie -v -f nope -f f 2>&1 >/dev/null; mcookie -f nope 2>/dev/null | grep -cE '^[0-9a-f]{32}$'"
+
+[[case]]
+id = "mcookie-file-stdin"
+script = "printf 'hello' | mcookie -v -f - 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-file-stdin-and-file"
+script = "printf 'hello' > f; printf 'xy' | mcookie -v -f - -f f 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-file-directory"
+script = "mkdir d; mcookie -v -f d 2>&1 >/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "mcookie-file-dev-null"
+script = "mcookie -v -f /dev/null 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size"
+script = "head -c 10000 /dev/zero > big; mcookie -v -m 100 -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-long"
+script = "head -c 10000 /dev/zero > big; mcookie -v --max-size=7 -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-larger-than-file"
+script = "printf 'abc' > f; mcookie -v -m 1000 -f f 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-more-than-default"
+script = "head -c 10000 /dev/zero > big; mcookie -v -m 9000 -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-applies-to-every-file"
+script = "head -c 100 /dev/zero > a; head -c 100 /dev/zero > b; mcookie -v -m 10 -f a -f b 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-without-file"
+script = "mcookie -m 10 2>&1 >/dev/null; mcookie -m 10 2>/dev/null | grep -cE '^[0-9a-f]{32}$'"
+
+[[case]]
+id = "mcookie-max-size-zero-means-default"
+script = "head -c 10000 /dev/zero > big; mcookie -v -m 0 -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-zero-without-file-silent"
+script = "mcookie -m 0 2>&1 >/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "mcookie-max-size-hex"
+script = "head -c 100 /dev/zero > big; mcookie -v -m 0x10 -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-octal"
+script = "head -c 100 /dev/zero > big; mcookie -v -m 010 -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-plus-and-space"
+script = "head -c 100 /dev/zero > big; mcookie -v -m +5 -f big 2>&1 >/dev/null; mcookie -v -m ' 6' -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-suffix-k"
+script = "head -c 5000 /dev/zero > big; mcookie -v -m 1K -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-suffix-kib"
+script = "head -c 5000 /dev/zero > big; mcookie -v -m 1KiB -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-suffix-kb"
+script = "head -c 5000 /dev/zero > big; mcookie -v -m 1KB -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-suffix-lowercase"
+script = "head -c 5000 /dev/zero > big; mcookie -v -m 1k -f big 2>&1 >/dev/null; mcookie -v -m 1kib -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-suffix-big-units"
+script = "head -c 5000 /dev/zero > big; mcookie -v -m 1M -f big 2>&1 >/dev/null; mcookie -v -m 1G -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-fraction"
+script = "head -c 5000 /dev/zero > big; mcookie -v -m 1.5K -f big 2>&1 >/dev/null; mcookie -v -m 0.5K -f big 2>&1 >/dev/null; mcookie -v -m 0.5KB -f big 2>&1 >/dev/null; mcookie -v -m 1.05K -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-fraction-zero-then-suffix"
+script = "head -c 5000 /dev/zero > big; mcookie -v -m 1.0K -f big 2>&1 >/dev/null; mcookie -v -m 1.K -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-fraction-double-dot"
+script = "head -c 5000 /dev/zero > big; mcookie -v -m 1..5K -f big 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-fraction-without-suffix"
+script = "mcookie -m 1.5 2>&1 >/dev/null; mcookie -m 1.0 2>&1 >/dev/null; mcookie -m 1. 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-invalid-text"
+script = "mcookie -m abc; echo \"rc=$?\""
+
+[[case]]
+id = "mcookie-max-size-empty"
+script = "mcookie -m ''; echo \"rc=$?\""
+
+[[case]]
+id = "mcookie-max-size-negative"
+script = "mcookie -m -1; mcookie -m ' -1'; mcookie -m -0"
+
+[[case]]
+id = "mcookie-max-size-trailing-junk"
+script = "mcookie -m 5x; mcookie -m 1KiBx; mcookie -m 1Ki; mcookie -m 1e3; mcookie -m 08; mcookie -m 0x; mcookie -m 0xg"
+
+[[case]]
+id = "mcookie-max-size-bad-suffix-only"
+script = "mcookie -m K; mcookie -m B; mcookie -m ' '"
+
+[[case]]
+id = "mcookie-max-size-out-of-range"
+script = "mcookie -m 16E; mcookie -m 2Y; mcookie -m 99999999999999999999; mcookie -m 18446744073709551616"
+
+[[case]]
+id = "mcookie-max-size-largest-fits"
+script = "printf 'abc' > f; mcookie -v -m 15E -f f 2>&1 >/dev/null; mcookie -v -m 18446744073709551615 -f f 2>&1 >/dev/null"
+
+[[case]]
+id = "mcookie-max-size-error-stops-before-output"
+script = "mcookie -m zz 2>/dev/null | wc -c"
+
+[[case]]
+id = "mcookie-max-size-last-wins"
+script = "head -c 100 /dev/zero > big; mcookie -v -m 10 -m 20 -f big 2>&1 >/dev/null"

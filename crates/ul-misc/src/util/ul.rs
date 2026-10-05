@@ -75,6 +75,179 @@ pub fn is_space(b: u8) -> bool {
     matches!(b, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
 }
 
+/// `strtoumax(s, &end, 0)`: o valor e o índice onde a leitura parou (0 quando não leu nada).
+/// Overflow é ERANGE.
+fn strtoumax0(s: &[u8]) -> Result<(u64, usize), Errno> {
+    let at = |i: usize| s.get(i).copied().unwrap_or(0);
+    let mut i = 0;
+    while is_space(at(i)) {
+        i += 1;
+    }
+    if at(i) == b'+' {
+        i += 1;
+    }
+    let (base, mut j): (u64, usize) = if at(i) == b'0' && matches!(at(i + 1), b'x' | b'X') && at(i + 2).is_ascii_hexdigit() {
+        (16, i + 2)
+    } else if at(i) == b'0' {
+        (8, i)
+    } else {
+        (10, i)
+    };
+    let digit = |b: u8| -> Option<u64> { char::from(b).to_digit(base as u32).map(u64::from) };
+    let start = j;
+    let mut value: u64 = 0;
+    let mut overflow = false;
+    while let Some(d) = digit(at(j)) {
+        match value.checked_mul(base).and_then(|v| v.checked_add(d)) {
+            Some(v) => value = v,
+            None => overflow = true,
+        }
+        j += 1;
+    }
+    if j == start {
+        return Ok((0, 0));
+    }
+    if overflow {
+        return Err(Errno::ERANGE);
+    }
+    Ok((value, j))
+}
+
+/// `do_scale_by_power`: multiplica `x` por `base` `power` vezes; `false` no overflow.
+fn scale_by_power(x: &mut u64, base: u64, power: u32) -> bool {
+    for _ in 0..power {
+        if u64::MAX / base < *x {
+            return false;
+        }
+        *x *= base;
+    }
+    true
+}
+
+/// `parse_size`/`strtosize` do util-linux: número (decimal, octal `0..` ou hexa `0x..`) com sufixo
+/// opcional `K`, `M`, `G`, `T`, `P`, `E`, `Z`, `Y` (potência de 1024; `KiB`, ou minúsculas) ou `KB`
+/// (potência de 1000), e fração com ponto (`1.5K`, `0.5MB`). Erro é EINVAL (lixo, vazio, negativo) ou
+/// ERANGE (não cabe em 64 bits).
+pub fn parse_size(s: &[u8]) -> Result<u64, Errno> {
+    let at = |i: usize| s.get(i).copied().unwrap_or(0);
+    if s.is_empty() {
+        return Err(Errno::EINVAL);
+    }
+    let mut p = 0;
+    while is_space(at(p)) {
+        p += 1;
+    }
+    if at(p) == b'-' {
+        return Err(Errno::EINVAL);
+    }
+    let (mut x, end) = strtoumax0(s)?;
+    if end == 0 {
+        return Err(Errno::EINVAL);
+    }
+    if at(end) == 0 {
+        return Ok(x); // without suffix
+    }
+    p = end;
+    let mut frac: u64 = 0;
+    let mut frac_zeros = 0u32;
+    let mut base: u64 = 1024;
+    loop {
+        if p >= s.len() {
+            // Depois da fração sobrou só o fim da cadeia: o original lê além dela e dá EINVAL.
+            return Err(Errno::EINVAL);
+        }
+        if at(p + 1) == b'i' && matches!(at(p + 2), b'B' | b'b') && at(p + 3) == 0 {
+            base = 1024; // XiB, 2^N
+            break;
+        } else if matches!(at(p + 1), b'B' | b'b') && at(p + 2) == 0 {
+            base = 1000; // XB, 10^N
+            break;
+        } else if at(p + 1) != 0 {
+            if frac == 0 && at(p) == b'.' {
+                let mut q = p + 1;
+                while at(q) == b'0' {
+                    frac_zeros += 1;
+                    q += 1;
+                }
+                let fstr = q;
+                let end2;
+                if at(fstr).is_ascii_digit() {
+                    let (f, e) = strtoumax0(&s[fstr..]).map_err(|_| Errno::ERANGE)?;
+                    frac = f;
+                    end2 = fstr + e;
+                } else {
+                    end2 = q;
+                }
+                if frac != 0 && at(end2) == 0 {
+                    return Err(Errno::EINVAL); // without suffix, but with frac
+                }
+                p = end2;
+                continue;
+            }
+            return Err(Errno::EINVAL); // unexpected suffix
+        } else {
+            break;
+        }
+    }
+
+    const SUF: &[u8] = b"KMGTPEZY";
+    const SUF2: &[u8] = b"kmgtpezy";
+    let c = at(p);
+    let pwr: u32 = if let Some(i) = SUF.iter().position(|&b| b == c) {
+        i as u32 + 1
+    } else if let Some(i) = SUF2.iter().position(|&b| b == c) {
+        i as u32 + 1
+    } else {
+        return Err(Errno::EINVAL);
+    };
+
+    if !scale_by_power(&mut x, base, pwr) {
+        return Err(Errno::ERANGE);
+    }
+    if frac != 0 && pwr != 0 {
+        let mut frac_div: u64 = 10;
+        let mut frac_poz: u64 = 1;
+        let mut frac_base: u64 = 1;
+        // mega, giga, ...
+        scale_by_power(&mut frac_base, base, pwr);
+        // divisor máximo pro último dígito (0.05 dá 100, 0.054 dá 1000...)
+        while frac_div < frac {
+            if frac_div <= u64::MAX / 10 {
+                frac_div *= 10;
+            } else {
+                frac /= 10;
+            }
+        }
+        // 'frac' não tem os zeros à esquerda (5 vale 0.5 e 0.05)
+        for _ in 0..frac_zeros {
+            if frac_div <= u64::MAX / 10 {
+                frac_div *= 10;
+            } else {
+                frac /= 10;
+            }
+        }
+        // do último dígito pra trás, soma o que o dígito vale na base (0.25G: 5 é 1GiB / (100/5))
+        loop {
+            let seg = frac % 10;
+            let seg_div = frac_div.checked_div(frac_poz).unwrap_or(0);
+            frac /= 10;
+            frac_poz = frac_poz.wrapping_mul(10);
+            if seg != 0 && seg_div / seg != 0 {
+                x = x.wrapping_add(frac_base / (seg_div / seg));
+            }
+            if frac == 0 {
+                break;
+            }
+        }
+    }
+    Ok(x)
+}
+
+/// `strtosize_or_err`: como [`parse_size`], com a mensagem `<what>: '<arg>': <strerror>` do `err()`.
+pub fn strtosize_or_err(arg: &[u8], what: &str) -> Result<u64, String> {
+    parse_size(arg).map_err(|e| format!("{what}: '{}': {}", io::lossy(arg), e.message()))
+}
+
 /// `wcwidth` do C.UTF-8: -1 pra controle, 0 pra combinante, 1 ou 2 pro resto.
 pub fn wcwidth(c: char) -> i32 {
     let u = c as u32;
