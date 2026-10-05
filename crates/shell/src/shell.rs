@@ -332,12 +332,18 @@ impl Shell {
         self.source_stack.last().cloned()
     }
 
+    /// Estamos no `sh` do Debian (dash): erros de execução com o formato `sh: N: ` e o "not found"
+    /// seco para comando que não existe.
+    pub fn dash_style(&self) -> bool {
+        self.posix && self.arg0 == b"sh"
+    }
+
     /// Prefixo `bash: line N: ` dos erros de execução.
     pub fn error_prefix(&self) -> String {
         if self.interactive {
             return format!("{}: ", self.error_name());
         }
-        if self.posix && self.arg0 == b"sh" {
+        if self.dash_style() {
             return format!("{}: {}: ", self.error_name(), self.lineno);
         }
         format!("{}: line {}: ", self.error_name(), self.lineno)
