@@ -96,15 +96,27 @@ fn tokenizer_error(e: &TokenizerError, src: &str, offset: Line) -> SyntaxError {
 
 /// Os primeiros `k` tokens podem começar um programa válido (parseiam, ou só falta texto)?
 fn viable(tokens: &[Token], k: usize, opts: &ParserOptions) -> bool {
-    match brush_parser::parse_tokens(&tokens[..k], opts) {
-        Ok(_) => true,
-        // Só o fim do texto sem mais nada a consumir quer dizer "falta texto". Falha marcada num
-        // token do prefixo (inclusive no último) é um token que nenhuma continuação conserta: o PEG
-        // registra a falha mais distante, e uma alternativa que tivesse consumido o prefixo inteiro
-        // e esperasse mais empurraria a falha para o fim (`if then`: o erro é o `then`).
-        Err(ParseError::ParsingAtEndOfInput) => true,
-        Err(_) => false,
-    }
+    matches!(brush_parser::parse_tokens(&tokens[..k], opts), Ok(_) | Err(ParseError::ParsingAtEndOfInput))
+}
+
+const RESERVED: [&str; 18] =
+    ["if", "then", "else", "elif", "fi", "do", "done", "case", "esac", "while", "until", "for", "select", "in", "function", "{", "}", "!"];
+
+fn is_reserved(t: &Token) -> bool {
+    matches!(t, Token::Word(w, _) if RESERVED.contains(&w.as_str()))
+}
+
+/// A palavra reservada `tokens[k - 1]` está num lugar onde o bash a aceita?
+///
+/// O PEG do brush aceita uma palavra reservada fora de lugar em alguma alternativa e só falha no
+/// token seguinte (ou, se ela é o último, diz que falta texto): `if then fi` falha no `fi`, e
+/// `echo a; fi` "precisa de mais". Toda palavra reservada legítima pode ser seguida de quebra de
+/// linha, então o prefixo até ela, mais uma quebra de linha sintética, separa os dois casos.
+fn reserved_fits(tokens: &[Token], k: usize, opts: &ParserOptions) -> bool {
+    let end = tokens[k - 1].location().end.clone();
+    let mut with_nl = tokens[..k].to_vec();
+    with_nl.push(Token::Operator("\n".to_string(), brush_parser::SourceSpan { start: end.clone(), end }));
+    matches!(brush_parser::parse_tokens(&with_nl, opts), Ok(_) | Err(ParseError::ParsingAtEndOfInput))
 }
 
 /// O regex do `[[ x =~ ... ]]` tem `(` sem o `)` correspondente até o fim do texto?
@@ -167,7 +179,7 @@ fn unclosed_regex_paren(tokens: &[Token]) -> Option<usize> {
 }
 
 /// Como o bash (um parser LR), o token do erro é o primeiro que não pode continuar o que veio
-/// antes: o fim do maior prefixo viável, achado por busca binária.
+/// antes. O brush diz onde o PEG parou; o culpado é esse token ou a palavra reservada antes dele.
 fn parse_error(e: &ParseError, tokens: &[Token], src: &str, offset: Line, opts: &ParserOptions) -> SyntaxError {
     if let ParseError::Tokenizing { inner, .. } = e {
         return tokenizer_error(inner, src, offset);
@@ -178,21 +190,32 @@ fn parse_error(e: &ParseError, tokens: &[Token], src: &str, offset: Line, opts: 
         return err;
     }
     let n = tokens.len();
-    if viable(tokens, n, opts) && matches!(e, ParseError::ParsingAtEndOfInput) {
-        return SyntaxError::new(eof_line(src, offset), "syntax error: unexpected end of file".to_string());
-    }
-    let (mut lo, mut hi) = (0usize, n);
-    // Invariante: viable(lo), !viable(hi) (ou hi == n com erro).
-    while lo + 1 < hi {
-        let mid = (lo + hi) / 2;
-        if viable(tokens, mid, opts) {
-            lo = mid;
-        } else {
-            hi = mid;
+    let culprit = match e {
+        ParseError::ParsingAtEndOfInput => {
+            (n > 0 && is_reserved(&tokens[n - 1]) && !reserved_fits(tokens, n, opts)).then(|| n - 1)
         }
-    }
-    let idx = if viable(tokens, hi, opts) { None } else { Some(hi - 1) };
-    match idx.and_then(|i| tokens.get(i)) {
+        // A falha mais distante do PEG: o token nela, ou a palavra reservada logo antes dele.
+        ParseError::ParsingNear(pos) => match tokens.iter().position(|t| t.location().start.index >= pos.index) {
+            Some(i) if i > 0 && is_reserved(&tokens[i - 1]) && !reserved_fits(tokens, i, opts) => Some(i - 1),
+            Some(i) => Some(i),
+            None if n > 0 && is_reserved(&tokens[n - 1]) && !reserved_fits(tokens, n, opts) => Some(n - 1),
+            None => None,
+        },
+        _ => {
+            // Sem posição: o token logo depois do maior prefixo viável (busca binária).
+            let (mut lo, mut hi) = (0usize, n);
+            while lo + 1 < hi {
+                let mid = (lo + hi) / 2;
+                if viable(tokens, mid, opts) {
+                    lo = mid;
+                } else {
+                    hi = mid;
+                }
+            }
+            (!viable(tokens, hi, opts)).then(|| hi - 1)
+        }
+    };
+    match culprit.and_then(|i| tokens.get(i)) {
         Some(tok) => {
             let text = match tok {
                 Token::Operator(s, _) if s == "\n" => "newline".to_string(),
@@ -426,6 +449,24 @@ mod tests {
         let p = parse("echo a\nif true; then\n  echo b\nfi\necho c\n").expect("parse");
         assert_eq!(p.program.commands.len(), 3);
         assert_eq!(p.starts, vec![1, 2, 5]);
+    }
+
+    #[test]
+    fn misplaced_reserved_words() {
+        for (src, tok) in [
+            ("if then\n", "then"),
+            ("if true; then fi\n", "fi"),
+            ("while do done", "do"),
+            ("echo a; fi\n", "fi"),
+            ("echo > ;", ";"),
+            ("then", "then"),
+            ("{ }", "}"),
+            ("if then echo; fi", "then"),
+            ("if true; then ;", ";"),
+        ] {
+            let e = parse(src).err().expect("erro");
+            assert_eq!(e.message, format!("syntax error near unexpected token `{tok}'"), "{src:?}");
+        }
     }
 
     #[test]
