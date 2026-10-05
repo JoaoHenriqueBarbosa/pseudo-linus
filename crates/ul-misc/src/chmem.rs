@@ -25,11 +25,10 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("zone", HasArg::Required, b'z' as i32),
 ];
 
-fn usage(short: &str) -> String {
-    let mut s = format!(
-        "
+fn usage(_short: &str) -> String {
+    r#"
 Usage:
- {short} [options] [SIZE|RANGE|BLOCKRANGE]
+ chmem [options] [SIZE|RANGE|BLOCKRANGE]
 
 Set a particular size or range of memory online or offline.
 
@@ -39,18 +38,19 @@ Options:
  -b, --blocks       use memory blocks
  -z, --zone <name>  select memory zone (see below)
  -v, --verbose      verbose output
-
  -h, --help         display this help
  -V, --version      display version
 
 Supported zones:
-"
-    );
-    for z in ZONES {
-        s.push_str(&format!(" {z}\n"));
-    }
-    s.push_str(&format!("\nFor more details see {short}(8).\n"));
-    s
+ DMA
+ DMA32
+ Normal
+ Highmem
+ Movable
+ Device
+
+For more details see chmem(8).
+"#.to_string()
 }
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

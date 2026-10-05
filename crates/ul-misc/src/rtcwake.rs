@@ -32,16 +32,18 @@ const KNOWN_MODES: &[&str] = &[
     "standby", "mem", "freeze", "disk", "no", "off", "on", "disable", "show",
 ];
 
-fn usage(short: &str) -> String {
-    format!(
-        "
+fn usage(_short: &str) -> String {
+    r#"
 Usage:
- {short} [options] [-d <device> | --device <device>] [-m standby | --mode standby] [-s <seconds> | --seconds <seconds> | -t <time_t> | --time <time_t>]
+ rtcwake [options]
 
-Enter a system sleep state until specified wakeup time.
+Enter a system sleep state until a specified wakeup time.
 
 Options:
  -a, --auto               reads the clock mode from adjust file (default)
+ -A, --adjfile <file>     specifies the path to the adjust file
+                            the default is /etc/adjtime
+     --date <timestamp>   date time of timestamp to wake
  -d, --device <device>    select rtc device (rtc0|rtc1|...)
  -n, --dry-run            does everything, but suspend
  -l, --local              RTC uses local timezone
@@ -55,9 +57,8 @@ Options:
  -h, --help               display this help
  -V, --version            display version
 
-For more details see {short}(8).
-"
-    )
+For more details see rtcwake(8).
+"#.to_string()
 }
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

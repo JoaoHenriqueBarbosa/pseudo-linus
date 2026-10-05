@@ -23,28 +23,29 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
-fn usage(short: &str) -> String {
-    format!(
-        "
+fn usage(_short: &str) -> String {
+    r#"
 Usage:
- {short} [options] [--] [<command> [<argument>...]]
- {short} [options] -p <pid>
+ uclampset [options]
+ uclampset [options] --pid <pid> | --system | <command> <arg>...
 
-Show or change the utilization clamping attributes of a process.
+Show or change the utilization clamping attributes.
 
 Options:
- -m, --util-min <num>  minimum utilization, from 0 to 1024
- -M, --util-max <num>  maximum utilization, from 0 to 1024
- -p, --pid <pid>       operate on an existing PID
- -R, --reset-on-fork   set reset-on-fork flag
- -v, --verbose         display status information
+ -m <value>           util_min value to set
+ -M <value>           util_max value to set
+ -a, --all-tasks      operate on all the tasks (threads) for a given pid
+ -p, --pid <pid>      operate on existing given pid
+ -s, --system         operate on system
+ -R, --reset-on-fork  set reset-on-fork flag
+ -v, --verbose        display status information
+ -h, --help           display this help
+ -V, --version        display version
 
- -h, --help            display this help
- -V, --version         display version
+Utilization value range is [0:1024]. Use special -1 value to reset to system's default.
 
-For more details see {short}(1).
-"
-    )
+For more details see uclampset(1).
+"#.to_string()
 }
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

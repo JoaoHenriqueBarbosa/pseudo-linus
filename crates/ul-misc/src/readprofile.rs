@@ -27,17 +27,17 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
-fn usage(short: &str) -> String {
-    format!(
-        "
+fn usage(_short: &str) -> String {
+    r#"
 Usage:
- {short} [options]
+ readprofile [options]
 
 Display kernel profiling information.
 
 Options:
- -m, --mapfile <mapfile>   (defaults: \"/boot/System.map\")
- -p, --profile <pro-file>  (default: \"/proc/profile\")
+ -m, --mapfile <mapfile>   (defaults: "/boot/System.map" and
+                                      "/boot/System.map-6.12.101+deb13-amd64")
+ -p, --profile <pro-file>  (default:  "/proc/profile")
  -M, --multiplier <mult>   set the profiling multiplier to <mult>
  -i, --info                print only info about the sampling step
  -v, --verbose             print verbose data
@@ -50,9 +50,8 @@ Options:
  -h, --help                display this help
  -V, --version             display version
 
-For more details see {short}(8).
-"
-    )
+For more details see readprofile(8).
+"#.to_string()
 }
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

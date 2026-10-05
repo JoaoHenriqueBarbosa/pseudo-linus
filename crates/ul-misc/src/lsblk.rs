@@ -139,11 +139,10 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("properties-by", HasArg::Required, 0x101),
 ];
 
-fn usage(short: &str) -> String {
-    let mut s = format!(
-        "
+fn usage(_short: &str) -> String {
+    r#"
 Usage:
- {short} [options] [<device> ...]
+ lsblk [options] [<device> ...]
 
 List information about block devices.
 
@@ -153,14 +152,16 @@ Options:
  -E, --dedup <column> de-duplicate output by <column>
  -I, --include <list> show only devices with specified major numbers
  -J, --json           use JSON output format
- -M, --merge          group parents of sub-trees (usable for RAIDs/Multi-path)
+ -M, --merge          group parents of sub-trees (RAIDs, Multi-path)
  -O, --output-all     output all columns
- -P, --pairs          use key=\"value\" output format
+ -P, --pairs          use key="value" output format
  -Q, --filter <expr>  print only lines matching the expression
+     --highlight <expr> colorize lines matching the expression
+     --ct-filter <expr> restrict the next counter
+     --ct <name>[:<param>[:<func>]] define a custom counter
+ -S, --scsi           output info about SCSI devices
  -N, --nvme           output info about NVMe devices
  -v, --virtio         output info about virtio devices
- -x, --sort <column>  sort output by <column>
- -S, --scsi           output info about SCSI devices
  -T, --tree[=<column>] use tree format output
  -a, --all            print all devices
  -b, --bytes          print SIZE in bytes instead of a human-readable format
@@ -171,28 +172,25 @@ Options:
  -l, --list           use list format output
  -m, --perms          output info about permissions
  -n, --noheadings     don't print headings
- -o, --output <list>  output columns
+ -o, --output <list>  output columns (see --list-columns)
  -p, --paths          print complete device path
  -r, --raw            use raw output format
  -s, --inverse        inverse dependencies
  -t, --topology       output info about topology
- -w, --width <num>    specifies output width as a number of characters
+ -w, --width <num>    specifies output width as number of characters
+ -x, --sort <column>  sort output by <column>
  -y, --shell          use column names that can be used as shell variables
  -z, --zoned          print zone related information
      --sysroot <dir>  use specified directory as system root
-     --properties-by <list> methods used to gather data (default: file,udev,blkid)
+     --properties-by <list>
+                      methods used to gather data (default: file,udev,blkid)
 
+ -H, --list-columns   list the available columns
  -h, --help           display this help
  -V, --version        display version
 
-Available output columns:
-"
-    );
-    for (name, help) in COLUMNS {
-        s.push_str(&format!(" {name:>11}  {help}\n"));
-    }
-    s.push_str(&format!("\nFor more details see {short}(8).\n"));
-    s
+For more details see lsblk(8).
+"#.to_string()
 }
 
 fn find_col(name: &str) -> Option<&'static str> {

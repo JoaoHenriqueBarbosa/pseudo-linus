@@ -26,31 +26,25 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
-fn usage(short: &str) -> String {
-    format!(
-        "
+fn usage(_short: &str) -> String {
+    r#"
 Usage:
- {short} -h
- {short} -c|-d|-e|-g <cpu-list>
- {short} -p <mode>
- {short} -r
+ chcpu [options]
 
 Configure CPUs in a multi-processor system.
 
 Options:
- -c, --configure <cpu-list>   configure the specified CPUs
- -d, --disable <cpu-list>     disable the specified CPUs
- -e, --enable <cpu-list>      enable the specified CPUs
- -g, --deconfigure <cpu-list> deconfigure the specified CPUs
- -p, --dispatch <mode>        set dispatching mode
- -r, --rescan                 trigger rescan of cpus
+ -e, --enable <cpu-list>       enable cpus
+ -d, --disable <cpu-list>      disable cpus
+ -c, --configure <cpu-list>    configure cpus
+ -g, --deconfigure <cpu-list>  deconfigure cpus
+ -p, --dispatch <mode>         set dispatching mode
+ -r, --rescan                  trigger rescan of cpus
+ -h, --help                    display this help
+ -V, --version                 display version
 
- -h, --help                   display this help
- -V, --version                display version
-
-For more details see {short}(8).
-"
-    )
+For more details see chcpu(8).
+"#.to_string()
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]

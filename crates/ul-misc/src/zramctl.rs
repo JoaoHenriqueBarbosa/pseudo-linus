@@ -49,40 +49,55 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
-fn usage(short: &str) -> String {
-    let mut s = format!(
-        "
+fn usage(_short: &str) -> String {
+    r#"
 Usage:
- {short} [options] <device>
- {short} -r <device> [...]
- {short} [options] -f | <device> -s <size>
+ zramctl [options] <device>
+ zramctl -r <device> [...]
+ zramctl [options] -f | <device> -s <size>
 
 Set up and control zram devices.
 
 Options:
- -a, --algorithm <alg>        compression algorithm to use
-     --algorithm-params <params>  algorithm parameters to use
- -b, --bytes                  print sizes in bytes rather than in human readable format
- -f, --find                   find a free device
- -n, --noheadings             don't print headings
- -o, --output <list>          columns to use for status output
-     --output-all             output all columns
-     --raw                    use raw status output format
- -r, --reset                  reset all specified devices
- -s, --size <size>            device size
- -t, --streams <number>       number of compression streams
+ -a, --algorithm <alg>              compression algorithm to use
+ -b, --bytes                        print sizes in bytes rather than in human readable format
+ -f, --find                         find a free device
+ -n, --noheadings                   don't print headings
+ -o, --output <list>                columns to use for status output
+     --output-all                   output all columns
+ -p, --algorithm-params <params>    algorithm parameters to use
+     --raw                          use raw status output format
+ -r, --reset                        reset all specified devices
+ -s, --size <size>                  device size
+ -t, --streams <number>             number of compression streams
 
- -h, --help                   display this help
- -V, --version                display version
+ -h, --help                display this help
+ -V, --version             display version
+
+Arguments:
+ Values for <size> may be followed by a suffix: KiB, MiB,
+ GiB, TiB, PiB, EiB, ZiB, or YiB (where the "iB" is optional).
+ <alg> is the name of an algorithm; supported are:
+   lzo, lz4, lz4hc, deflate, 842, zstd
+   (List may be inaccurate, consult man page.)
 
 Available output columns:
-"
-    );
-    for (n, h) in COLUMNS {
-        s.push_str(&format!(" {n:>11}  {h}\n"));
-    }
-    s.push_str(&format!("\nFor more details see {short}(8).\n"));
-    s
+        NAME  zram device name
+    DISKSIZE  limit on the uncompressed amount of data
+        DATA  uncompressed size of stored data
+       COMPR  compressed size of stored data
+   ALGORITHM  the selected compression algorithm
+     STREAMS  number of concurrent compress operations
+  ZERO-PAGES  empty pages with no allocated memory
+       TOTAL  all memory including allocator fragmentation and metadata overhead
+   MEM-LIMIT  memory limit used to store compressed data
+    MEM-USED  peak memory usage to store compressed data
+    MIGRATED  number of objects migrated by compaction
+  COMP-RATIO  compression ratio: DATA/TOTAL
+  MOUNTPOINT  where the device is mounted
+
+For more details see zramctl(8).
+"#.to_string()
 }
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

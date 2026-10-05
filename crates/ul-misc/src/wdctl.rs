@@ -36,38 +36,41 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
-fn usage(short: &str) -> String {
-    let mut s = format!(
-        "
+fn usage(_short: &str) -> String {
+    r#"
 Usage:
- {short} [options] [<device> ...]
+ wdctl [options] [<device> ...]
 
 Show the status of the hardware watchdog.
 
 Options:
- -f, --flags <list>      print selected flags only
- -F, --noflags           don't print information about flags
- -I, --noident           don't print watchdog identity information
- -n, --noheadings        don't print headings for flags table
- -O, --oneline           print all information on one line
- -o, --output <list>     output columns of the flags
+ -f, --flags <list>     print selected flags only
+ -F, --noflags          don't print information about flags
+ -I, --noident          don't print watchdog identity information
+ -n, --noheadings       don't print headings for flags table
+ -O, --oneline          print all information on one line
+ -o, --output <list>    output columns of the flags
  -p, --setpretimeout <sec> set watchdog pre-timeout
- -r, --raw               use raw output format for flags table
- -s, --settimeout <sec>  set watchdog timeout
- -T, --notimeouts        don't print watchdog timeouts
- -x, --flags-only        print only the flags table (same as -I -T)
+ -g, --setpregovernor <name> set pre-timeout governor
+ -r, --raw              use raw output format for flags table
+ -T, --notimeouts       don't print watchdog timeouts
+ -s, --settimeout <sec> set watchdog timeout
+ -x, --flags-only       print only flags table (same as -I -T)
 
- -h, --help              display this help
- -V, --version           display version
+ -h, --help             display this help
+ -V, --version          display version
 
-Available columns:
-"
-    );
-    for (n, h) in COLUMNS {
-        s.push_str(&format!(" {n:>11}  {h}\n"));
-    }
-    s.push_str(&format!("\nFor more details see {short}(8).\n"));
-    s
+No default device is available.
+
+Available output columns:
+          FLAG  flag name
+   DESCRIPTION  flag description
+        STATUS  flag status
+   BOOT-STATUS  flag boot status
+        DEVICE  watchdog device name
+
+For more details see wdctl(8).
+"#.to_string()
 }
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
