@@ -68,6 +68,32 @@ pub fn offset_seconds(sec: i64, tz: &TimeZone) -> i32 {
     tz.to_offset(ts).seconds()
 }
 
+/// Dias desde 1970-01-01 da data civil (algoritmo de Howard Hinnant; `month` de 1 a 12).
+fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
+    let y = if month <= 2 { year - 1 } else { year };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let mp = (month + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + day - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146_097 + doe - 719_468
+}
+
+/// `mktime` da glibc com `tm_isdst = -1`: os campos podem sair da faixa (mês 13, dia 0, segundo 62)
+/// e são normalizados; a hora local vira instante no fuso dado. Numa lacuna de horário de verão vale
+/// o deslocamento de antes, e numa sobreposição, o primeiro dos dois instantes.
+pub fn mktime(year: i64, mon0: i64, mday: i64, hour: i64, min: i64, sec: i64, tz: &TimeZone) -> i64 {
+    let y = year + mon0.div_euclid(12);
+    let m = mon0.rem_euclid(12);
+    let naive = (days_from_civil(y, m + 1, 1) + mday - 1) * 86_400 + hour * 3600 + min * 60 + sec;
+    let Ok(ts) = Timestamp::from_second(naive) else { return naive };
+    let dt = ts.to_zoned(TimeZone::UTC).datetime();
+    match tz.to_ambiguous_zoned(dt).compatible() {
+        Ok(z) => z.timestamp().as_second(),
+        Err(_) => naive,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -81,5 +107,8 @@ mod tests {
         let posix = from_spec(b"EST5EDT,M3.2.0,M11.1.0");
         assert_eq!(offset_seconds(1_768_478_400, &posix), -5 * 3600);
         assert_eq!(civil(0, &utc), (1970, 1, 1, 0, 0, 0));
+        assert_eq!(mktime(2026, 0, 15, 12, 0, 0, &utc), 1_768_478_400);
+        assert_eq!(mktime(2025, 12, 15, 12, 0, 0, &utc), 1_768_478_400);
+        assert_eq!(mktime(2026, 0, 15, 9, 0, 0, &sp), 1_768_478_400);
     }
 }

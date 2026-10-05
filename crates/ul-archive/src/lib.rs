@@ -41,5 +41,6 @@ pub fn programs() -> Vec<Program> {
         Program::bin("lzip", compress::lzip_main),
         Program::bin("zip", zip_cli::zip_main),
         Program::bin("unzip", zip_cli::unzip_main),
+        Program::bin("zipinfo", zip_cli::unzip_main),
     ]
 }

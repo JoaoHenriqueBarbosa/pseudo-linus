@@ -1,0 +1,26 @@
+UnZip 6.00 of 20 April 2009, by Debian. Original by Info-ZIP.
+
+Latest sources and executables are at ftp://ftp.info-zip.org/pub/infozip/ ;
+see ftp://ftp.info-zip.org/pub/infozip/UnZip.html for other sites.
+
+Compiled with gcc 14.2.0 for Unix (Linux ELF).
+
+UnZip special compilation options:
+        ACORN_FTYPE_NFS
+        COPYRIGHT_CLEAN (PKZIP 0.9x unreducing method not supported)
+        SET_DIR_ATTRIB
+        SYMLINKS (symbolic links supported, if RTL and file system permit)
+        TIMESTAMP
+        UNIXBACKUP
+        USE_EF_UT_TIME
+        USE_UNSHRINK (PKZIP/Zip 1.x unshrinking method supported)
+        USE_DEFLATE64 (PKZIP 4.x Deflate64(tm) supported)
+        UNICODE_SUPPORT [wide-chars, char coding: UTF-8] (handle UTF-8 paths)
+        LARGE_FILE_SUPPORT (large files over 2 GiB supported)
+        ZIP64_SUPPORT (archives using Zip64 for large files supported)
+        USE_BZIP2 (PKZIP 4.6+, using bzip2 lib version 1.0.8, 13-Jul-2019)
+        VMS_TEXT_CONV
+        WILD_STOP_AT_DIR
+        [decryption, version 2.11 of 05 Jan 2007]
+
+UnZip and ZipInfo environment options:
