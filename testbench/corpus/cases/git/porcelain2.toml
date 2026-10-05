@@ -233,6 +233,54 @@ GIT_AUTHOR_DATE = "1768478400 +0000"
 GIT_COMMITTER_DATE = "1768478400 +0000"
 
 [[case]]
+id = "git-describe-annotated-distance"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; git tag -a v1 -m v1; echo b >> f; git commit -qam two; echo c >> f; git commit -qam three; git describe; git describe HEAD~1; git describe v1; git describe --long v1; git describe --abbrev=0; git describe --abbrev=12 HEAD; git describe --exact-match HEAD; echo "exit=$?"; git describe --exact-match v1; rm -rf .git f'''
+tags = ["describe"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-describe-errors-tags-always"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; git describe; echo "exit=$?"; git describe --always; git tag light; echo b >> f; git commit -qam two; git describe; echo "exit=$?"; git describe --tags; git describe --tags --long light; git describe --always nope; echo "exit=$?"; git describe --long --abbrev=0; echo "exit=$?"; rm -rf .git f'''
+tags = ["describe", "error"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-describe-dirty-match-exclude"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; git tag -a v1.0 -m a; echo b >> f; git commit -qam two; git tag -a rc-1 -m b; echo c >> f; git commit -qam three; git describe; git describe --match 'v*'; git describe --exclude 'rc-*'; git describe --match 'x*'; echo "exit=$?"; git describe --dirty; echo d >> f; git describe --dirty; git describe --dirty=.mod; git describe --dirty HEAD; echo "exit=$?"; rm -rf .git f'''
+tags = ["describe"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-describe-merge-first-parent"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm base; git tag -a v1 -m v1; git switch -qc topic; echo t > t; git add t; git commit -qm topic; git tag -a v2 -m v2; git switch -q main; echo m > m; git add m; git commit -qm main; git merge --no-edit topic; git describe; git describe --first-parent; git describe --all; git describe --all HEAD~1; rm -rf .git f t m'''
+tags = ["describe", "merge"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
 id = "git-column"
 script = '''seq 1 30 | git column --mode=column --width=40; seq 1 12 | git column --mode=row --width=20; printf 'a\nbb\nccc\n' | git column --mode=column,dense --width=10 --padding=3'''
 tags = ["column"]

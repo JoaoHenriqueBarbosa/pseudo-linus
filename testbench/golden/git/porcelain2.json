@@ -5,6 +5,30 @@
     "exit": 0,
     "files": {}
   },
+  "git-describe-annotated-distance": {
+    "stdout": "v1-2-g7bf5bb6\nv1-1-g8d8f20b\nv1\nv1-0-gacc56ec\nv1\nv1-2-g7bf5bb6f0cbb\nexit=128\nv1\n",
+    "stderr": "fatal: no tag exactly matches '7bf5bb6f0cbbfd57debdf9176b3e149e48d15c6c'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-describe-dirty-match-exclude": {
+    "stdout": "rc-1-1-g7bf5bb6\nv1.0-2-g7bf5bb6\nv1.0-2-g7bf5bb6\nexit=128\nrc-1-1-g7bf5bb6\nrc-1-1-g7bf5bb6-dirty\nrc-1-1-g7bf5bb6.mod\nexit=128\n",
+    "stderr": "fatal: No names found, cannot describe anything.\nfatal: option '--dirty' and commit-ishes cannot be used together\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-describe-errors-tags-always": {
+    "stdout": "exit=128\nacc56ec\nexit=128\nlight-1-g8d8f20b\nlight-0-gacc56ec\nexit=128\nexit=128\n",
+    "stderr": "fatal: No names found, cannot describe anything.\nfatal: No annotated tags can describe '8d8f20b0668787a8523f751a039a5b30e343b221'.\nHowever, there were unannotated tags: try --tags.\nfatal: Not a valid object name nope\nfatal: options '--long' and '--abbrev=0' cannot be used together\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-describe-merge-first-parent": {
+    "stdout": "Merge made by the 'ort' strategy.\n t | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 t\nv2-2-g55baea4\nv1-2-g55baea4\nheads/main\ntags/v1-1-g55554f7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "git-log-graph-linear": {
     "stdout": "* 7bf5bb6 three\n* 8d8f20b two\n* acc56ec one\n* three\n* two\n* one\n* 7bf5bb6\n| three\n* 8d8f20b\n| two\n",
     "stderr": "",

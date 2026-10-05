@@ -8,6 +8,7 @@ pub mod checkout;
 pub mod column;
 pub mod commit;
 pub mod config_cmd;
+pub mod describe;
 pub mod diff_cmd;
 pub mod for_each_ref;
 pub mod init;
@@ -117,6 +118,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "whatchanged" => (Setup::Repo, log::run_whatchanged),
         "rev-list" => (Setup::Repo, log::run_rev_list),
         "shortlog" => (Setup::Gently, shortlog::run),
+        "describe" => (Setup::Repo, describe::run),
         "diff" => (Setup::Gently, diff_cmd::run_diff),
         "diff-index" => (Setup::Repo, diff_cmd::run_diff_index),
         "diff-files" => (Setup::WorkTree, diff_cmd::run_diff_files),
