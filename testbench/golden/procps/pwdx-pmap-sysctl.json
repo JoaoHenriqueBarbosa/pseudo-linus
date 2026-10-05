@@ -1,0 +1,128 @@
+{
+  "pmap-device-and-extended": {
+    "stdout": "exit=1\n",
+    "stderr": "pmap: options -c, -C, -d, -n, -N, -x, -X are mutually exclusive\n",
+    "exit": 0,
+    "files": {}
+  },
+  "pmap-header": {
+    "stdout": ":   bash -c pmap $$ | head -1 | sed 's/^[0-9]*//'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pmap-missing-pid": {
+    "stdout": "exit=42\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pmap-no-arguments": {
+    "stdout": "exit=1\n",
+    "stderr": "\nUsage:\n pmap [options] PID [PID ...]\n\nOptions:\n -x, --extended              show details\n -X                          show even more details\n            WARNING: format changes according to /proc/PID/smaps\n -XX                         show everything the kernel provides\n -c, --read-rc               read the default rc\n -C, --read-rc-from=<file>   read the rc from file\n -n, --create-rc             create new default rc\n -N, --create-rc-to=<file>   create new rc to file\n            NOTE: pid arguments are not allowed with -n, -N\n -d, --device                show the device format\n -q, --quiet                 do not display header and footer\n -p, --show-path             show path in the mapping\n -A, --range=<low>[,<high>]  limit results to the given range\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see pmap(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "pmap-quiet-first-mapping": {
+    "stdout": "bash -c $NF}'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pmap-version": {
+    "stdout": "pmap from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-invalid-pid": {
+    "stdout": "exit=1\n",
+    "stderr": "pwdx: invalid process id: abc\n",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-missing-pid": {
+    "stdout": "exit=1\n",
+    "stderr": "999999: No such process\n",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-no-arguments": {
+    "stdout": "exit=1\n",
+    "stderr": "\nUsage:\n pwdx [options] pid...\n\nOptions:\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see pwdx(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-own-shell": {
+    "stdout": ": /tmp\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-proc-prefix": {
+    "stdout": ": /\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-version": {
+    "stdout": "pwdx from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sysctl-missing-key": {
+    "stdout": "exit=1\n",
+    "stderr": "sysctl: cannot stat /proc/sys/x: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "sysctl-missing-key-ignored": {
+    "stdout": "exit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sysctl-names-and-quiet": {
+    "stdout": "exit=1\n",
+    "stderr": "sysctl: options -N and -q cannot coexist\nTry `sysctl --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "sysctl-no-variables": {
+    "stdout": "exit=1\n",
+    "stderr": "\nUsage:\n sysctl [options] [variable[=value] ...]\n\nOptions:\n  -a, --all            display all variables\n  -A                   alias of -a\n  -X                   alias of -a\n      --deprecated     include deprecated parameters to listing\n      --dry-run        Print the key and values but do not write\n  -b, --binary         print value without new line\n  -e, --ignore         ignore unknown variables errors\n  -N, --names          print variable names without values\n  -n, --values         print only values of the given variable(s)\n  -p, --load[=<file>]  read values from file\n  -f                   alias of -p\n      --system         read values from all system directories\n  -r, --pattern <expression>\n                       select setting that match expression\n  -q, --quiet          do not echo variable set\n  -w, --write          enable writing a value to variable\n  -o                   does nothing\n  -x                   does nothing\n  -d                   alias of -h\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see sysctl(8).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "sysctl-ostype": {
+    "stdout": "kernel.ostype = Linux\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sysctl-ostype-binary": {
+    "stdout": "Linux|\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sysctl-ostype-slash-name": {
+    "stdout": "kernel.ostype\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sysctl-ostype-value-only": {
+    "stdout": "Linux\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sysctl-version": {
+    "stdout": "sysctl from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

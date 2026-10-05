@@ -1,0 +1,111 @@
+tool = "procps"
+source = "manual"
+
+# pwdx, pmap e sysctl do procps-ng 4.0.4. O pid do shell muda a cada execução, então ele sai da
+# saída antes da comparação; os endereços do pmap mudam com o ASLR, então só o nome do primeiro
+# mapeamento do bash entra. No sysctl só chaves que não variam entre máquinas.
+
+[[case]]
+id = "pwdx-own-shell"
+script = "cd /tmp && pwdx $$ | sed 's/^[0-9]*//'"
+tags = ["pwdx"]
+
+[[case]]
+id = "pwdx-proc-prefix"
+script = "cd / && pwdx /proc/$$ | sed 's/^\\/proc\\/[0-9]*//'"
+tags = ["pwdx"]
+
+[[case]]
+id = "pwdx-missing-pid"
+script = "pwdx 999999; echo \"exit=$?\""
+tags = ["pwdx", "error"]
+
+[[case]]
+id = "pwdx-invalid-pid"
+script = "pwdx abc; echo \"exit=$?\""
+tags = ["pwdx", "error"]
+
+[[case]]
+id = "pwdx-no-arguments"
+script = "pwdx; echo \"exit=$?\""
+tags = ["pwdx", "usage", "error"]
+
+[[case]]
+id = "pwdx-version"
+argv = ["pwdx", "-V"]
+tags = ["pwdx", "version"]
+
+[[case]]
+id = "pmap-quiet-first-mapping"
+script = "pmap -q $$ | head -1 | awk '{print $2, $3, $NF}'"
+tags = ["pmap"]
+
+[[case]]
+id = "pmap-header"
+script = "pmap $$ | head -1 | sed 's/^[0-9]*//'"
+tags = ["pmap"]
+
+[[case]]
+id = "pmap-missing-pid"
+script = "pmap 999999; echo \"exit=$?\""
+tags = ["pmap", "error"]
+
+[[case]]
+id = "pmap-no-arguments"
+script = "pmap; echo \"exit=$?\""
+tags = ["pmap", "usage", "error"]
+
+[[case]]
+id = "pmap-device-and-extended"
+script = "pmap -d -x $$; echo \"exit=$?\""
+tags = ["pmap", "error"]
+
+[[case]]
+id = "pmap-version"
+argv = ["pmap", "-V"]
+tags = ["pmap", "version"]
+
+[[case]]
+id = "sysctl-ostype"
+argv = ["sysctl", "kernel.ostype"]
+tags = ["sysctl"]
+
+[[case]]
+id = "sysctl-ostype-value-only"
+argv = ["sysctl", "-n", "kernel.ostype"]
+tags = ["sysctl"]
+
+[[case]]
+id = "sysctl-ostype-slash-name"
+argv = ["sysctl", "-N", "kernel/ostype"]
+tags = ["sysctl"]
+
+[[case]]
+id = "sysctl-ostype-binary"
+script = "sysctl -b kernel.ostype; echo \"|\""
+tags = ["sysctl"]
+
+[[case]]
+id = "sysctl-missing-key"
+script = "sysctl x; echo \"exit=$?\""
+tags = ["sysctl", "error"]
+
+[[case]]
+id = "sysctl-missing-key-ignored"
+script = "sysctl -e no.such.key; echo \"exit=$?\""
+tags = ["sysctl", "error"]
+
+[[case]]
+id = "sysctl-no-variables"
+script = "sysctl; echo \"exit=$?\""
+tags = ["sysctl", "usage", "error"]
+
+[[case]]
+id = "sysctl-names-and-quiet"
+script = "sysctl -N -q kernel.ostype; echo \"exit=$?\""
+tags = ["sysctl", "error"]
+
+[[case]]
+id = "sysctl-version"
+argv = ["sysctl", "-V"]
+tags = ["sysctl", "version"]

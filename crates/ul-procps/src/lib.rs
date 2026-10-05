@@ -1,5 +1,6 @@
 //! procps do pseudo-linus, fiel ao Debian 13: `ps`, `top -b`, `free`, `uptime`, `pgrep`, `pkill`,
-//! `kill` e `watch` (procps-ng 4.0.4), `pidof` (sysvinit-utils 3.14) e `killall` (psmisc 23.7).
+//! `kill`, `watch`, `pwdx`, `pmap` e `sysctl` (procps-ng 4.0.4), `pidof` (sysvinit-utils 3.14) e
+//! `killall` (psmisc 23.7).
 //!
 //! Os dados vêm do `/proc` do sandbox, como no Linux; enquanto o procfs do kernel não existe, a lista
 //! de processos vem de `Syscalls::list_processes` (ver `STATUS.md`). Nada toca o host.
@@ -11,8 +12,11 @@ pub mod killall;
 pub mod matcher;
 pub mod pgrep;
 pub mod pidof;
+pub mod pmap;
 pub mod procfs;
 pub mod ps;
+pub mod pwdx;
+pub mod sysctl;
 pub mod top;
 pub mod uptime;
 pub mod watch;
@@ -29,7 +33,10 @@ pub fn programs() -> Vec<Program> {
         Program::bin("pidof", pidof::main),
         Program::bin("pidwait", pgrep::pidwait_main),
         Program::bin("pkill", pgrep::pkill_main),
+        Program::bin("pmap", pmap::main),
         Program::bin("ps", ps::main),
+        Program::bin("pwdx", pwdx::main),
+        Program::bin("sysctl", sysctl::main),
         Program::bin("top", top::main),
         Program::bin("uptime", uptime::main),
         Program::bin("watch", watch::main),
