@@ -1,0 +1,44 @@
+{
+  "su-group-unknown": {
+    "stdout": "su: group nosuchgroup_x does not exist\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "su-help": {
+    "stdout": "\nUsage:\n su [options] [-] [<user> [<argument>...]]\n\nChange the effective user ID and group ID to that of <user>.\nA mere - implies -l.  If <user> is not given, root is assumed.\n\nOptions:\n -m, -p, --preserve-environment      do not reset environment variables\n -w, --whitelist-environment <list>  don't reset specified variables\n\n -g, --group <group>             specify the primary group\n -G, --supp-group <group>        specify a supplemental group\n\n -, -l, --login                  make the shell a login shell\n -c, --command <command>         pass a single command to the shell with -c\n --session-command <command>     pass a single command to the shell with -c\n                                   and do not create a new session\n -f, --fast                      pass -f to the shell (for csh or tcsh)\n -s, --shell <shell>             run <shell> if /etc/shells allows it\n -P, --pty                       create a new pseudo-terminal\n -T, --no-pty                    do not create a new pseudo-terminal (bad security!)\n\n -h, --help                      display this help\n -V, --version                   display version\n\nFor more details see su(1).\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "su-invalid-option": {
+    "stdout": "su: invalid option -- 'Q'\nTry 'su --help' for more information.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "su-login-unknown-user": {
+    "stdout": "su: user nosuchuser_x does not exist or the user entry does not contain all the required fields\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "su-root-command": {
+    "stdout": "hello\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "su-unknown-user": {
+    "stdout": "su: user nosuchuser_x does not exist or the user entry does not contain all the required fields\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "su-version": {
+    "stdout": "su from util-linux 2.41.5\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

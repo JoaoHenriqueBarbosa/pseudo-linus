@@ -1,0 +1,245 @@
+{
+  "newusers-auto-ids": {
+    "stdout": "rc=1\nroot:x:0:0:r:/root:/bin/sh\nroot:x:0:\n",
+    "stderr": "newusers: invalid option -- 'c'\nUsage: newusers [options]\n\nOptions:\n  -b, --badname                 allow bad names (DEPRECATED)\n  -h, --help                    display this help message and exit\n  -r, --system                  create system accounts\n  -R, --root CHROOT_DIR         directory to chroot into\n\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "0a243b6d8183a4e5f7e68b0468c2e72b33017cca2c67e63fd43ea85a5dbdf0fb",
+        "data": "root:x:0:0:r:/root:/bin/sh\n"
+      },
+      "in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "ecbb11334c44931f5cf18757a48ab907c1f1a04e33c341c4c346d91b0b4d9fda",
+        "data": "ann:pw:::A:/home/ann:/bin/sh\n"
+      }
+    }
+  },
+  "newusers-create": {
+    "stdout": "rc=1\n",
+    "stderr": "newusers: invalid option -- 'c'\nUsage: newusers [options]\n\nOptions:\n  -b, --badname                 allow bad names (DEPRECATED)\n  -h, --help                    display this help message and exit\n  -r, --system                  create system accounts\n  -R, --root CHROOT_DIR         directory to chroot into\n\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "ccd8920bcbd0e39537997eb500ddc3f04f9fa7a34da4aa6c8c58af718807451a",
+        "data": "bob:pw:1500:1500:Bob:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "newusers-create-shadow": {
+    "stdout": "rc=1\n",
+    "stderr": "newusers: invalid option -- 'c'\nUsage: newusers [options]\n\nOptions:\n  -b, --badname                 allow bad names (DEPRECATED)\n  -h, --help                    display this help message and exit\n  -r, --system                  create system accounts\n  -R, --root CHROOT_DIR         directory to chroot into\n\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "ccd8920bcbd0e39537997eb500ddc3f04f9fa7a34da4aa6c8c58af718807451a",
+        "data": "bob:pw:1500:1500:Bob:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "newusers-existing-group": {
+    "stdout": "rc=1\nstaff:x:50:\n",
+    "stderr": "newusers: invalid option -- 'c'\nUsage: newusers [options]\n\nOptions:\n  -b, --badname                 allow bad names (DEPRECATED)\n  -h, --help                    display this help message and exit\n  -r, --system                  create system accounts\n  -R, --root CHROOT_DIR         directory to chroot into\n\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "7e0599a1eda65f2985056b8527d9c40363bf64dca876c56e242f5039dbcd8a9f",
+        "data": "staff:x:50:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "e588bda5830d8cb08153b48ad1d09734d283e6e8cf4182a39fe101149b462af4",
+        "data": "bob:pw:1500:staff:Bob:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "newusers-help": {
+    "stdout": "Usage: newusers [options]\n\nOptions:\n  -b, --badname                 allow bad names (DEPRECATED)\n  -h, --help                    display this help message and exit\n  -r, --system                  create system accounts\n  -R, --root CHROOT_DIR         directory to chroot into\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "newusers-invalid-line": {
+    "stdout": "newusers: invalid option -- 'c'\nUsage: newusers [options]\n\nOptions:\n  -b, --badname                 allow bad names (DEPRECATED)\n  -h, --help                    display this help message and exit\n  -r, --system                  create system accounts\n  -R, --root CHROOT_DIR         directory to chroot into\n\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "eae07db6182b651f331aa0864240b8e93918ac8e7d9e172bc16794e3f3f50066",
+        "data": "bob:pw:1500\n"
+      }
+    }
+  },
+  "newusers-invalid-method": {
+    "stdout": "newusers: invalid option -- 'c'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "newusers-invalid-name": {
+    "stdout": "newusers: invalid option -- 'c'\nUsage: newusers [options]\n\nOptions:\n  -b, --badname                 allow bad names (DEPRECATED)\n  -h, --help                    display this help message and exit\n  -r, --system                  create system accounts\n  -R, --root CHROOT_DIR         directory to chroot into\n\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "d4853321f95d7ae02bd4326ad65c43974018ef3a8a994dc5b405d11abf8fe862",
+        "data": "Bad Name:pw:1500:1500:B:/h:/bin/sh\n"
+      }
+    }
+  },
+  "newusers-missing-file": {
+    "stdout": "newusers: invalid option -- 'P'\nUsage: newusers [options]\n\nOptions:\n  -b, --badname                 allow bad names (DEPRECATED)\n  -h, --help                    display this help message and exit\n  -r, --system                  create system accounts\n  -R, --root CHROOT_DIR         directory to chroot into\n\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  }
+}

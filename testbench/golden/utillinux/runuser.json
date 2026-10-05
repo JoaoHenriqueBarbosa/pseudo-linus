@@ -1,0 +1,50 @@
+{
+  "runuser-help": {
+    "stdout": "\nUsage:\n runuser [options] -u <user> [[--] <command>]\n runuser [options] [-] [<user> [<argument>...]]\n\nRun <command> with the effective user ID and group ID of <user>.  If -u is\nnot given, fall back to su(1)-compatible semantics and execute standard shell.\nThe options -c, -f, -l, and -s are mutually exclusive with -u.\n\nOptions:\n -u, --user <user>               username\n -m, -p, --preserve-environment      do not reset environment variables\n -w, --whitelist-environment <list>  don't reset specified variables\n\n -g, --group <group>             specify the primary group\n -G, --supp-group <group>        specify a supplemental group\n\n -, -l, --login                  make the shell a login shell\n -c, --command <command>         pass a single command to the shell with -c\n --session-command <command>     pass a single command to the shell with -c\n                                   and do not create a new session\n -f, --fast                      pass -f to the shell (for csh or tcsh)\n -s, --shell <shell>             run <shell> if /etc/shells allows it\n -P, --pty                       create a new pseudo-terminal\n -T, --no-pty                    do not create a new pseudo-terminal (bad security!)\n\n -h, --help                      display this help\n -V, --version                   display version\n\n\nFor more details see runuser(1).\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "runuser-invalid-option": {
+    "stdout": "runuser: invalid option -- 'Q'\nTry 'runuser --help' for more information.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "runuser-u-exclusive": {
+    "stdout": "runuser: options --{shell,fast,command,session-command,login} and --user are mutually exclusive\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "runuser-u-no-command": {
+    "stdout": "runuser: no command was specified\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "runuser-u-root-command": {
+    "stdout": "hello\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "runuser-u-unknown-user": {
+    "stdout": "runuser: user nosuchuser_x does not exist or the user entry does not contain all the required fields\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "runuser-unknown-user": {
+    "stdout": "runuser: user nosuchuser_x does not exist or the user entry does not contain all the required fields\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "runuser-version": {
+    "stdout": "runuser from util-linux 2.41.5\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

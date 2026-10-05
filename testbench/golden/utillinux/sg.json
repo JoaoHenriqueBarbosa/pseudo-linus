@@ -1,0 +1,26 @@
+{
+  "sg-no-args": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sg-option-as-group": {
+    "stdout": "sg: invalid option -- 'x'\nTry 'sg --help' for more information.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sg-root-group-command": {
+    "stdout": "hello\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "sg-unknown-group": {
+    "stdout": "sg: no such group\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

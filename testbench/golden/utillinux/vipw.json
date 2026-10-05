@@ -1,0 +1,162 @@
+{
+  "vipw-extra-arg": {
+    "stdout": "Usage: vipw [options]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vipw-group": {
+    "stdout": "vipw: /etc/group is unchanged\nrc=127\nbob:x:1000:\n",
+    "stderr": "vipw: sed -i s/bob/rob/ returned with status 127\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "55e4296365b2e5f767bc1d6dc6fc1b333d6d75622a480c70c169382f8806a9e0",
+        "data": "bob:x:1000:\n"
+      }
+    }
+  },
+  "vipw-help": {
+    "stdout": "  -g, --group                   edit group database\n  -h, --help                    display this help message and exit\n  -p, --passwd                  edit passwd database\n  -q, --quiet                   quiet mode\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --shadow                  edit shadow or gshadow database\n\nrc=0\n",
+    "stderr": "Usage: vipw [options]\n\nOptions:\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vipw-invalid-option": {
+    "stdout": "vipw: invalid option -- 'Q'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vipw-missing-file": {
+    "stdout": "vipw: /etc/passwd: No such file or directory\nvipw: /etc/passwd is unchanged\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "vipw-modified": {
+    "stdout": "vipw: /etc/passwd is unchanged\nrc=127\nbob:x:1000:1000:b:/h:/bin/sh\npasswd\n",
+    "stderr": "vipw: sed -i s/bob/rob/ returned with status 127\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "cc3cdf1b591b5e9e47db84705ebafd20979af5bb5de686a7663f214f75884bfa",
+        "data": "bob:x:1000:1000:b:/h:/bin/sh\n"
+      }
+    }
+  },
+  "vipw-modified-quiet": {
+    "stdout": "rc=127\nbob:x:1000:1000:b:/h:/bin/sh\n",
+    "stderr": "vipw: sed -i s/bob/rob/ returned with status 127\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "cc3cdf1b591b5e9e47db84705ebafd20979af5bb5de686a7663f214f75884bfa",
+        "data": "bob:x:1000:1000:b:/h:/bin/sh\n"
+      }
+    }
+  },
+  "vipw-no-changes": {
+    "stdout": "vipw: /etc/passwd is unchanged\nrc=127\npasswd\n",
+    "stderr": "vipw: true returned with status 127\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "cc3cdf1b591b5e9e47db84705ebafd20979af5bb5de686a7663f214f75884bfa",
+        "data": "bob:x:1000:1000:b:/h:/bin/sh\n"
+      }
+    }
+  },
+  "vipw-no-etc": {
+    "stdout": "vipw: /etc/passwd: No such file or directory\nvipw: /etc/passwd is unchanged\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vipw-shadow": {
+    "stdout": "vipw: /etc/shadow is unchanged\nrc=127\nbob:!:1:0:99999:7:::\n",
+    "stderr": "vipw: sed -i s/bob/rob/ returned with status 127\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "5cc715c96dab16001e024ecfff71f7ab0ae9b2335d57f91245745c9d87e666e3",
+        "data": "bob:!:1:0:99999:7:::\n"
+      }
+    }
+  }
+}

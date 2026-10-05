@@ -1,0 +1,122 @@
+{
+  "chfn-all-fields": {
+    "stdout": "rc=1\nbob:x:1000:1000:b:/home/bob:/bin/sh\n",
+    "stderr": "chfn: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
+        "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "chfn-help": {
+    "stdout": "Usage: chfn [options] [LOGIN]\n\nOptions:\n  -f, --full-name FULL_NAME     change user's full name\n  -h, --home-phone HOME_PHONE   change user's home phone number\n  -o, --other OTHER_INFO        change user's other GECOS information\n  -r, --room ROOM_NUMBER        change user's room number\n  -R, --root CHROOT_DIR         directory to chroot into\n  -u, --help                    display this help message and exit\n  -w, --work-phone WORK_PHONE   change user's office phone number\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chfn-invalid-name": {
+    "stdout": "chfn: Cannot determine your user name.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
+        "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "chfn-invalid-option": {
+    "stdout": "chfn: invalid option -- 'Q'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chfn-invalid-room": {
+    "stdout": "chfn: Cannot determine your user name.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
+        "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "chfn-keeps-other": {
+    "stdout": "rc=1\nbob:x:1000:1000:Bob,1,2,3,misc:/home/bob:/bin/sh\n",
+    "stderr": "chfn: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 49,
+        "sha256": "a4446cd0072ad2253736a44320621f0316247fb82376ff9a303222c1b51d46ee",
+        "data": "bob:x:1000:1000:Bob,1,2,3,misc:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "chfn-missing-user": {
+    "stdout": "chfn: user 'nope' does not exist\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "0a243b6d8183a4e5f7e68b0468c2e72b33017cca2c67e63fd43ea85a5dbdf0fb",
+        "data": "root:x:0:0:r:/root:/bin/sh\n"
+      }
+    }
+  },
+  "chfn-set-other": {
+    "stdout": "rc=1\nbob:x:1000:1000:Bob:/home/bob:/bin/sh\n",
+    "stderr": "chfn: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "566f173f971908fbee3fe53820c55c3d972fa890d1e5d1584b89a31731ffb349",
+        "data": "bob:x:1000:1000:Bob:/home/bob:/bin/sh\n"
+      }
+    }
+  }
+}

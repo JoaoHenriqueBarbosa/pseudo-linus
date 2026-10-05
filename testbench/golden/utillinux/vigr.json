@@ -1,0 +1,83 @@
+{
+  "vigr-gshadow": {
+    "stdout": "vigr: /etc/gshadow is unchanged\nrc=127\nbob:!::\n",
+    "stderr": "vigr: sed -i s/bob/rob/ returned with status 127\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "d0b86b74be3130d053b1bf604f3e12171644db4437f840624abb4add5dc18d83",
+        "data": "bob:!::\n"
+      }
+    }
+  },
+  "vigr-help": {
+    "stdout": "  -g, --group                   edit group database\n  -h, --help                    display this help message and exit\n  -p, --passwd                  edit passwd database\n  -q, --quiet                   quiet mode\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --shadow                  edit shadow or gshadow database\n\nrc=0\n",
+    "stderr": "Usage: vigr [options]\n\nOptions:\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vigr-modified": {
+    "stdout": "vigr: /etc/group is unchanged\nrc=127\nbob:x:1000:\n",
+    "stderr": "vigr: sed -i s/bob/rob/ returned with status 127\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "55e4296365b2e5f767bc1d6dc6fc1b333d6d75622a480c70c169382f8806a9e0",
+        "data": "bob:x:1000:\n"
+      }
+    }
+  },
+  "vigr-passwd-option": {
+    "stdout": "vigr: /etc/passwd is unchanged\nrc=127\n",
+    "stderr": "vigr: true returned with status 127\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "cc3cdf1b591b5e9e47db84705ebafd20979af5bb5de686a7663f214f75884bfa",
+        "data": "bob:x:1000:1000:b:/h:/bin/sh\n"
+      }
+    }
+  }
+}

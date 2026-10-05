@@ -1,0 +1,26 @@
+{
+  "newgrp-invalid-option": {
+    "stdout": "newgrp: invalid option -- 'x'\nTry 'newgrp --help' for more information.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "newgrp-too-many-args": {
+    "stdout": "newgrp: no such group\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "newgrp-unknown-group": {
+    "stdout": "newgrp: no such group\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "newgrp-unknown-group-login": {
+    "stdout": "newgrp: no such group\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

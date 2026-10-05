@@ -1,0 +1,92 @@
+{
+  "chsh-help": {
+    "stdout": "Usage: chsh [options] [LOGIN]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --shell SHELL             new login shell for the user account\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chsh-invalid-entry": {
+    "stdout": "chsh: Cannot determine your user name.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
+        "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "chsh-invalid-option": {
+    "stdout": "chsh: invalid option -- 'Q'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chsh-missing-user": {
+    "stdout": "chsh: user 'nope' does not exist\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "0a243b6d8183a4e5f7e68b0468c2e72b33017cca2c67e63fd43ea85a5dbdf0fb",
+        "data": "root:x:0:0:r:/root:/bin/sh\n"
+      }
+    }
+  },
+  "chsh-relative-shell": {
+    "stdout": "chsh: Cannot determine your user name.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
+        "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "chsh-set-shell": {
+    "stdout": "rc=1\nbob:x:1000:1000:b:/home/bob:/bin/sh\n",
+    "stderr": "chsh: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
+        "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "chsh-too-many-args": {
+    "stdout": "Usage: chsh [options] [LOGIN]\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
