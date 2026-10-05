@@ -41,3 +41,9 @@ opt-level = 1
 
 [profile.release]
 debug = "line-tables-only"
+
+# rusqlite 0.40.2 vendorizado: o generate_series dele segue a semântica antiga do series.c e o
+# sqlite3 do Debian 13 é o 3.46.1. A tabela virtual exige `unsafe impl`, que os nossos crates
+# proíbem; a correção fica na dependência, que já é unsafe por natureza.
+[patch.crates-io]
+rusqlite = { path = "vendor/rusqlite" }
