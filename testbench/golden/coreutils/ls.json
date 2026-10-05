@@ -354,7 +354,7 @@
     }
   },
   "ls-l-long-iso": {
-    "stdout": "total 20\n-rw-r--r-- 1 root root   10 2026-01-15 12:00 a.txt\n-rw-r--r-- 1 root root  202 2026-01-15 12:00 big.log\n-rwxr-xr-x 1 root root   18 2026-01-15 12:00 run.sh\n-rw------- 1 root root    1 2026-01-15 12:00 secret\ndrwx------ 2 root root 4096 2026-01-15 12:00 sub\n",
+    "stdout": "total 16\n-rw-r--r-- 1 root root  10 2026-01-15 12:00 a.txt\n-rw-r--r-- 1 root root 202 2026-01-15 12:00 big.log\n-rwxr-xr-x 1 root root  18 2026-01-15 12:00 run.sh\n-rw------- 1 root root   1 2026-01-15 12:00 secret\ndrwx------ 2 root root  60 2026-01-15 12:00 sub\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -482,7 +482,7 @@
     }
   },
   "ls-la-dir-head": {
-    "stdout": "-rw-r--r-- 1 root root    2 2026-01-15 12:00 a\n-rw-r--r-- 1 root root    3 2026-01-15 12:00 b\n",
+    "stdout": "-rw-r--r-- 1 root root  2 2026-01-15 12:00 a\n-rw-r--r-- 1 root root  3 2026-01-15 12:00 b\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -507,7 +507,7 @@
     }
   },
   "ls-ld": {
-    "stdout": "-rw-r--r-- 1 root root    0 2026-01-15 12:00 a.txt\ndrwxr-xr-x 3 root root 4096 2026-01-15 12:00 sub\n",
+    "stdout": "-rw-r--r-- 1 root root  0 2026-01-15 12:00 a.txt\ndrwxr-xr-x 3 root root 80 2026-01-15 12:00 sub\n",
     "stderr": "",
     "exit": 0,
     "files": {

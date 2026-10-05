@@ -163,7 +163,7 @@
     }
   },
   "stat-c-basic": {
-    "stdout": "a.txt 6 644 -rw-r--r-- regular file\nd 4096 750 drwxr-x--- directory\nrun.sh 1 755 -rwxr-xr-x regular file\n",
+    "stdout": "a.txt 6 644 -rw-r--r-- regular file\nd 40 750 drwxr-x--- directory\nrun.sh 1 755 -rwxr-xr-x regular file\n",
     "stderr": "",
     "exit": 0,
     "files": {

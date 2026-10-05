@@ -18,7 +18,7 @@
     "files": {}
   },
   "fixture-and-write": {
-    "stdout": "-rw-r--r-- 6 'in.txt'\nlrwxrwxrwx 6 'link' -> 'in.txt'\n-rw-r--r-- 6 'out.txt'\ndrwx------ 4096 'sub'\n-rw-r--r-- 1 root root 6 2026-01-15 in.txt\n",
+    "stdout": "-rw-r--r-- 6 'in.txt'\nlrwxrwxrwx 6 'link' -> 'in.txt'\n-rw-r--r-- 6 'out.txt'\ndrwx------ 40 'sub'\n-rw-r--r-- 1 root root 6 2026-01-15 in.txt\n",
     "stderr": "",
     "exit": 0,
     "files": {

@@ -58,8 +58,11 @@ impl Oracle {
     pub fn run(&self, cases: &[Case]) -> Result<Vec<Outcome>> {
         let input = serde_json::to_vec(cases)?;
         let mount = format!("{}:/agent/oracle-agent:ro", self.agent.display());
+        // Os casos rodam num tmpfs, que é o sistema de arquivos que o sandbox apresenta (tamanho de
+        // diretório, blocos, ordem do readdir).
         let mut child = Command::new("docker")
-            .args(["run", "--rm", "-i", "--network", "none", "-v", &mount, &self.image, "/agent/oracle-agent"])
+            .args(["run", "--rm", "-i", "--network", "none", "--tmpfs", "/work:exec", "-v", &mount])
+            .args([&self.image, "/agent/oracle-agent"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

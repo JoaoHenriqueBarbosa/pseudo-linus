@@ -298,7 +298,7 @@
     }
   },
   "vdir-human": {
-    "stdout": "total 12K\n-rw-r--r-- 1 root root  491 2026-01-15 12:00 big.bin\n-rw-r--r-- 1 root root    2 2026-01-15 12:00 small.txt\ndrwxr-xr-x 2 root root 4.0K 2026-01-15 12:00 sub\n",
+    "stdout": "total 8.0K\n-rw-r--r-- 1 root root 491 2026-01-15 12:00 big.bin\n-rw-r--r-- 1 root root   2 2026-01-15 12:00 small.txt\ndrwxr-xr-x 2 root root  40 2026-01-15 12:00 sub\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -323,7 +323,7 @@
     }
   },
   "vdir-long-iso": {
-    "stdout": "total 12\n-rw-r--r-- 1 root root   10 2026-01-15 12:00 a.txt\n-rwxr-xr-x 1 root root   10 2026-01-15 12:00 run.sh\ndrwx------ 2 root root 4096 2026-01-15 12:00 sub\n",
+    "stdout": "total 8\n-rw-r--r-- 1 root root 10 2026-01-15 12:00 a.txt\n-rwxr-xr-x 1 root root 10 2026-01-15 12:00 run.sh\ndrwx------ 2 root root 40 2026-01-15 12:00 sub\n",
     "stderr": "",
     "exit": 0,
     "files": {

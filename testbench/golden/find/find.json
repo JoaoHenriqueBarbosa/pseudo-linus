@@ -1,6 +1,6 @@
 {
   "find-all": {
-    "stdout": ".\n./src\n./src/main.rs\n./src/util\n./src/util/mod.rs\n./empty\n./README.md\n",
+    "stdout": ".\n./src\n./src/util\n./src/util/mod.rs\n./src/main.rs\n./empty\n./README.md\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -136,7 +136,7 @@
     }
   },
   "find-empty": {
-    "stdout": "./empty.txt\n./emptydir\n",
+    "stdout": "./emptydir\n./empty.txt\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -257,7 +257,7 @@
     }
   },
   "find-follow-symlink": {
-    "stdout": "./link/a.rs\n./real/a.rs\n",
+    "stdout": "./real/a.rs\n./link/a.rs\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -279,7 +279,7 @@
     }
   },
   "find-iname": {
-    "stdout": "./a.rs\n./B.RS\n./c.Rs\n",
+    "stdout": "./c.Rs\n./a.rs\n./B.RS\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -350,7 +350,7 @@
     }
   },
   "find-maxdepth-type-d": {
-    "stdout": ".\n./x\n./z\n",
+    "stdout": ".\n./z\n./x\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -523,7 +523,7 @@
     }
   },
   "find-mtime-plus": {
-    "stdout": "./d/new.txt\n./old.txt\n",
+    "stdout": "./old.txt\n./d/new.txt\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -588,7 +588,7 @@
     }
   },
   "find-name": {
-    "stdout": "./src/lib.rs\n./src/main.rs\n./src/util/mod.rs\n",
+    "stdout": "./src/util/mod.rs\n./src/main.rs\n./src/lib.rs\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -699,7 +699,7 @@
     }
   },
   "find-not": {
-    "stdout": "./b.md\n./c.rs\n",
+    "stdout": "./c.rs\n./b.md\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -748,7 +748,7 @@
     }
   },
   "find-or-without-parens": {
-    "stdout": "./a.c\n./b.h\n",
+    "stdout": "./b.h\n./a.c\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -859,7 +859,7 @@
     }
   },
   "find-perm": {
-    "stdout": "./run.sh\n./tool\n",
+    "stdout": "./tool\n./run.sh\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -1015,7 +1015,7 @@
     }
   },
   "find-prune": {
-    "stdout": "./index.js\n./lib/util.js\n",
+    "stdout": "./lib/util.js\n./index.js\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -1131,7 +1131,7 @@
     }
   },
   "find-regex": {
-    "stdout": "./d/c.rs\n./a.rs\n./b.rs\n",
+    "stdout": "./d/c.rs\n./b.rs\n./a.rs\n",
     "stderr": "",
     "exit": 0,
     "files": {

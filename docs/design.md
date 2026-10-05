@@ -232,9 +232,10 @@ Medido no E03 [H17], com 100 mil arquivos:
   divergência.
 
 **Ordem do readdir** (decidido pelo dono): a do tmpfs do Linux, do mais novo pro mais antigo, com um
-índice por ordem de criação em cada diretório, já que o sandbox se apresenta como tmpfs. O ext4 do
-oráculo devolve em ordem de hash, então os casos que dependem de readdir (`find`, `ls -U`, `ls -f`) são
-comparados sem ordem na bancada, e a ordem do tmpfs é conferida à parte contra o `/dev/shm` do host.
+índice por ordem de criação em cada diretório, já que o sandbox se apresenta como tmpfs. Desde
+2026-10-05 o oráculo também roda os casos num tmpfs (`docker run --tmpfs /work`), então ordem do
+readdir, tamanho de diretório e blocos do golden são os do tmpfs; antes, sobre o overlay/ext4 do
+contêiner, o readdir saía em ordem de hash e diretórios mediam 4096.
 
 ### hostfs
 

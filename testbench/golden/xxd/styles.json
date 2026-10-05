@@ -1,0 +1,550 @@
+{
+  "xxd-color-always": {
+    "stdout": "00000000: \u001b[1;33m09\u001b[0m\u001b[1;33m0a\u001b[0m \u001b[1;33m0d\u001b[0m\u001b[1;37m00\u001b[0m \u001b[1;34mff\u001b[0m\u001b[1;32m20\u001b[0m \u001b[1;31m01\u001b[0m\u001b[1;31m7f\u001b[0m \u001b[1;31m80\u001b[0m\u001b[1;32m68\u001b[0m \u001b[1;32m69\u001b[0m       \u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m  \u001b[1;33m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;34m.\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;32mh\u001b[0m\u001b[1;32mi\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ctl": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "33daae938b2d5c10978c8f1c55c7000e7314e1e07a80e747c5cef4e58eed7272",
+        "data": {
+          "b64": "CQoNAP8gAX+AaGk="
+        }
+      }
+    }
+  },
+  "xxd-color-always-all": {
+    "stdout": "00000000: \u001b[1;37m00\u001b[0m\u001b[1;31m01\u001b[0m \u001b[1;31m02\u001b[0m\u001b[1;31m03\u001b[0m \u001b[1;31m04\u001b[0m\u001b[1;31m05\u001b[0m \u001b[1;31m06\u001b[0m\u001b[1;31m07\u001b[0m \u001b[1;31m08\u001b[0m\u001b[1;33m09\u001b[0m \u001b[1;33m0a\u001b[0m\u001b[1;31m0b\u001b[0m \u001b[1;31m0c\u001b[0m\u001b[1;33m0d\u001b[0m \u001b[1;31m0e\u001b[0m\u001b[1;31m0f\u001b[0m  \u001b[1;37m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n00000010: \u001b[1;31m10\u001b[0m\u001b[1;31m11\u001b[0m \u001b[1;31m12\u001b[0m\u001b[1;31m13\u001b[0m \u001b[1;31m14\u001b[0m\u001b[1;31m15\u001b[0m \u001b[1;31m16\u001b[0m\u001b[1;31m17\u001b[0m \u001b[1;31m18\u001b[0m\u001b[1;31m19\u001b[0m \u001b[1;31m1a\u001b[0m\u001b[1;31m1b\u001b[0m \u001b[1;31m1c\u001b[0m\u001b[1;31m1d\u001b[0m \u001b[1;31m1e\u001b[0m\u001b[1;31m1f\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n00000020: \u001b[1;32m20\u001b[0m\u001b[1;32m21\u001b[0m \u001b[1;32m22\u001b[0m\u001b[1;32m23\u001b[0m \u001b[1;32m24\u001b[0m\u001b[1;32m25\u001b[0m \u001b[1;32m26\u001b[0m\u001b[1;32m27\u001b[0m \u001b[1;32m28\u001b[0m\u001b[1;32m29\u001b[0m \u001b[1;32m2a\u001b[0m\u001b[1;32m2b\u001b[0m \u001b[1;32m2c\u001b[0m\u001b[1;32m2d\u001b[0m \u001b[1;32m2e\u001b[0m\u001b[1;32m2f\u001b[0m  \u001b[1;32m \u001b[0m\u001b[1;32m!\u001b[0m\u001b[1;32m\"\u001b[0m\u001b[1;32m#\u001b[0m\u001b[1;32m$\u001b[0m\u001b[1;32m%\u001b[0m\u001b[1;32m&\u001b[0m\u001b[1;32m'\u001b[0m\u001b[1;32m(\u001b[0m\u001b[1;32m)\u001b[0m\u001b[1;32m*\u001b[0m\u001b[1;32m+\u001b[0m\u001b[1;32m,\u001b[0m\u001b[1;32m-\u001b[0m\u001b[1;32m.\u001b[0m\u001b[1;32m/\u001b[0m\n00000030: \u001b[1;32m30\u001b[0m\u001b[1;32m31\u001b[0m \u001b[1;32m32\u001b[0m\u001b[1;32m33\u001b[0m \u001b[1;32m34\u001b[0m\u001b[1;32m35\u001b[0m \u001b[1;32m36\u001b[0m\u001b[1;32m37\u001b[0m \u001b[1;32m38\u001b[0m\u001b[1;32m39\u001b[0m \u001b[1;32m3a\u001b[0m\u001b[1;32m3b\u001b[0m \u001b[1;32m3c\u001b[0m\u001b[1;32m3d\u001b[0m \u001b[1;32m3e\u001b[0m\u001b[1;32m3f\u001b[0m  \u001b[1;32m0\u001b[0m\u001b[1;32m1\u001b[0m\u001b[1;32m2\u001b[0m\u001b[1;32m3\u001b[0m\u001b[1;32m4\u001b[0m\u001b[1;32m5\u001b[0m\u001b[1;32m6\u001b[0m\u001b[1;32m7\u001b[0m\u001b[1;32m8\u001b[0m\u001b[1;32m9\u001b[0m\u001b[1;32m:\u001b[0m\u001b[1;32m;\u001b[0m\u001b[1;32m<\u001b[0m\u001b[1;32m=\u001b[0m\u001b[1;32m>\u001b[0m\u001b[1;32m?\u001b[0m\n00000040: \u001b[1;32m40\u001b[0m\u001b[1;32m41\u001b[0m \u001b[1;32m42\u001b[0m\u001b[1;32m43\u001b[0m \u001b[1;32m44\u001b[0m\u001b[1;32m45\u001b[0m \u001b[1;32m46\u001b[0m\u001b[1;32m47\u001b[0m \u001b[1;32m48\u001b[0m\u001b[1;32m49\u001b[0m \u001b[1;32m4a\u001b[0m\u001b[1;32m4b\u001b[0m \u001b[1;32m4c\u001b[0m\u001b[1;32m4d\u001b[0m \u001b[1;32m4e\u001b[0m\u001b[1;32m4f\u001b[0m  \u001b[1;32m@\u001b[0m\u001b[1;32mA\u001b[0m\u001b[1;32mB\u001b[0m\u001b[1;32mC\u001b[0m\u001b[1;32mD\u001b[0m\u001b[1;32mE\u001b[0m\u001b[1;32mF\u001b[0m\u001b[1;32mG\u001b[0m\u001b[1;32mH\u001b[0m\u001b[1;32mI\u001b[0m\u001b[1;32mJ\u001b[0m\u001b[1;32mK\u001b[0m\u001b[1;32mL\u001b[0m\u001b[1;32mM\u001b[0m\u001b[1;32mN\u001b[0m\u001b[1;32mO\u001b[0m\n00000050: \u001b[1;32m50\u001b[0m\u001b[1;32m51\u001b[0m \u001b[1;32m52\u001b[0m\u001b[1;32m53\u001b[0m \u001b[1;32m54\u001b[0m\u001b[1;32m55\u001b[0m \u001b[1;32m56\u001b[0m\u001b[1;32m57\u001b[0m \u001b[1;32m58\u001b[0m\u001b[1;32m59\u001b[0m \u001b[1;32m5a\u001b[0m\u001b[1;32m5b\u001b[0m \u001b[1;32m5c\u001b[0m\u001b[1;32m5d\u001b[0m \u001b[1;32m5e\u001b[0m\u001b[1;32m5f\u001b[0m  \u001b[1;32mP\u001b[0m\u001b[1;32mQ\u001b[0m\u001b[1;32mR\u001b[0m\u001b[1;32mS\u001b[0m\u001b[1;32mT\u001b[0m\u001b[1;32mU\u001b[0m\u001b[1;32mV\u001b[0m\u001b[1;32mW\u001b[0m\u001b[1;32mX\u001b[0m\u001b[1;32mY\u001b[0m\u001b[1;32mZ\u001b[0m\u001b[1;32m[\u001b[0m\u001b[1;32m\\\u001b[0m\u001b[1;32m]\u001b[0m\u001b[1;32m^\u001b[0m\u001b[1;32m_\u001b[0m\n00000060: \u001b[1;32m60\u001b[0m\u001b[1;32m61\u001b[0m \u001b[1;32m62\u001b[0m\u001b[1;32m63\u001b[0m \u001b[1;32m64\u001b[0m\u001b[1;32m65\u001b[0m \u001b[1;32m66\u001b[0m\u001b[1;32m67\u001b[0m \u001b[1;32m68\u001b[0m\u001b[1;32m69\u001b[0m \u001b[1;32m6a\u001b[0m\u001b[1;32m6b\u001b[0m \u001b[1;32m6c\u001b[0m\u001b[1;32m6d\u001b[0m \u001b[1;32m6e\u001b[0m\u001b[1;32m6f\u001b[0m  \u001b[1;32m`\u001b[0m\u001b[1;32ma\u001b[0m\u001b[1;32mb\u001b[0m\u001b[1;32mc\u001b[0m\u001b[1;32md\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32mf\u001b[0m\u001b[1;32mg\u001b[0m\u001b[1;32mh\u001b[0m\u001b[1;32mi\u001b[0m\u001b[1;32mj\u001b[0m\u001b[1;32mk\u001b[0m\u001b[1;32ml\u001b[0m\u001b[1;32mm\u001b[0m\u001b[1;32mn\u001b[0m\u001b[1;32mo\u001b[0m\n00000070: \u001b[1;32m70\u001b[0m\u001b[1;32m71\u001b[0m \u001b[1;32m72\u001b[0m\u001b[1;32m73\u001b[0m \u001b[1;32m74\u001b[0m\u001b[1;32m75\u001b[0m \u001b[1;32m76\u001b[0m\u001b[1;32m77\u001b[0m \u001b[1;32m78\u001b[0m\u001b[1;32m79\u001b[0m \u001b[1;32m7a\u001b[0m\u001b[1;32m7b\u001b[0m \u001b[1;32m7c\u001b[0m\u001b[1;32m7d\u001b[0m \u001b[1;32m7e\u001b[0m\u001b[1;31m7f\u001b[0m  \u001b[1;32mp\u001b[0m\u001b[1;32mq\u001b[0m\u001b[1;32mr\u001b[0m\u001b[1;32ms\u001b[0m\u001b[1;32mt\u001b[0m\u001b[1;32mu\u001b[0m\u001b[1;32mv\u001b[0m\u001b[1;32mw\u001b[0m\u001b[1;32mx\u001b[0m\u001b[1;32my\u001b[0m\u001b[1;32mz\u001b[0m\u001b[1;32m{\u001b[0m\u001b[1;32m|\u001b[0m\u001b[1;32m}\u001b[0m\u001b[1;32m~\u001b[0m\u001b[1;31m.\u001b[0m\n00000080: \u001b[1;31m80\u001b[0m\u001b[1;31m81\u001b[0m \u001b[1;31m82\u001b[0m\u001b[1;31m83\u001b[0m \u001b[1;31m84\u001b[0m\u001b[1;31m85\u001b[0m \u001b[1;31m86\u001b[0m\u001b[1;31m87\u001b[0m \u001b[1;31m88\u001b[0m\u001b[1;31m89\u001b[0m \u001b[1;31m8a\u001b[0m\u001b[1;31m8b\u001b[0m \u001b[1;31m8c\u001b[0m\u001b[1;31m8d\u001b[0m \u001b[1;31m8e\u001b[0m\u001b[1;31m8f\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n00000090: \u001b[1;31m90\u001b[0m\u001b[1;31m91\u001b[0m \u001b[1;31m92\u001b[0m\u001b[1;31m93\u001b[0m \u001b[1;31m94\u001b[0m\u001b[1;31m95\u001b[0m \u001b[1;31m96\u001b[0m\u001b[1;31m97\u001b[0m \u001b[1;31m98\u001b[0m\u001b[1;31m99\u001b[0m \u001b[1;31m9a\u001b[0m\u001b[1;31m9b\u001b[0m \u001b[1;31m9c\u001b[0m\u001b[1;31m9d\u001b[0m \u001b[1;31m9e\u001b[0m\u001b[1;31m9f\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000a0: \u001b[1;31ma0\u001b[0m\u001b[1;31ma1\u001b[0m \u001b[1;31ma2\u001b[0m\u001b[1;31ma3\u001b[0m \u001b[1;31ma4\u001b[0m\u001b[1;31ma5\u001b[0m \u001b[1;31ma6\u001b[0m\u001b[1;31ma7\u001b[0m \u001b[1;31ma8\u001b[0m\u001b[1;31ma9\u001b[0m \u001b[1;31maa\u001b[0m\u001b[1;31mab\u001b[0m \u001b[1;31mac\u001b[0m\u001b[1;31mad\u001b[0m \u001b[1;31mae\u001b[0m\u001b[1;31maf\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000b0: \u001b[1;31mb0\u001b[0m\u001b[1;31mb1\u001b[0m \u001b[1;31mb2\u001b[0m\u001b[1;31mb3\u001b[0m \u001b[1;31mb4\u001b[0m\u001b[1;31mb5\u001b[0m \u001b[1;31mb6\u001b[0m\u001b[1;31mb7\u001b[0m \u001b[1;31mb8\u001b[0m\u001b[1;31mb9\u001b[0m \u001b[1;31mba\u001b[0m\u001b[1;31mbb\u001b[0m \u001b[1;31mbc\u001b[0m\u001b[1;31mbd\u001b[0m \u001b[1;31mbe\u001b[0m\u001b[1;31mbf\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000c0: \u001b[1;31mc0\u001b[0m\u001b[1;31mc1\u001b[0m \u001b[1;31mc2\u001b[0m\u001b[1;31mc3\u001b[0m \u001b[1;31mc4\u001b[0m\u001b[1;31mc5\u001b[0m \u001b[1;31mc6\u001b[0m\u001b[1;31mc7\u001b[0m \u001b[1;31mc8\u001b[0m\u001b[1;31mc9\u001b[0m \u001b[1;31mca\u001b[0m\u001b[1;31mcb\u001b[0m \u001b[1;31mcc\u001b[0m\u001b[1;31mcd\u001b[0m \u001b[1;31mce\u001b[0m\u001b[1;31mcf\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000d0: \u001b[1;31md0\u001b[0m\u001b[1;31md1\u001b[0m \u001b[1;31md2\u001b[0m\u001b[1;31md3\u001b[0m \u001b[1;31md4\u001b[0m\u001b[1;31md5\u001b[0m \u001b[1;31md6\u001b[0m\u001b[1;31md7\u001b[0m \u001b[1;31md8\u001b[0m\u001b[1;31md9\u001b[0m \u001b[1;31mda\u001b[0m\u001b[1;31mdb\u001b[0m \u001b[1;31mdc\u001b[0m\u001b[1;31mdd\u001b[0m \u001b[1;31mde\u001b[0m\u001b[1;31mdf\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000e0: \u001b[1;31me0\u001b[0m\u001b[1;31me1\u001b[0m \u001b[1;31me2\u001b[0m\u001b[1;31me3\u001b[0m \u001b[1;31me4\u001b[0m\u001b[1;31me5\u001b[0m \u001b[1;31me6\u001b[0m\u001b[1;31me7\u001b[0m \u001b[1;31me8\u001b[0m\u001b[1;31me9\u001b[0m \u001b[1;31mea\u001b[0m\u001b[1;31meb\u001b[0m \u001b[1;31mec\u001b[0m\u001b[1;31med\u001b[0m \u001b[1;31mee\u001b[0m\u001b[1;31mef\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000f0: \u001b[1;31mf0\u001b[0m\u001b[1;31mf1\u001b[0m \u001b[1;31mf2\u001b[0m\u001b[1;31mf3\u001b[0m \u001b[1;31mf4\u001b[0m\u001b[1;31mf5\u001b[0m \u001b[1;31mf6\u001b[0m\u001b[1;31mf7\u001b[0m \u001b[1;31mf8\u001b[0m\u001b[1;31mf9\u001b[0m \u001b[1;31mfa\u001b[0m\u001b[1;31mfb\u001b[0m \u001b[1;31mfc\u001b[0m\u001b[1;31mfd\u001b[0m \u001b[1;31mfe\u001b[0m\u001b[1;34mff\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;34m.\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "all": {
+        "kind": "file",
+        "mode": 420,
+        "size": 256,
+        "sha256": "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880",
+        "data": {
+          "b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w=="
+        }
+      }
+    }
+  },
+  "xxd-color-auto-no-tty": {
+    "stdout": "00000000: 090a 0d00 ff20 017f 8068 69              ..... ...hi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ctl": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "33daae938b2d5c10978c8f1c55c7000e7314e1e07a80e747c5cef4e58eed7272",
+        "data": {
+          "b64": "CQoNAP8gAX+AaGk="
+        }
+      }
+    }
+  },
+  "xxd-color-autoskip": {
+    "stdout": "00000000: \u001b[1;37m00\u001b[0m\u001b[1;37m00\u001b[0m \u001b[1;37m00\u001b[0m\u001b[1;37m00\u001b[0m \u001b[1;37m00\u001b[0m\u001b[1;37m00\u001b[0m \u001b[1;37m00\u001b[0m\u001b[1;37m00\u001b[0m \u001b[1;37m00\u001b[0m\u001b[1;37m00\u001b[0m \u001b[1;37m00\u001b[0m\u001b[1;37m00\u001b[0m \u001b[1;37m00\u001b[0m\u001b[1;37m00\u001b[0m \u001b[1;37m00\u001b[0m\u001b[1;37m00\u001b[0m  \u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\n*\n00000064: \u001b[1;37m00\u001b[0m\u001b[1;37m00\u001b[0m \u001b[1;37m00\u001b[0m                   \u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m\u001b[1;31m \u001b[0m  \u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\u001b[1;37m.\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "z5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 67,
+        "sha256": "1be2b3990b410ca4fb38d1f79019c4018cd8820b69618646c81d22dfcbddc802",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "xxd-color-bits": {
+    "stdout": "00000000: 01010100 01101000 01100101 00100000  \u001b[1;32mT\u001b[0m\u001b[1;32mh\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32m \u001b[0m\n00000004: 01110001 01110101 01101001 01100011  \u001b[1;32mq\u001b[0m\u001b[1;32mu\u001b[0m\u001b[1;32mi\u001b[0m\u001b[1;32mc\u001b[0m\n00000008: 01101011 00100000 01100010 01110010  \u001b[1;32mk\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mb\u001b[0m\u001b[1;32mr\u001b[0m\n0000000c: 01101111 01110111 01101110 00100000  \u001b[1;32mo\u001b[0m\u001b[1;32mw\u001b[0m\u001b[1;32mn\u001b[0m\u001b[1;32m \u001b[0m\n00000010: 01100110 01101111 01111000 00100000  \u001b[1;32mf\u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mx\u001b[0m\u001b[1;32m \u001b[0m\n00000014: 01101010 01110101 01101101 01110000  \u001b[1;32mj\u001b[0m\u001b[1;32mu\u001b[0m\u001b[1;32mm\u001b[0m\u001b[1;32mp\u001b[0m\n00000018: 01110011 00100000 01101111 01110110  \u001b[1;32ms\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mv\u001b[0m\n0000001c: 01100101 01110010 00100000 01110100  \u001b[1;32me\u001b[0m\u001b[1;32mr\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mt\u001b[0m\n00000020: 01101000 01100101 00100000 01101100  \u001b[1;32mh\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32ml\u001b[0m\n00000024: 01100001 01111010 01111001 00100000  \u001b[1;32ma\u001b[0m\u001b[1;32mz\u001b[0m\u001b[1;32my\u001b[0m\u001b[1;32m \u001b[0m\n00000028: 01100100 01101111 01100111 00101110  \u001b[1;32md\u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mg\u001b[0m\u001b[1;32m.\u001b[0m\n0000002c: 00001010 00110000 00110001 00110010  \u001b[1;33m.\u001b[0m\u001b[1;32m0\u001b[0m\u001b[1;32m1\u001b[0m\u001b[1;32m2\u001b[0m\n00000030: 00110011 00110100 00110101 00110110  \u001b[1;32m3\u001b[0m\u001b[1;32m4\u001b[0m\u001b[1;32m5\u001b[0m\u001b[1;32m6\u001b[0m\n00000034: 00110111 00111000 00111001           \u001b[1;32m7\u001b[0m\u001b[1;32m8\u001b[0m\u001b[1;32m9\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-color-ebcdic": {
+    "stdout": "00000000: \u001b[1;37m00\u001b[0m\u001b[1;31m01\u001b[0m \u001b[1;31m02\u001b[0m\u001b[1;31m03\u001b[0m \u001b[1;31m04\u001b[0m\u001b[1;33m05\u001b[0m \u001b[1;31m06\u001b[0m\u001b[1;31m07\u001b[0m \u001b[1;31m08\u001b[0m\u001b[1;31m09\u001b[0m \u001b[1;31m0a\u001b[0m\u001b[1;31m0b\u001b[0m \u001b[1;31m0c\u001b[0m\u001b[1;33m0d\u001b[0m \u001b[1;31m0e\u001b[0m\u001b[1;31m0f\u001b[0m  \u001b[1;37m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n00000010: \u001b[1;31m10\u001b[0m\u001b[1;31m11\u001b[0m \u001b[1;31m12\u001b[0m\u001b[1;31m13\u001b[0m \u001b[1;31m14\u001b[0m\u001b[1;31m15\u001b[0m \u001b[1;31m16\u001b[0m\u001b[1;31m17\u001b[0m \u001b[1;31m18\u001b[0m\u001b[1;31m19\u001b[0m \u001b[1;31m1a\u001b[0m\u001b[1;31m1b\u001b[0m \u001b[1;31m1c\u001b[0m\u001b[1;31m1d\u001b[0m \u001b[1;31m1e\u001b[0m\u001b[1;31m1f\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n00000020: \u001b[1;31m20\u001b[0m\u001b[1;31m21\u001b[0m \u001b[1;31m22\u001b[0m\u001b[1;31m23\u001b[0m \u001b[1;31m24\u001b[0m\u001b[1;33m25\u001b[0m \u001b[1;31m26\u001b[0m\u001b[1;31m27\u001b[0m \u001b[1;31m28\u001b[0m\u001b[1;31m29\u001b[0m \u001b[1;31m2a\u001b[0m\u001b[1;31m2b\u001b[0m \u001b[1;31m2c\u001b[0m\u001b[1;31m2d\u001b[0m \u001b[1;31m2e\u001b[0m\u001b[1;31m2f\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n00000030: \u001b[1;31m30\u001b[0m\u001b[1;31m31\u001b[0m \u001b[1;31m32\u001b[0m\u001b[1;31m33\u001b[0m \u001b[1;31m34\u001b[0m\u001b[1;31m35\u001b[0m \u001b[1;31m36\u001b[0m\u001b[1;31m37\u001b[0m \u001b[1;31m38\u001b[0m\u001b[1;31m39\u001b[0m \u001b[1;31m3a\u001b[0m\u001b[1;31m3b\u001b[0m \u001b[1;31m3c\u001b[0m\u001b[1;31m3d\u001b[0m \u001b[1;31m3e\u001b[0m\u001b[1;31m3f\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n00000040: \u001b[1;32m40\u001b[0m\u001b[1;31m41\u001b[0m \u001b[1;31m42\u001b[0m\u001b[1;31m43\u001b[0m \u001b[1;31m44\u001b[0m\u001b[1;31m45\u001b[0m \u001b[1;31m46\u001b[0m\u001b[1;31m47\u001b[0m \u001b[1;31m48\u001b[0m\u001b[1;31m49\u001b[0m \u001b[1;31m4a\u001b[0m\u001b[1;32m4b\u001b[0m \u001b[1;32m4c\u001b[0m\u001b[1;32m4d\u001b[0m \u001b[1;32m4e\u001b[0m\u001b[1;32m4f\u001b[0m  \u001b[1;32m \u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;32m.\u001b[0m\u001b[1;32m<\u001b[0m\u001b[1;32m(\u001b[0m\u001b[1;32m+\u001b[0m\u001b[1;32m|\u001b[0m\n00000050: \u001b[1;32m50\u001b[0m\u001b[1;31m51\u001b[0m \u001b[1;31m52\u001b[0m\u001b[1;31m53\u001b[0m \u001b[1;31m54\u001b[0m\u001b[1;31m55\u001b[0m \u001b[1;31m56\u001b[0m\u001b[1;31m57\u001b[0m \u001b[1;31m58\u001b[0m\u001b[1;31m59\u001b[0m \u001b[1;32m5a\u001b[0m\u001b[1;32m5b\u001b[0m \u001b[1;32m5c\u001b[0m\u001b[1;32m5d\u001b[0m \u001b[1;32m5e\u001b[0m\u001b[1;32m5f\u001b[0m  \u001b[1;32m&\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;32m!\u001b[0m\u001b[1;32m$\u001b[0m\u001b[1;32m*\u001b[0m\u001b[1;32m)\u001b[0m\u001b[1;32m;\u001b[0m\u001b[1;32m~\u001b[0m\n00000060: \u001b[1;32m60\u001b[0m\u001b[1;32m61\u001b[0m \u001b[1;31m62\u001b[0m\u001b[1;31m63\u001b[0m \u001b[1;31m64\u001b[0m\u001b[1;31m65\u001b[0m \u001b[1;31m66\u001b[0m\u001b[1;31m67\u001b[0m \u001b[1;31m68\u001b[0m\u001b[1;31m69\u001b[0m \u001b[1;31m6a\u001b[0m\u001b[1;32m6b\u001b[0m \u001b[1;32m6c\u001b[0m\u001b[1;32m6d\u001b[0m \u001b[1;32m6e\u001b[0m\u001b[1;32m6f\u001b[0m  \u001b[1;32m-\u001b[0m\u001b[1;32m/\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;32m,\u001b[0m\u001b[1;32m%\u001b[0m\u001b[1;32m_\u001b[0m\u001b[1;32m>\u001b[0m\u001b[1;32m?\u001b[0m\n00000070: \u001b[1;31m70\u001b[0m\u001b[1;31m71\u001b[0m \u001b[1;31m72\u001b[0m\u001b[1;31m73\u001b[0m \u001b[1;31m74\u001b[0m\u001b[1;31m75\u001b[0m \u001b[1;31m76\u001b[0m\u001b[1;31m77\u001b[0m \u001b[1;31m78\u001b[0m\u001b[1;32m79\u001b[0m \u001b[1;32m7a\u001b[0m\u001b[1;32m7b\u001b[0m \u001b[1;32m7c\u001b[0m\u001b[1;32m7d\u001b[0m \u001b[1;32m7e\u001b[0m\u001b[1;32m7f\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;32m`\u001b[0m\u001b[1;32m:\u001b[0m\u001b[1;32m#\u001b[0m\u001b[1;32m@\u001b[0m\u001b[1;32m'\u001b[0m\u001b[1;32m=\u001b[0m\u001b[1;32m\"\u001b[0m\n00000080: \u001b[1;31m80\u001b[0m\u001b[1;32m81\u001b[0m \u001b[1;32m82\u001b[0m\u001b[1;32m83\u001b[0m \u001b[1;32m84\u001b[0m\u001b[1;32m85\u001b[0m \u001b[1;32m86\u001b[0m\u001b[1;32m87\u001b[0m \u001b[1;32m88\u001b[0m\u001b[1;32m89\u001b[0m \u001b[1;31m8a\u001b[0m\u001b[1;31m8b\u001b[0m \u001b[1;31m8c\u001b[0m\u001b[1;31m8d\u001b[0m \u001b[1;31m8e\u001b[0m\u001b[1;31m8f\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;32ma\u001b[0m\u001b[1;32mb\u001b[0m\u001b[1;32mc\u001b[0m\u001b[1;32md\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32mf\u001b[0m\u001b[1;32mg\u001b[0m\u001b[1;32mh\u001b[0m\u001b[1;32mi\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n00000090: \u001b[1;31m90\u001b[0m\u001b[1;32m91\u001b[0m \u001b[1;32m92\u001b[0m\u001b[1;32m93\u001b[0m \u001b[1;32m94\u001b[0m\u001b[1;32m95\u001b[0m \u001b[1;32m96\u001b[0m\u001b[1;32m97\u001b[0m \u001b[1;32m98\u001b[0m\u001b[1;32m99\u001b[0m \u001b[1;32m9a\u001b[0m\u001b[1;31m9b\u001b[0m \u001b[1;31m9c\u001b[0m\u001b[1;31m9d\u001b[0m \u001b[1;31m9e\u001b[0m\u001b[1;31m9f\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;32mj\u001b[0m\u001b[1;32mk\u001b[0m\u001b[1;32ml\u001b[0m\u001b[1;32mm\u001b[0m\u001b[1;32mn\u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mp\u001b[0m\u001b[1;32mq\u001b[0m\u001b[1;32mr\u001b[0m\u001b[1;32m^\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000a0: \u001b[1;31ma0\u001b[0m\u001b[1;31ma1\u001b[0m \u001b[1;32ma2\u001b[0m\u001b[1;32ma3\u001b[0m \u001b[1;32ma4\u001b[0m\u001b[1;32ma5\u001b[0m \u001b[1;32ma6\u001b[0m\u001b[1;32ma7\u001b[0m \u001b[1;32ma8\u001b[0m\u001b[1;32ma9\u001b[0m \u001b[1;31maa\u001b[0m\u001b[1;31mab\u001b[0m \u001b[1;31mac\u001b[0m\u001b[1;32mad\u001b[0m \u001b[1;31mae\u001b[0m\u001b[1;31maf\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;32ms\u001b[0m\u001b[1;32mt\u001b[0m\u001b[1;32mu\u001b[0m\u001b[1;32mv\u001b[0m\u001b[1;32mw\u001b[0m\u001b[1;32mx\u001b[0m\u001b[1;32my\u001b[0m\u001b[1;32mz\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;32m[\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000b0: \u001b[1;31mb0\u001b[0m\u001b[1;31mb1\u001b[0m \u001b[1;31mb2\u001b[0m\u001b[1;31mb3\u001b[0m \u001b[1;31mb4\u001b[0m\u001b[1;31mb5\u001b[0m \u001b[1;31mb6\u001b[0m\u001b[1;31mb7\u001b[0m \u001b[1;31mb8\u001b[0m\u001b[1;31mb9\u001b[0m \u001b[1;31mba\u001b[0m\u001b[1;31mbb\u001b[0m \u001b[1;31mbc\u001b[0m\u001b[1;32mbd\u001b[0m \u001b[1;31mbe\u001b[0m\u001b[1;31mbf\u001b[0m  \u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;32m]\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000c0: \u001b[1;32mc0\u001b[0m\u001b[1;32mc1\u001b[0m \u001b[1;32mc2\u001b[0m\u001b[1;32mc3\u001b[0m \u001b[1;32mc4\u001b[0m\u001b[1;32mc5\u001b[0m \u001b[1;32mc6\u001b[0m\u001b[1;32mc7\u001b[0m \u001b[1;32mc8\u001b[0m\u001b[1;32mc9\u001b[0m \u001b[1;31mca\u001b[0m\u001b[1;31mcb\u001b[0m \u001b[1;31mcc\u001b[0m\u001b[1;31mcd\u001b[0m \u001b[1;31mce\u001b[0m\u001b[1;31mcf\u001b[0m  \u001b[1;32m{\u001b[0m\u001b[1;32mA\u001b[0m\u001b[1;32mB\u001b[0m\u001b[1;32mC\u001b[0m\u001b[1;32mD\u001b[0m\u001b[1;32mE\u001b[0m\u001b[1;32mF\u001b[0m\u001b[1;32mG\u001b[0m\u001b[1;32mH\u001b[0m\u001b[1;32mI\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000d0: \u001b[1;32md0\u001b[0m\u001b[1;32md1\u001b[0m \u001b[1;32md2\u001b[0m\u001b[1;32md3\u001b[0m \u001b[1;32md4\u001b[0m\u001b[1;32md5\u001b[0m \u001b[1;32md6\u001b[0m\u001b[1;32md7\u001b[0m \u001b[1;32md8\u001b[0m\u001b[1;32md9\u001b[0m \u001b[1;31mda\u001b[0m\u001b[1;31mdb\u001b[0m \u001b[1;31mdc\u001b[0m\u001b[1;31mdd\u001b[0m \u001b[1;31mde\u001b[0m\u001b[1;31mdf\u001b[0m  \u001b[1;32m}\u001b[0m\u001b[1;32mJ\u001b[0m\u001b[1;32mK\u001b[0m\u001b[1;32mL\u001b[0m\u001b[1;32mM\u001b[0m\u001b[1;32mN\u001b[0m\u001b[1;32mO\u001b[0m\u001b[1;32mP\u001b[0m\u001b[1;32mQ\u001b[0m\u001b[1;32mR\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000e0: \u001b[1;32me0\u001b[0m\u001b[1;31me1\u001b[0m \u001b[1;32me2\u001b[0m\u001b[1;32me3\u001b[0m \u001b[1;32me4\u001b[0m\u001b[1;32me5\u001b[0m \u001b[1;32me6\u001b[0m\u001b[1;32me7\u001b[0m \u001b[1;32me8\u001b[0m\u001b[1;32me9\u001b[0m \u001b[1;31mea\u001b[0m\u001b[1;31meb\u001b[0m \u001b[1;31mec\u001b[0m\u001b[1;31med\u001b[0m \u001b[1;31mee\u001b[0m\u001b[1;31mef\u001b[0m  \u001b[1;32m\\\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;32mS\u001b[0m\u001b[1;32mT\u001b[0m\u001b[1;32mU\u001b[0m\u001b[1;32mV\u001b[0m\u001b[1;32mW\u001b[0m\u001b[1;32mX\u001b[0m\u001b[1;32mY\u001b[0m\u001b[1;32mZ\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\n000000f0: \u001b[1;32mf0\u001b[0m\u001b[1;32mf1\u001b[0m \u001b[1;32mf2\u001b[0m\u001b[1;32mf3\u001b[0m \u001b[1;32mf4\u001b[0m\u001b[1;32mf5\u001b[0m \u001b[1;32mf6\u001b[0m\u001b[1;32mf7\u001b[0m \u001b[1;32mf8\u001b[0m\u001b[1;32mf9\u001b[0m \u001b[1;31mfa\u001b[0m\u001b[1;31mfb\u001b[0m \u001b[1;31mfc\u001b[0m\u001b[1;31mfd\u001b[0m \u001b[1;31mfe\u001b[0m\u001b[1;34mff\u001b[0m  \u001b[1;32m0\u001b[0m\u001b[1;32m1\u001b[0m\u001b[1;32m2\u001b[0m\u001b[1;32m3\u001b[0m\u001b[1;32m4\u001b[0m\u001b[1;32m5\u001b[0m\u001b[1;32m6\u001b[0m\u001b[1;32m7\u001b[0m\u001b[1;32m8\u001b[0m\u001b[1;32m9\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;31m.\u001b[0m\u001b[1;34m.\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "all": {
+        "kind": "file",
+        "mode": 420,
+        "size": 256,
+        "sha256": "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880",
+        "data": {
+          "b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w=="
+        }
+      }
+    }
+  },
+  "xxd-color-group3-partial": {
+    "stdout": "00000000: \u001b[1;32m54\u001b[0m\u001b[1;32m68\u001b[0m\u001b[1;32m65\u001b[0m \u001b[1;32m20\u001b[0m\u001b[1;32m71\u001b[0m\u001b[1;32m75\u001b[0m \u001b[1;32m69\u001b[0m\u001b[1;32m63\u001b[0m  \u001b[1;32mT\u001b[0m\u001b[1;32mh\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mq\u001b[0m\u001b[1;32mu\u001b[0m\u001b[1;32mi\u001b[0m\u001b[1;32mc\u001b[0m\n00000008: \u001b[1;32m6b\u001b[0m\u001b[1;32m20\u001b[0m\u001b[1;32m62\u001b[0m \u001b[1;32m72\u001b[0m\u001b[1;32m6f\u001b[0m\u001b[1;32m77\u001b[0m \u001b[1;32m6e\u001b[0m\u001b[1;32m20\u001b[0m  \u001b[1;32mk\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mb\u001b[0m\u001b[1;32mr\u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mw\u001b[0m\u001b[1;32mn\u001b[0m\u001b[1;32m \u001b[0m\n00000010: \u001b[1;32m66\u001b[0m\u001b[1;32m6f\u001b[0m\u001b[1;32m78\u001b[0m \u001b[1;32m20\u001b[0m\u001b[1;32m6a\u001b[0m\u001b[1;32m75\u001b[0m \u001b[1;32m6d\u001b[0m\u001b[1;32m70\u001b[0m  \u001b[1;32mf\u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mx\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mj\u001b[0m\u001b[1;32mu\u001b[0m\u001b[1;32mm\u001b[0m\u001b[1;32mp\u001b[0m\n00000018: \u001b[1;32m73\u001b[0m\u001b[1;32m20\u001b[0m\u001b[1;32m6f\u001b[0m \u001b[1;32m76\u001b[0m\u001b[1;32m65\u001b[0m\u001b[1;32m72\u001b[0m \u001b[1;32m20\u001b[0m\u001b[1;32m74\u001b[0m  \u001b[1;32ms\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mv\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32mr\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mt\u001b[0m\n00000020: \u001b[1;32m68\u001b[0m\u001b[1;32m65\u001b[0m\u001b[1;32m20\u001b[0m \u001b[1;32m6c\u001b[0m\u001b[1;32m61\u001b[0m\u001b[1;32m7a\u001b[0m \u001b[1;32m79\u001b[0m\u001b[1;32m20\u001b[0m  \u001b[1;32mh\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32ml\u001b[0m\u001b[1;32ma\u001b[0m\u001b[1;32mz\u001b[0m\u001b[1;32my\u001b[0m\u001b[1;32m \u001b[0m\n00000028: \u001b[1;32m64\u001b[0m\u001b[1;32m6f\u001b[0m\u001b[1;32m67\u001b[0m \u001b[1;32m2e\u001b[0m\u001b[1;33m0a\u001b[0m\u001b[1;32m30\u001b[0m \u001b[1;32m31\u001b[0m\u001b[1;32m32\u001b[0m  \u001b[1;32md\u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mg\u001b[0m\u001b[1;32m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;32m0\u001b[0m\u001b[1;32m1\u001b[0m\u001b[1;32m2\u001b[0m\n00000030: \u001b[1;32m33\u001b[0m\u001b[1;32m34\u001b[0m\u001b[1;32m35\u001b[0m \u001b[1;32m36\u001b[0m\u001b[1;32m37\u001b[0m\u001b[1;32m38\u001b[0m \u001b[1;32m39\u001b[0m \u001b[1;31m \u001b[0m  \u001b[1;32m3\u001b[0m\u001b[1;32m4\u001b[0m\u001b[1;32m5\u001b[0m\u001b[1;32m6\u001b[0m\u001b[1;32m7\u001b[0m\u001b[1;32m8\u001b[0m\u001b[1;32m9\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-color-little-endian": {
+    "stdout": "00000000: \u001b[1;32m20\u001b[0m\u001b[1;32m65\u001b[0m\u001b[1;32m68\u001b[0m\u001b[1;32m54\u001b[0m \u001b[1;32m63\u001b[0m\u001b[1;32m69\u001b[0m\u001b[1;32m75\u001b[0m\u001b[1;32m71\u001b[0m  \u001b[1;32mT\u001b[0m\u001b[1;32mh\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mq\u001b[0m\u001b[1;32mu\u001b[0m\u001b[1;32mi\u001b[0m\u001b[1;32mc\u001b[0m\n00000008: \u001b[1;32m72\u001b[0m\u001b[1;32m62\u001b[0m\u001b[1;32m20\u001b[0m\u001b[1;32m6b\u001b[0m \u001b[1;32m20\u001b[0m\u001b[1;32m6e\u001b[0m\u001b[1;32m77\u001b[0m\u001b[1;32m6f\u001b[0m  \u001b[1;32mk\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mb\u001b[0m\u001b[1;32mr\u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mw\u001b[0m\u001b[1;32mn\u001b[0m\u001b[1;32m \u001b[0m\n00000010: \u001b[1;32m20\u001b[0m\u001b[1;32m78\u001b[0m\u001b[1;32m6f\u001b[0m\u001b[1;32m66\u001b[0m \u001b[1;32m70\u001b[0m\u001b[1;32m6d\u001b[0m\u001b[1;32m75\u001b[0m\u001b[1;32m6a\u001b[0m  \u001b[1;32mf\u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mx\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mj\u001b[0m\u001b[1;32mu\u001b[0m\u001b[1;32mm\u001b[0m\u001b[1;32mp\u001b[0m\n00000018: \u001b[1;32m76\u001b[0m\u001b[1;32m6f\u001b[0m\u001b[1;32m20\u001b[0m\u001b[1;32m73\u001b[0m \u001b[1;32m74\u001b[0m\u001b[1;32m20\u001b[0m\u001b[1;32m72\u001b[0m\u001b[1;32m65\u001b[0m  \u001b[1;32ms\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mv\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32mr\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32mt\u001b[0m\n00000020: \u001b[1;32m6c\u001b[0m\u001b[1;32m20\u001b[0m\u001b[1;32m65\u001b[0m\u001b[1;32m68\u001b[0m \u001b[1;32m20\u001b[0m\u001b[1;32m79\u001b[0m\u001b[1;32m7a\u001b[0m\u001b[1;32m61\u001b[0m  \u001b[1;32mh\u001b[0m\u001b[1;32me\u001b[0m\u001b[1;32m \u001b[0m\u001b[1;32ml\u001b[0m\u001b[1;32ma\u001b[0m\u001b[1;32mz\u001b[0m\u001b[1;32my\u001b[0m\u001b[1;32m \u001b[0m\n00000028: \u001b[1;32m2e\u001b[0m\u001b[1;32m67\u001b[0m\u001b[1;32m6f\u001b[0m\u001b[1;32m64\u001b[0m \u001b[1;32m32\u001b[0m\u001b[1;32m31\u001b[0m\u001b[1;32m30\u001b[0m\u001b[1;33m0a\u001b[0m  \u001b[1;32md\u001b[0m\u001b[1;32mo\u001b[0m\u001b[1;32mg\u001b[0m\u001b[1;32m.\u001b[0m\u001b[1;33m.\u001b[0m\u001b[1;32m0\u001b[0m\u001b[1;32m1\u001b[0m\u001b[1;32m2\u001b[0m\n00000030: \u001b[1;32m36\u001b[0m\u001b[1;32m35\u001b[0m\u001b[1;32m34\u001b[0m\u001b[1;32m33\u001b[0m \u001b[1;31m \u001b[0m \u001b[1;32m39\u001b[0m\u001b[1;32m38\u001b[0m\u001b[1;32m37\u001b[0m  \u001b[1;32m3\u001b[0m\u001b[1;32m4\u001b[0m\u001b[1;32m5\u001b[0m\u001b[1;32m6\u001b[0m\u001b[1;32m7\u001b[0m\u001b[1;32m8\u001b[0m\u001b[1;32m9\u001b[0m\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-color-never": {
+    "stdout": "00000000: 090a 0d00 ff20 017f 8068 69              ..... ...hi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ctl": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "33daae938b2d5c10978c8f1c55c7000e7314e1e07a80e747c5cef4e58eed7272",
+        "data": {
+          "b64": "CQoNAP8gAX+AaGk="
+        }
+      }
+    }
+  },
+  "xxd-color-plain-and-include-uncolored": {
+    "stdout": "090a0d00ff20017f806869\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ctl": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "33daae938b2d5c10978c8f1c55c7000e7314e1e07a80e747c5cef4e58eed7272",
+        "data": {
+          "b64": "CQoNAP8gAX+AaGk="
+        }
+      }
+    }
+  },
+  "xxd-include": {
+    "stdout": "unsigned char txt[] = {\n  0x54, 0x68, 0x65, 0x20, 0x71, 0x75, 0x69, 0x63, 0x6b, 0x20, 0x62, 0x72,\n  0x6f, 0x77, 0x6e, 0x20, 0x66, 0x6f, 0x78, 0x20, 0x6a, 0x75, 0x6d, 0x70,\n  0x73, 0x20, 0x6f, 0x76, 0x65, 0x72, 0x20, 0x74, 0x68, 0x65, 0x20, 0x6c,\n  0x61, 0x7a, 0x79, 0x20, 0x64, 0x6f, 0x67, 0x2e, 0x0a, 0x30, 0x31, 0x32,\n  0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39\n};\nunsigned int txt_len = 55;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-include-bits": {
+    "stdout": "unsigned char txt[] = {\n  0b01010100, 0b01101000, 0b01100101, 0b00100000, 0b01110001, 0b01110101,\n  0b01101001, 0b01100011, 0b01101011, 0b00100000, 0b01100010, 0b01110010,\n  0b01101111, 0b01110111, 0b01101110, 0b00100000, 0b01100110, 0b01101111,\n  0b01111000, 0b00100000, 0b01101010, 0b01110101, 0b01101101, 0b01110000,\n  0b01110011, 0b00100000, 0b01101111, 0b01110110, 0b01100101, 0b01110010,\n  0b00100000, 0b01110100, 0b01101000, 0b01100101, 0b00100000, 0b01101100,\n  0b01100001, 0b01111010, 0b01111001, 0b00100000, 0b01100100, 0b01101111,\n  0b01100111, 0b00101110, 0b00001010, 0b00110000, 0b00110001, 0b00110010,\n  0b00110011, 0b00110100, 0b00110101, 0b00110110, 0b00110111, 0b00111000,\n  0b00111001\n};\nunsigned int txt_len = 55;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-include-capitalize-upper": {
+    "stdout": "unsigned char TXT[] = {\n  0X54, 0X68, 0X65, 0X20, 0X71, 0X75, 0X69, 0X63, 0X6B, 0X20, 0X62, 0X72,\n  0X6F, 0X77, 0X6E, 0X20, 0X66, 0X6F, 0X78, 0X20, 0X6A, 0X75, 0X6D, 0X70,\n  0X73, 0X20, 0X6F, 0X76, 0X65, 0X72, 0X20, 0X74, 0X68, 0X65, 0X20, 0X6C,\n  0X61, 0X7A, 0X79, 0X20, 0X64, 0X6F, 0X67, 0X2E, 0X0A, 0X30, 0X31, 0X32,\n  0X33, 0X34, 0X35, 0X36, 0X37, 0X38, 0X39\n};\nunsigned int TXT_LEN = 55;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-include-cols5": {
+    "stdout": "unsigned char txt[] = {\n  0x54, 0x68, 0x65, 0x20, 0x71,\n  0x75, 0x69, 0x63, 0x6b, 0x20,\n  0x62, 0x72, 0x6f, 0x77, 0x6e,\n  0x20, 0x66, 0x6f, 0x78, 0x20,\n  0x6a, 0x75, 0x6d, 0x70, 0x73,\n  0x20, 0x6f, 0x76, 0x65, 0x72,\n  0x20, 0x74, 0x68, 0x65, 0x20,\n  0x6c, 0x61, 0x7a, 0x79, 0x20,\n  0x64, 0x6f, 0x67, 0x2e, 0x0a,\n  0x30, 0x31, 0x32, 0x33, 0x34,\n  0x35, 0x36, 0x37, 0x38, 0x39\n};\nunsigned int txt_len = 55;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-include-digit-name": {
+    "stdout": "unsigned char __9lives[] = {\n  0x78, 0x79\n};\nunsigned int __9lives_len = 2;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "9lives": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "769a4e6d0003189c7e96c5d9b7e810a0d11c3a12832527ec94b0f86d277f51ca",
+        "data": "xy"
+      }
+    }
+  },
+  "xxd-include-directory": {
+    "stdout": "unsigned char dd[] = {\n",
+    "stderr": "xxd: Is a directory\n",
+    "exit": 2,
+    "files": {
+      "dd": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "xxd-include-empty": {
+    "stdout": "unsigned char empty[] = {\n};\nunsigned int empty_len = 0;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "xxd-include-multiple-of-cols": {
+    "stdout": "unsigned char txt[] = {\n  0x54, 0x68, 0x65, 0x20,\n  0x71, 0x75, 0x69, 0x63\n};\nunsigned int txt_len = 8;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-include-name": {
+    "stdout": "unsigned char AB_C[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int AB_C_LEN = 3;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "xxd-include-name-glued": {
+    "stdout": "unsigned char my_var[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int my_var_len = 3;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "xxd-include-path-name": {
+    "stdout": "unsigned char sub_my_file_v2_bin[] = {\n  0x78, 0x79\n};\nunsigned int sub_my_file_v2_bin_len = 2;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/my-file.v2.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "769a4e6d0003189c7e96c5d9b7e810a0d11c3a12832527ec94b0f86d277f51ca",
+        "data": "xy"
+      }
+    }
+  },
+  "xxd-include-seek-len": {
+    "stdout": "unsigned char txt[] = {\n  0x65, 0x20, 0x71\n};\nunsigned int txt_len = 3;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-include-stdin": {
+    "stdout": "  0x61, 0x62, 0x63\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xxd-include-stdin-named": {
+    "stdout": "unsigned char zz[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int zz_len = 3;\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "xxd-infile-is-directory": {
+    "stdout": "",
+    "stderr": "xxd: Is a directory\n",
+    "exit": 2,
+    "files": {
+      "dd": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "xxd-outfile": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "2dcdd56940a0545b06dab9b7a5212df8e151819b1b0c8c1a96dffd75ca3faa08",
+        "data": "00000000: 6162 63                                  abc\n"
+      },
+      "small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "xxd-outfile-dash-is-stdout": {
+    "stdout": "00000000: 6162 63                                  abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "xxd-outfile-full": {
+    "stdout": "",
+    "stderr": "xxd: No space left on device\n",
+    "exit": 3,
+    "files": {
+      "small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "xxd-outfile-is-directory": {
+    "stdout": "",
+    "stderr": "xxd: dd: Is a directory\n",
+    "exit": 3,
+    "files": {
+      "dd": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "xxd-outfile-missing-dir": {
+    "stdout": "",
+    "stderr": "xxd: nodir/out: No such file or directory\n",
+    "exit": 3,
+    "files": {
+      "small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "xxd-outfile-truncates": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "3189ae9315e155ca865b83353f38b20565943bbcce706f386f31b492db10dd33",
+        "data": "616263\n"
+      },
+      "small": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "data": "abc"
+      }
+    }
+  },
+  "xxd-plain": {
+    "stdout": "54686520717569636b2062726f776e20666f78206a756d7073206f766572\n20746865206c617a7920646f672e0a30313233343536373839\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-plain-autoskip-ignored": {
+    "stdout": "000000000000000000000000000000000000000000000000000000000000\n000000000000000000000000000000000000000000000000000000000000\n00000000000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "z5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 67,
+        "sha256": "1be2b3990b410ca4fb38d1f79019c4018cd8820b69618646c81d22dfcbddc802",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "xxd-plain-cols0-one-line": {
+    "stdout": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "all": {
+        "kind": "file",
+        "mode": 420,
+        "size": 256,
+        "sha256": "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880",
+        "data": {
+          "b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w=="
+        }
+      }
+    }
+  },
+  "xxd-plain-cols10": {
+    "stdout": "54686520717569636b20\n62726f776e20666f7820\n6a756d7073206f766572\n20746865206c617a7920\n646f672e0a3031323334\n3536373839\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  },
+  "xxd-plain-cols300": {
+    "stdout": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "all": {
+        "kind": "file",
+        "mode": 420,
+        "size": 256,
+        "sha256": "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880",
+        "data": {
+          "b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w=="
+        }
+      }
+    }
+  },
+  "xxd-plain-empty": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "xxd-plain-upper-seek-len": {
+    "stdout": "7569636B206272\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 55,
+        "sha256": "34b58cd2c757b951aa0a2fe1305dddedc307d6a1c7c9a966b06fd72b6343fe52",
+        "data": "The quick brown fox jumps over the lazy dog.\n0123456789"
+      }
+    }
+  }
+}

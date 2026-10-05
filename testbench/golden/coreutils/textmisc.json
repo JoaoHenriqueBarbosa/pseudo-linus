@@ -169,13 +169,13 @@
     "files": {}
   },
   "shuf-e-unordered": {
-    "stdout": "b\nc\nd\na\n",
+    "stdout": "c\nd\nb\na\n",
     "stderr": "",
     "exit": 0,
     "files": {}
   },
   "shuf-file-unordered": {
-    "stdout": "quatro\ntrês\ndois\num\n",
+    "stdout": "um\nquatro\ndois\ntrês\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -189,7 +189,7 @@
     }
   },
   "shuf-i-range-unordered": {
-    "stdout": "10\n9\n5\n4\n7\n1\n6\n8\n3\n2\n",
+    "stdout": "7\n5\n1\n10\n3\n2\n6\n4\n8\n9\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -245,7 +245,7 @@
     "files": {}
   },
   "shuf-stdin-unordered": {
-    "stdout": "x\nz\ny\n",
+    "stdout": "z\nx\ny\n",
     "stderr": "",
     "exit": 0,
     "files": {}

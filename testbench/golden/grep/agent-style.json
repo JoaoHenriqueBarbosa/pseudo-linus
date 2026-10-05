@@ -326,7 +326,7 @@
     }
   },
   "count-per-file-recursive-h": {
-    "stdout": "x1\nx2\n",
+    "stdout": "x2\nx1\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -1296,7 +1296,7 @@
     }
   },
   "recursive-count": {
-    "stdout": "d/a:2\nd/b:0\n",
+    "stdout": "d/b:0\nd/a:2\n",
     "stderr": "",
     "exit": 0,
     "files": {

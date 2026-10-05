@@ -80,7 +80,7 @@
     }
   },
   "tar-cf-xf-roundtrip": {
-    "stdout": "x:\ntotal 4\ndrwxr-xr-x 3 root root 4096 2026-01-15 dir\n\nx/dir:\ntotal 8\n-rw-r--r-- 1 root root    2 2026-01-15 a.txt\nlrwxrwxrwx 1 root root    9 2026-01-15 link -> sub/b.txt\ndrwxr-xr-x 2 root root 4096 2026-01-15 sub\n\nx/dir/sub:\ntotal 4\n-rw------- 1 root root 3 2026-01-15 b.txt\n",
+    "stdout": "x:\ntotal 0\ndrwxr-xr-x 3 root root 100 2026-01-15 dir\n\nx/dir:\ntotal 4\n-rw-r--r-- 1 root root  2 2026-01-15 a.txt\nlrwxrwxrwx 1 root root  9 2026-01-15 link -> sub/b.txt\ndrwxr-xr-x 2 root root 60 2026-01-15 sub\n\nx/dir/sub:\ntotal 4\n-rw------- 1 root root 3 2026-01-15 b.txt\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -254,7 +254,7 @@
     }
   },
   "zip-unzip-roundtrip": {
-    "stdout": "x:\ntotal 4\ndrwxr-xr-x 2 root root 4096 2026-01-15 dir\n\nx/dir:\ntotal 8\n-rw-r--r-- 1 root root  2 2026-01-15 a.txt\n-rwxr-xr-x 1 root root 10 2026-01-15 run.sh\n",
+    "stdout": "x:\ntotal 0\ndrwxr-xr-x 2 root root 80 2026-01-15 dir\n\nx/dir:\ntotal 8\n-rw-r--r-- 1 root root  2 2026-01-15 a.txt\n-rwxr-xr-x 1 root root 10 2026-01-15 run.sh\n",
     "stderr": "",
     "exit": 0,
     "files": {
