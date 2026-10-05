@@ -527,7 +527,7 @@ fn check_three_arguments(first: &OsStr, second: &OsStr, third: &OsStr, last: &Os
     if is_binary_operator(second) {
         Ok(())
     } else if first == "!" {
-        check_two_arguments(second, third, last)
+        check_two_arguments(second, last)
     } else if (first == "(" && third == ")") || second == "-a" || second == "-o" {
         Ok(())
     } else {
@@ -551,7 +551,7 @@ fn check_gnu_arity(args: &[OsString]) -> ParseResult<()> {
             if a == "!" {
                 check_three_arguments(b, c, d, d)
             } else if a == "(" && d == ")" {
-                check_two_arguments(b, c, d)
+                check_two_arguments(b, d)
             } else {
                 Ok(())
             }

@@ -27,7 +27,7 @@ use uucore::buf_copy::copy_fast;
 use uucore::display::Quotable;
 use uucore::entries::{grp2gid, usr2uid};
 use uucore::error::{FromIo, UError, UResult, UUsageError, strip_errno};
-use uucore::fs::{are_files_identical, dir_strip_dot_for_creation};
+use uucore::fs::are_files_identical;
 use uucore::perms::{Verbosity, VerbosityLevel, wrap_chown};
 #[cfg(unix)]
 use uucore::safe_traversal::{DirFd, SymlinkBehavior, create_dir_all_safe};
@@ -86,9 +86,6 @@ enum InstallError {
     #[error("{}", translate!("install-error-invalid-target", "path" => .0.quote()))]
     InvalidTarget(PathBuf),
 
-    #[error("{}", translate!("install-error-target-not-dir", "path" => .0.quote()))]
-    TargetDirIsntDir(PathBuf),
-
     #[error("{}", translate!("install-error-backup-failed", "from" => .0.quote(), "error" => strip_errno(.1)))]
     BackupFailed(PathBuf, #[source] sysio::io::Error),
 
@@ -118,9 +115,6 @@ enum InstallError {
 
     #[error("{}", translate!("install-error-not-a-directory", "path" => .0.quote()))]
     NotADirectory(PathBuf),
-
-    #[error("{}", translate!("install-error-existing-file-not-directory", "path" => .0.quote()))]
-    ExistingFileNotADirectory(PathBuf),
 
     #[error("{}", translate!("install-error-override-directory-failed", "dir" => .0.quote(), "file" => .1.quote()))]
     OverrideDirectoryFailed(PathBuf, PathBuf),
@@ -486,48 +480,19 @@ fn directory(paths: &[OsString], b: &Behavior) -> UResult<()> {
     }
 
     for path in paths.iter().map(Path::new) {
-        // if the path already exist, check if it's a file
-        if path.sys_exists() {
-            if !path.sys_is_dir() {
-                show!(InstallError::ExistingFileNotADirectory(path.to_path_buf()));
-                continue;
-            }
-        } else {
-            // Special case to match GNU's behavior:
-            // install -d foo/. should work and just create foo/
-            // sysio::fs::create_dir("foo/."); fails in pure Rust
-            // See also mkdir.rs for another occurrence of this
-            let path_to_create = dir_strip_dot_for_creation(path);
-            // Differently than the primary functionality
-            // (MainFunction::Standard), the directory functionality should
-            // create all ancestors (or components) of a directory
-            // regardless of the presence of the "-D" flag.
-            //
-            // NOTE: the GNU "install" sets the expected mode only for the
-            // target directory. All created ancestor directories will have
-            // the default mode. Hence it is safe to use fs::create_dir_all
-            // and then only modify the target's dir mode.
-            if let Err(e) = fs::create_dir_all(&path_to_create).map_err_context(
-                || translate!("install-error-create-dir-failed", "path" => path_to_create.quote()),
-            ) {
+        // Porte pseudo-linus: o `make_dir_parents` do GNU, componente por componente.
+        if let Err((prefix, e)) = make_dir_parents(path, b.verbose) {
+            if let Err(e) = Err::<(), _>(e).map_err_context(|| {
+                format!("cannot create directory {}", uucore::display::locale_quote(prefix.as_os_str()))
+            }) {
                 show!(e);
-                continue;
             }
-
-            // Set SELinux context for all created directories if needed
-            #[cfg(all(feature = "selinux", any(target_os = "linux", target_os = "android")))]
-            if should_set_selinux_context(b) {
-                let context = get_context_for_selinux(b);
-                set_selinux_context_for_directories_install(path_to_create.as_path(), context);
-            }
-
-            if b.verbose {
-                writeln!(
-                    stdout(),
-                    "{}",
-                    translate!("install-verbose-creating-directory", "path" => path_to_create.quote())
-                )?;
-            }
+            continue;
+        }
+        #[cfg(all(feature = "selinux", any(target_os = "linux", target_os = "android")))]
+        if should_set_selinux_context(b) {
+            let context = get_context_for_selinux(b);
+            set_selinux_context_for_directories_install(uucore::fs::dir_strip_dot_for_creation(path).as_path(), context);
         }
 
         // Ownership before mode; on failure skip the chmod.
@@ -560,6 +525,56 @@ fn directory(paths: &[OsString], b: &Behavior) -> UResult<()> {
     // (which sets the exit code as well), function execution will end after
     // this return.
     Ok(())
+}
+
+/// Porte pseudo-linus: o `make_dir_parents` do gnulib como o `install -d` usa. Cada ancestral é
+/// criado e atravessado; o erro de um ancestral é o da travessia (o `chdir` do `mkancesdirs`:
+/// arquivo no caminho dá ENOTDIR), salvo quando ele não existe, que devolve o erro do `mkdir`. O
+/// último componente que já existe só serve se for diretório; senão vale o erro do `mkdir`. Devolve
+/// o prefixo que falhou, com o texto do argumento.
+fn make_dir_parents(path: &Path, verbose: bool) -> Result<(), (PathBuf, sysio::io::Error)> {
+    let bytes = path.as_os_str().as_bytes();
+    let say = |p: &Path| {
+        if verbose {
+            let _ = writeln!(stdout(), "{}: creating directory {}", uucore::util_name(), p.quote());
+        }
+    };
+    // Fim de cada componente; o último é o do próprio diretório.
+    let mut ends = Vec::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        while i < bytes.len() && bytes[i] == b'/' {
+            i += 1;
+        }
+        if i == bytes.len() {
+            break;
+        }
+        while i < bytes.len() && bytes[i] != b'/' {
+            i += 1;
+        }
+        ends.push(i);
+    }
+    ends.pop();
+    for end in ends {
+        let prefix = Path::new(std::ffi::OsStr::from_bytes(&bytes[..end]));
+        match fs::create_dir(prefix) {
+            Ok(()) => say(prefix),
+            Err(made) => match prefix.sys_metadata() {
+                Ok(m) if m.is_dir() => {}
+                Ok(_) => return Err((prefix.to_path_buf(), sysio::io::Error::from_raw_os_error(20))),
+                Err(e) if e.kind() == sysio::io::ErrorKind::NotFound => return Err((prefix.to_path_buf(), made)),
+                Err(e) => return Err((prefix.to_path_buf(), e)),
+            },
+        }
+    }
+    match fs::create_dir(path) {
+        Ok(()) => {
+            say(path);
+            Ok(())
+        }
+        Err(_) if path.sys_is_dir() => Ok(()),
+        Err(e) => Err((path.to_path_buf(), e)),
+    }
 }
 
 /// Test if the path is a new file path that can be
@@ -641,6 +656,20 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
 
     let sources = &paths.iter().map(PathBuf::from).collect::<Vec<_>>();
 
+    // Porte pseudo-linus: o `-t` do GNU faz stat do diretório antes de tudo: o que não é diretório
+    // (ou, sem `-D`, o que não existe) encerra com "failed to access X: <errno>".
+    if b.target_dir.is_some() {
+        let failed = match target.sys_metadata() {
+            Ok(m) if m.is_dir() => None,
+            Ok(_) => Some(sysio::io::Error::from_raw_os_error(20)),
+            Err(e) if !b.create_leading => Some(e),
+            Err(_) => None,
+        };
+        if let Some(e) = failed {
+            return Err::<(), _>(e).map_err_context(|| format!("failed to access {}", target.quote()));
+        }
+    }
+
     #[cfg(unix)]
     let mut target_parent_fd: Option<DirFd> = None;
     #[cfg(unix)]
@@ -656,11 +685,6 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
         } else {
             None
         };
-
-        // If -t is used, check if target exists as a file before trying to create directories
-        if b.target_dir.is_some() && target.sys_exists() && !target.sys_is_dir() {
-            return Err(InstallError::NotADirectory(target).into());
-        }
 
         if let Some(to_create) = to_create {
             let to_create_original = to_create;
@@ -772,7 +796,9 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
             return Err(InstallError::OverrideDirectoryFailed(target, source.clone()).into());
         }
 
-        if is_potential_directory_path(&target) {
+        // Porte pseudo-linus: com uma origem só, a barra final não faz do destino um diretório; o
+        // GNU tenta criar o arquivo `x/` e falha com o errno do open.
+        if target.sys_is_dir() {
             return copy_files_into_dir(sources, &target, b);
         }
 
@@ -812,9 +838,36 @@ fn standard(mut paths: Vec<OsString>, b: &Behavior) -> UResult<()> {
                 copy(source, &target, b)
             }
         } else {
+            // Porte pseudo-linus: o GNU não tem "invalid target". O `copy_internal` faz stat do
+            // destino (erro que não seja ENOENT vira "cannot stat") e a criação diz o resto.
+            if let Err(e) = target.sys_metadata()
+                && e.kind() != sysio::io::ErrorKind::NotFound
+            {
+                return Err::<(), _>(e).map_err_context(|| format!("cannot stat {}", target.quote()));
+            }
+            create_dest(&target)?;
             Err(InstallError::InvalidTarget(target).into())
         }
     }
+}
+
+/// Porte pseudo-linus: cria o destino como o `copy_reg` do GNU, que troca o EISDIR do open de um
+/// nome com barra final por ENOTDIR ("cannot create regular file 'x/': Not a directory").
+fn create_dest(to: &Path) -> UResult<File> {
+    let trailing_slash = to.as_os_str().as_encoded_bytes().ends_with(b"/");
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(to)
+        .map_err(|e| {
+            if trailing_slash && e.kind() == sysio::io::ErrorKind::IsADirectory {
+                sysio::io::Error::from_raw_os_error(20)
+            } else {
+                e
+            }
+        })
+        .map_err_context(|| format!("cannot create regular file {}", to.quote()))
 }
 
 fn metadata_for_source(path: &Path) -> UResult<fs::Metadata> {
@@ -834,8 +887,14 @@ fn metadata_for_source(path: &Path) -> UResult<fs::Metadata> {
 /// `target_dir` must be a directory.
 ///
 fn copy_files_into_dir(files: &[PathBuf], target_dir: &Path, b: &Behavior) -> UResult<()> {
+    // Porte pseudo-linus: o `target_directory_operand` do GNU: o destino que não dá pra consultar
+    // ou que não é diretório sai como "target X: <errno>".
+    if let Err(e) = target_dir.sys_metadata() {
+        return Err::<(), _>(e).map_err_context(|| format!("target {}", target_dir.quote()));
+    }
     if !target_dir.sys_is_dir() {
-        return Err(InstallError::TargetDirIsntDir(target_dir.to_path_buf()).into());
+        let e = sysio::io::Error::from_raw_os_error(20);
+        return Err::<(), _>(e).map_err_context(|| format!("target {}", target_dir.quote()));
     }
     for sourcepath in files {
         let source_metadata = match metadata_for_source(sourcepath) {
@@ -1018,12 +1077,7 @@ fn copy_file(from: &Path, to: &Path) -> UResult<()> {
     let mut handle = File::open(from)
         .map_err_context(|| format!("cannot open {} for reading", from.quote()))?;
     // create_new provides TOCTOU protection
-    let mut dest = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .mode(0o600)
-        .open(to)
-        .map_err_context(|| format!("cannot create regular file {}", to.quote()))?;
+    let mut dest = create_dest(to)?;
 
     // Porte pseudo-linus: sem FICLONE (reflink do FS do host); cópia por leitura e escrita.
     copy_fast(&mut handle, &mut dest).map_err(|err| {

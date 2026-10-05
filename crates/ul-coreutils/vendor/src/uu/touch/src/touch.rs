@@ -35,7 +35,7 @@ use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
 use sysio::fs;
 use sysio::fs::OpenOptions;
-use sysio::io::{Error, ErrorKind};
+use sysio::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use uucore::display::Quotable;
@@ -508,17 +508,10 @@ fn touch_file(
         }
 
         if let Err(e) = create_without_truncate(path) {
-            // we need to check if the path is the path to a directory (ends with a separator)
-            // we can't use File::create to create a directory
-            // we cannot use path.is_dir() because it calls fs::metadata which we already called
-            // when stable, we can change to use e.kind() == sysio::io::ErrorKind::IsADirectory
-            let is_directory = path.as_os_str().as_encoded_bytes().last()
-                == Some(&(std::path::MAIN_SEPARATOR as u8));
-            if is_directory {
-                let custom_err = Error::other(translate!("touch-error-no-such-file-or-directory"));
-                return Err(custom_err.map_err_context(
-                    || translate!("touch-error-cannot-touch", "filename" => filename.quote()),
-                ));
+            // Porte pseudo-linus: como o touch.c do GNU, o EISDIR do open (nome com barra final)
+            // não conta como erro de criação: o utimensat em seguida diz o que houve.
+            if e.kind() == ErrorKind::IsADirectory {
+                return update_times(path, is_stdout, opts, atime, mtime);
             }
             let e = e.map_err_context(
                 || translate!("touch-error-cannot-touch", "filename" => path.quote()),
