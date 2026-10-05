@@ -2,13 +2,13 @@
 //!
 //! Porte de `login-utils/login.c` até onde o sandbox permite: opções, `--help`/`--version` e a
 //! checagem do terminal de controle. O `login` real exige um tty de verdade (`ttyname(3)`, `lstat` e
-//! `access` no dispositivo); sem ele, sai com `FATAL: bad tty`, que é o que acontece aqui. Ficam de fora
+//! `access` no dispositivo); sem ele, sai com 1 sem imprimir nada (o `FATAL: bad tty` vai ao syslog). Ficam de fora
 //! a autenticação por PAM, o utmp e o início da sessão, que dependem de um terminal.
 
 use std::ffi::OsString;
 use std::io::Write;
 
-use sysabi::{Fd, sys};
+use sysabi::sys;
 
 use crate::groupmgmt::{Spec, parse};
 use crate::util::io;
@@ -24,9 +24,7 @@ Options:
  -f             skip a login authentication
  -h <host>      hostname to be used for utmp logging
  -H             suppress hostname in the login prompt
- -r <host>      perform rlogin protocol
-
- -h, --help     display this help
+     --help     display this help
  -V, --version  display version
 
 For more details see login(1).
@@ -76,8 +74,7 @@ fn run(args: &[OsString]) -> i32 {
             return 1;
         }
     }
-    // init_tty(): sem terminal de controle o login recusa antes de pedir qualquer coisa.
-    let _tty = sys::current().isatty(Fd::STDIN);
-    io::eprint("login: FATAL: bad tty\n");
+    // init_tty(): sem terminal de controle o login recusa antes de pedir qualquer coisa. O
+    // `FATAL: bad tty` do original vai só para o syslog, então nada sai no stdout nem no stderr.
     1
 }

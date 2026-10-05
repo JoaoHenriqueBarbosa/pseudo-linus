@@ -16,10 +16,11 @@ use crate::util::io::{self, File};
 const HELP: &str = "Usage: rmt [OPTION...]
 Manipulate a tape drive, accepting commands from a remote process
 
+      --debug-file=FILE      set debug output file name
   -d, --debug=NUMBER         set debug level
-  -?, --help                 Give this help list
-      --usage                Give a short usage message
-  -V, --version              Print program version
+  -?, --help                 give this help list
+      --usage                give a short usage message
+  -V, --version              print program version
 
 Mandatory or optional arguments to long options are also mandatory or optional
 for any corresponding short options.
@@ -43,7 +44,7 @@ pub fn main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 }
 
 fn try_help(prog: &str) {
-    io::eprint(format!("Try `{prog} --help' or `{prog} --usage' for more information.\n"));
+    io::eprint(format!("Try '{prog} --help' or '{prog} --usage' for more information.\n"));
 }
 
 fn run(args: &[OsString]) -> i32 {
@@ -77,7 +78,15 @@ fn run(args: &[OsString]) -> i32 {
                 }
                 i += 1;
             }
-            _ if a.starts_with(b"--debug=") || (a.starts_with(b"-d") && a.len() > 2) => {}
+            _ if a.starts_with(b"--debug=") || a.starts_with(b"--debug-file=") || (a.starts_with(b"-d") && a.len() > 2) => {}
+            b"--debug-file" => {
+                if i >= argv.len() {
+                    io::eprint("rmt: option '--debug-file' requires an argument\n");
+                    try_help("rmt");
+                    return 64;
+                }
+                i += 1;
+            }
             _ if a.starts_with(b"--") => {
                 io::eprint(format!("rmt: unrecognized option '{}'\n", io::lossy(a)));
                 try_help("rmt");
@@ -157,9 +166,11 @@ fn serve() -> i32 {
         let Some(&c) = cmd.first() else {
             continue;
         };
+        // No protocolo, o argumento do primeiro parâmetro vem na mesma linha da letra do comando
+        // (`O<dispositivo>`, `W<contagem>`, `R<contagem>`); só o segundo vai na linha seguinte.
+        let rest = &cmd[1..];
         match c {
             b'O' => {
-                let Some(path) = inp.line() else { return 0 };
                 let Some(mode) = inp.line() else { return 0 };
                 dev = None;
                 let m = atoi(&mode);
@@ -174,7 +185,7 @@ fn serve() -> i32 {
                 if m & 0o1000 != 0 {
                     flags = flags | OFlags::TRUNC;
                 }
-                match File::open_with(&path, flags, 0o666) {
+                match File::open_with(rest, flags, 0o666) {
                     Ok(f) => {
                         dev = Some(f);
                         reply(b"A0\n");
@@ -183,7 +194,6 @@ fn serve() -> i32 {
                 }
             }
             b'C' => {
-                let _ = inp.line();
                 if dev.take().is_some() {
                     reply(b"A0\n");
                 } else {
@@ -191,8 +201,7 @@ fn serve() -> i32 {
                 }
             }
             b'W' => {
-                let Some(count) = inp.line() else { return 0 };
-                let n = atoi(&count).max(0) as usize;
+                let n = atoi(rest).max(0) as usize;
                 let buf = inp.take(n);
                 match dev.as_mut() {
                     None => reply_error(Errno::EBADF),
@@ -203,8 +212,7 @@ fn serve() -> i32 {
                 }
             }
             b'R' => {
-                let Some(count) = inp.line() else { return 0 };
-                let n = atoi(&count).max(0) as usize;
+                let n = atoi(rest).max(0) as usize;
                 match dev.as_mut() {
                     None => reply_error(Errno::EBADF),
                     Some(f) => {
@@ -222,11 +230,9 @@ fn serve() -> i32 {
             }
             b'L' => {
                 let _ = inp.line();
-                let _ = inp.line();
                 reply_error(Errno::ESPIPE);
             }
             b'I' => {
-                let _ = inp.line();
                 let _ = inp.line();
                 reply_error(Errno::ENOTTY);
             }

@@ -1,10 +1,10 @@
 //! `localedef` da glibc 2.41 (pacote libc-bin do Debian 13).
 //!
 //! Cobre `--help`, `--usage`, `--version`, os erros de uso do argp, `--list-archive` e a abertura
-//! do mapa de caracteres (`-f`) e do arquivo de definição (`-i`) com as mensagens do original para
-//! arquivos inexistentes. A compilação de uma definição de locale de verdade (gravar
-//! `/usr/lib/locale/<nome>`) não é feita: quando a entrada existe, o programa sai com 4 sem
-//! escrever nada.
+//! do mapa de caracteres (`-f`, ou o padrão `ANSI_X3.4-1968`) e do arquivo de definição (`-i`) com as
+//! mensagens do original para arquivos inexistentes. A compilação de uma definição de locale de
+//! verdade (gravar `/usr/lib/locale/<nome>`) não é feita: quando a entrada existe, o programa sai com
+//! 4 sem escrever nada.
 
 use std::ffi::OsString;
 use std::io::Write;
@@ -13,47 +13,67 @@ use sysabi::Errno;
 
 use crate::util::io::{self, File};
 
-const HELP: &str = "Usage: localedef [OPTION...] NAME
-Create a locale object.
+const HELP: &str = concat!(
+    "Usage: localedef [OPTION...] NAME\n",
+    "  or:  localedef [OPTION...] [--add-to-archive|--delete-from-archive] FILE...\n",
+    "  or:  localedef [OPTION...] --list-archive [FILE]\n",
+    "Compile locale specification\n",
+    "\n",
+    " Input Files:\n",
+    "  -f, --charmap=FILE         Symbolic character names defined in FILE\n",
+    "  -i, --inputfile=FILE       Source definitions are found in FILE\n",
+    "  -u, --repertoire-map=FILE  FILE contains mapping from symbolic names to UCS4\n",
+    "                             values\n",
+    "\n",
+    " Output control:\n",
+    "  -c, --force                Create output even if warning messages were issued\n",
+    "                            \n",
+    "      --no-hard-links        Do not create hard links between installed\n",
+    "                             locales\n",
+    "      --no-warnings=<warnings>   Comma-separated list of warnings to disable;\n",
+    "                             supported warnings are: ascii, intcurrsym\n",
+    "      --posix                Strictly conform to POSIX\n",
+    "      --prefix=PATH          Optional output file prefix\n",
+    "      --quiet                Suppress warnings and information messages\n",
+    "  -v, --verbose              Print more messages\n",
+    "      --warnings=<warnings>  Comma-separated list of warnings to enable;\n",
+    "                             supported warnings are: ascii, intcurrsym\n",
+    "\n",
+    " Archive control:\n",
+    "      --add-to-archive       Add locales named by parameters to archive\n",
+    "  -A, --alias-file=FILE      locale.alias file to consult when making archive\n",
+    "      --big-endian           Generate big-endian output\n",
+    "      --delete-from-archive  Remove locales named by parameters from archive\n",
+    "      --list-archive         List content of archive\n",
+    "      --little-endian        Generate little-endian output\n",
+    "      --no-archive           Don't add new data to archive\n",
+    "      --replace              Replace existing archive content\n",
+    "\n",
+    "  -?, --help                 Give this help list\n",
+    "      --usage                Give a short usage message\n",
+    "  -V, --version              Print program version\n",
+    "\n",
+    "Mandatory or optional arguments to long options are also mandatory or optional\n",
+    "for any corresponding short options.\n",
+    "\n",
+    "System's directory for character maps : /usr/share/i18n/charmaps\n",
+    "\t\t       repertoire maps: /usr/share/i18n/repertoiremaps\n",
+    "\t\t       locale path    : /usr/lib/locale:/usr/share/i18n\n",
+    "For bug reporting instructions, please see:\n",
+    "<http://www.debian.org/Bugs/>.\n",
+);
 
-System's directory for character maps : /usr/share/i18n/charmaps
-\t\t       repertoire maps: /usr/share/i18n/repertoiremaps
-\t\t       locale path    : /usr/lib/locale:/usr/share/i18n
-
- Input Files:
-  -c, --force                Create output even if warning messages were issued
-  -f, --charmap=FILE         Symbolic character names defined in FILE
-  -i, --inputfile=FILE       Source definitions are found in FILE
-  -u, --repertoire-map=FILE  FILE contains mapping from symbolic names to UCS4
-                             values
-
- Output control:
-      --add-to-archive       Add locales named by parameters to archive
-      --delete-from-archive  Delete locales named by parameters from archive
-      --list-archive         List content of archive
-      --no-archive           Do not use archive
-      --prefix=PATH          Optional output file prefix
-      --quiet                Suppress warnings and information messages
-      --replace              Replace existing archive content
-  -v, --verbose              Print more messages
-      --warnings[=WARNINGS]  Comma-separated list of warnings to enable
-  -?, --help                 Give this help list
-      --usage                Give a short usage message
-  -V, --version              Print program version
-
-Mandatory or optional arguments to long options are also mandatory or optional
-for any corresponding short options.
-
-For bug reporting instructions, please see:
-<http://www.debian.org/Bugs/>.
-";
-
-const USAGE: &str = "Usage: localedef [-cvV?] [-f FILE] [-i FILE] [-u FILE] [--force]
-            [--charmap=FILE] [--inputfile=FILE] [--repertoire-map=FILE]
-            [--add-to-archive] [--delete-from-archive] [--list-archive]
-            [--no-archive] [--prefix=PATH] [--quiet] [--replace] [--verbose]
-            [--warnings[=WARNINGS]] [--help] [--usage] [--version] NAME
-";
+const USAGE: &str = concat!(
+    "Usage: localedef [-cv?V] [-f FILE] [-i FILE] [-u FILE] [-A FILE]\n",
+    "            [--charmap=FILE] [--inputfile=FILE] [--repertoire-map=FILE]\n",
+    "            [--force] [--no-hard-links] [--no-warnings=<warnings>] [--posix]\n",
+    "            [--prefix=PATH] [--quiet] [--verbose] [--warnings=<warnings>]\n",
+    "            [--add-to-archive] [--alias-file=FILE] [--big-endian]\n",
+    "            [--delete-from-archive] [--list-archive] [--little-endian]\n",
+    "            [--no-archive] [--replace] [--help] [--usage] [--version] NAME\n",
+    "  or:  localedef [OPTION...] [--add-to-archive|--delete-from-archive] FILE...\n",
+    "  or:  localedef [OPTION...] --list-archive [FILE]\n",
+);
 
 const VERSION: &str = "localedef (Debian GLIBC 2.41-12+deb13u4) 2.41
 Copyright (C) 2024 Free Software Foundation, Inc.
@@ -63,7 +83,11 @@ Written by Ulrich Drepper.
 ";
 
 const CHARMAP_PATH: &str = "/usr/share/i18n/charmaps";
+const DEFAULT_CHARMAP: &str = "ANSI_X3.4-1968";
 const ARCHIVE: &str = "/usr/lib/locale/locale-archive";
+
+/// Erro de uso do argp: o localedef sai com 4 (`EXIT_FAILURE` do argp é sobrescrito).
+const EXIT_USAGE: i32 = 4;
 
 pub fn main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
@@ -79,19 +103,37 @@ const LONG: &[(&str, u8, u8)] = &[
     ("charmap", 1, b'f'),
     ("inputfile", 1, b'i'),
     ("repertoire-map", 1, b'u'),
-    ("add-to-archive", 0, 1),
-    ("delete-from-archive", 0, 2),
-    ("list-archive", 0, 3),
-    ("no-archive", 0, 4),
+    ("no-hard-links", 0, 11),
+    ("no-warnings", 1, 12),
+    ("posix", 0, 10),
     ("prefix", 1, 5),
     ("quiet", 0, 6),
-    ("replace", 0, 7),
     ("verbose", 0, b'v'),
-    ("warnings", 2, 8),
+    ("warnings", 1, 8),
+    ("add-to-archive", 0, 1),
+    ("alias-file", 1, b'A'),
+    ("big-endian", 0, 13),
+    ("delete-from-archive", 0, 2),
+    ("list-archive", 0, 3),
+    ("little-endian", 0, 14),
+    ("no-archive", 0, 4),
+    ("replace", 0, 7),
     ("help", 0, b'?'),
     ("usage", 0, 9),
     ("version", 0, b'V'),
 ];
+
+/// Procura `name` (com o `.gz` opcional) no diretório de mapas de caracteres.
+fn charmap_in_dir(name: &[u8]) -> bool {
+    let mut p = CHARMAP_PATH.as_bytes().to_vec();
+    p.push(b'/');
+    p.extend_from_slice(name);
+    if File::open(&p).is_ok() {
+        return true;
+    }
+    p.extend_from_slice(b".gz");
+    File::open(&p).is_ok()
+}
 
 fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
@@ -132,7 +174,7 @@ fn run(args: &[OsString]) -> i32 {
             if cands.is_empty() {
                 io::eprint(format!("localedef: unrecognized option '--{ns}'\n"));
                 try_help();
-                return 64;
+                return EXIT_USAGE;
             }
             if cands.len() > 1 {
                 let poss: Vec<String> = cands.iter().map(|o| format!("'--{}'", o.0)).collect();
@@ -141,14 +183,14 @@ fn run(args: &[OsString]) -> i32 {
                     poss.join(" ")
                 ));
                 try_help();
-                return 64;
+                return EXIT_USAGE;
             }
             let o = cands[0];
             match (o.1, val) {
                 (0, Some(_)) => {
                     io::eprint(format!("localedef: option '--{}' doesn't allow an argument\n", o.0));
                     try_help();
-                    return 64;
+                    return EXIT_USAGE;
                 }
                 (1, None) => {
                     if i < argv.len() {
@@ -157,7 +199,7 @@ fn run(args: &[OsString]) -> i32 {
                     } else {
                         io::eprint(format!("localedef: option '--{}' requires an argument\n", o.0));
                         try_help();
-                        return 64;
+                        return EXIT_USAGE;
                     }
                 }
                 (_, v) => items.push((o.2, v)),
@@ -178,7 +220,7 @@ fn run(args: &[OsString]) -> i32 {
                         } else {
                             io::eprint(format!("localedef: option requires an argument -- '{}'\n", c as char));
                             try_help();
-                            return 64;
+                            return EXIT_USAGE;
                         };
                         items.push((c, Some(v)));
                         break;
@@ -186,7 +228,7 @@ fn run(args: &[OsString]) -> i32 {
                     _ => {
                         io::eprint(format!("localedef: invalid option -- '{}'\n", c as char));
                         try_help();
-                        return 64;
+                        return EXIT_USAGE;
                     }
                 }
             }
@@ -215,10 +257,12 @@ fn run(args: &[OsString]) -> i32 {
     }
 
     if list_archive {
+        // Sem arquivo de archive não há nada a listar: o original sai com 0 sem imprimir.
         let mut path = prefix.clone();
         path.extend_from_slice(ARCHIVE.as_bytes());
         return match File::open(&path) {
             Ok(_) => 0,
+            Err(e) if e.0 == Errno::ENOENT.0 => 0,
             Err(e) => {
                 io::eprint(format!(
                     "localedef: cannot open locale archive \"{}\": {}\n",
@@ -235,27 +279,33 @@ fn run(args: &[OsString]) -> i32 {
         return 4;
     }
 
-    if let Some(cm) = &charmap {
-        if File::open(cm).is_err() {
-            let mut found = false;
-            if !cm.contains(&b'/') {
-                let mut p = CHARMAP_PATH.as_bytes().to_vec();
-                p.push(b'/');
-                p.extend_from_slice(cm);
-                found = File::open(&p).is_ok();
+    match &charmap {
+        Some(cm) => {
+            if File::open(cm).is_err() {
+                let found = !cm.contains(&b'/') && charmap_in_dir(cm);
                 if !found {
-                    p.extend_from_slice(b".gz");
-                    found = File::open(&p).is_ok();
-                }
-                if !found && File::open(CHARMAP_PATH.as_bytes()).is_err() {
                     io::eprint(format!(
-                        "localedef: cannot read character map directory `{CHARMAP_PATH}': {}\n",
+                        "[error] character map file `{}' not found: {}\n",
+                        io::lossy(cm),
                         Errno::ENOENT.message()
                     ));
+                    if !cm.contains(&b'/') && File::open(CHARMAP_PATH.as_bytes()).is_err() {
+                        io::eprint(format!(
+                            "[error] cannot read character map directory `{CHARMAP_PATH}': {}\n",
+                            Errno::ENOENT.message()
+                        ));
+                    }
+                    return 1;
                 }
             }
-            if !found {
-                io::eprint(format!("localedef: character map file `{}' not found\n", io::lossy(cm)));
+        }
+        None => {
+            // Sem `-f`, o original usa o mapa padrão `ANSI_X3.4-1968` do diretório de mapas.
+            if !charmap_in_dir(DEFAULT_CHARMAP.as_bytes()) {
+                io::eprint(format!(
+                    "[error] default character map file `{DEFAULT_CHARMAP}' not found: {}\n",
+                    Errno::ENOENT.message()
+                ));
                 return 4;
             }
         }

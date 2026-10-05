@@ -12,14 +12,11 @@ use sysabi::Errno;
 use crate::util::io::{self, File};
 
 const HELP: &str = "Usage: pldd [OPTION...] PID
-Print list of dynamic shared objects loaded into a running process.
+List dynamic shared objects loaded into process.
 
   -?, --help                 Give this help list
       --usage                Give a short usage message
   -V, --version              Print program version
-
-Mandatory or optional arguments to long options are also mandatory or optional
-for any corresponding short options.
 
 For bug reporting instructions, please see:
 <http://www.debian.org/Bugs/>.
@@ -123,10 +120,10 @@ fn run(args: &[OsString]) -> i32 {
         }
     };
 
-    // do_it(): primeiro o /proc/<pid>/exe, que descreve o executável do processo.
-    let exe = format!("/proc/{pid}/stat");
-    if let Err(e) = File::open(exe.as_bytes()) {
-        io::eprint(format!("pldd: cannot get information about process {pid}: {}\n", e.message()));
+    // do_it(): primeiro abre o diretório /proc/<pid>.
+    let dir = format!("/proc/{pid}");
+    if let Err(e) = File::open(dir.as_bytes()) {
+        io::eprint(format!("pldd: cannot open {dir}: {}\n", e.message()));
         return 1;
     }
     io::eprint(format!(

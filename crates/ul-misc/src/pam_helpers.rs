@@ -19,7 +19,9 @@ use crate::util::io::{self, File};
 const PAM_SYSTEM_ERR: i32 = 4;
 const PAM_PERM_DENIED: i32 = 6;
 const PAM_AUTH_ERR: i32 = 7;
+const PAM_AUTHINFO_UNAVAIL: i32 = 9;
 const PAM_USER_UNKNOWN: i32 = 10;
+const PAM_SESSION_ERR: i32 = 14;
 
 /// Campos de `/etc/passwd` do usuário com esse nome.
 fn pw_by_name(name: &[u8]) -> Option<Vec<Vec<u8>>> {
@@ -43,19 +45,25 @@ fn inappropriate() -> i32 {
     PAM_SYSTEM_ERR
 }
 
+/// A recusa do `pwhistory_helper` chamado fora do módulo PAM (sem a linha do administrador).
+fn pwhistory_inappropriate() -> i32 {
+    io::eprint("This binary is not designed for running in this way.\n");
+    PAM_SYSTEM_ERR
+}
+
 // ---------------------------------------------------------------------------------------------
 // mkhomedir_helper
 // ---------------------------------------------------------------------------------------------
 
-const MKHOMEDIR_USAGE: &str =
-    "Usage: mkhomedir_helper <username> [<umask> [<path-to-skel> [<home-mode>]]]\n";
-
 pub fn mkhomedir_helper_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| {
         let argv = io::args_bytes(args);
-        if argv.len() < 2 || argv.len() > 5 {
-            io::eprint(MKHOMEDIR_USAGE);
-            return PAM_SYSTEM_ERR;
+        if argv.len() < 2 {
+            io::eprint(format!(
+                "Usage: {} <username> [<umask> [<skeldir> [<home_mode>]]]\n",
+                io::argv0(args)
+            ));
+            return PAM_SESSION_ERR;
         }
         let Some(pw) = pw_by_name(&argv[1]) else {
             return PAM_USER_UNKNOWN;
@@ -78,12 +86,10 @@ pub fn mkhomedir_helper_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 // pam_timestamp_check
 // ---------------------------------------------------------------------------------------------
 
-const TIMESTAMP_USAGE: &str = "Usage: pam_timestamp_check [-k] [-d] [target user]\n";
-
 pub fn pam_timestamp_check_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| {
         let argv = io::args_bytes(args);
-        let mut operands = 0;
+        let prog = io::argv0(args);
         let mut done_opts = false;
         for a in &argv[1..] {
             if !done_opts && a.as_slice() == b"--" {
@@ -91,18 +97,13 @@ pub fn pam_timestamp_check_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i3
             } else if !done_opts && a.len() > 1 && a[0] == b'-' {
                 for &c in &a[1..] {
                     if c != b'k' && c != b'd' {
-                        io::eprint(format!("pam_timestamp_check: invalid option -- '{}'\n", c as char));
-                        io::eprint(TIMESTAMP_USAGE);
-                        return 2;
+                        io::eprint(format!("{prog}: invalid option -- '{}'\n", c as char));
+                        io::eprint(format!("Usage: {prog} [[-k] | [-d]] [target user]\n"));
+                        return 1;
                     }
                 }
-            } else {
-                operands += 1;
             }
-        }
-        if operands > 1 {
-            io::eprint(TIMESTAMP_USAGE);
-            return 2;
+            // Operandos a mais são ignorados, como no original.
         }
         // Sem timestamp gravado para o terminal: não autenticado.
         PAM_AUTH_ERR
@@ -135,7 +136,8 @@ pub fn unix_chkpwd_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
             .or_else(|| pw_by_name(user).map(|f| f.get(1).cloned().unwrap_or_default()));
         match hash {
             Some(h) if h.is_empty() && nullok && pass.is_empty() => 0,
-            _ => 1,
+            Some(_) => PAM_AUTH_ERR,
+            None => PAM_AUTHINFO_UNAVAIL,
         }
     })
 }
@@ -154,7 +156,7 @@ pub fn pwhistory_helper_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| {
         let argv = io::args_bytes(args);
         if stdin_is_tty() || argv.len() != 4 {
-            return inappropriate();
+            return pwhistory_inappropriate();
         }
         PAM_AUTH_ERR
     })
@@ -177,11 +179,18 @@ pub fn faillock_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
             match argv[i].as_slice() {
                 b"--dir" | b"--user" | b"--conf" => {
                     i += 1;
-                    if i >= argv.len() {
+                    let which = argv[i - 1].clone();
+                    if i >= argv.len() || argv[i].is_empty() {
+                        let what: &str = match which.as_slice() {
+                            b"--dir" => "directory name",
+                            b"--user" => "user name",
+                            _ => "configuration file name",
+                        };
+                        io::eprint(format!("faillock: No {what} supplied.\n"));
                         io::eprint(FAILLOCK_USAGE);
-                        return 2;
+                        return 1;
                     }
-                    match argv[i - 1].as_slice() {
+                    match which.as_slice() {
                         b"--dir" => dir = argv[i].clone(),
                         b"--user" => user = Some(argv[i].clone()),
                         _ => {}
@@ -189,9 +198,10 @@ pub fn faillock_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
                 }
                 b"--reset" => reset = true,
                 b"--legacy-output" => {}
-                _ => {
+                other => {
+                    io::eprint(format!("faillock: Unknown option: {}\n", io::lossy(other)));
                     io::eprint(FAILLOCK_USAGE);
-                    return 2;
+                    return 1;
                 }
             }
             i += 1;
@@ -200,8 +210,8 @@ pub fn faillock_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
         match user {
             Some(u) => {
                 if pw_by_name(&u).is_none() {
-                    io::eprint(format!("faillock: No such user {}\n", io::lossy(&u)));
-                    return 3;
+                    io::eprint(format!("faillock: Error no such user: {}\n", io::lossy(&u)));
+                    return 1;
                 }
                 if reset {
                     return 0;
@@ -216,8 +226,8 @@ pub fn faillock_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
             None => match File::open(&dir) {
                 Ok(_) => 0,
                 Err(e) => {
-                    io::eprint(format!("faillock: Error opening the tally directory: {}\n", e.message()));
-                    3
+                    io::eprint(format!("faillock: Error reading tally directory: {}\n", e.message()));
+                    2
                 }
             },
         }
@@ -228,23 +238,29 @@ pub fn faillock_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 // pam_getenv
 // ---------------------------------------------------------------------------------------------
 
-const GETENV_USAGE: &str = "Usage: pam_getenv [-l] [-s service] [name ...]\n";
+const GETENV_USAGE: &str = "Usage: pam_getenv [-l] [-s] env_var\n";
 
 pub fn pam_getenv_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| {
         let argv = io::args_bytes(args);
-        if argv.len() < 2 {
-            io::eprint(GETENV_USAGE);
-            return 1;
-        }
-        for name in &argv[1..] {
-            if name.len() > 1 && name[0] == b'-' {
-                io::eprint(format!("pam_getenv: invalid option -- '{}'\n", name[1] as char));
-                io::eprint(GETENV_USAGE);
-                return 1;
+        let mut vars = 0;
+        for a in &argv[1..] {
+            let opt = a.len() > 1 && a[0] == b'-';
+            if opt && a.iter().skip(1).all(|c| *c == b'l' || *c == b's') {
+                continue;
             }
+            if opt {
+                io::eprint(GETENV_USAGE);
+                return 255;
+            }
+            vars += 1;
         }
-        // Ambiente da sessão PAM: vazio fora de uma sessão, então nenhuma variável existe.
-        1
+        if vars == 0 {
+            io::eprint(GETENV_USAGE);
+            return 255;
+        }
+        // Ambiente da sessão PAM: vazio fora de uma sessão, então a variável não está definida e
+        // o programa sai com 0 sem imprimir nada.
+        0
     })
 }
