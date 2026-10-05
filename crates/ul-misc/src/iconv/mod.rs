@@ -8,7 +8,7 @@
 //! - Nomes sem diferenciar caixa, com os apelidos do `gconv-modules`; sufixos depois de `//`,
 //!   separados por `,` ou `/`: `TRANSLIT` (tabela do locale, ver [`translit`]) e `IGNORE`. Os
 //!   sufixos da origem não valem nada, como na glibc.
-//! - Codificação desconhecida: `conversion from `X' unsupported`, `conversion to `Y' unsupported`
+//! - Codificação desconhecida: `conversion from `X' is not supported`, `conversion to `Y' is not supported`
 //!   ou `conversions from `X' and to `Y' are not supported`, a dica do argp e código 1.
 //! - Sequência inválida na origem ou caractere sem representação no destino:
 //!   `illegal input sequence at position N` (N é o deslocamento no arquivo), código 1; a saída
@@ -364,14 +364,14 @@ fn run(args: &[OsString]) -> i32 {
         }
         (None, Some(_)) => {
             error(&format!(
-                "conversion from `{}' unsupported",
+                "conversion from `{}' is not supported",
                 pretty(&from_code)
             ));
             io::eprint(TRY);
             return 1;
         }
         (Some(_), None) => {
-            error(&format!("conversion to `{}' unsupported", pretty(&to_code)));
+            error(&format!("conversion to `{}' is not supported", pretty(&to_code)));
             io::eprint(TRY);
             return 1;
         }
@@ -396,7 +396,6 @@ fn run(args: &[OsString]) -> i32 {
     let mut status = 0;
     for name in &files {
         if verbose {
-            let _ = io::flush_stdout();
             io::eprint(format!("{}:\n", io::lossy(name)));
         }
         let data = if name == b"-" {
@@ -616,7 +615,7 @@ mod tests {
         let mut out = Vec::new();
         let (f, _) = conv("UTF-8", "ASCII", true, false).convert("é€".as_bytes(), &mut out);
         assert!(f.is_none());
-        assert_eq!(out, b"e?");
+        assert_eq!(out, b"eEUR");
 
         let mut out = Vec::new();
         let (f, skipped) = conv("UTF-8", "ASCII", false, true).convert("aéb".as_bytes(), &mut out);

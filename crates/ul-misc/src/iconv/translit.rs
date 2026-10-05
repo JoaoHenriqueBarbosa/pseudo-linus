@@ -145,14 +145,14 @@ const C_TRANSLIT: &[(u32, &str)] = &[
 
 /// O substituto de `c` no locale corrente (`utf8_locale`: `C.UTF-8`; senão, `C`).
 pub fn lookup(c: u32, utf8_locale: bool) -> Option<&'static str> {
-    if utf8_locale {
-        combining(c)
-    } else {
-        C_TRANSLIT
-            .binary_search_by_key(&c, |e| e.0)
-            .ok()
-            .map(|i| C_TRANSLIT[i].1)
+    // Em C.UTF-8 vale a tabela de combinações da locale e, na falta, a tabela embutida do `C`.
+    if utf8_locale && let Some(t) = combining(c) {
+        return Some(t);
     }
+    C_TRANSLIT
+        .binary_search_by_key(&c, |e| e.0)
+        .ok()
+        .map(|i| C_TRANSLIT[i].1)
 }
 
 #[cfg(test)]
@@ -164,7 +164,7 @@ mod tests {
         assert_eq!(lookup(0xE9, true), Some("e"));
         assert_eq!(lookup(0x0142, true), Some("l"));
         assert_eq!(lookup(0x0301, true), Some(""));
-        assert_eq!(lookup(0x20AC, true), None);
+        assert_eq!(lookup(0x20AC, true), Some("EUR"));
         assert_eq!(lookup(0x20AC, false), Some("EUR"));
         assert_eq!(lookup(0xE9, false), None);
         assert!(C_TRANSLIT.windows(2).all(|w| w[0].0 < w[1].0));

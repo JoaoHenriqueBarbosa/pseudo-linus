@@ -1271,7 +1271,7 @@ impl Decoder {
     pub fn new(kind: Kind) -> Decoder {
         let big = matches!(
             kind,
-            Kind::Utf16 | Kind::Utf16Be | Kind::Utf32 | Kind::Utf32Be | Kind::Ucs2Be | Kind::Ucs4
+            Kind::Utf16Be | Kind::Utf32Be | Kind::Ucs2Be | Kind::Ucs4
         );
         Decoder {
             kind,
@@ -1316,7 +1316,7 @@ impl Decoder {
                             self.big = false;
                             return Decoded::Skip(2);
                         }
-                        _ => self.big = true,
+                        _ => self.big = false,
                     }
                 }
                 let u1 = self.u16_at(d);
@@ -1350,7 +1350,7 @@ impl Decoder {
                             self.big = false;
                             return Decoded::Skip(4);
                         }
-                        _ => self.big = true,
+                        _ => self.big = false,
                     }
                 }
                 let c = self.u32_at(d);
