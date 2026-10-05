@@ -50,6 +50,31 @@ pub fn parse_u64(s: &[u8]) -> Option<u64> {
     t.parse::<u64>().ok()
 }
 
+/// `strtou32_or_err` do util-linux: o número decimal sem sinal, ou o texto do erro (sem o prefixo do
+/// programa): `<what>: '<arg>'` pra lixo e `<what>: '<arg>': Numerical result out of range` pra
+/// negativo ou maior que 32 bits.
+pub fn strtou32_or_err(arg: &[u8], what: &str) -> Result<u32, String> {
+    let text = io::lossy(arg);
+    let range = || format!("{what}: '{text}': {}", Errno::ERANGE.message());
+    let invalid = || format!("{what}: '{text}'");
+    let digits = text.trim_start_matches([' ', '\t', '\n', '\x0b', '\x0c', '\r']);
+    let body = digits.strip_prefix('+').unwrap_or(digits);
+    if let Some(neg) = body.strip_prefix('-') {
+        if !neg.is_empty() && neg.bytes().all(|b| b.is_ascii_digit()) {
+            // "-0" vale zero: strtoimax não dá negativo.
+            return if neg.bytes().all(|b| b == b'0') { Ok(0) } else { Err(range()) };
+        }
+        return Err(invalid());
+    }
+    if body.is_empty() || !body.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(invalid());
+    }
+    match body.parse::<u64>() {
+        Ok(n) if n <= u64::from(u32::MAX) => Ok(n as u32),
+        _ => Err(range()),
+    }
+}
+
 /// `isspace` do locale C.
 pub fn is_space(b: u8) -> bool {
     matches!(b, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')

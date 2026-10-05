@@ -1,0 +1,406 @@
+tool = "col"
+source = "manual"
+
+# col do util-linux 2.41 (bsdextrautils): avanço de linha reverso, backspace, meia linha, tabulação,
+# -b, -f, -h, -l, -p, -x e a entrada UTF-8 inválida. A saída passa por od -c pra mostrar os controles.
+
+[[case]]
+id = "col-help"
+argv = ["col", "--help"]
+
+[[case]]
+id = "col-help-short"
+argv = ["col", "-H"]
+
+[[case]]
+id = "col-version"
+argv = ["col", "-V"]
+
+[[case]]
+id = "col-bad-usage"
+argv = ["col", "extra"]
+
+[[case]]
+id = "col-invalid-option"
+argv = ["col", "-z"]
+
+[[case]]
+id = "col-unrecognized-option"
+argv = ["col", "--bogus"]
+
+[[case]]
+id = "col-lines-missing-arg"
+argv = ["col", "-l"]
+
+[[case]]
+id = "col-lines-bad-arg"
+argv = ["col", "-l", "x"]
+
+[[case]]
+id = "col-lines-negative"
+argv = ["col", "-l", "-1"]
+
+[[case]]
+id = "col-lines-too-big"
+argv = ["col", "-l", "4294967296"]
+
+[[case]]
+id = "col-lines-max"
+argv = ["col", "-l", "4294967295"]
+stdin = "a\n"
+
+[[case]]
+id = "col-lines-negative-zero"
+argv = ["col", "-l", "-0"]
+stdin = "a\n"
+
+[[case]]
+id = "col-exclusive-tabs-spaces"
+argv = ["col", "-h", "-x"]
+
+[[case]]
+id = "col-exclusive-tabs-spaces-long"
+argv = ["col", "--spaces", "--tabs"]
+
+[[case]]
+id = "col-tabs-twice"
+argv = ["col", "-h", "-h"]
+stdin = "a\n"
+
+[[case]]
+id = "col-empty-input"
+argv = ["col"]
+stdin = ""
+
+[[case]]
+id = "col-plain-text"
+argv = ["col"]
+stdin = "hello\nworld\n"
+
+[[case]]
+id = "col-no-trailing-newline"
+script = "printf 'abc' | col | od -c"
+
+[[case]]
+id = "col-blank-lines"
+script = "printf 'a\\n\\n\\nb\\n\\n' | col | od -c"
+
+[[case]]
+id = "col-only-newlines"
+script = "printf '\\n\\n\\n' | col | od -c"
+
+[[case]]
+id = "col-backspace-overstrike"
+script = "printf 'a\\bab\\bb\\n' | col | od -c"
+
+[[case]]
+id = "col-backspace-underline"
+script = "printf 'h\\b_e\\b_l\\b_l\\b_o\\b_\\n' | col | od -c"
+
+[[case]]
+id = "col-backspace-none"
+script = "printf 'a\\bab\\bb\\n' | col -b | od -c"
+
+[[case]]
+id = "col-backspace-none-underline"
+script = "printf '_\\bh_\\be_\\bl_\\bl_\\bo\\n' | col -b | od -c"
+
+[[case]]
+id = "col-backspace-at-start"
+script = "printf '\\b\\bab\\n' | col | od -c"
+
+[[case]]
+id = "col-backspace-too-many"
+script = "printf 'ab\\b\\b\\b\\bc\\n' | col | od -c"
+
+[[case]]
+id = "col-backspace-then-overwrite-later-column"
+script = "printf 'abc\\b\\bX\\n' | col | od -c"
+
+[[case]]
+id = "col-carriage-return"
+script = "printf 'abc\\rX\\n' | col | od -c"
+
+[[case]]
+id = "col-carriage-return-overwrite"
+script = "printf 'abcdef\\r123\\n' | col | od -c"
+
+[[case]]
+id = "col-carriage-return-newline"
+script = "printf 'ab\\r\\ncd\\r\\n' | col | od -c"
+
+[[case]]
+id = "col-tab-keeps-tab"
+script = "printf 'a\\tb\\n' | col | od -c"
+
+[[case]]
+id = "col-tab-to-spaces-x"
+script = "printf 'a\\tb\\tc\\n' | col -x | od -c"
+
+[[case]]
+id = "col-spaces-to-tabs-default"
+script = "printf 'a       b\\n' | col | od -c"
+
+[[case]]
+id = "col-spaces-to-tabs-h"
+script = "printf 'a        b          c\\n' | col -h | od -c"
+
+[[case]]
+id = "col-spaces-no-tabs-x"
+script = "printf 'a        b          c\\n' | col -x | od -c"
+
+[[case]]
+id = "col-two-spaces-not-tab"
+script = "printf 'a b  c   d\\n' | col | od -c"
+
+[[case]]
+id = "col-spaces-crossing-tab-stop"
+script = "printf 'abcdefg  h\\n' | col | od -c"
+
+[[case]]
+id = "col-leading-spaces"
+script = "printf '          x\\n' | col | od -c"
+
+[[case]]
+id = "col-leading-tab"
+script = "printf '\\t\\tx\\n' | col | od -c"
+
+[[case]]
+id = "col-trailing-spaces-dropped"
+script = "printf 'abc     \\n' | col | od -c"
+
+[[case]]
+id = "col-vertical-tab-reverse"
+script = "printf 'abc\\n\\vdef\\n' | col | od -c"
+
+[[case]]
+id = "col-reverse-line-feed-esc-bel"
+script = "printf 'first\\n\\033\\007xx\\n' | col | od -c"
+
+[[case]]
+id = "col-reverse-line-feed-overlay"
+script = "printf 'line1\\nline2\\n\\033\\007\\033\\007++\\n' | col | od -c"
+
+[[case]]
+id = "col-reverse-past-first-line"
+script = "printf '\\vup\\ndown\\n' | col | od -c"
+
+[[case]]
+id = "col-reverse-past-first-line-twice"
+script = "printf '\\v\\vtop\\nmid\\n' | col | od -c"
+
+[[case]]
+id = "col-half-line-forward-default"
+script = "printf 'a\\033\\011b\\n' | col | od -c"
+
+[[case]]
+id = "col-half-line-forward-fine"
+script = "printf 'a\\033\\011b\\n' | col -f | od -c"
+
+[[case]]
+id = "col-half-line-reverse-default"
+script = "printf 'x\\n\\n\\033\\010y\\n' | col | od -c"
+
+[[case]]
+id = "col-half-line-reverse-fine"
+script = "printf 'x\\n\\n\\033\\010y\\n' | col -f | od -c"
+
+[[case]]
+id = "col-half-line-superscript-fine"
+script = "printf 'H\\033\\0102\\033\\011O\\n' | col -f | od -c"
+
+[[case]]
+id = "col-half-line-trailing-fine"
+script = "printf 'abc\\033\\011\\n' | col -f | od -c"
+
+[[case]]
+id = "col-half-line-trailing-fine-blank-only"
+script = "printf '\\033\\011\\n' | col -f | od -c"
+
+[[case]]
+id = "col-esc-other"
+script = "printf 'a\\033Xb\\n' | col | od -c"
+
+[[case]]
+id = "col-esc-at-eof"
+script = "printf 'a\\033' | col | od -c"
+
+[[case]]
+id = "col-so-si-charset"
+script = "printf 'ab\\016cd\\017ef\\n' | col | od -c"
+
+[[case]]
+id = "col-so-without-si"
+script = "printf 'ab\\016cd\\n' | col | od -c"
+
+[[case]]
+id = "col-so-si-overstrike"
+script = "printf 'a\\b\\016x\\017\\n' | col | od -c"
+
+[[case]]
+id = "col-unknown-control-dropped"
+script = "printf 'a\\001b\\002c\\n' | col | od -c"
+
+[[case]]
+id = "col-unknown-control-pass"
+script = "printf 'a\\001b\\002c\\n' | col -p | od -c"
+
+[[case]]
+id = "col-unknown-control-pass-long"
+script = "printf 'a\\001b\\n' | col --pass | od -c"
+
+[[case]]
+id = "col-form-feed"
+script = "printf 'a\\fb\\n' | col | od -c"
+
+[[case]]
+id = "col-form-feed-pass"
+script = "printf 'a\\fb\\n' | col -p | od -c"
+
+[[case]]
+id = "col-del-char"
+script = "printf 'a\\177b\\n' | col | od -c"
+
+[[case]]
+id = "col-del-char-pass"
+script = "printf 'a\\177b\\n' | col -p | od -c"
+
+[[case]]
+id = "col-nul-byte"
+script = "printf 'a\\000b\\n' | col | od -c"
+
+[[case]]
+id = "col-utf8-text"
+script = "printf 'caf\\303\\251\\n\\303\\240 b\\n' | col | od -c"
+
+[[case]]
+id = "col-utf8-overstrike"
+script = "printf 'e\\b\\303\\251\\n' | col | od -c"
+
+[[case]]
+id = "col-utf8-wide-char"
+script = "printf '\\346\\227\\245\\346\\234\\254x\\bY\\n' | col | od -c"
+
+[[case]]
+id = "col-utf8-wide-backspace"
+script = "printf '\\346\\227\\245\\bX\\n' | col | od -c"
+
+[[case]]
+id = "col-utf8-wide-spaces-tab"
+script = "printf '\\346\\227\\245       x\\n' | col | od -c"
+
+[[case]]
+id = "col-utf8-combining"
+script = "printf 'e\\314\\201x\\n' | col | od -c"
+
+[[case]]
+id = "col-utf8-ideographic-space"
+script = "printf 'a\\343\\200\\200b\\n' | col | od -c"
+
+[[case]]
+id = "col-utf8-nbsp"
+script = "printf 'a\\302\\240b\\n' | col | od -c"
+
+[[case]]
+id = "col-invalid-utf8-byte"
+script = "printf 'a\\377b\\n' | col | od -c"
+
+[[case]]
+id = "col-invalid-utf8-lead-then-ascii"
+script = "printf 'a\\303(b\\n' | col | od -c"
+
+[[case]]
+id = "col-invalid-utf8-truncated-three"
+script = "printf 'a\\343\\201b\\n' | col | od -c"
+
+[[case]]
+id = "col-invalid-utf8-continuation-alone"
+script = "printf '\\200\\201\\n' | col | od -c"
+
+[[case]]
+id = "col-invalid-utf8-incomplete-at-eof"
+script = "printf 'ab\\343\\201' | col | od -c"
+
+[[case]]
+id = "col-invalid-utf8-overlong"
+script = "printf 'a\\300\\200b\\n' | col | od -c"
+
+[[case]]
+id = "col-invalid-utf8-four-byte-truncated"
+script = "printf 'a\\360\\237\\n' | col | od -c"
+
+[[case]]
+id = "col-invalid-utf8-after-esc"
+script = "printf 'a\\033\\377b\\n' | col | od -c"
+
+[[case]]
+id = "col-utf8-emoji"
+script = "printf 'x\\360\\237\\230\\200y\\n' | col | od -c"
+
+[[case]]
+id = "col-lines-buffer-small"
+script = "i=0; while [ $i -lt 20 ]; do echo \"line $i\"; i=$((i+1)); done | col -l 1 | od -c | head -5"
+
+[[case]]
+id = "col-lines-cant-back-up-flushed"
+script = "{ i=0; while [ $i -lt 100 ]; do echo \"L$i\"; i=$((i+1)); done; printf '\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007\\033\\007zz\\n'; } | col -l 1 2>&1 | tail -4"
+
+[[case]]
+id = "col-lines-large-buffer-reverse"
+script = "{ i=0; while [ $i -lt 40 ]; do echo \"L$i\"; i=$((i+1)); done; printf '\\vX\\n'; } | col | tail -3 | od -c"
+
+[[case]]
+id = "col-sort-out-of-order"
+script = "printf 'abc\\b\\b\\bX\\bY\\n' | col | od -c"
+
+[[case]]
+id = "col-sort-columns-interleaved"
+script = "printf 'a  c\\rb\\b\\b\\b\\b\\bz\\n' | col | od -c"
+
+[[case]]
+id = "col-bold-overstrike-man-style"
+script = "printf 'N\\bNA\\bAM\\bME\\bE\\n' | col | od -c"
+
+[[case]]
+id = "col-bold-overstrike-man-style-b"
+script = "printf 'N\\bNA\\bAM\\bME\\bE\\n' | col -b | od -c"
+
+[[case]]
+id = "col-table-with-tabs-roundtrip"
+script = "printf 'name\\tage\\nbob\\t42\\n' | col -x | od -c"
+
+[[case]]
+id = "col-long-line-through"
+script = "{ head -c 300 /dev/zero | tr '\\0' 'x'; echo; } | col | od -c | tail -3"
+
+[[case]]
+id = "col-two-pages-reverse"
+script = "printf 'one\\n\\vtwo\\nthree\\n' | col | od -c"
+
+[[case]]
+id = "col-fine-lines-order"
+script = "printf 'a\\n\\033\\010b\\n\\033\\011c\\n' | col -f | od -c"
+
+[[case]]
+id = "col-fine-reverse-half-start"
+script = "printf '\\033\\010top\\nbottom\\n' | col -f | od -c"
+
+[[case]]
+id = "col-fine-reverse-half-start-default"
+script = "printf '\\033\\010top\\nbottom\\n' | col | od -c"
+
+[[case]]
+id = "col-no-backspaces-wide"
+script = "printf '\\346\\227\\245\\bx\\n' | col -b | od -c"
+
+[[case]]
+id = "col-no-backspaces-same-column-three"
+script = "printf 'a\\bb\\bc\\n' | col -b | od -c"
+
+[[case]]
+id = "col-stdin-is-file"
+script = "printf 'x\\by\\n' > in.txt; col < in.txt | od -c"
+
+[[case]]
+id = "col-exit-status-after-warning"
+script = "printf '\\v\\vx\\n' | col >/dev/null 2>&1; echo \"rc=$?\""
