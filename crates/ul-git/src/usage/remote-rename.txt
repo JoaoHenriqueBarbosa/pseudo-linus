@@ -1,0 +1,4 @@
+usage: git remote rename [--[no-]progress] <old> <new>
+
+    --[no-]progress       force progress reporting
+

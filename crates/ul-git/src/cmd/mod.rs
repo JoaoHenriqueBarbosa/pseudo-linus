@@ -16,6 +16,7 @@ pub mod misc;
 pub mod mv;
 pub mod plumbing;
 pub mod reffmt;
+pub mod remote;
 pub mod reset;
 pub mod restore;
 pub mod rev_parse;
@@ -96,6 +97,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "for-each-ref" => (Setup::Repo, for_each_ref::run),
         "tag" => (Setup::Repo, tag::run),
         "branch" => (Setup::Repo, branch::run),
+        "remote" => (Setup::Repo, remote::run),
         "restore" => (Setup::WorkTree, restore::run),
         "reset" => (Setup::Repo, reset::run),
         "checkout" => (Setup::WorkTree, checkout::run_checkout),

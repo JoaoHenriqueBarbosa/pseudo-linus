@@ -47,6 +47,7 @@ pub fn of(cmd: &str) -> &'static str {
         "read-tree" => include_str!("usage/read-tree.txt"),
         "rebase" => include_str!("usage/rebase.txt"),
         "reflog" => include_str!("usage/reflog.txt"),
+        "remote" => include_str!("usage/remote.txt"),
         "reset" => include_str!("usage/reset.txt"),
         "restore" => include_str!("usage/restore.txt"),
         "revert" => include_str!("usage/revert.txt"),
