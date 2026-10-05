@@ -233,3 +233,21 @@ impl FdTable {
         self.fds.iter().map(|(&f, s)| (Fd(f), s))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fdsize_grows_like_expand_fdtable() {
+        let size = |high: i32| FdTable { high, ..FdTable::default() }.fdsize();
+        assert_eq!(size(0), 64);
+        assert_eq!(size(63), 64);
+        assert_eq!(size(64), 128);
+        assert_eq!(size(127), 128);
+        assert_eq!(size(128), 256);
+        assert_eq!(size(255), 256);
+        assert_eq!(size(256), 512);
+        assert_eq!(size(1000), 1024);
+    }
+}

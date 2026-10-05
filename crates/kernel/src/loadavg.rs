@@ -79,3 +79,18 @@ pub(crate) fn count_tasks(sb: &SbInner) -> (u32, u32) {
     }
     (running, total)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn calc_load_is_the_exponential_average_of_the_kernel() {
+        // Uma amostra com 3 tarefas rodando: 3 * (1 - e^(-5/60)) = 0,24 (arredondado pra cima na subida).
+        assert_eq!(calc_load(0, EXP_1, 3 * FIXED_1), 492);
+        // Cai sem arredondar pra cima: 1,0 * e^(-5/60) = 0,92.
+        assert_eq!(calc_load(FIXED_1, EXP_1, 0), 1884);
+        // Carga estável não muda.
+        assert_eq!(calc_load(FIXED_1, EXP_5, FIXED_1), FIXED_1);
+    }
+}

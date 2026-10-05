@@ -57,6 +57,12 @@ fn profile(comm: &[u8]) -> &'static Profile {
     PROFILES.iter().find(|p| p.names.iter().any(|n| n.as_bytes() == comm)).unwrap_or(&PROFILES[0])
 }
 
+/// Páginas da pilha inicial: as strings do argv e do ambiente (com o NUL), os ponteiros do argv e do
+/// envp (mais os terminadores) e o auxv, em páginas de 4 KiB, no mínimo uma.
+fn stack_pages(strings: usize, argc: usize, envc: usize) -> u64 {
+    (strings + 8 * (argc + envc + 2) + AUX_BYTES).div_ceil(4096).max(1) as u64
+}
+
 /// A memória do processo agora. Atualiza o pico guardado no processo (`VmPeak`, `VmHWM`).
 pub(crate) fn snapshot(proc: &Proc) -> MemData {
     let (comm, argc, envc, strings, stack_rlim) = {
@@ -67,7 +73,7 @@ pub(crate) fn snapshot(proc: &Proc) -> MemData {
     let nthreads = proc.nthreads().max(1) as u64;
     let prof = profile(&comm);
     // `execve`: a pilha tem as strings, o argv, o envp e o auxv, em páginas, sobre os 128 kB de folga.
-    let pages = (strings + 8 * (argc + envc + 2) + AUX_BYTES).div_ceil(4096).max(1) as u64;
+    let pages = stack_pages(strings, argc, envc);
     let vm_stk = 128 + 4 * pages;
     // Pilha de cada thread que o glibc cria: `RLIMIT_STACK` (2 MiB se ilimitado) mais a página de guarda.
     let thread_stack = if stack_rlim == RLIM_INFINITY { 2048 } else { (stack_rlim / 1024).clamp(16, 1 << 20) };
@@ -124,4 +130,30 @@ pub(crate) fn system(sb: &SbInner) -> MemSystem {
     let (db, _) = sb.devfs.usage();
     m.shmem = (rb + db).div_ceil(1024);
     m
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `VmStk` do oráculo pro `cat` com uma variável de ambiente de `n` bytes (ambiente base de 203
+    /// bytes em ~7 variáveis): 132, 132, 136, 140, 180 e 228 kB.
+    #[test]
+    fn stack_grows_like_the_oracle() {
+        let vm_stk = |n: usize| 128 + 4 * stack_pages(4 + 203 + n, 1, 7);
+        assert_eq!(vm_stk(0), 132);
+        assert_eq!(vm_stk(1000), 132);
+        assert_eq!(vm_stk(5000), 136);
+        assert_eq!(vm_stk(10_000), 140);
+        assert_eq!(vm_stk(50_000), 180);
+        assert_eq!(vm_stk(100_000), 228);
+    }
+
+    #[test]
+    fn profile_lookup_falls_back_to_the_coreutils_image() {
+        assert_eq!(profile(b"bash").size, 5116);
+        assert_eq!(profile(b"egrep").size, 3932);
+        assert_eq!(profile(b"cat").size, 3280);
+        assert_eq!(profile(b"unknown-program").size, 3280);
+    }
 }
