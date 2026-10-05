@@ -1150,15 +1150,6 @@ fn make_namelist(src: &[u8]) -> Vec<Vec<u8>> {
         .collect()
 }
 
-fn optarg_to_number(arg: &[u8]) -> i32 {
-    let (v, end) = strtol(arg);
-    if end == 0 || end != arg.len() {
-        io::eprint(format!("Expected a number, not \"{}\"\n", io::lossy(arg)));
-        sys::exit(1);
-    }
-    v as i32
-}
-
 fn usage(progname: &str) -> ! {
     const OPTIONS: &[&str] = &[
         "  -0         format translation output all capabilities on one line",

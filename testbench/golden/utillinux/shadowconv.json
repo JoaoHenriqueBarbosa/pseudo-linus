@@ -1,12 +1,19 @@
 {
   "chgpasswd-encrypted": {
-    "stdout": "rc=2\ndev:!::\n",
-    "stderr": "chgpasswd: invalid option -- 'P'\nUsage: chgpasswd [options]\n\nOptions:\n  -c, --crypt-method METHOD     the crypt method (one of NONE DES MD5 SHA256 SHA512 YESCRYPT)\n  -e, --encrypted               supplied passwords are encrypted\n  -h, --help                    display this help message and exit\n  -m, --md5                     encrypt the clear text password using\n                                the MD5 algorithm\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --sha-rounds              number of rounds for the SHA, BCRYPT\n                                or YESCRYPT crypt algorithms\n\n",
+    "stdout": "rc=0\ndev:$6$salt$hash::\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
         "kind": "dir",
         "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
       },
       "etc/group": {
         "kind": "file",
@@ -18,6 +25,13 @@
       "etc/gshadow": {
         "kind": "file",
         "mode": 420,
+        "size": 19,
+        "sha256": "a2172df731c3fb5702ec850c763991c65937d21268ceeb79d3511adb6ce89c9f",
+        "data": "dev:$6$salt$hash::\n"
+      },
+      "etc/gshadow-": {
+        "kind": "file",
+        "mode": 420,
         "size": 8,
         "sha256": "a72dc6b2b10980bc1e42ce99be8599ea01b4dd86ac0838560ba9829fbef06f9d",
         "data": "dev:!::\n"
@@ -25,13 +39,20 @@
     }
   },
   "chgpasswd-unknown-group": {
-    "stdout": "chgpasswd: invalid option -- 'P'\nUsage: chgpasswd [options]\n\nOptions:\n  -c, --crypt-method METHOD     the crypt method (one of NONE DES MD5 SHA256 SHA512 YESCRYPT)\n  -e, --encrypted               supplied passwords are encrypted\n  -h, --help                    display this help message and exit\n  -m, --md5                     encrypt the clear text password using\n                                the MD5 algorithm\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --sha-rounds              number of rounds for the SHA, BCRYPT\n                                or YESCRYPT crypt algorithms\n\nrc=2\n",
+    "stdout": "chgpasswd: line 1: group 'nogroup2' does not exist\nchgpasswd: error detected, changes ignored\nrc=1\n",
     "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
         "kind": "dir",
         "mode": 493
+      },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
       },
       "etc/group": {
         "kind": "file",
@@ -150,15 +171,29 @@
     "files": {}
   },
   "grpconv-existing-gshadow": {
-    "stdout": "rc=2\nroot:x:0:\ndev:secret:50:bob\nroot:!::\nold:!::\n",
-    "stderr": "grpconv: invalid option -- 'P'\nUsage: grpconv [options]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n\n",
+    "stdout": "rc=0\nroot:x:0:\ndev:x:50:bob\nroot:!::\ndev:secret::bob\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
         "kind": "dir",
         "mode": 493
       },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
       "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "d8e9cfaabe3f97f9a148e7dd1e99c0762214f2e8fd71bb2e6b778ddf3cdc5e00",
+        "data": "root:x:0:\ndev:x:50:bob\n"
+      },
+      "etc/group-": {
         "kind": "file",
         "mode": 420,
         "size": 28,
@@ -168,6 +203,13 @@
       "etc/gshadow": {
         "kind": "file",
         "mode": 420,
+        "size": 25,
+        "sha256": "d8636fa58ee92498fd0b3b2b7d4cec54dd98b455f3f82a12c95b05c2d306c626",
+        "data": "root:!::\ndev:secret::bob\n"
+      },
+      "etc/gshadow-": {
+        "kind": "file",
+        "mode": 420,
         "size": 17,
         "sha256": "dcef4f0f22fd2cc62dcdac027ce6bf0e4b2fc4f9700d4987ff9098303cd11d6f",
         "data": "root:!::\nold:!::\n"
@@ -175,47 +217,75 @@
     }
   },
   "grpunconv-basic": {
-    "stdout": "rc=2\nroot:x:0:\ndev:x:50:bob\ngroup\ngshadow\n",
-    "stderr": "grpunconv: invalid option -- 'P'\nUsage: grpunconv [options]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n\n",
+    "stdout": "rc=0\nroot:!:0:\ndev:hash:50:bob\ngroup\ngroup-\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
         "kind": "dir",
         "mode": 493
       },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
       "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 26,
+        "sha256": "49f6caa01acfff71e1e47b55b8f93ceac8571aec9ea4a84e5c05853baf9be719",
+        "data": "root:!:0:\ndev:hash:50:bob\n"
+      },
+      "etc/group-": {
         "kind": "file",
         "mode": 420,
         "size": 23,
         "sha256": "d8e9cfaabe3f97f9a148e7dd1e99c0762214f2e8fd71bb2e6b778ddf3cdc5e00",
         "data": "root:x:0:\ndev:x:50:bob\n"
-      },
-      "etc/gshadow": {
-        "kind": "file",
-        "mode": 420,
-        "size": 23,
-        "sha256": "e9b809c6e3d15cbd35e8c9003fa5d3479f7f88845fcc4edfd4f0080d76bad90f",
-        "data": "root:!::\ndev:hash::bob\n"
       }
     }
   },
   "pwconv-existing-shadow": {
-    "stdout": "rc=2\nroot:x:0:0:root:/root:/bin/bash\nbob:HASH:1000:1000::/home/bob:/bin/sh\nroot:$6$abc\nghost:*\n",
-    "stderr": "pwconv: invalid option -- 'P'\nUsage: pwconv [options]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n\n",
+    "stdout": "rc=0\nroot:x:0:0:root:/root:/bin/bash\nbob:x:1000:1000::/home/bob:/bin/sh\nroot:$6$abc\nbob:HASH\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
         "kind": "dir",
         "mode": 493
       },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
       "etc/passwd": {
         "kind": "file",
         "mode": 420,
+        "size": 67,
+        "sha256": "900e11df645d133f6106921a2f9aebfdb6fae60b31293eed72244566b3a089c8",
+        "data": "root:x:0:0:root:/root:/bin/bash\nbob:x:1000:1000::/home/bob:/bin/sh\n"
+      },
+      "etc/passwd-": {
+        "kind": "file",
+        "mode": 384,
         "size": 70,
         "sha256": "94fdda74bc2d180b365f517fb92bd8fac7914b277f11577c390a8e8cb7915d54",
         "data": "root:x:0:0:root:/root:/bin/bash\nbob:HASH:1000:1000::/home/bob:/bin/sh\n"
       },
       "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 52,
+        "sha256": "b7ecfe924624e334aacf40fcb3aa4bded41a985f9feee5ae8ffd3b36109d795f",
+        "data": "root:$6$abc:19000:0:99999:7:::\nbob:HASH:20731::::::\n"
+      },
+      "etc/shadow-": {
         "kind": "file",
         "mode": 420,
         "size": 58,
@@ -243,33 +313,40 @@
     "files": {}
   },
   "pwunconv-basic": {
-    "stdout": "rc=2\nroot:x:0:0:root:/root:/bin/bash\nbob:x:1000:1000::/home/bob:/bin/sh\npasswd\nshadow\n",
-    "stderr": "pwunconv: invalid option -- 'P'\nUsage: pwunconv [options]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n\n",
+    "stdout": "rc=0\nroot:$6$abc:0:0:root:/root:/bin/bash\nbob:!:1000:1000::/home/bob:/bin/sh\npasswd\npasswd-\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
         "kind": "dir",
         "mode": 493
       },
+      "etc/.pwd.lock": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
       "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 72,
+        "sha256": "4aae91e625a1804e1dbc835e6e68bbc83f0ebb8f55d259af79691e0e7bb88595",
+        "data": "root:$6$abc:0:0:root:/root:/bin/bash\nbob:!:1000:1000::/home/bob:/bin/sh\n"
+      },
+      "etc/passwd-": {
         "kind": "file",
         "mode": 420,
         "size": 67,
         "sha256": "900e11df645d133f6106921a2f9aebfdb6fae60b31293eed72244566b3a089c8",
         "data": "root:x:0:0:root:/root:/bin/bash\nbob:x:1000:1000::/home/bob:/bin/sh\n"
-      },
-      "etc/shadow": {
-        "kind": "file",
-        "mode": 420,
-        "size": 56,
-        "sha256": "04d41aad06536d253696c43bf43b51bfe2407ffb858ab034f34953af5cc127ad",
-        "data": "root:$6$abc:19000:0:99999:7:::\nbob:!:19000:0:99999:7:::\n"
       }
     }
   },
   "pwunconv-no-shadow": {
-    "stdout": "rc=2\nroot:x:0:0:root:/root:/bin/bash\n",
-    "stderr": "pwunconv: invalid option -- 'P'\nUsage: pwunconv [options]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n\n",
+    "stdout": "rc=0\nroot:x:0:0:root:/root:/bin/bash\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
