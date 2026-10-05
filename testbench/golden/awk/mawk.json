@@ -1,0 +1,196 @@
+{
+  "mawk-bad-option": {
+    "stdout": "",
+    "stderr": "mawk: not an option: -x\n",
+    "exit": 2,
+    "files": {}
+  },
+  "mawk-div-zero": {
+    "stdout": "+inf\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-f-file": {
+    "stdout": "6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "14c5e74c4b96ccef41cd94db73a9ec3348038ac094feca4fd897cecffa07cdae",
+        "data": "1\n2\n3\n"
+      },
+      "prog.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "b42e7b50b4902ddcc31bdb0c2a06b3e5fe8ba14f634d6048fdb0b9695e6dea6b",
+        "data": "{ s += $1 } END { print s }\n"
+      }
+    }
+  },
+  "mawk-getline-missing-file": {
+    "stdout": "-1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-getline-var-file": {
+    "stdout": "3 three\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "b6285c57e8797db5d4c51c80d6f11938afda9b11c6a003549709189e9b4b92a2",
+        "data": "one\ntwo\nthree\n"
+      }
+    }
+  },
+  "mawk-missing-input-file": {
+    "stdout": "",
+    "stderr": "mawk: cannot open \"nope.txt\" (No such file or directory)\n",
+    "exit": 2,
+    "files": {}
+  },
+  "mawk-mod-zero": {
+    "stdout": "-nan\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-no-args": {
+    "stdout": "",
+    "stderr": "Usage: mawk [Options] [Program] [file ...]\n\nProgram:\n    The -f option value is the name of a file containing program text.\n    If no -f option is given, a \"--\" ends option processing; the following\n    parameters are the program text.\n\nOptions:\n    -f program-file  Program  text is read from file instead of from the\n                     command-line.  Multiple -f options are accepted.\n    -F value         sets the field separator, FS, to value.\n    -v var=value     assigns value to program variable var.\n    --               unambiguous end of options.\n\n    Implementation-specific options are prefixed with \"-W\".  They can be\n    abbreviated:\n\n    -W version       show version information and exit.\n    -W dump          show assembler-like listing of program and exit.\n    -W help          show this message and exit.\n    -W interactive   set unbuffered output, line-buffered input.\n    -W exec file     use file as program as well as last option.\n    -W posix         stricter POSIX checking.\n    -W random=number set initial random seed.\n    -W sprintf=number adjust size of sprintf buffer.\n    -W traditional   pre-POSIX 2001.\n    -W usage         show this message and exit.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-printf-c": {
+    "stdout": "A|h|\u0000|A\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-printf-d-large": {
+    "stdout": "2147483648 9007199254740992 -1e+30\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-printf-d-nan": {
+    "stdout": "0\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-split-regex": {
+    "stdout": "4\na\nb\nc\nd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-split-single-space": {
+    "stdout": "2 a b\n3 a c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-srand-rand": {
+    "stdout": "1 1\n1 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-strnum-compare": {
+    "stdout": "0 0 0\n1 0 1\n0 1 1\n1 0 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-substr-fractional": {
+    "stdout": "abc\nabc\nabcd\nbcdefgh\ngh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-syntax-error": {
+    "stdout": "",
+    "stderr": "mawk: line 1: missing ) near }\n",
+    "exit": 2,
+    "files": {}
+  },
+  "mawk-syntax-error-line2": {
+    "stdout": "",
+    "stderr": "mawk: line 2: syntax error at or near =\n",
+    "exit": 2,
+    "files": {}
+  },
+  "mawk-uninitialized": {
+    "stdout": "1 1 0\nfalsy\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-v-and-F": {
+    "stdout": "b\ne\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-vacuous-w": {
+    "stdout": "1\n",
+    "stderr": "mawk: vacuous option: -W \"bogus\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-w-exec": {
+    "stdout": "1: x\n2: y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "09834d488008f5f1ef589a2d7cedc52425bee9dd23b2212e4c1d673c5cbb54e4",
+        "data": "x\ny\n"
+      },
+      "prog.awk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "f2f621132307b06eb173e84dc254de2c2dd52c3ed3f7cbe14dea9cd2e7b5e1d1",
+        "data": "{ print NR \": \" $0 }\n"
+      }
+    }
+  },
+  "mawk-w-help": {
+    "stdout": "Usage: mawk [Options] [Program] [file ...]\n\nProgram:\n    The -f option value is the name of a file containing program text.\n    If no -f option is given, a \"--\" ends option processing; the following\n    parameters are the program text.\n\nOptions:\n    -f program-file  Program  text is read from file instead of from the\n                     command-line.  Multiple -f options are accepted.\n    -F value         sets the field separator, FS, to value.\n    -v var=value     assigns value to program variable var.\n    --               unambiguous end of options.\n\n    Implementation-specific options are prefixed with \"-W\".  They can be\n    abbreviated:\n\n    -W version       show version information and exit.\n    -W dump          show assembler-like listing of program and exit.\n    -W help          show this message and exit.\n    -W interactive   set unbuffered output, line-buffered input.\n    -W exec file     use file as program as well as last option.\n    -W posix         stricter POSIX checking.\n    -W random=number set initial random seed.\n    -W sprintf=number adjust size of sprintf buffer.\n    -W traditional   pre-POSIX 2001.\n    -W usage         show this message and exit.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-w-usage": {
+    "stdout": "Usage: mawk [Options] [Program] [file ...]\n\nProgram:\n    The -f option value is the name of a file containing program text.\n    If no -f option is given, a \"--\" ends option processing; the following\n    parameters are the program text.\n\nOptions:\n    -f program-file  Program  text is read from file instead of from the\n                     command-line.  Multiple -f options are accepted.\n    -F value         sets the field separator, FS, to value.\n    -v var=value     assigns value to program variable var.\n    --               unambiguous end of options.\n\n    Implementation-specific options are prefixed with \"-W\".  They can be\n    abbreviated:\n\n    -W version       show version information and exit.\n    -W dump          show assembler-like listing of program and exit.\n    -W help          show this message and exit.\n    -W interactive   set unbuffered output, line-buffered input.\n    -W exec file     use file as program as well as last option.\n    -W posix         stricter POSIX checking.\n    -W random=number set initial random seed.\n    -W sprintf=number adjust size of sprintf buffer.\n    -W traditional   pre-POSIX 2001.\n    -W usage         show this message and exit.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-w-version": {
+    "stdout": "mawk 1.3.4 20250131\nCopyright 2008-2024,2025, Thomas E. Dickey\nCopyright 1991-1996,2014, Michael D. Brennan\n\nrandom-funcs:       srandom/random\nregex-funcs:        internal\n\ncompiled limits:\nsprintf buffer      8192\nmaximum-integer     9223372036854775808\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mawk-w-version-short": {
+    "stdout": "mawk 1.3.4 20250131\nCopyright 2008-2024,2025, Thomas E. Dickey\nCopyright 1991-1996,2014, Michael D. Brennan\n\nrandom-funcs:       srandom/random\nregex-funcs:        internal\n\ncompiled limits:\nsprintf buffer      8192\nmaximum-integer     9223372036854775808\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
