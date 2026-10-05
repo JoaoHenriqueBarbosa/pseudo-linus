@@ -69,7 +69,6 @@ pub struct Dump {
     wrapped: bool,
     did_wrap: bool,
     checking: bool,
-    quickdump: i32,
     save_sgr: Str,
     outbuf: Vec<u8>,
     tmpbuf: Vec<u8>,
@@ -100,7 +99,8 @@ impl Dump {
         traceval: u32,
         formatted: bool,
         check: bool,
-        quick: i32,
+        // O `quickdump` do original (`-Q`) não muda nada do que esta implementação escreve.
+        _quick: i32,
         progname: &str,
     ) -> Dump {
         let tversion = match version {
@@ -143,7 +143,6 @@ impl Dump {
             wrapped: wrap_strings,
             did_wrap: twidth <= 0,
             checking: check,
-            quickdump: quick & 3,
             save_sgr: Str::Absent,
             outbuf: Vec::new(),
             tmpbuf: Vec::new(),
@@ -368,7 +367,6 @@ impl Dump {
     fn wrap_concat(&mut self, src: &[u8], need: i32, mode: u32) {
         let gaps = self.separator.len() as i32;
         let want = gaps + need;
-        let mut need = need;
         self.did_wrap = self.width <= 0;
         if mode & W1ST != 0 && self.column > self.indent && self.column + want > self.width {
             self.force_wrap();
@@ -387,7 +385,7 @@ impl Dump {
                 }
             }
             let last = fill.len() as i32;
-            need = last;
+            let mut need = last;
             if self.tc_output() {
                 self.trailer = "\\\n\t ";
             }
@@ -767,11 +765,12 @@ fn skip_delay(s: &[u8], mut at: usize) -> usize {
 }
 
 fn rewrite_sgr(s: &mut Vec<u8>, attr: Option<&[u8]>) {
-    if let Some(attr) = attr {
-        if s.len() > attr.len() && s.starts_with(attr) {
-            s.drain(..attr.len());
-            s.extend_from_slice(attr);
-        }
+    if let Some(attr) = attr
+        && s.len() > attr.len()
+        && s.starts_with(attr)
+    {
+        s.drain(..attr.len());
+        s.extend_from_slice(attr);
     }
 }
 
@@ -905,14 +904,13 @@ pub fn trim_sgr0(tt: &TermType, sgr: &Str, sgr0: &[u8]) -> Vec<u8> {
                     }
                 }
             }
-            if !found {
-                if let Some(pos) = end.windows(off.len().max(1)).position(|w| w == off.as_slice()) {
-                    if end != off {
-                        let mut tmp = end.clone();
-                        chop_out(&mut tmp, pos, off.len());
-                        result = tmp;
-                    }
-                }
+            if !found
+                && let Some(pos) = end.windows(off.len().max(1)).position(|w| w == off.as_slice())
+                && end != off
+            {
+                let mut tmp = end.clone();
+                chop_out(&mut tmp, pos, off.len());
+                result = tmp;
             }
             if result == sgr0 {
                 result = sgr0.to_vec();
@@ -963,9 +961,7 @@ impl Dump {
         for j in 0..tterm.bools.len() {
             let i = self.bool_indirect(j);
             let name = self.bool_name(tterm, i);
-            if !self.version_filter(Kind::Bool, i) {
-                continue;
-            } else if self.is_obsolete(&name) {
+            if !self.version_filter(Kind::Bool, i) || self.is_obsolete(&name) {
                 continue;
             }
             let predval = pred(tterm, Kind::Bool, i);
@@ -987,9 +983,7 @@ impl Dump {
         for j in 0..tterm.nums.len() {
             let i = self.num_indirect(j);
             let name = self.num_name(tterm, i);
-            if !self.version_filter(Kind::Num, i) {
-                continue;
-            } else if self.is_obsolete(&name) {
+            if !self.version_filter(Kind::Num, i) || self.is_obsolete(&name) {
                 continue;
             }
             let predval = pred(tterm, Kind::Num, i);
@@ -1038,9 +1032,7 @@ impl Dump {
             let i = self.str_indirect(j);
             let name = self.str_name(tterm, i);
             let mut capability: Str = tterm.strs[i].clone();
-            if !self.version_filter(Kind::Str, i) {
-                continue;
-            } else if self.is_obsolete(&name) {
+            if !self.version_filter(Kind::Str, i) || self.is_obsolete(&name) {
                 continue;
             }
             // Nomes estendidos passam de 2 caracteres, que um programa termcap não lê.
@@ -1062,12 +1054,13 @@ impl Dump {
                     }
                 }
                 // Um sgr0 com rmacs confunde programas termcap (screen): tira.
-                if tterm.s("exit_attribute_mode").valid() && i == exit_attribute_mode {
-                    if let Some(cap) = capability.val() {
-                        let trimmed = trim_sgr0(tterm, &self.save_sgr, cap);
-                        if trimmed != cap {
-                            capability = Str::Val(trimmed);
-                        }
+                if tterm.s("exit_attribute_mode").valid()
+                    && i == exit_attribute_mode
+                    && let Some(cap) = capability.val()
+                {
+                    let trimmed = trim_sgr0(tterm, &self.save_sgr, cap);
+                    if trimmed != cap {
+                        capability = Str::Val(trimmed);
                     }
                 }
             }
@@ -1175,27 +1168,27 @@ impl Dump {
                     outcount = true;
                 }
             }
-        } else if self.tversion == TVersion::Aix {
-            if let Some(acs) = tterm.sv("acs_chars") {
-                let acstrans = b"lqkxjmwuvtn";
-                let mut boxchars: Vec<u8> = Vec::new();
-                let mut box_ok = true;
-                for c in acstrans {
-                    match acs.iter().position(|b| b == c) {
-                        Some(p) if p + 1 < acs.len() => boxchars.push(acs[p + 1]),
-                        Some(_) => boxchars.push(0),
-                        None => {
-                            box_ok = false;
-                            break;
-                        }
+        } else if self.tversion == TVersion::Aix
+            && let Some(acs) = tterm.sv("acs_chars")
+        {
+            let acstrans = b"lqkxjmwuvtn";
+            let mut boxchars: Vec<u8> = Vec::new();
+            let mut box_ok = true;
+            for c in acstrans {
+                match acs.iter().position(|b| b == c) {
+                    Some(p) if p + 1 < acs.len() => boxchars.push(acs[p + 1]),
+                    Some(_) => boxchars.push(0),
+                    None => {
+                        box_ok = false;
+                        break;
                     }
                 }
-                if box_ok {
-                    let mut b = b"box1=".to_vec();
-                    b.extend_from_slice(&tic_expand(&boxchars, self.outform == OutForm::Terminfo, numbers));
-                    self.wrap_concat1(&b);
-                    outcount = true;
-                }
+            }
+            if box_ok {
+                let mut b = b"box1=".to_vec();
+                b.extend_from_slice(&tic_expand(&boxchars, self.outform == OutForm::Terminfo, numbers));
+                self.wrap_concat1(&b);
+                outcount = true;
             }
         }
 
@@ -1383,8 +1376,8 @@ impl Dump {
     }
 
     fn find_string(&self, tterm: &TermType, name: &str) -> Option<usize> {
-        for n in 0..tterm.strs.len().min(STRCOUNT) {
-            if self.version_filter(Kind::Str, n) && STRS[n].info == name {
+        for (n, def) in STRS.iter().enumerate().take(tterm.strs.len().min(STRCOUNT)) {
+            if self.version_filter(Kind::Str, n) && def.info == name {
                 return if tterm.strs[n].valid() { Some(n) } else { None };
             }
         }
@@ -1464,12 +1457,10 @@ impl Dump {
                     show_why(&format!("# (sgr removed to fit entry within {critlen} bytes)\n"));
                     changed = true;
                 }
-                if !changed || self.fmt_entry(tterm, pred, false, suppress, infodump, numbers) > critlen {
-                    if self.purged_acs(tterm) {
-                        tterm.strs[str_index("acs_chars")] = Str::Absent;
-                        show_why(&format!("# (acsc removed to fit entry within {critlen} bytes)\n"));
-                        changed = true;
-                    }
+                if (!changed || self.fmt_entry(tterm, pred, false, suppress, infodump, numbers) > critlen) && self.purged_acs(tterm) {
+                    tterm.strs[str_index("acs_chars")] = Str::Absent;
+                    show_why(&format!("# (acsc removed to fit entry within {critlen} bytes)\n"));
+                    changed = true;
                 }
                 if !changed || self.fmt_entry(tterm, pred, false, suppress, infodump, numbers) > critlen {
                     let oldversion = self.tversion;
@@ -1524,9 +1515,7 @@ impl Dump {
             while j > 0 {
                 let ch = self.outbuf[j as usize];
                 if ch == b'\n' {
-                } else if c_isspace(ch) {
-                    used = j as usize;
-                } else if !infodump && ch == b'\\' {
+                } else if c_isspace(ch) || (!infodump && ch == b'\\') {
                     used = j as usize;
                 } else if ch == delim && self.outbuf[j as usize - 1] != b'\\' {
                     used = j as usize + 1;

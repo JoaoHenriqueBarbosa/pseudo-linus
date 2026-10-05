@@ -72,7 +72,7 @@ impl Top {
 
     /// Valor de ordenação do campo `f` para a tarefa (o que `procps_pids_sort` compara). O item de
     /// COMMAND e o de TIME mudam com `-c` e `-S`, como em `window_show`.
-    pub fn sort_key(&mut self, f: usize, t: &Task) -> Key {
+    pub(crate) fn sort_key(&mut self, f: usize, t: &Task) -> Key {
         let p: &Pt = &t.p;
         let pages = |n: u64| Key::UInt(n << 2);
         match f {

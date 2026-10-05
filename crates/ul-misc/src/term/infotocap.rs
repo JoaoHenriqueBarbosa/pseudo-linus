@@ -99,6 +99,44 @@ fn bcd_expression(s: &[u8], from: usize) -> usize {
     }
 }
 
+// Os `sscanf` das desigualdades (`%?%{n}%>%t%{m}` e variantes com `%'c'`). Como no original, o que
+// já foi convertido fica gravado mesmo quando a leitura falha adiante.
+
+fn scan_gt_int_int(s: &[u8], from: usize, c1: &mut i32, c2: &mut i32) -> bool {
+    let mut sc = Scan::new(s, from);
+    let ok = sc.lit(b"%?%{") && sc.int(c1) && sc.lit(b"}%>%t%{") && sc.int(c2);
+    ok && sc.count == 2
+}
+
+fn scan_gt_int_chr(s: &[u8], from: usize, c1: &mut i32, ch2: &mut u8) -> bool {
+    let mut sc = Scan::new(s, from);
+    let ok = sc.lit(b"%?%{") && sc.int(c1) && sc.lit(b"}%>%t%'") && sc.chr(ch2);
+    ok && sc.count == 2
+}
+
+fn scan_gt_chr_int(s: &[u8], from: usize, ch1: &mut u8, c2: &mut i32) -> bool {
+    let mut sc = Scan::new(s, from);
+    let ok = sc.lit(b"%?%'") && sc.chr(ch1) && sc.lit(b"'%>%t%{") && sc.int(c2);
+    ok && sc.count == 2
+}
+
+fn scan_gt_chr_chr(s: &[u8], from: usize, ch1: &mut u8, ch2: &mut u8) -> bool {
+    let mut sc = Scan::new(s, from);
+    let ok = sc.lit(b"%?%'") && sc.chr(ch1) && sc.lit(b"'%>%t%'") && sc.chr(ch2);
+    ok && sc.count == 2
+}
+
+/// `%{n}%+%c` ou `%'x'%+%c`, com um `+` adiante na cadeia.
+fn scan_plus_char(s: &[u8], from: usize, c1: &mut i32, ch1: &mut u8, ch2: &mut u8) -> bool {
+    let mut sc = Scan::new(s, from);
+    let a = sc.lit(b"%{") && sc.int(c1) && sc.lit(b"}%+%") && sc.chr(ch2) && sc.count == 2;
+    let hit = a || {
+        let mut sc2 = Scan::new(s, from);
+        sc2.lit(b"%'") && sc2.chr(ch1) && sc2.lit(b"'%+%") && sc2.chr(ch2) && sc2.count == 2
+    };
+    hit && *ch2 == b'c' && s[from..].contains(&b'+')
+}
+
 /// `_nc_infotocap(cap, str, parameterized)`; `strict_bsd` é o `_nc_strict_bsd` (`infocmp -K`).
 /// `None` quando a cadeia não tem tradução.
 pub fn infotocap(str_: &[u8], parameterized: i32, strict_bsd: bool) -> Option<Vec<u8>> {
@@ -289,46 +327,22 @@ pub fn infotocap(str_: &[u8], parameterized: i32, strict_bsd: bool) -> Option<Ve
             i += 1;
         } else if c != b'%' || parameterized < 1 {
             buf.push(c);
-        } else if {
-            let mut sc = Scan::new(s, i as usize);
-            let ok = sc.lit(b"%?%{") && sc.int(&mut c1) && sc.lit(b"}%>%t%{") && sc.int(&mut c2);
-            ok && sc.count == 2
-        } {
+        } else if scan_gt_int_int(s, i as usize, &mut c1, &mut c2) {
             i = semi_pos(s, i);
             save_tc_inequality(&mut buf, c1, c2);
-        } else if {
-            let mut sc = Scan::new(s, i as usize);
-            let ok = sc.lit(b"%?%{") && sc.int(&mut c1) && sc.lit(b"}%>%t%'") && sc.chr(&mut ch2);
-            ok && sc.count == 2
-        } {
+        } else if scan_gt_int_chr(s, i as usize, &mut c1, &mut ch2) {
             i = semi_pos(s, i);
             save_tc_inequality(&mut buf, c1, i32::from(ch2));
-        } else if {
-            let mut sc = Scan::new(s, i as usize);
-            let ok = sc.lit(b"%?%'") && sc.chr(&mut ch1) && sc.lit(b"'%>%t%{") && sc.int(&mut c2);
-            ok && sc.count == 2
-        } {
+        } else if scan_gt_chr_int(s, i as usize, &mut ch1, &mut c2) {
             i = semi_pos(s, i);
             save_tc_inequality(&mut buf, i32::from(ch1), c2);
-        } else if {
-            let mut sc = Scan::new(s, i as usize);
-            let ok = sc.lit(b"%?%'") && sc.chr(&mut ch1) && sc.lit(b"'%>%t%'") && sc.chr(&mut ch2);
-            ok && sc.count == 2
-        } {
+        } else if scan_gt_chr_chr(s, i as usize, &mut ch1, &mut ch2) {
             i = semi_pos(s, i);
             save_tc_inequality(&mut buf, i32::from(ch1), i32::from(ch2));
         } else if bcd_expression(s, i as usize) != 0 {
             i += bcd_expression(s, i as usize) as isize;
             buf.extend_from_slice(b"%B");
-        } else if {
-            let mut sc = Scan::new(s, i as usize);
-            let a = sc.lit(b"%{") && sc.int(&mut c1) && sc.lit(b"}%+%") && sc.chr(&mut ch2) && sc.count == 2;
-            let hit = a || {
-                let mut sc2 = Scan::new(s, i as usize);
-                sc2.lit(b"%'") && sc2.chr(&mut ch1) && sc2.lit(b"'%+%") && sc2.chr(&mut ch2) && sc2.count == 2
-            };
-            hit && ch2 == b'c' && s[i as usize..].contains(&b'+')
-        } {
+        } else if scan_plus_char(s, i as usize, &mut c1, &mut ch1, &mut ch2) {
             let cp = i as usize + s[i as usize..].iter().position(|b| *b == b'+').unwrap_or(0);
             i = cp as isize + 2;
             buf.extend_from_slice(b"%+");

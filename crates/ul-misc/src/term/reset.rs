@@ -64,7 +64,7 @@ impl<'a> Reset<'a> {
         self.out.put(c);
     }
 
-    fn to_left_margin(&mut self) -> bool {
+    fn move_to_left_margin(&mut self) -> bool {
         match self.term.tt.sv("carriage_return") {
             Some(cr) => {
                 let cr = cr.to_vec();
@@ -80,24 +80,25 @@ impl<'a> Reset<'a> {
         let mut init_tabs = self.term.tt.n("init_tabs");
         let set_tab = self.term.tt.sv("set_tab").map(<[u8]>::to_vec);
         let clear_all = self.term.tt.sv("clear_all_tabs").map(<[u8]>::to_vec);
-        if init_tabs != 8 && init_tabs >= 0 {
-            if let (Some(set_tab), Some(clear_all)) = (set_tab, clear_all) {
-                self.to_left_margin();
-                self.sent_string(Some(&clear_all));
-                if init_tabs > 1 {
-                    if init_tabs > wide {
-                        init_tabs = wide;
-                    }
-                    let mut c = init_tabs;
-                    while c < wide {
-                        self.out.write_all(&vec![b' '; init_tabs as usize]);
-                        self.sent_string(Some(&set_tab));
-                        c += init_tabs;
-                    }
-                    self.to_left_margin();
+        if init_tabs != 8
+            && init_tabs >= 0
+            && let (Some(set_tab), Some(clear_all)) = (set_tab, clear_all)
+        {
+            self.move_to_left_margin();
+            self.sent_string(Some(&clear_all));
+            if init_tabs > 1 {
+                if init_tabs > wide {
+                    init_tabs = wide;
                 }
-                return true;
+                let mut c = init_tabs;
+                while c < wide {
+                    self.out.write_all(&vec![b' '; init_tabs as usize]);
+                    self.sent_string(Some(&set_tab));
+                    c += init_tabs;
+                }
+                self.move_to_left_margin();
             }
+            return true;
         }
         false
     }
@@ -141,7 +142,7 @@ impl<'a> Reset<'a> {
             let s = tiparm(&self.term.tt, &mut self.state, 1, r, &[i64::from(columns) - 1]);
             need_flush |= self.sent_string(s.as_deref());
         } else if let (Some(l), Some(r)) = (&set_left, &set_right) {
-            need_flush |= self.to_left_margin();
+            need_flush |= self.move_to_left_margin();
             need_flush |= self.sent_string(Some(l));
             if let Some(p) = &parm_right {
                 let s = tiparm(&self.term.tt, &mut self.state, 1, p, &[i64::from(columns) - 1]);
@@ -153,7 +154,7 @@ impl<'a> Reset<'a> {
                 }
             }
             need_flush |= self.sent_string(Some(r));
-            need_flush |= self.to_left_margin();
+            need_flush |= self.move_to_left_margin();
         }
         need_flush |= self.reset_tabstops(columns);
         need_flush |= self.cat_file(file.as_deref());

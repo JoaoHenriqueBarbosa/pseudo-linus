@@ -253,13 +253,11 @@ impl Watch {
     }
 
     fn put_str(&mut self, y: i64, x: i64, s: &str, limit: Option<usize>) {
-        let mut x = x;
-        for (n, ch) in s.chars().enumerate() {
+        for (x, (n, ch)) in (x..).zip(s.chars().enumerate()) {
             if limit.is_some_and(|l| n >= l) {
                 break;
             }
             self.put(y, x, Cell { ch, attr: false, cont: false });
-            x += 1;
         }
     }
 
@@ -276,11 +274,11 @@ impl Watch {
                 vec![vec![BLANK; w]; h]
             }
         };
-        'rows: for y in 0..h {
+        'rows: for (row, prow) in self.screen.iter().zip(&prev) {
             let mut first: Option<usize> = None;
             let mut last = 0usize;
-            for x in 0..w {
-                if self.screen[y][x] != prev[y][x] {
+            for (x, (c, pc)) in row.iter().zip(prow).enumerate() {
+                if c != pc {
                     if first.is_none() {
                         first = Some(x);
                     }
@@ -288,8 +286,7 @@ impl Watch {
                 }
             }
             if let Some(f) = first {
-                for x in f..=last {
-                    let c = self.screen[y][x];
+                for c in &row[f..=last] {
                     if !c.cont {
                         let mut b = [0u8; 4];
                         o.extend_from_slice(c.ch.encode_utf8(&mut b).as_bytes());
@@ -319,7 +316,7 @@ impl Watch {
             if self.eof {
                 return None;
             }
-            let Some(fd) = self.pipe_fd else { return None };
+            let fd = self.pipe_fd?;
             let mut chunk = [0u8; 4096];
             match sys::read(fd, &mut chunk) {
                 Ok(0) | Err(_) => {

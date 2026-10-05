@@ -499,11 +499,11 @@ pub fn db_dirs(tic_dir: Option<&[u8]>) -> Vec<Vec<u8>> {
         let mut ident = (0u64, 0u64);
         if quick_prefix(&item) {
             found = true;
-        } else if let Ok(st) = sys::stat(&item) {
-            if st.file_type() == FileType::Directory || (st.file_type() == FileType::Regular && st.size > 0) {
-                found = true;
-                ident = (st.dev, st.ino);
-            }
+        } else if let Ok(st) = sys::stat(&item)
+            && (st.file_type() == FileType::Directory || (st.file_type() == FileType::Regular && st.size > 0))
+        {
+            found = true;
+            ident = (st.dev, st.ino);
         }
         if found && !quick_prefix(&item) {
             if seen.contains(&ident) {
@@ -529,12 +529,11 @@ pub struct ReadResult {
 /// `_nc_read_tic_entry`: o arquivo `<dir>/<primeira letra>/<nome>` (ou os dados embutidos).
 fn read_tic_entry(path: &[u8], name: &[u8], user_definable: bool) -> (i32, Vec<u8>, Option<TermType>) {
     let used = decode_quickdump(path);
-    if !used.is_empty() {
-        if let Some(tt) = read_termtype(&used, user_definable) {
-            if name_match(&tt.names, name) {
-                return (TGETENT_YES, b"$TERMINFO".to_vec(), Some(tt));
-            }
-        }
+    if !used.is_empty()
+        && let Some(tt) = read_termtype(&used, user_definable)
+        && name_match(&tt.names, name)
+    {
+        return (TGETENT_YES, b"$TERMINFO".to_vec(), Some(tt));
     }
     let mut filename = path.to_vec();
     filename.push(b'/');
@@ -623,13 +622,12 @@ fn get_screensize(term: &mut Term, opts: SetupOpts) -> (i32, i32) {
     let mut lines = term.tt.nums[li];
     let mut cols = term.tt.nums[co];
     if opts.use_env || opts.use_tioctl {
-        if isatty(term.fd) {
-            if let Some(s) = sys::try_current() {
-                if let Ok(ws) = s.tcgetwinsize(term.fd) {
-                    lines = i32::from(ws.rows);
-                    cols = i32::from(ws.cols);
-                }
-            }
+        if isatty(term.fd)
+            && let Some(s) = sys::try_current()
+            && let Ok(ws) = s.tcgetwinsize(term.fd)
+        {
+            lines = i32::from(ws.rows);
+            cols = i32::from(ws.cols);
         }
         if opts.use_env {
             if opts.use_tioctl {
@@ -669,16 +667,16 @@ fn get_screensize(term: &mut Term, opts: SetupOpts) -> (i32, i32) {
 }
 
 fn set_env_num(name: &str, value: i32) {
-    if value >= 0 {
-        if let Some(s) = sys::try_current() {
-            let _ = s.setenv(name.as_bytes(), value.to_string().as_bytes());
-        }
+    if value >= 0
+        && let Some(s) = sys::try_current()
+    {
+        let _ = s.setenv(name.as_bytes(), value.to_string().as_bytes());
     }
 }
 
-/// `setupterm(tname, fd, ...)`.
-pub fn setupterm(tname: Option<&[u8]>, fd: Fd, opts: SetupOpts) -> Result<Term, SetupFail> {
-    let fail = |code: i32, message: String| SetupFail { code, message, term: None };
+/// `setupterm(tname, fd, ...)`. A falha vai numa caixa porque carrega o `Term` inteiro.
+pub fn setupterm(tname: Option<&[u8]>, fd: Fd, opts: SetupOpts) -> Result<Term, Box<SetupFail>> {
+    let fail = |code: i32, message: String| Box::new(SetupFail { code, message, term: None });
     let name: Vec<u8> = match tname {
         Some(n) => n.to_vec(),
         None => match sys::getenv("TERM") {
@@ -720,19 +718,19 @@ pub fn setupterm(tname: Option<&[u8]>, fd: Fd, opts: SetupOpts) -> Result<Term, 
         let t = &term.tt;
         let addressable = t.s("cursor_address").valid() || (t.s("cursor_down").valid() && t.s("cursor_home").valid());
         if addressable && t.s("clear_screen").valid() {
-            return Err(SetupFail {
+            return Err(Box::new(SetupFail {
                 code: TGETENT_YES,
                 message: format!("'{shown}': terminal is not really generic.\n"),
                 term: Some(term),
-            });
+            }));
         }
         return Err(fail(TGETENT_NO, format!("'{shown}': I need something more specific.\n")));
     } else if term.tt.b("hard_copy") {
-        return Err(SetupFail {
+        return Err(Box::new(SetupFail {
             code: TGETENT_YES,
             message: format!("'{shown}': I can't handle hardcopy terminals.\n"),
             term: Some(term),
-        });
+        }));
     }
     Ok(term)
 }

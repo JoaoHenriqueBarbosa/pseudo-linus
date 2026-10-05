@@ -565,18 +565,18 @@ fn expand(state: &mut ParmState, string: &[u8], setup: &Setup, mut param: [i32; 
                         incremented_two = true;
                         if !setup.p_is_s[0] {
                             param[0] = param[0].wrapping_add(1);
-                            if termcap_hack {
-                                if let Some(it) = stack.items.get_mut(0) {
-                                    *it = Item::Num(param[0]);
-                                }
+                            if termcap_hack
+                                && let Some(it) = stack.items.get_mut(0)
+                            {
+                                *it = Item::Num(param[0]);
                             }
                         }
                         if !setup.p_is_s[1] {
                             param[1] = param[1].wrapping_add(1);
-                            if termcap_hack {
-                                if let Some(it) = stack.items.get_mut(1) {
-                                    *it = Item::Num(param[1]);
-                                }
+                            if termcap_hack
+                                && let Some(it) = stack.items.get_mut(1)
+                            {
+                                *it = Item::Num(param[1]);
                             }
                         }
                     }
@@ -655,15 +655,15 @@ fn check_string_caps(tt: &TermType, tparm_type: u32, string: &[u8]) -> bool {
     } else if is_cap(tt, "pkey_plab", string) {
         want = 6;
     } else {
-        if let Some(cs) = tt_ext_str(tt, b"Cs") {
-            if cs == string {
-                want = 1;
-            }
+        if let Some(cs) = tt_ext_str(tt, b"Cs")
+            && cs == string
+        {
+            want = 1;
         }
-        if let Some(ms) = tt_ext_str(tt, b"Ms") {
-            if ms == string {
-                want = 3;
-            }
+        if let Some(ms) = tt_ext_str(tt, b"Ms")
+            && ms == string
+        {
+            want = 3;
         }
     }
     want == tparm_type
@@ -787,10 +787,10 @@ fn delay_output(ms: i32, no_pad_char: bool, sink: &mut dyn Sink) {
     let ms = ms.min(30000);
     if no_pad_char {
         sink.flush();
-        if ms > 0 {
-            if let Some(s) = sys::try_current() {
-                let _ = s.nanosleep(Duration::from_millis(ms as u64));
-            }
+        if ms > 0
+            && let Some(s) = sys::try_current()
+        {
+            let _ = s.nanosleep(Duration::from_millis(ms as u64));
         }
     }
 }

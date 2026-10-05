@@ -5,6 +5,24 @@
     "exit": 0,
     "files": {}
   },
+  "git-log-graph-linear": {
+    "stdout": "* 7bf5bb6 three\n* 8d8f20b two\n* acc56ec one\n* three\n* two\n* one\n* 7bf5bb6\n| three\n* 8d8f20b\n| two\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-log-graph-merge-format": {
+    "stdout": "Merge made by the 'ort' strategy.\n t | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 t\n*   Merge branch 'topic'\n|\\  \n| * topic\n* | main\n|/  \n* base\n*   Merge branch 'topic'\n|\\  [55554f7 946adaf]\n| * topic\n| | [51bcc00]\n* | main\n|/  [51bcc00]\n* base\n  []\nexit=128\n",
+    "stderr": "fatal: options '--graph' and '--reverse' cannot be used together\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-log-graph-merge-oneline": {
+    "stdout": "Merge made by the 'ort' strategy.\n t | 2 ++\n 1 file changed, 2 insertions(+)\n create mode 100644 t\nexit=0\n* 327f785 after\n*   81273ea Merge branch 'topic'\n|\\  \n| * a09cf04 topic2\n| * c530e70 topic1\n* | ecff3fd main1\n|/  \n* 51bcc00 base\n* a09cf04 topic2\n* c530e70 topic1\n* 51bcc00 base\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "git-merge-adds-on-both-sides": {
     "stdout": "Merge made by the 'ort' strategy.\n n | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 n\nexit=0\nf\ng\nn\n100644 78981922613b2afb6025042ff6bd878ac1994e85 0\tf\n100644 61780798228d17af2d34fce4cfbdf35556832472 0\tg\n100644 8ba3a16384aacc37d01564b28401755ce8053f51 0\tn\n",
     "stderr": "",

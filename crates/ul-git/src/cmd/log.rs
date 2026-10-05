@@ -56,6 +56,7 @@ const LOG_SPECS: &[Spec] = &[
     opts::flag(Some(b'g'), "walk-reflogs", "reflog"),
     opts::flag(None, "parents", "parents"),
     opts::flag(None, "count", "count"),
+    opts::flag(None, "graph", "graph"),
 ];
 
 fn all_specs() -> Vec<Spec> {
@@ -142,6 +143,10 @@ struct Ctx<'a> {
     nul: bool,
     shown_one: bool,
     parents: bool,
+    /// O desenho de `--graph`, quando ligado.
+    graph: Option<GraphDraw>,
+    /// O último registro mostrado não terminava em quebra de linha (`missing_newline` do git).
+    missing_newline: bool,
 }
 
 impl Ctx<'_> {
@@ -175,6 +180,9 @@ impl Ctx<'_> {
     }
 
     fn print_commit(&mut self, id: &Oid, rl: Option<&Rl>) -> R<()> {
+        if let Some(g) = self.graph.take() {
+            return self.print_commit_graph(id, rl, g);
+        }
         let term = if self.nul { 0 } else { b'\n' };
         let c = self.repo.read_commit(id)?;
         let mut out: Vec<u8> = Vec::new();
@@ -186,6 +194,102 @@ impl Ctx<'_> {
         if self.fmt.terminator() {
             out.push(term);
         }
+        let pairs = match &self.diff {
+            Some(o) => commit_pairs(self.repo, &c, o, &self.ps)?,
+            None => Vec::new(),
+        };
+        if !pairs.is_empty() && self.fmt != Fmt::Oneline {
+            out.push(b'\n');
+        }
+        os::out(&out);
+        if let Some(o) = &self.diff
+            && !pairs.is_empty()
+        {
+            diff::emit(self.repo, &pairs, o)?;
+        }
+        self.shown_one = true;
+        Ok(())
+    }
+
+    /// `print_commit` com `--graph`, na ordem do `show_log` do git: separador (com linha de
+    /// preenchimento), linhas do grafo até a do commit, o registro com o prefixo do grafo antes de
+    /// cada linha seguinte, o resto do grafo e o terminador.
+    fn print_commit_graph(&mut self, id: &Oid, rl: Option<&Rl>, mut g: GraphDraw) -> R<()> {
+        let term = if self.nul { 0 } else { b'\n' };
+        let c = self.repo.read_commit(id)?;
+        let mut out: Vec<u8> = Vec::new();
+        if self.shown_one && !self.fmt.terminator() {
+            if term == b'\n' && !self.missing_newline {
+                out.extend_from_slice(&g.padding_line());
+            }
+            out.push(term);
+        }
+        // graph_show_commit
+        if g.is_finished() {
+            out.extend_from_slice(&g.padding_line());
+        } else {
+            loop {
+                let (line, commit_line) = g.next_line();
+                out.extend_from_slice(&line);
+                if commit_line {
+                    break;
+                }
+                out.push(b'\n');
+                if g.is_finished() {
+                    break;
+                }
+            }
+        }
+        let record = match self.render(id, &c, rl) {
+            Ok(r) => r,
+            Err(e) => {
+                self.graph = Some(g);
+                return Err(e);
+            }
+        };
+        self.missing_newline = record.last() != Some(&b'\n');
+        // graph_show_strbuf: o prefixo do grafo antes de cada linha menos a primeira.
+        let mut p = 0;
+        while p < record.len() {
+            match record[p..].iter().position(|b| *b == b'\n') {
+                Some(k) => {
+                    let next = p + k + 1;
+                    out.extend_from_slice(&record[p..next]);
+                    if next < record.len() {
+                        out.extend_from_slice(&g.next_line().0);
+                    }
+                    p = next;
+                }
+                None => {
+                    out.extend_from_slice(&record[p..]);
+                    break;
+                }
+            }
+        }
+        let newline_terminated = !self.missing_newline;
+        if !g.is_finished() {
+            if !newline_terminated {
+                out.push(b'\n');
+            }
+            // graph_show_remainder
+            loop {
+                out.extend_from_slice(&g.next_line().0);
+                if g.is_finished() {
+                    break;
+                }
+                out.push(b'\n');
+            }
+            if newline_terminated {
+                out.push(b'\n');
+            }
+        }
+        if self.fmt.terminator() {
+            if !self.missing_newline {
+                out.extend_from_slice(&g.padding_line());
+            }
+            out.push(term);
+        }
+        self.graph = Some(g);
         let pairs = match &self.diff {
             Some(o) => commit_pairs(self.repo, &c, o, &self.ps)?,
             None => Vec::new(),
@@ -926,6 +1030,8 @@ fn make_ctx<'a>(git: &Git, repo: &'a Repo, p: &Parsed, s: &Setup, ps: Pathspec) 
         nul: p.has("nul"),
         shown_one: false,
         parents: p.has("parents"),
+        graph: None,
+        missing_newline: false,
     })
 }
 
@@ -933,6 +1039,9 @@ fn make_ctx<'a>(git: &Git, repo: &'a Repo, p: &Parsed, s: &Setup, ps: Pathspec) 
 fn log_walk(repo: &Repo, p: &Parsed, s: &Setup, ctx: &mut Ctx<'_>, revs: &Revs, ps: Option<&Pathspec>) -> R<()> {
     if p.has("reflog") {
         return log_reflog(repo, p, s, ctx, revs);
+    }
+    if p.has("graph") {
+        return log_graph_walk(repo, p, s, ctx, revs, ps);
     }
     let mut walker = Walker::new(repo, &revs.include, &revs.exclude, p.has("first-parent"), ps)?;
     let reverse = p.has("reverse");
@@ -965,6 +1074,512 @@ fn log_walk(repo: &Repo, p: &Parsed, s: &Setup, ctx: &mut Ctx<'_>, revs: &Revs, 
         ctx.print_commit(id, None)?;
     }
     Ok(())
+}
+
+/// `log --graph`: a caminhada inteira primeiro, depois a ordem topológica (que `--graph` liga) e o
+/// desenho de cada commit mostrado. Os pais "interessantes" de um commit são os que também
+/// apareceriam (estão na caminhada e passam nos filtros), mesmo que `-n` os corte.
+fn log_graph_walk(repo: &Repo, p: &Parsed, s: &Setup, ctx: &mut Ctx<'_>, revs: &Revs, ps: Option<&Pathspec>) -> R<()> {
+    let mut walker = Walker::new(repo, &revs.include, &revs.exclude, p.has("first-parent"), ps)?;
+    let mut list: Vec<Oid> = Vec::new();
+    let mut commits: HashMap<Oid, Commit> = HashMap::new();
+    while let Some((id, show)) = walker.next()? {
+        if !show {
+            continue;
+        }
+        let c = repo.read_commit(&id)?;
+        commits.insert(id, c);
+        list.push(id);
+    }
+    let order = topo_sort(&list, &commits);
+    let interesting: HashSet<Oid> = list.iter().filter(|id| s.filters.accepts(&commits[*id])).copied().collect();
+    let first_parent = p.has("first-parent");
+    ctx.graph = Some(GraphDraw::new());
+    let mut skipped = 0usize;
+    let mut shown = 0usize;
+    for id in order {
+        if !interesting.contains(&id) {
+            continue;
+        }
+        if skipped < s.skip {
+            skipped += 1;
+            continue;
+        }
+        let mut parents: Vec<Oid> = commits[&id].parents.iter().filter(|par| interesting.contains(*par)).copied().collect();
+        if first_parent {
+            parents.truncate(1);
+        }
+        if let Some(g) = ctx.graph.as_mut() {
+            g.update(id, parents);
+        }
+        ctx.print_commit(&id, None)?;
+        shown += 1;
+        if s.max_count.is_some_and(|m| shown >= m) {
+            break;
+        }
+    }
+    Ok(())
+}
+
+/// A ordem topológica do git (`REV_SORT_IN_GRAPH_ORDER`): grau de entrada contado só entre os
+/// commits da lista, pontas na ordem original e uma pilha, de modo que o último pai empilhado de
+/// um merge sai primeiro.
+fn topo_sort(list: &[Oid], commits: &HashMap<Oid, Commit>) -> Vec<Oid> {
+    let mut indegree: HashMap<Oid, usize> = list.iter().map(|id| (*id, 1)).collect();
+    for id in list {
+        for par in &commits[id].parents {
+            if let Some(d) = indegree.get_mut(par) {
+                *d += 1;
+            }
+        }
+    }
+    let mut stack: Vec<Oid> = list.iter().filter(|id| indegree[*id] == 1).copied().collect();
+    stack.reverse();
+    let mut out: Vec<Oid> = Vec::with_capacity(list.len());
+    while let Some(id) = stack.pop() {
+        for par in &commits[&id].parents {
+            if let Some(d) = indegree.get_mut(par) {
+                if *d == 0 {
+                    continue;
+                }
+                *d -= 1;
+                if *d == 1 {
+                    stack.push(*par);
+                }
+            }
+        }
+        indegree.insert(id, 0);
+        out.push(id);
+    }
+    out
+}
+
+// ---- grafo (graph.c) --------------------------------------------------------------------------
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum GState {
+    Padding,
+    Skip,
+    PreCommit,
+    Commit,
+    PostMerge,
+    Collapsing,
+}
+
+/// A máquina de estados do `graph.c`: colunas antes e depois do commit atual, o mapeamento de
+/// cada posição na tela para a coluna de destino, e a linha que cada estado desenha.
+struct GraphDraw {
+    commit: Option<Oid>,
+    parents: Vec<Oid>,
+    prev_commit_index: isize,
+    commit_index: isize,
+    width: isize,
+    expansion_row: isize,
+    state: GState,
+    prev_state: GState,
+    columns: Vec<Oid>,
+    new_columns: Vec<Oid>,
+    mapping: Vec<isize>,
+    old_mapping: Vec<isize>,
+    mapping_size: usize,
+    merge_layout: isize,
+    edges_added: isize,
+    prev_edges_added: isize,
+}
+
+const MERGE_CHARS: [char; 3] = ['/', '|', '\\'];
+
+impl GraphDraw {
+    fn new() -> GraphDraw {
+        GraphDraw {
+            commit: None,
+            parents: Vec::new(),
+            prev_commit_index: 0,
+            commit_index: 0,
+            width: 0,
+            expansion_row: 0,
+            state: GState::Padding,
+            prev_state: GState::Padding,
+            columns: Vec::new(),
+            new_columns: Vec::new(),
+            mapping: Vec::new(),
+            old_mapping: Vec::new(),
+            mapping_size: 0,
+            merge_layout: 0,
+            edges_added: 0,
+            prev_edges_added: 0,
+        }
+    }
+
+    fn num_parents(&self) -> isize {
+        self.parents.len() as isize
+    }
+
+    fn is_finished(&self) -> bool {
+        self.state == GState::Padding
+    }
+
+    fn set_state(&mut self, s: GState) {
+        self.prev_state = self.state;
+        self.state = s;
+    }
+
+    fn update(&mut self, commit: Oid, parents: Vec<Oid>) {
+        self.commit = Some(commit);
+        self.parents = parents;
+        self.prev_commit_index = self.commit_index;
+        self.update_columns(commit);
+        self.expansion_row = 0;
+        self.state = if self.state != GState::Padding {
+            GState::Skip
+        } else if self.needs_pre_commit_line() {
+            GState::PreCommit
+        } else {
+            GState::Commit
+        };
+    }
+
+    fn needs_pre_commit_line(&self) -> bool {
+        self.num_parents() >= 3 && self.commit_index < self.columns.len() as isize - 1 && self.expansion_row < self.num_parents() - 2
+    }
+
+    fn update_columns(&mut self, commit: Oid) {
+        std::mem::swap(&mut self.columns, &mut self.new_columns);
+        self.new_columns.clear();
+        let size = 2 * (self.columns.len() + self.parents.len());
+        if self.mapping.len() < size {
+            self.mapping.resize(size, -1);
+            self.old_mapping.resize(size, -1);
+        }
+        self.mapping_size = size;
+        for m in self.mapping.iter_mut().take(size) {
+            *m = -1;
+        }
+        self.width = 0;
+        self.prev_edges_added = self.edges_added;
+        self.edges_added = 0;
+        let n = self.columns.len();
+        let mut seen = false;
+        for i in 0..=n {
+            let col_commit = if i == n {
+                if seen {
+                    break;
+                }
+                commit
+            } else {
+                self.columns[i]
+            };
+            if col_commit == commit {
+                seen = true;
+                self.commit_index = i as isize;
+                self.merge_layout = -1;
+                for par in self.parents.clone() {
+                    self.insert_into_new_columns(par, i as isize);
+                }
+                // O commit ocupa ao menos duas posições, mesmo sem pais.
+                if self.parents.is_empty() {
+                    self.width += 2;
+                }
+            } else {
+                self.insert_into_new_columns(col_commit, -1);
+            }
+        }
+        while self.mapping_size > 1 && self.mapping[self.mapping_size - 1] < 0 {
+            self.mapping_size -= 1;
+        }
+    }
+
+    fn insert_into_new_columns(&mut self, commit: Oid, idx: isize) {
+        let i = match self.new_columns.iter().position(|c| *c == commit) {
+            Some(i) => i,
+            None => {
+                self.new_columns.push(commit);
+                self.new_columns.len() - 1
+            }
+        } as isize;
+        let mapping_idx;
+        if self.num_parents() > 1 && idx > -1 && self.merge_layout == -1 {
+            // Primeiro pai de um merge: o leiaute da linha do merge depende de o pai estar numa
+            // coluna à esquerda.
+            let dist = idx - i;
+            let shift = if dist > 1 { 2 * dist - 3 } else { 1 };
+            self.merge_layout = if dist > 0 { 0 } else { 1 };
+            self.edges_added = self.num_parents() + self.merge_layout - 2;
+            mapping_idx = self.width + (self.merge_layout - 1) * shift;
+            self.width += 2 * self.merge_layout;
+        } else if self.edges_added > 0 && self.width >= 2 && i == self.mapping[(self.width - 2) as usize] {
+            // As arestas novas do merge se juntam já na última coluna existente.
+            mapping_idx = self.width - 2;
+            self.edges_added = -1;
+        } else {
+            mapping_idx = self.width;
+            self.width += 2;
+        }
+        self.mapping[mapping_idx as usize] = i;
+    }
+
+    fn is_mapping_correct(&self) -> bool {
+        self.mapping[..self.mapping_size].iter().enumerate().all(|(i, t)| *t < 0 || *t == (i / 2) as isize)
+    }
+
+    fn pad(&self, line: &mut String) {
+        let w = line.chars().count() as isize;
+        if w < self.width {
+            line.push_str(&" ".repeat((self.width - w) as usize));
+        }
+    }
+
+    /// `graph_padding_line`: deixa as linhas dos ramos como estão.
+    fn padding_line(&mut self) -> Vec<u8> {
+        let Some(commit) = self.commit else { return Vec::new() };
+        if self.state != GState::Commit {
+            return self.next_line().0;
+        }
+        let mut line = String::new();
+        for col in &self.columns {
+            line.push('|');
+            if *col == commit && self.num_parents() > 2 {
+                line.push_str(&" ".repeat(((self.num_parents() - 2) * 2) as usize));
+            } else {
+                line.push(' ');
+            }
+        }
+        self.pad(&mut line);
+        self.prev_state = GState::Padding;
+        line.into_bytes()
+    }
+
+    /// `graph_next_line`: a próxima linha do grafo e se ela é a do commit.
+    fn next_line(&mut self) -> (Vec<u8>, bool) {
+        let mut line = String::new();
+        let mut commit_line = false;
+        match self.state {
+            GState::Padding => {
+                for _ in &self.new_columns {
+                    line.push_str("| ");
+                }
+            }
+            GState::Skip => {
+                line.push_str("...");
+                if self.needs_pre_commit_line() {
+                    self.set_state(GState::PreCommit);
+                } else {
+                    self.set_state(GState::Commit);
+                }
+            }
+            GState::PreCommit => self.pre_commit_line(&mut line),
+            GState::Commit => {
+                self.commit_line(&mut line);
+                commit_line = true;
+            }
+            GState::PostMerge => self.post_merge_line(&mut line),
+            GState::Collapsing => self.collapsing_line(&mut line),
+        }
+        self.pad(&mut line);
+        (line.into_bytes(), commit_line)
+    }
+
+    fn pre_commit_line(&mut self, line: &mut String) {
+        let commit = self.commit;
+        let mut seen = false;
+        for (i, col) in self.columns.iter().enumerate() {
+            if Some(*col) == commit {
+                seen = true;
+                line.push('|');
+                line.push_str(&" ".repeat(self.expansion_row as usize));
+            } else if seen && self.expansion_row == 0 {
+                if self.prev_state == GState::PostMerge && self.prev_commit_index < i as isize {
+                    line.push('\\');
+                } else {
+                    line.push('|');
+                }
+            } else if seen && self.expansion_row > 0 {
+                line.push('\\');
+            } else {
+                line.push('|');
+            }
+            line.push(' ');
+        }
+        self.expansion_row += 1;
+        if !self.needs_pre_commit_line() {
+            self.set_state(GState::Commit);
+        }
+    }
+
+    fn commit_line(&mut self, line: &mut String) {
+        let commit = self.commit;
+        let n = self.columns.len();
+        let mut seen = false;
+        for i in 0..=n {
+            let col_commit = if i == n {
+                if seen {
+                    break;
+                }
+                commit
+            } else {
+                Some(self.columns[i])
+            };
+            if col_commit == commit {
+                seen = true;
+                line.push('*');
+                if self.num_parents() > 2 {
+                    // graph_draw_octopus_merge
+                    let dashed = self.num_parents() + self.merge_layout - 3;
+                    for k in 0..dashed {
+                        line.push('-');
+                        line.push(if k == dashed - 1 { '.' } else { '-' });
+                    }
+                }
+            } else if seen && self.edges_added > 1 {
+                line.push('\\');
+            } else if seen && self.edges_added == 1 {
+                if self.prev_state == GState::PostMerge && self.prev_edges_added > 0 && self.prev_commit_index < i as isize {
+                    line.push('\\');
+                } else {
+                    line.push('|');
+                }
+            } else if self.prev_state == GState::Collapsing && self.old_mapping.get(2 * i + 1) == Some(&(i as isize)) && self.mapping.get(2 * i).is_some_and(|m| *m < i as isize) {
+                line.push('/');
+            } else {
+                line.push('|');
+            }
+            line.push(' ');
+        }
+        if self.num_parents() > 1 {
+            self.set_state(GState::PostMerge);
+        } else if self.is_mapping_correct() {
+            self.set_state(GState::Padding);
+        } else {
+            self.set_state(GState::Collapsing);
+        }
+    }
+
+    fn post_merge_line(&mut self, line: &mut String) {
+        let commit = self.commit;
+        let first_parent = self.parents.first().copied();
+        let n = self.columns.len();
+        let mut seen = false;
+        let mut parent_col = false;
+        for i in 0..=n {
+            let col_commit = if i == n {
+                if seen {
+                    break;
+                }
+                commit
+            } else {
+                Some(self.columns[i])
+            };
+            if col_commit == commit {
+                seen = true;
+                let mut idx = self.merge_layout;
+                for j in 0..self.num_parents() {
+                    line.push(MERGE_CHARS[idx as usize]);
+                    if idx == 2 {
+                        if self.edges_added > 0 || j < self.num_parents() - 1 {
+                            line.push(' ');
+                        }
+                    } else {
+                        idx += 1;
+                    }
+                }
+                if self.edges_added == 0 {
+                    line.push(' ');
+                }
+            } else if seen {
+                line.push(if self.edges_added > 0 { '\\' } else { '|' });
+                line.push(' ');
+            } else {
+                line.push('|');
+                if self.merge_layout != 0 || i as isize != self.commit_index - 1 {
+                    line.push(if parent_col { '_' } else { ' ' });
+                }
+            }
+            if col_commit.is_some() && col_commit == first_parent {
+                parent_col = true;
+            }
+        }
+        if self.is_mapping_correct() {
+            self.set_state(GState::Padding);
+        } else {
+            self.set_state(GState::Collapsing);
+        }
+    }
+
+    fn collapsing_line(&mut self, line: &mut String) {
+        let size = self.mapping_size;
+        std::mem::swap(&mut self.mapping, &mut self.old_mapping);
+        for m in self.mapping.iter_mut().take(size) {
+            *m = -1;
+        }
+        let mut used_horizontal = false;
+        let mut horizontal_edge: isize = -1;
+        let mut horizontal_edge_target: isize = -1;
+        for i in 0..size {
+            let target = self.old_mapping[i];
+            if target < 0 {
+                continue;
+            }
+            let ii = i as isize;
+            if target * 2 == ii {
+                // A coluna já está no lugar certo.
+                self.mapping[i] = target;
+            } else if self.mapping[i - 1] < 0 {
+                // Nada à esquerda: anda uma posição para a esquerda.
+                self.mapping[i - 1] = target;
+                if horizontal_edge == -1 {
+                    horizontal_edge = ii;
+                    horizontal_edge_target = target;
+                    let mut j = target * 2 + 3;
+                    while j < ii - 2 {
+                        self.mapping[j as usize] = target;
+                        j += 2;
+                    }
+                }
+            } else if self.mapping[i - 1] == target {
+                // Já há à esquerda uma linha para o mesmo pai: as duas se juntam.
+            } else {
+                // Há uma linha de outro ramo à esquerda: cruza por cima dela.
+                self.mapping[i - 2] = target;
+                if horizontal_edge == -1 {
+                    horizontal_edge_target = target;
+                    horizontal_edge = ii - 1;
+                    let mut j = target * 2 + 3;
+                    while j < ii - 2 {
+                        self.mapping[j as usize] = target;
+                        j += 2;
+                    }
+                }
+            }
+        }
+        self.old_mapping[..size].copy_from_slice(&self.mapping[..size]);
+        if size > 0 && self.mapping[size - 1] < 0 {
+            self.mapping_size -= 1;
+        }
+        for i in 0..self.mapping_size {
+            let target = self.mapping[i];
+            let ii = i as isize;
+            if target < 0 {
+                line.push(' ');
+            } else if target * 2 == ii {
+                line.push('|');
+            } else if target == horizontal_edge_target && ii != horizontal_edge - 1 {
+                // Só o primeiro segmento da aresta horizontal continua na linha seguinte.
+                if ii != target * 2 + 3 {
+                    self.mapping[i] = -1;
+                }
+                used_horizontal = true;
+                line.push('_');
+            } else {
+                if used_horizontal && ii < horizontal_edge {
+                    self.mapping[i] = -1;
+                }
+                line.push('/');
+            }
+        }
+        if self.is_mapping_correct() {
+            self.set_state(GState::Padding);
+        }
+    }
 }
 
 /// `Nome <e-mail>` em nome e e-mail.
@@ -1014,6 +1629,9 @@ pub fn run_log(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     let usage = git.usage();
     let p = opts::parse(&all_specs(), args, opts::NUMBER | opts::KEEP_UNKNOWN, usage)?;
     unrecognized(&p)?;
+    if p.has("graph") && p.has("reverse") {
+        return Err(Fail::Fatal("options '--graph' and '--reverse' cannot be used together".into()));
+    }
     let s = setup(git, &p, Fmt::Medium, false)?;
     let repo = git.repo()?;
     let revs = resolve_revs(repo, &p)?;

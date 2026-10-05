@@ -8,7 +8,7 @@ use sysabi::sys;
 use ul_misc::util::io;
 
 use super::proc::{Pt, dev_to_tty};
-use super::util::{escape_str_out, strverscmp};
+use super::util::escape_str_out;
 use super::*;
 
 /// `COLWID` do original: `snprintf` corta em 239 caracteres.
@@ -278,10 +278,7 @@ fn life_jiffies(ps: &Ps, p: &Pt) -> u64 {
 pub fn pr_c(ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
     let total = ps.tics_all(p);
     let jiffies = life_jiffies(ps, p);
-    let mut pcpu: u32 = 0;
-    if jiffies != 0 {
-        pcpu = (total.wrapping_mul(100) / jiffies) as u32;
-    }
+    let mut pcpu = total.wrapping_mul(100).checked_div(jiffies).unwrap_or(0) as u32;
     if pcpu > 99 {
         pcpu = 99;
     }
@@ -291,10 +288,7 @@ pub fn pr_c(ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
 pub fn pr_pcpu(ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
     let total = ps.tics_all(p);
     let jiffies = life_jiffies(ps, p);
-    let mut pcpu: u32 = 0;
-    if jiffies != 0 {
-        pcpu = (total.wrapping_mul(1000) / jiffies) as u32;
-    }
+    let pcpu = total.wrapping_mul(1000).checked_div(jiffies).unwrap_or(0) as u32;
     if pcpu > 999 {
         return snp(out, &(pcpu / 10).to_string());
     }
@@ -304,10 +298,7 @@ pub fn pr_pcpu(ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
 pub fn pr_cp(ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
     let total = ps.tics_all(p);
     let jiffies = life_jiffies(ps, p);
-    let mut pcpu: u32 = 0;
-    if jiffies != 0 {
-        pcpu = (total.wrapping_mul(1000) / jiffies) as u32;
-    }
+    let mut pcpu = total.wrapping_mul(1000).checked_div(jiffies).unwrap_or(0) as u32;
     if pcpu > 999 {
         pcpu = 999;
     }
@@ -681,7 +672,7 @@ pub fn pr_rss(_ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
 
 pub fn pr_pmem(ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
     let total = ps.memory_total();
-    let mut pmem = if total == 0 { 0 } else { p.vm_rss.wrapping_mul(1000) / total };
+    let mut pmem = p.vm_rss.wrapping_mul(1000).checked_div(total).unwrap_or(0);
     if pmem > 999 {
         pmem = 999;
     }
@@ -1264,9 +1255,4 @@ impl Ps {
         }
         crate::common::out(&row);
     }
-}
-
-/// Compara duas strings como `strverscmp` (a ordenação de `tty`).
-pub(super) fn cmp_vers(a: &[u8], b: &[u8]) -> std::cmp::Ordering {
-    strverscmp(a, b)
 }

@@ -73,8 +73,6 @@ pub struct CpuDelta {
     pub st: i64,
     pub gu: i64,
     pub gn: i64,
-    pub sum_usr: i64,
-    pub sum_sys: i64,
     pub sum_tot: i64,
 }
 
@@ -92,8 +90,6 @@ impl HistTic {
             st: delta(n.stolen, o.stolen),
             gu: delta(n.guest, o.guest),
             gn: delta(n.gnice, o.gnice),
-            sum_usr: delta(n.xusr, o.xusr),
-            sum_sys: delta(n.xsys, o.xsys),
             sum_tot: delta(n.xtot, o.xtot),
         }
     }
@@ -174,8 +170,7 @@ impl StatState {
         assign(&mut self.summary.new, &nums);
         derive_unique(&mut self.summary);
         let mut total = 0usize;
-        loop {
-            let Some(nl) = data[bp..].iter().position(|b| *b == b'\n') else { break };
+        while let Some(nl) = data[bp..].iter().position(|b| *b == b'\n') {
             bp += nl + 1;
             if self.cpus.len() <= total {
                 self.cpus.push(HistTic::default());

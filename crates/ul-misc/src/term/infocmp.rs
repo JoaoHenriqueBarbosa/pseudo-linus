@@ -251,12 +251,10 @@ fn compare_predicate(cfg: &Cfg, entries: &[TermType], kind: CmpKind, idx: usize,
                         }
                     }
                 }
-                Compare::Nand => {
-                    if b1 == -1 {
-                        let found = entries[1..].iter().all(|e| e.bools[idx] == b1);
-                        if found {
-                            let _ = writeln!(o, "\t!{name_s}.");
-                        }
+                Compare::Nand if b1 == -1 => {
+                    let found = entries[1..].iter().all(|e| e.bools[idx] == b1);
+                    if found {
+                        let _ = writeln!(o, "\t!{name_s}.");
                     }
                 }
                 _ => {}
@@ -282,12 +280,10 @@ fn compare_predicate(cfg: &Cfg, entries: &[TermType], kind: CmpKind, idx: usize,
                         }
                     }
                 }
-                Compare::Nand => {
-                    if n1 == super::ABSENT_NUMERIC {
-                        let found = entries[1..].iter().all(|e| e.nums[idx] == n1);
-                        if found {
-                            let _ = writeln!(o, "\t!{name_s}.");
-                        }
+                Compare::Nand if n1 == super::ABSENT_NUMERIC => {
+                    let found = entries[1..].iter().all(|e| e.nums[idx] == n1);
+                    if found {
+                        let _ = writeln!(o, "\t!{name_s}.");
                     }
                 }
                 _ => {}
@@ -323,12 +319,10 @@ fn compare_predicate(cfg: &Cfg, entries: &[TermType], kind: CmpKind, idx: usize,
                         }
                     }
                 }
-                Compare::Nand => {
-                    if *s1 == Str::Absent {
-                        let found = entries[1..].iter().all(|e| e.strs[idx] == *s1);
-                        if found {
-                            let _ = writeln!(o, "\t!{name_s}.");
-                        }
+                Compare::Nand if *s1 == Str::Absent => {
+                    let found = entries[1..].iter().all(|e| e.strs[idx] == *s1);
+                    if found {
+                        let _ = writeln!(o, "\t!{name_s}.");
                     }
                 }
                 _ => {}
@@ -466,26 +460,27 @@ fn analyze_string(cfg: &Cfg, name: &str, cap_idx: usize, tp: &TermType) {
         let mut expansion: Option<Vec<u8>> = None;
         let rest = &cap[sp..];
         // primeiro, as outras capacidades desta entrada (menos as teclas de função)
-        for i in 0..STRCOUNT.min(tp.strs.len()) {
-            let nm = STRS[i].info;
+        for (i, (def, value)) in STRS.iter().zip(tp.strs.iter()).enumerate().take(STRCOUNT) {
+            let nm = def.info;
             if nm.starts_with("kf") {
                 continue;
             }
-            if let Str::Val(cp) = &tp.strs[i] {
-                if !cp.is_empty() && i != cap_idx {
-                    len = cp.len();
-                    let mut buf2: Vec<u8> = rest.iter().copied().take(len).collect();
-                    buf2.truncate(len);
-                    if capcmp_pad(cp, &buf2) != 0 {
-                        continue;
-                    }
-                    let isrs = |s: &str| s.starts_with("is") || s.starts_with("rs");
-                    if (isrs(name) || isrs(nm)) && cap_idx < i {
-                        continue;
-                    }
-                    expansion = Some(nm.as_bytes().to_vec());
-                    break;
+            if let Str::Val(cp) = value
+                && !cp.is_empty()
+                && i != cap_idx
+            {
+                len = cp.len();
+                let mut buf2: Vec<u8> = rest.iter().copied().take(len).collect();
+                buf2.truncate(len);
+                if capcmp_pad(cp, &buf2) != 0 {
+                    continue;
                 }
+                let isrs = |s: &str| s.starts_with("is") || s.starts_with("rs");
+                if (isrs(name) || isrs(nm)) && cap_idx < i {
+                    continue;
+                }
+                expansion = Some(nm.as_bytes().to_vec());
+                break;
             }
         }
         // depois as capacidades padrão
@@ -776,6 +771,9 @@ fn realign(t: &mut TermType, eb: &[Vec<u8>], en: &[Vec<u8>], es: &[Vec<u8>]) {
     t.ext_names = eb.iter().chain(en).chain(es).cloned().collect();
 }
 
+/// Os nomes estendidos de uma descrição, separados em booleanos, números e cadeias.
+type ExtNameParts = (Vec<Vec<u8>>, Vec<Vec<u8>>, Vec<Vec<u8>>);
+
 /// `_nc_align_termtype(to, from)`: deixa as duas descrições com os mesmos nomes estendidos.
 fn align_termtype(to: &mut TermType, from: &mut TermType) {
     let (na, nb) = (to.ext_names.len(), from.ext_names.len());
@@ -785,7 +783,7 @@ fn align_termtype(to: &mut TermType, from: &mut TermType) {
     if na == nb && to.ext_bools == from.ext_bools && to.ext_nums == from.ext_nums && to.ext_strs == from.ext_strs && to.ext_names == from.ext_names {
         return;
     }
-    let part = |t: &TermType| -> (Vec<Vec<u8>>, Vec<Vec<u8>>, Vec<Vec<u8>>) {
+    let part = |t: &TermType| -> ExtNameParts {
         let b = t.ext_names[..t.ext_bools].to_vec();
         let n = t.ext_names[t.ext_bools..t.ext_bools + t.ext_nums].to_vec();
         let s = t.ext_names[t.ext_bools + t.ext_nums..].to_vec();
@@ -843,12 +841,10 @@ fn usage(progname: &str) -> ! {
     let last = OPTIONS.len();
     let left = last.div_ceil(2);
     let mut text = format!("Usage: {progname} [options] [-A directory] [-B directory] [termname...]\nOptions:\n");
-    for n in 0..left {
-        let m = n + left;
-        if m < last {
-            text.push_str(&format!("{:<40.40}{}\n", OPTIONS[n], OPTIONS[m]));
-        } else {
-            text.push_str(&format!("{}\n", OPTIONS[n]));
+    for (n, first) in OPTIONS.iter().enumerate().take(left) {
+        match OPTIONS.get(n + left) {
+            Some(second) => text.push_str(&format!("{first:<40.40}{second}\n")),
+            None => text.push_str(&format!("{first}\n")),
         }
     }
     io::eprint(text);
@@ -1120,7 +1116,7 @@ fn run(args: &[OsString]) -> i32 {
                         io::eprint(format!("{progname}: about to dump {}\n", io::lossy(&names[0])));
                     }
                     if !cfg.quiet {
-                        let _ = write!(io::stdout(), "#\tReconstructed via {progname} from file: {}\n", io::lossy(&tfiles[0]));
+                        let _ = writeln!(io::stdout(), "#\tReconstructed via {progname} from file: {}", io::lossy(&tfiles[0]));
                     }
                     let pred: PredFn<'_> = &dump_predicate;
                     dump.dump_entry(&mut entries[0], suppress_untranslatable, cfg.limited, cfg.numbers, pred);

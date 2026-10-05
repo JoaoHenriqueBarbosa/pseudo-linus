@@ -136,7 +136,7 @@ fn typelist(dirs: &[Vec<u8>], verbosity: bool, hook: Hook, progname: &str) -> i3
 }
 
 /// `show_termdata` com a descrição (`ptr_termdata[nk].description`).
-fn show_termdata_full(data: &mut Vec<TermData>, dirs: &[Vec<u8>]) {
+fn show_termdata_full(data: &mut [TermData], dirs: &[Vec<u8>]) {
     let mut o = io::stdout();
     if data.is_empty() {
         return;

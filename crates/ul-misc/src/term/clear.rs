@@ -24,10 +24,10 @@ pub fn clear_cmd(term: &Term, legacy: bool) -> bool {
         }
         None => false,
     };
-    if !legacy {
-        if let TiStr::Val(e3) = term.tigetstr(b"E3") {
-            tputs(Some(&term.tt), e3, affcnt, false, &mut sink);
-        }
+    if !legacy
+        && let TiStr::Val(e3) = term.tigetstr(b"E3")
+    {
+        tputs(Some(&term.tt), e3, affcnt, false, &mut sink);
     }
     ok
 }

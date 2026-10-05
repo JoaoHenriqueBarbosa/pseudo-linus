@@ -323,10 +323,10 @@ impl Tabs {
             return true;
         }
         if let Some(lr) = set_lr {
-            if !no_op {
-                if let Some(r) = tiparm(&self.term.tt, &mut self.state, 2, &lr, &[i64::from(margin), i64::from(self.max_cols)]) {
-                    self.tput_cap(&r);
-                }
+            if !no_op
+                && let Some(r) = tiparm(&self.term.tt, &mut self.state, 2, &lr, &[i64::from(margin), i64::from(self.max_cols)])
+            {
+                self.tput_cap(&r);
             }
             return true;
         }

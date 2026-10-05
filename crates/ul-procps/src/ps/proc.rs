@@ -8,7 +8,7 @@ use std::cell::OnceCell;
 use sysabi::{Fd, sys};
 
 use super::Ps;
-use super::util::{escape_str_lib, is_utf8};
+use super::util::escape_str_lib;
 use crate::common::{dev_major, dev_minor};
 
 /// `MAX_BUFSZ` da readproc.c.
@@ -234,8 +234,10 @@ fn stat2proc(data: &[u8], p: &mut Pt) {
     geti!(p.priority);
     geti!(p.nice);
     geti!(p.nlwp);
-    let mut alarm = 0u64;
-    getu!(alarm);
+    // alarm: lido e descartado.
+    if scan_u(next!()).is_none() {
+        return fin(p);
+    }
     getu!(p.start_time);
     getu!(p.vsize);
     getu!(p.rss);
@@ -251,8 +253,10 @@ fn stat2proc(data: &[u8], p: &mut Pt) {
             return fin(p);
         }
     }
-    let mut wchan = 0u64;
-    getu!(wchan);
+    // wchan: lido e descartado.
+    if scan_u(next!()).is_none() {
+        return fin(p);
+    }
     // nswap, cnswap.
     for _ in 0..2 {
         if next!().is_none() {
@@ -989,9 +993,4 @@ impl Ps {
             _ => gid.to_string().into_bytes(),
         }
     }
-}
-
-/// O locale do processo é UTF-8? (o `nl_langinfo(CODESET)` do original).
-pub fn locale_is_utf8() -> bool {
-    is_utf8()
 }

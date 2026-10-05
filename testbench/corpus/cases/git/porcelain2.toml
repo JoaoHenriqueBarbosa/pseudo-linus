@@ -5,6 +5,42 @@ source = "agent-style"
 # e datas fixos e termina com `rm -rf .git` (o índice guarda ctime/ino/dev).
 
 [[case]]
+id = "git-log-graph-linear"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; echo b >> f; git commit -qam two; echo c >> f; git commit -qam three; git log --oneline --graph; git log --graph --format=%s; git log --graph -n 2 --format='%h%n%s'; rm -rf .git f'''
+tags = ["log", "graph"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-log-graph-merge-oneline"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm base; git switch -qc topic; echo t > t; git add t; git commit -qm topic1; echo u >> t; git commit -qam topic2; git switch -q main; echo m > m; git add m; git commit -qm main1; git merge --no-edit topic; echo "exit=$?"; echo z > z; git add z; git commit -qm after; git log --oneline --graph; git log --oneline --graph topic; rm -rf .git f t m z'''
+tags = ["log", "graph", "merge"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-log-graph-merge-format"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm base; git switch -qc topic; echo t > t; git add t; git commit -qm topic; git switch -q main; echo m > m; git add m; git commit -qm main; git merge --no-edit topic; git log --graph --format=%s; git log --graph --format='%s%n[%p]'; git log --graph --reverse; echo "exit=$?"; rm -rf .git f t m'''
+tags = ["log", "graph", "merge"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
 id = "git-remote-add-list-show"
 script = '''git init -q -b main; git remote add origin https://example.com/r.git; git remote add up /srv/up.git; git remote; git remote -v; git remote get-url origin; git remote show -n origin; cat .git/config; rm -rf .git'''
 tags = ["remote"]

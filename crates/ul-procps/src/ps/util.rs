@@ -182,7 +182,7 @@ pub fn escape_str_out(out: &mut Vec<u8>, src: &[u8], bufsize: i32, maxcells: &mu
         if !utf8 {
             let c = src[i];
             i += 1;
-            out.push(if (0x20..=0x7e).contains(&c) { c } else if c == 0x7f { b'.' } else if c < 0x20 { b'.' } else { b'?' });
+            out.push(if (0x20..=0x7e).contains(&c) { c } else if c == 0x7f || c < 0x20 { b'.' } else { b'?' });
             cells += 1;
             bytes += 1;
             continue;

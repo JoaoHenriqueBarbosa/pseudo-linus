@@ -100,7 +100,7 @@ impl Asker {
 }
 
 fn caseless_eq(a: &[u8], b: &[u8]) -> bool {
-    a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x.to_ascii_lowercase() == y.to_ascii_lowercase())
+    a.eq_ignore_ascii_case(b)
 }
 
 /// `tbaudrate`: a tabela do original só alcança até `134`, porque `134.5` repete o valor de `134` e
@@ -228,12 +228,11 @@ fn get_termcap_entry(progname: &str, fd: Fd, userarg: Option<&[u8]>, maps: &[Map
         },
     };
     // Um TERMCAP que não é um caminho ficaria desatualizado: sai do ambiente.
-    if let Some(tc) = sys::getenv("TERMCAP") {
-        if tc.first() != Some(&b'/') {
-            if let Some(s) = sys::try_current() {
-                let _ = s.unsetenv(b"TERMCAP");
-            }
-        }
+    if let Some(tc) = sys::getenv("TERMCAP")
+        && tc.first() != Some(&b'/')
+        && let Some(s) = sys::try_current()
+    {
+        let _ = s.unsetenv(b"TERMCAP");
     }
     if ttype.first() == Some(&b'?') {
         ttype = if ttype.len() > 1 { asker.ask(Some(&ttype[1..])) } else { asker.ask(None) };
@@ -283,7 +282,7 @@ fn print_shell_commands(ttype: &[u8]) {
     if csh {
         let _ = write!(out, "set noglob;\nsetenv TERM {t};\nunset noglob;\n");
     } else {
-        let _ = write!(out, "TERM={t};\n");
+        let _ = writeln!(out, "TERM={t};");
     }
 }
 
@@ -320,8 +319,8 @@ fn run(args: &[OsString]) -> i32 {
     let (mut noinit, mut noset, mut quiet, mut s_flag_big, mut s_flag, mut showterm) = (false, false, false, false, false, false);
     let (mut opt_c, mut opt_w) = (false, false);
     let mut maps: Vec<Map> = Vec::new();
-    let (mut terasechar, mut intrchar, mut tkillchar) = (-1, -1, -1);
-    let _ = (&mut terasechar, &mut intrchar, &mut tkillchar);
+    // Os caracteres de controle são lidos e validados, mas não aplicados (não há termios aqui).
+    let (mut _terasechar, mut _intrchar, mut _tkillchar) = (-1, -1, -1);
     let mut g = Getopt::from_env(&argv[1..], "a:cd:e:Ii:k:m:p:qQrSsVw", &[]);
     while let Some(r) = g.next_opt() {
         match r {
@@ -331,10 +330,10 @@ fn run(args: &[OsString]) -> i32 {
                     'c' => opt_c = true,
                     'a' => add_mapping(&progname, &mut maps, Some("arpanet"), &arg),
                     'd' => add_mapping(&progname, &mut maps, Some("dialup"), &arg),
-                    'e' => terasechar = arg_char(&arg),
+                    'e' => _terasechar = arg_char(&arg),
                     'I' => noinit = true,
-                    'i' => intrchar = arg_char(&arg),
-                    'k' => tkillchar = arg_char(&arg),
+                    'i' => _intrchar = arg_char(&arg),
+                    'k' => _tkillchar = arg_char(&arg),
                     'm' => add_mapping(&progname, &mut maps, None, &arg),
                     'p' => add_mapping(&progname, &mut maps, Some("plugboard"), &arg),
                     'Q' => quiet = true,
@@ -368,22 +367,22 @@ fn run(args: &[OsString]) -> i32 {
     let (term, ttype) = get_termcap_entry(&progname, fd, operands.first().map(Vec::as_slice), &maps, &mut asker);
     let mut r = Reset::new(&term, Fd::STDERR, is_reset, !is_reset, &progname);
     if !noset {
-        if opt_w && isatty(fd) {
-            if let Some(s) = sys::try_current() {
-                if let Ok(ws) = s.tcgetwinsize(fd) {
-                    if ws.rows > 0 && ws.cols > 0 {
-                        r.columns = i32::from(ws.cols);
-                    }
-                }
-            }
+        if opt_w
+            && isatty(fd)
+            && let Some(s) = sys::try_current()
+            && let Ok(ws) = s.tcgetwinsize(fd)
+            && ws.rows > 0
+            && ws.cols > 0
+        {
+            r.columns = i32::from(ws.cols);
         }
         if opt_c && !noinit && r.send_init_strings() {
             r.out.write_all(b"\r");
             r.flush();
-            if isatty(fd) {
-                if let Some(s) = sys::try_current() {
-                    let _ = s.nanosleep(Duration::from_millis(1000));
-                }
+            if isatty(fd)
+                && let Some(s) = sys::try_current()
+            {
+                let _ = s.nanosleep(Duration::from_millis(1000));
             }
         }
     }

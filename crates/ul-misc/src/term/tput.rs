@@ -124,14 +124,13 @@ impl Tput {
             let mut r = Reset::new(&self.term, Fd::STDOUT, is_reset, !is_reset, &progname);
             // `set_window_size`: com o tamanho do terminal, ele vale; os modos (termios) não passam
             // pelo `sysabi`.
-            if isatty(fd) {
-                if let Some(s) = sys::try_current() {
-                    if let Ok(ws) = s.tcgetwinsize(fd) {
-                        if ws.rows > 0 && ws.cols > 0 {
-                            r.columns = i32::from(ws.cols);
-                        }
-                    }
-                }
+            if isatty(fd)
+                && let Some(s) = sys::try_current()
+                && let Ok(ws) = s.tcgetwinsize(fd)
+                && ws.rows > 0
+                && ws.cols > 0
+            {
+                r.columns = i32::from(ws.cols);
             }
             if r.send_init_strings() {
                 r.flush();
@@ -177,18 +176,17 @@ impl Tput {
             numbers[k] = if end != argv[k].len() { 0 } else { v };
             k += 1;
         }
-        let mut analyzed: i32 = 0;
         let mut popcount: i32 = 0;
-        match param_type {
-            TParams::Str => analyzed = 1,
-            TParams::StrStr | TParams::NumStr => analyzed = 2,
-            TParams::NumStrStr => analyzed = 3,
+        let mut analyzed: i32 = match param_type {
+            TParams::Str => 1,
+            TParams::StrStr | TParams::NumStr => 2,
+            TParams::NumStrStr => 3,
             TParams::Numbers | TParams::Other => {
                 let a = analyze(&s);
-                analyzed = a.number;
                 popcount = a.popcount;
+                a.number
             }
-        }
+        };
         if analyzed < popcount {
             analyzed = popcount;
         }
@@ -198,9 +196,9 @@ impl Tput {
             self.state.reset();
             // Quantos argumentos numéricos (não negativos) seguem o nome.
             let mut provided = 0i32;
-            for narg in 1..argc {
-                let (check, end) = strtol(&argv[narg]);
-                if check < 0 || end == 0 || end != argv[narg].len() {
+            for (narg, arg) in argv.iter().enumerate().skip(1) {
+                let (check, end) = strtol(arg);
+                if check < 0 || end == 0 || end != arg.len() {
                     break;
                 }
                 provided = narg as i32;
@@ -333,8 +331,8 @@ fn run(args: &[OsString]) -> i32 {
     let fd = save_tty_settings(&progname, need_tty);
     tput.term = match setupterm(Some(&term_bytes), fd, opts) {
         Ok(t) => t,
-        Err(f) => match f.term {
-            Some(t) if f.code > 0 => t,
+        Err(f) => match (f.code, f.term) {
+            (code, Some(t)) if code > 0 => t,
             _ => quit(&progname, ERR_TERMTYPE, &format!("unknown terminal \"{}\"", io::lossy(&term_bytes))),
         },
     };
