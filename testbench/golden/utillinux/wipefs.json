@@ -1,0 +1,38 @@
+{
+  "wipefs-bad-option": {
+    "stdout": "",
+    "stderr": "wipefs: unrecognized option '--bogus'\nTry 'wipefs --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wipefs-empty-file": {
+    "stdout": "",
+    "stderr": "wipefs: error: /dev/null: probing initialization failed: Invalid argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wipefs-help": {
+    "stdout": "\nUsage:\n wipefs [options] <device>\n\nWipe signatures from a device.\n\nOptions:\n -a, --all            wipe all magic strings (BE CAREFUL!)\n -b, --backup[=<dir>] create a signature backup in <dir> or $HOME\n -f, --force          force erasure\n -i, --noheadings     don't print headings\n -J, --json           use JSON output format\n -n, --no-act         do everything except the actual write() call\n -o, --offset <num>   offset to erase, in bytes\n -O, --output <list>  COLUMNS to display (see below)\n -p, --parsable       print out in parsable instead of printable format\n -q, --quiet          suppress output messages\n -t, --types <list>   limit the set of filesystem, RAIDs or partition tables\n     --lock[=<mode>] use exclusive device lock (yes, no or nonblock)\n -h, --help           display this help\n -V, --version        display version\n\nArguments:\n Values for <num> may be followed by a suffix: KiB, MiB,\n GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).\n\nAvailable output columns:\n     UUID  partition/filesystem UUID\n    LABEL  filesystem LABEL\n   LENGTH  magic string length\n     TYPE  superblock type\n   OFFSET  magic string offset\n    USAGE  type description\n   DEVICE  block device name\n\nFor more details see wipefs(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "wipefs-missing-file": {
+    "stdout": "",
+    "stderr": "wipefs: error: /nonexistent/device: probing initialization failed: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wipefs-no-args": {
+    "stdout": "",
+    "stderr": "wipefs: no device specified\nTry 'wipefs --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wipefs-version": {
+    "stdout": "wipefs from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "blkid-bad-option": {
+    "stdout": "",
+    "stderr": "blkid: unrecognized option '--bogus'\nTry 'blkid --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkid-empty-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 2,
+    "files": {}
+  },
+  "blkid-help": {
+    "stdout": "\nUsage:\n blkid --label <label> | --uuid <uuid>\n\n blkid [--cache-file <file>] [-ghlLv] [--output <format>] [--match-tag <tag>] \n       [--match-token <token>] [<dev> ...]\n\n blkid -p [--match-tag <tag>] [--offset <offset>] [--size <size>] \n       [--output <format>] <dev> ...\n\n blkid -i [--match-tag <tag>] [--output <format>] <dev> ...\n\nOptions:\n -c, --cache-file <file>    read from <file> instead of reading from the default\n                              cache file (-c /dev/null means no cache)\n -d, --no-encoding          don't encode non-printing characters\n -g, --garbage-collect      garbage collect the blkid cache\n -o, --output <format>      output format; can be one of:\n                              value, device, export, json or full; (default: full)\n -k, --list-filesystems     list all known filesystems/RAIDs and exit\n -s, --match-tag <tag>      show specified tag(s) (default show all tags)\n -t, --match-token <token>  find device with a specific token (NAME=value pair)\n -l, --list-one             look up only first device with token specified by -t\n -L, --label <label>        convert LABEL to device name\n -U, --uuid <uuid>          convert UUID to device name\n\nLow-level probing options:\n -p, --probe                low-level superblocks probing (bypass cache)\n -i, --info                 gather information about I/O limits\n -H, --hint <value>         set hint for probing function\n -S, --size <size>          override device size\n -O, --offset <offset>      probe at the given offset\n -u, --usages <list>        filter by \"usage\" (e.g. -u filesystem,raid)\n -n, --match-types <list>   filter by filesystem type (e.g. -n vfat,ext3)\n -D, --no-part-details      don't print info from partition table\n\n -h, --help                 display this help\n -V, --version              display version\n\nArguments:\n Values for <size> and <offset> may be followed by a suffix: KiB, MiB,\n GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).\n\n <dev> specify device(s) to probe (default: all devices)\n\nFor more details see blkid(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "blkid-missing-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 2,
+    "files": {}
+  },
+  "blkid-probe-empty-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 2,
+    "files": {}
+  },
+  "blkid-version": {
+    "stdout": "blkid from util-linux 2.41.5  (libblkid 2.41.5, 16-Jun-2026)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
