@@ -116,7 +116,13 @@ impl Shell {
                 if self.opts.get("noexec") && !self.interactive {
                     continue;
                 }
+                // `bash -c`: o último comando do texto, se for simples e sozinho, sofre exec no
+                // próprio processo do shell (o `CMD_NO_FORK` do `parse_and_execute`).
+                if self.dash_c && kind == TextKind::Main && !self.is_subshell && i + 1 == n && reader.at_end() {
+                    self.exec_last = single_simple(list);
+                }
                 let r = self.exec_list(list);
+                self.exec_last = false;
                 self.cleanup_procsubs();
                 match r {
                     Ok(st) => {
@@ -315,6 +321,8 @@ impl Shell {
             }
             let child_cmd = cmd.clone();
             let mut child = self.subshell_clone();
+            // Como no `&`: elemento que é comando simples sofre exec no próprio processo do pipeline.
+            child.exec_last = matches!(cmd, Command::Simple(_));
             let attrs = ProcAttrs { fd_actions: actions, reset_signals: self.trapped_signals(), ..ProcAttrs::default() };
             let spawned = s.spawn_fn(attrs, b"bash".to_vec(), Box::new(move || child.run_subshell_command(&child_cmd)));
             if let Some(r) = prev_read.take() {
@@ -1551,5 +1559,20 @@ fn is_executable_file(p: &[u8]) -> bool {
     match sys().fstatat(Fd::CWD, p, AtFlags::empty()) {
         Ok(st) => st.file_type() != FileType::Directory && st.mode & 0o111 != 0,
         Err(_) => false,
+    }
+}
+
+/// Lista que é um único comando simples em primeiro plano, sem `!`, `time`, `&&` ou `||`.
+fn single_simple(list: &List) -> bool {
+    match list.items.as_slice() {
+        [item] => {
+            let ao = &item.and_or;
+            !item.background
+                && ao.rest.is_empty()
+                && !ao.first.negated
+                && ao.first.time.is_none()
+                && matches!(ao.first.commands.as_slice(), [Command::Simple(_)])
+        }
+        _ => false,
     }
 }

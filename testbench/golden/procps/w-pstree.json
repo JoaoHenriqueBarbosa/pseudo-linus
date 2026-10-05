@@ -1,0 +1,176 @@
+{
+  "pstree-arguments": {
+    "stdout": "bash\n  |-pstree -a PID\n  |-sed s/^bash .*/bash/; s/ [0-9][0-9]*$/ PID/\n  `-sleep PID\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-ascii-own-shell": {
+    "stdout": "pstree\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-children-sorted-and-compacted": {
+    "stdout": "bash-+-pstree\n     `-2*[sleep]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-hide-threads": {
+    "stdout": "pstree\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-invalid-option": {
+    "stdout": "pstree: invalid option -- 'x'\nUsage: pstree [-acglpsStTuZ] [ -h | -H PID ] [ -n | -N type ]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-missing-user": {
+    "stdout": "exit=1\n",
+    "stderr": "No such user name: nosuchuser\n",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-narrow-columns": {
+    "stdout": "bash-+-ps+\n     `-sl+\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-no-compaction": {
+    "stdout": "bash-+-pstree\n     |-sleep\n     `-sleep\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-numeric-sort": {
+    "stdout": "bash-+-sleep\n     |-cat\n     `-pstree\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-own-shell": {
+    "stdout": "pstree\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-pgids": {
+    "stdout": "bash(N)-+-pstree(N)\n        `-sed(N)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-pids": {
+    "stdout": " bash(N)-+-pstree(N)\n |-sed(N)\n `-sleep(N)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-two-operands": {
+    "stdout": "Usage: pstree [-acglpsStTuZ] [ -h | -H PID ] [ -n | -N type ]\n              [ -A | -G | -U ] [ PID | USER ]\n   or: pstree -V\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-uid-changes": {
+    "stdout": "pstree\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-version": {
+    "stdout": "exit=0\n",
+    "stderr": "pstree (PSmisc) 23.7\nCopyright (C) 1993-2024 Werner Almesberger and Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "w-fromlen-env": {
+    "stdout": "USER     TTY      FROM                 LOGIN@   IDLE   JCPU   PCPU  WHAT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-fromlen-env-invalid": {
+    "stdout": "USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU  WHAT\n",
+    "stderr": "w: from length environment PROCPS_FROMLEN must be between 8 and 256, ignoring\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "w-header-line-shape": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-help": {
+    "stdout": "\nUsage:\n w [options] [user]\n\nOptions:\n -h, --no-header     do not print header\n -u, --no-current    ignore current process username\n -s, --short         short format\n -t, --terminal      show terminals\n -f, --from          show remote hostname field\n -o, --old-style     old style output\n -i, --ip-addr       display IP address instead of hostname (if possible)\n -p, --pids          show the PID(s) of processes in WHAT\n\n     --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see w(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-invalid-option": {
+    "stdout": "exit=1\n",
+    "stderr": "w: invalid option -- 'x'\n\nUsage:\n w [options] [user]\n\nOptions:\n -h, --no-header     do not print header\n -u, --no-current    ignore current process username\n -s, --short         short format\n -t, --terminal      show terminals\n -f, --from          show remote hostname field\n -o, --old-style     old style output\n -i, --ip-addr       display IP address instead of hostname (if possible)\n -p, --pids          show the PID(s) of processes in WHAT\n\n     --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see w(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "w-no-header": {
+    "stdout": "exit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-short-titles": {
+    "stdout": "USER     TTY      FROM               IDLE WHAT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-short-without-from": {
+    "stdout": "USER     TTY         IDLE WHAT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-titles": {
+    "stdout": "USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU  WHAT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-user-operand": {
+    "stdout": "exit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-userlen-env": {
+    "stdout": "USER         TTY      FROM             LOGIN@   IDLE   JCPU   PCPU  WHAT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-userlen-env-invalid": {
+    "stdout": "USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU  WHAT\nexit=0\n",
+    "stderr": "w: User length environment PROCPS_USERLEN must be between 8 and 32, ignoring.\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "w-version": {
+    "stdout": "w from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-without-from": {
+    "stdout": "USER     TTY       LOGIN@   IDLE   JCPU   PCPU  WHAT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

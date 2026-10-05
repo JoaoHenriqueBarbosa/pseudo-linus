@@ -1,0 +1,151 @@
+tool = "procps"
+source = "manual"
+
+# w do procps-ng 4.0.4 e pstree do psmisc 23.7. A primeira linha do w (hora, tempo ligado e carga)
+# varia a cada execução, então só o resto entra; sem ninguém no utmp, sobra a linha de títulos. No
+# pstree a raiz é o próprio shell do caso (o pid 1 do container muda), e os pids saem da saída.
+
+[[case]]
+id = "w-titles"
+script = "w | tail -n +2"
+tags = ["w"]
+
+[[case]]
+id = "w-short-titles"
+script = "w -s | tail -n +2"
+tags = ["w"]
+
+[[case]]
+id = "w-without-from"
+script = "w -f | tail -n +2"
+tags = ["w"]
+
+[[case]]
+id = "w-short-without-from"
+script = "w -sf | tail -n +2"
+tags = ["w"]
+
+[[case]]
+id = "w-no-header"
+script = "w -h; echo \"exit=$?\""
+tags = ["w"]
+
+[[case]]
+id = "w-user-operand"
+script = "w -h -u -o -i -p root; echo \"exit=$?\""
+tags = ["w"]
+
+[[case]]
+id = "w-header-line-shape"
+script = "w | head -1 | sed 's/^ [0-9][0-9]:[0-9][0-9]:[0-9][0-9] up .*load average: [0-9.]*, [0-9.]*, [0-9.]*$/ok/'"
+tags = ["w"]
+
+[[case]]
+id = "w-userlen-env"
+script = "PROCPS_USERLEN=12 w | tail -n +2"
+tags = ["w", "env"]
+
+[[case]]
+id = "w-userlen-env-invalid"
+script = "PROCPS_USERLEN=3 w | tail -n +2; echo \"exit=$?\""
+tags = ["w", "env", "error"]
+
+[[case]]
+id = "w-fromlen-env"
+script = "PROCPS_FROMLEN=20 w | tail -n +2"
+tags = ["w", "env"]
+
+[[case]]
+id = "w-fromlen-env-invalid"
+script = "PROCPS_FROMLEN=999 w | tail -n +2"
+tags = ["w", "env", "error"]
+
+[[case]]
+id = "w-help"
+argv = ["w", "--help"]
+tags = ["w", "usage"]
+
+[[case]]
+id = "w-invalid-option"
+script = "w -x; echo \"exit=$?\""
+tags = ["w", "usage", "error"]
+
+[[case]]
+id = "w-version"
+argv = ["w", "-V"]
+tags = ["w", "version"]
+
+[[case]]
+id = "pstree-own-shell"
+script = "pstree $$"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-ascii-own-shell"
+script = "pstree -A $$"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-children-sorted-and-compacted"
+script = "sleep 30 & sleep 30 & pstree -A $$; kill %1 %2 2>/dev/null; wait"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-no-compaction"
+script = "sleep 30 & sleep 30 & pstree -c $$; kill %1 %2; wait"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-pids"
+script = "sleep 30 & pstree -p $$ | sed 's/([0-9]*)/(N)/g; s/^ */ /'; kill %1; wait"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-pgids"
+script = "pstree -g $$ | sed 's/([0-9]*)/(N)/g'"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-arguments"
+script = "sleep 30 & pstree -a $$ | sed 's/^bash .*/bash/; s/ [0-9][0-9]*$/ PID/'; kill %1; wait"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-numeric-sort"
+script = "sleep 30 & cat </dev/zero >/dev/null & pstree -n -A $$; kill %1 %2; wait"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-uid-changes"
+script = "pstree -u $$"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-hide-threads"
+script = "pstree -T $$"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-narrow-columns"
+script = "sleep 30 & COLUMNS=10 pstree $$; kill %1; wait"
+tags = ["pstree"]
+
+[[case]]
+id = "pstree-missing-user"
+script = "pstree nosuchuser; echo \"exit=$?\""
+tags = ["pstree", "error"]
+
+[[case]]
+id = "pstree-two-operands"
+script = "pstree 1 2 2>&1 | head -3; echo \"exit=${PIPESTATUS[0]}\""
+tags = ["pstree", "usage", "error"]
+
+[[case]]
+id = "pstree-invalid-option"
+script = "pstree -x 2>&1 | head -2"
+tags = ["pstree", "usage", "error"]
+
+[[case]]
+id = "pstree-version"
+script = "pstree -V; echo \"exit=$?\""
+tags = ["pstree", "version"]
