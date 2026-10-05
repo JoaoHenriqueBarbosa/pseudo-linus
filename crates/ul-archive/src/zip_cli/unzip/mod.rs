@@ -131,6 +131,8 @@ pub struct Uz {
     pub unicode_escape_all: bool,
     /// O fuso local (`tzset()`).
     pub tz: jiff::tz::TimeZone,
+    /// `-T`: a data mais nova entre os membros e quantos contaram (`uxstamp`, `nmember`).
+    pub time_stamp: (i64, u64),
     /// O estado da extração.
     pub x: extract::Ex,
 }
@@ -166,6 +168,7 @@ impl Uz {
             native_is_utf8: locale_is_utf8(),
             unicode_escape_all: false,
             tz: crate::tz::local(),
+            time_stamp: (0, 0),
             x: extract::Ex::default(),
         }
     }

@@ -192,6 +192,73 @@ impl Uz {
         error_in_archive
     }
 
+    /// `unzip -T` (`get_time_stamp`): só o diretório central, atrás da data mais nova entre os
+    /// membros pedidos que não são diretórios. A data e quantos membros contaram ficam em
+    /// `time_stamp` desde já, como os ponteiros do C: um erro no meio ainda carimba o arquivo.
+    pub fn get_time_stamp(&mut self) -> i32 {
+        let mut error_in_archive = PK_OK;
+        self.time_stamp = (0, 0);
+        let mut j: u64 = 1;
+        loop {
+            let mut sig = [0u8; 4];
+            if self.readbuf(&mut sig) == 0 {
+                return PK_EOF;
+            }
+            self.sig = sig;
+            if &sig != process::CENTRAL_HDR_SIG {
+                // Aqui o C compara sempre módulo 2^16, mesmo com Zip64.
+                if (j - 1) & 0xffff == self.ecrec.total_entries_central_dir & 0xffff {
+                    break;
+                }
+                self.info(MSG_STDERR, format!("error:  expected central file header signature not found (file #{j}).\n"));
+                self.info(MSG_STDERR, text::REPORT_MSG);
+                return PK_BADERR;
+            }
+            let error = self.process_cdir_file_hdr();
+            if error != PK_OK {
+                return error;
+            }
+            for error in [
+                self.read_filename(usize::from(self.crec.filename_length), false),
+                self.read_extra_field(usize::from(self.crec.extra_field_length)),
+            ] {
+                if error != PK_OK {
+                    error_in_archive = error;
+                    if error > PK_WARN {
+                        return error;
+                    }
+                }
+            }
+            if self.member_selected() && self.filename.last() != Some(&b'/') {
+                let dos = self.crec.last_mod_dos_datetime;
+                let ut = self.extra_field.as_deref().map(|ef| process::ef_scan_for_izux(ef, true, dos, true, false));
+                let modtime = match ut {
+                    Some((flags, t, _)) if flags & EB_UT_FL_MTIME != 0 => t.mtime,
+                    _ => self.dos_to_unix_time(dos),
+                };
+                let (last, n) = &mut self.time_stamp;
+                *last = (*last).max(modtime);
+                *n += 1;
+            }
+            let error = self.skip_string(usize::from(self.crec.file_comment_length));
+            if error != PK_OK {
+                error_in_archive = error;
+                if error > 1 {
+                    return error;
+                }
+            }
+            j += 1;
+        }
+        if &self.sig != b"PK\x05\x06" {
+            self.info(MSG_STDERR, "\nnote:  didn't find end-of-central-dir signature at end of central dir.\n");
+            error_in_archive = PK_WARN;
+        }
+        if self.time_stamp.1 == 0 && error_in_archive <= PK_WARN {
+            error_in_archive = PK_FIND;
+        }
+        error_in_archive
+    }
+
     /// Acabaram as assinaturas de cabeçalho central depois de `count` membros: confere com o total
     /// do registro de fim (módulo 2^16, ou 2^64 com Zip64) e reclama se não bate.
     pub fn end_of_central_dir(&mut self, count: u64) -> bool {

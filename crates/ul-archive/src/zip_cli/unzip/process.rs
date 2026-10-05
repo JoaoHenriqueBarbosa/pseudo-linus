@@ -339,6 +339,7 @@ impl Uz {
     /// Processa um arquivo zip (`do_seekable`). `lastchance` é a última tentativa de nome, a que
     /// reclama de não achar o arquivo.
     fn do_seekable(&mut self, lastchance: bool) -> i32 {
+        self.time_stamp = (0, 0);
         let st = match sysabi::sys::stat(&self.zipfn) {
             Ok(st) if st.file_type() != sysabi::FileType::Directory => st,
             other => {
@@ -397,6 +398,19 @@ impl Uz {
         let r = self.check_ecrec(error_in_archive);
         error_in_archive = r;
         self.zin.close();
+        let (stamp, nmember) = self.time_stamp;
+        if self.o.t_flag && !self.o.zipinfo_mode && nmember > 0 {
+            // `stamp_file`: `utime` com acesso e modificação iguais.
+            let zipfn = self.zipfn.clone();
+            if super::unix::set_times(&zipfn, stamp, stamp, sysabi::AtFlags::empty()).is_err() {
+                if self.o.qflag < 3 {
+                    self.info(0x201, [b"warning:  cannot set time for ".as_slice(), &zipfn, b"\n"].concat());
+                }
+                error_in_archive = error_in_archive.max(PK_WARN);
+            } else if self.o.qflag == 0 {
+                self.info(0, [b"Updated time stamp for ".as_slice(), &zipfn, b".\n"].concat());
+            }
+        }
         error_in_archive
     }
 
@@ -494,6 +508,9 @@ impl Uz {
     fn process_members(&mut self) -> i32 {
         if self.o.zipinfo_mode {
             return self.zipinfo();
+        }
+        if self.o.t_flag {
+            return self.get_time_stamp();
         }
         if self.o.vflag != 0 && self.o.tflag == 0 && !self.o.cflag {
             return self.list_files();
