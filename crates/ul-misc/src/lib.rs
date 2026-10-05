@@ -1,5 +1,5 @@
-//! Ferramentas diversas do pseudo-linus, fiéis às do Debian 13 byte a byte: `bc` (GNU bc 1.07.1),
-//! `file` (5.46), `column`, `hexdump`/`hd` e `more` (util-linux 2.41), `tree` (2.2.1), `xxd`
+//! Ferramentas diversas do pseudo-linus, fiéis às do Debian 13 byte a byte: `bc` e `dc` (GNU bc
+//! 1.07.1), `file` (5.46), `column`, `hexdump`/`hd` e `more` (util-linux 2.41), `tree` (2.2.1), `xxd`
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst`, `gettext` e
 //! `ngettext` (gettext 0.23), `less` não interativo, `tput`, `clear`, `tset`/`reset`, `tabs`,
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
@@ -15,6 +15,7 @@ pub mod col;
 pub mod colcrt;
 pub mod column;
 pub mod colrm;
+pub mod dc;
 pub mod debscripts;
 pub mod envsubst;
 pub mod file;
@@ -54,6 +55,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("colcrt", colcrt::main),
         Program::bin("column", column::main),
         Program::bin("colrm", colrm::main),
+        Program::bin("dc", dc::main),
         Program::bin("envsubst", envsubst::main),
         Program::bin("file", file::cli::main),
         Program::bin("getconf", getconf::main),

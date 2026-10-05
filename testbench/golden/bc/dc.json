@@ -1,0 +1,173 @@
+{
+  "dc-P-bytes": {
+    "stdout": "ola\nhfT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-Q-levels": {
+    "stdout": "one\nback\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-arith-basic": {
+    "stdout": "5\n6\n42\n6\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-arrays": {
+    "stdout": "20\n10\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-bases": {
+    "stdout": "FF\n11111111\n255\n10.5\n16\n 0291 1110 1929\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-compare": {
+    "stdout": "less\nequal\nequal\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-divrem-pow-sqrt": {
+    "stdout": "2\n3\n1024\n0\n.250\n1.4142135623\n4.0000000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-errors": {
+    "stdout": "'g' (0147) unimplemented\n3\n",
+    "stderr": "dc: stack empty\ndc: stack empty\ndc: divide by zero\ndc: remainder by zero\ndc: divide by zero\ndc: square root of negative number\ndc: stack register 'z' (0172) is empty\ndc: scale must be a nonnegative number\ndc: input base must be a number between 2 and 16 (inclusive)\ndc: output base must be a number greater than 1\ndc: dc: non-numeric value\n",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-factorial": {
+    "stdout": "265252859812191058636308480000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-file": {
+    "stdout": "from file\n42\n84\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "more.dc": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "adb6a25b39a73e401b984e185d7f32e1c69f4428a5a9071e9a39fd2c7e02d6b8",
+        "data": "la 2*p\n"
+      },
+      "prog.dc": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "01887035fce5625bd6bc3b0f5d8dc4dd00e5c2eb664739e28e64da6bb8f826e6",
+        "data": "42 sa\n[from file]p\n"
+      }
+    }
+  },
+  "dc-line-wrap": {
+    "stdout": "258224987808690858965591917200301187432970579282922351283065935654064\\\n7622016841194629645353280137831435903171972747493376\n265613988875874769338781322035779626829233452653394495974574961739092\\\n490901302182994384699044001\n265613988875874769338781322035779626829233452653394495974574961739092\\\n490901302182994384699044001\n265613988875874769338781322035779626829233452653394495974574961739092\\\n490901302182994384699044001\n258224987808690858965591917200301187432970579282922351283065935654064\\\n7622016841194629645353280137831435903171972747493376\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-long-options": {
+    "stdout": "81\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-macro-loop": {
+    "stdout": "1\n2\n3\n4\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-missing-file": {
+    "stdout": "",
+    "stderr": "dc: Could not open file nope.dc\n",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-modexp": {
+    "stdout": "445\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-negative-input": {
+    "stdout": "-2\n-3.0\n0\n.5\n-.25\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-question": {
+    "stdout": "42\n10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-quit-levels": {
+    "stdout": "inner\ntop\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-registers": {
+    "stdout": "35\n3\n2\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-rotate": {
+    "stdout": "2\n4\n3\n1\n3\n2\n4\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-scale-div": {
+    "stdout": ".33333\n.66666\n-3.50000\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-shell": {
+    "stdout": "1\noi\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-stack-ops": {
+    "stdout": "3\n2\n1\n2\n3\n1\n2\n2\n3\n1\n4\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-stdin": {
+    "stdout": "12\nsum\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-strings": {
+    "stdout": "hello\nworld\n3\nx[y]z\n2\n5\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dc-version-help": {
+    "stdout": "dc (GNU bc 1.07.1) 1.4.1\n\nCopyright 1994, 1997, 1998, 2000, 2001, 2003-2006, 2008, 2010, 2012-2017 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE,\nto the extent permitted by law.\nUsage: dc [OPTION] [file ...]\n  -e, --expression=EXPR    evaluate expression\n  -f, --file=FILE          evaluate contents of file\n  -h, --help               display this help and exit\n  -V, --version            output version information and exit\n\nEmail bug reports to:  bug-dc@gnu.org .\nEmail bug reports to:  bug-dc@gnu.org .\n1\n",
+    "stderr": "dc: invalid option -- 'x'\nUsage: dc [OPTION] [file ...]\n  -e, --expression=EXPR    evaluate expression\n  -f, --file=FILE          evaluate contents of file\n  -h, --help               display this help and exit\n  -V, --version            output version information and exit\n\n",
+    "exit": 0,
+    "files": {}
+  }
+}

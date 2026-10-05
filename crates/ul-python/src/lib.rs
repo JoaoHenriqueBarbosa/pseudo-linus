@@ -10,6 +10,7 @@
 //! do plano; até lá esses usos terminam com a linha de uso no stderr e código 2, o mesmo caminho de
 //! erro de uso do CPython.
 
+pub mod ast;
 pub mod token;
 
 use std::ffi::OsString;
