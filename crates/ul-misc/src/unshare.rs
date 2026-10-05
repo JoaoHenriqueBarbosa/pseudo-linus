@@ -85,29 +85,33 @@ Options:
  -C, --cgroup[=<file>]     unshare cgroup namespace
  -T, --time[=<file>]       unshare time namespace
 
- -f, --fork                fork before launching <program>
- --map-user=<uid>|<name>   map current user to uid (implies --user)
- --map-users=<outeruid>,<inneruid>,<count>
-                           map count users from outeruid to inneruid (implies --user)
- --map-group=<gid>|<name>  map current group to gid (implies --user)
- --map-groups=<outergid>,<innergid>,<count>
-                           map count groups from outergid to innergid (implies --user)
+ --mount-proc[=<dir>]      mount proc filesystem first (implies --mount)
+ --mount-binfmt[=<dir>]    mount binfmt filesystem first (implies --user and --mount)
+ -l, --load-interp <file>  load binfmt definition in the namespace (implies --mount-binfmt)
+ --propagation slave|shared|private|unchanged
+                           modify mount propagation in mount namespace
+ -R, --root <dir>          run the command with root directory set to <dir>
+ -w, --wd <dir>            change working directory to <dir>
+
+ -S, --setuid <uid>        set uid in entered namespace
+ -G, --setgid <gid>        set gid in entered namespace
+ --map-user <uid>|<name>   map current user to uid (implies --user)
+ --map-group <gid>|<name>  map current group to gid (implies --user)
  -r, --map-root-user       map current user to root (implies --user)
  -c, --map-current-user    map current user to itself (implies --user)
  --map-auto                map users and groups automatically (implies --user)
+ --map-users <inneruid>:<outeruid>:<count>
+                           map count users from outeruid to inneruid (implies --user)
+ --map-groups <innergid>:<outergid>:<count>
+                           map count groups from outergid to innergid (implies --user)
 
+ -f, --fork                fork before launching <program>
  --kill-child[=<signame>]  when dying, kill the forked child (implies --fork)
                              defaults to SIGKILL
- --mount-proc[=<dir>]      mount proc filesystem first (implies --mount)
- --propagation slave|shared|private|unchanged
-                           modify mount propagation in mount namespace
+
  --setgroups allow|deny    control the setgroups syscall in user namespaces
  --keep-caps               retain capabilities granted in user namespaces
 
- -R, --root=<dir>          run the command with root directory set to <dir>
- -w, --wd=<dir>            change working directory to <dir>
- -S, --setuid <uid>        set uid in entered namespace
- -G, --setgid <gid>        set gid in entered namespace
  --monotonic <offset>      set clock monotonic offset (seconds) in time namespaces
  --boottime <offset>       set clock boottime offset (seconds) in time namespaces
 
@@ -390,18 +394,11 @@ fn run(args: &[OsString]) -> i32 {
     if (force_monotonic || force_boottime) && flags & CLONE_NEWTIME == 0 {
         return die(
             &short,
-            "options --monotonic and --boottime require unsharing a time namespace (-T)",
+            "options --monotonic and --boottime require unsharing of a time namespace (-T)",
         );
     }
-    if setgroups.is_some() && flags & CLONE_NEWUSER == 0 {
-        return die(
-            &short,
-            "options --setgroups=allow and --setgroups=deny are only allowed when unsharing a user namespace",
-        );
-    }
-    if keepcaps && flags & CLONE_NEWUSER == 0 {
-        return die(&short, "option --keep-caps requires a user namespace");
-    }
+    // Sem user namespace, `--setgroups` e `--keep-caps` caem no erro do próprio unshare(2).
+    let needs_unshare = setgroups.is_some() || keepcaps;
     if map_auto && (mapuser.is_some() || mapgroup.is_some() || map_users.is_some() || map_groups.is_some()) {
         return die(
             &short,
@@ -410,7 +407,7 @@ fn run(args: &[OsString]) -> i32 {
     }
     let _ = (propagation, &procmnt, kill_child, npersists);
 
-    if flags != 0 {
+    if flags != 0 || needs_unshare {
         // unshare(2) sem CAP_SYS_ADMIN: o sandbox corre como o root de um contêiner padrão.
         ul::warn(&short, "unshare failed", Errno::EPERM);
         return 1;

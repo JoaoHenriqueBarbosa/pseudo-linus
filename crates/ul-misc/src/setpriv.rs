@@ -129,50 +129,54 @@ fn usage(short: &str) -> String {
 Usage:
  {short} [options] <program> [<argument>...]
 
-Run a program with different Linux privilege settings.
+Run a program with different privilege settings.
 
 Options:
- -d, --dump               show current state (and do not exec anything)
- --nnp, --no-new-privs    disallow granting new privileges
- --inh-caps (+|-)cap[,...]
-                          set inheritable capabilities
- --ambient-caps (+|-)cap[,...]
-                          set ambient capabilities
- --bounding-set (+|-)cap[,...]
-                          set capability bounding set
- --ruid <uid>             set real uid
- --euid <uid>             set effective uid
- --rgid <gid>             set real gid
- --egid <gid>             set effective gid
- --reuid <uid>            set real and effective uid
- --regid <gid>            set real and effective gid
- --clear-groups           clear supplementary groups
- --keep-groups            keep supplementary groups
- --init-groups            initialize supplementary groups
- --groups <group,...>     set supplementary groups by UID or name
- --securebits <bits,...>  set securebits
+ -d, --dump                  show current state (and do not exec)
+ --nnp, --no-new-privs       disallow granting new privileges
+ --ambient-caps <caps>       set ambient capabilities
+ --inh-caps <caps>           set inheritable capabilities
+ --bounding-set <caps>       set capability bounding set
+ --ruid <uid|user>           set real uid
+ --euid <uid|user>           set effective uid
+ --rgid <gid|group>          set real gid
+ --egid <gid|group>          set effective gid
+ --reuid <uid|user>          set real and effective uid
+ --regid <gid|group>         set real and effective gid
+ --clear-groups              clear supplementary groups
+ --keep-groups               keep supplementary groups
+ --init-groups               initialize supplementary groups
+ --groups <group>[,...]      set supplementary group(s) by GID or name
+ --securebits <bits>         set securebits
  --pdeathsig keep|clear|<signame>
-                          set or clear parent death signal
- --selinux-label <label>  set SELinux label
- --apparmor-profile <pr>  set AppArmor profile
- --landlock-access <access> add Landlock access
- --landlock-rule <rule>   add Landlock rule
- --reset-env              clear all environment and initialize
-                          HOME, SHELL, USER, LOGNAME and PATH
- --list-caps              list all known capabilities
- --ptracer <pid|none>     allow ptrace from non-descendant pid
+                             set or clear parent death signal
+ --ptracer <pid>|any|none    allow ptracing from the given process
+ --selinux-label <label>     set SELinux label
+ --apparmor-profile <pr>     set AppArmor profile
+ --landlock-access <access>  add Landlock access
+ --landlock-rule <rule>      add Landlock rule
+ --seccomp-filter <file>     load seccomp filter from file
+ --reset-env                 clear all environment and initialize
+                               HOME, SHELL, USER, LOGNAME and PATH
 
- -h, --help               display this help
- -V, --version            display version
+ -h, --help                  display this help
+ -V, --version               display version
+
+ This tool can be dangerous.  Read the manpage, and be careful.
 
 For more details see setpriv(1).
+
+Landlock accesses:
+ Access: fs
+ Rule types: path-beneath
+ Rules: execute,write-file,read-file,read-dir,remove-dir,remove-file,make-char,make-dir,make-reg,make-sock,make-fifo,make-block,make-sym,refer,truncate
 "
     )
 }
 
 fn die(short: &str, msg: impl AsRef<str>) -> i32 {
     ul::warnx(short, msg);
-    EXIT_PRIVERR
+    1
 }
 
 fn fail(short: &str, what: &str) -> i32 {
@@ -202,7 +206,7 @@ fn check_cap_list(short: &str, arg: &str) -> Result<(), i32> {
         if t.parse::<u32>().is_ok() || cap_index(t).is_some() {
             continue;
         }
-        return Err(die(short, format!("unknown capability \"{tok}\"")));
+        return Err(die(short, format!("unknown capability \"{t}\"")));
     }
     Ok(())
 }
@@ -338,7 +342,7 @@ fn run(args: &[OsString]) -> i32 {
                 if have_groups {
                     return die(
                         &short,
-                        "--clear-groups, --keep-groups, --init-groups, and --groups are mutually exclusive",
+                        "mutually exclusive arguments: --clear-groups --keep-groups --init-groups --groups",
                     );
                 }
                 have_groups = true;
@@ -370,7 +374,7 @@ fn run(args: &[OsString]) -> i32 {
                             | "no_cap_ambient_raise_locked"
                     );
                     if !ok {
-                        return die(&short, format!("unrecognized securebit {tok}"));
+                        return die(&short, "bad securebits string");
                     }
                 }
                 wanted.push("set securebits");
@@ -427,8 +431,7 @@ fn run(args: &[OsString]) -> i32 {
         return dump();
     }
     if cmd.is_empty() {
-        ul::warnx(&short, "no program specified");
-        ul::errtryhelp(&short);
+        ul::warnx(&short, "No program specified");
         return 1;
     }
 
