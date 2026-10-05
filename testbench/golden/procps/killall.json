@@ -1,0 +1,80 @@
+{
+  "killall-exact-no-process-found": {
+    "stdout": "exit=1\n",
+    "stderr": "nosuchproc: no process found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-ignore-case-wait-no-process-found": {
+    "stdout": "exit=1\n",
+    "stderr": "NOSUCHPROC: no process found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-list-signals": {
+    "stdout": "HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-no-args-usage": {
+    "stdout": "exit=1\n",
+    "stderr": "Usage: killall [OPTION]... [--] NAME...\n       killall -l, --list\n       killall -V, --version\n\n  -e,--exact          require exact match for very long names\n  -I,--ignore-case    case insensitive process name match\n  -g,--process-group  kill process group instead of process\n  -y,--younger-than   kill processes younger than TIME\n  -o,--older-than     kill processes older than TIME\n  -i,--interactive    ask for confirmation before killing\n  -l,--list           list all known signal names\n  -q,--quiet          don't print complaints\n  -r,--regexp         interpret NAME as an extended regular expression\n  -s,--signal SIGNAL  send this signal instead of SIGTERM\n  -u,--user USER      kill only process(es) running as USER\n  -v,--verbose        report if the signal was successfully sent\n  -V,--version        display version information\n  -w,--wait           wait for processes to die\n  -n,--ns PID         match processes that belong to the same namespaces\n                      as PID\n  -Z,--context REGEXP kill only process(es) having context\n                      (must precede other arguments)\n\n",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-no-process-found": {
+    "stdout": "exit=1\n",
+    "stderr": "nosuchproc: no process found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-quiet-no-process-found": {
+    "stdout": "exit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-signal-zero-finds-sleep": {
+    "stdout": "exit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-term-kills-sleep": {
+    "stdout": "status=143\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-unknown-signal": {
+    "stdout": "exit=1\n",
+    "stderr": "BOGUS: unknown signal; killall -l lists signals.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-unknown-user": {
+    "stdout": "exit=1\n",
+    "stderr": "Cannot find user nosuchuser\n",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-user-root-kills-sleep": {
+    "stdout": "status=143\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-verbose-no-process-found": {
+    "stdout": "exit=1\n",
+    "stderr": "nosuchproc: no process found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "killall-version": {
+    "stdout": "",
+    "stderr": "killall (PSmisc) 23.7\nCopyright (C) 1993-2024 Werner Almesberger and Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n",
+    "exit": 0,
+    "files": {}
+  }
+}

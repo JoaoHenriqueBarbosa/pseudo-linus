@@ -1,0 +1,71 @@
+tool = "procps"
+source = "manual"
+
+# killall do psmisc 23.7: uso, versão, lista de sinais, mensagens de erro e de "no process found" e o
+# efeito de sinal 0 e SIGTERM em um `sleep` criado pelo próprio script. Nenhuma saída leva pid
+# (o `-v` com sucesso imprime o pid, então só aparece com nome inexistente).
+
+[[case]]
+id = "killall-no-args-usage"
+script = "killall; echo \"exit=$?\""
+tags = ["killall", "usage", "error"]
+
+[[case]]
+id = "killall-version"
+argv = ["killall", "-V"]
+tags = ["killall", "version"]
+
+[[case]]
+id = "killall-list-signals"
+argv = ["killall", "-l"]
+tags = ["killall", "list"]
+
+[[case]]
+id = "killall-no-process-found"
+script = "killall nosuchproc; echo \"exit=$?\""
+tags = ["killall", "error"]
+
+[[case]]
+id = "killall-quiet-no-process-found"
+script = "killall -q nosuchproc; echo \"exit=$?\""
+tags = ["killall", "error"]
+
+[[case]]
+id = "killall-verbose-no-process-found"
+script = "killall -v nosuchproc; echo \"exit=$?\""
+tags = ["killall", "error"]
+
+[[case]]
+id = "killall-exact-no-process-found"
+script = "killall -e nosuchproc; echo \"exit=$?\""
+tags = ["killall", "error"]
+
+[[case]]
+id = "killall-ignore-case-wait-no-process-found"
+script = "killall -I -w NOSUCHPROC; echo \"exit=$?\""
+tags = ["killall", "error"]
+
+[[case]]
+id = "killall-unknown-signal"
+script = "killall -s BOGUS sleep; echo \"exit=$?\""
+tags = ["killall", "error"]
+
+[[case]]
+id = "killall-unknown-user"
+script = "killall -u nosuchuser sleep; echo \"exit=$?\""
+tags = ["killall", "error"]
+
+[[case]]
+id = "killall-signal-zero-finds-sleep"
+script = "sleep 30 & killall -0 sleep; echo \"exit=$?\"; kill $!"
+tags = ["killall", "signal"]
+
+[[case]]
+id = "killall-term-kills-sleep"
+script = "sleep 30 & pid=$!; killall -q sleep; wait $pid; echo \"status=$?\""
+tags = ["killall", "signal"]
+
+[[case]]
+id = "killall-user-root-kills-sleep"
+script = "sleep 30 & pid=$!; killall -q -u root sleep; wait $pid; echo \"status=$?\""
+tags = ["killall", "signal", "user"]

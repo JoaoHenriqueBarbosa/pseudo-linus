@@ -1,0 +1,62 @@
+{
+  "watch-bad-equexit-cycles": {
+    "stdout": "exit=1\n",
+    "stderr": "watch: failed to parse argument: 'abc': Invalid argument\n",
+    "exit": 0,
+    "files": {}
+  },
+  "watch-bad-interval": {
+    "stdout": "exit=1\n",
+    "stderr": "watch: failed to parse argument: 'abc': Invalid argument\n",
+    "exit": 0,
+    "files": {}
+  },
+  "watch-help": {
+    "stdout": "\nUsage:\n watch [options] command\n\nOptions:\n  -b, --beep             beep if command has a non-zero exit\n  -c, --color            interpret ANSI color and style sequences\n  -C, --no-color         do not interpret ANSI color and style sequences\n  -d, --differences[=<permanent>]\n                         highlight changes between updates\n  -e, --errexit          exit if command has a non-zero exit\n  -g, --chgexit          exit when output from command changes\n  -q, --equexit <cycles>\n                         exit when output from command does not change\n  -n, --interval <secs>  seconds to wait between updates\n  -p, --precise          attempt run command in precise intervals\n  -r, --no-rerun         do not rerun program on window resize\n  -t, --no-title         turn off header\n  -w, --no-wrap          turn off line wrapping\n  -x, --exec             pass command to exec instead of \"sh -c\"\n\n -h, --help     display this help and exit\n -v, --version  output version information and exit\n\nFor more details see watch(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "watch-invalid-option": {
+    "stdout": "exit=1\n",
+    "stderr": "watch: invalid option -- 'z'\n\nUsage:\n watch [options] command\n\nOptions:\n  -b, --beep             beep if command has a non-zero exit\n  -c, --color            interpret ANSI color and style sequences\n  -C, --no-color         do not interpret ANSI color and style sequences\n  -d, --differences[=<permanent>]\n                         highlight changes between updates\n  -e, --errexit          exit if command has a non-zero exit\n  -g, --chgexit          exit when output from command changes\n  -q, --equexit <cycles>\n                         exit when output from command does not change\n  -n, --interval <secs>  seconds to wait between updates\n  -p, --precise          attempt run command in precise intervals\n  -r, --no-rerun         do not rerun program on window resize\n  -t, --no-title         turn off header\n  -w, --no-wrap          turn off line wrapping\n  -x, --exec             pass command to exec instead of \"sh -c\"\n\n -h, --help     display this help and exit\n -v, --version  output version information and exit\n\nFor more details see watch(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "watch-no-command-usage": {
+    "stdout": "exit=1\n",
+    "stderr": "\nUsage:\n watch [options] command\n\nOptions:\n  -b, --beep             beep if command has a non-zero exit\n  -c, --color            interpret ANSI color and style sequences\n  -C, --no-color         do not interpret ANSI color and style sequences\n  -d, --differences[=<permanent>]\n                         highlight changes between updates\n  -e, --errexit          exit if command has a non-zero exit\n  -g, --chgexit          exit when output from command changes\n  -q, --equexit <cycles>\n                         exit when output from command does not change\n  -n, --interval <secs>  seconds to wait between updates\n  -p, --precise          attempt run command in precise intervals\n  -r, --no-rerun         do not rerun program on window resize\n  -t, --no-title         turn off header\n  -w, --no-wrap          turn off line wrapping\n  -x, --exec             pass command to exec instead of \"sh -c\"\n\n -h, --help     display this help and exit\n -v, --version  output version information and exit\n\nFor more details see watch(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "watch-no-terminal": {
+    "stdout": "exit=1\n",
+    "stderr": "Error opening terminal: unknown.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "watch-no-terminal-errexit": {
+    "stdout": "exit=1\n",
+    "stderr": "Error opening terminal: unknown.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "watch-unrecognized-option": {
+    "stdout": "exit=1\n",
+    "stderr": "watch: unrecognized option '--bogus'\n\nUsage:\n watch [options] command\n\nOptions:\n  -b, --beep             beep if command has a non-zero exit\n  -c, --color            interpret ANSI color and style sequences\n  -C, --no-color         do not interpret ANSI color and style sequences\n  -d, --differences[=<permanent>]\n                         highlight changes between updates\n  -e, --errexit          exit if command has a non-zero exit\n  -g, --chgexit          exit when output from command changes\n  -q, --equexit <cycles>\n                         exit when output from command does not change\n  -n, --interval <secs>  seconds to wait between updates\n  -p, --precise          attempt run command in precise intervals\n  -r, --no-rerun         do not rerun program on window resize\n  -t, --no-title         turn off header\n  -w, --no-wrap          turn off line wrapping\n  -x, --exec             pass command to exec instead of \"sh -c\"\n\n -h, --help     display this help and exit\n -v, --version  output version information and exit\n\nFor more details see watch(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "watch-version": {
+    "stdout": "watch from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "watch-version-long": {
+    "stdout": "watch from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

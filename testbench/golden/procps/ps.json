@@ -1,0 +1,92 @@
+{
+  "ps-comm-header": {
+    "stdout": "COMMAND\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-comm-of-own-shell": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-format-with-uppercase-spec": {
+    "stdout": "exit=1\n",
+    "stderr": "error: unknown user-defined format specifier \"CMD\"\n\nUsage:\n ps [options]\n\n Try 'ps --help <simple|list|output|threads|misc|all>'\n  or 'ps --help <s|l|o|t|m|a>'\n for additional help text.\n\nFor more details see ps(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-header-override": {
+    "stdout": "PROGRAM\nsleep\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-help-simple": {
+    "stdout": "\nUsage:\n ps [options]\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-no-headers-comm-user": {
+    "stdout": "sleep           root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-quick-pid": {
+    "stdout": "sleep\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-select-by-command-name": {
+    "stdout": "sleep\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-select-by-command-name-missing": {
+    "stdout": "exit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-select-pid-missing-no-headers": {
+    "stdout": "exit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-unknown-format-specifier": {
+    "stdout": "exit=1\n",
+    "stderr": "error: unknown user-defined format specifier \"bogus\"\n\nUsage:\n ps [options]\n\n Try 'ps --help <simple|list|output|threads|misc|all>'\n  or 'ps --help <s|l|o|t|m|a>'\n for additional help text.\n\nFor more details see ps(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-unknown-gnu-long-option": {
+    "stdout": "exit=1\n",
+    "stderr": "error: unknown gnu long option\n\nUsage:\n ps [options]\n\n Try 'ps --help <simple|list|output|threads|misc|all>'\n  or 'ps --help <s|l|o|t|m|a>'\n for additional help text.\n\nFor more details see ps(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-unknown-sort-specifier": {
+    "stdout": "exit=1\n",
+    "stderr": "error: unknown sort specifier\n\nUsage:\n ps [options]\n\n Try 'ps --help <simple|list|output|threads|misc|all>'\n  or 'ps --help <s|l|o|t|m|a>'\n for additional help text.\n\nFor more details see ps(1).\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-user-of-own-shell": {
+    "stdout": "root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ps-version": {
+    "stdout": "ps from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

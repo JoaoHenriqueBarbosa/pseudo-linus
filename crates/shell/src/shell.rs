@@ -133,6 +133,9 @@ pub struct Shell {
     pub func_depth: u32,
     /// O EXIT trap já rodou neste processo.
     pub exit_trap_done: bool,
+    /// O próximo comando simples é o último do subshell de um `&`: um programa externo substitui
+    /// o processo (`execve`) em vez de virar neto, como no bash, e o `$!` é o próprio programa.
+    pub exec_last: bool,
     /// Status da última substituição de comando do comando simples corrente (vira o `$?` de um
     /// comando só de atribuições).
     pub last_cmdsub_status: Option<i32>,
@@ -211,6 +214,7 @@ impl Shell {
             is_subshell: false,
             func_depth: 0,
             exit_trap_done: false,
+            exec_last: false,
             last_cmdsub_status: None,
             disabled_builtins: BTreeSet::new(),
             getopts_state: (1, 1),

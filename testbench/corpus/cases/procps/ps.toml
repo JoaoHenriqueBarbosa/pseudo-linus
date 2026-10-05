@@ -1,0 +1,82 @@
+tool = "procps"
+source = "manual"
+
+# ps do procps-ng 4.0.4: versão, mensagens de erro de opção, formatos -o, cabeçalho e processos achados
+# por nome. Nada aqui depende de pid, de hora ou de quantos processos existem: só do próprio script
+# e de um `sleep` que ele mesmo cria e mata.
+
+[[case]]
+id = "ps-version"
+argv = ["ps", "--version"]
+tags = ["ps", "version"]
+
+[[case]]
+id = "ps-unknown-gnu-long-option"
+script = "ps --bogus; echo \"exit=$?\""
+tags = ["ps", "error", "usage"]
+
+[[case]]
+id = "ps-unknown-format-specifier"
+script = "ps -o bogus; echo \"exit=$?\""
+tags = ["ps", "error", "usage"]
+
+[[case]]
+id = "ps-unknown-sort-specifier"
+script = "ps --sort=bogus; echo \"exit=$?\""
+tags = ["ps", "error", "usage"]
+
+[[case]]
+id = "ps-format-with-uppercase-spec"
+script = "ps -o CMD; echo \"exit=$?\""
+tags = ["ps", "error", "usage"]
+
+[[case]]
+id = "ps-comm-of-own-shell"
+script = "ps -o comm= -p $$ | sed 's/ *$//' | wc -l"
+tags = ["ps", "format"]
+
+[[case]]
+id = "ps-comm-header"
+script = "ps -o comm -p $$ | head -1"
+tags = ["ps", "format", "header"]
+
+[[case]]
+id = "ps-header-override"
+script = "sleep 5 & pid=$!; ps -p $pid -o comm=PROGRAM; kill $pid"
+tags = ["ps", "format", "header"]
+
+[[case]]
+id = "ps-no-headers-comm-user"
+script = "sleep 5 & pid=$!; ps --no-headers -p $pid -o comm,user; kill $pid"
+tags = ["ps", "format", "alignment"]
+
+[[case]]
+id = "ps-select-by-command-name"
+# Filtra pelo próprio PID: no oráculo os casos rodam em paralelo e outros sleeps aparecem.
+script = "sleep 5 & pid=$!; ps -C sleep -o pid=,comm= | awk -v p=$pid '$1 == p {print $2}'; kill $pid"
+tags = ["ps", "select"]
+
+[[case]]
+id = "ps-select-by-command-name-missing"
+script = "ps -C nosuchcmd -o comm=; echo \"exit=$?\""
+tags = ["ps", "select", "error"]
+
+[[case]]
+id = "ps-select-pid-missing-no-headers"
+script = "ps -p 999999 -o comm=; echo \"exit=$?\""
+tags = ["ps", "select", "error"]
+
+[[case]]
+id = "ps-user-of-own-shell"
+script = "ps -o user= -p $$"
+tags = ["ps", "format"]
+
+[[case]]
+id = "ps-quick-pid"
+script = "sleep 5 & pid=$!; ps -q $pid -o comm=; kill $pid"
+tags = ["ps", "select"]
+
+[[case]]
+id = "ps-help-simple"
+script = "ps --help s | head -4"
+tags = ["ps", "usage"]

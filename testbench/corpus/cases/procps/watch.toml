@@ -1,0 +1,56 @@
+tool = "procps"
+source = "manual"
+
+# watch do procps-ng 4.0.4: uso, versão, erros de opção e a mensagem do ncurses quando não há
+# terminal. O desenho da tela depende do tamanho do terminal, então os casos ficam nos caminhos que
+# terminam antes de desenhar.
+
+[[case]]
+id = "watch-no-command-usage"
+script = "watch; echo \"exit=$?\""
+tags = ["watch", "usage", "error"]
+
+[[case]]
+id = "watch-help"
+argv = ["watch", "-h"]
+tags = ["watch", "usage"]
+
+[[case]]
+id = "watch-version"
+argv = ["watch", "-v"]
+tags = ["watch", "version"]
+
+[[case]]
+id = "watch-version-long"
+argv = ["watch", "--version"]
+tags = ["watch", "version"]
+
+[[case]]
+id = "watch-unrecognized-option"
+script = "watch --bogus; echo \"exit=$?\""
+tags = ["watch", "usage", "error"]
+
+[[case]]
+id = "watch-invalid-option"
+script = "watch -z true; echo \"exit=$?\""
+tags = ["watch", "usage", "error"]
+
+[[case]]
+id = "watch-bad-interval"
+script = "watch -n abc true; echo \"exit=$?\""
+tags = ["watch", "error"]
+
+[[case]]
+id = "watch-bad-equexit-cycles"
+script = "watch -q abc true; echo \"exit=$?\""
+tags = ["watch", "error"]
+
+[[case]]
+id = "watch-no-terminal"
+script = "env -u TERM watch -t -n 1 -g true; echo \"exit=$?\""
+tags = ["watch", "error", "terminal"]
+
+[[case]]
+id = "watch-no-terminal-errexit"
+script = "env -u TERM watch -e false; echo \"exit=$?\""
+tags = ["watch", "error", "terminal"]

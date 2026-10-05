@@ -1,0 +1,171 @@
+tool = "procps"
+source = "manual"
+
+# top do procps-ng 4.0.4 em modo batch: ajuda, versão, lista de campos, mensagens de erro das opções e
+# as linhas do resumo e do cabeçalho que não dependem de pid, de hora nem da carga. Os números do
+# resumo mudam a cada execução, então os casos cortam só o rótulo de cada linha.
+
+[[case]]
+id = "top-version"
+argv = ["top", "-V"]
+tags = ["top", "version"]
+
+[[case]]
+id = "top-help-head"
+script = "top -h | head -8"
+tags = ["top", "usage"]
+
+[[case]]
+id = "top-list-fields-batch"
+script = "top -b -O | head -6"
+tags = ["top", "fields"]
+
+[[case]]
+id = "top-list-fields-count"
+script = "top -O | wc -l"
+tags = ["top", "fields"]
+
+[[case]]
+id = "top-iterations-zero"
+script = "top -b -n 0; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-iterations-fraction"
+script = "top -b -n 1.5; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-bad-delay"
+script = "top -b -d abc; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-negative-delay"
+script = "top -b -d -1; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-secure-mode-delay"
+script = "top -b -d 3 -s; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-bad-pid"
+script = "top -b -p abc; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-negative-pid"
+script = "top -b -p -1; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-unknown-field"
+script = "top -b -n 1 -o BOGUS; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-field-name-is-case-sensitive"
+script = "top -b -n 1 -o pid; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-sort-field-missing-argument"
+script = "top -b -o; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-bad-memory-scale"
+script = "top -b -E x; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-bad-task-memory-scale"
+script = "top -b -e z; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-bad-width"
+script = "top -b -w 2; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-unknown-user"
+script = "top -b -u nosuchuser; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-conflicting-selections"
+script = "top -b -p 1 -u root; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-stray-word"
+script = "top -b foo; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-invalid-short-option"
+script = "top -x; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-unrecognized-long-option"
+script = "top --foo; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-missing-option-argument"
+script = "top -p; echo \"exit=$?\""
+tags = ["top", "error"]
+
+[[case]]
+id = "top-summary-labels"
+script = "top -b -n 1 | sed -n '1p;2p;3p;4p;5p' | cut -c1-6"
+tags = ["top", "summary"]
+
+[[case]]
+id = "top-memory-labels-gib"
+script = "top -b -n 1 -E g | sed -n '4p;5p' | cut -c1-9"
+tags = ["top", "summary"]
+
+[[case]]
+id = "top-threads-label"
+script = "top -b -n 1 -H | sed -n '2p' | cut -c1-8"
+tags = ["top", "summary"]
+
+[[case]]
+id = "top-column-header"
+script = "top -b -n 1 -p $$ | sed -n '7p' | tr -s ' '"
+tags = ["top", "header"]
+
+[[case]]
+id = "top-own-shell-row"
+script = "top -b -n 1 -p $$ | tail -n 1 | awk '{print $2, $3, $4, $8, $NF}'"
+tags = ["top", "rows"]
+
+[[case]]
+id = "top-no-process-matches"
+script = "top -b -n 1 -p 999999 | sed -n '2p;7p' | tr -s ' '"
+tags = ["top", "rows"]
+
+[[case]]
+id = "top-header-only-with-idle-toggle"
+script = "top -b -n 1 -i -p $$ | sed -n '7,$p' | tr -s ' '"
+tags = ["top", "rows"]
+
+[[case]]
+id = "top-narrow-width-header"
+script = "top -b -n 1 -w 60 -p $$ | sed -n '7p'"
+tags = ["top", "header", "width"]
+
+[[case]]
+id = "top-single-cpu-label"
+script = "top -b -n 1 -1 | sed -n '3p' | cut -c1-8"
+tags = ["top", "summary"]
+
+[[case]]
+id = "top-command-line-toggle"
+script = "sleep 30 & pid=$!; top -b -n 1 -c -p $pid | tail -n 1 | awk '{print $NF, $(NF-1)}'; kill $pid"
+tags = ["top", "rows"]

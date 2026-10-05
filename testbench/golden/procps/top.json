@@ -1,0 +1,200 @@
+{
+  "top-bad-delay": {
+    "stdout": "exit=1\n",
+    "stderr": "top: bad delay interval 'abc'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-bad-memory-scale": {
+    "stdout": "exit=1\n",
+    "stderr": "top: bad memory scaling arg 'x'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-bad-pid": {
+    "stdout": "exit=1\n",
+    "stderr": "top: bad pid 'abc'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-bad-task-memory-scale": {
+    "stdout": "exit=1\n",
+    "stderr": "top: bad memory scaling arg 'z'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-bad-width": {
+    "stdout": "exit=1\n",
+    "stderr": "top: bad width arg '2'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-column-header": {
+    "stdout": " PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-command-line-toggle": {
+    "stdout": "30 sleep\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-conflicting-selections": {
+    "stdout": "exit=1\n",
+    "stderr": "top: conflicting process selections (U/p/u)\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-field-name-is-case-sensitive": {
+    "stdout": "exit=1\n",
+    "stderr": "top: unrecognized field name 'pid'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-header-only-with-idle-toggle": {
+    "stdout": " PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-help-head": {
+    "stdout": "\nUsage:\n top [options]\n\nOptions:\n -b, --batch-mode                run in non-interactive batch mode\n -c, --cmdline-toggle            reverse last remembered 'c' state\n -d, --delay =SECS [.TENTHS]     iterative delay as SECS [.TENTHS]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-invalid-short-option": {
+    "stdout": "exit=1\n",
+    "stderr": "top: invalid option -- 'x'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-iterations-fraction": {
+    "stdout": "exit=1\n",
+    "stderr": "top: bad iterations argument '1.5'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-iterations-zero": {
+    "stdout": "exit=1\n",
+    "stderr": "top: bad iterations argument '0'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-list-fields-batch": {
+    "stdout": "PID\nPPID\nUID\nUSER\nRUID\nRUSER\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-list-fields-count": {
+    "stdout": "78\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-memory-labels-gib": {
+    "stdout": "GiB Mem :\nGiB Swap:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-missing-option-argument": {
+    "stdout": "exit=1\n",
+    "stderr": "top: option requires an argument -- 'p'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-narrow-width-header": {
+    "stdout": "    PID USER      PR  NI    VIRT    RES    SHR S  %CPU\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-negative-delay": {
+    "stdout": "exit=1\n",
+    "stderr": "top: -d requires positive argument\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-negative-pid": {
+    "stdout": "exit=1\n",
+    "stderr": "top: bad pid '-1'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-no-process-matches": {
+    "stdout": "Tasks: 0 total, 0 running, 0 sleeping, 0 stopped, 0 zombie\n PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-own-shell-row": {
+    "stdout": "root 20 0 S bash\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-secure-mode-delay": {
+    "stdout": "exit=1\n",
+    "stderr": "top: -d disallowed in \"secure\" mode\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-single-cpu-label": {
+    "stdout": "%Cpu0  :\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-sort-field-missing-argument": {
+    "stdout": "exit=1\n",
+    "stderr": "top: option requires an argument -- 'o'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-stray-word": {
+    "stdout": "exit=1\n",
+    "stderr": "top: unknown option 'foo'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-summary-labels": {
+    "stdout": "top - \nTasks:\n%Cpu(s\nMiB Me\nMiB Sw\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-threads-label": {
+    "stdout": "Threads:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "top-unknown-field": {
+    "stdout": "exit=1\n",
+    "stderr": "top: unrecognized field name 'BOGUS'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-unknown-user": {
+    "stdout": "exit=1\n",
+    "stderr": "top: Invalid user\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-unrecognized-long-option": {
+    "stdout": "exit=1\n",
+    "stderr": "top: unrecognized option '--foo'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "top-version": {
+    "stdout": "top from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

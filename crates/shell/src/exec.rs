@@ -695,6 +695,8 @@ impl Shell {
     }
 
     pub fn exec_simple(&mut self, s: &Simple) -> Exec {
+        // Só este comando: as substituições dentro dele e os seguintes não herdam.
+        let exec_last = std::mem::take(&mut self.exec_last);
         self.lineno = s.line;
         self.last_cmdsub_status = None;
         // Durante um trap o `BASH_COMMAND` continua sendo o comando que disparou o trap.
@@ -826,6 +828,9 @@ impl Shell {
             CmdKind::Builtin => builtins::run(self, &name_str, &args),
             CmdKind::External(path) => {
                 let argv: Vec<Vec<u8>> = args.into_iter().map(Arg::into_bytes).collect();
+                if exec_last && !self.traps.signals.contains_key(&crate::shell::TRAP_EXIT) {
+                    return self.exec_external_in_place(&path, &argv, env_extra);
+                }
                 self.run_external(&path, &argv, env_extra, s)
             }
             CmdKind::NotFound => {
@@ -947,8 +952,8 @@ impl Shell {
         first_existing
     }
 
-    /// Roda um programa externo e espera.
-    fn run_external(&mut self, path: &[u8], argv: &[Vec<u8>], env_extra: Vec<Vec<u8>>, s: &Simple) -> Exec {
+    /// O ambiente exportado com as atribuições do próprio comando por cima.
+    fn external_env(&self, env_extra: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
         let mut env = self.export_env();
         for e in env_extra {
             let eq = e.iter().position(|c| *c == b'=').unwrap_or(e.len());
@@ -956,6 +961,20 @@ impl Shell {
             env.retain(|x| !x.starts_with(&key));
             env.push(e);
         }
+        env
+    }
+
+    /// Último comando do subshell de um `&`: o programa substitui o processo. Se o `execve` falhar,
+    /// os erros são os de sempre e o subshell termina com o status deles.
+    fn exec_external_in_place(&mut self, path: &[u8], argv: &[Vec<u8>], env_extra: Vec<Vec<u8>>) -> Exec {
+        let env = self.external_env(env_extra);
+        let e = sys().execve(path, argv, Some(&env));
+        self.exec_failed(path, argv, &env, e)
+    }
+
+    /// Roda um programa externo e espera.
+    fn run_external(&mut self, path: &[u8], argv: &[Vec<u8>], env_extra: Vec<Vec<u8>>, s: &Simple) -> Exec {
+        let env = self.external_env(env_extra);
         let spec = SpawnSpec {
             path: path.to_vec(),
             argv: argv.to_vec(),
@@ -1421,6 +1440,8 @@ impl Shell {
         let s = sys();
         let mut child = self.subshell_clone();
         let ao2 = ao.clone();
+        // Um comando simples sozinho: o bash faz exec dele no próprio subshell.
+        child.exec_last = ao.rest.is_empty() && !ao.first.negated && ao.first.time.is_none() && matches!(ao.first.commands.as_slice(), [Command::Simple(_)]);
         let mut actions = Vec::new();
         if !self.interactive && !self.opts.get("monitor") {
             actions.push(FdAction::Open { fd: Fd::STDIN, path: b"/dev/null".to_vec(), flags: OFlags::RDONLY, mode: 0 });
