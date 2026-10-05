@@ -25,14 +25,27 @@ pub(crate) fn stdin_lines() -> Vec<Vec<u8>> {
     v
 }
 
+/// Falha com a mensagem do original se o uid efetivo não consta em `passwd`.
+pub(crate) fn check_caller(p: &str, passwd: &[Vec<u8>]) -> Result<(), i32> {
+    let uid = sys::current().geteuid() as u64;
+    let found = passwd.iter().any(|l| {
+        is_data(l) && fields(l).get(2).is_some_and(|f| crate::groupmgmt::parse_id(f) == Some(uid))
+    });
+    if found {
+        Ok(())
+    } else {
+        io::eprint(format!("{p}: Cannot determine your user name.\n"));
+        Err(1)
+    }
+}
+
 /// Índice da linha do usuário em `passwd`: o nome dado ou o dono do uid efetivo.
-pub(crate) fn find_user(p: &str, passwd: &[Vec<u8>], name: Option<&Vec<u8>>, ppath: &[u8]) -> Result<usize, i32> {
+pub(crate) fn find_user(p: &str, passwd: &[Vec<u8>], name: Option<&Vec<u8>>, _ppath: &[u8]) -> Result<usize, i32> {
     match name {
         Some(n) => passwd.iter().position(|l| is_data(l) && name_eq(l, n)).ok_or_else(|| {
             io::eprint(format!(
-                "{p}: user '{}' does not exist in {}\n",
-                io::lossy(n),
-                io::lossy(ppath)
+                "{p}: user '{}' does not exist\n",
+                io::lossy(n)
             ));
             1
         }),
@@ -75,6 +88,10 @@ fn run(args: &[OsString]) -> i32 {
             return 1;
         }
     };
+    // O original resolve o usuário real (uid efetivo) antes de tudo, dentro do `-R`.
+    if let Err(c) = check_caller(P, &passwd) {
+        return c;
+    }
     let idx = match find_user(P, &passwd, o.rest.first(), b"/etc/passwd") {
         Ok(i) => i,
         Err(c) => return c,

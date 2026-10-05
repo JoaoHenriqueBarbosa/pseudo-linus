@@ -12,7 +12,15 @@ use crate::groupmgmt::{Spec, fields, is_data, join, name_eq, parse, parse_id, re
 use crate::usermgmt::{today, valid_field, write_with_backup};
 use crate::util::io;
 
-const USAGE: &str = "Usage: newusers [options] [new_users]\n\nOptions:\n  -b, --badname                 allow bad names\n  -c, --crypt-method METHOD     the crypt method (one of NONE DES MD5 SHA256 SHA512 YESCRYPT)\n  -h, --help                    display this help message and exit\n  -r, --system                  create system accounts\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -s, --sha-rounds              number of rounds for the SHA, BCRYPT\n                                or YESCRYPT crypt algorithms\n\n";
+const USAGE: &str = r#"Usage: newusers [options]
+
+Options:
+  -b, --badname                 allow bad names (DEPRECATED)
+  -h, --help                    display this help message and exit
+  -r, --system                  create system accounts
+  -R, --root CHROOT_DIR         directory to chroot into
+
+"#;
 
 const METHODS: [&str; 7] = ["NONE", "DES", "MD5", "SHA256", "SHA512", "YESCRYPT", "BCRYPT"];
 
@@ -71,15 +79,12 @@ fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
     let spec: Spec = &[
         (b'b', "badname", false),
-        (b'c', "crypt-method", true),
         (b'h', "help", false),
         (b'r', "system", false),
         (b'R', "root", true),
-        (b'P', "prefix", true),
-        (b's', "sha-rounds", true),
     ];
     let Some(o) = parse(P, &argv, spec) else {
-        return usage(USAGE, 2);
+        return usage(USAGE, 1);
     };
     let mut badname = false;
     let mut system = false;
@@ -93,21 +98,21 @@ fn run(args: &[OsString]) -> i32 {
             b'c' => {
                 if !METHODS.iter().any(|m| *m == t) {
                     io::eprint(format!("{P}: unsupported crypt method: {t}\n"));
-                    return usage(USAGE, 2);
+                    return usage(USAGE, 1);
                 }
                 method = t;
             }
             b's' => {
                 if t.parse::<i64>().is_err() {
                     io::eprint(format!("{P}: invalid numeric argument '{t}'\n"));
-                    return usage(USAGE, 2);
+                    return usage(USAGE, 1);
                 }
             }
             _ => {}
         }
     }
     if o.rest.len() > 1 {
-        return usage(USAGE, 2);
+        return usage(USAGE, 1);
     }
     let data = match o.rest.first() {
         Some(f) => match io::read_path(f) {

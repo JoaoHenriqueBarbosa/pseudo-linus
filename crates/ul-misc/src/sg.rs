@@ -64,6 +64,16 @@ fn base(path: &[u8]) -> Vec<u8> {
     path.rsplit(|b| *b == b'/').next().unwrap_or(path).to_vec()
 }
 
+/// Primeiro caractere de uma opção desconhecida (`-x`), se o argumento for uma opção.
+fn bad_option(arg: &[u8]) -> Option<char> {
+    if arg.len() > 1 && arg[0] == b'-' { Some(arg[1] as char) } else { None }
+}
+
+fn invalid_option(p: &str, c: char) -> i32 {
+    io::eprint(format!("{p}: invalid option -- '{c}'\nTry '{p} --help' for more information.\n"));
+    1
+}
+
 pub fn newgrp_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args, false))
 }
@@ -93,9 +103,11 @@ fn run(args: &[OsString], is_sg: bool) -> i32 {
     let group_arg: Option<Vec<u8>>;
     let mut command: Option<Vec<u8>> = None;
     if is_sg {
-        if rest.is_empty() || rest[0].first() == Some(&b'-') {
-            io::eprint(usage_text.to_string());
-            return 1;
+        if rest.is_empty() {
+            return 0;
+        }
+        if let Some(c) = bad_option(&rest[0]) {
+            return invalid_option(p, c);
         }
         group_arg = Some(rest.remove(0));
         if !rest.is_empty() {
@@ -117,10 +129,10 @@ fn run(args: &[OsString], is_sg: bool) -> i32 {
             login = true;
             rest.remove(0);
         }
-        if rest.len() > 1 || rest.first().is_some_and(|a| a.first() == Some(&b'-')) {
-            io::eprint(usage_text.to_string());
-            return 1;
+        if let Some(c) = rest.first().and_then(|a| bad_option(a)) {
+            return invalid_option(p, c);
         }
+        rest.truncate(1);
         group_arg = rest.first().cloned();
     }
 
@@ -128,7 +140,7 @@ fn run(args: &[OsString], is_sg: bool) -> i32 {
         None => parse_id(&me[3]).unwrap_or(egid),
         Some(g) => {
             let Some(grp) = lookup_group(g) else {
-                io::eprint(format!("{p}: group '{}' does not exist\n", io::lossy(g)));
+                io::eprint(format!("{p}: no such group\n"));
                 return 1;
             };
             let member = grp.members.contains(&me[0]) || parse_id(&me[3]) == Some(grp.gid);

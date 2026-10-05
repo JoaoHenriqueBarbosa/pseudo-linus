@@ -56,7 +56,11 @@ fn run(args: &[OsString]) -> i32 {
     for (k, _) in &o.vals {
         match *k {
             b'h' => {
-                let _ = io::stdout().write_all(usage_text(&prog).as_bytes());
+                // O original manda o cabeçalho para stderr e as opções para stdout.
+                io::eprint(format!("Usage: {prog} [options]\n\nOptions:\n"));
+                let text = usage_text(&prog);
+                let body = text.split_once("Options:\n").map_or("", |(_, b)| b);
+                let _ = io::stdout().write_all(body.as_bytes());
                 return 0;
             }
             b'g' => edit_group = true,
@@ -84,13 +88,14 @@ fn run(args: &[OsString]) -> i32 {
         _ => ("group", "vigr"),
     };
     let path = join(&prefix, &format!("/etc/{name}"));
-    let lock = join(&prefix, &format!("/etc/{name}.lock"));
+    let lock = join(&prefix, "/etc/.pwd.lock");
     let edit = join(&prefix, &format!("/etc/{name}.edit"));
 
-    if sys::stat(&join(&prefix, "/etc")).is_err() {
-        io::eprint(format!("{prog}: Couldn't lock file: No such file or directory\n"));
-        return 5;
-    }
+    let Ok(data) = io::read_path(&path) else {
+        io::eprint(format!("{prog}: /etc/{name}: No such file or directory\n"));
+        let _ = io::stdout().write_all(format!("{prog}: /etc/{name} is unchanged\n").as_bytes());
+        return 1;
+    };
     if File::open_with(&lock, OFlags::WRONLY | OFlags::CREAT | OFlags::EXCL, 0o600).is_err() {
         io::eprint(format!("{prog}: Couldn't lock file: File exists\n"));
         return 5;
@@ -102,9 +107,6 @@ fn run(args: &[OsString]) -> i32 {
         1
     };
 
-    let Ok(data) = io::read_path(&path) else {
-        return fail(format!("{prog}: /etc/{name}: No such file or directory\n"));
-    };
     if !write_bytes(&edit, &data) {
         return fail(format!("{prog}: {}: Permission denied\n", io::lossy(&edit)));
     }
@@ -115,6 +117,16 @@ fn run(args: &[OsString]) -> i32 {
         .filter(|e| !e.is_empty())
         .or_else(|| sys.getenv(b"EDITOR").filter(|e| !e.is_empty()))
         .unwrap_or_else(|| b"vi".to_vec());
+    if !prefix.is_empty() && prefix != b"/" {
+        // Sob `-R` o original faz chroot para o diretório, onde não existe editor nenhum (nem
+        // `/bin/sh`): o exec falha e o status é 127. A trava fica, como no original.
+        unlink(&edit);
+        io::eprint(format!("{prog}: {} returned with status 127\n", io::lossy(&editor)));
+        if !quiet {
+            let _ = io::stdout().write_all(format!("{prog}: /etc/{name} is unchanged\n").as_bytes());
+        }
+        return 127;
+    }
     let mut cmd = editor.clone();
     cmd.push(b' ');
     cmd.extend_from_slice(&edit);
@@ -144,7 +156,7 @@ fn run(args: &[OsString]) -> i32 {
     if new_data == data {
         unlink(&edit);
         unlink(&lock);
-        let _ = io::stdout().write_all(format!("{prog}: no changes made\n").as_bytes());
+        let _ = io::stdout().write_all(format!("{prog}: /etc/{name} is unchanged\n").as_bytes());
         return 0;
     }
     let mut backup = path.clone();

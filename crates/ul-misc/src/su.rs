@@ -16,19 +16,19 @@ use crate::groupmgmt::{Spec, fields, is_data, name_eq, parse, parse_id, read_lin
 use crate::sg::{exec_or_fail, lookup_group};
 use crate::util::io;
 
-const SU_USAGE: &str = "
+const SU_USAGE: &str = r#"
 Usage:
  su [options] [-] [<user> [<argument>...]]
 
 Change the effective user ID and group ID to that of <user>.
-A mere - implies -l.   If <user> is not given, root is assumed.
+A mere - implies -l.  If <user> is not given, root is assumed.
 
 Options:
- -m, -p, --preserve-environment  do not reset environment variables
- -w, --whitelist-environment <list>
-                                 do not reset specified variables
+ -m, -p, --preserve-environment      do not reset environment variables
+ -w, --whitelist-environment <list>  don't reset specified variables
+
  -g, --group <group>             specify the primary group
- -G, --supp-group <group>        specify a supplementary group
+ -G, --supp-group <group>        specify a supplemental group
 
  -, -l, --login                  make the shell a login shell
  -c, --command <command>         pass a single command to the shell with -c
@@ -37,16 +37,17 @@ Options:
  -f, --fast                      pass -f to the shell (for csh or tcsh)
  -s, --shell <shell>             run <shell> if /etc/shells allows it
  -P, --pty                       create a new pseudo-terminal
+ -T, --no-pty                    do not create a new pseudo-terminal (bad security!)
 
  -h, --help                      display this help
  -V, --version                   display version
 
 For more details see su(1).
-";
+"#;
 
-const RUNUSER_USAGE: &str = "
+const RUNUSER_USAGE: &str = r#"
 Usage:
- runuser [options] -u <user> [[--] <command> [<argument>...]]
+ runuser [options] -u <user> [[--] <command>]
  runuser [options] [-] [<user> [<argument>...]]
 
 Run <command> with the effective user ID and group ID of <user>.  If -u is
@@ -55,26 +56,27 @@ The options -c, -f, -l, and -s are mutually exclusive with -u.
 
 Options:
  -u, --user <user>               username
+ -m, -p, --preserve-environment      do not reset environment variables
+ -w, --whitelist-environment <list>  don't reset specified variables
 
+ -g, --group <group>             specify the primary group
+ -G, --supp-group <group>        specify a supplemental group
+
+ -, -l, --login                  make the shell a login shell
  -c, --command <command>         pass a single command to the shell with -c
  --session-command <command>     pass a single command to the shell with -c
                                    and do not create a new session
  -f, --fast                      pass -f to the shell (for csh or tcsh)
- -g, --group <group>             specify the primary group
- -G, --supp-group <group>        specify a supplementary group
- -l, --login                     make the shell a login shell
- -m, -p,
- --preserve-environment          do not reset environment variables
  -s, --shell <shell>             run <shell> if /etc/shells allows it
- -w, --whitelist-environment <list>
-                                 do not reset specified variables
  -P, --pty                       create a new pseudo-terminal
+ -T, --no-pty                    do not create a new pseudo-terminal (bad security!)
 
  -h, --help                      display this help
  -V, --version                   display version
 
+
 For more details see runuser(1).
-";
+"#;
 
 const SU_SPEC: Spec = &[
     (b'c', "command", true),
@@ -150,7 +152,7 @@ pub(crate) fn run(args: &[OsString], runuser: bool) -> i32 {
                 return 0;
             }
             b'V' => {
-                let _ = io::stdout().write_all(format!("{short} from util-linux 2.41\n").as_bytes());
+                let _ = io::stdout().write_all(format!("{short} from util-linux 2.41.5\n").as_bytes());
                 return 0;
             }
             b'c' | 1 => command = Some(v),
@@ -167,7 +169,7 @@ pub(crate) fn run(args: &[OsString], runuser: bool) -> i32 {
     if user_opt.is_some() && (shell_opt.is_some() || fast || command.is_some() || login) {
         return die(
             short,
-            "options --{shell,fast,command,session-command} and --user are mutually exclusive",
+            "options --{shell,fast,command,session-command,login} and --user are mutually exclusive",
         );
     }
     if user_opt.is_some() && o.rest.is_empty() {

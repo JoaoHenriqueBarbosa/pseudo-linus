@@ -13,7 +13,7 @@ use crate::groupmgmt::{Spec, fields, join, parse, read_lines, usage};
 use crate::usermgmt::write_with_backup;
 use crate::util::io;
 
-const USAGE: &str = "Usage: chfn [options] [LOGIN]\n\nOptions:\n  -f, --full-name FULL_NAME     change user's full name\n  -h, --home-phone HOME_PHONE   change user's home phone number\n  -o, --other OTHER_INFO        change user's other GECOS information\n  -r, --room ROOM_NUMBER        change user's room number\n  -R, --root CHROOT_DIR         directory to chroot into\n  -u, --help                    display this help message and exit\n  -w, --work-phone WORK_PHONE   change user's work phone number\n\n";
+const USAGE: &str = "Usage: chfn [options] [LOGIN]\n\nOptions:\n  -f, --full-name FULL_NAME     change user's full name\n  -h, --home-phone HOME_PHONE   change user's home phone number\n  -o, --other OTHER_INFO        change user's other GECOS information\n  -r, --room ROOM_NUMBER        change user's room number\n  -R, --root CHROOT_DIR         directory to chroot into\n  -u, --help                    display this help message and exit\n  -w, --work-phone WORK_PHONE   change user's office phone number\n\n";
 
 /// `valid_field(s, ":,=")` do shadow: sem `:`, `,`, `=` nem caracteres de controle.
 fn valid(s: &[u8]) -> bool {
@@ -45,6 +45,18 @@ fn run(args: &[OsString]) -> i32 {
     if o.rest.len() > 1 {
         return usage(USAGE, 1);
     }
+    let prefix = o.get(b'R').unwrap_or_default();
+    let ppath = join(&prefix, "/etc/passwd");
+    let passwd = match read_lines(&ppath) {
+        Ok(p) => p,
+        Err(_) => {
+            io::eprint(format!("{P}: cannot open {}\n", io::lossy(&ppath)));
+            return 1;
+        }
+    };
+    if let Err(c) = crate::chsh::check_caller(P, &passwd) {
+        return c;
+    }
     // Validação na ordem em que as opções aparecem, como o getopt do original.
     for (k, v) in &o.vals {
         let v = v.clone().unwrap_or_default();
@@ -64,15 +76,6 @@ fn run(args: &[OsString]) -> i32 {
         }
     }
 
-    let prefix = o.get(b'R').unwrap_or_default();
-    let ppath = join(&prefix, "/etc/passwd");
-    let passwd = match read_lines(&ppath) {
-        Ok(p) => p,
-        Err(_) => {
-            io::eprint(format!("{P}: cannot open {}\n", io::lossy(&ppath)));
-            return 1;
-        }
-    };
     let idx = match find_user(P, &passwd, o.rest.first(), b"/etc/passwd") {
         Ok(i) => i,
         Err(c) => return c,
