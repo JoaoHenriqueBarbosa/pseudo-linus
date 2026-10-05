@@ -269,3 +269,44 @@ impl<'a> LineReader<'a> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lines(data: &[u8]) -> Vec<String> {
+        let mut reader = LineReader::new(data);
+        let mut out = Vec::new();
+        while let Some(line) = reader.next_line().unwrap() {
+            out.push(line);
+        }
+        out
+    }
+
+    #[test]
+    fn splits_on_universal_newlines_without_translating() {
+        assert_eq!(lines(b"a\r\nb\rc\n\nd"), vec!["a\r\n", "b\r", "c\n", "\n", "d"]);
+        assert_eq!(lines(b"a\r"), vec!["a\r"]);
+    }
+
+    #[test]
+    fn decode_error_position_is_relative_to_the_chunk() {
+        let mut data = vec![b'a'; 8192];
+        data.push(0xff);
+        let err = LineReader::new(&data).next_line().unwrap_err();
+        assert_eq!(err.message, "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte");
+        let err = LineReader::new(b"\xe2\x82").next_line().unwrap_err();
+        assert_eq!(err.message, "'utf-8' codec can't decode bytes in position 0-1: unexpected end of data");
+    }
+
+    #[test]
+    fn surrogateescape_round_trip() {
+        let chars = decode_surrogateescape(b"a\xffb");
+        assert_eq!(chars.len(), 3);
+        assert_eq!(as_surrogate(chars[1]), Some(0xDCFF));
+        let text: String = chars.iter().collect();
+        assert_eq!(encode_surrogateescape(&text).unwrap(), b"a\xffb");
+        let lone = surrogate_to_char(0xD800).to_string();
+        assert_eq!(encode_surrogateescape(&lone).unwrap_err().message(), "'utf-8' codec can't encode character '\\ud800' in position 0: surrogates not allowed");
+    }
+}
