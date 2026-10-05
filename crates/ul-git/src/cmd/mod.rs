@@ -15,10 +15,12 @@ pub mod misc;
 pub mod mv;
 pub mod plumbing;
 pub mod reffmt;
+pub mod restore;
 pub mod rev_parse;
 pub mod rm;
 pub mod status;
 pub mod tag;
+pub mod unpack;
 
 use crate::config::Config;
 use crate::error::{Fail, R};
@@ -92,6 +94,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "for-each-ref" => (Setup::Repo, for_each_ref::run),
         "tag" => (Setup::Repo, tag::run),
         "branch" => (Setup::Repo, branch::run),
+        "restore" => (Setup::WorkTree, restore::run),
         "log" => (Setup::Repo, log::run_log),
         "show" => (Setup::Repo, log::run_show),
         "whatchanged" => (Setup::Repo, log::run_whatchanged),
