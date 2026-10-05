@@ -11,6 +11,7 @@ pub mod matcher;
 pub mod pgrep;
 pub mod pidof;
 pub mod procfs;
+pub mod ps;
 pub mod uptime;
 
 use sysabi::Program;
@@ -24,6 +25,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("pidof", pidof::main),
         Program::bin("pidwait", pgrep::pidwait_main),
         Program::bin("pkill", pgrep::pkill_main),
+        Program::bin("ps", ps::main),
         Program::bin("uptime", uptime::main),
     ]
 }
