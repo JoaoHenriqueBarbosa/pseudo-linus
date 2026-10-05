@@ -12,6 +12,7 @@ pub mod ls;
 pub mod misc;
 pub mod plumbing;
 pub mod rev_parse;
+pub mod rm;
 pub mod status;
 
 use crate::config::Config;
@@ -81,6 +82,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "add" | "stage" => (Setup::WorkTree, add::run),
         "commit" => (Setup::WorkTree, commit::run),
         "status" => (Setup::WorkTree, status::run),
+        "rm" => (Setup::WorkTree, rm::run),
         "log" => (Setup::Repo, log::run_log),
         "show" => (Setup::Repo, log::run_show),
         "whatchanged" => (Setup::Repo, log::run_whatchanged),
