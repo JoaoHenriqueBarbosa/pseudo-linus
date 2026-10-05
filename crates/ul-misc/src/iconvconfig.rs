@@ -32,12 +32,13 @@ const LONGOPTS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, 'V' as i32),
 ];
 
-const HELP: &str = "Usage: iconvconfig [OPTION...] [DIR...]
+const HELP: &str = r#"Usage: iconvconfig [OPTION...] [DIR...]
 Create fastloading iconv module configuration file.
 
-  -o, --output=FILE          Output to FILE instead of installed location
       --nostdlib             Do not search standard directories, only those on
                              the command line
+  -o, --output=FILE          Put output in FILE instead of installed location
+                             (--prefix does not apply to FILE)
       --prefix=PATH          Prefix used for all file accesses
   -?, --help                 Give this help list
       --usage                Give a short usage message
@@ -48,11 +49,11 @@ for any corresponding short options.
 
 For bug reporting instructions, please see:
 <http://www.debian.org/Bugs/>.
-";
+"#;
 
-const USAGE: &str = "Usage: iconvconfig [-?V] [-o FILE] [--output=FILE] [--nostdlib] [--prefix=PATH]
+const USAGE: &str = r#"Usage: iconvconfig [-?V] [-o FILE] [--nostdlib] [--output=FILE] [--prefix=PATH]
             [--help] [--usage] [--version] [DIR...]
-";
+"#;
 
 const VERSION: &str = "iconvconfig (Debian GLIBC 2.41-12+deb13u4) 2.41
 Copyright (C) 2024 Free Software Foundation, Inc.

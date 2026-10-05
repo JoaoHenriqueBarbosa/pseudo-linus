@@ -58,16 +58,17 @@ For bug reporting instructions, please see:
 <http://www.debian.org/Bugs/>.
 ";
 
-const USAGE: &str = "Usage: ldconfig [-nNvXVlip?] [-C CACHE] [-f CONF] [-r ROOT] [-c FORMAT]
+const USAGE: &str = r#"Usage: ldconfig [-ilnNpvX?V] [-c FORMAT] [-C CACHE] [-f CONF] [-r ROOT]
             [--format=FORMAT] [--ignore-aux-cache] [--print-cache] [--verbose]
             [--help] [--usage] [--version]
-";
+"#;
 
-const VERSION: &str = "ldconfig (Debian GLIBC 2.41-12+deb13u4) 2.41
+const VERSION: &str = r#"ldconfig (Debian GLIBC 2.41-12+deb13u4) 2.41
 Copyright (C) 2024 Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-";
+Written by Andreas Jaeger.
+"#;
 
 const GENERATOR: &str = "ldconfig (Debian GLIBC 2.41-12+deb13u4) stable release version 2.41";
 
