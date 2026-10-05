@@ -137,7 +137,7 @@ fn strtod_or_err(s: &[u8], what: &str) -> Result<f64, i32> {
 
 /// O `TERM` tem entrada no terminfo? (`$TERMINFO`, `~/.terminfo`, `$TERMINFO_DIRS` e os diretórios
 /// do sistema.)
-fn terminfo_exists(term: &[u8]) -> bool {
+pub(crate) fn terminfo_exists(term: &[u8]) -> bool {
     if term.is_empty() || term.contains(&b'/') {
         return false;
     }

@@ -11,7 +11,7 @@ use super::*;
 
 impl Ps {
     /// `procps_pid_length`: largura do maior pid possível (`/proc/sys/kernel/pid_max`), 5 sem ele.
-    pub(super) fn pid_length(&mut self) -> i32 {
+    pub(crate) fn pid_length(&mut self) -> i32 {
         if let Some(n) = self.pid_length_cache {
             return n;
         }

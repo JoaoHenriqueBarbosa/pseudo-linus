@@ -11,11 +11,11 @@
 //! colunas do systemd (`unit`, `slice`, `lsession`...) mostram `-` como o procps sem sessão do
 //! systemd, e a coluna `numa` mostra `-1` (o procps só carrega o libnuma no `top`).
 
-mod display;
+pub(crate) mod display;
 mod help;
 mod output;
 mod parser;
-mod proc;
+pub(crate) mod proc;
 mod sortformat;
 mod table;
 pub(crate) mod util;
@@ -383,7 +383,7 @@ pub struct Ps {
 }
 
 impl Ps {
-    fn new(args: &[OsString]) -> Ps {
+    pub(crate) fn new(args: &[OsString]) -> Ps {
         let argv = io::args_bytes(args);
         let first = argv.first().cloned().unwrap_or_default();
         let name = match first.iter().rposition(|b| *b == b'/') {

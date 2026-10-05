@@ -13,7 +13,7 @@ use super::*;
 
 /// Valor de ordenação de um item (os tipos de resultado da libproc2).
 #[derive(Clone, Debug)]
-enum Key {
+pub(crate) enum Key {
     None,
     Int(i64),
     UInt(u64),
@@ -22,7 +22,7 @@ enum Key {
     Vers(Vec<u8>),
 }
 
-fn cmp_keys(a: &Key, b: &Key) -> Ordering {
+pub(crate) fn cmp_keys(a: &Key, b: &Key) -> Ordering {
     match (a, b) {
         (Key::Int(x), Key::Int(y)) => x.cmp(y),
         (Key::UInt(x), Key::UInt(y)) => x.cmp(y),
@@ -303,7 +303,7 @@ impl Ps {
     }
 
     /// Valor de ordenação de `item` para `p` (o que `procps_pids_sort` compara).
-    fn sort_key(&mut self, item: Item, p: &Pt) -> Key {
+    pub(crate) fn sort_key(&mut self, item: Item, p: &Pt) -> Key {
         let sig = |v: &Vec<u8>| Key::Str(v.clone());
         match item {
             Item::Noop => Key::None,

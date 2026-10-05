@@ -76,6 +76,10 @@ pub struct Pt {
     pub vm_rss: u64,
     pub vm_size: u64,
     pub vm_stack: u64,
+    pub vm_swap: u64,
+    pub vm_rss_anon: u64,
+    pub vm_rss_file: u64,
+    pub vm_rss_shared: u64,
     pub signal: Vec<u8>,
     pub blocked: Vec<u8>,
     pub sigcatch: Vec<u8>,
@@ -88,8 +92,8 @@ pub struct Pt {
     cgroup_c: OnceCell<(Vec<u8>, Vec<u8>)>,
     lxc_c: OnceCell<Vec<u8>>,
     io_c: OnceCell<[u64; 7]>,
-    smaps_c: OnceCell<(u64, u64)>,
-    statm_c: OnceCell<(u64, u64)>,
+    smaps_c: OnceCell<[u64; 20]>,
+    statm_c: OnceCell<[u64; 7]>,
     ns_c: OnceCell<[u64; 8]>,
     oom_c: OnceCell<(i32, i32)>,
     autogrp_c: OnceCell<(i32, i32)>,
@@ -349,6 +353,10 @@ fn status2proc(data: &[u8], p: &mut Pt, is_proc: bool) {
             b"VmRSS" => p.vm_rss = strtol_prefix(val).0 as u64,
             b"VmSize" => p.vm_size = strtol_prefix(val).0 as u64,
             b"VmStk" => p.vm_stack = strtol_prefix(val).0 as u64,
+            b"VmSwap" => p.vm_swap = strtol_prefix(val).0 as u64,
+            b"RssAnon" => p.vm_rss_anon = strtol_prefix(val).0 as u64,
+            b"RssFile" => p.vm_rss_file = strtol_prefix(val).0 as u64,
+            b"RssShmem" => p.vm_rss_shared = strtol_prefix(val).0 as u64,
             b"Groups" => {
                 let mut s = 0;
                 while s < val.len() && (val[s] == b' ' || val[s] == b'\t') {
@@ -661,10 +669,13 @@ impl Pt {
         })
     }
 
-    /// (Pss, Private_Clean + Private_Dirty) do smaps_rollup.
-    pub fn smaps(&self) -> (u64, u64) {
+    /// Todos os campos do smaps_rollup, na ordem: Rss, Pss, Pss_Anon, Pss_File, Pss_Shmem,
+    /// Shared_Clean, Shared_Dirty, Private_Clean, Private_Dirty, Referenced, Anonymous, LazyFree,
+    /// AnonHugePages, ShmemPmdMapped, FilePmdMapped, Shared_Hugetlb, Private_Hugetlb, Swap, SwapPss,
+    /// Locked (em kB).
+    pub fn smaps_all(&self) -> [u64; 20] {
         *self.smaps_c.get_or_init(|| {
-            let Some(d) = read_path(&format!("{}/smaps_rollup", self.base)) else { return (0, 0) };
+            let Some(d) = read_path(&format!("{}/smaps_rollup", self.base)) else { return [0; 20] };
             const ITEMS: [&str; 20] = [
                 "Rss:", "Pss:", "Pss_Anon:", "Pss_File:", "Pss_Shmem:", "Shared_Clean:", "Shared_Dirty:", "Private_Clean:",
                 "Private_Dirty:", "Referenced:", "Anonymous:", "LazyFree:", "AnonHugePages:", "ShmemPmdMapped:",
@@ -679,19 +690,35 @@ impl Pt {
                 vals[i] = v as u64;
                 s = rest;
             }
-            (vals[1], vals[7] + vals[8])
+            vals
+        })
+    }
+
+    /// (Pss, Private_Clean + Private_Dirty) do smaps_rollup.
+    pub fn smaps(&self) -> (u64, u64) {
+        let v = self.smaps_all();
+        (v[1], v[7] + v[8])
+    }
+
+    /// Os sete números do statm, em páginas: size, resident, share, trs, lrs, drs, dt (os que o
+    /// arquivo não traz ficam em 0, como o `sscanf` parcial do original).
+    pub fn statm_all(&self) -> [u64; 7] {
+        *self.statm_c.get_or_init(|| {
+            let mut out = [0u64; 7];
+            if let Some(d) = read_path(&format!("{}/statm", self.base)) {
+                let v: Vec<u64> = String::from_utf8_lossy(&d).split_whitespace().take(7).map_while(|x| x.parse().ok()).collect();
+                for (i, x) in v.into_iter().enumerate() {
+                    out[i] = x;
+                }
+            }
+            out
         })
     }
 
     /// (resident, share) do statm, em páginas.
     pub fn statm(&self) -> (u64, u64) {
-        *self.statm_c.get_or_init(|| match read_path(&format!("{}/statm", self.base)) {
-            Some(d) => {
-                let v: Vec<u64> = String::from_utf8_lossy(&d).split_whitespace().take(7).map_while(|x| x.parse().ok()).collect();
-                (v.get(1).copied().unwrap_or(0), v.get(2).copied().unwrap_or(0))
-            }
-            None => (0, 0),
-        })
+        let v = self.statm_all();
+        (v[1], v[2])
     }
 
     /// Números de inode dos namespaces: cgroup, ipc, mnt, net, pid, time, user, uts.
