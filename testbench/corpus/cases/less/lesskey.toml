@@ -27,3 +27,31 @@ argv = ["lesskey", "a", "b"]
 [[case]]
 id = "lesskey-missing-input"
 argv = ["lesskey", "-o", "-", "/nonexistent/lesskey-src"]
+
+[[case]]
+id = "lesskey-compile-command"
+script = "printf '#command\\nx forw-line\\n\\\\ex quit\\n' | lesskey -o - - 2>&1 | od -An -tx1 -v"
+
+[[case]]
+id = "lesskey-compile-extra-string"
+script = "printf '#command\\nx forw-line abc\\n' | lesskey -o - - 2>&1 | od -An -tx1 -v"
+
+[[case]]
+id = "lesskey-compile-line-edit"
+script = "printf '#line-edit\\n\\\\ex back-complete\\n^A home\\n' | lesskey -o - - 2>&1 | od -An -tx1 -v"
+
+[[case]]
+id = "lesskey-compile-env"
+script = "printf '#env\\nFOO = bar\\nLESS=-R\\n' | lesskey -o - - 2>&1 | od -An -tx1 -v"
+
+[[case]]
+id = "lesskey-compile-all-sections"
+script = "printf '#command\\nj forw-line\\nk back-line\\n#line-edit\\n\\\\kl right\\n#env\\nLESS = -i\\n' | lesskey -o - - 2>&1 | od -An -tx1 -v"
+
+[[case]]
+id = "lesskey-unknown-action"
+script = "printf '#command\\nx nonexistent-action\\n' | lesskey -o - - 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "lesskey-comments-only"
+script = "printf '# a comment\\n\\n' | lesskey -o - - 2>&1 | od -An -tx1 -v"

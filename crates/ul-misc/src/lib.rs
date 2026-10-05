@@ -24,6 +24,7 @@ pub mod envsubst;
 pub mod fallocate;
 pub mod file;
 pub mod findfs;
+pub mod findmnt;
 pub mod flock;
 pub mod fstab_decode;
 pub mod getconf;
@@ -95,6 +96,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("fallocate", fallocate::main),
         Program::bin("file", file::cli::main),
         Program::bin("findfs", findfs::main),
+        Program::bin("findmnt", findmnt::main),
         Program::bin("flock", flock::main),
         Program::bin("fstab-decode", fstab_decode::main),
         Program::bin("getconf", getconf::main),

@@ -5,10 +5,8 @@
 //! `v` (variáveis de ambiente), cada uma com o comprimento em dois bytes (menos significativo
 //! primeiro), e o marcador final `End`.
 //!
-//! Fora do escopo desta versão: a tabela de nomes de ação (`ACTIONS`) está vazia, porque os
-//! números vêm do `cmd.h` do less e não foram conferidos contra o oráculo; por isso as linhas
-//! das seções `#command` e `#line-edit` que nomeiam uma ação dão erro. Também não há o `+=` do
-//! `#env` nem a busca em `XDG_CONFIG_HOME`.
+//! Os números das ações (`ACTIONS`, `EDIT_ACTIONS`) foram lidos do `lesskey` 668 real. Fora do
+//! escopo: o `+=` do `#env` e a busca em `XDG_CONFIG_HOME`.
 
 use std::ffi::OsString;
 use std::io::{Read, Write};
@@ -20,14 +18,97 @@ use crate::util::io;
 
 const USAGE: &str = "usage: lesskey [-o output] [input]\n";
 const MAGIC: &[u8] = b"\0M+G";
-const END: &[u8] = b"End";
+const END: &[u8] = b"xEnd";
 const A_EXTRA: u8 = 0x80;
 const EV_OK: u8 = 0x01;
 /// Prefixo das teclas especiais (`\kX`), o `CONTROL('K')` do original.
 const SK_SPECIAL_KEY: u8 = 0x0b;
 
-/// Nome da ação e seu número em `cmd.h`. Vazia até a conferência com o oráculo.
-const ACTIONS: &[(&str, u8)] = &[];
+/// Ações da seção `#line-edit` (também lidas do `lesskey` 668 real).
+const EDIT_ACTIONS: &[(&str, u8)] = &[
+    ("backspace", 0x01),
+    ("kill-line", 0x02),
+    ("right", 0x03),
+    ("left", 0x04),
+    ("word-left", 0x05),
+    ("word-right", 0x06),
+    ("insert", 0x07),
+    ("delete", 0x08),
+    ("home", 0x09),
+    ("end", 0x0a),
+    ("word-backspace", 0x0b),
+    ("word-delete", 0x0c),
+    ("up", 0x0d),
+    ("down", 0x0e),
+    ("expand", 0x0f),
+    ("forw-complete", 0x11),
+    ("back-complete", 0x12),
+    ("literal", 0x13),
+    ("abort", 0x14),
+    ("invalid", 0x66),
+];
+
+/// Nome da ação e seu número em `cmd.h`, lidos do `lesskey` 668 real (uma ação por vez).
+const ACTIONS: &[(&str, u8)] = &[
+    ("back-bracket", 0x24),
+    ("back-line", 0x02),
+    ("back-line-force", 0x1e),
+    ("back-screen", 0x03),
+    ("back-scroll", 0x04),
+    ("back-window", 0x22),
+    ("clear-mark", 0x3e),
+    ("clear-search", 0x46),
+    ("debug", 0x08),
+    ("digit", 0x06),
+    ("display-flag", 0x07),
+    ("display-option", 0x07),
+    ("end-scroll", 0x3b),
+    ("examine", 0x09),
+    ("filter", 0x37),
+    ("first-cmd", 0x0a),
+    ("firstcmd", 0x0a),
+    ("flush-repaint", 0x0b),
+    ("forw-bracket", 0x23),
+    ("forw-forever", 0x32),
+    ("forw-line", 0x0c),
+    ("forw-line-force", 0x1d),
+    ("forw-screen", 0x0d),
+    ("forw-screen-force", 0x28),
+    ("forw-scroll", 0x0e),
+    ("forw-until-hilite", 0x38),
+    ("forw-window", 0x21),
+    ("goto-end", 0x10),
+    ("goto-end-buffered", 0x39),
+    ("goto-line", 0x11),
+    ("goto-mark", 0x12),
+    ("help", 0x13),
+    ("index-file", 0x26),
+    ("left-scroll", 0x29),
+    ("next-file", 0x14),
+    ("next-tag", 0x35),
+    ("no-scroll", 0x3a),
+    ("noaction", 0x65),
+    ("percent", 0x15),
+    ("pipe", 0x25),
+    ("prev-file", 0x17),
+    ("prev-tag", 0x36),
+    ("pshell", 0x45),
+    ("quit", 0x18),
+    ("remove-file", 0x34),
+    ("repaint-flush", 0x0b),
+    ("repeat-search", 0x2b),
+    ("repeat-search-all", 0x2c),
+    ("reverse-search", 0x2d),
+    ("reverse-search-all", 0x2e),
+    ("right-scroll", 0x2a),
+    ("set-mark", 0x1a),
+    ("set-mark-bottom", 0x3f),
+    ("status", 0x1c),
+    ("toggle-flag", 0x2f),
+    ("toggle-option", 0x2f),
+    ("undo-hilite", 0x27),
+    ("visual", 0x20),
+];
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
@@ -129,7 +210,7 @@ fn skip_ws(s: &[u8], mut i: usize) -> usize {
 }
 
 /// Uma linha de comando: `teclas ação [extra]`.
-fn parse_command_line(line: &[u8], table: &mut Vec<u8>) -> Result<(), String> {
+fn parse_command_line(line: &[u8], table: &mut Vec<u8>, actions: &[(&str, u8)]) -> Result<(), String> {
     let (keys, i) = parse_chars(line, 0, true)?;
     let j = skip_ws(line, i);
     if j == i {
@@ -140,7 +221,7 @@ fn parse_command_line(line: &[u8], table: &mut Vec<u8>) -> Result<(), String> {
         k += 1;
     }
     let name = &line[j..k];
-    let action = ACTIONS
+    let action = actions
         .iter()
         .find(|(n, _)| n.as_bytes() == name)
         .map(|&(_, v)| v)
@@ -177,9 +258,9 @@ fn parse_env_line(line: &[u8], table: &mut Vec<u8>) -> Result<(), String> {
         return Err("missing variable name".to_string());
     }
     let value = &line[skip_ws(line, eq + 1)..];
-    table.push(EV_OK | A_EXTRA);
     table.extend_from_slice(name);
     table.push(0);
+    table.push(EV_OK | A_EXTRA);
     table.extend_from_slice(value);
     table.push(0);
     Ok(())
@@ -221,8 +302,8 @@ fn compile(src: &[u8]) -> Result<Vec<u8>, String> {
             continue;
         }
         let res = match section {
-            Section::Command => parse_command_line(line, &mut cmd),
-            Section::Edit => parse_command_line(line, &mut edit),
+            Section::Command => parse_command_line(line, &mut cmd, ACTIONS),
+            Section::Edit => parse_command_line(line, &mut edit, EDIT_ACTIONS),
             Section::Env => parse_env_line(line, &mut env),
         };
         if let Err(m) = res {
@@ -288,7 +369,7 @@ fn run(args: &[OsString]) -> i32 {
         match std::fs::read(path) {
             Ok(d) => src = d,
             Err(_) => {
-                io::eprint(format!("cannot open {}\n", String::from_utf8_lossy(&input)));
+                io::eprint("-1 errors; no output produced\n".to_string());
                 return 1;
             }
         }
@@ -296,19 +377,18 @@ fn run(args: &[OsString]) -> i32 {
     let bin = match compile(&src) {
         Ok(b) => b,
         Err(m) => {
-            io::eprint(format!("{m}\n"));
+            io::eprint(format!("{}: {m}\n1 errors; no output produced\n", String::from_utf8_lossy(&input)));
             return 1;
         }
     };
-    if output == b"-" {
-        let mut out = io::stdout();
-        let _ = out.write_all(&bin);
-        return if out.flush().is_err() { 1 } else { 0 };
-    }
     let path = std::ffi::OsStr::from_bytes(&output);
     if std::fs::write(path, &bin).is_err() {
         io::eprint(format!("cannot open {}\n", String::from_utf8_lossy(&output)));
         return 1;
     }
+    io::eprint(
+        "NOTE: lesskey is deprecated.\n      It is no longer necessary to run lesskey,\n      when using less version 582 and later.\n"
+            .to_string(),
+    );
     0
 }

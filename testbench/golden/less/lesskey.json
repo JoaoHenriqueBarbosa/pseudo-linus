@@ -5,6 +5,96 @@
     "exit": 1,
     "files": {}
   },
+  "lesskey-comments-only": {
+    "stdout": " 4e 4f 54 45 3a 20 6c 65 73 73 6b 65 79 20 69 73\n 20 64 65 70 72 65 63 61 74 65 64 2e 0a 20 20 20\n 20 20 20 49 74 20 69 73 20 6e 6f 20 6c 6f 6e 67\n 65 72 20 6e 65 63 65 73 73 61 72 79 20 74 6f 20\n 72 75 6e 20 6c 65 73 73 6b 65 79 2c 0a 20 20 20\n 20 20 20 77 68 65 6e 20 75 73 69 6e 67 20 6c 65\n 73 73 20 76 65 72 73 69 6f 6e 20 35 38 32 20 61\n 6e 64 20 6c 61 74 65 72 2e 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "0bab76161e7f0b59593ab2dda1ecea3590e59ceed28346c64ffb81dfe9dc702a",
+        "data": "\u0000M+Gc\u0000\u0000e\u0000\u0000v\u0000\u0000xEnd"
+      }
+    }
+  },
+  "lesskey-compile-all-sections": {
+    "stdout": " 4e 4f 54 45 3a 20 6c 65 73 73 6b 65 79 20 69 73\n 20 64 65 70 72 65 63 61 74 65 64 2e 0a 20 20 20\n 20 20 20 49 74 20 69 73 20 6e 6f 20 6c 6f 6e 67\n 65 72 20 6e 65 63 65 73 73 61 72 79 20 74 6f 20\n 72 75 6e 20 6c 65 73 73 6b 65 79 2c 0a 20 20 20\n 20 20 20 77 68 65 6e 20 75 73 69 6e 67 20 6c 65\n 73 73 20 76 65 72 73 69 6f 6e 20 35 38 32 20 61\n 6e 64 20 6c 61 74 65 72 2e 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "9b61321cb2e1d00384e5e42ef1351e75de284648cc5b4bfacb5877e426edce06",
+        "data": {
+          "b64": "AE0rR2MGAGoADGsAAmUIAAsCBgEBAQADdgkATEVTUwCBLWkAeEVuZA=="
+        }
+      }
+    }
+  },
+  "lesskey-compile-command": {
+    "stdout": " 4e 4f 54 45 3a 20 6c 65 73 73 6b 65 79 20 69 73\n 20 64 65 70 72 65 63 61 74 65 64 2e 0a 20 20 20\n 20 20 20 49 74 20 69 73 20 6e 6f 20 6c 6f 6e 67\n 65 72 20 6e 65 63 65 73 73 61 72 79 20 74 6f 20\n 72 75 6e 20 6c 65 73 73 6b 65 79 2c 0a 20 20 20\n 20 20 20 77 68 65 6e 20 75 73 69 6e 67 20 6c 65\n 73 73 20 76 65 72 73 69 6f 6e 20 35 38 32 20 61\n 6e 64 20 6c 61 74 65 72 2e 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "047567c76dc76d913ffe30a19ce2db08633f7c9ccdd699e01c1f022375eba615",
+        "data": "\u0000M+Gc\u0007\u0000x\u0000\f\u001bx\u0000\u0018e\u0000\u0000v\u0000\u0000xEnd"
+      }
+    }
+  },
+  "lesskey-compile-env": {
+    "stdout": " 4e 4f 54 45 3a 20 6c 65 73 73 6b 65 79 20 69 73\n 20 64 65 70 72 65 63 61 74 65 64 2e 0a 20 20 20\n 20 20 20 49 74 20 69 73 20 6e 6f 20 6c 6f 6e 67\n 65 72 20 6e 65 63 65 73 73 61 72 79 20 74 6f 20\n 72 75 6e 20 6c 65 73 73 6b 65 79 2c 0a 20 20 20\n 20 20 20 77 68 65 6e 20 75 73 69 6e 67 20 6c 65\n 73 73 20 76 65 72 73 69 6f 6e 20 35 38 32 20 61\n 6e 64 20 6c 61 74 65 72 2e 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "b06d19319adcd42f92c1af0067b74c0ecde2d03c1cd15a5986a62272c6aca57d",
+        "data": {
+          "b64": "AE0rR2MAAGUAAHYSAEZPTwCBYmFyAExFU1MAgS1SAHhFbmQ="
+        }
+      }
+    }
+  },
+  "lesskey-compile-extra-string": {
+    "stdout": " 4e 4f 54 45 3a 20 6c 65 73 73 6b 65 79 20 69 73\n 20 64 65 70 72 65 63 61 74 65 64 2e 0a 20 20 20\n 20 20 20 49 74 20 69 73 20 6e 6f 20 6c 6f 6e 67\n 65 72 20 6e 65 63 65 73 73 61 72 79 20 74 6f 20\n 72 75 6e 20 6c 65 73 73 6b 65 79 2c 0a 20 20 20\n 20 20 20 77 68 65 6e 20 75 73 69 6e 67 20 6c 65\n 73 73 20 76 65 72 73 69 6f 6e 20 35 38 32 20 61\n 6e 64 20 6c 61 74 65 72 2e 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "3e78c855279bd439883c69aaeff1d55cfb32105f8fb62297c1e0b922c7aece91",
+        "data": {
+          "b64": "AE0rR2MHAHgAjGFiYwBlAAB2AAB4RW5k"
+        }
+      }
+    }
+  },
+  "lesskey-compile-line-edit": {
+    "stdout": " 4e 4f 54 45 3a 20 6c 65 73 73 6b 65 79 20 69 73\n 20 64 65 70 72 65 63 61 74 65 64 2e 0a 20 20 20\n 20 20 20 49 74 20 69 73 20 6e 6f 20 6c 6f 6e 67\n 65 72 20 6e 65 63 65 73 73 61 72 79 20 74 6f 20\n 72 75 6e 20 6c 65 73 73 6b 65 79 2c 0a 20 20 20\n 20 20 20 77 68 65 6e 20 75 73 69 6e 67 20 6c 65\n 73 73 20 76 65 72 73 69 6f 6e 20 35 38 32 20 61\n 6e 64 20 6c 61 74 65 72 2e 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 24,
+        "sha256": "972f77aab0f4b991aae714a2e1767cce31b4cdd3d9f09ed9f4744de841a8f421",
+        "data": "\u0000M+Gc\u0000\u0000e\u0007\u0000\u001bx\u0000\u0012\u0001\u0000\tv\u0000\u0000xEnd"
+      }
+    }
+  },
   "lesskey-help": {
     "stdout": "",
     "stderr": "usage: lesskey [-o output] [input]\n",
@@ -21,6 +111,12 @@
     "stdout": "",
     "stderr": "usage: lesskey [-o output] [input]\n",
     "exit": 1,
+    "files": {}
+  },
+  "lesskey-unknown-action": {
+    "stdout": "-: line 2: unknown action: \"nonexistent-action\"\n1 errors; no output produced\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
     "files": {}
   },
   "lesskey-version": {

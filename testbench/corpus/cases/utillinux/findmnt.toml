@@ -1,0 +1,56 @@
+tool = "findmnt"
+source = "manual"
+
+# findmnt do util-linux 2.41: só saídas determinísticas (erros de uso, versão, ajuda e a raiz).
+
+[[case]]
+id = "findmnt-help"
+argv = ["findmnt", "--help"]
+
+[[case]]
+id = "findmnt-help-short"
+argv = ["findmnt", "-h"]
+
+[[case]]
+id = "findmnt-version"
+argv = ["findmnt", "-V"]
+
+[[case]]
+id = "findmnt-invalid-option"
+argv = ["findmnt", "-Z"]
+
+[[case]]
+id = "findmnt-unrecognized-option"
+argv = ["findmnt", "--bogus"]
+
+[[case]]
+id = "findmnt-unknown-column"
+argv = ["findmnt", "-o", "BOGUS"]
+
+[[case]]
+id = "findmnt-root-target"
+argv = ["findmnt", "-o", "TARGET", "-n", "-M", "/"]
+
+[[case]]
+id = "findmnt-root-target-list"
+argv = ["findmnt", "-l", "-o", "TARGET", "-n", "-M", "/"]
+
+[[case]]
+id = "findmnt-root-raw-header"
+argv = ["findmnt", "-r", "-o", "TARGET", "-M", "/"]
+
+[[case]]
+id = "findmnt-root-pairs"
+argv = ["findmnt", "-P", "-o", "TARGET", "-M", "/"]
+
+[[case]]
+id = "findmnt-root-json"
+argv = ["findmnt", "-J", "-o", "TARGET", "-M", "/"]
+
+[[case]]
+id = "findmnt-no-match"
+argv = ["findmnt", "-M", "/nonexistent-mountpoint"]
+
+[[case]]
+id = "findmnt-source-and-operand"
+argv = ["findmnt", "-S", "x", "/"]
