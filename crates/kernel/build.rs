@@ -1,13 +1,17 @@
 //! Gera a lista de itens da imagem base que vêm de árvores inteiras copiadas do oráculo (hoje o
-//! `/usr/share/zoneinfo` do tzdata do Debian 13): diretórios, arquivos (embutidos com
-//! `include_bytes!`) e links simbólicos, em ordem estável.
+//! `/usr/share/zoneinfo` do tzdata e o banco terminfo do ncurses-base do Debian 13): diretórios,
+//! arquivos (embutidos com `include_bytes!`) e links simbólicos, em ordem estável.
 
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Árvores copiadas do oráculo, relativas a `image/`.
-const TREES: &[&str] = &["usr/share/zoneinfo"];
+///
+/// `usr/share/terminfo`, `usr/share/tabset` e `etc/terminfo` são o conteúdo do ncurses-base
+/// (6.5+20250216-2): as descrições compiladas de terminais, os tabsets do `tabs` e o README do
+/// diretório do administrador.
+const TREES: &[&str] = &["usr/share/zoneinfo", "usr/share/terminfo", "usr/share/tabset", "etc/terminfo"];
 
 fn walk(root: &Path, rel: &Path, out: &mut Vec<(PathBuf, fs::Metadata)>) {
     let dir = root.join(rel);
