@@ -12,6 +12,7 @@
 
 pub mod ast;
 pub mod token;
+pub mod tokenizer;
 
 use std::ffi::OsString;
 use std::os::unix::ffi::OsStrExt;
