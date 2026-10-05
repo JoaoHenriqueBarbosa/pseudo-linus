@@ -1,0 +1,32 @@
+{
+  "chmem-bad-long-option": {
+    "stdout": "",
+    "stderr": "chmem: unrecognized option '--nope'\nTry 'chmem --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chmem-bad-option": {
+    "stdout": "",
+    "stderr": "chmem: invalid option -- 'Z'\nTry 'chmem --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chmem-help": {
+    "stdout": "\nUsage:\n chmem [options] [SIZE|RANGE|BLOCKRANGE]\n\nSet a particular size or range of memory online or offline.\n\nOptions:\n -e, --enable       enable memory\n -d, --disable      disable memory\n -b, --blocks       use memory blocks\n -z, --zone <name>  select memory zone (see below)\n -v, --verbose      verbose output\n -h, --help         display this help\n -V, --version      display version\n\nSupported zones:\n DMA\n DMA32\n Normal\n Highmem\n Movable\n Device\n\nFor more details see chmem(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chmem-no-args": {
+    "stdout": "",
+    "stderr": "chmem: bad usage\nTry 'chmem --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chmem-version": {
+    "stdout": "chmem from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

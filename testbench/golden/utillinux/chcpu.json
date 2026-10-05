@@ -1,0 +1,44 @@
+{
+  "chcpu-bad-cpu-list": {
+    "stdout": "",
+    "stderr": "chcpu: failed to parse CPU list: abc\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chcpu-bad-dispatch-mode": {
+    "stdout": "",
+    "stderr": "chcpu: unsupported argument: diagonal\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chcpu-bad-long-option": {
+    "stdout": "",
+    "stderr": "chcpu: unrecognized option '--nope'\nTry 'chcpu --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chcpu-bad-option": {
+    "stdout": "",
+    "stderr": "chcpu: invalid option -- 'Z'\nTry 'chcpu --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chcpu-help": {
+    "stdout": "\nUsage:\n chcpu [options]\n\nConfigure CPUs in a multi-processor system.\n\nOptions:\n -e, --enable <cpu-list>       enable cpus\n -d, --disable <cpu-list>      disable cpus\n -c, --configure <cpu-list>    configure cpus\n -g, --deconfigure <cpu-list>  deconfigure cpus\n -p, --dispatch <mode>         set dispatching mode\n -r, --rescan                  trigger rescan of cpus\n -h, --help                    display this help\n -V, --version                 display version\n\nFor more details see chcpu(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chcpu-missing-argument": {
+    "stdout": "",
+    "stderr": "chcpu: option requires an argument -- 'e'\nTry 'chcpu --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chcpu-version": {
+    "stdout": "chcpu from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

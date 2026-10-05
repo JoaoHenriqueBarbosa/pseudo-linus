@@ -1,0 +1,38 @@
+{
+  "uclampset-bad-long-option": {
+    "stdout": "",
+    "stderr": "uclampset: unrecognized option '--nope'\nTry 'uclampset --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "uclampset-bad-option": {
+    "stdout": "",
+    "stderr": "uclampset: invalid option -- 'Z'\nTry 'uclampset --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "uclampset-bad-pid": {
+    "stdout": "",
+    "stderr": "uclampset: invalid PID argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "uclampset-help": {
+    "stdout": "\nUsage:\n uclampset [options]\n uclampset [options] --pid <pid> | --system | <command> <arg>...\n\nShow or change the utilization clamping attributes.\n\nOptions:\n -m <value>           util_min value to set\n -M <value>           util_max value to set\n -a, --all-tasks      operate on all the tasks (threads) for a given pid\n -p, --pid <pid>      operate on existing given pid\n -s, --system         operate on system\n -R, --reset-on-fork  set reset-on-fork flag\n -v, --verbose        display status information\n -h, --help           display this help\n -V, --version        display version\n\nUtilization value range is [0:1024]. Use special -1 value to reset to system's default.\n\nFor more details see uclampset(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "uclampset-no-args": {
+    "stdout": "\nUsage:\n uclampset [options]\n uclampset [options] --pid <pid> | --system | <command> <arg>...\n\nShow or change the utilization clamping attributes.\n\nOptions:\n -m <value>           util_min value to set\n -M <value>           util_max value to set\n -a, --all-tasks      operate on all the tasks (threads) for a given pid\n -p, --pid <pid>      operate on existing given pid\n -s, --system         operate on system\n -R, --reset-on-fork  set reset-on-fork flag\n -v, --verbose        display status information\n -h, --help           display this help\n -V, --version        display version\n\nUtilization value range is [0:1024]. Use special -1 value to reset to system's default.\n\nFor more details see uclampset(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "uclampset-version": {
+    "stdout": "uclampset from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "rtcwake-bad-long-option": {
+    "stdout": "",
+    "stderr": "rtcwake: unrecognized option '--nope'\nTry 'rtcwake --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rtcwake-bad-option": {
+    "stdout": "",
+    "stderr": "rtcwake: invalid option -- 'Z'\nTry 'rtcwake --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rtcwake-bad-seconds": {
+    "stdout": "",
+    "stderr": "rtcwake: invalid seconds argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rtcwake-help": {
+    "stdout": "\nUsage:\n rtcwake [options]\n\nEnter a system sleep state until a specified wakeup time.\n\nOptions:\n -a, --auto               reads the clock mode from adjust file (default)\n -A, --adjfile <file>     specifies the path to the adjust file\n                            the default is /etc/adjtime\n     --date <timestamp>   date time of timestamp to wake\n -d, --device <device>    select rtc device (rtc0|rtc1|...)\n -n, --dry-run            does everything, but suspend\n -l, --local              RTC uses local timezone\n     --list-modes         list available modes\n -m, --mode <mode>        standby|mem|... sleep mode\n -s, --seconds <seconds>  seconds to sleep\n -t, --time <time_t>      time to wake\n -u, --utc                RTC uses UTC\n -v, --verbose            verbose messages\n\n -h, --help               display this help\n -V, --version            display version\n\nFor more details see rtcwake(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rtcwake-no-wake-time": {
+    "stdout": "rtcwake: assuming RTC uses UTC ...\n",
+    "stderr": "rtcwake: must provide wake time (see --seconds, --time and --date options)\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rtcwake-version": {
+    "stdout": "rtcwake from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

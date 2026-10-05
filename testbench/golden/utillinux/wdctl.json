@@ -1,0 +1,38 @@
+{
+  "wdctl-bad-long-option": {
+    "stdout": "",
+    "stderr": "wdctl: unrecognized option '--nope'\nTry 'wdctl --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wdctl-bad-option": {
+    "stdout": "",
+    "stderr": "wdctl: invalid option -- 'Z'\nTry 'wdctl --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wdctl-help": {
+    "stdout": "\nUsage:\n wdctl [options] [<device> ...]\n\nShow the status of the hardware watchdog.\n\nOptions:\n -f, --flags <list>     print selected flags only\n -F, --noflags          don't print information about flags\n -I, --noident          don't print watchdog identity information\n -n, --noheadings       don't print headings for flags table\n -O, --oneline          print all information on one line\n -o, --output <list>    output columns of the flags\n -p, --setpretimeout <sec> set watchdog pre-timeout\n -g, --setpregovernor <name> set pre-timeout governor\n -r, --raw              use raw output format for flags table\n -T, --notimeouts       don't print watchdog timeouts\n -s, --settimeout <sec> set watchdog timeout\n -x, --flags-only       print only flags table (same as -I -T)\n\n -h, --help             display this help\n -V, --version          display version\n\nNo default device is available.\n\nAvailable output columns:\n          FLAG  flag name\n   DESCRIPTION  flag description\n        STATUS  flag status\n   BOOT-STATUS  flag boot status\n        DEVICE  watchdog device name\n\nFor more details see wdctl(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "wdctl-missing-device": {
+    "stdout": "",
+    "stderr": "wdctl: cannot read information about /nonexistent/watchdog: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wdctl-unknown-column": {
+    "stdout": "",
+    "stderr": "wdctl: unknown column: FOO\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wdctl-version": {
+    "stdout": "wdctl from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

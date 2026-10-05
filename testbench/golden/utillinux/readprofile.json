@@ -1,0 +1,32 @@
+{
+  "readprofile-bad-long-option": {
+    "stdout": "",
+    "stderr": "readprofile: unrecognized option '--nope'\nTry 'readprofile --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "readprofile-bad-option": {
+    "stdout": "",
+    "stderr": "readprofile: invalid option -- 'Z'\nTry 'readprofile --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "readprofile-help": {
+    "stdout": "\nUsage:\n readprofile [options]\n\nDisplay kernel profiling information.\n\nOptions:\n -m, --mapfile <mapfile>   (defaults: \"/boot/System.map\" and\n                                      \"/boot/System.map-6.12.101+deb13-amd64\")\n -p, --profile <pro-file>  (default:  \"/proc/profile\")\n -M, --multiplier <mult>   set the profiling multiplier to <mult>\n -i, --info                print only info about the sampling step\n -v, --verbose             print verbose data\n -a, --all                 print all symbols, even if count is 0\n -b, --histbin             print individual histogram-bin counts\n -s, --counters            print individual counters within functions\n -r, --reset               reset all the counters (root only)\n -n, --no-auto             disable byte order auto-detection\n\n -h, --help                display this help\n -V, --version             display version\n\nFor more details see readprofile(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "readprofile-missing-profile": {
+    "stdout": "",
+    "stderr": "readprofile: /nonexistent/profile: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "readprofile-version": {
+    "stdout": "readprofile from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
