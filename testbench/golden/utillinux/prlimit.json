@@ -1,0 +1,80 @@
+{
+  "prlimit-bad-column": {
+    "stdout": "",
+    "stderr": "prlimit: unknown column: NOPE\n",
+    "exit": 1,
+    "files": {}
+  },
+  "prlimit-bad-limit": {
+    "stdout": "",
+    "stderr": "prlimit: failed to parse NOFILE limit\n",
+    "exit": 1,
+    "files": {}
+  },
+  "prlimit-bad-limit-colon": {
+    "stdout": "",
+    "stderr": "prlimit: failed to parse CORE limit\n",
+    "exit": 1,
+    "files": {}
+  },
+  "prlimit-bad-long-option": {
+    "stdout": "",
+    "stderr": "prlimit: unrecognized option '--nope'\nTry 'prlimit --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "prlimit-bad-option": {
+    "stdout": "",
+    "stderr": "prlimit: invalid option -- 'Z'\nTry 'prlimit --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "prlimit-bad-pid": {
+    "stdout": "",
+    "stderr": "prlimit: invalid PID argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "prlimit-core-raw-noheadings": {
+    "stdout": "CORE bytes\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "prlimit-cpu-columns": {
+    "stdout": "RESOURCE DESCRIPTION      SOFT      HARD UNITS\nCPU      CPU time    unlimited unlimited seconds\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "prlimit-help": {
+    "stdout": "\nUsage:\n prlimit [options] [--<resource>=<limit>] [-p PID]\n prlimit [options] [--<resource>=<limit>] COMMAND\n\nShow or change the resource limits of a process.\n\nOptions:\n -p, --pid <pid>        process id\n -o, --output <list>    define which output columns to use\n     --noheadings       don't print headings\n     --raw              use the raw output format\n     --verbose          verbose output\n -h, --help             display this help\n -V, --version          display version\n\nResources:\n -c, --core             maximum size of core files created\n -d, --data             maximum size of a process's data segment\n -e, --nice             maximum nice priority allowed to raise\n -f, --fsize            maximum size of files written by the process\n -i, --sigpending       maximum number of pending signals\n -l, --memlock          maximum size a process may lock into memory\n -m, --rss              maximum resident set size\n -n, --nofile           maximum number of open files\n -q, --msgqueue         maximum bytes in POSIX message queues\n -r, --rtprio           maximum real-time scheduling priority\n -s, --stack            maximum stack size\n -t, --cpu              maximum amount of CPU time in seconds\n -u, --nproc            maximum number of user processes\n -v, --as               size of virtual memory\n -x, --locks            maximum number of file locks\n -y, --rttime           CPU time in microseconds a process scheduled\n                        under real-time scheduling\n\nArguments:\n <limit> is defined as a range soft:hard, soft:, :hard or a value to\n         define both limits (e.g. -e=0:10 -r=:10).\n\nAvailable output columns:\n DESCRIPTION  resource description\n    RESOURCE  resource name\n        SOFT  soft limit\n        HARD  hard limit (ceiling)\n       UNITS  units\n\nFor more details see prlimit(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "prlimit-nonexistent-pid": {
+    "stdout": "",
+    "stderr": "prlimit: failed to get the NOFILE resource limit: No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "prlimit-pid-and-command": {
+    "stdout": "",
+    "stderr": "prlimit: options --pid and COMMAND are mutually exclusive\n",
+    "exit": 1,
+    "files": {}
+  },
+  "prlimit-set-and-show-via-command": {
+    "stdout": "64\n128\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "prlimit-version": {
+    "stdout": "prlimit from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

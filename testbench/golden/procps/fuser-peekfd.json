@@ -1,0 +1,56 @@
+{
+  "fuser-invalid-option": {
+    "stdout": "Q: unknown signal; fuser -l lists signals.\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fuser-list-signals": {
+    "stdout": "HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fuser-missing-file": {
+    "stdout": "Specified filename /nonexistent-path-xyz does not exist.\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fuser-no-args-usage": {
+    "stdout": "No process specification given\nUsage: fuser [-fIMuvw] [-a|-s] [-4|-6] [-c|-m|-n SPACE]\n             [-k [-i] [-SIGNAL]] NAME...\n       fuser -l\n       fuser -V\nShow which processes use the named files, sockets, or filesystems.\n\n  -a,--all              display unused files too\n  -i,--interactive      ask before killing (ignored without -k)\n  -I,--inode            use always inodes to compare files\n  -k,--kill             kill processes accessing the named file\n  -l,--list-signals     list available signal names\n  -m,--mount            show all processes using the named filesystems or\n                        block device\n  -M,--ismountpoint     fulfill request only if NAME is a mount point\n  -n,--namespace SPACE  search in this name space (file, udp, or tcp)\n  -s,--silent           silent operation\n  -SIGNAL               send this signal instead of SIGKILL\n  -u,--user             display user IDs\n  -v,--verbose          verbose output\n  -w,--writeonly        kill only processes with write access\n  -V,--version          display version information\n  -4,--ipv4             search IPv4 sockets only\n  -6,--ipv6             search IPv6 sockets only\n  udp/tcp names: [local_port][,[rmt_host][,[rmt_port]]]\n\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fuser-version": {
+    "stdout": "fuser (PSmisc) 23.7\nCopyright (C) 1993-2024 Werner Almesberger and Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "peekfd-help": {
+    "stdout": "Usage: peekfd [-8] [-n] [-c] [-d] [-V] [-h] <pid> [<fd> ..]\n    -8, --eight-bit-clean        output 8 bit clean streams.\n    -n, --no-headers             don't display read/write from fd headers.\n    -c, --follow                 peek at any new child processes too.\n    -t, --tgid                   peek at all threads where tgid equals <pid>.\n    -d, --duplicates-removed     remove duplicate read/writes from the output.\n    -V, --version                prints version info.\n    -h, --help                   prints this help.\n\n  Press CTRL-C to end output.\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "peekfd-invalid-option": {
+    "stdout": "peekfd: invalid option -- 'Z'\nUsage: peekfd [-8] [-n] [-c] [-d] [-V] [-h] <pid> [<fd> ..]\n    -8, --eight-bit-clean        output 8 bit clean streams.\n    -n, --no-headers             don't display read/write from fd headers.\n    -c, --follow                 peek at any new child processes too.\n    -t, --tgid                   peek at all threads where tgid equals <pid>.\n    -d, --duplicates-removed     remove duplicate read/writes from the output.\n    -V, --version                prints version info.\n    -h, --help                   prints this help.\n\n  Press CTRL-C to end output.\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "peekfd-no-args-usage": {
+    "stdout": "Usage: peekfd [-8] [-n] [-c] [-d] [-V] [-h] <pid> [<fd> ..]\n    -8, --eight-bit-clean        output 8 bit clean streams.\n    -n, --no-headers             don't display read/write from fd headers.\n    -c, --follow                 peek at any new child processes too.\n    -t, --tgid                   peek at all threads where tgid equals <pid>.\n    -d, --duplicates-removed     remove duplicate read/writes from the output.\n    -V, --version                prints version info.\n    -h, --help                   prints this help.\n\n  Press CTRL-C to end output.\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "peekfd-version": {
+    "stdout": "peekfd (PSmisc) 23.7\nCopyright (C) 2007 Trent Waddington\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
