@@ -1,11 +1,13 @@
 //! Tokenizer do CPython 3.13.5, port do `Parser/tokenizer.c` (e do `Parser/lexer/lexer.c`, para onde
-//! o 3.13 moveu o `tok_get_normal_mode`).
+//! o 3.13 moveu o `tok_get_normal_mode` e o `tok_get_fstring_mode`).
 //!
 //! Cobre nomes (ASCII e Unicode), números (inteiros decimal, hexadecimal, octal e binário com `_`,
 //! float, imaginário e os erros "invalid ... literal"), operadores, NEWLINE/NL, INDENT/DEDENT com as
 //! pilhas `indstack`/`altindstack`, comentários, continuação com `\`, a pilha de parênteses e o
-//! ENDMARKER. Os literais de string entram por `string_literal`; a fatia 4 do plano
-//! (`docs/python3-port.md`) completa esse ponto (f-strings e o restante).
+//! ENDMARKER. Os literais de string entram por `string_literal` e as f-strings pela pilha de modos
+//! (`tok_mode_stack` do C): FSTRING_START abre um modo f-string, o texto literal sai em
+//! FSTRING_MIDDLE, cada `{` devolve o tokenizer ao modo normal até o `}` correspondente (ou até o `:`
+//! do format spec) e FSTRING_END fecha o modo. A decodificação dos escapes fica em `strings`.
 //!
 //! Há dois modos, como no C: `Mode::Tokenize` equivale ao `tok_extra_tokens` do módulo `tokenize`
 //! (emite COMMENT e NL, não reclama de `1if` nem de parêntese desbalanceado) e `Mode::Parser` é o que o
@@ -19,12 +21,20 @@ use std::fmt;
 
 use crate::token::{exact_type, TokenType};
 
+mod strings;
+
+pub use strings::{decode_string, parse_literal, DecodeError, Decoded, StringFlags, Value};
+
 /// `TABSIZE` do tokenizer: tab avança até o próximo múltiplo de 8.
 const TABSIZE: usize = 8;
 /// `MAXINDENT`: profundidade máxima da pilha de indentação.
 const MAXINDENT: usize = 100;
 /// `MAXLEVEL`: parênteses aninhados no máximo.
 const MAXLEVEL: usize = 200;
+/// `MAXFSTRINGLEVEL`: tamanho máximo da pilha de modos, contando o modo base.
+const MAXFSTRINGLEVEL: usize = 150;
+/// `MAX_EXPR_NESTING`: campos de substituição aninhados em format specs.
+const MAX_EXPR_NESTING: isize = 3;
 
 /// Modo de operação (ver o doc do módulo).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -76,8 +86,6 @@ pub enum ErrorKind {
     Indentation,
     /// `TabError`.
     Tab,
-    /// Construção que este tokenizer ainda não reconhece (f-strings, fatia 4 do plano).
-    Unsupported,
 }
 
 /// Erro do tokenizer, com a localização que o CPython põe no `SyntaxError`.
@@ -97,7 +105,7 @@ impl fmt::Display for TokenizeError {
     }
 }
 
-/// `SyntaxWarning` emitido pelo tokenizer (por exemplo `1if x else y`).
+/// `SyntaxWarning` emitido pelo tokenizer (por exemplo `1if x else y` ou `f"\{"`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Warning {
     pub msg: String,
@@ -110,6 +118,26 @@ struct Paren {
     ch: char,
     line: usize,
     col: usize,
+}
+
+/// Uma f-string aberta na `tok_mode_stack` (`tokenizer_mode` do C). O modo base, fora de qualquer
+/// f-string, é a pilha vazia.
+struct FStringMode {
+    /// `kind == TOK_REGULAR_MODE`: dentro de uma expressão `{...}` desta f-string.
+    regular: bool,
+    quote: char,
+    quote_size: usize,
+    raw: bool,
+    /// Índice do início do prefixo (`f_string_start`).
+    start: usize,
+    /// Linha e início de linha onde a f-string começou, para o erro de f-string não terminada.
+    start_line: usize,
+    multi_line_start: usize,
+    /// Parênteses de qualquer tipo abertos dentro das expressões desta f-string.
+    curly_depth: isize,
+    /// Valor de `curly_depth` em que o campo de substituição atual começou; -1 fora de um campo.
+    expr_start_depth: isize,
+    in_format_spec: bool,
 }
 
 /// Estágios do `tok_get` para números, no lugar dos `goto fraction/exponent/imaginary` do C.
@@ -143,6 +171,8 @@ pub struct Tokenizer {
     finished: bool,
     mode: Mode,
     warnings: Vec<Warning>,
+    /// F-strings abertas, a mais interna no topo.
+    modes: Vec<FStringMode>,
 }
 
 fn is_digit(c: Option<char>) -> bool {
@@ -306,6 +336,7 @@ impl Tokenizer {
             finished: false,
             mode,
             warnings: Vec::new(),
+            modes: Vec::new(),
         }
     }
 
@@ -475,10 +506,14 @@ impl Tokenizer {
         Ok(false)
     }
 
+    /// `tok_get`: despacha para o modo f-string quando o topo da pilha de modos está nele; senão é o
     /// `tok_get_normal_mode`, com COMMENT e NL sempre emitidos (o modo parser os filtra).
     fn next_raw(&mut self) -> Result<Token, TokenizeError> {
         if self.finished {
             return Ok(self.token(TokenType::Endmarker, self.pos));
+        }
+        if self.modes.last().is_some_and(|m| !m.regular) {
+            return self.fstring_mode();
         }
         let mut blankline = false;
         if self.atbol {
@@ -570,8 +605,23 @@ impl Tokenizer {
         }
     }
 
-    /// Operadores de dois e três caracteres, pilha de parênteses e operador de um caractere.
+    /// Operadores de dois e três caracteres, pilha de parênteses e operador de um caractere. Dentro
+    /// da expressão de uma f-string, o `:` no nível do campo abre o format spec e os parênteses
+    /// contam em `curly_depth`.
     fn operator(&mut self, start: usize, ch: char) -> Result<Token, TokenizeError> {
+        // Antes dos operadores de dois caracteres, como no C: `f"{x:=5}"` é `x` com spec `=5`.
+        let opens_spec = ch == ':'
+            && self
+                .modes
+                .last()
+                .is_some_and(|m| m.expr_start_depth >= 0 && m.curly_depth - 1 == m.expr_start_depth);
+        if opens_spec {
+            if let Some(m) = self.modes.last_mut() {
+                m.regular = false;
+                m.in_format_spec = true;
+            }
+            return Ok(self.token(TokenType::Colon, start));
+        }
         let c2 = self.nextc();
         if let Some(c2) = c2 {
             let two: String = [ch, c2].iter().collect();
@@ -595,14 +645,23 @@ impl Tokenizer {
                     return Err(self.syntax_error("too many nested parentheses"));
                 }
                 self.parens.push(Paren { ch, line: self.line, col: start - self.line_start });
+                if let Some(m) = self.modes.last_mut() {
+                    m.curly_depth += 1;
+                }
             }
             ')' | ']' | '}' => {
+                if ch == '}' && self.modes.last().is_some_and(|m| m.curly_depth == 0) {
+                    return Err(self.syntax_error("f-string: single '}' is not allowed"));
+                }
                 if self.mode == Mode::Parser && self.parens.is_empty() {
                     return Err(self.syntax_error(format!("unmatched '{ch}'")));
                 }
                 if let Some(open) = self.parens.pop() {
                     let matches = matches!((open.ch, ch), ('(', ')') | ('[', ']') | ('{', '}'));
                     if self.mode == Mode::Parser && !matches {
+                        if !self.modes.is_empty() && open.ch == '{' {
+                            return Err(self.syntax_error(format!("f-string: unmatched '{ch}'")));
+                        }
                         let msg = if open.line != self.line {
                             format!(
                                 "closing parenthesis '{ch}' does not match opening parenthesis '{}' on line {}",
@@ -613,6 +672,20 @@ impl Tokenizer {
                         };
                         return Err(self.syntax_error(msg));
                     }
+                }
+                let mut underflow = false;
+                if let Some(m) = self.modes.last_mut() {
+                    m.curly_depth -= 1;
+                    underflow = m.curly_depth < 0;
+                    if !underflow && ch == '}' && m.curly_depth == m.expr_start_depth {
+                        // Fim do campo de substituição: volta ao texto da f-string.
+                        m.expr_start_depth -= 1;
+                        m.regular = false;
+                        m.in_format_spec = false;
+                    }
+                }
+                if underflow {
+                    return Err(self.syntax_error(format!("f-string: unmatched '{ch}'")));
                 }
             }
             _ => {}
@@ -638,7 +711,7 @@ impl Tokenizer {
             }
             c = self.nextc();
             if let Some(q @ ('"' | '\'')) = c {
-                return self.string_literal(start, q);
+                return if saw_f { self.fstring_start(start, q) } else { self.string_literal(start, q) };
             }
         }
         let mut nonascii = false;
@@ -907,19 +980,12 @@ impl Tokenizer {
         }
     }
 
-    /// Literal de string; `start` aponta para o início do prefixo (ou para a aspa) e a aspa de
-    /// abertura `quote` já foi lida. Encontra o fim do literal como o C: aspas simples ou triplas,
-    /// barra invertida pulando o caractere seguinte (inclusive a nova linha) e os erros de literal
-    /// não terminado. f-strings (FSTRING_START/MIDDLE/END) são a fatia 4 do plano.
+    /// Literal de string que não é f-string; `start` aponta para o início do prefixo (ou para a
+    /// aspa) e a aspa de abertura `quote` já foi lida. Encontra o fim do literal como o C: aspas
+    /// simples ou triplas, barra invertida pulando o caractere seguinte (inclusive a nova linha) e os
+    /// erros de literal não terminado. Dentro de uma f-string, uma aspa igual à dela que não fecha
+    /// vira "f-string: expecting '}'".
     fn string_literal(&mut self, start: usize, quote: char) -> Result<Token, TokenizeError> {
-        if self.src[start..self.pos].iter().any(|&c| c == 'f' || c == 'F') {
-            let offset = start - self.line_start + 1;
-            return Err(self.error(
-                ErrorKind::Unsupported,
-                "f-string literals are not tokenized yet".to_string(),
-                offset,
-            ));
-        }
         let start_pos = self.here(start);
         let first_line = self.line;
         let multi_line_start = self.line_start;
@@ -943,7 +1009,10 @@ impl Tokenizer {
                 // Com EOF, a última nova linha já foi contada.
                 let detected = if c.is_none() { self.line - 1 } else { self.line };
                 let offset = start - multi_line_start + 1;
-                let msg = if quote_size == 3 {
+                let same_quote = self.modes.last().is_some_and(|m| m.quote == quote && m.quote_size == quote_size);
+                let msg = if same_quote {
+                    "f-string: expecting '}'".to_string()
+                } else if quote_size == 3 {
                     format!("unterminated triple-quoted string literal (detected at line {detected})")
                 } else {
                     format!("unterminated string literal (detected at line {detected})")
@@ -971,6 +1040,170 @@ impl Tokenizer {
             }
         }
         Ok(Token { kind: TokenType::String, text: self.text(start, self.pos), start: start_pos, end: self.here(self.pos) })
+    }
+
+    /// Início de f-string (o rótulo `f_string_quote` do C): `start` aponta para o prefixo e a aspa
+    /// de abertura já foi lida. Empilha o modo e devolve FSTRING_START com prefixo e aspas.
+    fn fstring_start(&mut self, start: usize, quote: char) -> Result<Token, TokenizeError> {
+        let mut quote_size = 1;
+        if self.src.get(self.pos) == Some(&quote) && self.src.get(self.pos + 1) == Some(&quote) {
+            self.pos += 2;
+            quote_size = 3;
+        }
+        if self.modes.len() + 1 >= MAXFSTRINGLEVEL {
+            return Err(self.syntax_error("too many nested f-strings"));
+        }
+        let prefix_end = self.pos - quote_size;
+        let raw = self.src[start..prefix_end].iter().any(|&c| c == 'r' || c == 'R');
+        self.modes.push(FStringMode {
+            regular: false,
+            quote,
+            quote_size,
+            raw,
+            start,
+            start_line: self.line,
+            multi_line_start: self.line_start,
+            curly_depth: 0,
+            expr_start_depth: -1,
+            in_format_spec: false,
+        });
+        Ok(self.token(TokenType::FstringStart, start))
+    }
+
+    /// Entra na expressão de um campo `{...}` da f-string do topo; o `{` ainda não foi consumido.
+    fn enter_expression(&mut self, reset_spec: bool) -> Result<(), TokenizeError> {
+        let Some(m) = self.modes.last_mut() else { return Ok(()) };
+        m.expr_start_depth += 1;
+        if m.expr_start_depth >= MAX_EXPR_NESTING {
+            return Err(self.syntax_error("f-string: expressions nested too deeply"));
+        }
+        if let Some(m) = self.modes.last_mut() {
+            m.regular = true;
+            if reset_spec {
+                m.in_format_spec = false;
+            }
+        }
+        Ok(())
+    }
+
+    /// FSTRING_MIDDLE de `start` (posição já calculada em `start_pos`) até `end`.
+    fn middle(&self, start: usize, start_pos: Pos, end: usize) -> Token {
+        Token { kind: TokenType::FstringMiddle, text: self.text(start, end), start: start_pos, end: self.here(end) }
+    }
+
+    /// "unterminated f-string literal", apontando para o início do prefixo como o C.
+    fn unterminated_fstring(&self, at_eof: bool) -> TokenizeError {
+        let detected = if at_eof { self.line - 1 } else { self.line };
+        let (line, offset, triple) = match self.modes.last() {
+            Some(m) => (m.start_line, m.start - m.multi_line_start + 1, m.quote_size == 3),
+            None => (self.line, 1, false),
+        };
+        let msg = if triple {
+            format!("unterminated triple-quoted f-string literal (detected at line {detected})")
+        } else {
+            format!("unterminated f-string literal (detected at line {detected})")
+        };
+        TokenizeError { kind: ErrorKind::Syntax, msg, line, offset, end_line: line, end_offset: offset }
+    }
+
+    /// `tok_get_fstring_mode`: texto literal da f-string do topo até um `{` de campo, um `}`, ou as
+    /// aspas de fechamento (que saem como FSTRING_END na chamada seguinte).
+    fn fstring_mode(&mut self) -> Result<Token, TokenizeError> {
+        let start = self.pos;
+        let start_pos = self.here(start);
+        // Começando por `{` (que não seja `{{`), não há texto: a expressão é tokenizada no modo normal.
+        if self.src.get(start) == Some(&'{') && self.src.get(start + 1) != Some(&'{') {
+            self.enter_expression(false)?;
+            return self.next_raw();
+        }
+        let Some(m) = self.modes.last() else { return self.next_raw() };
+        let (quote, quote_size, raw) = (m.quote, m.quote_size, m.raw);
+        if (0..quote_size).all(|i| self.src.get(start + i) == Some(&quote)) {
+            self.pos += quote_size;
+            self.modes.pop();
+            return Ok(self.token(TokenType::FstringEnd, start));
+        }
+        let mut end_quote_size = 0;
+        let mut unicode_escape = false;
+        while end_quote_size != quote_size {
+            let c = self.nextc();
+            let in_format_spec = self.modes.last().is_some_and(|m| m.in_format_spec);
+            if c.is_none() || (quote_size == 1 && c == Some('\n')) {
+                if in_format_spec && c == Some('\n') {
+                    return Err(self.syntax_error(
+                        "f-string: newlines are not allowed in format specifiers for single quoted f-strings",
+                    ));
+                }
+                return Err(self.unterminated_fstring(c.is_none()));
+            }
+            if c == Some(quote) {
+                end_quote_size += 1;
+                continue;
+            }
+            end_quote_size = 0;
+            match c {
+                Some('{') => {
+                    let peek = self.nextc();
+                    if peek != Some('{') || in_format_spec {
+                        self.backup(peek);
+                        self.backup(c);
+                        self.enter_expression(true)?;
+                        return Ok(self.middle(start, start_pos, self.pos));
+                    }
+                    // `{{`: o texto inclui um `{` e o segundo é pulado.
+                    return Ok(self.middle(start, start_pos, self.pos - 1));
+                }
+                Some('}') => {
+                    if unicode_escape {
+                        // O `}` que fecha um `\N{...}`.
+                        return Ok(self.middle(start, start_pos, self.pos));
+                    }
+                    let peek = self.nextc();
+                    let top_level = self.modes.last().is_some_and(|m| m.curly_depth == 0);
+                    if peek == Some('}') && !in_format_spec && top_level {
+                        return Ok(self.middle(start, start_pos, self.pos - 1));
+                    }
+                    // Fim do format spec, ou `}` sozinho: o modo normal decide (e reclama do sozinho).
+                    self.backup(peek);
+                    self.backup(c);
+                    if let Some(m) = self.modes.last_mut() {
+                        m.regular = true;
+                        m.in_format_spec = false;
+                    }
+                    return Ok(self.middle(start, start_pos, self.pos));
+                }
+                Some('\\') => {
+                    let peek = self.nextc();
+                    if matches!(peek, Some('{' | '}')) {
+                        if !raw {
+                            let ch = peek.unwrap_or('{');
+                            self.warnings.push(Warning {
+                                msg: format!("invalid escape sequence '\\{ch}'"),
+                                line: self.line,
+                                offset: self.pos - self.line_start,
+                            });
+                        }
+                        self.backup(peek);
+                        continue;
+                    }
+                    if peek == Some('\n') {
+                        self.new_line();
+                    } else if !raw && peek == Some('N') {
+                        let after = self.nextc();
+                        if after == Some('{') {
+                            unicode_escape = true;
+                        } else {
+                            self.backup(after);
+                        }
+                    }
+                }
+                Some('\n') => self.new_line(),
+                _ => {}
+            }
+        }
+        // As aspas de fechamento ficam para o FSTRING_END.
+        self.pos -= quote_size;
+        Ok(self.middle(start, start_pos, self.pos))
     }
 }
 
@@ -1008,6 +1241,10 @@ mod tests {
                 )
             })
             .collect()
+    }
+
+    fn kinds(src: &str) -> Vec<&'static str> {
+        tokenize(src, Mode::Parser).unwrap().iter().map(|t| t.kind.name()).collect()
     }
 
     fn err(src: &str, mode: Mode) -> TokenizeError {
@@ -1261,5 +1498,154 @@ mod tests {
         assert!(tokenize(")", Mode::Tokenize).is_ok());
         let e = err("x \\ y\n", Mode::Parser);
         assert_eq!(e.msg, "unexpected character after line continuation character");
+    }
+
+    #[test]
+    fn fstring_with_conversion_and_format_spec() {
+        assert_eq!(
+            dump("f\"a{x!r:>10}b\"\n", Mode::Tokenize),
+            [
+                "1,0-1,2:FSTRING_START:'f\"'",
+                "1,2-1,3:FSTRING_MIDDLE:'a'",
+                "1,3-1,4:LBRACE:'{'",
+                "1,4-1,5:NAME:'x'",
+                "1,5-1,6:EXCLAMATION:'!'",
+                "1,6-1,7:NAME:'r'",
+                "1,7-1,8:COLON:':'",
+                "1,8-1,11:FSTRING_MIDDLE:'>10'",
+                "1,11-1,12:RBRACE:'}'",
+                "1,12-1,13:FSTRING_MIDDLE:'b'",
+                "1,13-1,14:FSTRING_END:'\"'",
+                "1,14-1,15:NEWLINE:'\\n'",
+                "2,0-2,0:ENDMARKER:''",
+            ]
+        );
+    }
+
+    #[test]
+    fn fstring_doubled_braces() {
+        assert_eq!(
+            dump("f'{{a}}'\n", Mode::Tokenize),
+            [
+                "1,0-1,2:FSTRING_START:'f''",
+                "1,2-1,3:FSTRING_MIDDLE:'{'",
+                "1,4-1,6:FSTRING_MIDDLE:'a}'",
+                "1,7-1,8:FSTRING_END:'''",
+                "1,8-1,9:NEWLINE:'\\n'",
+                "2,0-2,0:ENDMARKER:''",
+            ]
+        );
+    }
+
+    #[test]
+    fn fstring_nested_with_same_quotes() {
+        assert_eq!(
+            dump("f\"{f\"{x}\"}\"\n", Mode::Tokenize),
+            [
+                "1,0-1,2:FSTRING_START:'f\"'",
+                "1,2-1,3:LBRACE:'{'",
+                "1,3-1,5:FSTRING_START:'f\"'",
+                "1,5-1,6:LBRACE:'{'",
+                "1,6-1,7:NAME:'x'",
+                "1,7-1,8:RBRACE:'}'",
+                "1,8-1,9:FSTRING_END:'\"'",
+                "1,9-1,10:RBRACE:'}'",
+                "1,10-1,11:FSTRING_END:'\"'",
+                "1,11-1,12:NEWLINE:'\\n'",
+                "2,0-2,0:ENDMARKER:''",
+            ]
+        );
+    }
+
+    #[test]
+    fn fstring_debug_and_walrus_spec() {
+        assert_eq!(
+            kinds("f'{x=}'\n"),
+            ["FSTRING_START", "LBRACE", "NAME", "EQUAL", "RBRACE", "FSTRING_END", "NEWLINE", "ENDMARKER"]
+        );
+        // No nível do campo, `:` abre o spec antes de `:=` ser reconhecido.
+        assert_eq!(
+            kinds("f'{x:=5}'\n"),
+            ["FSTRING_START", "LBRACE", "NAME", "COLON", "FSTRING_MIDDLE", "RBRACE", "FSTRING_END", "NEWLINE", "ENDMARKER"]
+        );
+        // Entre parênteses, `:=` e `:` de lambda são operadores normais.
+        assert_eq!(
+            kinds("f'{(y:=1)}'\n"),
+            [
+                "FSTRING_START", "LBRACE", "LPAR", "NAME", "COLONEQUAL", "NUMBER", "RPAR", "RBRACE", "FSTRING_END",
+                "NEWLINE", "ENDMARKER",
+            ]
+        );
+    }
+
+    #[test]
+    fn fstring_nested_format_spec() {
+        let toks = tokenize("f'{x:{w}.{p}}'\n", Mode::Parser).unwrap();
+        let texts: Vec<&str> = toks.iter().map(|t| t.text.as_str()).collect();
+        assert_eq!(texts[..8], ["f'", "{", "x", ":", "{", "w", "}", "."]);
+        assert_eq!(toks[7].kind, TokenType::FstringMiddle);
+        assert!(toks.iter().any(|t| t.kind == TokenType::FstringEnd));
+    }
+
+    #[test]
+    fn fstring_triple_quoted_multiline() {
+        assert_eq!(
+            dump("f\"\"\"a\n{x}\"\"\"\n", Mode::Tokenize),
+            [
+                "1,0-1,4:FSTRING_START:'f\"\"\"'",
+                "1,4-2,0:FSTRING_MIDDLE:'a\\n'",
+                "2,0-2,1:LBRACE:'{'",
+                "2,1-2,2:NAME:'x'",
+                "2,2-2,3:RBRACE:'}'",
+                "2,3-2,6:FSTRING_END:'\"\"\"'",
+                "2,6-2,7:NEWLINE:'\\n'",
+                "3,0-3,0:ENDMARKER:''",
+            ]
+        );
+    }
+
+    #[test]
+    fn fstring_prefixes_and_escapes() {
+        let mut t = Tokenizer::new("rf\"\\{x}\" Fr'' f\"\\{x}\"\n", Mode::Parser);
+        let mut toks = Vec::new();
+        loop {
+            let tok = t.next_token().unwrap();
+            let end = tok.kind == TokenType::Endmarker;
+            toks.push(tok);
+            if end {
+                break;
+            }
+        }
+        assert_eq!(toks[0].text, "rf\"");
+        assert_eq!((toks[1].kind, toks[1].text.as_str()), (TokenType::FstringMiddle, "\\"));
+        assert_eq!(toks[5].kind, TokenType::FstringEnd);
+        assert_eq!(toks[6].text, "Fr'");
+        assert_eq!(toks[7].kind, TokenType::FstringEnd);
+        assert_eq!(t.warnings().len(), 1);
+        assert_eq!(t.warnings()[0].msg, "invalid escape sequence '\\{'");
+        // `\N{...}` termina o FSTRING_MIDDLE no `}` do nome.
+        let toks = tokenize("f\"\\N{BULLET} x\"\n", Mode::Parser).unwrap();
+        assert_eq!(toks[1].text, "\\N{BULLET}");
+        assert_eq!(toks[2].text, " x");
+        assert_eq!(toks[3].kind, TokenType::FstringEnd);
+    }
+
+    #[test]
+    fn fstring_errors() {
+        let e = err("x = f\"abc\n", Mode::Parser);
+        assert_eq!((e.msg.as_str(), e.line, e.offset), ("unterminated f-string literal (detected at line 1)", 1, 5));
+        let e = err("f'''abc\n", Mode::Parser);
+        assert_eq!(e.msg, "unterminated triple-quoted f-string literal (detected at line 1)");
+        let e = err("f\"{x\"\n", Mode::Parser);
+        assert_eq!((e.msg.as_str(), e.offset), ("f-string: expecting '}'", 5));
+        assert_eq!(err("f\"}\"\n", Mode::Parser).msg, "f-string: single '}' is not allowed");
+        assert_eq!(err("f\"{x)}\"\n", Mode::Parser).msg, "f-string: unmatched ')'");
+        assert_eq!(
+            err("f'{x:\n}'\n", Mode::Parser).msg,
+            "f-string: newlines are not allowed in format specifiers for single quoted f-strings"
+        );
+        assert_eq!(err("f'{a:{b:{c:{d}}}}'\n", Mode::Parser).msg, "f-string: expressions nested too deeply");
+        // Aspas diferentes das da f-string continuam sendo string comum não terminada.
+        assert_eq!(err("f\"{'x}\"\n", Mode::Parser).msg, "unterminated string literal (detected at line 1)");
     }
 }
