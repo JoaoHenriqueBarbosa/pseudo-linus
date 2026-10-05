@@ -121,7 +121,10 @@ pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) ->
 }
 
 /// Funções embutidas desta fatia.
-const BUILTINS: &[&str] = &["print", "len", "range", "str", "int", "repr", "open"];
+const BUILTINS: &[&str] = &[
+    "print", "len", "range", "str", "int", "repr", "open", "list", "tuple", "bool", "float", "abs", "min",
+    "max", "sum", "sorted", "reversed", "enumerate", "zip", "any", "all", "ord", "chr",
+];
 
 /// Iterador de um laço `for`, que vive na pilha da VM e não é um `Value`.
 enum PyIter {
@@ -680,7 +683,7 @@ impl Vm {
             }
             return Ok(Value::Exception(Rc::new(ExcObj { kind, args })));
         }
-        if !matches!(name, "print" | "open" | "csv.reader" | "csv.writer" | "json.dumps")
+        if !matches!(name, "print" | "open" | "csv.reader" | "csv.writer" | "json.dumps" | "sorted" | "enumerate")
             && let Some((kw, _)) = kwargs.first() {
                 return Err(type_error(match name {
                     "range" | "len" | "repr" | "json.loads" => format!("{name}() takes no keyword arguments"),
@@ -735,6 +738,8 @@ impl Vm {
                 n => Err(type_error(format!("int() takes at most 2 arguments ({n} given)"))),
             },
             "range" => range_of(&args),
+            "list" | "tuple" | "bool" | "float" | "abs" | "min" | "max" | "sum" | "sorted" | "reversed"
+            | "enumerate" | "zip" | "any" | "all" | "ord" | "chr" => builtin_seq(name, args, kwargs),
             _ => Err(type_error(format!("'{}' object is not callable", func.type_name()))),
         }
     }
@@ -1142,6 +1147,193 @@ fn raise_value(v: Value) -> PyResult<PyException> {
             None => Err(type_error("exceptions must derive from BaseException")),
         },
         _ => Err(type_error("exceptions must derive from BaseException")),
+    }
+}
+
+fn list_of(items: Vec<Value>) -> Value {
+    Value::List(Rc::new(RefCell::new(items)))
+}
+
+/// Ordena com `<`, estável, propagando o `TypeError` de tipos incomparáveis.
+fn sort_values(items: &mut [Value]) -> PyResult<()> {
+    let mut err = None;
+    items.sort_by(|a, b| {
+        if err.is_some() {
+            return std::cmp::Ordering::Equal;
+        }
+        match order(CmpOp::Lt, a, b) {
+            Ok(true) => std::cmp::Ordering::Less,
+            Ok(false) => match order(CmpOp::Lt, b, a) {
+                Ok(true) => std::cmp::Ordering::Greater,
+                Ok(false) => std::cmp::Ordering::Equal,
+                Err(e) => {
+                    err = Some(e);
+                    std::cmp::Ordering::Equal
+                }
+            },
+            Err(e) => {
+                err = Some(e);
+                std::cmp::Ordering::Equal
+            }
+        }
+    });
+    err.map_or(Ok(()), Err)
+}
+
+/// Builtins sobre sequências e números (`list`, `sorted`, `min`, `sum`...).
+fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+    let at_most = |max: usize| -> PyResult<()> {
+        if args.len() > max {
+            return Err(type_error(format!("{name}() takes at most {max} argument{} ({} given)", if max == 1 { "" } else { "s" }, args.len())));
+        }
+        Ok(())
+    };
+    match name {
+        "list" | "tuple" => {
+            at_most(1)?;
+            let items = match args.first() {
+                Some(v) => collect(v)?,
+                None => Vec::new(),
+            };
+            Ok(if name == "list" { list_of(items) } else { Value::Tuple(items.into()) })
+        }
+        "bool" => {
+            at_most(1)?;
+            Ok(Value::Bool(args.first().is_some_and(Value::is_true)))
+        }
+        "float" => {
+            at_most(1)?;
+            match args.first() {
+                None => Ok(Value::Float(0.0)),
+                Some(Value::Int(i)) => Ok(Value::Float(*i as f64)),
+                Some(Value::Bool(b)) => Ok(Value::Float(f64::from(u8::from(*b)))),
+                Some(Value::Float(x)) => Ok(Value::Float(*x)),
+                Some(v @ Value::Str(s)) => {
+                    let t = s.as_str().trim().replace('_', "");
+                    let low = t.to_ascii_lowercase();
+                    let parsed = match low.trim_start_matches(['+', '-']) {
+                        "inf" | "infinity" => Some(if low.starts_with('-') { f64::NEG_INFINITY } else { f64::INFINITY }),
+                        "nan" => Some(f64::NAN),
+                        _ => t.parse::<f64>().ok().filter(|_| !low.contains("inf") && !low.contains("nan")),
+                    };
+                    parsed.map(Value::Float).ok_or_else(|| {
+                        exc("ValueError", format!("could not convert string to float: {}", repr(v)))
+                    })
+                }
+                Some(v) => Err(type_error(format!(
+                    "float() argument must be a string or a real number, not '{}'",
+                    v.type_name()
+                ))),
+            }
+        }
+        "abs" => {
+            let [v] = one_arg(name, args)?;
+            match v {
+                Value::Int(i) => i.checked_abs().map(Value::Int).ok_or_else(|| ObjError::IntOverflow.into()),
+                Value::Bool(b) => Ok(Value::Int(i64::from(b))),
+                Value::Float(x) => Ok(Value::Float(x.abs())),
+                other => Err(type_error(format!("bad operand type for abs(): '{}'", other.type_name()))),
+            }
+        }
+        "min" | "max" => {
+            let items = if args.len() == 1 { collect(&args[0])? } else { args.clone() };
+            if args.is_empty() {
+                return Err(type_error(format!("{name} expected at least 1 argument, got 0")));
+            }
+            let Some(mut best) = items.first().cloned() else {
+                return Err(exc("ValueError", format!("{name}() iterable argument is empty")));
+            };
+            let op = if name == "min" { CmpOp::Lt } else { CmpOp::Gt };
+            for x in &items[1..] {
+                if order(op, x, &best)? {
+                    best = x.clone();
+                }
+            }
+            Ok(best)
+        }
+        "sum" => {
+            let Some(first) = args.first() else {
+                return Err(type_error("sum() takes at least 1 positional argument (0 given)"));
+            };
+            let mut acc = args.get(1).cloned().unwrap_or(Value::Int(0));
+            for x in collect(first)? {
+                acc = binary(Operator::Add, &acc, &x, false)?;
+            }
+            Ok(acc)
+        }
+        "sorted" => {
+            let [v] = one_arg(name, args)?;
+            let mut items = collect(&v)?;
+            sort_values(&mut items)?;
+            for (k, val) in &kwargs {
+                match k.as_str() {
+                    "reverse" => {
+                        if val.is_true() {
+                            items.reverse();
+                        }
+                    }
+                    _ => return Err(type_error(format!("sort() got an unexpected keyword argument '{k}'"))),
+                }
+            }
+            Ok(list_of(items))
+        }
+        "reversed" => {
+            let [v] = one_arg(name, args)?;
+            let mut items = collect(&v)?;
+            items.reverse();
+            Ok(list_of(items))
+        }
+        "enumerate" => {
+            let mut start = 0i64;
+            for (k, val) in &kwargs {
+                match (k.as_str(), val) {
+                    ("start", Value::Int(i)) => start = *i,
+                    _ => return Err(type_error(format!("'{k}' is an invalid keyword argument for enumerate()"))),
+                }
+            }
+            let [v] = one_arg(name, args)?;
+            let out = collect(&v)?
+                .into_iter()
+                .enumerate()
+                .map(|(i, x)| Value::Tuple(vec![Value::Int(start + i as i64), x].into()))
+                .collect();
+            Ok(list_of(out))
+        }
+        "zip" => {
+            let cols: Vec<Vec<Value>> = args.iter().map(collect).collect::<PyResult<_>>()?;
+            let n = cols.iter().map(Vec::len).min().unwrap_or(0);
+            let out = (0..n).map(|i| Value::Tuple(cols.iter().map(|c| c[i].clone()).collect::<Vec<_>>().into())).collect();
+            Ok(list_of(out))
+        }
+        "any" | "all" => {
+            let [v] = one_arg(name, args)?;
+            let items = collect(&v)?;
+            Ok(Value::Bool(if name == "any" { items.iter().any(Value::is_true) } else { items.iter().all(Value::is_true) }))
+        }
+        "ord" => {
+            let [v] = one_arg(name, args)?;
+            match &v {
+                Value::Str(s) if s.as_str().chars().count() == 1 => {
+                    Ok(Value::Int(s.as_str().chars().next().map_or(0, |c| i64::from(u32::from(c)))))
+                }
+                Value::Str(s) => Err(type_error(format!(
+                    "ord() expected a character, but string of length {} found",
+                    s.as_str().chars().count()
+                ))),
+                other => Err(type_error(format!("ord() expected string of length 1, but {} found", other.type_name()))),
+            }
+        }
+        _ => {
+            let [v] = one_arg(name, args)?;
+            match v {
+                Value::Int(i) => u32::try_from(i)
+                    .ok()
+                    .and_then(char::from_u32)
+                    .map(|c| Value::str(c.to_string()))
+                    .ok_or_else(|| exc("ValueError", "chr() arg not in range(0x110000)")),
+                other => Err(type_error(format!("'{}' object cannot be interpreted as an integer", other.type_name()))),
+            }
+        }
     }
 }
 
