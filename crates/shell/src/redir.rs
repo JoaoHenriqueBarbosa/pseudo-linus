@@ -264,7 +264,13 @@ impl Shell {
             if let Ok(st) = s.fstatat(Fd::CWD, path, AtFlags::empty()) {
                 if st.file_type() == FileType::Regular {
                     let mut msg = path.to_vec();
-                    msg.extend_from_slice(b": cannot overwrite existing file");
+                    if self.dash_style() {
+                        // O dash: `sh: N: cannot create ARQ: File exists`.
+                        msg.splice(0..0, b"cannot create ".iter().copied());
+                        msg.extend_from_slice(b": File exists");
+                    } else {
+                        msg.extend_from_slice(b": cannot overwrite existing file");
+                    }
                     self.error_bytes(&msg);
                     return Err(RedirFailed);
                 }

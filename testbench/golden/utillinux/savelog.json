@@ -1,0 +1,1109 @@
+{
+  "savelog-bzip2": {
+    "stdout": "log.0\nlog.1.bz2\ntwo\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      },
+      "log.1.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "7408f3da0f2ad47d324e1fe7dcdef3002b7b8e8ed54111e94c6ef02e8a65d8a5",
+        "data": {
+          "b64": "QlpoOTFBWSZTWXgTwIIAAAHBAAAQAgGgACGaaDNNDLxdyRThQkHgTwII"
+        }
+      }
+    }
+  },
+  "savelog-compression-strength": {
+    "stdout": "log.0\nlog.1.gz\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "2eb6020ce975d0c3a3ef8c13b96cd5da7918ee05490a10964e0ad886e61ddc3b",
+        "data": {
+          "b64": "H4sICMDWaGkEA2xvZy4wAMvPS+UCAJ+oF/gEAAAA"
+        }
+      }
+    }
+  },
+  "savelog-compression-strength-nine": {
+    "stdout": "one\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "56c374622b3a9f111956b1364219afa68ce659648be91b5fadd596fea1f3f6ed",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wAMvPS+UCAJ+oF/gEAAAA"
+        }
+      }
+    }
+  },
+  "savelog-count-too-small": {
+    "stdout": "rc=2\nlog\n",
+    "stderr": "savelog: count must be at least 2\n",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "savelog-count-zero": {
+    "stdout": "rc=2\n",
+    "stderr": "savelog: count must be at least 2\n",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "savelog-cycle-limit": {
+    "stdout": "log.0\nlog.1.gz\nlog.2.gz\nlog.3.gz\n6\n5\n4\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "06e9d52c1720fca412803e3b07c4b228ff113e303f4c7ab94665319d832bbfb7",
+        "data": "6\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "c3ff95a8ced463aa6970afaf4d82ae016df901c863052483bedd2714c7a4904d",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPlAgBXOT0DAgAAAA=="
+        }
+      },
+      "log.2.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "3658d79e4e185d42e937e96e00211410ce94c1fa0cb747f084f89c3d155883d2",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPhAgAWCCYaAgAAAA=="
+        }
+      },
+      "log.3.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "885f3232638dafc40fb815ec30f4c04e9b6a39f05672094f4a36fd00f19a2ac7",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPmAgDRnmdVAgAAAA=="
+        }
+      }
+    }
+  },
+  "savelog-cycle-limit-two": {
+    "stdout": "log.0\nlog.1.gz\n4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "7de1555df0c2700329e815b93b32c571c3ea54dc967b89e81ab73b9972b72d1d",
+        "data": "4\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "885f3232638dafc40fb815ec30f4c04e9b6a39f05672094f4a36fd00f19a2ac7",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPmAgDRnmdVAgAAAA=="
+        }
+      }
+    }
+  },
+  "savelog-date-format-override": {
+    "stdout": "log.YEAR\n",
+    "stderr": "gzip: .//log.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "log.2026": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-date-names": {
+    "stdout": "log.DATE\none\n",
+    "stderr": "gzip: .//log.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "log.20260115120000": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-default-cycle-seven": {
+    "stdout": "log.0\nlog.1.gz\nlog.2.gz\nlog.3.gz\nlog.4.gz\nlog.5.gz\nlog.6.gz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "917df3320d778ddbaa5c5c7742bc4046bf803c36ed2b050f30844ed206783469",
+        "data": "10\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "5fe5e083014c406371b561ada09edf835b6c47b8ed9fbfb4c1577ac3f1f3373a",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wALPkAgBbdoivAgAAAA=="
+        }
+      },
+      "log.2.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "58ffd5230db9de5389c846b63aabefabd3c4abac49def129f716321de8140936",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wALPgAgAaR5O2AgAAAA=="
+        }
+      },
+      "log.3.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "dec334b44a260d4092aaa5a6ee179648dae5e0673f195be9e8677ab913e4614c",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPnAgDVWwsxAgAAAA=="
+        }
+      },
+      "log.4.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "fc4c9bd9fa311e58f23117496a648b0417cccc4b6ff9c36ab33be0ce826c8921",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPjAgCUahAoAgAAAA=="
+        }
+      },
+      "log.5.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "c3ff95a8ced463aa6970afaf4d82ae016df901c863052483bedd2714c7a4904d",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPlAgBXOT0DAgAAAA=="
+        }
+      },
+      "log.6.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "3658d79e4e185d42e937e96e00211410ce94c1fa0cb747f084f89c3d155883d2",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPhAgAWCCYaAgAAAA=="
+        }
+      }
+    }
+  },
+  "savelog-empty-file-rotated-by-default": {
+    "stdout": "log.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "savelog-exit-status-bad-count": {
+    "stdout": "rc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "savelog-exit-status-not-regular": {
+    "stdout": "rc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "savelog-file-in-subdirectory": {
+    "stdout": "log.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-file-in-subdirectory-rolldir": {
+    "stdout": "sub:\nold\n\nsub/old:\nlog.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/old": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "sub/old/log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-first-rotation": {
+    "stdout": "Rotated `log' at DATE.\nrc=0\nlog.0\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-first-rotation-quiet": {
+    "stdout": "rc=0\nlog.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-force-clean": {
+    "stdout": "log.0\nlog.1.gz\nlog.2.gz\nlog.0\nlog.8.gz\nlog.9.gz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.8.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.9.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "savelog-hook-script": {
+    "stdout": "hook:.//log.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-hook-script-failure": {
+    "stdout": "Hook script failed with exit code 3.\nRotated `log' at DATE.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-hook-script-failure-quiet": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-message-date-shape": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-message-format": {
+    "stdout": "Rotated `log' at DATE.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-missing-file-created-empty-and-rotated": {
+    "stdout": "rc=0\nlog.0\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "savelog-mode": {
+    "stdout": "640\n640\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 416,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.0": {
+        "kind": "file",
+        "mode": 416,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-mode-applies-to-compressed": {
+    "stdout": "600\n600\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.0": {
+        "kind": "file",
+        "mode": 384,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 384,
+        "size": 30,
+        "sha256": "56c374622b3a9f111956b1364219afa68ce659648be91b5fadd596fea1f3f6ed",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wAMvPS+UCAJ+oF/gEAAAA"
+        }
+      }
+    }
+  },
+  "savelog-multiple-files": {
+    "stdout": "a.log.0\nb.log.0\na\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      },
+      "b.log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "savelog-no-compression": {
+    "stdout": "log.0\nlog.1\ntwo\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      },
+      "log.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-no-compression-three": {
+    "stdout": "log.0\nlog.1\nlog.2\n3\n2\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2",
+        "data": "3\n"
+      },
+      "log.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+        "data": "2\n"
+      },
+      "log.2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      }
+    }
+  },
+  "savelog-no-rotate-empty": {
+    "stdout": "rc=0\nlog\nstill-empty\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "savelog-no-rotate-empty-missing-no-touch": {
+    "stdout": "rc=0\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "savelog-no-rotate-empty-nonempty-rotates": {
+    "stdout": "log.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "savelog-no-rotate-empty-with-touch-creates": {
+    "stdout": "rc=0\nlog\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "savelog-not-a-regular-file": {
+    "stdout": "rc=3\nd\n",
+    "stderr": "savelog: d is not a regular file\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "savelog-not-a-regular-file-then-continues": {
+    "stdout": "rc=3\nd\nlog.0\n",
+    "stderr": "savelog: d is not a regular file\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "savelog-numeric-order-after-ten-rotations": {
+    "stdout": "log.0\nlog.1.gz\nlog.2.gz\nlog.3.gz\nlog.4.gz\nlog.5.gz\nlog.6.gz\nlog.7.gz\nlog.8.gz\nlog.9.gz\n3\n11\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "a1fb50e6c86fae1679ef3351296fd6713411a08cf8dd1790a4fd05fae8688164",
+        "data": "12\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "8d580228289bf8813558fedc017f767f522f6006bcccebd91608884e8263480a",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADM05AIAGbhg/AMAAAA="
+        }
+      },
+      "log.2.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "29422bcc02c67402071563cd78fd4fca0c3c2da79234521319c210d4d2f0f37e",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADM04AIAWIl75QMAAAA="
+        }
+      },
+      "log.3.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "5fe5e083014c406371b561ada09edf835b6c47b8ed9fbfb4c1577ac3f1f3373a",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wALPkAgBbdoivAgAAAA=="
+        }
+      },
+      "log.4.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "58ffd5230db9de5389c846b63aabefabd3c4abac49def129f716321de8140936",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wALPgAgAaR5O2AgAAAA=="
+        }
+      },
+      "log.5.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "dec334b44a260d4092aaa5a6ee179648dae5e0673f195be9e8677ab913e4614c",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPnAgDVWwsxAgAAAA=="
+        }
+      },
+      "log.6.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "fc4c9bd9fa311e58f23117496a648b0417cccc4b6ff9c36ab33be0ce826c8921",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPjAgCUahAoAgAAAA=="
+        }
+      },
+      "log.7.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "c3ff95a8ced463aa6970afaf4d82ae016df901c863052483bedd2714c7a4904d",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPlAgBXOT0DAgAAAA=="
+        }
+      },
+      "log.8.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "3658d79e4e185d42e937e96e00211410ce94c1fa0cb747f084f89c3d155883d2",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPhAgAWCCYaAgAAAA=="
+        }
+      },
+      "log.9.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "885f3232638dafc40fb815ec30f4c04e9b6a39f05672094f4a36fd00f19a2ac7",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPmAgDRnmdVAgAAAA=="
+        }
+      }
+    }
+  },
+  "savelog-original-removed-without-touch": {
+    "stdout": "gone\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-preserve": {
+    "stdout": "640\n640\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 416,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.0": {
+        "kind": "file",
+        "mode": 416,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-preserve-keeps-hardlinked-content": {
+    "stdout": "0\ndata\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "6667b2d1aab6a00caa5aee5af8ad9f1465e567abf1c209d15727d57b3e8f6e5f",
+        "data": "data\n"
+      }
+    }
+  },
+  "savelog-preserves-uncompressed-zero": {
+    "stdout": "2\n1f8b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+        "data": "2\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "0e31679c486c9084b9d349d5eb8b0b7c76217c005a0cc182ec8910cae5c62585",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPkAgBT/FFnAgAAAA=="
+        }
+      }
+    }
+  },
+  "savelog-rolldir": {
+    "stdout": "old\nlog.0\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "old": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "old/log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-rolldir-absolute": {
+    "stdout": "log.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "abs": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "abs/log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-rolldir-created-mode": {
+    "stdout": "755\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "old": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "old/log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-rolldir-existing": {
+    "stdout": "log.0\nlog.1.gz\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "old": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "old/log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      },
+      "old/log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "56c374622b3a9f111956b1364219afa68ce659648be91b5fadd596fea1f3f6ed",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wAMvPS+UCAJ+oF/gEAAAA"
+        }
+      }
+    }
+  },
+  "savelog-second-rotation-compresses": {
+    "stdout": "log.0\nlog.1.gz\ntwo\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "56c374622b3a9f111956b1364219afa68ce659648be91b5fadd596fea1f3f6ed",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wAMvPS+UCAJ+oF/gEAAAA"
+        }
+      }
+    }
+  },
+  "savelog-three-rotations": {
+    "stdout": "log.0\nlog.1.gz\nlog.2.gz\n3\n2\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2",
+        "data": "3\n"
+      },
+      "log.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "4080538f86c2e4d1dd764ac619a37073b596026cd7ed2462f9f8a0f396e08874",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPiAgCQr3xMAgAAAA=="
+        }
+      },
+      "log.2.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "0e31679c486c9084b9d349d5eb8b0b7c76217c005a0cc182ec8910cae5c62585",
+        "data": {
+          "b64": "H4sICMDWaGkCA2xvZy4wADPkAgBT/FFnAgAAAA=="
+        }
+      }
+    }
+  },
+  "savelog-touch-missing-file-creates-and-rotates": {
+    "stdout": "rc=0\nlog\nlog.0\n0\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "savelog-touch-recreates": {
+    "stdout": "log\nlog.0\n0\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-usage-by-path": {
+    "stdout": "Usage: savelog [-m mode] [-u user] [-g group] [-t] [-c cycle] [-p]\n             [-j] [-C] [-d] [-l] [-r rolldir] [-n] [-q] file ...\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "savelog-usage-help": {
+    "stdout": "Usage: savelog [-m mode] [-u user] [-g group] [-t] [-c cycle] [-p]\n             [-j] [-C] [-d] [-l] [-r rolldir] [-n] [-q] file ...\n\t-m mode\t   - chmod log files to mode\n\t-u user\t   - chown log files to user\n\t-g group   - chgrp log files to group\n\t-c cycle   - save cycle versions of the logfile (default: 7)\n\t-r rolldir - use rolldir instead of . to roll files\n\t-C\t   - force cleanup of cycled logfiles\n\t-d\t   - use standard date for rolling\n\t-D\t   - override date format for -d\n\t-t\t   - touch file\n\t-l\t   - don't compress any log files (default: compress)\n\t-p         - preserve mode/user/group of original file\n\t-j         - use bzip2 instead of gzip\n\t-J         - use xz instead of gzip\n\t-1 .. -9   - compression strength or memory usage (default: 9, except for xz)\n\t-x script  - invoke script with rotated log file in $FILE\n\t-n         - do not rotate empty files\n\t-q         - suppress rotation message\n\tfile \t   - log file names\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "savelog-usage-invalid-option": {
+    "stdout": "Usage: savelog [-m mode] [-u user] [-g group] [-t] [-c cycle] [-p]\n             [-j] [-C] [-d] [-l] [-r rolldir] [-n] [-q] file ...\n\t-m mode\t   - chmod log files to mode\n\t-u user\t   - chown log files to user\n\t-g group   - chgrp log files to group\n\t-c cycle   - save cycle versions of the logfile (default: 7)\n\t-r rolldir - use rolldir instead of . to roll files\n\t-C\t   - force cleanup of cycled logfiles\n\t-d\t   - use standard date for rolling\n\t-D\t   - override date format for -d\n\t-t\t   - touch file\n\t-l\t   - don't compress any log files (default: compress)\n\t-p         - preserve mode/user/group of original file\n\t-j         - use bzip2 instead of gzip\n\t-J         - use xz instead of gzip\n\t-1 .. -9   - compression strength or memory usage (default: 9, except for xz)\n\t-x script  - invoke script with rotated log file in $FILE\n\t-n         - do not rotate empty files\n\t-q         - suppress rotation message\n\tfile \t   - log file names\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "savelog-usage-no-files-runs-nothing": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "savelog-user-unknown": {
+    "stdout": "chown: invalid user: ‘nosuchuser’\nchown: invalid user: ‘nosuchuser’\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-user-without-permission-ignored-by-root": {
+    "stdout": "root root\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "savelog-xz": {
+    "stdout": "log.0\nlog.1.xz\ntwo\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "log.0": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      },
+      "log.1.xz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 68,
+        "sha256": "054a8e76cce5098fec9c1267f06ed8127c1d15aac29b6f8824d535217e67db35",
+        "data": {
+          "b64": "/Td6WFoAAATm1rRGBMAIBCEBFgAAAAAAAAAAAExBvCcBAANvbmUKAPVcu1Yfxv2GAAEkBJSQA9YftvN9AQAAAAAEWVo="
+        }
+      }
+    }
+  }
+}

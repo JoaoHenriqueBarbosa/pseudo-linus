@@ -1,0 +1,445 @@
+{
+  "add-shell-already-present": {
+    "stdout": "rc=0\n/bin/sh\n/bin/bash\n/usr/bin/bash\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "ccd961ca31f5646c53b723acbe1213e819c83634a201bcd7b38b342a80491b70",
+        "data": "/bin/sh\n/bin/bash\n/usr/bin/bash\n"
+      }
+    }
+  },
+  "add-shell-appends": {
+    "stdout": "rc=0\n/bin/sh\n/bin/bash\n/bin/zsh\n/usr/bin/zsh\nshells\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "ac33e791858252c1d740d32036216b2361fae8a92031330bd5f59aa8d205f8f2",
+        "data": "/bin/sh\n/bin/bash\n/bin/zsh\n/usr/bin/zsh\n"
+      }
+    }
+  },
+  "add-shell-keeps-mode": {
+    "stdout": "600\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 384,
+        "size": 30,
+        "sha256": "d85bd50f51f43986768c448f9332e7587beb2f2ed14d86f2341389b775a03db4",
+        "data": "/bin/sh\n/bin/zsh\n/usr/bin/zsh\n"
+      }
+    }
+  },
+  "add-shell-leftover-tmpfile": {
+    "stdout": "Either another instance of /usr/sbin/add-shell is running, or it was previously interrupted.\nPlease examine PWD/root/etc/shells.tmp to see if it should be moved onto PWD/root/etc/shells.\n/bin/sh\n",
+    "stderr": "cat: root/etc/shells.tmp: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "a769faefd4d6187be0b7f25439217860168d3c8cb5b6b9e09b5943bef9dca8ec",
+        "data": "/bin/sh\n"
+      }
+    }
+  },
+  "add-shell-missing-shells-file": {
+    "stdout": "cat: PWD/root/etc/shells: No such file or directory\nEither another instance of /usr/sbin/add-shell is running, or it was previously interrupted.\nPlease examine PWD/root/etc/shells.tmp to see if it should be moved onto PWD/root/etc/shells.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "add-shell-multiple": {
+    "stdout": "rc=0\n/bin/sh\n/bin/a\n/usr/bin/a\n/bin/b\n/usr/bin/b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 44,
+        "sha256": "34923cd15614588d0165db41db25f6072ab3d7e8525f1b7c97f105b706e2a42c",
+        "data": "/bin/sh\n/bin/a\n/usr/bin/a\n/bin/b\n/usr/bin/b\n"
+      }
+    }
+  },
+  "add-shell-no-args": {
+    "stdout": "usage: /usr/sbin/add-shell shellname [shellname ...]\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "add-shell-no-args-by-path": {
+    "stdout": "usage: /usr/sbin/add-shell shellname [shellname ...]\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "add-shell-no-trailing-newline-in-file": {
+    "stdout": "/bin/sh/bin/zsh\n/usr/bin/zsh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "ad57d61f62a27f76198715cc14cf8cdaa8be3eaec11e520183a1c9c2a9e29810",
+        "data": "/bin/sh/bin/zsh\n/usr/bin/zsh\n"
+      }
+    }
+  },
+  "add-shell-real-path-variant": {
+    "stdout": "rc=0\n/bin/sh\nPWD/link/zsh\nPWD/real/zsh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real"
+      },
+      "real": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 48,
+        "sha256": "b5b99fad5a3f0099f9a01722a19b585c9072a62f7b39ce06a550fcabd343ade1",
+        "data": "/bin/sh\n/work/case/link/zsh\n/work/case/real/zsh\n"
+      }
+    }
+  },
+  "add-shell-regex-metacharacters-in-name": {
+    "stdout": "rc=0\n/bin/shX\n/usr/bin/sh.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "74abeb7f9e3b59c05c79e0d3384d5ae5a2cbfc18891c31a81018f76f1de7d7ae",
+        "data": "/bin/shX\n/usr/bin/sh.\n"
+      }
+    }
+  },
+  "add-then-remove-roundtrip": {
+    "stdout": "/bin/sh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "a769faefd4d6187be0b7f25439217860168d3c8cb5b6b9e09b5943bef9dca8ec",
+        "data": "/bin/sh\n"
+      }
+    }
+  },
+  "remove-shell-absent": {
+    "stdout": "rc=0\n/bin/sh\n/bin/bash\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "4cc26708349348ad3520dae0e1046ef3d1b6eb823c9e1361aa24062d785595d8",
+        "data": "/bin/sh\n/bin/bash\n"
+      }
+    }
+  },
+  "remove-shell-duplicates-removed": {
+    "stdout": "/bin/sh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "a769faefd4d6187be0b7f25439217860168d3c8cb5b6b9e09b5943bef9dca8ec",
+        "data": "/bin/sh\n"
+      }
+    }
+  },
+  "remove-shell-keeps-mode": {
+    "stdout": "640\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 416,
+        "size": 8,
+        "sha256": "a769faefd4d6187be0b7f25439217860168d3c8cb5b6b9e09b5943bef9dca8ec",
+        "data": "/bin/sh\n"
+      }
+    }
+  },
+  "remove-shell-last-line": {
+    "stdout": "rc=0\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "remove-shell-leftover-tmpfile": {
+    "stdout": "Either another instance of /usr/sbin/remove-shell is running, or it was previously interrupted.\nPlease examine PWD/root/etc/shells.tmp to see if it should be moved onto PWD/root/etc/shells.\n/bin/sh\n/bin/zsh\n",
+    "stderr": "cat: root/etc/shells.tmp: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "54447267677543955a4b174e6f8bebf3499081ec766b0ef5857e0ad32eed016f",
+        "data": "/bin/sh\n/bin/zsh\n"
+      }
+    }
+  },
+  "remove-shell-multiple": {
+    "stdout": "/bin/sh\n/bin/b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "b1f7b548107c30151eb262b9b119928eedf180451bf11b66ffbe0b63e6713826",
+        "data": "/bin/sh\n/bin/b\n"
+      }
+    }
+  },
+  "remove-shell-no-args": {
+    "stdout": "rc=1\n",
+    "stderr": "usage: /usr/sbin/remove-shell shellname [shellname ...]\n",
+    "exit": 0,
+    "files": {}
+  },
+  "remove-shell-no-args-stderr": {
+    "stdout": "usage: /usr/sbin/remove-shell shellname [shellname ...]\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "remove-shell-only-exact-lines": {
+    "stdout": "/bin/sh2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "0e994e02fe7a1f092d0d5654c371ed365a1c76d4dc21b50dfc49e5565639a4dc",
+        "data": "/bin/sh2\n"
+      }
+    }
+  },
+  "remove-shell-regex-dot-matches-any": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "remove-shell-removes": {
+    "stdout": "rc=0\n/bin/sh\n/bin/bash\nshells\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "root": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "root/etc/shells": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "4cc26708349348ad3520dae0e1046ef3d1b6eb823c9e1361aa24062d785595d8",
+        "data": "/bin/sh\n/bin/bash\n"
+      }
+    }
+  }
+}

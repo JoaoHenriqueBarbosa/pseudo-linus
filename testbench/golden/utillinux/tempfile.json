@@ -1,0 +1,435 @@
+{
+  "tempfile-ambiguous-long-option": {
+    "stdout": "",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\ntempfile: option '--prefix' requires an argument\nTry `tempfile --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tempfile-creates-empty-file": {
+    "stdout": "0 regular empty file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-default-mode-0600": {
+    "stdout": "600 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-default-name-format": {
+    "stdout": "ok\nexists\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-directory": {
+    "stdout": "ok\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-directory-is-a-file": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nmkstemps: Not a directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-directory-last-wins": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-directory-missing-is-fatal": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nmkstemps: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-directory-trailing-slash": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-double-dash": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-exit-status": {
+    "stdout": "rc=0\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-help": {
+    "stdout": "Usage: tempfile [OPTION]\n\nCreate a temporary file in a safe manner.\n\n-d, --directory=DIR  place temporary file in DIR\n-m, --mode=MODE      open with MODE instead of 0600\n-n, --name=FILE      use FILE instead of tempnam(3)\n-p, --prefix=STRING  set temporary file's prefix to STRING\n-s, --suffix=STRING  set temporary file's suffix to STRING\n    --help           display this help and exit\n    --version        output version information and exit\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-help-by-path": {
+    "stdout": "Usage: /usr/bin/tempfile [OPTION]\n\nCreate a temporary file in a safe manner.\n\n-d, --directory=DIR  place temporary file in DIR\n-m, --mode=MODE      open with MODE instead of 0600\n-n, --name=FILE      use FILE instead of tempnam(3)\n-p, --prefix=STRING  set temporary file's prefix to STRING\n-s, --suffix=STRING  set temporary file's suffix to STRING\n    --help           display this help and exit\n    --version        output version information and exit\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-invalid-option": {
+    "stdout": "",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\ntempfile: invalid option -- 'x'\nTry `tempfile --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tempfile-invalid-option-by-path": {
+    "stdout": "",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\n/usr/bin/tempfile: invalid option -- 'x'\nTry `/usr/bin/tempfile --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tempfile-long-prefix-options": {
+    "stdout": "ok\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-missing-argument": {
+    "stdout": "",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\ntempfile: option requires an argument -- 'p'\nTry `tempfile --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tempfile-missing-argument-long": {
+    "stdout": "",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\ntempfile: option '--directory' requires an argument\nTry `tempfile --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tempfile-mode": {
+    "stdout": "644\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-empty-is-zero": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-hex": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nInvalid mode `0x1'.  Mode must be octal.\nTry `tempfile --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-ignores-umask": {
+    "stdout": "666\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-invalid-digit": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nInvalid mode `999'.  Mode must be octal.\nTry `tempfile --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-invalid-text": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nInvalid mode `abc'.  Mode must be octal.\nTry `tempfile --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-long": {
+    "stdout": "755\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-negative": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nInvalid mode `-1'.  Mode must be octal.\nTry `tempfile --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-negative-zero": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-plus-sign": {
+    "stdout": "644\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-spaces-only": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nInvalid mode ` '.  Mode must be octal.\nTry `tempfile --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-special-bits": {
+    "stdout": "4755\n1777\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-too-big": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nInvalid mode `10000'.  Mode must be octal.\nTry `tempfile --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-trailing-space": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nInvalid mode `7 '.  Mode must be octal.\nTry `tempfile --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-without-leading-zero": {
+    "stdout": "644\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-mode-zero": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-name": {
+    "stdout": "named\nnamed\n600\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "named": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "tempfile-name-empty": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nopen: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-name-existing": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nopen: File exists\n",
+    "exit": 0,
+    "files": {
+      "named": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "tempfile-name-existing-keeps-content": {
+    "stdout": "keep\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "named": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "f660a7996deacfbc7560e4240054a8ad82eb02fe25a95064257e07084bcacb85",
+        "data": "keep\n"
+      }
+    }
+  },
+  "tempfile-name-ignores-prefix-and-dir": {
+    "stdout": "named\nnamed\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "named": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "tempfile-name-is-dangling-symlink": {
+    "stdout": "rc=1\nlink\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nopen: File exists\n",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "target"
+      }
+    }
+  },
+  "tempfile-name-last-wins": {
+    "stdout": "second\nsecond\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "second": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "tempfile-name-long": {
+    "stdout": "named2\nnamed2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "named2": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "tempfile-name-missing-dir": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nopen: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-name-mode-with-umask": {
+    "stdout": "named\n755\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "named": {
+        "kind": "file",
+        "mode": 493,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "tempfile-operands-ignored": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-options-after-operands": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-prefix": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-prefix-and-suffix": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-prefix-empty": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-prefix-with-missing-subdir": {
+    "stdout": "rc=1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nmkstemps: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-prefix-with-subdir": {
+    "stdout": "ok\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-random-chars-alphabet": {
+    "stdout": "0\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "tempfile-short-h-is-invalid": {
+    "stdout": "",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\ntempfile: invalid option -- 'h'\nTry `tempfile --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tempfile-stderr-only-warning": {
+    "stdout": "WARNING: tempfile is deprecated; consider using mktemp instead.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-stdout-single-line": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-suffix": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-tmpdir-env-missing-is-fatal": {
+    "stdout": "rc=1\n0\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\nmkstemps: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-tmpdir-env-only": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-tmpdir-env-wins-over-directory": {
+    "stdout": "ok\n1\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-unique-names": {
+    "stdout": "8\n8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tempfile-unrecognized-option": {
+    "stdout": "",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\ntempfile: unrecognized option '--bogus'\nTry `tempfile --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tempfile-version": {
+    "stdout": "tempfile 5.23.1\n",
+    "stderr": "WARNING: tempfile is deprecated; consider using mktemp instead.\n",
+    "exit": 0,
+    "files": {}
+  }
+}

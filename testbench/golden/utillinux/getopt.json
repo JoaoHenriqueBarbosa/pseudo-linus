@@ -1,0 +1,937 @@
+{
+  "getopt-alternative-ambiguous": {
+    "stdout": " --\n",
+    "stderr": "getopt: option '-alp' is ambiguous; possibilities: '-alpha' '-alpine'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-alternative-ambiguous-same-flags": {
+    "stdout": " --\n",
+    "stderr": "getopt: option '-fo' is ambiguous; possibilities: '-foo' '-foobar'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-alternative-cluster-after-long-miss": {
+    "stdout": " -a -b --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-alternative-long-doubledash": {
+    "stdout": " --alpha --alpha --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-alternative-long-single-dash": {
+    "stdout": " --alpha --beta 'x' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-alternative-prefix": {
+    "stdout": " --verbose --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-alternative-short-wins-when-exact-char": {
+    "stdout": " -a --alpha --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-alternative-single-dash-value": {
+    "stdout": " --file 'x' --file 'y' --opt '' --opt 'z' --file 'w' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-alternative-unrecognized": {
+    "stdout": " --\n",
+    "stderr": "getopt: unrecognized option '-zeta'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-alternative-unrecognized-short": {
+    "stdout": " -a --\n",
+    "stderr": "getopt: unrecognized option '-z'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-basic-clustered": {
+    "stdout": " -a -b -c -- 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-basic-short": {
+    "stdout": " -a -b -c -- 'x' 'y'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-compat-forces-old-style": {
+    "stdout": " -a -b x -- y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-compat-strips-leading-dash": {
+    "stdout": " -- ab\n",
+    "stderr": "getopt: invalid option -- 'a'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-dash-alone-is-operand": {
+    "stdout": " -a -- '-'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-double-dash-ends-options": {
+    "stdout": " -a -- '-a'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-empty-long-option": {
+    "stdout": "",
+    "stderr": "getopt: empty long option after -l or --long argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-empty-long-option-optional": {
+    "stdout": "",
+    "stderr": "getopt: empty long option after -l or --long argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-error-argv0-help": {
+    "stdout": "\nUsage:\n getopt <optstring> <parameters>\n getopt [options] [--] <optstring> <parameters>\n getopt [options] -o|--options <optstring> [options] [--] <parameters>\n\nParse command options.\n\nOptions:\n -a, --alternative             allow long options starting with single -\n -l, --longoptions <longopts>  the long options to be recognized\n -n, --name <progname>         the name under which errors are reported\n -o, --options <optstring>     the short options to be recognized\n -q, --quiet                   disable error reporting by getopt(3)\n -Q, --quiet-output            no normal output\n -s, --shell <shell>           set quoting conventions to those of <shell>\n -T, --test                    test for getopt(1) version\n -u, --unquoted                do not quote the output\n\n -h, --help                    display this help\n -V, --version                 display version\n\nFor more details see getopt(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-error-argv0-parse-error": {
+    "stdout": "",
+    "stderr": "getopt: missing optstring argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-error-argv0-version": {
+    "stdout": "getopt from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-error-argv0-with-slashes": {
+    "stdout": " --\n",
+    "stderr": "/usr/bin/getopt: invalid option -- 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-colon-is-invalid": {
+    "stdout": " --\n",
+    "stderr": "getopt: invalid option -- ':'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-colon-prefix-invalid-silent": {
+    "stdout": " -a --\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-colon-prefix-long-missing-arg": {
+    "stdout": " --\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-continues-after-error": {
+    "stdout": " -a -b -- 'op'\n",
+    "stderr": "getopt: invalid option -- 'x'\ngetopt: invalid option -- 'y'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-invalid-short": {
+    "stdout": " -a -b --\n",
+    "stderr": "getopt: invalid option -- 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-invalid-short-in-cluster": {
+    "stdout": " -a -b --\n",
+    "stderr": "getopt: invalid option -- 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-invalid-short-name": {
+    "stdout": " --\n",
+    "stderr": "my prog: invalid option -- 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-invalid-short-quiet": {
+    "stdout": " -a -b --\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-missing-arg-in-cluster": {
+    "stdout": " -a --\n",
+    "stderr": "getopt: option requires an argument -- 'b'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-missing-short-arg": {
+    "stdout": " -b --\n",
+    "stderr": "getopt: option requires an argument -- 'a'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-missing-short-arg-colon-prefix": {
+    "stdout": " -b --\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-missing-short-arg-quiet": {
+    "stdout": " -b --\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-semicolon-is-invalid": {
+    "stdout": " --\n",
+    "stderr": "getopt: invalid option -- ';'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-error-utf8-option": {
+    "stdout": " --\n",
+    "stderr": {
+      "b64": "Z2V0b3B0OiBpbnZhbGlkIG9wdGlvbiAtLSAnwycKZ2V0b3B0OiBpbnZhbGlkIG9wdGlvbiAtLSAnqScK"
+    },
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-exit-code-mixed": {
+    "stdout": "rc=1\n -a --\ngetopt: invalid option -- 'z'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "err.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "a6de82b6f5fa9dc31ccbf3f163253fc9a366785683062fff819ffb89fdc90a6d",
+        "data": "getopt: invalid option -- 'z'\n"
+      },
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "1fe282310aa604dc20904fdd8147f5ba2f4a37c0c658a9df6835f00eeccde76e",
+        "data": " -a --\n"
+      }
+    }
+  },
+  "getopt-help": {
+    "stdout": "\nUsage:\n getopt <optstring> <parameters>\n getopt [options] [--] <optstring> <parameters>\n getopt [options] -o|--options <optstring> [options] [--] <parameters>\n\nParse command options.\n\nOptions:\n -a, --alternative             allow long options starting with single -\n -l, --longoptions <longopts>  the long options to be recognized\n -n, --name <progname>         the name under which errors are reported\n -o, --options <optstring>     the short options to be recognized\n -q, --quiet                   disable error reporting by getopt(3)\n -Q, --quiet-output            no normal output\n -s, --shell <shell>           set quoting conventions to those of <shell>\n -T, --test                    test for getopt(1) version\n -u, --unquoted                do not quote the output\n\n -h, --help                    display this help\n -V, --version                 display version\n\nFor more details see getopt(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-help-short": {
+    "stdout": "\nUsage:\n getopt <optstring> <parameters>\n getopt [options] [--] <optstring> <parameters>\n getopt [options] -o|--options <optstring> [options] [--] <parameters>\n\nParse command options.\n\nOptions:\n -a, --alternative             allow long options starting with single -\n -l, --longoptions <longopts>  the long options to be recognized\n -n, --name <progname>         the name under which errors are reported\n -o, --options <optstring>     the short options to be recognized\n -q, --quiet                   disable error reporting by getopt(3)\n -Q, --quiet-output            no normal output\n -s, --shell <shell>           set quoting conventions to those of <shell>\n -T, --test                    test for getopt(1) version\n -u, --unquoted                do not quote the output\n\n -h, --help                    display this help\n -V, --version                 display version\n\nFor more details see getopt(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-ambiguous": {
+    "stdout": " --beta --\n",
+    "stderr": "getopt: option '--al' is ambiguous; possibilities: '--alpha' '--alpine'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-ambiguous-quiet": {
+    "stdout": " --beta --\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-ambiguous-three": {
+    "stdout": " --\n",
+    "stderr": "getopt: option '--a' is ambiguous; possibilities: '--aa' '--ab' '--ac'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-ambiguous-with-value": {
+    "stdout": " --\n",
+    "stderr": "getopt: option '--al=3' is ambiguous; possibilities: '--alpha' '--alpine'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-basic": {
+    "stdout": " --alpha --beta -- 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-doesnt-allow-argument": {
+    "stdout": " --flag --\n",
+    "stderr": "getopt: option '--flag' doesn't allow an argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-doesnt-allow-argument-prefix": {
+    "stdout": " --\n",
+    "stderr": "getopt: option '--flag' doesn't allow an argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-duplicate-names": {
+    "stdout": " --dup -- 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-equal-in-value": {
+    "stdout": " --kv 'a=b=c' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-exact-beats-prefix": {
+    "stdout": " --ver --verbose --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-name-with-dash": {
+    "stdout": " --no-color --with-arg '1' --no-color --with-arg '2' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-optional-attached": {
+    "stdout": " --color 'red' -- 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-optional-bare": {
+    "stdout": " --color '' -- 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-optional-empty-attached": {
+    "stdout": " --color '' -- 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-prefix-unique": {
+    "stdout": " --verbose --quiet 'x' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-required-attached": {
+    "stdout": " --file 'a=b' -- 'z'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-required-detached": {
+    "stdout": " --file 'x y' -- 'z'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-required-empty-attached": {
+    "stdout": " --file '' -- 'z'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-required-takes-dash": {
+    "stdout": " --file '--x' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-requires-argument": {
+    "stdout": " --\n",
+    "stderr": "getopt: option '--file' requires an argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-requires-argument-prefix": {
+    "stdout": " --\n",
+    "stderr": "getopt: option '--filename' requires an argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-requires-argument-quiet": {
+    "stdout": " --\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-separators": {
+    "stdout": " --a1 --b2 --c3 --d4 --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-several-l-options": {
+    "stdout": " --one --two '2' --three '' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-single-dash-is-short": {
+    "stdout": " -a -a --\n",
+    "stderr": "getopt: invalid option -- 'l'\ngetopt: invalid option -- 'p'\ngetopt: invalid option -- 'h'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-spec-positional": {
+    "stdout": " --alpha -a -- 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-long-unrecognized": {
+    "stdout": " --alpha --\n",
+    "stderr": "getopt: unrecognized option '--zeta'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-unrecognized-quiet": {
+    "stdout": " --alpha --\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-unrecognized-with-value": {
+    "stdout": " --\n",
+    "stderr": "getopt: unrecognized option '--zeta=5'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-with-name": {
+    "stdout": " --\n",
+    "stderr": "mytool: unrecognized option '--beta'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-long-with-short": {
+    "stdout": " -a --alpha --beta --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-missing-optstring": {
+    "stdout": "",
+    "stderr": "getopt: missing optstring argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-missing-optstring-after-dashes": {
+    "stdout": "",
+    "stderr": "getopt: missing optstring argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-missing-optstring-quiet": {
+    "stdout": "",
+    "stderr": "getopt: missing optstring argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-no-args": {
+    "stdout": "",
+    "stderr": "getopt: missing optstring argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-no-args-compat": {
+    "stdout": " --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-no-double-dash-after-spec": {
+    "stdout": " -- 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-operands-permuted": {
+    "stdout": " -a -b 'z' -- 'x' 'y' 'w'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-posixly-correct": {
+    "stdout": " -a -- 'x' '-b'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-posixly-correct-empty-env": {
+    "stdout": " -a -- 'x' '-b'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-posixly-correct-long": {
+    "stdout": " --long -- 'x' '-a'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-posixly-correct-minus-spec": {
+    "stdout": " -a -- 'x' '-b'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-posixly-correct-own-options": {
+    "stdout": " -a -- x -b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-posixly-correct-plus-spec": {
+    "stdout": " -a -- 'x' '-b'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-posixly-correct-spec-first": {
+    "stdout": " -a -- x -b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-require-order": {
+    "stdout": " -a -- 'x' '-b' 'y'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-require-order-dashdash": {
+    "stdout": " -a -- '-a'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-require-order-long": {
+    "stdout": " --long -- 'x' '--long' '-a'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-return-in-order": {
+    "stdout": " 'x' -a 'y' -b 'z' 'w' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-return-in-order-empty-operand": {
+    "stdout": " '' -a '' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-order-return-in-order-long": {
+    "stdout": " 'one' --long 'v' 'two' -- 'three' '-a'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-own-ambiguous-long": {
+    "stdout": "",
+    "stderr": "getopt: option '--q' is ambiguous; possibilities: '--quiet' '--quiet-output'\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-own-clustered-flags": {
+    "stdout": " -a -b --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-own-invalid-option": {
+    "stdout": "",
+    "stderr": "getopt: invalid option -- 'x'\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-own-long-no-arg-allowed": {
+    "stdout": "",
+    "stderr": "getopt: option '--quiet' doesn't allow an argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-own-long-prefix": {
+    "stdout": " -a -- 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-own-missing-arg-long": {
+    "stdout": "",
+    "stderr": "getopt: option '--longoptions' requires an argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-own-missing-arg-short": {
+    "stdout": "",
+    "stderr": "getopt: option requires an argument -- 'o'\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-own-name-attached": {
+    "stdout": " --\n",
+    "stderr": "prog: invalid option -- 'z'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-own-name-long": {
+    "stdout": " --\n",
+    "stderr": "prog: invalid option -- 'z'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-own-shell-bash": {
+    "stdout": " -a 'it'\\''s' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-own-shell-csh": {
+    "stdout": " -a 'it'\\''s'\\ 'a'\\!'b' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-own-shell-sh": {
+    "stdout": " -a 'it'\\''s' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-own-shell-short-prefix": {
+    "stdout": " -a -- 'x'\\ 'y'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-own-shell-tcsh-specials": {
+    "stdout": " -a 'x'\\ 'y'\\\t'z\\\\w'\\!'v'\\''q' -- 'a\\nb'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-own-stops-at-first-operand": {
+    "stdout": " -- 'x' '-a'\n",
+    "stderr": "getopt: invalid option -- 'u'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-own-unknown-shell": {
+    "stdout": "",
+    "stderr": "getopt: unknown shell after -s or --shell argument\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-own-unrecognized-long": {
+    "stdout": "",
+    "stderr": "getopt: unrecognized option '--bogus'\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-quiet-output": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-quiet-output-error": {
+    "stdout": "",
+    "stderr": "getopt: invalid option -- 'z'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-quiet-output-long": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-quiet-output-quiet-error": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-quote-newline-tab-bash": {
+    "stdout": " -- 'a\nb' 'c\td'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-quote-single-quotes": {
+    "stdout": " -a ''\\''' -- ''\\'''\\''' 'a'\\''b'\\''c'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-quote-specials-bash": {
+    "stdout": " -- '$HOME' '`ls`' '\"q\"' 'a;b' '!x' '\\n' '*'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-quote-tcsh-backslash-bang": {
+    "stdout": " -- '\\\\' ''\\!'' 'a\\\\'\\!'b' ''\\!''\\!''\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-quote-tcsh-optarg-long": {
+    "stdout": " --msg 'hello'\\ 'world'\\!'' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-quote-tcsh-single-quote": {
+    "stdout": " -a 'it'\\''s' -- ''\\'''\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-quote-tcsh-whitespace": {
+    "stdout": " -- ''\\ '' 'a'\\ 'b' ''\\\t'' ''\\\r'' ''\\\u000b'' ''\\\f'' 'a\\nb'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-quote-utf8": {
+    "stdout": " -a 'ação' -- '日本語' 'é'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-script-eval-loop": {
+    "stdout": "verbose\nname=John D\n<file1>\n<file 2>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-script-eval-set": {
+    "stdout": "10\n[-a]\n[-b]\n[x y]\n[-c]\n[foo]\n[--beta]\n[3]\n[--]\n[it's]\n[last]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-script-name-from-path": {
+    "stdout": "getopt from util-linux 2.41.5\n\nUsage:\n getopt <optstring> <parameters>\n getopt [options] [--] <optstring> <parameters>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-script-optional-argument-eval": {
+    "stdout": "<-a>\n<>\n<--opt>\n<>\n<-a>\n<X>\n<--opt>\n<Y>\n<-->\n<z>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-script-stdout-stderr-split": {
+    "stdout": " -a --\nrc=1\nrc=1\n",
+    "stderr": "getopt: invalid option -- 'z'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-script-test-version": {
+    "stdout": "rc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-short-all-ascii-specials-as-options": {
+    "stdout": " -+ -c -d -- '-'\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-short-empty-argument": {
+    "stdout": " -a '' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-short-empty-operand": {
+    "stdout": " -a -- '' ''\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-short-optional-attached": {
+    "stdout": " -a 'foo' -a '' -b --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-short-optional-detached-is-operand": {
+    "stdout": " -a '' -- 'foo'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-short-required-attached": {
+    "stdout": " -a 'foo' -b --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-short-required-detached": {
+    "stdout": " -a 'foo' -b --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-short-required-in-cluster": {
+    "stdout": " -b -a 'foo' -b -a 'bar' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-short-required-takes-dash": {
+    "stdout": " -a '-b' --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-spec-as-first-operand": {
+    "stdout": " -a -b val -- rest\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-spec-first-empty": {
+    "stdout": " --\n",
+    "stderr": "getopt: invalid option -- 'a'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-spec-first-invalid": {
+    "stdout": " -- x\n",
+    "stderr": "getopt: invalid option -- 'c'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-spec-first-invalid-name": {
+    "stdout": " -- x\n",
+    "stderr": "/usr/bin/getopt: invalid option -- 'c'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-spec-first-strips-minus": {
+    "stdout": "",
+    "stderr": "getopt: unrecognized option '--ab'\nTry 'getopt --help' for more information.\n",
+    "exit": 2,
+    "files": {}
+  },
+  "getopt-spec-first-strips-plus": {
+    "stdout": " -a -b -- x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-spec-first-unquoted": {
+    "stdout": " -b it's mine -- a b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-spec-first-with-options-after": {
+    "stdout": " -a -b foo -- x y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-test": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 4,
+    "files": {}
+  },
+  "getopt-test-long": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 4,
+    "files": {}
+  },
+  "getopt-unquoted-empty-args": {
+    "stdout": " -a  -- \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-unquoted-long-flag": {
+    "stdout": " -a x'y --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-unquoted-simple": {
+    "stdout": " -a x y --file it's -- z w\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-version": {
+    "stdout": "getopt from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-version-short": {
+    "stdout": "getopt from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-w-semicolon": {
+    "stdout": " --foo '1' --bar -a --\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "getopt-w-semicolon-ambiguous": {
+    "stdout": " --\n",
+    "stderr": "getopt: option '-W fo' is ambiguous; possibilities: '-W foo' '-W fob'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-w-semicolon-missing-arg": {
+    "stdout": " --\n",
+    "stderr": "getopt: option requires an argument -- 'W'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "getopt-w-semicolon-unrecognized": {
+    "stdout": " --\n",
+    "stderr": "getopt: unrecognized option '-W zzz'\n",
+    "exit": 1,
+    "files": {}
+  }
+}

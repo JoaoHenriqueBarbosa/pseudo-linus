@@ -162,6 +162,7 @@ fn shell_main(args: &[OsString], posix: bool) -> i32 {
     sh.init_from_process();
     if posix {
         sh.posix = true;
+        sh.invoked_as_sh = true;
         sh.opts.set("posix", true);
     }
     let inv = match parse_invocation(&mut sh, &argv) {

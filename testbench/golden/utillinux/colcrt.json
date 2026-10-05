@@ -1,0 +1,599 @@
+{
+  "colcrt-131-columns-pipe": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0000200   x   x   x  \\n   n   e   x   t  \\n\n0000211\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-blank-lines": {
+    "stdout": "0000000   a  \\n   b  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-dash-after-double-dash": {
+    "stdout": "x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-dash-stdin-meaning": {
+    "stdout": "x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-del-and-nul": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-empty-input": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-7-at-start": {
+    "stdout": "0000000  \\n\n0000001\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-7-hole": {
+    "stdout": "0000000   a   b   X  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-7-reverse": {
+    "stdout": "0000000   a   b   d  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-8-at-start": {
+    "stdout": "0000000  \\n\n0000001\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-8-half-reverse": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-9-other": {
+    "stdout": "0000000   a  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-at-eof": {
+    "stdout": "0000000   a\n0000001\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-hole-truncates-line": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-sup-sub-script": {
+    "stdout": "0000000   x       y  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-esc-then-newline": {
+    "stdout": "0000000   a  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-exactly-132-columns-pipe": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0000200   x   x   x   x  \\n   n   e   x   t  \\n\n0000212\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-exit-status": {
+    "stdout": "rc=0\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-file-directory": {
+    "stdout": "",
+    "stderr": "colcrt: fgetwc() failed: Is a directory\n",
+    "exit": 1,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "colcrt-file-missing": {
+    "stdout": "",
+    "stderr": "colcrt: cannot open nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colcrt-file-missing-after-good": {
+    "stdout": "hello\n",
+    "stderr": "colcrt: cannot open nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "good.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "colcrt-files-and-hyphen-position": {
+    "stdout": "a b\nc d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "027ae5a4c62e7bc2a3f685eddfdad483bfbe67a1ea107b09eb9e69c5787a83c5",
+        "data": "a_\bb\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "68402208dd93059766e744f7f74bf17546122c1e158a805c877d45eec39d9c1b",
+        "data": "c_\bd\n"
+      }
+    }
+  },
+  "colcrt-form-feed-and-vt": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-half-lines-blank-line": {
+    "stdout": "0000000  \\n   a  \\n  \\n  \\n   b  \\n  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-half-lines-empty-input": {
+    "stdout": "0000000  \\n\n0000001\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-half-lines-long": {
+    "stdout": "0000000  \\n   a   b   c  \\n  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-half-lines-no-underlining": {
+    "stdout": "0000000  \\n   a  \\n  \\n   b  \\n  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-half-lines-option": {
+    "stdout": "0000000  \\n   a   b   c  \\n  \\n   d   e   f  \\n  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-half-lines-two-files": {
+    "stdout": "0000000  \\n   o   n   e  \\n  \\n  \\n   t   w   o  \\n  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "colcrt-half-lines-underline": {
+    "stdout": "0000000  \\n   a   b  \\n           -  \\n   c   d  \\n  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-help": {
+    "stdout": "\nUsage:\n colcrt [options] [<file>...]\n\nFilter nroff output for CRT previewing.\n\nOptions:\n -,  --no-underlining    suppress all underlining\n -2, --half-lines        print all half-lines\n\n -h, --help              display this help\n -V, --version           display version\n\nFor more details see colcrt(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-help-short": {
+    "stdout": "\nUsage:\n colcrt [options] [<file>...]\n\nFilter nroff output for CRT previewing.\n\nOptions:\n -,  --no-underlining    suppress all underlining\n -2, --half-lines        print all half-lines\n\n -h, --help              display this help\n -V, --version           display version\n\nFor more details see colcrt(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-incomplete-utf8-at-eof": {
+    "stdout": "0000000   a   b\n0000002\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-invalid-option": {
+    "stdout": "",
+    "stderr": "colcrt: invalid option -- 'x'\nTry 'colcrt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colcrt-invalid-utf8": {
+    "stdout": "rc=1\n",
+    "stderr": "colcrt: fgetwc() failed: Invalid or incomplete multibyte or wide character\n",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-invalid-utf8-later-line": {
+    "stdout": "ab\nrc=1\n",
+    "stderr": "colcrt: fgetwc() failed: Invalid or incomplete multibyte or wide character\n",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-long-line-file-no-newline-at-end": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0000200   x   x   x   x  \\n\n0000205\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 200,
+        "sha256": "aa20c23e3201834050679e1d88941b9a6fed0557c9a705cb2c315e2e63fd486d",
+        "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    }
+  },
+  "colcrt-long-line-file-operand": {
+    "stdout": "0000000   y   y   y   y   y   y   y   y   y   y   y   y   y   y   y   y\n*\n0000200   y   y   y   y  \\n   n   e   x   t  \\n   m   o   r   e  \\n\n0000217\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 211,
+        "sha256": "615c02eb2bbf60f05bd5ac7a2633f9898b1838a1348b28afbf7cce4fc9c7e682",
+        "data": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nnext\nmore\n"
+      }
+    }
+  },
+  "colcrt-long-line-file-skips-rest": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0000200   x   x   x   x  \\n   n   e   x   t  \\n\n0000212\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 206,
+        "sha256": "34a74dc07f0a544c260a697fd86153db1c7b712dd5092c10f4218ba72347eb42",
+        "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nnext\n"
+      }
+    }
+  },
+  "colcrt-long-line-half-lines": {
+    "stdout": "0000000  \\n   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n0000020   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0000200   x   x   x   x   x  \\n  \\n   n   e   x   t  \\n  \\n\n0000215\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 146,
+        "sha256": "a4784e4af433b97d537b45730e1b7e55e173b6c6af962f90974e81d93fa102da",
+        "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nnext\n"
+      }
+    }
+  },
+  "colcrt-long-line-newline-right-after-132": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0000200   x   x   x   x  \\n   n   e   x   t  \\n\n0000212\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 138,
+        "sha256": "8d0522cd23bf8c297f684f4d2602b42cf7ccfe11eaa84a78dda173b998d4bd96",
+        "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nnext\n"
+      }
+    }
+  },
+  "colcrt-long-line-pipe-stops": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0000200   x   x   x   x  \\n\n0000205\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-long-line-underline": {
+    "stdout": "*\n0000200   x   x       z  \\n                                            \n0000220                                                                \n*\n0000400                               -  \\n   n   e   x   t  \\n\n0000416\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 142,
+        "sha256": "c2737c367b3ee8995cea232dedc06057c13bf94812209f3059a40cbfb411e51e",
+        "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_zzzzz\nnext\n"
+      }
+    }
+  },
+  "colcrt-long-prefix": {
+    "stdout": "a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+        "data": "a\n"
+      }
+    }
+  },
+  "colcrt-nbsp-and-ideographic-space": {
+    "stdout": "0000000   a 302 240  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-no-trailing-newline": {
+    "stdout": "0000000   a   b   c\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-plain-file": {
+    "stdout": "one\ntwo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "c3f9c8c283a2b1f2f1896f27a01cbe3cddc0c9d93f752e4639035a0f5b36f6e8",
+        "data": "one\ntwo\n"
+      }
+    }
+  },
+  "colcrt-plain-stdin": {
+    "stdout": "hello\nworld\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-print-nl-resets-between-files": {
+    "stdout": "0000000   a  \\n       -  \\n   b  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "20805446c4edd7508116afc358da3303d84d79221c7b568b9003f9abbaccb13b",
+        "data": "a_\n"
+      },
+      "b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f",
+        "data": "b\n"
+      }
+    }
+  },
+  "colcrt-stdin-and-file-mix": {
+    "stdout": "colcrt: cannot open f.txt: No such file or directory\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-stdin-file-redirect": {
+    "stdout": "0000000   x  \\n       -  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "476465b76a9846323e0301e47259f88e116f2dba05237281263c0ccc65153ae8",
+        "data": "x_\n"
+      }
+    }
+  },
+  "colcrt-tab-at-column-multiple-of-eight": {
+    "stdout": "0000000   a   b   c   d   e   f   g   h   x  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-tab-at-start": {
+    "stdout": "0000000   x  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-tab-expand": {
+    "stdout": "0000000   a                               b                            \n0000020   c  \\n\n0000022\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-tab-leading-two": {
+    "stdout": "0000000   x  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-tab-reaching-132": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0000200   x  \\n   n   e   x   t  \\n\n0000207\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "long.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 137,
+        "sha256": "38abf38a910f53a6daf9832e43b6a4ecc03753171bb002f328098b5ccc15f41c",
+        "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\tZ\nnext\n"
+      }
+    }
+  },
+  "colcrt-tab-reaching-132-pipe": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0000200   x  \\n\n0000202\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-table-sample": {
+    "stdout": "0000000   N   a   m   e                   A   g   e  \\n   -   -   -   -\n0000020                   -   -   -  \\n   B   o   b       B            \n0000040   4   2  \\n               -  \\n\n0000050\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-trailing-spaces-trimmed": {
+    "stdout": "0000000   a   b   c  \\n   d   e   f  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-two-files": {
+    "stdout": "first\nsecond\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41",
+        "data": "first\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4",
+        "data": "second\n"
+      }
+    }
+  },
+  "colcrt-underline-hole": {
+    "stdout": "0000000       a   b  \\n   -  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-underline-multiple-lines": {
+    "stdout": "0000000   a  \\n       -  \\n   b  \\n       -  \\n   c  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-underline-nroff-style": {
+    "stdout": "0000000       h       e       l       l       o  \\n   -       -       -\n0000020       -       -  \\n\n0000025\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-underline-only-line": {
+    "stdout": "0000000  \\n   -   -   -  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-underline-overstrike": {
+    "stdout": "0000000   h       h   e       e   l       l   l       l   o       o  \\n\n0000020       -           -           -           -           -  \\n\n0000037\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-underline-suppressed-dash-arg": {
+    "stdout": "0000000   h       h   e       e  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-underline-suppressed-long": {
+    "stdout": "0000000   h       h   e       e  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-underline-trailing-spaces-in-underline": {
+    "stdout": "0000000   a   b           c  \\n           -  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-underline-underscore": {
+    "stdout": "0000000   a   b  \\n           -  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-unicode-text": {
+    "stdout": "0000000   c   a   f 303 251  \\n 346 227 245 346 234 254  \\n\n0000015\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-unicode-underline": {
+    "stdout": "0000000 303 251     303 251  \\n       -  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-unprintable-ignored": {
+    "stdout": "0000000   a   b   c   d   X  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colcrt-unrecognized-option": {
+    "stdout": "",
+    "stderr": "colcrt: unrecognized option '--bogus'\nTry 'colcrt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colcrt-version": {
+    "stdout": "colcrt from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

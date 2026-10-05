@@ -136,6 +136,8 @@ pub struct Shell {
     /// O próximo comando simples é o último do subshell de um `&`: um programa externo substitui
     /// o processo (`execve`) em vez de virar neto, como no bash, e o `$!` é o próprio programa.
     pub exec_last: bool,
+    /// O processo é o binário `sh` (não o `bash`).
+    pub invoked_as_sh: bool,
     /// Status da última substituição de comando do comando simples corrente (vira o `$?` de um
     /// comando só de atribuições).
     pub last_cmdsub_status: Option<i32>,
@@ -215,6 +217,7 @@ impl Shell {
             func_depth: 0,
             exit_trap_done: false,
             exec_last: false,
+            invoked_as_sh: false,
             last_cmdsub_status: None,
             disabled_builtins: BTreeSet::new(),
             getopts_state: (1, 1),
@@ -337,9 +340,10 @@ impl Shell {
     }
 
     /// Estamos no `sh` do Debian (dash): erros de execução com o formato `sh: N: ` e o "not found"
-    /// seco para comando que não existe.
+    /// seco para comando que não existe. Vale para o binário `sh` qualquer que seja o `$0` (um
+    /// script do sistema rodando no `/bin/sh` ainda é o dash), mas não para o `set -o posix` do bash.
     pub fn dash_style(&self) -> bool {
-        self.posix && self.arg0 == b"sh"
+        self.posix && self.invoked_as_sh
     }
 
     /// Prefixo `bash: line N: ` dos erros de execução.

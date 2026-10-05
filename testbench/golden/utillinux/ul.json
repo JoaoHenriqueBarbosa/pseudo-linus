@@ -1,0 +1,724 @@
+{
+  "ul-ansi-reverse-line": {
+    "stdout": "0000000   a   b   c  \\n  \\n 033   [   A 033   [   A   x   y   z  \\n\n0000017\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-ansi-underline-bold": {
+    "stdout": "0000000   a 033   [   4   m   a 033   [   m     033   [   1   m   b 033\n0000020   [   0   ;   1   0   m  \\n\n0000027\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-cons25-fallbacks": {
+    "stdout": "0000000   a 033   [   7   m   a 033   [   m     033   [   1   m   b 033\n0000020   [   m       x     033   [   7   m 033   [   3   0   ;   1   m\n0000040   2 033   [   m  \\n\n0000045\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-backspace-at-start": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-backspace-overwrite-different-ignored": {
+    "stdout": "0000000   a   b  \\n   y  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-blank-lines": {
+    "stdout": "0000000   a  \\n  \\n  \\n   b  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-bold": {
+    "stdout": "0000000   b   o   l   d  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-carriage-return": {
+    "stdout": "0000000   a  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-carriage-return-overwrite-equal": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-combining-mark": {
+    "stdout": "0000000   e 314 201  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-esc-7-reverse-line": {
+    "stdout": "0000000   a   b   c  \\n  \\n   x   y   z  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-esc-8-superscript": {
+    "stdout": "0000000   x       2   y  \\n           ^  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-esc-8-twice-reverse": {
+    "stdout": "0000000   a   b   c  \\n   d  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-esc-9-subscript": {
+    "stdout": "0000000   H       2   O  \\n           v  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-esc-9-three-forward": {
+    "stdout": "0000000   a   b   c  \\n               d  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-esc-at-eof": {
+    "stdout": "rc=1\n",
+    "stderr": "ul: unknown escape sequence in input: 33, 37777777777\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-esc-unicode-unknown": {
+    "stdout": "rc=1\n",
+    "stderr": "ul: unknown escape sequence in input: 33, 351\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-esc-unknown": {
+    "stdout": "rc=1\n",
+    "stderr": "ul: unknown escape sequence in input: 33, 130\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-esc-unknown-after-output": {
+    "stdout": "ok\nrc=1\n",
+    "stderr": "ul: unknown escape sequence in input: 33, 132\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-form-feed": {
+    "stdout": "0000000   a  \\n  \\f   b  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-incomplete-utf8-at-eof": {
+    "stdout": "0000000   a   b  \\n\n0000003\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-indicated": {
+    "stdout": "0000000   h   h   e   e   l   l   d  \\n       _       _   !   !   !  \\n\n0000020\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-indicated-long": {
+    "stdout": "0000000   a   a   b  \\n       _   !  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-indicated-plain-line": {
+    "stdout": "0000000   p   l   a   i   n  \\n   a   b  \\n       _  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-invalid-utf8": {
+    "stdout": "rc=1\n",
+    "stderr": "ul: fgetwc() failed: Invalid or incomplete multibyte or wide character\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-invalid-utf8-second-line": {
+    "stdout": "ab\nrc=1\n",
+    "stderr": "ul: fgetwc() failed: Invalid or incomplete multibyte or wide character\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-leading-spaces": {
+    "stdout": "0000000               a  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-long-line": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n*\n0021440   x   x   x   x   x   x   x   x  \\n   n   e   x   t  \\n\n0021456\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-no-trailing-newline": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-plain": {
+    "stdout": "0000000   a   b   c  \\n   d   e   f  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-so-si": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-so-si-indicated": {
+    "stdout": "0000000   a   b   c   d  \\n       g   g  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-so-stays-across-lines": {
+    "stdout": "0000000   a   b  \\n       g  \\n   c   d  \\n   g  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-spaces-kept-interior": {
+    "stdout": "0000000   a           b               c  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-stale-cell-after-overwrite": {
+    "stdout": "0000000   a   b  \\n           c                                        \n0000020               y  \\n\n0000025\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-tab": {
+    "stdout": "0000000   a                               b  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-trailing-spaces-dropped": {
+    "stdout": "0000000   a              \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-underline-backspace": {
+    "stdout": "0000000   h   h   e   e   l   l   l   l   o   o  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-underline-nroff": {
+    "stdout": "0000000   h   e   l   l   o  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-underscore-only": {
+    "stdout": "0000000   _   _   _  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-underscore-over-char": {
+    "stdout": "0000000   a  \\n   _  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-underscore-over-underscore": {
+    "stdout": "0000000   _  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-unprintable-dropped": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-utf8-text": {
+    "stdout": "0000000   c   a   f 303 251  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-wide-char-underline": {
+    "stdout": "0000000 346 227 245   x  \\n   _   _  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-wide-char-underline-after": {
+    "stdout": "0000000 346 227 245   x  \\n   _   _  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-dumb-wide-chars-text": {
+    "stdout": "0000000 346 227 245 346 234 254       a   b   c  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-empty-input": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-file-directory": {
+    "stdout": "",
+    "stderr": "ul: fgetwc() failed: Is a directory\n",
+    "exit": 1,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ul-file-missing": {
+    "stdout": "",
+    "stderr": "ul: cannot open nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ul-file-missing-after-good": {
+    "stdout": "hello\n",
+    "stderr": "ul: cannot open nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "good.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "ul-help": {
+    "stdout": "\nUsage:\n ul [options] [<file> ...]\n\nDo underlining.\n\nOptions:\n -t, -T, --terminal TERMINAL  override the TERM environment variable\n -i, --indicated              underlining is indicated via a separate line\n -h, --help                   display this help\n -V, --version                display version\n\nFor more details see ul(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-help-short": {
+    "stdout": "\nUsage:\n ul [options] [<file> ...]\n\nDo underlining.\n\nOptions:\n -t, -T, --terminal TERMINAL  override the TERM environment variable\n -i, --indicated              underlining is indicated via a separate line\n -h, --help                   display this help\n -V, --version                display version\n\nFor more details see ul(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-invalid-option": {
+    "stdout": "",
+    "stderr": "ul: invalid option -- 'x'\nTry 'ul --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ul-linux-bold-and-so": {
+    "stdout": "0000000 033   [   1   m   b 033   [   m 017 033   [   7   m   c 033   [\n0000020   m 017  \\n\n0000023\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-linux-underline": {
+    "stdout": "0000000   a 033   [   4   m   a 033   [   2   4   m  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-plain-stdin": {
+    "stdout": "hello\nworld\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-screen-reverse-line": {
+    "stdout": "0000000   a   b   c  \\n  \\n 033   M 033   M   x   y   z  \\n\n0000015\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-screen-underline": {
+    "stdout": "0000000   a 033   [   4   m   a 033   [   2   4   m  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-signal-exit-code": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-term-empty": {
+    "stdout": "0000000   x   x  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-term-unknown": {
+    "stdout": "0000000   x   x  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-term-unset": {
+    "stdout": "xx\nrc=0\n",
+    "stderr": "ul: trouble reading terminfo\n",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-term-unset-with-terminal-option": {
+    "stdout": "0000000   x 033   [   4   m   x 033   [   2   4   m  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-term-unset-with-unknown-terminal-option": {
+    "stdout": "0000000   x   x  \\n\n0000003\n",
+    "stderr": "ul: terminal `nosuchterm' is not known, defaulting to `dumb'\n",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-terminal-missing-arg": {
+    "stdout": "",
+    "stderr": "ul: option requires an argument -- 't'\nTry 'ul --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ul-terminal-option-attached": {
+    "stdout": "0000000   x 033   [   4   m   x 033   [   2   4   m  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-terminal-option-dumb-overrides": {
+    "stdout": "0000000   x   x  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-terminal-option-empty": {
+    "stdout": "0000000   x   x  \\n\n0000003\n",
+    "stderr": "ul: terminal `' is not known, defaulting to `dumb'\n",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-terminal-option-long": {
+    "stdout": "0000000   x 033   [   4   m   x 033   [   2   4   m  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-terminal-option-unknown": {
+    "stdout": "0000000   x   x  \\n\n0000003\n",
+    "stderr": "ul: terminal `nosuchterm' is not known, defaulting to `dumb'\n",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-terminal-option-upper-t": {
+    "stdout": "0000000   x 033   [   4   m   x 033   [   2   4   m  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "325ab3075543c12bb487273397924152ca08e08fd58018506365685303f8a275",
+        "data": "x_\bx\n"
+      }
+    }
+  },
+  "ul-two-files": {
+    "stdout": "first\nsecond\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41",
+        "data": "first\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "480c2336b410f1ad5f8bf1b28944490255804b65350c527787e74ebdd511e3a4",
+        "data": "second\n"
+      }
+    }
+  },
+  "ul-unrecognized-option": {
+    "stdout": "",
+    "stderr": "ul: unrecognized option '--bogus'\nTry 'ul --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ul-version": {
+    "stdout": "ul from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-vt100-bold": {
+    "stdout": "0000000 033   [   1   m   b 033   [   m 017  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-vt100-superscript": {
+    "stdout": "0000000   x     033   [   4   m 033   [   7   m   2 033   [   m 017   y\n0000020  \\n\n0000021\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-vt100-underline": {
+    "stdout": "0000000   a 033   [   4   m   a 033   [   m  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-vt52-fallbacks": {
+    "stdout": "0000000   a   a       b  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-256color": {
+    "stdout": "0000000   a 033   [   4   m   a 033   [   2   4   m  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-bold": {
+    "stdout": "0000000 033   [   1   m   b   o   l   d 033   (   B 033   [   m  \\n\n0000017\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-bold-and-underline": {
+    "stdout": "0000000 033   [   1   m   a 033   (   B 033   [   m 033   [   7   m   b\n0000020 033   (   B 033   [   m  \\n\n0000027\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-bold-then-underline-adjacent": {
+    "stdout": "0000000 033   [   1   m   b 033   (   B 033   [   m   u 033   [   4   m\n0000020   u 033   [   2   4   m  \\n\n0000027\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-bold-underline-same-cell": {
+    "stdout": "0000000 033   [   7   m   b 033   (   B 033   [   m  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-form-feed": {
+    "stdout": "0000000   a  \\n  \\f   b  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-half-forward-three": {
+    "stdout": "0000000   a   b   c  \\n             033   [   2   m   d 033   (   B 033\n0000020   [   m  \\n\n0000023\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-half-reverse-three": {
+    "stdout": "0000000   a   b   c  \\n 033   [   A 033   [   A 033   [   C 033   [   C\n0000020 033   [   C 033   [   4   m 033   [   2   m   d 033   (   B 033\n0000040   [   m  \\n\n0000043\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-indicated": {
+    "stdout": "0000000   a   a   b  \\n       _   !  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-mode-ends-line": {
+    "stdout": "0000000   a   b 033   [   4   m   _ 033   [   2   4   m  \\n\n0000015\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-multiple-lines-mode-resets": {
+    "stdout": "0000000   a 033   [   4   m   a 033   [   2   4   m  \\n   b  \\n   c 033\n0000020   [   4   m   c 033   [   2   4   m  \\n\n0000032\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-reverse-line": {
+    "stdout": "0000000   a   b   c  \\n  \\n 033   [   A 033   [   A   x   y   z  \\n\n0000017\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-reverse-line-mid-text": {
+    "stdout": "0000000   a   b   c  \\n 033   [   A 033   [   A 033   [   C 033   [   C\n0000020 033   [   C   x   y   z  \\n\n0000027\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-so-si": {
+    "stdout": "0000000   a 033   [   7   m   b 033   (   B 033   [   m   c  \\n\n0000016\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-so-underline": {
+    "stdout": "0000000 033   [   7   m   a 033   (   B 033   [   m 033   [   7   m   a\n0000020 033   (   B 033   [   m  \\n\n0000027\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-subscript": {
+    "stdout": "0000000   H     033   [   2   m   2 033   (   B 033   [   m   O  \\n\n0000017\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-superscript": {
+    "stdout": "0000000   x     033   [   4   m 033   [   2   m   2 033   (   B 033   [\n0000020   m   y  \\n\n0000023\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-terminal-flag": {
+    "stdout": "0000000   a 033   [   4   m   a 033   [   2   4   m  \\n\n0000014\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-underline-backspace": {
+    "stdout": "0000000   h 033   [   4   m   h 033   [   2   4   m   e 033   [   4   m\n0000020   e 033   [   2   4   m   l 033   [   4   m   l 033   [   2   4\n0000040   m   l 033   [   4   m   l 033   [   2   4   m   o 033   [   4\n0000060   m   o 033   [   2   4   m  \\n\n0000070\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-underline-nroff": {
+    "stdout": "0000000 033   [   4   m   h   e   l   l   o 033   [   2   4   m  \\n\n0000017\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-underline-partial": {
+    "stdout": "0000000   a   b 033   [   4   m   c 033   [   2   4   m   d  \\n\n0000016\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ul-xterm-wide-underline": {
+    "stdout": "0000000 033   [   4   m 346 227 245 033   [   2   4   m   x  \\n\n0000016\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

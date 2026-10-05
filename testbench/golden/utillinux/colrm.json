@@ -1,0 +1,406 @@
+{
+  "colrm-backspace-at-start": {
+    "stdout": "0000000  \\b   a  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-backspace-before-cut": {
+    "stdout": "0000000   a   b  \\b   c  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-backspace-brings-first-back": {
+    "stdout": "0000000   a  \\b  \\b  \\b   x   y   z  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-backspace-in-cut": {
+    "stdout": "0000000   a   e   f  \\b  \\b   g   h  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-backspace-overstrike-kept": {
+    "stdout": "0000000   a  \\b   a   b  \\b   b  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-carriage-return-zero-width": {
+    "stdout": "0000000   a   d  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-combining-char": {
+    "stdout": "0000000   e 314 201   c  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-control-chars-zero-width": {
+    "stdout": "0000000   a 001 002   d  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-dashdash-after-first": {
+    "stdout": "",
+    "stderr": "colrm: first argument: '--'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-dashdash-first-arg": {
+    "stdout": "",
+    "stderr": "colrm: first argument: '--'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-empty-input": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-extra-args-ignored": {
+    "stdout": "adef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-first-and-last": {
+    "stdout": "aef\nx\na\nae\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-first-beyond-line": {
+    "stdout": "abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-first-empty": {
+    "stdout": "",
+    "stderr": "colrm: first argument: ''\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-first-hex-rejected": {
+    "stdout": "",
+    "stderr": "colrm: first argument: '0x3'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-first-leading-space": {
+    "stdout": "ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-first-not-number": {
+    "stdout": "",
+    "stderr": "colrm: first argument: 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-first-one": {
+    "stdout": "\n\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-first-only": {
+    "stdout": "ab\nxy\nlo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-first-plus-sign": {
+    "stdout": "ab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-first-too-big": {
+    "stdout": "",
+    "stderr": "colrm: first argument: '18446744073709551616': Numerical result out of range\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-first-trailing-junk": {
+    "stdout": "",
+    "stderr": "colrm: first argument: '2x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-first-zero": {
+    "stdout": "abcdef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-first-zero-second": {
+    "stdout": "abcdef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-help": {
+    "stdout": "\nUsage:\n colrm [startcol [endcol]]\n\nFilter out the specified columns from standard input.\n\nOptions:\n -h, --help     display this help\n -V, --version  display version\n\nFor more details see colrm(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-help-short": {
+    "stdout": "\nUsage:\n colrm [startcol [endcol]]\n\nFilter out the specified columns from standard input.\n\nOptions:\n -h, --help     display this help\n -V, --version  display version\n\nFor more details see colrm(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-incomplete-utf8-at-eof": {
+    "stdout": "0000000   a   b\n0000002\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-invalid-option": {
+    "stdout": "",
+    "stderr": "colrm: invalid option -- 'x'\nTry 'colrm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-invalid-utf8-after-last": {
+    "stdout": "adrc=1\n",
+    "stderr": "colrm: fgetwc() failed: Invalid or incomplete multibyte or wide character\n",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-invalid-utf8-before-cut": {
+    "stdout": "arc=1\n",
+    "stderr": "colrm: fgetwc() failed: Invalid or incomplete multibyte or wide character\n",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-invalid-utf8-in-cut": {
+    "stdout": "arc=1\n",
+    "stderr": "colrm: fgetwc() failed: Invalid or incomplete multibyte or wide character\n",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-invalid-utf8-second-line": {
+    "stdout": "a\nrc=1\n",
+    "stderr": "colrm: fgetwc() failed: Invalid or incomplete multibyte or wide character\n",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-last-before-first": {
+    "stdout": "abc  ef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-last-beyond-line": {
+    "stdout": "a\nauvwxyz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-last-equals-first-minus-one": {
+    "stdout": "ab def\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-long-line": {
+    "stdout": "0000000   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x   x\n0000020   x   x   x\n0000023\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-multiple-lines-state-reset": {
+    "stdout": "ad\neh\nil\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-negative-first-is-option": {
+    "stdout": "",
+    "stderr": "colrm: invalid option -- '2'\nTry 'colrm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-no-args": {
+    "stdout": "abc\ndef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-no-trailing-newline": {
+    "stdout": "0000000   a   d   e   f\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-no-trailing-newline-first-only": {
+    "stdout": "0000000   a   b\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-only-newlines": {
+    "stdout": "\n\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-pipeline-with-column": {
+    "stdout": "a c\nd f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-second-looks-like-option": {
+    "stdout": "",
+    "stderr": "colrm: invalid option -- '1'\nTry 'colrm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-second-not-number": {
+    "stdout": "",
+    "stderr": "colrm: second argument: 'y'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-single-column": {
+    "stdout": "abdef\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-stdin-directory": {
+    "stdout": "rc=1\n",
+    "stderr": "colrm: fgetwc() failed: Is a directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-stdin-file": {
+    "stdout": "hello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      }
+    }
+  },
+  "colrm-tab-after-cut": {
+    "stdout": "0000000   a   d   e   f   g  \\t   h  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-tab-before-cut": {
+    "stdout": "0000000   a  \\t   b  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-tab-inside-cut": {
+    "stdout": "0000000   a   e   f  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-tab-multiple": {
+    "stdout": "0000000  \\t  \\t   x  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-tab-straddles-first": {
+    "stdout": "0000000   a              \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-tab-straddles-first-range": {
+    "stdout": "0000000   a                   b   c   d  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-tab-straddles-last": {
+    "stdout": "0000000   a                   c   d  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-unrecognized-option": {
+    "stdout": "",
+    "stderr": "colrm: unrecognized option '--bogus'\nTry 'colrm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "colrm-utf8-narrow": {
+    "stdout": "0000000   c   a   f   u       l   a   i   t  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-version": {
+    "stdout": "colrm from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-wide-char-after-cut-needs-padding": {
+    "stdout": "0000000   a       b  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-wide-char-at-cut-start": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-wide-char-before": {
+    "stdout": "0000000 346 227 245 346 234 254  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-wide-char-inside-cut": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-wide-char-straddles-first": {
+    "stdout": "0000000   a      \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-wide-char-straddles-first-range": {
+    "stdout": "0000000   a       d  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "colrm-wide-char-straddles-last": {
+    "stdout": "0000000   a   c   d  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

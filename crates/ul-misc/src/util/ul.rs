@@ -19,15 +19,14 @@ pub fn short_name(args: &[OsString]) -> String {
     }
 }
 
-/// `warnx(3)`: `<prog>: <msg>` no stderr. A glibc descarrega o stdout antes de escrever.
+/// `warnx(3)`: `<prog>: <msg>` no stderr. O `err.c` da glibc escreve só no stderr, sem descarregar
+/// o stdout: com o stdout num pipe, a mensagem sai antes do que já estava no buffer.
 pub fn warnx(short: &str, msg: impl AsRef<str>) {
-    let _ = io::flush_stdout();
     io::eprint(format!("{short}: {}\n", msg.as_ref()));
 }
 
-/// `warn(3)` com errno: `<prog>: <msg>: <strerror>`. A glibc descarrega o stdout antes de escrever.
+/// `warn(3)` com errno: `<prog>: <msg>: <strerror>`, sem descarregar o stdout (como o `warnx`).
 pub fn warn(short: &str, msg: impl AsRef<str>, e: Errno) {
-    let _ = io::flush_stdout();
     io::eprint(format!("{short}: {}: {}\n", msg.as_ref(), e.message()));
 }
 

@@ -1,0 +1,2215 @@
+{
+  "run-parts-absolute-directory": {
+    "stdout": "abs\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 19,
+        "sha256": "6c7dabc52c5e5a6890388d3b7b7090e6b4719991363680cafdfe00a3617043f9",
+        "data": "#!/bin/sh\necho abs\n"
+      }
+    }
+  },
+  "run-parts-ambiguous-option": {
+    "stdout": "",
+    "stderr": "run-parts: option '--re' is ambiguous; possibilities: '--report' '--reverse' '--regex'\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-ambiguous-option-l": {
+    "stdout": "",
+    "stderr": "run-parts: option '--l' is ambiguous; possibilities: '--list' '--lsbsysinit'\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-arg-missing-argument": {
+    "stdout": "",
+    "stderr": "run-parts: option requires an argument -- 'a'\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-argument-zero-is-the-path": {
+    "stdout": "d/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "892f17799d665a75d1f16dcc59954d8e933e8b10576f29ca59d4edf445628cb8",
+        "data": "#!/bin/sh\necho \"$0\"\n"
+      }
+    }
+  },
+  "run-parts-arguments": {
+    "stdout": "[3] one two three \n<one>\n<two three>\n<>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 53,
+        "sha256": "e122515c62bbafaf748db348b5b5729bc5ce8811346151ca5b0e1cfb2b7d0816",
+        "data": "#!/bin/sh\necho \"[$#] $*\"\nfor a; do echo \"<$a>\"; done\n"
+      }
+    }
+  },
+  "run-parts-bad-regex": {
+    "stdout": "",
+    "stderr": "Unable to build regexp: Unmatched ( or \\(\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-bad-regex-brace": {
+    "stdout": "",
+    "stderr": "Unable to build regexp: Unmatched \\{\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-bad-regex-bracket": {
+    "stdout": "",
+    "stderr": "Unable to build regexp: Unmatched [, [^, [:, [., or [=\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-bad-umask": {
+    "stdout": "",
+    "stderr": "run-parts: bad umask value\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-bad-umask-empty": {
+    "stdout": "",
+    "stderr": "run-parts: bad umask value\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-bad-umask-negative": {
+    "stdout": "",
+    "stderr": "run-parts: bad umask value\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-bad-umask-too-big": {
+    "stdout": "",
+    "stderr": "run-parts: bad umask value\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-binary-program": {
+    "stdout": "rc=1\n",
+    "stderr": "run-parts: d/20-false exited with return code 1\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-true": {
+        "kind": "symlink",
+        "target": "/usr/bin/true"
+      },
+      "d/20-false": {
+        "kind": "symlink",
+        "target": "/usr/bin/false"
+      }
+    }
+  },
+  "run-parts-broken-symlink-ignored": {
+    "stdout": "d/20-ok\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-broken": {
+        "kind": "symlink",
+        "target": "nowhere"
+      },
+      "d/20-ok": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-continues-after-failure": {
+    "stdout": "one\ntwo\nrc=2\n",
+    "stderr": "run-parts: d/10-a exited with return code 2\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 26,
+        "sha256": "216ecde237ec95ed7a90c138d19eab0b96ce4cf975d3f4e51bae79666a795a52",
+        "data": "#!/bin/sh\necho one\nexit 2\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 19,
+        "sha256": "51d5cad9e6f349ce2489603af84fbc2b83222a0b8bd10f212332964f7c8c3f21",
+        "data": "#!/bin/sh\necho two\n"
+      }
+    }
+  },
+  "run-parts-cwd-inherited": {
+    "stdout": "PWD\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 14,
+        "sha256": "ab9da2fa2da92e938b121023a17491629c8462bab57ba45fe38657f16365bc08",
+        "data": "#!/bin/sh\npwd\n"
+      }
+    }
+  },
+  "run-parts-debug-lsbsysinit": {
+    "stdout": "\"foo-bar\": hierre pass, excsre pass\nlist of unique basenames:\n - foo-bar\nchecking d/foo-bar... found\nprocessing: d/foo-bar\nd/foo-bar\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/foo-bar": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-debug-lsbsysinit-excluded": {
+    "stdout": "\"foo-bar.dpkg-old\": hierre pass, excsre fail\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/foo-bar.dpkg-old": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-debug-lsbsysinit-traditional": {
+    "stdout": "\"plain\": tradre pass\nlist of unique basenames:\n - plain\nchecking d/plain... found\nprocessing: d/plain\nd/plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/plain": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-debug-non-executable": {
+    "stdout": "\"10-a\": classicalre pass\nlist of unique basenames:\n - 10-a\nchecking d/10-a... found\nprocessing: d/10-a\nd/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "run-parts-debug-not-found-in-first-directory": {
+    "stdout": "\"10-a\": classicalre pass\nlist of unique basenames:\n - 10-a\nchecking d1/10-a... not found\nchecking d2/10-a... found\nprocessing: d2/10-a\nd2/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d2/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-debug-regex": {
+    "stdout": "\"abc\": customre pass\nlist of unique basenames:\n - abc\nchecking d/abc... found\nprocessing: d/abc\nd/abc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/abc": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-debug-rejected-name": {
+    "stdout": "\"bad.name\": classicalre fail\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/bad.name": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-debug-reverse-single-entry": {
+    "stdout": "\"10-a\": classicalre pass\nlist of unique basenames:\n - 10-a\nchecking d/10-a... found\nprocessing: d/10-a\nd/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-debug-single-entry": {
+    "stdout": "\"10-a\": classicalre pass\nlist of unique basenames:\n - 10-a\nchecking d/10-a... found\nprocessing: d/10-a\nhi\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 18,
+        "sha256": "299001868fb8c02fd431c336c6d058f5558c5dff5b5af5e6fe04b870a6a9cbba",
+        "data": "#!/bin/sh\necho hi\n"
+      }
+    }
+  },
+  "run-parts-debug-two-directories-single-entries": {
+    "stdout": "\"10-a\": classicalre pass\n\"10-a\": classicalre pass\nlist of unique basenames:\n - 10-a\nchecking d1/10-a... found\nprocessing: d1/10-a\nd1/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d1/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d2/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-directory-is-a-file": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "run-parts-directory-trailing-slash-in-path": {
+    "stdout": "d//10-a\n./d/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-directory-with-valid-name-skipped": {
+    "stdout": "d/20-ok\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-subdir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/20-ok": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-double-dash": {
+    "stdout": "d/10-a\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-empty-directory": {
+    "stdout": "rc=0\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "run-parts-environment-inherited": {
+    "stdout": "bar\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 22,
+        "sha256": "8ba1fe681bb21a500e42a050507b99a846d564b6456b342674977a0498580caa",
+        "data": "#!/bin/sh\necho \"$FOO\"\n"
+      }
+    }
+  },
+  "run-parts-exit-code-last-failure-wins": {
+    "stdout": "rc=5\n",
+    "stderr": "run-parts: d/10-a exited with return code 3\nrun-parts: d/30-c exited with return code 5\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "bb6220bfa599c6294ebc0954c2781c5513b565eb55f01aba387bfd0dc90176b1",
+        "data": "#!/bin/sh\nexit 3\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "306c6ca7407560340797866e077e053627ad409277d1b9da58106fce4cf717cb",
+        "data": "#!/bin/sh\nexit 0\n"
+      },
+      "d/30-c": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "18ac1cc1c7d477ba041b12ba4b1d66066437df592287fe8f5b57ac7e3e105872",
+        "data": "#!/bin/sh\nexit 5\n"
+      },
+      "d/40-d": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "306c6ca7407560340797866e077e053627ad409277d1b9da58106fce4cf717cb",
+        "data": "#!/bin/sh\nexit 0\n"
+      }
+    }
+  },
+  "run-parts-exit-code-propagates": {
+    "stdout": "rc=3\n",
+    "stderr": "run-parts: d/10-a exited with return code 3\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "bb6220bfa599c6294ebc0954c2781c5513b565eb55f01aba387bfd0dc90176b1",
+        "data": "#!/bin/sh\nexit 3\n"
+      }
+    }
+  },
+  "run-parts-exit-on-error": {
+    "stdout": "one\nrc=2\n",
+    "stderr": "run-parts: d/10-a exited with return code 2\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 26,
+        "sha256": "216ecde237ec95ed7a90c138d19eab0b96ce4cf975d3f4e51bae79666a795a52",
+        "data": "#!/bin/sh\necho one\nexit 2\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 19,
+        "sha256": "51d5cad9e6f349ce2489603af84fbc2b83222a0b8bd10f212332964f7c8c3f21",
+        "data": "#!/bin/sh\necho two\n"
+      }
+    }
+  },
+  "run-parts-exit-on-error-success-continues": {
+    "stdout": "one\ntwo\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 19,
+        "sha256": "f5dd87fa1cf3d592ff0ba84641abfe39bacecaad5e003c74aa181ccb54c2cc9a",
+        "data": "#!/bin/sh\necho one\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 19,
+        "sha256": "51d5cad9e6f349ce2489603af84fbc2b83222a0b8bd10f212332964f7c8c3f21",
+        "data": "#!/bin/sh\necho two\n"
+      }
+    }
+  },
+  "run-parts-exit-status-without-scripts-zero": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "run-parts-fifo-ignored-with-list": {
+    "stdout": "d/20-ok\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-fifo": {
+        "kind": "file",
+        "mode": 61860,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/20-ok": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-fifo-is-an-error": {
+    "stdout": "run-parts: run-parts: component d/10-fifo is not an executable plain file\n\nd/20-ok\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-fifo": {
+        "kind": "file",
+        "mode": 61860,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/20-ok": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-help": {
+    "stdout": "Usage: run-parts [OPTION]... DIRECTORY [DIRECTORY ...]\n      --test          print script names which would run, but don't run them.\n      --list          print names of all valid files (can not be used with\n                      --test)\n  -v, --verbose       print script names before running them.\n  -d, --debug         print script names while checking them.\n      --report        print script names if they produce output.\n      --reverse       reverse execution order of scripts.\n      --exit-on-error exit as soon as a script returns with a non-zero exit\n                      code.\n      --stdin         multiplex stdin to scripts being run, using temporary file\n      --lsbsysinit    validate filenames based on LSB sysinit specs.\n      --new-session   run each script in a separate process session\n      --regex=PATTERN validate filenames based on POSIX ERE pattern PATTERN.\n  -u, --umask=UMASK   sets umask to UMASK (octal), default is 022.\n  -a, --arg=ARGUMENT  pass ARGUMENT to scripts, use once for each argument.\n  -V, --version       output version information and exit.\n  -h, --help          display this help and exit.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "run-parts-help-short": {
+    "stdout": "Usage: run-parts [OPTION]... DIRECTORY [DIRECTORY ...]\n      --test          print script names which would run, but don't run them.\n      --list          print names of all valid files (can not be used with\n                      --test)\n  -v, --verbose       print script names before running them.\n  -d, --debug         print script names while checking them.\n      --report        print script names if they produce output.\n      --reverse       reverse execution order of scripts.\n      --exit-on-error exit as soon as a script returns with a non-zero exit\n                      code.\n      --stdin         multiplex stdin to scripts being run, using temporary file\n      --lsbsysinit    validate filenames based on LSB sysinit specs.\n      --new-session   run each script in a separate process session\n      --regex=PATTERN validate filenames based on POSIX ERE pattern PATTERN.\n  -u, --umask=UMASK   sets umask to UMASK (octal), default is 022.\n  -a, --arg=ARGUMENT  pass ARGUMENT to scripts, use once for each argument.\n  -V, --version       output version information and exit.\n  -h, --help          display this help and exit.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "run-parts-invalid-option": {
+    "stdout": "",
+    "stderr": "run-parts: invalid option -- 'x'\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-list-and-test": {
+    "stdout": "",
+    "stderr": "run-parts: --list and --test can not be used together\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-list-includes-readable-non-executable": {
+    "stdout": "d/10-x\nd/20-n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-x": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/20-n": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "6667b2d1aab6a00caa5aee5af8ad9f1465e567abf1c209d15727d57b3e8f6e5f",
+        "data": "data\n"
+      }
+    }
+  },
+  "run-parts-long-prefix": {
+    "stdout": "d/a\nhi\nd/a\n",
+    "stderr": "run-parts: executing d/a\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 18,
+        "sha256": "299001868fb8c02fd431c336c6d058f5558c5dff5b5af5e6fe04b870a6a9cbba",
+        "data": "#!/bin/sh\necho hi\n"
+      }
+    }
+  },
+  "run-parts-long-run-many-scripts": {
+    "stdout": "27-s\n28-s\n29-s\n30\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/00-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "a71042a7c1cc198dc6dcc4c2c54a3fd24aa9fd634fad1d683f8f4eec464a11a4",
+        "data": "#!/bin/sh\necho 00-s\n"
+      },
+      "d/01-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "5ab307ec8518d31312cb2d71f9a5f967da7e7154475b5197d9f4b97e7b4b62ab",
+        "data": "#!/bin/sh\necho 01-s\n"
+      },
+      "d/02-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "d474c438138ec1125363361a7c060fbc041d814fce39ee49f66643bf3edb6a0e",
+        "data": "#!/bin/sh\necho 02-s\n"
+      },
+      "d/03-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "832bdda6a2418b13181c13d155c36e89a2882466b538fe51ccc908bba32c0f65",
+        "data": "#!/bin/sh\necho 03-s\n"
+      },
+      "d/04-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "45279f3913010c1dbb0c25c32feca8729f4de829bdaef7f80c9682a42b3fbcf9",
+        "data": "#!/bin/sh\necho 04-s\n"
+      },
+      "d/05-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "5d58d9a22ffe091b1c6f962c6cbb09f7c667ee171ceb8883004804a141da5e1b",
+        "data": "#!/bin/sh\necho 05-s\n"
+      },
+      "d/06-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "e78b087caed4a924f34120c374fcf0c5eb0efc609fb44f162fb6add118e03967",
+        "data": "#!/bin/sh\necho 06-s\n"
+      },
+      "d/07-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "436c501cd938b6a6c7643f77556be3b9151b3f824149fe779f1e6c6065f24001",
+        "data": "#!/bin/sh\necho 07-s\n"
+      },
+      "d/08-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "7543f5df0da1a85dbf088ad3ba18c8d9aba35bc99eba728c15308d5f98f290c2",
+        "data": "#!/bin/sh\necho 08-s\n"
+      },
+      "d/09-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "84fd0a46ccd90aad9d75223018b15c582769d55cce809cbb11dfa029946fd480",
+        "data": "#!/bin/sh\necho 09-s\n"
+      },
+      "d/10-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "ebd87c2a01ea4cb8c4500bde2103a152f932a43c4e667b0192af887084c470a2",
+        "data": "#!/bin/sh\necho 10-s\n"
+      },
+      "d/11-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "210080f14518a88f07dc6e1a2059b42031e14d6177dbc58a8782eb6e2eaa8b2c",
+        "data": "#!/bin/sh\necho 11-s\n"
+      },
+      "d/12-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "b848db8381aaccf574149e079c4c74c4fc2a6b4e18a68d90cb758930c8e6789f",
+        "data": "#!/bin/sh\necho 12-s\n"
+      },
+      "d/13-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "e9a30385838042d10e0955e47410cbb72213351594709f92b8d242c27a094a15",
+        "data": "#!/bin/sh\necho 13-s\n"
+      },
+      "d/14-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "7c692fda3694d3d36d01f9546494c70e66601c4d4a29d9875a690917001e7757",
+        "data": "#!/bin/sh\necho 14-s\n"
+      },
+      "d/15-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "6e4ecc3b6e686f3050047a7527424f015dce2b509fa51b51b06859a7758adb98",
+        "data": "#!/bin/sh\necho 15-s\n"
+      },
+      "d/16-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "b2a654de4d8e74fc8d441483e1ddf52df90f201ad267e309599bfdfb18f29953",
+        "data": "#!/bin/sh\necho 16-s\n"
+      },
+      "d/17-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "228cc68d4edb7cde2c942b9cf8658b5f754fa41268b05c58e428bfae9c7d1274",
+        "data": "#!/bin/sh\necho 17-s\n"
+      },
+      "d/18-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "f76ba3fd76e97a700953839e8f932b4ca9faaf2e992a6b8c7b4fd9930d5a89e1",
+        "data": "#!/bin/sh\necho 18-s\n"
+      },
+      "d/19-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "74c0b807493c71c7e3b15f60de7fc199ff521192744e507b78ce8229fa04d32e",
+        "data": "#!/bin/sh\necho 19-s\n"
+      },
+      "d/20-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "ff4911121cdceea3fcde80d4c8c8bffe64b581c67c9a07d07b69c3aebfc6093d",
+        "data": "#!/bin/sh\necho 20-s\n"
+      },
+      "d/21-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "4d34920faea11ee2d9d25eab5b16472ffaf5f6845a771c3e9cfd56b33007d6c5",
+        "data": "#!/bin/sh\necho 21-s\n"
+      },
+      "d/22-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "5d6aaf3e29ec87fe2d613fd06a81c12a35b334e0fb542e1e5a266a4ee38c769d",
+        "data": "#!/bin/sh\necho 22-s\n"
+      },
+      "d/23-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "2b4883e36426b6cef22d20d824938c4592adafc86aa8be00225be2302e2c5fdb",
+        "data": "#!/bin/sh\necho 23-s\n"
+      },
+      "d/24-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "e510cc5adff3b1f2954401b7eb4be9b5ef9c7e40f865a7bd5e268ad764fe0f0b",
+        "data": "#!/bin/sh\necho 24-s\n"
+      },
+      "d/25-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "e66177eff43a3f8251186f056c089a31b35d587cc9243634dbb6246f954e5dea",
+        "data": "#!/bin/sh\necho 25-s\n"
+      },
+      "d/26-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "4fad50ecafd488174d8a6cabdf5b19feab8a6e795566da855877c5832f7df6b8",
+        "data": "#!/bin/sh\necho 26-s\n"
+      },
+      "d/27-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "e259bab93c7925ae7be0f71afb22049c4816a8c9852e16c1b53597b0cd031d06",
+        "data": "#!/bin/sh\necho 27-s\n"
+      },
+      "d/28-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "5cb841a49fdafe336067baf526676f44d81f592098f2459b1861c26fb352aeca",
+        "data": "#!/bin/sh\necho 28-s\n"
+      },
+      "d/29-s": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "09f09cd5214389170c4b8b600dc524ea8267104af434fcf85b56a189f5ea8680",
+        "data": "#!/bin/sh\necho 29-s\n"
+      }
+    }
+  },
+  "run-parts-lsbsysinit-then-regex-last-wins": {
+    "stdout": "d/plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/foo-bar": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/plain": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-missing-argument": {
+    "stdout": "",
+    "stderr": "run-parts: option '--umask' requires an argument\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-missing-directory": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "run-parts-missing-interpreter": {
+    "stdout": "run-parts: failed to exec d/10-a: No such file or directory\nrun-parts: d/10-a exited with return code 1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 22,
+        "sha256": "731af130a34df4cac5d4531b7e2008797b9031eaa839f50dd375cf629e9594af",
+        "data": "#!/nonexistent/interp\n"
+      }
+    }
+  },
+  "run-parts-multiple-directories-first-wins": {
+    "stdout": "first\nsecond\nd2/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d1/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 21,
+        "sha256": "33ba170df335478d950ecb569a9a008c6de9cb6145a95b282e4839fea4aeaf06",
+        "data": "#!/bin/sh\necho first\n"
+      },
+      "d2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d2/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 22,
+        "sha256": "e96b178c351d57d5ecce0b2bc20a0dc9434f710949f517d4ea19775f4d6c0c42",
+        "data": "#!/bin/sh\necho second\n"
+      }
+    }
+  },
+  "run-parts-multiple-directories-merged": {
+    "stdout": "d1/10-a\nd2/20-b\nd1/30-c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d1/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d1/30-c": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d2/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-multiple-directories-one-missing": {
+    "stdout": "d1/10-a\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d1/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-name-filter-default": {
+    "stdout": "d/-y\nd/A_B-c\nd/_x\nd/a1\nd/ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/-y": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/1.2": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/A_B-c": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/_x": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/a1": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/foo.dpkg-old": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/foo.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/foo~": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/ok": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/sp ace": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-name-filter-lsbsysinit": {
+    "stdout": "d/1foo\nd/_x-y\nd/a-b-c\nd/foo-bar\nd/plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/1foo": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/_x-y": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/a-b-c": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/bad-.x": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/foo-bar": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/foo-bar.dpkg-old": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/foo.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/foo_bar-baz.dpkg-dist": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/plain": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-name-filter-lsbsysinit-traditional": {
+    "stdout": "d/0\nd/99-last\nd/abc-def_ghi\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/0": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/99-last": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/Aa": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/S01-foo": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/abc-def_ghi": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-name-filter-regex": {
+    "stdout": "d/a.sh\nd/b.sh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/a.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/b.sh": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/c.txt": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/d": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-name-filter-regex-alternation": {
+    "stdout": "d/one\nd/three\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/one": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/three": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/two": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-name-filter-regex-ere-features": {
+    "stdout": "d/ab\nd/abab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/aa": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/ab": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/abab": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-new-session": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 63,
+        "sha256": "8be5631f2c202118c42d175b4f3ac751b43a1b8299b64d8ac9c68bb0e98a1520",
+        "data": "#!/bin/sh\nps -o pid=,sid= -p $$ | awk \"{ print (\\$1 == \\$2) }\"\n"
+      }
+    }
+  },
+  "run-parts-no-args": {
+    "stdout": "",
+    "stderr": "run-parts: missing operand\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-no-exec-format-script": {
+    "stdout": "run-parts: failed to exec d/10-a: Exec format error\nrun-parts: d/10-a exited with return code 1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 16,
+        "sha256": "3c0cb907fb7a9918b0b318076e7d6eef110f7c8e4e3c2fbc15ec0d9507314f86",
+        "data": "echo no shebang\n"
+      }
+    }
+  },
+  "run-parts-no-stdin-mode-passes-parent-stdin": {
+    "stdout": "input\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 14,
+        "sha256": "be2bb79ee3ec9a659644c659209f2e068fd069fdb1c1c6c4053f9fe0be48746c",
+        "data": "#!/bin/sh\ncat\n"
+      }
+    }
+  },
+  "run-parts-non-executable-silently-skipped": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-n": {
+        "kind": "file",
+        "mode": 420,
+        "size": 18,
+        "sha256": "eba7a4536eb55a37babd7edd0c3af2f36e4aca92bfd21b0772dcf3b7936a19c0",
+        "data": "#!/bin/sh\necho no\n"
+      }
+    }
+  },
+  "run-parts-options-after-directory": {
+    "stdout": "d/10-a\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-output-ordering-stdout-then-stderr": {
+    "stdout": "out\nerr\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 19,
+        "sha256": "0992f51c4b1549ca2618e06739a573aab151f3242be6ff7e06e06ae18ec37f21",
+        "data": "#!/bin/sh\necho out\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 23,
+        "sha256": "1775317b589114eaee59dc9c3c7d5a6a2eab320de76e94230a5f1e6a46c4aeb8",
+        "data": "#!/bin/sh\necho err >&2\n"
+      }
+    }
+  },
+  "run-parts-posixly-correct-stops-at-first-operand": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-regex-is-search-not-full-match": {
+    "stdout": "d/foo\nd/xfoox\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/bar": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/foo": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/xfoox": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-regex-then-lsbsysinit-last-wins": {
+    "stdout": "d/foo-bar\nd/plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/foo-bar": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/plain": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-report-failing-script": {
+    "stdout": "d/10-a:\nbefore\nrun-parts: d/10-a exited with return code 4\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 29,
+        "sha256": "9245093ace491487341cfd2522ca6044884963857601b846cbaad87969edbc0a",
+        "data": "#!/bin/sh\necho before\nexit 4\n"
+      }
+    }
+  },
+  "run-parts-report-large-output": {
+    "stdout": "20008\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 46,
+        "sha256": "7735048d33708dd1dd6502eda3722f6bd02c297e2f9b05e87c0fb485409a85a4",
+        "data": "#!/bin/sh\nhead -c 20000 /dev/zero | tr \"\\0\" x\n"
+      }
+    }
+  },
+  "run-parts-report-multiline": {
+    "stdout": "d/10-a:\none\ntwo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 28,
+        "sha256": "fe5f2b494471a294db0bec0ca519947508abbc8d6bb9f402deceee40d4b762dc",
+        "data": "#!/bin/sh\necho one\necho two\n"
+      }
+    }
+  },
+  "run-parts-report-no-output-nothing-printed": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 15,
+        "sha256": "9ab8fabc8c72bfa0416414631e26bd71b01f9dfae98dcf4656b1e2d78307876a",
+        "data": "#!/bin/sh\ntrue\n"
+      }
+    }
+  },
+  "run-parts-report-stderr": {
+    "stdout": "d/10-a:\noops\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 24,
+        "sha256": "1acd20d467873f83943c8cc50d3c2f817d1258fdc2bc9285e76847beea633141",
+        "data": "#!/bin/sh\necho oops >&2\n"
+      }
+    }
+  },
+  "run-parts-report-stdout": {
+    "stdout": "d/10-a:\nhello\nd/30-c:\nworld\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 21,
+        "sha256": "bfdeaeb08cffb6a36438bcd12dda25417e3cdd36f1e7e482a2849d539225288b",
+        "data": "#!/bin/sh\necho hello\n"
+      },
+      "d/20-quiet": {
+        "kind": "file",
+        "mode": 493,
+        "size": 15,
+        "sha256": "9ab8fabc8c72bfa0416414631e26bd71b01f9dfae98dcf4656b1e2d78307876a",
+        "data": "#!/bin/sh\ntrue\n"
+      },
+      "d/30-c": {
+        "kind": "file",
+        "mode": 493,
+        "size": 21,
+        "sha256": "9a2bff7288ac2a72fe3a2a8c420f9a1a348b229ecdc16453605f82278ff4fc55",
+        "data": "#!/bin/sh\necho world\n"
+      }
+    }
+  },
+  "run-parts-reverse": {
+    "stdout": "30-c\n20-b\n10-a\nd/30-c\nd/20-b\nd/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "0c39194fccdd848c8cde21a0bbc72f2291e1840e7700d4928f0df8743e2657dd",
+        "data": "#!/bin/sh\necho 10-a\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "59e282e1c7319dab4fda3823bd5d957a163382f11d223a4569ba58908cd53777",
+        "data": "#!/bin/sh\necho 20-b\n"
+      },
+      "d/30-c": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "02c1e822ffaf86a523849fde8d22536cafe185a2c8177d675edbebe5cbbcc831",
+        "data": "#!/bin/sh\necho 30-c\n"
+      }
+    }
+  },
+  "run-parts-runs-in-order": {
+    "stdout": "10-a\n20-b\n30-c\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "0c39194fccdd848c8cde21a0bbc72f2291e1840e7700d4928f0df8743e2657dd",
+        "data": "#!/bin/sh\necho 10-a\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "59e282e1c7319dab4fda3823bd5d957a163382f11d223a4569ba58908cd53777",
+        "data": "#!/bin/sh\necho 20-b\n"
+      },
+      "d/30-c": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "02c1e822ffaf86a523849fde8d22536cafe185a2c8177d675edbebe5cbbcc831",
+        "data": "#!/bin/sh\necho 30-c\n"
+      }
+    }
+  },
+  "run-parts-same-directory-twice": {
+    "stdout": "d/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-short-debug-is-invalid": {
+    "stdout": "",
+    "stderr": "run-parts: invalid option -- 'd'\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-short-t-is-invalid": {
+    "stdout": "",
+    "stderr": "run-parts: invalid option -- 't'\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-signal-death": {
+    "stdout": "rc=1\n",
+    "stderr": "run-parts: d/10-a exited because of uncaught signal 9\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 21,
+        "sha256": "d7299f84574f91f1e03e9bb60146fb128cdaf8baf9516bdce9179448dda324ce",
+        "data": "#!/bin/sh\nkill -9 $$\n"
+      }
+    }
+  },
+  "run-parts-sorting-bytes": {
+    "stdout": "d/1\nd/10\nd/2\nd/A\nd/B\nd/_x\nd/a\nd/a-b\nd/a_b\nd/ab\nd/b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/1": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/10": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/2": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/A": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/B": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/_x": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/a-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/a_b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/ab": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-stdin-mode": {
+    "stdout": "input\n--\ninput\n--\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 22,
+        "sha256": "232d26d8ebf0157bfd3c86c618e60537849e63e9a37606f31fc0e41f1736f4c8",
+        "data": "#!/bin/sh\ncat\necho --\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 22,
+        "sha256": "232d26d8ebf0157bfd3c86c618e60537849e63e9a37606f31fc0e41f1736f4c8",
+        "data": "#!/bin/sh\ncat\necho --\n"
+      }
+    }
+  },
+  "run-parts-stdin-mode-large": {
+    "stdout": "100000\n100000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 16,
+        "sha256": "ddad7fce71e6c4448caeaee9423bb498e22ad8f25132a337a8829d669fd644bd",
+        "data": "#!/bin/sh\nwc -c\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 16,
+        "sha256": "ddad7fce71e6c4448caeaee9423bb498e22ad8f25132a337a8829d669fd644bd",
+        "data": "#!/bin/sh\nwc -c\n"
+      }
+    }
+  },
+  "run-parts-stdin-mode-nothing-to-run": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "run-parts-subdirectories-ignored": {
+    "stdout": "d/10-a\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "run-parts-symlinks-followed": {
+    "stdout": "target\nd/10-link\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-link": {
+        "kind": "symlink",
+        "target": "../real"
+      },
+      "real": {
+        "kind": "file",
+        "mode": 493,
+        "size": 22,
+        "sha256": "9ed0866eac101ef472ece211b3c430b876819d82a09bc7867e375d8039c07e17",
+        "data": "#!/bin/sh\necho target\n"
+      }
+    }
+  },
+  "run-parts-test-lists-executables": {
+    "stdout": "d/10-a\nd/20-b\nd/30-c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/30-c": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-test-skips-non-executable": {
+    "stdout": "d/10-x\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-x": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      },
+      "d/20-n": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "6667b2d1aab6a00caa5aee5af8ad9f1465e567abf1c209d15727d57b3e8f6e5f",
+        "data": "data\n"
+      }
+    }
+  },
+  "run-parts-umask-default-022": {
+    "stdout": "0022\n0022\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 16,
+        "sha256": "56f9b80226b2721899de93f46452eea0209a87a1da2dc797ac78d9e9c1134c45",
+        "data": "#!/bin/sh\numask\n"
+      }
+    }
+  },
+  "run-parts-umask-hex-prefix-ok": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "run-parts-umask-option": {
+    "stdout": "0077\n600\n0000\n600\n0027\n600\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 37,
+        "sha256": "f6558a878e95aacb36702d04feb6ca7a58c7152e20598565c75f4f639df29b5a",
+        "data": "#!/bin/sh\numask\ntouch f\nstat -c %a f\n"
+      },
+      "f": {
+        "kind": "file",
+        "mode": 384,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "run-parts-umask-trailing-junk-ok": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "run-parts-unrecognized-option": {
+    "stdout": "",
+    "stderr": "run-parts: unrecognized option '--bogus'\nTry `run-parts --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "run-parts-verbose": {
+    "stdout": "run-parts: executing d/10-a\nout\nrun-parts: executing d/20-b\nout2\nrun-parts: executing d/10-a\nrun-parts: executing d/20-b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 19,
+        "sha256": "0992f51c4b1549ca2618e06739a573aab151f3242be6ff7e06e06ae18ec37f21",
+        "data": "#!/bin/sh\necho out\n"
+      },
+      "d/20-b": {
+        "kind": "file",
+        "mode": 493,
+        "size": 20,
+        "sha256": "ce2f162f26643170f78b26c0db5de6db3b2e7c7bc871bb6ab9f0471546e4ee6f",
+        "data": "#!/bin/sh\necho out2\n"
+      }
+    }
+  },
+  "run-parts-verbose-test-mode-prints-nothing-extra": {
+    "stdout": "d/10-a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-verbose-with-arguments": {
+    "stdout": "run-parts: executing d/10-a x y z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/10-a": {
+        "kind": "file",
+        "mode": 493,
+        "size": 10,
+        "sha256": "a8076d3d28d21e02012b20eaf7dbf75409a6277134439025f282e368e3305abf",
+        "data": "#!/bin/sh\n"
+      }
+    }
+  },
+  "run-parts-version": {
+    "stdout": "Debian run-parts program, version 5.23.1\nCopyright (C) 1994 Ian Jackson, Copyright (C) 1996 Jeff Noxon.\nCopyright (C) 1996,1997,1998,1999 Guy Maor\nCopyright (C) 2002-2020 Clint Adams\nThis is free software; see the GNU General Public License version 2\nor later for copying conditions.  There is NO warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "run-parts-version-short": {
+    "stdout": "Debian run-parts program, version 5.23.1\nCopyright (C) 1994 Ian Jackson, Copyright (C) 1996 Jeff Noxon.\nCopyright (C) 1996,1997,1998,1999 Guy Maor\nCopyright (C) 2002-2020 Clint Adams\nThis is free software; see the GNU General Public License version 2\nor later for copying conditions.  There is NO warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,604 @@
+{
+  "col-backspace-at-start": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-backspace-none": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-backspace-none-underline": {
+    "stdout": "0000000   h   e   l   l   o  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-backspace-overstrike": {
+    "stdout": "0000000   a  \\b   a   b  \\b   b  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-backspace-then-overwrite-later-column": {
+    "stdout": "0000000   a   b  \\b   X   c  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-backspace-too-many": {
+    "stdout": "0000000   a  \\b   c   b  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-backspace-underline": {
+    "stdout": "0000000   h  \\b   _   e  \\b   _   l  \\b   _   l  \\b   _   o  \\b   _  \\n\n0000020\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-bad-usage": {
+    "stdout": "",
+    "stderr": "col: bad usage\nTry 'col --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "col-blank-lines": {
+    "stdout": "0000000   a  \\n  \\n  \\n   b  \\n  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-bold-overstrike-man-style": {
+    "stdout": "0000000   N  \\b   N   A  \\b   A   M  \\b   M   E  \\b   E  \\n\n0000015\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-bold-overstrike-man-style-b": {
+    "stdout": "0000000   N   A   M   E  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-carriage-return": {
+    "stdout": "0000000   a  \\b   X   b   c  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-carriage-return-newline": {
+    "stdout": "0000000   a   b  \\n   c   d  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-carriage-return-overwrite": {
+    "stdout": "0000000   a  \\b   1   b  \\b   2   c  \\b   3   d   e   f  \\n\n0000015\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-del-char": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-del-char-pass": {
+    "stdout": "0000000   a 177   b  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-empty-input": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-esc-at-eof": {
+    "stdout": "0000000   a  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-esc-other": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-exclusive-tabs-spaces": {
+    "stdout": "",
+    "stderr": "col: mutually exclusive arguments: --tabs --spaces\n",
+    "exit": 1,
+    "files": {}
+  },
+  "col-exclusive-tabs-spaces-long": {
+    "stdout": "",
+    "stderr": "col: mutually exclusive arguments: --tabs --spaces\n",
+    "exit": 1,
+    "files": {}
+  },
+  "col-exit-status-after-warning": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-fine-lines-order": {
+    "stdout": "0000000   a 033   9  \\r   b  \\n 033   9   c  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-fine-reverse-half-start": {
+    "stdout": "0000000   t   o   p  \\n   b   o   t   t   o   m  \\n 033   9\n0000015\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-fine-reverse-half-start-default": {
+    "stdout": "0000000   t   o   p  \\n   b   o   t   t   o   m  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-form-feed": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-form-feed-pass": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-half-line-forward-default": {
+    "stdout": "0000000   a  \\n       b  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-half-line-forward-fine": {
+    "stdout": "0000000   a 033   9  \\r       b  \\n 033   9\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-half-line-reverse-default": {
+    "stdout": "0000000   x  \\n  \\n   y  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-half-line-reverse-fine": {
+    "stdout": "0000000   x  \\n 033   9   y  \\n 033   9\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-half-line-superscript-fine": {
+    "stdout": "0000000       2 033   9  \\r   H       O  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-half-line-trailing-fine": {
+    "stdout": "0000000   a   b   c  \\n  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-half-line-trailing-fine-blank-only": {
+    "stdout": "0000000  \\n  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-help": {
+    "stdout": "\nUsage:\n col [options]\n\nFilter out reverse line feeds from standard input.\n\nOptions:\n -b, --no-backspaces    do not output backspaces\n -f, --fine             permit forward half line feeds\n -p, --pass             pass unknown control sequences\n -h, --tabs             convert spaces to tabs\n -x, --spaces           convert tabs to spaces\n -l, --lines NUM        buffer at least NUM lines\n -H, --help             display this help\n -V, --version          display version\n\nFor more details see col(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-help-short": {
+    "stdout": "\nUsage:\n col [options]\n\nFilter out reverse line feeds from standard input.\n\nOptions:\n -b, --no-backspaces    do not output backspaces\n -f, --fine             permit forward half line feeds\n -p, --pass             pass unknown control sequences\n -h, --tabs             convert spaces to tabs\n -x, --spaces           convert tabs to spaces\n -l, --lines NUM        buffer at least NUM lines\n -H, --help             display this help\n -V, --version          display version\n\nFor more details see col(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-invalid-option": {
+    "stdout": "",
+    "stderr": "col: invalid option -- 'z'\nTry 'col --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "col-invalid-utf8-after-esc": {
+    "stdout": "0000000   a   \\   x   f   f   b  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-invalid-utf8-byte": {
+    "stdout": "0000000   a   \\   x   f   f   b  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-invalid-utf8-continuation-alone": {
+    "stdout": "0000000   \\   x   8   0   \\   x   8   1  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-invalid-utf8-four-byte-truncated": {
+    "stdout": "0000000   a   \\   x   f   0   \\   x   9   f  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-invalid-utf8-incomplete-at-eof": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-invalid-utf8-lead-then-ascii": {
+    "stdout": "0000000   a   \\   x   c   3   (   b  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-invalid-utf8-overlong": {
+    "stdout": "0000000   a   \\   x   c   0   \\   x   8   0   b  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-invalid-utf8-truncated-three": {
+    "stdout": "0000000   a   \\   x   e   3   \\   x   8   1   b  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-leading-spaces": {
+    "stdout": "0000000  \\t           x  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-leading-tab": {
+    "stdout": "0000000  \\t  \\t   x  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-lines-bad-arg": {
+    "stdout": "",
+    "stderr": "col: bad -l argument: 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "col-lines-buffer-small": {
+    "stdout": "0000000   l   i   n   e       0  \\n   l   i   n   e       1  \\n   l   i\n0000020   n   e       2  \\n   l   i   n   e       3  \\n   l   i   n   e\n0000040       4  \\n   l   i   n   e       5  \\n   l   i   n   e       6\n0000060  \\n   l   i   n   e       7  \\n   l   i   n   e       8  \\n   l\n0000100   i   n   e       9  \\n   l   i   n   e       1   0  \\n   l   i\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-lines-cant-back-up-flushed": {
+    "stdout": "L\bz9\bz6\nL97\nL98\nL99\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-lines-large-buffer-reverse": {
+    "stdout": "0000000   L   3   7  \\n   L   3   8  \\n   L  \\b   X   3   9  \\n\n0000016\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-lines-max": {
+    "stdout": "a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-lines-missing-arg": {
+    "stdout": "",
+    "stderr": "col: option requires an argument -- 'l'\nTry 'col --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "col-lines-negative": {
+    "stdout": "",
+    "stderr": "col: bad -l argument: '-1': Numerical result out of range\n",
+    "exit": 1,
+    "files": {}
+  },
+  "col-lines-negative-zero": {
+    "stdout": "a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-lines-too-big": {
+    "stdout": "",
+    "stderr": "col: bad -l argument: '4294967296': Numerical result out of range\n",
+    "exit": 1,
+    "files": {}
+  },
+  "col-long-line-through": {
+    "stdout": "*\n0000440   x   x   x   x   x   x   x   x   x   x   x   x  \\n\n0000455\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-no-backspaces-same-column-three": {
+    "stdout": "0000000   c  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-no-backspaces-wide": {
+    "stdout": "0000000   x  \\n\n0000002\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-no-trailing-newline": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-nul-byte": {
+    "stdout": "0000000   a   b  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-only-newlines": {
+    "stdout": "0000000  \\n  \\n  \\n\n0000003\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-plain-text": {
+    "stdout": "hello\nworld\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-reverse-line-feed-esc-bel": {
+    "stdout": "0000000   f  \\b   x   i  \\b   x   r   s   t  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-reverse-line-feed-overlay": {
+    "stdout": "0000000   l  \\b   +   i  \\b   +   n   e   1  \\n   l   i   n   e   2  \\n\n0000020\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-reverse-past-first-line": {
+    "stdout": "0000000   u   p  \\n   d   o   w   n  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-reverse-past-first-line-twice": {
+    "stdout": "0000000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-so-si-charset": {
+    "stdout": "0000000   a   b 016   c   d 017   e   f  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-so-si-overstrike": {
+    "stdout": "0000000   a  \\b 016   x 017  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-so-without-si": {
+    "stdout": "0000000   a   b 016   c   d 017  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-sort-columns-interleaved": {
+    "stdout": "0000000   a  \\b   b  \\b   z           c  \\n\n0000011\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-sort-out-of-order": {
+    "stdout": "0000000   a  \\b   X  \\b   Y   b   c  \\n\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-spaces-crossing-tab-stop": {
+    "stdout": "0000000   a   b   c   d   e   f   g  \\t       h  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-spaces-no-tabs-x": {
+    "stdout": "0000000   a                                   b                        \n0000020                   c  \\n\n0000026\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-spaces-to-tabs-default": {
+    "stdout": "0000000   a  \\t   b  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-spaces-to-tabs-h": {
+    "stdout": "0000000   a  \\t       b  \\t                   c  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-stdin-is-file": {
+    "stdout": "0000000   x  \\b   y  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "169dd66ea37c12f0cce5496e25d8115d1dc4625d984bd229ebc32f69aefef906",
+        "data": "x\by\n"
+      }
+    }
+  },
+  "col-tab-keeps-tab": {
+    "stdout": "0000000   a  \\t   b  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-tab-to-spaces-x": {
+    "stdout": "0000000   a                               b                            \n0000020   c  \\n\n0000022\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-table-with-tabs-roundtrip": {
+    "stdout": "0000000   n   a   m   e                   a   g   e  \\n   b   o   b    \n0000020                   4   2  \\n\n0000027\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-tabs-twice": {
+    "stdout": "a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-trailing-spaces-dropped": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-two-pages-reverse": {
+    "stdout": "0000000   o  \\b   t   n  \\b   w   e  \\b   o  \\n   t   h   r   e   e  \\n\n0000020\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-two-spaces-not-tab": {
+    "stdout": "0000000   a       b           c  \\t       d  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-unknown-control-dropped": {
+    "stdout": "0000000   a   b   c  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-unknown-control-pass": {
+    "stdout": "0000000   a 001   b 002   c  \\n\n0000006\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-unknown-control-pass-long": {
+    "stdout": "0000000   a 001   b  \\n\n0000004\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-unrecognized-option": {
+    "stdout": "",
+    "stderr": "col: unrecognized option '--bogus'\nTry 'col --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "col-utf8-combining": {
+    "stdout": "0000000   e 314 201   x  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-utf8-emoji": {
+    "stdout": "0000000   x 360 237 230 200   y  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-utf8-ideographic-space": {
+    "stdout": "0000000   a           b  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-utf8-nbsp": {
+    "stdout": "0000000   a 302 240   b  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-utf8-overstrike": {
+    "stdout": "0000000   e  \\b 303 251  \\n\n0000005\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-utf8-text": {
+    "stdout": "0000000   c   a   f 303 251  \\n 303 240       b  \\n\n0000013\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-utf8-wide-backspace": {
+    "stdout": "0000000 346 227 245  \\b  \\b   X  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-utf8-wide-char": {
+    "stdout": "0000000 346 227 245 346 234 254   x  \\b   Y  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-utf8-wide-spaces-tab": {
+    "stdout": "0000000 346 227 245  \\t       x  \\n\n0000007\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-version": {
+    "stdout": "col from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "col-vertical-tab-reverse": {
+    "stdout": "0000000   a  \\b   d   b  \\b   e   c  \\b   f  \\n\n0000012\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

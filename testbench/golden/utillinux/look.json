@@ -1,0 +1,612 @@
+{
+  "look-alphanum-d": {
+    "stdout": "b-an\nbanana\nb.an\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "97a9347c8a90d3c3860a9c390fbedcd873fb6b3f3d5dcd99c0a3a4169392229d",
+        "data": "apple\nb-an\nbanana\nb.an\ncherry\n"
+      }
+    }
+  },
+  "look-alphanum-d-blank": {
+    "stdout": "a b\na bc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 14,
+        "sha256": "0ef050ce522629196cb112c728b84be484465d9ff6cac4ca10b6e0db9047dc82",
+        "data": "a\na b\na bc\nab\n"
+      }
+    }
+  },
+  "look-alphanum-d-line-punctuation": {
+    "stdout": "bana\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "009a536e020eac3cff1ca7997a0e069217e417f2d0a7a2433f56e22af4ea7a08",
+        "data": "a\nb a-n\nbana\n"
+      }
+    }
+  },
+  "look-alphanum-d-only-punctuation": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "look-alternative-wordlist-missing": {
+    "stdout": "",
+    "stderr": "look: /usr/share/dict/web2: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "look-basic": {
+    "stdout": "banana\nbandana\nbanjo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 39,
+        "sha256": "69c14fe034fed3b659c47d193a5d548c5f5b7d48ff79b779b884def7ae18059b",
+        "data": "apple\nbanana\nbandana\nbanjo\ncherry\ndate\n"
+      }
+    }
+  },
+  "look-basic-case-sensitive": {
+    "stdout": "Banana\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "832f4b36c58db3571e96db2d27b6b78ea1b074f07f08937792cdf2cd53fce331",
+        "data": "Banana\napple\nbanana\n"
+      }
+    }
+  },
+  "look-blank-lines-in-file": {
+    "stdout": "b\nbb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "6488b074632110a1ede81f7abeb40610998d0c034549a5cd28ebd3f58a16b94b",
+        "data": "\n\na\nb\nbb\n"
+      }
+    }
+  },
+  "look-crlf-lines": {
+    "stdout": "ab\r\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "ab19ddf333b590c94e3abc5581c511a6a456f839e464b7b49cf0c83b02d33de4",
+        "data": "aa\r\nab\r\nac\r\n"
+      }
+    }
+  },
+  "look-d-and-f": {
+    "stdout": "Ba\nba-n\nBAN\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "c18a9d569cc9b2448c362d7e5f7b4188dd2a5c3015688cfa1a8f01a9d9426195",
+        "data": "apple\nBa\nba-n\nBAN\ncherry\n"
+      }
+    }
+  },
+  "look-default-wordlist-missing": {
+    "stdout": "",
+    "stderr": "look: /usr/share/dict/words: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "look-empty-string": {
+    "stdout": "a\nb\nc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "880553fca8fcea94e325ee2cfb48e5a985cc797f39a14cc6d3cedecfeb2ae4d2",
+        "data": "a\nb\nc\n"
+      }
+    }
+  },
+  "look-exact-match-and-longer": {
+    "stdout": "ban\nbanana\nband\nbank\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "1f7ebae1380aec8aedb86148b1501e909df79115a9dabf19ea8b3a177df7b7ab",
+        "data": "ban\nbanana\nband\nbank\nbat\n"
+      }
+    }
+  },
+  "look-file-directory": {
+    "stdout": "",
+    "stderr": "look: dir: No such device\n",
+    "exit": 1,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "look-file-empty": {
+    "stdout": "",
+    "stderr": "look: empty: Invalid argument\n",
+    "exit": 1,
+    "files": {
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "look-file-missing": {
+    "stdout": "",
+    "stderr": "look: nope.txt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "look-first-line": {
+    "stdout": "apple\napricot\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "3bc13d0e166d66a5570390b4f793819dbcf5374bc02e44d53ac7e34b8913faf2",
+        "data": "apple\napricot\nbanana\ncherry\n"
+      }
+    }
+  },
+  "look-help": {
+    "stdout": "\nUsage:\n look [options] <string> [<file>...]\n\nDisplay lines beginning with a specified string.\n\nOptions:\n -a, --alternative        use the alternative dictionary\n -d, --alphanum           compare only blanks and alphanumeric characters\n -f, --ignore-case        ignore case differences when comparing\n -t, --terminate <char>   define the string-termination character\n\n -h, --help               display this help\n -V, --version            display version\n\nFor more details see look(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "look-ignore-case-f": {
+    "stdout": "Banana\nbanjo\nBANK\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "8077a0a107490075c328851709e1384162b760b5bb9a4e4b31ea95defcdf6c0b",
+        "data": "apple\nBanana\nbanjo\nBANK\ncherry\n"
+      }
+    }
+  },
+  "look-invalid-option": {
+    "stdout": "",
+    "stderr": "look: invalid option -- 'x'\nTry 'look --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "look-last-line": {
+    "stdout": "cherry\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "6883ada0490e1bd845b6032e95119d522212f98b840eef466ebb09f4a9eb7a03",
+        "data": "apple\nbanana\ncherry\n"
+      }
+    }
+  },
+  "look-last-line-no-newline": {
+    "stdout": "cherry",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "f7862a1ca5b6743add8dac1332a20c95afe7d7fc49abafd11c233de3c06f48ef",
+        "data": "apple\nbanana\ncherry"
+      }
+    }
+  },
+  "look-long-prefix": {
+    "stdout": "apple\napricot\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "b1f907df97fcdd283f65c9c9d76d81f411e5879a26776230a2734f007d09b831",
+        "data": "apple\napricot\nbanana\n"
+      }
+    }
+  },
+  "look-no-args": {
+    "stdout": "",
+    "stderr": "look: bad usage\nTry 'look --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "look-no-match": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "6883ada0490e1bd845b6032e95119d522212f98b840eef466ebb09f4a9eb7a03",
+        "data": "apple\nbanana\ncherry\n"
+      }
+    }
+  },
+  "look-no-match-between": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "6883ada0490e1bd845b6032e95119d522212f98b840eef466ebb09f4a9eb7a03",
+        "data": "apple\nbanana\ncherry\n"
+      }
+    }
+  },
+  "look-script-exit-codes": {
+    "stdout": "a\nrc=0\nrc=1\nrc=1\n",
+    "stderr": "look: nope: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "w": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "look-script-two-args-no-implicit-df": {
+    "stdout": "rc=1\nrc=1\n",
+    "stderr": "look: /usr/share/dict/words: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "w": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "4290ab7b38959d24681fb9f7e9193258a6b6951e250b9ef92d3e3f0f7212c9a9",
+        "data": "Apple\nbanana\n"
+      }
+    }
+  },
+  "look-script-wordlist-from-env-readable": {
+    "stdout": "two\nrc=0\nrc=1\n",
+    "stderr": "look: /usr/share/dict/web2: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "w": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "c3f9c8c283a2b1f2f1896f27a01cbe3cddc0c9d93f752e4639035a0f5b36f6e8",
+        "data": "one\ntwo\n"
+      }
+    }
+  },
+  "look-single-line": {
+    "stdout": "xyz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "f34fe622a8fe7565fc15be3ce8bc43d7e32a0dd744ebef509fa0bdb130c0ac31",
+        "data": "xyz\n"
+      }
+    }
+  },
+  "look-single-operand-implies-df": {
+    "stdout": "Banana\nbandana\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "3dfe4bcd271da48e6ee4551568af19bc45f8c57c7afe464b7beae601b484b843",
+        "data": "apple\nBanana\nbandana\ncherry\n"
+      }
+    }
+  },
+  "look-stdin-style-dash-file": {
+    "stdout": "",
+    "stderr": "look: -: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "look-string-longer-than-line": {
+    "stdout": "bananas\nbananas split\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "eba219dabaa51ea43d697a5a9da154e3922bca947fd226e07716bd975e8c4613",
+        "data": "banana\nbananas\nbananas split\nbandana\n"
+      }
+    }
+  },
+  "look-terminate": {
+    "stdout": "banana\nbandana\nbat\nbay\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "fd7c0eba791a71984bf0f9e3ae1b71fe57e9b10d39234501f8b1479592aa67af",
+        "data": "apple\nbanana\nbandana\nbat\nbay\n"
+      }
+    }
+  },
+  "look-terminate-absent-char": {
+    "stdout": "banana\nbandana\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "af99d67436e73ea959489b291e0c522a2db4e75647e5c1552ff09be89e2a78b0",
+        "data": "apple\nbanana\nbandana\nbat\n"
+      }
+    }
+  },
+  "look-terminate-empty-arg": {
+    "stdout": "banana\nbandana\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "af99d67436e73ea959489b291e0c522a2db4e75647e5c1552ff09be89e2a78b0",
+        "data": "apple\nbanana\nbandana\nbat\n"
+      }
+    }
+  },
+  "look-terminate-first-char": {
+    "stdout": "b\nbanana\nbat\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "a80f9c856c46e94fa402e344147f4e5b8f6909ea8e34510d7b82f9840a01dcfd",
+        "data": "apple\nb\nbanana\nbat\n"
+      }
+    }
+  },
+  "look-terminate-long": {
+    "stdout": "banana\nbandana\nbanjo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "fd4f3b1597925b27da0ef97b68bffb31f2d36b3d8ffc588024e11c7ad48b253d",
+        "data": "apple\nbanana\nbandana\nbanjo\nbat\n"
+      }
+    }
+  },
+  "look-terminate-missing-arg": {
+    "stdout": "",
+    "stderr": "look: option requires an argument -- 't'\nTry 'look --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "look-too-many-args": {
+    "stdout": "",
+    "stderr": "look: bad usage\nTry 'look --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "911169ddaaf146aff539f58c26c489af3b892dff0fe283c1c264c65ae5aa59a2",
+        "data": "a\nb\n"
+      }
+    }
+  },
+  "look-unrecognized-option": {
+    "stdout": "",
+    "stderr": "look: unrecognized option '--bogus'\nTry 'look --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "look-unsorted-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "ba02d2b31cd56e024aaa9afb92b0dd8dc1e4ac8d1b051d5b8366cab0e9095c2b",
+        "data": "apple\nzebra\nbanana\nband\ncherry\nbanjo\nzulu\nbank\n"
+      }
+    }
+  },
+  "look-unsorted-file-two": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "ab1785ae4e01d567d6096c260946da3da93793077d36aada8ca7e1b28b9fc0af",
+        "data": "z\ny\nx\nmm\nm\nl\nk\nj\nmn\ni\n"
+      }
+    }
+  },
+  "look-utf8-alphanum-d": {
+    "stdout": "cafeteria\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "70ddf268417a342317c439b29bcebcff04cd84c77cfd0021835587664f795c6b",
+        "data": "cacao\ncafé\ncafeteria\n"
+      }
+    }
+  },
+  "look-utf8-lines": {
+    "stdout": "café\ncafeteria\ncaffè\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "921825ea4f538f5f81deb5346d7c009ee037a67bee1ce5e0205d3f6442aad283",
+        "data": "cacao\ncafé\ncafeteria\ncaffè\n"
+      }
+    }
+  },
+  "look-version": {
+    "stdout": "look from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "look-wordlist-env": {
+    "stdout": "cherry\nchestnut\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "169c589c56ab7fffa594ff982229fb944f7cc1fc5ae2231ce72576eb86c18562",
+        "data": "apple\nbanana\ncherry\nchestnut\ndate\n"
+      }
+    }
+  },
+  "look-wordlist-env-ignored-with-file": {
+    "stdout": "banana\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "other": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "7d865e959b2466918c9863afca942d0fb89d7c9ac0c99bafc3749504ded97730",
+        "data": "bar\n"
+      },
+      "words": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "6883ada0490e1bd845b6032e95119d522212f98b840eef466ebb09f4a9eb7a03",
+        "data": "apple\nbanana\ncherry\n"
+      }
+    }
+  },
+  "look-wordlist-env-missing": {
+    "stdout": "",
+    "stderr": "look: /usr/share/dict/words: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  }
+}

@@ -1,0 +1,1584 @@
+{
+  "whereis-all-types": {
+    "stdout": "tool: /work/case/bin/tool /work/case/man/tool.1.gz /work/case/src/tool.c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/tool.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-all-types-each-closed": {
+    "stdout": "tool: /work/case/bin/tool /work/case/man/tool.1.gz /work/case/src/tool.c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/tool.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-bad-option": {
+    "stdout": "",
+    "stderr": "whereis: bad usage\nTry 'whereis --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "whereis-custom-bin-directory-match": {
+    "stdout": "sub: /work/case/bin/sub\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-custom-bin-dirs-order": {
+    "stdout": "tool: /work/case/bin2/tool /work/case/bin1/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin1/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-custom-bin-ignores-man-style-names": {
+    "stdout": "ls:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/ls.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-custom-bin-no-match": {
+    "stdout": "nothing:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-custom-bin-only": {
+    "stdout": "ls: /work/case/bin/ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/lsx": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-custom-bin-two-dirs": {
+    "stdout": "tool: /work/case/bin1/tool /work/case/bin2/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin1/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-custom-duplicate-dir-ignored": {
+    "stdout": "ls: /work/case/bin/ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-custom-file-as-dir-ignored": {
+    "stdout": "ls: /work/case/bin/ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "afile": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-custom-missing-dir-ignored": {
+    "stdout": "ls: /work/case/bin/ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-custom-symlinked-dir-canonical-in-list": {
+    "stdout": "bin: /work/case/real\nman: /work/case/real\nsrc: /work/case/real\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real"
+      },
+      "real": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-custom-symlinked-dir-same-inode": {
+    "stdout": "ls: /work/case/bin/ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "bin"
+      }
+    }
+  },
+  "whereis-default-dirs-binary-with-path-argument": {
+    "stdout": "ls: /usr/bin/ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-default-dirs-find-ls": {
+    "stdout": "ls: /usr/bin/ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-default-dirs-glob": {
+    "stdout": "ls: /usr/bin/ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-default-dirs-not-found": {
+    "stdout": "no-such-program-xyz:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-default-dirs-unusual-none": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-dir-option-with-suffix-chars": {
+    "stdout": "",
+    "stderr": "whereis: bad usage\nTry 'whereis --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-dir-with-star-in-argv-is-literal": {
+    "stdout": "tool:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "base": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "base/afile": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "base/only": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "base/only/tool.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-dirs-flag-without-dirs": {
+    "stdout": "",
+    "stderr": "whereis: option -f is missing\n",
+    "exit": 1,
+    "files": {}
+  },
+  "whereis-double-dash-is-bad-usage": {
+    "stdout": "",
+    "stderr": "whereis: bad usage\nTry 'whereis --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "whereis-exit-status": {
+    "stdout": "rc=0\nrc=1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-f-immediately-after-dir-flag": {
+    "stdout": "ls:\n",
+    "stderr": "whereis: option -f is missing\n",
+    "exit": 1,
+    "files": {}
+  },
+  "whereis-f-missing": {
+    "stdout": "",
+    "stderr": "whereis: option -f is missing\n",
+    "exit": 1,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-f-missing-at-end": {
+    "stdout": "ls: /work/case/bin/ls\n",
+    "stderr": "whereis: option -f is missing\n",
+    "exit": 1,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-f-then-name": {
+    "stdout": "ls: /work/case/bin/ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-glob": {
+    "stdout": "t*: /work/case/bin/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-glob-man-keeps-full-name": {
+    "stdout": "tool.1*: /work/case/man/tool.1.gz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-glob-no-suffix-magic": {
+    "stdout": "tool:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-glob-question-and-class": {
+    "stdout": "[a-b]?: /work/case/bin/a1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-help": {
+    "stdout": "\nUsage:\n whereis [options] [-BMS <dir>... -f] <name>\n\nLocate the binary, source, and manual-page files for a command.\n\nOptions:\n -b         search only for binaries\n -B <dirs>  define binaries lookup path\n -m         search only for manuals and infos\n -M <dirs>  define man and info lookup path\n -s         search only for sources\n -S <dirs>  define sources lookup path\n -f         terminate <dirs> argument list\n -u         search for unusual entries\n -g         interpret name as glob (pathnames pattern)\n -l         output effective lookup paths\n\n -h, --help     display this help\n -V, --version  display version\n\nFor more details see whereis(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-help-not-first-is-bad": {
+    "stdout": "",
+    "stderr": "whereis: bad usage\nTry 'whereis --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "whereis-help-short": {
+    "stdout": "\nUsage:\n whereis [options] [-BMS <dir>... -f] <name>\n\nLocate the binary, source, and manual-page files for a command.\n\nOptions:\n -b         search only for binaries\n -B <dirs>  define binaries lookup path\n -m         search only for manuals and infos\n -M <dirs>  define man and info lookup path\n -s         search only for sources\n -S <dirs>  define sources lookup path\n -f         terminate <dirs> argument list\n -u         search for unusual entries\n -g         interpret name as glob (pathnames pattern)\n -l         output effective lookup paths\n\n -h, --help     display this help\n -V, --version  display version\n\nFor more details see whereis(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-list-after-replacement-moves-type-to-end": {
+    "stdout": "man: /work/case/man\nsrc: /work/case/src\nbin: /work/case/bin2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-list-custom": {
+    "stdout": "bin: /work/case/bin1\nbin: /work/case/bin2\nman: /work/case/man\nsrc: /work/case/src\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-list-then-lookup": {
+    "stdout": "bin: /work/case/bin\nman: /work/case/man\nsrc: /work/case/src\ntool: /work/case/bin/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-list-twice": {
+    "stdout": "bin: /work/case/bin\nman: /work/case/man\nsrc: /work/case/src\nbin: /work/case/bin\nman: /work/case/man\nsrc: /work/case/src\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-list-with-duplicates": {
+    "stdout": "bin: /work/case/bin\nman: /work/case/bin\nsrc: /work/case/bin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-long-option-not-first": {
+    "stdout": "ls: /usr/bin/ls\n",
+    "stderr": "whereis: bad usage\nTry 'whereis --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "whereis-man-dot-C-suffix": {
+    "stdout": "ls: /work/case/m1/ls.1.C\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m1/ls.1.C": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m2/ls.1.Cx": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-man-non-matching": {
+    "stdout": "ls: /work/case/m2/ls /work/case/m3/ls.tar.gz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m1/lsx.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m2/ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m3": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m3/ls.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m4": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m4/ls.1.foo.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-man-section-names": {
+    "stdout": "ls: /work/case/m1/ls.1 /work/case/m2/ls.8 /work/case/m3/ls.3pm\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m1/ls.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m2/ls.8": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m3": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m3/ls.3pm": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-man-suffixes": {
+    "stdout": "ls: /work/case/m1/ls.1.gz /work/case/m2/ls.1.bz2 /work/case/m3/ls.1.xz /work/case/m4/ls.1.Z /work/case/m5/ls.1.zst /work/case/m6/ls.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m1/ls.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m2/ls.1.bz2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m3": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m3/ls.1.xz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m4": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m4/ls.1.Z": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m5": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m5/ls.1.zst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m6": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m6/ls.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-manpath-env-only-man-list": {
+    "stdout": "tool: /work/case/m1/tool.1 /work/case/m2/tool.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m1/tool.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "m2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m2/tool.5": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "p1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "p1/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-multiple-names": {
+    "stdout": "a: /work/case/bin/a\nb: /work/case/bin/b\nmissing:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-name-with-path-uses-basename": {
+    "stdout": "tool: /work/case/bin/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-name-with-trailing-slash-is-empty-basename": {
+    "stdout": ":\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-no-args": {
+    "stdout": "",
+    "stderr": "whereis: not enough arguments\nTry 'whereis --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "whereis-path-empty-elements-skipped": {
+    "stdout": "tool: /work/case/p1/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "p1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "p1/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-path-env-lookup": {
+    "stdout": "tool: /work/case/p1/tool /work/case/p2/tool /work/case/m1/tool.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "m1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "m1/tool.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "p1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "p1/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "p2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "p2/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-replaced-list-goes-to-the-end": {
+    "stdout": "tool: /work/case/bin/tool /work/case/man/tool.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-src-names": {
+    "stdout": "ls: /work/case/s1/ls.c /work/case/s2/s.ls.c /work/case/s3/s.ls\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "s1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "s1/ls.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "s2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "s2/s.ls.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "s3": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "s3/s.ls": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "s4": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "s4/ls.tar.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "s5": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "s5/ls.1.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-unusual": {
+    "stdout": "tool: /work/case/bin1/tool /work/case/bin2/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin1/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-unusual-after-name-applies-to-later-names": {
+    "stdout": "tool: /work/case/bin1/tool /work/case/bin2/tool\ntool: /work/case/bin1/tool /work/case/bin2/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin1/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-unusual-no-match-prints-nothing": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "whereis-unusual-single-match-prints-nothing": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-unusual-three-matches": {
+    "stdout": "tool: /work/case/bin1/tool /work/case/bin2/tool /work/case/bin3/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin1": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin1/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin2": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin2/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin3": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin3/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-version": {
+    "stdout": "whereis from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-version-short": {
+    "stdout": "whereis from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "whereis-want-accumulates-before-lookup": {
+    "stdout": "one: /work/case/bin/one /work/case/man/one.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/one": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/one.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-want-bin-and-man-cumulative": {
+    "stdout": "tool: /work/case/bin/tool /work/case/man/tool.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/tool.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-want-binaries-only": {
+    "stdout": "tool: /work/case/bin/tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/tool.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-want-combined-flags": {
+    "stdout": "tool: /work/case/bin/tool /work/case/src/tool.c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/tool.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-want-man-only": {
+    "stdout": "tool: /work/case/man/tool.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/tool.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-want-persists-over-names": {
+    "stdout": "one: /work/case/bin/one\ntwo: /work/case/bin/two\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/one": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/two": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/one.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man/two.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-want-resets-after-lookup": {
+    "stdout": "one: /work/case/bin/one\none: /work/case/man/one.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/one": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/one.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-want-src-only": {
+    "stdout": "tool: /work/case/src/tool.c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "man": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "man/tool.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "src": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "src/tool.c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "whereis-without-glob-star-is-literal": {
+    "stdout": "t*:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  }
+}

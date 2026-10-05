@@ -1,0 +1,170 @@
+{
+  "ischroot-ambiguous-option": {
+    "stdout": "",
+    "stderr": "ischroot: option '--d' is ambiguous; possibilities: '--default-false' '--default-true'\nTry `ischroot --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ischroot-ambiguous-option-default": {
+    "stdout": "",
+    "stderr": "ischroot: option '--def' is ambiguous; possibilities: '--default-false' '--default-true'\nTry `ischroot --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ischroot-both-defaults": {
+    "stdout": "",
+    "stderr": "Can't default to both true and false!\nTry `ischroot --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ischroot-both-defaults-clustered": {
+    "stdout": "",
+    "stderr": "Can't default to both true and false!\nTry `ischroot --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ischroot-both-defaults-long": {
+    "stdout": "",
+    "stderr": "Can't default to both true and false!\nTry `ischroot --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ischroot-conflict-checked-after-parsing": {
+    "stdout": "Debian ischroot, version 5.23.1\nCopyright (C) 2011 Aurelien Jarno\nThis is free software; see the GNU General Public License version 2\nor later for copying conditions.  There is NO warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-double-dash": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-fakechroot-detected": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-fakechroot-empty-base-counts": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-fakechroot-needs-base": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-fakechroot-needs-preload": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-fakechroot-needs-true": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-fakechroot-preload-with-path-and-others": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-fakechroot-with-default-false": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-fakechroot-with-default-true": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-help": {
+    "stdout": "Usage: ischroot [OPTION]\n  -f, --default-false return false if detection fails\n  -t, --default-true  return true if detection fails\n  -V, --version       output version information and exit.\n  -h, --help          display this help and exit.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-help-short": {
+    "stdout": "Usage: ischroot [OPTION]\n  -f, --default-false return false if detection fails\n  -t, --default-true  return true if detection fails\n  -V, --version       output version information and exit.\n  -h, --help          display this help and exit.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-help-wins-over-conflict": {
+    "stdout": "Usage: ischroot [OPTION]\n  -f, --default-false return false if detection fails\n  -t, --default-true  return true if detection fails\n  -V, --version       output version information and exit.\n  -h, --help          display this help and exit.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-invalid-after-valid": {
+    "stdout": "",
+    "stderr": "ischroot: invalid option -- 'x'\nTry `ischroot --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ischroot-invalid-option": {
+    "stdout": "",
+    "stderr": "ischroot: invalid option -- 'x'\nTry `ischroot --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ischroot-invalid-option-by-path": {
+    "stdout": "",
+    "stderr": "/usr/bin/ischroot: invalid option -- 'x'\nTry `ischroot --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ischroot-long-option-exact": {
+    "stdout": "rc=1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-not-a-chroot": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-operands-ignored": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-unique-long-prefix": {
+    "stdout": "rc=1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-unrecognized-option": {
+    "stdout": "",
+    "stderr": "ischroot: unrecognized option '--bogus'\nTry `ischroot --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ischroot-version": {
+    "stdout": "Debian ischroot, version 5.23.1\nCopyright (C) 2011 Aurelien Jarno\nThis is free software; see the GNU General Public License version 2\nor later for copying conditions.  There is NO warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ischroot-version-short": {
+    "stdout": "Debian ischroot, version 5.23.1\nCopyright (C) 2011 Aurelien Jarno\nThis is free software; see the GNU General Public License version 2\nor later for copying conditions.  There is NO warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

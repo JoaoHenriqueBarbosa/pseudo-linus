@@ -1,0 +1,1331 @@
+{
+  "rename-all": {
+    "stdout": "bXnXnX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bXnXnX": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-all-long": {
+    "stdout": "bANANa\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bANANa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-all-nonoverlapping": {
+    "stdout": "XXa\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "XXa": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-double-dash-ends-options": {
+    "stdout": "rc=0\n-b1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-empty-expression-all": {
+    "stdout": "-a-b-c-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-a-b-c-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-empty-expression-last": {
+    "stdout": "abc-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "abc-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-empty-expression-prefix": {
+    "stdout": "pre-file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pre-file": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-empty-replacement": {
+    "stdout": "foo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "foo": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-exclusive-all-last": {
+    "stdout": "",
+    "stderr": "rename.ul: mutually exclusive arguments: --all --last\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rename-exclusive-interactive-no-overwrite": {
+    "stdout": "",
+    "stderr": "rename.ul: mutually exclusive arguments: --interactive --no-overwrite\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rename-exclusive-last-all-long": {
+    "stdout": "",
+    "stderr": "rename.ul: mutually exclusive arguments: --all --last\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rename-exclusive-no-overwrite-interactive": {
+    "stdout": "",
+    "stderr": "rename.ul: mutually exclusive arguments: --interactive --no-overwrite\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rename-existing-target-overwritten": {
+    "stdout": "rc=0\nb1\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "rename-exit-code-all-failed": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rename-exit-code-nothing": {
+    "stdout": "rc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-exit-code-ok": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-exit-code-some-ok": {
+    "stdout": "rc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-first-occurrence": {
+    "stdout": "bXnana\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bXnana": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-from-equals-to": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 4,
+    "files": {
+      "file": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-from-equals-to-missing-file": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 4,
+    "files": {}
+  },
+  "rename-from-longer-than-name": {
+    "stdout": "rc=4\nab\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "ab": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-help": {
+    "stdout": "\nUsage:\n rename.ul [options] <expression> <replacement> <file>...\n\nRename files.\n\nOptions:\n -v, --verbose       explain what is being done\n -s, --symlink       act on the target of symlinks\n -n, --no-act        do not make any changes\n -a, --all           replace all occurrences\n -l, --last          replace only the last occurrence\n -o, --no-overwrite  don't overwrite existing files\n -i, --interactive   prompt before overwrite\n\n -h, --help          display this help\n -V, --version       display version\n\nFor more details see rename(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rename-help-short": {
+    "stdout": "\nUsage:\n rename.ul [options] <expression> <replacement> <file>...\n\nRename files.\n\nOptions:\n -v, --verbose       explain what is being done\n -s, --symlink       act on the target of symlinks\n -n, --no-act        do not make any changes\n -a, --all           replace all occurrences\n -l, --last          replace only the last occurrence\n -o, --no-overwrite  don't overwrite existing files\n -i, --interactive   prompt before overwrite\n\n -h, --help          display this help\n -V, --version       display version\n\nFor more details see rename(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rename-interactive-empty-line": {
+    "stdout": "rename.ul: overwrite `b1'? rc=4\na1\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-interactive-eof": {
+    "stdout": "rename.ul: overwrite `b1'? n\nrc=4\na1\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-interactive-eof-verbose": {
+    "stdout": "rename.ul: overwrite `b1'? n\nSkipping existing file: `b1'\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-interactive-long": {
+    "stdout": "rename.ul: overwrite `b1'? rc=0\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "rename-interactive-no": {
+    "stdout": "rename.ul: overwrite `b1'? rc=4\na1\nb1\none\ntwo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-interactive-no-act": {
+    "stdout": "rc=4\na1\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-interactive-no-act-verbose": {
+    "stdout": "Skipping existing file: `b1'\n`a1' -> `b1'\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-interactive-other-letter": {
+    "stdout": "rename.ul: overwrite `b1'? rc=4\na1\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-interactive-target-absent-no-prompt": {
+    "stdout": "`a1' -> `b1'\nrc=0\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "rename-interactive-two-files": {
+    "stdout": "rename.ul: overwrite `b1'? `a1' -> `b1'\nrename.ul: overwrite `b2'? Skipping existing file: `b2'\nrc=0\na2\nb1\nb2\n1\ny\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+        "data": "2\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+        "data": "1\n"
+      },
+      "b2": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "rename-interactive-upper-yes": {
+    "stdout": "rename.ul: overwrite `b1'? rc=0\nb1\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "rename-interactive-yes": {
+    "stdout": "rename.ul: overwrite `b1'? rc=0\nb1\none\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "rename-interactive-yes-word": {
+    "stdout": "rename.ul: overwrite `b1'? `a1' -> `b1'\nrc=0\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "rename-invalid-option": {
+    "stdout": "",
+    "stderr": "rename.ul: invalid option -- 'x'\nTry 'rename.ul --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rename-last": {
+    "stdout": "bananX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bananX": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-last-overlapping": {
+    "stdout": "aaX\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "aaX": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-long-prefix": {
+    "stdout": "`banana' -> `bXnana'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "banana": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-many-files": {
+    "stdout": "f1.rs\nf2.rs\nf3.rs\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f1.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "f2.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "f3.rs": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-missing-file": {
+    "stdout": "rc=1\n",
+    "stderr": "rename.ul: nope: not accessible: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "rename-missing-file-among-good": {
+    "stdout": "rc=2\nb1\n",
+    "stderr": "rename.ul: nope: not accessible: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-names-starting-with-dash": {
+    "stdout": "-y1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-y1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-names-with-spaces": {
+    "stdout": "`my file.txt' -> `my_file.txt'\nmy_file.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "my_file.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-no-act": {
+    "stdout": "rc=0\nfoo.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "foo.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-no-act-verbose": {
+    "stdout": "`foo.txt' -> `foo.md'\n`bar.txt' -> `bar.md'\nrc=0\nbar.txt\nfoo.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bar.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "foo.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-no-args": {
+    "stdout": "",
+    "stderr": "rename.ul: not enough arguments\nTry 'rename.ul --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rename-no-match": {
+    "stdout": "rc=4\nfoo.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "foo.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-no-match-no-act-verbose": {
+    "stdout": "rc=4\nfoo.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "foo.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-no-match-verbose": {
+    "stdout": "rc=4\nfoo.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "foo.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-no-overwrite": {
+    "stdout": "rc=4\na1\nb1\none\ntwo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-no-overwrite-dangling-target-counts-absent": {
+    "stdout": "`a1' -> `b1'\nrc=0\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-no-overwrite-long": {
+    "stdout": "rc=4\na1\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-no-overwrite-target-absent": {
+    "stdout": "`a1' -> `b1'\nrc=0\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      }
+    }
+  },
+  "rename-no-overwrite-verbose": {
+    "stdout": "Skipping existing file: `b1'\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806",
+        "data": "one\n"
+      },
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a",
+        "data": "two\n"
+      }
+    }
+  },
+  "rename-not-enough-args-two": {
+    "stdout": "",
+    "stderr": "rename.ul: not enough arguments\nTry 'rename.ul --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rename-only-last-component": {
+    "stdout": "X-file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dir-a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir-a/X-file": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-options-after-operands-are-options": {
+    "stdout": "`a1' -> `b1'\nrc=0\nb1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-overwrite-self-collision": {
+    "stdout": "bb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bb": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-partial-match": {
+    "stdout": "rc=0\nbar.doc\nfoo.md\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bar.doc": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "foo.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-path-subdir-trailing-slash": {
+    "stdout": "`p/adir' -> `p/bdir'\nrc=0\nbdir\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "p": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "p/bdir": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "rename-path-trailing-slash": {
+    "stdout": "`adir' -> `bdir'\nrc=0\nbdir\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bdir": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "rename-path-trailing-slashes-many": {
+    "stdout": "`adir' -> `bdir'\nrc=0\nbdir\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bdir": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "rename-rename-fails-into-missing-dir": {
+    "stdout": "rc=1\na1\n",
+    "stderr": "rename.ul: a1: rename to nodir/b1 failed: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-rename-fails-over-nonempty-dir": {
+    "stdout": "rc=1\na1\ntgt\n",
+    "stderr": "rename.ul: a1: rename to tgt failed: Is a directory\n",
+    "exit": 0,
+    "files": {
+      "a1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "tgt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "tgt/sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "rename-replacement-longer": {
+    "stdout": "LONGERb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "LONGERb": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-same-option-twice-ok": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bXnXnX": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-simple": {
+    "stdout": "rc=0\nfoo.md\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "foo.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-slash-in-expression-matches-whole-path": {
+    "stdout": "rc=1\ndir-a\n",
+    "stderr": "rename.ul: dir-a/file: rename to new/file failed: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "dir-a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir-a/file": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-slash-in-expression-moves-file": {
+    "stdout": "new:\nf\n\nold:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "new": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "new/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "old": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "rename-slash-in-replacement-only": {
+    "stdout": "rc=1\na.txt\n",
+    "stderr": "rename.ul: d/a.txt: rename to d/d/txt failed: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-symlink": {
+    "stdout": "rc=0\nlink -> real.md\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real.md"
+      },
+      "real.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-symlink-all": {
+    "stdout": "link -> bXbXb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "bXbXb"
+      }
+    }
+  },
+  "rename-symlink-dangling-ok": {
+    "stdout": "rc=0\nlink -> elsewhere\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "elsewhere"
+      }
+    }
+  },
+  "rename-symlink-interactive-no": {
+    "stdout": "rename.ul: overwrite `b.txt'? Skipping existing link: `link' -> `a.txt'\nrc=4\nlink -> a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "a.txt"
+      }
+    }
+  },
+  "rename-symlink-interactive-yes": {
+    "stdout": "rename.ul: overwrite `b.txt'? link: `a.txt' -> `b.txt'\nrc=0\nlink -> b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "b.txt"
+      }
+    }
+  },
+  "rename-symlink-last": {
+    "stdout": "link -> a/aa/b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "a/aa/b"
+      }
+    }
+  },
+  "rename-symlink-missing": {
+    "stdout": "rc=1\n",
+    "stderr": "rename.ul: nope: not accessible: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "rename-symlink-mixed": {
+    "stdout": "rc=2\nl1 -> a.md\nl2 -> b.md\n",
+    "stderr": "rename.ul: plain: not a symbolic link\n",
+    "exit": 0,
+    "files": {
+      "l1": {
+        "kind": "symlink",
+        "target": "a.md"
+      },
+      "l2": {
+        "kind": "symlink",
+        "target": "b.md"
+      },
+      "plain": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-symlink-no-act-verbose": {
+    "stdout": "link: `real.txt' -> `real.md'\nrc=0\nlink -> real.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real.txt"
+      }
+    }
+  },
+  "rename-symlink-no-match": {
+    "stdout": "rc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real.txt"
+      }
+    }
+  },
+  "rename-symlink-no-match-no-act-verbose": {
+    "stdout": "link: `real.txt' -> `(null)'\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real.txt"
+      }
+    }
+  },
+  "rename-symlink-no-match-verbose": {
+    "stdout": "rc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real.txt"
+      }
+    }
+  },
+  "rename-symlink-no-overwrite-absent": {
+    "stdout": "link: `a.txt' -> `b.txt'\nrc=0\nlink -> b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "b.txt"
+      }
+    }
+  },
+  "rename-symlink-no-overwrite-existing": {
+    "stdout": "Skipping existing link: `link' -> `a.txt'\nrc=4\nlink -> a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "link": {
+        "kind": "symlink",
+        "target": "a.txt"
+      }
+    }
+  },
+  "rename-symlink-not-a-link": {
+    "stdout": "rc=1\n",
+    "stderr": "rename.ul: f: not a symbolic link\n",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-symlink-target-only-last-component": {
+    "stdout": "link -> dir-a/X-file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "dir-a/X-file"
+      }
+    }
+  },
+  "rename-symlink-target-trailing-slash": {
+    "stdout": "link: `adir' -> `bdir'\nrc=0\nlink -> bdir\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "bdir"
+      }
+    }
+  },
+  "rename-symlink-verbose": {
+    "stdout": "link: `real.txt' -> `real.md'\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "link": {
+        "kind": "symlink",
+        "target": "real.md"
+      }
+    }
+  },
+  "rename-unrecognized-option": {
+    "stdout": "",
+    "stderr": "rename.ul: unrecognized option '--bogus'\nTry 'rename.ul --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "rename-utf8-names": {
+    "stdout": "acao.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "acao.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-verbose": {
+    "stdout": "`foo.txt' -> `foo.md'\n`bar.txt' -> `bar.md'\nrc=0\nbar.md\nfoo.md\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "bar.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "foo.md": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "rename-version": {
+    "stdout": "rename.ul from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

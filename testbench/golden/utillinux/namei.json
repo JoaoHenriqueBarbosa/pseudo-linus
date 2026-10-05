@@ -1,0 +1,1303 @@
+{
+  "namei-absolute-double-slashes": {
+    "stdout": "f: //usr//bin//\n d /\n d usr\n d bin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-absolute-root": {
+    "stdout": "f: /\n d /\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-absolute-usr-bin": {
+    "stdout": "f: /usr/bin\n d /\n d usr\n d bin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-ambiguous-long-prefix": {
+    "stdout": "f: a\n d a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-char-device": {
+    "stdout": "f: /dev/null\ndrwxr-xr-x root root /\ndrwxr-xr-x root root dev\ncrw-rw-rw- root root null\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-context": {
+    "stdout": "f: a/b\n d ? a\n - ? b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-context-long": {
+    "stdout": "f: a/b\ndrwxr-xr-x root root ? a\n-rw-r--r-- root root ? b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-context-long-option": {
+    "stdout": "f: a\n - ? a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-context-missing": {
+    "stdout": "f: a/missing\n d ? a\n   missing - No such file or directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-context-missing-long": {
+    "stdout": "f: a/missing\ndrwxr-xr-x root root ? a\n                     missing - No such file or directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-dot-and-dotdot": {
+    "stdout": "f: a/./b/../b\n d a\n d .\n d b\n d ..\n d b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-empty-arg": {
+    "stdout": "f: a\n - a\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-exit-status-dangling-final": {
+    "stdout": "rc=1\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "l": {
+        "kind": "symlink",
+        "target": "nowhere"
+      }
+    }
+  },
+  "namei-exit-status-multiple": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-file-types": {
+    "stdout": "f: d/p\n drwxr-xr-x d\n prw-r--r-- p\nf: d/s\n drwxr-xr-x d\n lrwxrwxrwx s -> p\n   prw-r--r-- p\nf: d/r\n drwxr-xr-x d\n -rw-r--r-- r\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/p": {
+        "kind": "file",
+        "mode": 61860,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/r": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/s": {
+        "kind": "symlink",
+        "target": "p"
+      }
+    }
+  },
+  "namei-help": {
+    "stdout": "\nUsage:\n namei [options] <pathname>...\n\nFollow a pathname until a terminal point is found.\n\nOptions:\n -x, --mountpoints   show mount point directories with a 'D'\n -m, --modes         show the mode bits of each file\n -o, --owners        show owner and group name of each file\n -l, --long          use a long listing format (-m -o -v) \n -n, --nosymlinks    don't follow symlinks\n -v, --vertical      vertical align of modes and owners\n -Z, --context       print any security context of each file \n -h, --help          display this help\n -V, --version       display version\n\nFor more details see namei(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-help-short": {
+    "stdout": "\nUsage:\n namei [options] <pathname>...\n\nFollow a pathname until a terminal point is found.\n\nOptions:\n -x, --mountpoints   show mount point directories with a 'D'\n -m, --modes         show the mode bits of each file\n -o, --owners        show owner and group name of each file\n -l, --long          use a long listing format (-m -o -v) \n -n, --nosymlinks    don't follow symlinks\n -v, --vertical      vertical align of modes and owners\n -Z, --context       print any security context of each file \n -h, --help          display this help\n -V, --version       display version\n\nFor more details see namei(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-invalid-option": {
+    "stdout": "",
+    "stderr": "namei: invalid option -- 'q'\nTry 'namei --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "namei-long": {
+    "stdout": "f: a/b/c\ndrwxr-xr-x root root a\ndrwxr-xr-x root root b\n-rw-r--r-- root root c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-long-absolute": {
+    "stdout": "f: /etc/passwd\ndrwxr-xr-x root root /\ndrwxr-xr-x root root etc\n-rw-r--r-- root root passwd\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-long-missing": {
+    "stdout": "f: a/missing/x\ndrwxr-xr-x root root a\n                      missing - No such file or directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-long-option": {
+    "stdout": "f: a/b\ndrwxr-xr-x root root a\n-rw-r--r-- root root b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-long-prefix": {
+    "stdout": "f: a/b\n drwxr-xr-x a\n -rw-r--r-- b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      }
+    }
+  },
+  "namei-long-widths-accumulate": {
+    "stdout": "f: a\ndrwxr-xr-x root root a\nf: /etc/hostname\ndrwxr-xr-x root root /\ndrwxr-xr-x root root etc\n-rw-r--r-- root root hostname\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-missing-component": {
+    "stdout": "f: a/missing/deeper\n d a\n    missing - No such file or directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-missing-first-component": {
+    "stdout": "f: missing/x\n    missing - No such file or directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "namei-missing-leaf": {
+    "stdout": "f: a/missing\n d a\n    missing - No such file or directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-modes": {
+    "stdout": "f: a/b/c\n drwxr-xr-x a\n drwxr-xr-x b\n -rw-r----- c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/c": {
+        "kind": "file",
+        "mode": 416,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      }
+    }
+  },
+  "namei-modes-dev-null": {
+    "stdout": "f: /dev/null\n drwxr-xr-x /\n drwxr-xr-x dev\n crw-rw-rw- null\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-modes-no-permissions": {
+    "stdout": "f: d/f\n d--------- d\n ---------- f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/f": {
+        "kind": "file",
+        "mode": 0,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-modes-special-bits": {
+    "stdout": "f: d/s\n drwxr-xr-x d\n drwsr-xr-x s\nf: d/t\n drwxr-xr-x d\n drwxrwxrwt t\nf: d/u\n drwxr-xr-x d\n drwxr-Sr-x u\nf: d/f\n drwxr-xr-x d\n -rwSr--r-- f\nf: d/g\n drwxr-xr-x d\n -rw-r-sr-x g\nf: d/h\n drwxr-xr-x d\n -rw-rw-rwT h\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/f": {
+        "kind": "file",
+        "mode": 2468,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/g": {
+        "kind": "file",
+        "mode": 1453,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/h": {
+        "kind": "file",
+        "mode": 950,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "d/s": {
+        "kind": "dir",
+        "mode": 2541
+      },
+      "d/t": {
+        "kind": "dir",
+        "mode": 1023
+      },
+      "d/u": {
+        "kind": "dir",
+        "mode": 1509
+      }
+    }
+  },
+  "namei-mountpoints-dotdot": {
+    "stdout": "f: a/..\n d a\n d ..\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-mountpoints-long-option": {
+    "stdout": "f: /\n D /\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-mountpoints-modes": {
+    "stdout": "f: /\n Drwxr-xr-x /\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-mountpoints-relative": {
+    "stdout": "f: a/b\n d a\n d b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-mountpoints-root": {
+    "stdout": "f: /\n D /\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-mountpoints-root-symlink": {
+    "stdout": "f: l\n l l -> /\n   D /\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "/"
+      }
+    }
+  },
+  "namei-multiple-args": {
+    "stdout": "f: a\n d a\nf: b/c\n d b\n - c\nf: nope\n    nope - No such file or directory\nf: a/b\n d a\n - b\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "b/c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-no-args": {
+    "stdout": "",
+    "stderr": "namei: pathname argument is missing\nTry 'namei --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "namei-nolinks": {
+    "stdout": "f: l/f\n l l -> d\n - f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "l": {
+        "kind": "symlink",
+        "target": "d"
+      }
+    }
+  },
+  "namei-nolinks-long": {
+    "stdout": "f: l\nlrwxrwxrwx root root l -> target\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "target"
+      },
+      "target": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-nolinks-long-option": {
+    "stdout": "f: l\n l l -> target\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "target"
+      }
+    }
+  },
+  "namei-nolinks-loop": {
+    "stdout": "f: l\n l l -> l\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "l"
+      }
+    }
+  },
+  "namei-nosymlinks-long-is-not-an-option": {
+    "stdout": "",
+    "stderr": "namei: unrecognized option '--nosymlinks'\nTry 'namei --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "namei-not-a-directory": {
+    "stdout": "f: f/x/y\n - f\n    x - Not a directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7",
+        "data": "data"
+      }
+    }
+  },
+  "namei-only-options": {
+    "stdout": "",
+    "stderr": "namei: pathname argument is missing\nTry 'namei --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "namei-owner-without-name": {
+    "stdout": "f: d\n d 4242 4343 d\nf: d\ndrwxr-xr-x 4242 4343 d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-owner-without-name-width": {
+    "stdout": "f: d/a\n d root     root     d\n - 12345678 87654321 a\nf: /\n d root     root     /\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-owners": {
+    "stdout": "f: a/b\n d root root a\n - root root b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-owners-modes": {
+    "stdout": "f: a/b\n drwxr-xr-x root root a\n -rw------- root root b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "file",
+        "mode": 384,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      }
+    }
+  },
+  "namei-relative-single": {
+    "stdout": "f: file.txt\n - file.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "file.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      }
+    }
+  },
+  "namei-simple": {
+    "stdout": "f: a/b/c\n d a\n d b\n - c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "6667b2d1aab6a00caa5aee5af8ad9f1465e567abf1c209d15727d57b3e8f6e5f",
+        "data": "data\n"
+      }
+    }
+  },
+  "namei-spaces-in-names": {
+    "stdout": "f: my dir/my file\n drwxr-xr-x my dir\n -rw-r--r-- my file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "my dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "my dir/my file": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-stdout-order-with-warning": {
+    "stdout": "                                         l l -> l\nf: a\n    a - No such file or directory\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "l"
+      }
+    }
+  },
+  "namei-symlink-absolute": {
+    "stdout": "f: l\n l l -> /usr/bin\n   d /\n   d usr\n   d bin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "/usr/bin"
+      }
+    }
+  },
+  "namei-symlink-absolute-long": {
+    "stdout": "f: l\nlrwxrwxrwx root root l -> /usr/bin\ndrwxr-xr-x root root   /\ndrwxr-xr-x root root   usr\ndrwxr-xr-x root root   bin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "/usr/bin"
+      }
+    }
+  },
+  "namei-symlink-chain": {
+    "stdout": "f: a\n l a -> b\n   l b -> c\n     l c -> d\n       - d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "symlink",
+        "target": "b"
+      },
+      "b": {
+        "kind": "symlink",
+        "target": "c"
+      },
+      "c": {
+        "kind": "symlink",
+        "target": "d"
+      },
+      "d": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-symlink-chain-long": {
+    "stdout": "f: a\nlrwxrwxrwx root root a -> b\nlrwxrwxrwx root root   b -> c\n-rw-r--r-- root root     c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "symlink",
+        "target": "b"
+      },
+      "b": {
+        "kind": "symlink",
+        "target": "c"
+      },
+      "c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-symlink-dangling": {
+    "stdout": "f: l\n l l -> nowhere\n      nowhere - No such file or directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "nowhere"
+      }
+    }
+  },
+  "namei-symlink-dangling-long": {
+    "stdout": "f: l\nlrwxrwxrwx root root l -> nowhere\n                        nowhere - No such file or directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "nowhere"
+      }
+    }
+  },
+  "namei-symlink-dangling-modes": {
+    "stdout": "f: l\n lrwxrwxrwx l -> nowhere/deeper\n               nowhere - No such file or directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "nowhere/deeper"
+      }
+    }
+  },
+  "namei-symlink-dot": {
+    "stdout": "f: dot/dot/f\n l dot -> .\n   d .\n l dot -> .\n   d .\n - f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dot": {
+        "kind": "symlink",
+        "target": "."
+      },
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-symlink-dotdot": {
+    "stdout": "f: x/l/file\n d x\n l l -> ../y\n   d ..\n   d y\n - file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/l": {
+        "kind": "symlink",
+        "target": "../y"
+      },
+      "y": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "y/file": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-symlink-exactly-twenty": {
+    "stdout": "21\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "l1": {
+        "kind": "symlink",
+        "target": "l2"
+      },
+      "l10": {
+        "kind": "symlink",
+        "target": "l11"
+      },
+      "l11": {
+        "kind": "symlink",
+        "target": "l12"
+      },
+      "l12": {
+        "kind": "symlink",
+        "target": "l13"
+      },
+      "l13": {
+        "kind": "symlink",
+        "target": "l14"
+      },
+      "l14": {
+        "kind": "symlink",
+        "target": "l15"
+      },
+      "l15": {
+        "kind": "symlink",
+        "target": "l16"
+      },
+      "l16": {
+        "kind": "symlink",
+        "target": "l17"
+      },
+      "l17": {
+        "kind": "symlink",
+        "target": "l18"
+      },
+      "l18": {
+        "kind": "symlink",
+        "target": "l19"
+      },
+      "l19": {
+        "kind": "symlink",
+        "target": "l20"
+      },
+      "l2": {
+        "kind": "symlink",
+        "target": "l3"
+      },
+      "l20": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "l3": {
+        "kind": "symlink",
+        "target": "l4"
+      },
+      "l4": {
+        "kind": "symlink",
+        "target": "l5"
+      },
+      "l5": {
+        "kind": "symlink",
+        "target": "l6"
+      },
+      "l6": {
+        "kind": "symlink",
+        "target": "l7"
+      },
+      "l7": {
+        "kind": "symlink",
+        "target": "l8"
+      },
+      "l8": {
+        "kind": "symlink",
+        "target": "l9"
+      },
+      "l9": {
+        "kind": "symlink",
+        "target": "l10"
+      }
+    }
+  },
+  "namei-symlink-final": {
+    "stdout": "f: l\n l l -> target\n   - target\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "target"
+      },
+      "target": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1,
+        "sha256": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+        "data": "x"
+      }
+    }
+  },
+  "namei-symlink-in-subdir-relative": {
+    "stdout": "f: x/l\n d x\n l l -> y/z\n   d y\n   - z\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/l": {
+        "kind": "symlink",
+        "target": "y/z"
+      },
+      "x/y": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/y/z": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-symlink-loop": {
+    "stdout": "f: l\n l l -> l\n   l l -> l\n     l l -> l\n       l l -> l\n         l l -> l\n           l l -> l\n             l l -> l\n               l l -> l\n                 l l -> l\n                   l l -> l\n                     l l -> l\n                       l l -> l\n                         l l -> l\n                           l l -> l\n                             l l -> l\n                               l l -> l\n                                 l l -> l\n                                   l l -> l\n                                     l l -> l\n                                       l l -> l\n                                         l l -> l\n",
+    "stderr": "namei: l: exceeded limit of symlinks\n",
+    "exit": 1,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "l"
+      }
+    }
+  },
+  "namei-symlink-loop-then-ok": {
+    "stdout": "f: l\n l l -> l\n   l l -> l\n     l l -> l\n       l l -> l\n         l l -> l\n           l l -> l\n             l l -> l\n               l l -> l\n                 l l -> l\n                   l l -> l\n                     l l -> l\n                       l l -> l\n                         l l -> l\n                           l l -> l\n                             l l -> l\n                               l l -> l\n                                 l l -> l\n                                   l l -> l\n                                     l l -> l\n                                       l l -> l\n                                         l l -> l\nf: f\n - f\n",
+    "stderr": "namei: l: exceeded limit of symlinks\n",
+    "exit": 1,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "l": {
+        "kind": "symlink",
+        "target": "l"
+      }
+    }
+  },
+  "namei-symlink-loop-two": {
+    "stdout": "f: a\n l a -> b\n   l b -> a\n     l a -> b\n       l b -> a\n         l a -> b\n           l b -> a\n             l a -> b\n               l b -> a\n                 l a -> b\n                   l b -> a\n                     l a -> b\n                       l b -> a\n                         l a -> b\n                           l b -> a\n                             l a -> b\n                               l b -> a\n                                 l a -> b\n                                   l b -> a\n                                     l a -> b\n                                       l b -> a\n                                         l a -> b\n",
+    "stderr": "namei: a: exceeded limit of symlinks\n",
+    "exit": 1,
+    "files": {
+      "a": {
+        "kind": "symlink",
+        "target": "b"
+      },
+      "b": {
+        "kind": "symlink",
+        "target": "a"
+      }
+    }
+  },
+  "namei-symlink-relative": {
+    "stdout": "f: l/f\n l l -> d/e\n   d d\n   d e\n - f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/e": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/e/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "l": {
+        "kind": "symlink",
+        "target": "d/e"
+      }
+    }
+  },
+  "namei-symlink-to-file-then-component": {
+    "stdout": "f: l/x\n l l -> f\n   - f\n    x - Not a directory\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "l": {
+        "kind": "symlink",
+        "target": "f"
+      }
+    }
+  },
+  "namei-symlink-twenty-one": {
+    "stdout": "                                     l l19 -> l20\n                                       l l20 -> l21\n                                         l l21 -> l22\nrc=1\n",
+    "stderr": "namei: l1: exceeded limit of symlinks\n",
+    "exit": 0,
+    "files": {
+      "l1": {
+        "kind": "symlink",
+        "target": "l2"
+      },
+      "l10": {
+        "kind": "symlink",
+        "target": "l11"
+      },
+      "l11": {
+        "kind": "symlink",
+        "target": "l12"
+      },
+      "l12": {
+        "kind": "symlink",
+        "target": "l13"
+      },
+      "l13": {
+        "kind": "symlink",
+        "target": "l14"
+      },
+      "l14": {
+        "kind": "symlink",
+        "target": "l15"
+      },
+      "l15": {
+        "kind": "symlink",
+        "target": "l16"
+      },
+      "l16": {
+        "kind": "symlink",
+        "target": "l17"
+      },
+      "l17": {
+        "kind": "symlink",
+        "target": "l18"
+      },
+      "l18": {
+        "kind": "symlink",
+        "target": "l19"
+      },
+      "l19": {
+        "kind": "symlink",
+        "target": "l20"
+      },
+      "l2": {
+        "kind": "symlink",
+        "target": "l3"
+      },
+      "l20": {
+        "kind": "symlink",
+        "target": "l21"
+      },
+      "l21": {
+        "kind": "symlink",
+        "target": "l22"
+      },
+      "l22": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "l3": {
+        "kind": "symlink",
+        "target": "l4"
+      },
+      "l4": {
+        "kind": "symlink",
+        "target": "l5"
+      },
+      "l5": {
+        "kind": "symlink",
+        "target": "l6"
+      },
+      "l6": {
+        "kind": "symlink",
+        "target": "l7"
+      },
+      "l7": {
+        "kind": "symlink",
+        "target": "l8"
+      },
+      "l8": {
+        "kind": "symlink",
+        "target": "l9"
+      },
+      "l9": {
+        "kind": "symlink",
+        "target": "l10"
+      }
+    }
+  },
+  "namei-trailing-slashes": {
+    "stdout": "f: a/b///\n d a\n d b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "namei-unrecognized-option": {
+    "stdout": "",
+    "stderr": "namei: unrecognized option '--bogus'\nTry 'namei --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "namei-utf8-names": {
+    "stdout": "f: dir/ação\ndrwxr-xr-x root root dir\n-rw-r--r-- root root ação\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "dir": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "dir/ação": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-version": {
+    "stdout": "namei from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "namei-vertical": {
+    "stdout": "f: a/b/c\nd a\nd b\n- c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/c": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-vertical-modes": {
+    "stdout": "f: a/b\ndrwxr-xr-x a\n-rw-r--r-- b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "namei-vertical-symlink": {
+    "stdout": "f: l/f\nl l -> d\nd   d\n- f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "d/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "l": {
+        "kind": "symlink",
+        "target": "d"
+      }
+    }
+  }
+}
