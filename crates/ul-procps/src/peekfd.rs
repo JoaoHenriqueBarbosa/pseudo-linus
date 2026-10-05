@@ -10,7 +10,7 @@ use std::ffi::OsString;
 use sysabi::{Ctx, Errno, KillTarget, Signal, sys};
 use ul_misc::util::io;
 
-const USAGE: &str = "Usage: peekfd [-8] [-n] [-c] [-d] [-V] [-h] <pid> [<fd> ...]\n    -8 output 8 bit clean streams.\n    -n don't display read/write from fd headers.\n    -c peek at any new child processes too.\n    -d remove duplicate read/writes from the output.\n    -V prints version info.\n    -h prints this help.\n  Press ctrl-C to end output.\n";
+const USAGE: &str = "Usage: peekfd [-8] [-n] [-c] [-d] [-V] [-h] <pid> [<fd> ..]\n    -8, --eight-bit-clean        output 8 bit clean streams.\n    -n, --no-headers             don't display read/write from fd headers.\n    -c, --follow                 peek at any new child processes too.\n    -t, --tgid                   peek at all threads where tgid equals <pid>.\n    -d, --duplicates-removed     remove duplicate read/writes from the output.\n    -V, --version                prints version info.\n    -h, --help                   prints this help.\n\n  Press CTRL-C to end output.\n";
 const VERSION: &str = "peekfd (PSmisc) 23.7\nCopyright (C) 2007 Trent Waddington\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n";
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
@@ -27,16 +27,17 @@ fn run(args: &[OsString]) -> i32 {
         }
         for &c in &a[1..] {
             match c {
-                b'8' | b'n' | b'c' | b'd' => {}
+                b'8' | b'n' | b'c' | b't' | b'd' => {}
                 b'V' => {
                     io::eprint(VERSION);
-                    return 0;
+                    return 1;
                 }
                 b'h' => {
                     io::eprint(USAGE);
-                    return 0;
+                    return 1;
                 }
                 _ => {
+                    io::eprint(format!("peekfd: invalid option -- '{}'\n", c as char));
                     io::eprint(USAGE);
                     return 1;
                 }

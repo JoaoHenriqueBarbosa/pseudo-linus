@@ -18,7 +18,7 @@ use ul_misc::util::io;
 use crate::common::{self, out};
 use crate::procfs;
 
-const USAGE: &str = "Usage: fuser [-fIMuvw] [-a|-s] [-4|-6] [-c|-m|-n SPACE]\n             [-k [-i] [-SIGNAL]] NAME...\n       fuser -l\n       fuser -V\nShow which processes use the named files, sockets, or filesystems.\n\n  -a,--all              display unused files too\n  -i,--interactive      ask before killing (ignored without -k)\n  -I,--inode            use always inodes to compare files\n  -k,--kill             kill processes accessing the named file\n  -l,--list-signals     list available signal names\n  -m,--mount            show all processes using the named filesystems or\n                        block device\n  -M,--ismountpoint     fulfill request only if NAME is a mount point\n  -n,--namespace SPACE  search in this name space (file, udp, or tcp)\n  -s,--silent           silent operation\n  -SIGNAL               send this signal instead of SIGKILL\n  -u,--user             display user IDs\n  -v,--verbose          verbose output\n  -w,--writeonly        kill only processes with write access\n  -V,--version          display version information\n  -4,--ipv4             search IPv4 sockets only\n  -6,--ipv6             search IPv6 sockets only\n  -                     reset options\n\n  udp/tcp names: [local_port][,[rmt_host][,[rmt_port]]]\n\n";
+const USAGE: &str = "Usage: fuser [-fIMuvw] [-a|-s] [-4|-6] [-c|-m|-n SPACE]\n             [-k [-i] [-SIGNAL]] NAME...\n       fuser -l\n       fuser -V\nShow which processes use the named files, sockets, or filesystems.\n\n  -a,--all              display unused files too\n  -i,--interactive      ask before killing (ignored without -k)\n  -I,--inode            use always inodes to compare files\n  -k,--kill             kill processes accessing the named file\n  -l,--list-signals     list available signal names\n  -m,--mount            show all processes using the named filesystems or\n                        block device\n  -M,--ismountpoint     fulfill request only if NAME is a mount point\n  -n,--namespace SPACE  search in this name space (file, udp, or tcp)\n  -s,--silent           silent operation\n  -SIGNAL               send this signal instead of SIGKILL\n  -u,--user             display user IDs\n  -v,--verbose          verbose output\n  -w,--writeonly        kill only processes with write access\n  -V,--version          display version information\n  -4,--ipv4             search IPv4 sockets only\n  -6,--ipv6             search IPv6 sockets only\n  udp/tcp names: [local_port][,[rmt_host][,[rmt_port]]]\n\n";
 const VERSION: &str = "fuser (PSmisc) 23.7\nCopyright (C) 1993-2024 Werner Almesberger and Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n";
 
 #[derive(Clone, Default)]
@@ -74,6 +74,11 @@ fn list_signals() {
     out(s);
 }
 
+fn no_spec() -> i32 {
+    io::eprint("No process specification given\n");
+    usage()
+}
+
 fn usage() -> i32 {
     io::eprint(USAGE);
     1
@@ -82,7 +87,7 @@ fn usage() -> i32 {
 fn run(args: &[OsString]) -> i32 {
     let argv: Vec<String> = io::args_bytes(args).iter().map(|a| io::lossy(a)).collect();
     if argv.len() < 2 {
-        return usage();
+        return no_spec();
     }
     let mut o = Opts { signal: 9, ..Opts::default() };
     let mut names: Vec<(String, Opts)> = Vec::new();
@@ -180,7 +185,10 @@ fn run(args: &[OsString]) -> i32 {
                         k = bytes.len();
                         continue;
                     }
-                    _ => return usage(),
+                    _ => {
+                        io::eprint(format!("{body}: unknown signal; fuser -l lists signals.\n"));
+                        return 1;
+                    }
                 }
                 k += 1;
             }
@@ -193,7 +201,7 @@ fn run(args: &[OsString]) -> i32 {
         return 0;
     }
     if names.is_empty() {
-        return usage();
+        return no_spec();
     }
     let any_kill = names.iter().any(|(_, o)| o.kill);
     let mut found_any = false;
