@@ -23,7 +23,7 @@ Options:
      <device>       path to the device to be used
      <size>         number of blocks to be used on the device
  -V, --verbose      explain what is being done;
-                    specifying -V more than once will cause a dry-run
+                      specifying -V more than once will cause a dry-run
  -h, --help         display this help
  -V, --version      display version
 

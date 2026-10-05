@@ -1,0 +1,138 @@
+tool = "scripts"
+source = "agent-style"
+
+# Scripts shell do Debian 13 que embrulham gzip, bzip2, xz e zstd (zgrep, zdiff, zmore, zless,
+# znew, zforce, gzexe, bzgrep, bzdiff, xzgrep, xzdiff, zstdgrep e afins). Cada caso monta os
+# arquivos comprimidos dentro do próprio script com os compressores que existem dos dois lados.
+
+[[case]]
+id = "zgrep-basic"
+argv = ["sh", "-c", "printf 'alpha\\nbeta\\ngamma\\n' | gzip > f.gz; zgrep beta f.gz; echo rc=$?"]
+
+[[case]]
+id = "zgrep-count-invert"
+argv = ["sh", "-c", "printf 'a\\nb\\nc\\na\\n' | gzip > f.gz; zgrep -c a f.gz; zgrep -v a f.gz; echo rc=$?"]
+
+[[case]]
+id = "zgrep-no-match"
+argv = ["sh", "-c", "printf 'a\\n' | gzip > f.gz; zgrep zzz f.gz; echo rc=$?"]
+
+[[case]]
+id = "zgrep-multi-file-prefix"
+argv = ["sh", "-c", "printf 'x1\\n' | gzip > a.gz; printf 'x2\\n' | gzip > b.gz; zgrep x a.gz b.gz; echo rc=$?"]
+
+[[case]]
+id = "zgrep-stdin"
+argv = ["sh", "-c", "printf 'one\\ntwo\\n' | gzip | zgrep two; echo rc=$?"]
+
+[[case]]
+id = "zgrep-missing-file"
+argv = ["sh", "-c", "zgrep x nope.gz; echo rc=$?"]
+
+[[case]]
+id = "zegrep-alternation"
+argv = ["sh", "-c", "printf 'cat\\ndog\\nbird\\n' | gzip > f.gz; zegrep 'cat|bird' f.gz; echo rc=$?"]
+
+[[case]]
+id = "zfgrep-literal"
+argv = ["sh", "-c", "printf 'a.b\\naxb\\n' | gzip > f.gz; zfgrep 'a.b' f.gz; echo rc=$?"]
+
+[[case]]
+id = "zgrep-plain-file"
+argv = ["sh", "-c", "printf 'plain text\\n' > p.txt; zgrep plain p.txt; echo rc=$?"]
+
+[[case]]
+id = "zdiff-equal"
+argv = ["sh", "-c", "printf 'a\\nb\\n' | gzip > a.gz; printf 'a\\nb\\n' | gzip > b.gz; zdiff a.gz b.gz; echo rc=$?"]
+
+[[case]]
+id = "zdiff-different"
+argv = ["sh", "-c", "printf 'a\\nb\\n' | gzip > a.gz; printf 'a\\nc\\n' | gzip > b.gz; zdiff a.gz b.gz; echo rc=$?"]
+
+[[case]]
+id = "zcmp-different"
+argv = ["sh", "-c", "printf 'abc\\n' | gzip > a.gz; printf 'abd\\n' | gzip > b.gz; zcmp a.gz b.gz; echo rc=$?"]
+
+[[case]]
+id = "zdiff-unified-vs-plain"
+argv = ["sh", "-c", "printf 'a\\nb\\n' | gzip > a.gz; printf 'a\\nb\\nc\\n' > b.txt; zdiff -u a.gz b.txt | tail -n +3; echo rc=$?"]
+
+[[case]]
+id = "zdiff-usage-missing"
+argv = ["sh", "-c", "zdiff; echo rc=$?"]
+
+[[case]]
+id = "zmore-pipe"
+argv = ["sh", "-c", "printf 'l1\\nl2\\n' | gzip > f.gz; zmore f.gz | cat; echo rc=$?"]
+
+[[case]]
+id = "zless-pipe"
+argv = ["sh", "-c", "printf 'l1\\nl2\\n' | gzip > f.gz; zless f.gz | cat; echo rc=$?"]
+
+[[case]]
+id = "znew-convert"
+argv = ["sh", "-c", "printf 'data\\n' | compress > f.Z 2>/dev/null; echo rc=$?; ls"]
+
+[[case]]
+id = "zforce-rename"
+argv = ["sh", "-c", "printf 'x\\n' | gzip > plain; zforce plain; echo rc=$?; ls"]
+
+[[case]]
+id = "zforce-already"
+argv = ["sh", "-c", "printf 'x\\n' | gzip > f.gz; zforce f.gz; echo rc=$?; ls"]
+
+[[case]]
+id = "gzexe-roundtrip"
+argv = ["sh", "-c", "printf '#!/bin/sh\\necho hi\\n' > prog; chmod +x prog; gzexe prog; echo rc=$?; ls; ./prog; echo rc=$?"]
+
+[[case]]
+id = "gzexe-decompress"
+argv = ["sh", "-c", "printf '#!/bin/sh\\necho hi\\n' > prog; chmod +x prog; gzexe prog >/dev/null 2>&1; gzexe -d prog; echo rc=$?; ls; cat prog"]
+
+[[case]]
+id = "bzgrep-basic"
+argv = ["sh", "-c", "printf 'alpha\\nbeta\\n' | bzip2 > f.bz2; bzgrep beta f.bz2; echo rc=$?"]
+
+[[case]]
+id = "bzdiff-different"
+argv = ["sh", "-c", "printf 'a\\n' | bzip2 > a.bz2; printf 'b\\n' | bzip2 > b.bz2; bzdiff a.bz2 b.bz2; echo rc=$?"]
+
+[[case]]
+id = "bzcmp-link"
+argv = ["sh", "-c", "printf 'a\\n' | bzip2 > a.bz2; printf 'b\\n' | bzip2 > b.bz2; bzcmp a.bz2 b.bz2; echo rc=$?"]
+
+[[case]]
+id = "bzmore-pipe"
+argv = ["sh", "-c", "printf 'x\\ny\\n' | bzip2 > f.bz2; bzmore f.bz2 | cat; echo rc=$?"]
+
+[[case]]
+id = "xzgrep-basic"
+argv = ["sh", "-c", "printf 'alpha\\nbeta\\n' | xz > f.xz; xzgrep beta f.xz; echo rc=$?"]
+
+[[case]]
+id = "xzdiff-different"
+argv = ["sh", "-c", "printf 'a\\n' | xz > a.xz; printf 'b\\n' | xz > b.xz; xzdiff a.xz b.xz; echo rc=$?"]
+
+[[case]]
+id = "xzcmp-equal"
+argv = ["sh", "-c", "printf 'a\\n' | xz > a.xz; printf 'a\\n' | xz > b.xz; xzcmp a.xz b.xz; echo rc=$?"]
+
+[[case]]
+id = "xzmore-pipe"
+argv = ["sh", "-c", "printf 'x\\ny\\n' | xz > f.xz; xzmore f.xz | cat; echo rc=$?"]
+
+[[case]]
+id = "zstdgrep-basic"
+argv = ["sh", "-c", "printf 'alpha\\nbeta\\n' | zstd -q > f.zst; zstdgrep beta f.zst; echo rc=$?"]
+
+[[case]]
+id = "zstdless-pipe"
+argv = ["sh", "-c", "printf 'x\\ny\\n' | zstd -q > f.zst; zstdless f.zst | cat; echo rc=$?"]
+
+[[case]]
+id = "zipgrep-basic"
+argv = ["sh", "-c", "printf 'alpha\\nbeta\\n' > in.txt; zip -q z.zip in.txt; zipgrep beta z.zip; echo rc=$?"]
+
+[[case]]
+id = "uncompress-link-gunzip"
+argv = ["sh", "-c", "printf 'x\\n' | gzip > f.gz; uncompress f.gz; echo rc=$?; ls; cat f"]

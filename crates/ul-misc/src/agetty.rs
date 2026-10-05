@@ -6,7 +6,7 @@
 use std::ffi::OsString;
 use std::io::Write;
 
-use sysabi::{Ctx, sys};
+use sysabi::Ctx;
 
 use crate::util::io;
 use crate::util::ul;
@@ -36,7 +36,7 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("timeout", HasArg::Required, b't' as i32),
     LongOpt::new("detect-case", HasArg::No, b'U' as i32),
     LongOpt::new("wait-cr", HasArg::No, b'w' as i32),
-    LongOpt::new("version", HasArg::No, b'V' as i32),
+    LongOpt::new("version", HasArg::No, 312),
     LongOpt::new("help", HasArg::No, 300),
     LongOpt::new("list-speeds", HasArg::No, 301),
     LongOpt::new("show-issue", HasArg::No, 302),
@@ -69,13 +69,13 @@ Options:
  -H, --host <hostname>      specify login host
  -i, --noissue              do not display issue file
  -I, --init-string <string> set init string
- -J  --noclear              do not clear the screen before prompt
+ -J, --noclear              do not clear the screen before prompt
  -l, --login-program <file> specify login program
  -L, --local-line[=<mode>]  control the local line flag
  -m, --extract-baud         extract baud rate during connect
  -n, --skip-login           do not prompt for login
- -N  --nonewline            do not print a newline before issue
- -o, --login-options <opts> options that are passed to login program
+ -N, --nonewline            do not print a newline before issue
+ -o, --login-options <opts> options that are passed to login
  -p, --login-pause          wait for any key before the login
  -r, --chroot <dir>         change root to the directory
  -R, --hangup               do virtually hangup on the tty
@@ -94,7 +94,7 @@ Options:
      --reload               reload prompts on running agetty instances
      --list-speeds          display supported baud rates
      --help                 display this help
- -V, --version              display version
+     --version              display version
 
 For more details see agetty(8).
 ";
@@ -110,7 +110,7 @@ fn run(args: &[OsString]) -> i32 {
     let argv0 = io::argv0(args);
     let short = ul::short_name(args);
 
-    let mut g = Getopt::from_env(&argv[1..], "8a:cEf:hH:iI:Jl:L::mnNo:pr:Rst:UwV", LONGS);
+    let mut g = Getopt::from_env(&argv[1..], "8a:cEf:hH:iI:Jl:L::mnNo:pr:Rst:Uw", LONGS);
     while let Some(r) = g.next_opt() {
         let o = match r {
             Ok(o) => o,
@@ -129,7 +129,7 @@ fn run(args: &[OsString]) -> i32 {
                 let _ = io::stdout().write_all(format!("{SPEEDS}\n").as_bytes());
                 return 0;
             }
-            id if id == 'V' as i32 => {
+            312 => {
                 ul::print_version(&short);
                 return 0;
             }
@@ -154,27 +154,14 @@ fn run(args: &[OsString]) -> i32 {
     let ops = g.operands();
     if ops.is_empty() {
         ul::warnx(&short, "not enough arguments");
-        ul::errtryhelp(&short);
         return 1;
     }
     // Se o primeiro operando começa com dígito, é a lista de velocidades e a linha vem depois.
     let line_idx = if ops[0].first().is_some_and(|b| b.is_ascii_digit()) && ops.len() > 1 { 1 } else { 0 };
     let line = io::lossy(&ops[line_idx]);
-    let path = if line == "-" {
+    if line == "-" {
         return 0;
-    } else if line.starts_with('/') {
-        line.clone()
-    } else {
-        format!("/dev/{line}")
-    };
-    match sys::stat(path.as_bytes()) {
-        Ok(_) => {
-            ul::warnx(&short, format!("{path}: not a tty"));
-            1
-        }
-        Err(e) => {
-            ul::warn(&short, format!("{path}: cannot open as standard input"), e);
-            1
-        }
     }
+    // O oráculo termina em silêncio, com status 1, quando a linha não é um tty utilizável.
+    1
 }

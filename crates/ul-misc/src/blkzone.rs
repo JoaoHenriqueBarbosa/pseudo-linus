@@ -26,15 +26,15 @@ const USAGE: &str = "
 Usage:
  blkzone <command> [options] <device>
 
-Run zone command on the block device.
+Run zone command on the given block device.
 
 Commands:
- report      Report zone information about the device
- capacity    Report sum of zone capacities for the device
- reset       Reset a range of zones.
- open        Open a range of zones.
- close       Close a range of zones.
- finish      Set a range of zones to Full.
+ report       Report zone information about the given device
+ capacity     Report sum of zone capacities for the given device
+ reset        Reset a range of zones.
+ open         Open a range of zones.
+ close        Close a range of zones.
+ finish       Set a range of zones to Full.
 
 Options:
  -o, --offset <sector>  start sector of zone to act (in 512-byte sectors)
@@ -45,6 +45,10 @@ Options:
 
  -h, --help             display this help
  -V, --version          display version
+
+Arguments:
+ Values for <sector> and <sectors> may be followed by a suffix: KiB, MiB,
+ GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).
 
 For more details see blkzone(8).
 ";
@@ -60,16 +64,10 @@ fn run(args: &[OsString]) -> i32 {
 
     if argv.len() < 2 {
         ul::warnx(&short, "no command specified");
-        ul::errtryhelp(&short);
         return 1;
     }
-    // O comando é o primeiro argumento, a não ser que seja uma opção.
-    let first = argv[1].clone();
-    let is_opt = first.first() == Some(&b'-');
-    let rest_start = if is_opt { 1 } else { 2 };
-    let command = if is_opt { None } else { Some(io::lossy(&first)) };
 
-    let mut g = Getopt::from_env(&argv[rest_start..], "c:fl:o:vhV", LONGS);
+    let mut g = Getopt::from_env(&argv[1..], "c:fl:o:vhV", LONGS);
     while let Some(r) = g.next_opt() {
         let o = match r {
             Ok(o) => o,
@@ -114,26 +112,24 @@ fn run(args: &[OsString]) -> i32 {
         }
     }
 
-    let Some(command) = command else {
+    let ops = g.operands();
+    let Some(first) = ops.first() else {
         ul::warnx(&short, "no command specified");
-        ul::errtryhelp(&short);
         return 1;
     };
+    let command = io::lossy(first);
     if !matches!(
         command.as_str(),
         "report" | "capacity" | "reset" | "open" | "close" | "finish"
     ) {
-        ul::warnx(&short, format!("unknown command: {command}"));
-        ul::errtryhelp(&short);
+        ul::warnx(&short, format!("{command} is not valid command name"));
         return 1;
     }
-    let ops = g.operands();
-    if ops.is_empty() {
+    if ops.len() < 2 {
         ul::warnx(&short, "no device specified");
-        ul::errtryhelp(&short);
         return 1;
     }
-    let dev = &ops[0];
+    let dev = &ops[1];
     let dev_s = io::lossy(dev);
     if let Err(e) = io::File::open(dev) {
         ul::warn(&short, format!("cannot open {dev_s}"), e);

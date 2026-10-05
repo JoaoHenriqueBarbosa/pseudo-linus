@@ -1,0 +1,134 @@
+tool = "scripts"
+source = "agent-style"
+
+# Scripts shell de sistema do Debian 13 (which.debianutils, gettext.sh, service, invoke-rc.d,
+# policy-rc.d, update-shells, shadowconfig, tarcat, lesspipe, wcurl, installkernel, savelog e os
+# aliases de hostname). Só casos independentes de rede e de relógio.
+
+[[case]]
+id = "which-debianutils-found"
+argv = ["which.debianutils", "ls"]
+
+[[case]]
+id = "which-debianutils-missing"
+argv = ["sh", "-c", "which.debianutils nope-xyz; echo rc=$?"]
+
+[[case]]
+id = "which-debianutils-all"
+argv = ["which.debianutils", "-a", "sh"]
+
+[[case]]
+id = "domainname-link"
+argv = ["sh", "-c", "domainname; echo rc=$?"]
+
+[[case]]
+id = "dnsdomainname-link"
+argv = ["sh", "-c", "dnsdomainname; echo rc=$?"]
+
+[[case]]
+id = "nisdomainname-link"
+argv = ["sh", "-c", "nisdomainname; echo rc=$?"]
+
+[[case]]
+id = "ypdomainname-link"
+argv = ["sh", "-c", "ypdomainname; echo rc=$?"]
+
+[[case]]
+id = "gettext-sh-eval-gettext"
+argv = ["sh", "-c", ". gettext.sh; TEXTDOMAIN=x; export TEXTDOMAIN; name=world; export name; eval_gettext 'hello $name'; echo; echo rc=$?"]
+
+[[case]]
+id = "gettext-sh-eval-ngettext"
+argv = ["sh", "-c", ". gettext.sh; n=3; export n; eval_ngettext 'one file' '$n files' 3; echo"]
+
+[[case]]
+id = "service-no-args"
+argv = ["sh", "-c", "service; echo rc=$?"]
+
+[[case]]
+id = "service-status-all"
+argv = ["sh", "-c", "service --status-all; echo rc=$?"]
+
+[[case]]
+id = "service-missing-unit"
+argv = ["sh", "-c", "service nope-xyz status; echo rc=$?"]
+
+[[case]]
+id = "invoke-rc-no-args"
+argv = ["sh", "-c", "invoke-rc.d; echo rc=$?"]
+
+[[case]]
+id = "invoke-rc-missing-unit"
+argv = ["sh", "-c", "invoke-rc.d nope-xyz start; echo rc=$?"]
+
+[[case]]
+id = "policy-rc-d"
+argv = ["sh", "-c", "policy-rc.d; echo rc=$?"]
+
+[[case]]
+id = "update-shells-no-args"
+argv = ["sh", "-c", "update-shells; echo rc=$?; cat /etc/shells"]
+
+[[case]]
+id = "update-shells-add-remove"
+argv = ["sh", "-c", "update-shells --help; echo rc=$?"]
+
+[[case]]
+id = "shadowconfig-usage"
+argv = ["sh", "-c", "shadowconfig; echo rc=$?"]
+
+[[case]]
+id = "shadowconfig-off-on"
+argv = ["sh", "-c", "shadowconfig off; echo rc=$?; shadowconfig on; echo rc=$?"]
+
+[[case]]
+id = "tarcat-no-args"
+argv = ["sh", "-c", "tarcat; echo rc=$?"]
+
+[[case]]
+id = "lesspipe-plain-text"
+argv = ["sh", "-c", "printf 'plain\\n' > t.txt; lesspipe t.txt; echo rc=$?"]
+
+[[case]]
+id = "lesspipe-gz"
+argv = ["sh", "-c", "printf 'zipped\\n' | gzip > t.gz; lesspipe t.gz; echo rc=$?"]
+
+[[case]]
+id = "lessfile-link"
+argv = ["sh", "-c", "printf 'plain\\n' > t.txt; lessfile t.txt; echo rc=$?"]
+
+[[case]]
+id = "wcurl-no-args"
+argv = ["sh", "-c", "wcurl; echo rc=$?"]
+
+[[case]]
+id = "wcurl-version"
+argv = ["sh", "-c", "wcurl --version; echo rc=$?"]
+
+[[case]]
+id = "installkernel-no-args"
+argv = ["sh", "-c", "installkernel; echo rc=$?"]
+
+[[case]]
+id = "pam-namespace-helper-no-args"
+argv = ["sh", "-c", "pam_namespace_helper; echo rc=$?"]
+
+[[case]]
+id = "update-ca-certificates-help"
+argv = ["sh", "-c", "update-ca-certificates --help; echo rc=$?"]
+
+[[case]]
+id = "dpkg-maintscript-helper-no-args"
+argv = ["sh", "-c", "dpkg-maintscript-helper; echo rc=$?"]
+
+[[case]]
+id = "dpkg-maintscript-helper-supports"
+argv = ["sh", "-c", "dpkg-maintscript-helper supports rm_conffile; echo rc=$?"]
+
+[[case]]
+id = "bashbug-help"
+argv = ["sh", "-c", "bashbug --help; echo rc=$?"]
+
+[[case]]
+id = "gawkbug-help"
+argv = ["sh", "-c", "gawkbug --help; echo rc=$?"]

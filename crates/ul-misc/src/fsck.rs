@@ -21,6 +21,7 @@ Options:
  -A         check all filesystems
  -C [<fd>]  display progress bar; file descriptor is for GUIs
  -l         lock the device to guarantee exclusive access
+ -M         do not check mounted filesystems
  -N         do not execute, just show what would be done
  -P         check filesystems in parallel, including root
  -R         skip root filesystem; useful only with '-A'
@@ -29,7 +30,7 @@ Options:
  -s         serialize the checking operations
  -T         do not show the title on startup
  -t <type>  specify filesystem types to be checked;
-            type is allowed to be comma-separated list
+            <type> is allowed to be a comma-separated list
  -V         explain what is being done
 
  -?, --help     display this help

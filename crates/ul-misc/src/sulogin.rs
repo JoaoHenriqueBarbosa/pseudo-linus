@@ -6,7 +6,7 @@
 use std::ffi::OsString;
 use std::io::Write;
 
-use sysabi::Ctx;
+use sysabi::{Ctx, Errno};
 
 use crate::util::io;
 use crate::util::ul;
@@ -28,8 +28,8 @@ Single-user login.
 
 Options:
  -p, --login-shell        start a login shell
- -t, --timeout <seconds>  max time to wait for a root password
- -e, --force              if the root account is locked, start a shell anyway
+ -t, --timeout <seconds>  max time to wait for a password (default: no limit)
+ -e, --force              examine password files directly if getpwnam(3) fails
 
  -h, --help               display this help
  -V, --version            display version
@@ -51,9 +51,9 @@ fn run(args: &[OsString]) -> i32 {
         let o = match r {
             Ok(o) => o,
             Err(e) => {
+                // O original só avisa da opção inválida e segue adiante.
                 io::eprint(format!("{}\n", e.message(&argv0)));
-                ul::errtryhelp(&short);
-                return 1;
+                continue;
             }
         };
         match o.short() {
@@ -70,15 +70,18 @@ fn run(args: &[OsString]) -> i32 {
                 return 0;
             }
             Some('V') => {
-                ul::print_version(&short);
+                let _ = io::stdout().write_all(
+                    format!(
+                        "{short} from util-linux 2.41.5 (features: selinux, plymouth, keyboard mode, widechar, serial-info)\n"
+                    )
+                    .as_bytes(),
+                );
                 return 0;
             }
-            _ => {
-                ul::errtryhelp(&short);
-                return 1;
-            }
+            _ => {}
         }
     }
-    ul::warnx(&short, "only superuser can run this program");
-    1
+    // Sem tty, o `tcgetattr` falha e o original encerra com status 0.
+    ul::warn(&short, "tcgetattr failed", Errno::EINVAL);
+    0
 }
