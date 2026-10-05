@@ -33,35 +33,38 @@ const LONGS: &[LongOpt] = &[
 
 const USAGE: &str = "
 Usage:
- wipefs [options] <device>...
+ wipefs [options] <device>
 
 Wipe signatures from a device.
 
 Options:
- -a, --all           wipe all magic strings (BE CAREFUL!)
+ -a, --all            wipe all magic strings (BE CAREFUL!)
  -b, --backup[=<dir>] create a signature backup in <dir> or $HOME
- -f, --force         force erasure
- -i, --noheadings    don't print headings
- -J, --json          use JSON output format
- -n, --no-act        do everything except the actual write() call
- -O, --output <list> COLUMNS to display (see below)
- -o, --offset <num>  offset to erase, in bytes
- -p, --parsable      print out in parsable instead of printable format
- -q, --quiet         suppress output messages
- -t, --types <list>  limit the set of filesystem, RAIDs or partition tables
+ -f, --force          force erasure
+ -i, --noheadings     don't print headings
+ -J, --json           use JSON output format
+ -n, --no-act         do everything except the actual write() call
+ -o, --offset <num>   offset to erase, in bytes
+ -O, --output <list>  COLUMNS to display (see below)
+ -p, --parsable       print out in parsable instead of printable format
+ -q, --quiet          suppress output messages
+ -t, --types <list>   limit the set of filesystem, RAIDs or partition tables
      --lock[=<mode>] use exclusive device lock (yes, no or nonblock)
+ -h, --help           display this help
+ -V, --version        display version
 
- -h, --help          display this help
- -V, --version       display version
+Arguments:
+ Values for <num> may be followed by a suffix: KiB, MiB,
+ GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).
 
 Available output columns:
-   UUID  partition/filesystem UUID
-  LABEL  filesystem LABEL
- LENGTH  magic string length
- OFFSET  magic string offset
-   TYPE  superblock type
-  USAGE  type description
- DEVICE  block device name
+     UUID  partition/filesystem UUID
+    LABEL  filesystem LABEL
+   LENGTH  magic string length
+     TYPE  superblock type
+   OFFSET  magic string offset
+    USAGE  type description
+   DEVICE  block device name
 
 For more details see wipefs(8).
 ";
@@ -174,6 +177,13 @@ fn run(args: &[OsString]) -> i32 {
     for d in &devs {
         let name = io::lossy(d);
         let head = match blkid::read_head(d) {
+            Ok(h) if h.is_empty() => {
+                // Arquivo sem conteúdo (ou /dev/null): a libblkid não inicializa a sondagem.
+                let _ = out.flush();
+                ul::warn(&short, format!("error: {name}: probing initialization failed"), sysabi::Errno::EINVAL);
+                status = 1;
+                continue;
+            }
             Ok(h) => h,
             Err(e) => {
                 let _ = out.flush();

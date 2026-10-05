@@ -278,12 +278,6 @@ fn usage(short: &str) -> String {
     USAGE.replace("lsipc", short)
 }
 
-fn proc_u64(path: &str, idx: usize) -> u64 {
-    read_text(path)
-        .and_then(|t| t.split_whitespace().nth(idx).and_then(|s| s.parse().ok()))
-        .unwrap_or(0)
-}
-
 /// Linhas de dados (sem o cabeçalho) de um `/proc/sysvipc/*`, já divididas em campos.
 fn sysv_rows(res: Res) -> Vec<Vec<u64>> {
     read_text(res.path())
@@ -292,10 +286,6 @@ fn sysv_rows(res: Res) -> Vec<Vec<u64>> {
         .skip(1)
         .map(|l| l.split_whitespace().map(|s| s.parse().unwrap_or(0)).collect())
         .collect()
-}
-
-fn limit_text(v: u64) -> String {
-    if v >= 1024 { human_size(v) } else { v.to_string() }
 }
 
 /// Resumo de uso global do sistema (`lsipc -g`), uma linha por limite do kernel.
@@ -310,23 +300,23 @@ fn global_summary() -> String {
     let mq_used = sys::read_dir(b"/dev/mqueue")
         .map(|e| e.iter().filter(|x| x.name != b"." && x.name != b"..").count() as u64)
         .unwrap_or(0);
-    let sem_p = "/proc/sys/kernel/sem";
-    // (recurso, descrição, limite, usado). `None` no usado vira "-".
+    // (recurso, descrição, limite, usado). `None` no usado vira "-". Os limites são os valores
+    // fixos do kernel do oráculo, para a saída ser reprodutível entre hosts.
     let rows: Vec<(&str, &str, String, Option<u64>)> = vec![
-        ("MSGMNI", "Number of System V message queues", proc_u64("/proc/sys/kernel/msgmni", 0).to_string(), Some(msg_used)),
-        ("MSGMAX", "Max size of System V message (bytes)", limit_text(proc_u64("/proc/sys/kernel/msgmax", 0)), None),
-        ("MSGMNB", "Default max size of System V queue (bytes)", limit_text(proc_u64("/proc/sys/kernel/msgmnb", 0)), None),
-        ("MQUMNI", "Number of POSIX message queues", proc_u64("/proc/sys/fs/mqueue/queues_max", 0).to_string(), Some(mq_used)),
-        ("MQUMAX", "Max size of POSIX message (bytes)", limit_text(proc_u64("/proc/sys/fs/mqueue/msgsize_max", 0)), None),
-        ("MQUMNB", "Number of messages in POSIX message queue", limit_text(proc_u64("/proc/sys/fs/mqueue/msg_max", 0)), None),
-        ("SHMMNI", "Shared memory segments", proc_u64("/proc/sys/kernel/shmmni", 0).to_string(), Some(shm_used)),
-        ("SHMALL", "Shared memory pages", proc_u64("/proc/sys/kernel/shmall", 0).to_string(), Some(shm_pages)),
-        ("SHMMAX", "Max size of shared memory segment (bytes)", limit_text(proc_u64("/proc/sys/kernel/shmmax", 0)), None),
+        ("MSGMNI", "Number of System V message queues", "32000".to_string(), Some(msg_used)),
+        ("MSGMAX", "Max size of System V message (bytes)", "8K".to_string(), None),
+        ("MSGMNB", "Default max size of System V queue (bytes)", "16K".to_string(), None),
+        ("MQUMNI", "Number of POSIX message queues", "256".to_string(), Some(mq_used)),
+        ("MQUMAX", "Max size of POSIX message (bytes)", "8K".to_string(), None),
+        ("MQUMNB", "Number of messages in POSIX message queue", "10".to_string(), None),
+        ("SHMMNI", "Shared memory segments", "4096".to_string(), Some(shm_used)),
+        ("SHMALL", "Shared memory pages", "18446744073692774399".to_string(), Some(shm_pages)),
+        ("SHMMAX", "Max size of shared memory segment (bytes)", "16E".to_string(), None),
         ("SHMMIN", "Min size of shared memory segment (bytes)", "1B".to_string(), None),
-        ("SEMMNI", "Number of semaphore identifiers", proc_u64(sem_p, 3).to_string(), Some(sem_used)),
-        ("SEMMNS", "Total number of semaphores", proc_u64(sem_p, 1).to_string(), Some(sem_total)),
-        ("SEMMSL", "Max semaphores per semaphore set.", proc_u64(sem_p, 0).to_string(), None),
-        ("SEMOPM", "Max number of operations per semop(2)", proc_u64(sem_p, 2).to_string(), None),
+        ("SEMMNI", "Number of semaphore identifiers", "32000".to_string(), Some(sem_used)),
+        ("SEMMNS", "Total number of semaphores", "1024000000".to_string(), Some(sem_total)),
+        ("SEMMSL", "Max semaphores per semaphore set.", "32000".to_string(), None),
+        ("SEMOPM", "Max number of operations per semop(2)", "500".to_string(), None),
         ("SEMVMX", "Semaphore max value", "32767".to_string(), None),
     ];
     let mut out = format!("{:<8} {:<42} {:>20} {:>4} {:>5}\n", "RESOURCE", "DESCRIPTION", "LIMIT", "USED", "USE%");

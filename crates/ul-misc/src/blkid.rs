@@ -32,21 +32,22 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("offset", HasArg::Required, b'O' as i32),
     LongOpt::new("usages", HasArg::Required, b'u' as i32),
     LongOpt::new("match-types", HasArg::Required, b'n' as i32),
+    LongOpt::new("no-part-details", HasArg::No, b'D' as i32),
     LongOpt::new("version", HasArg::No, b'V' as i32),
     LongOpt::new("help", HasArg::No, b'h' as i32),
 ];
 
 const USAGE: &str = "
 Usage:
- blkid -L <label> | -U <uuid>
+ blkid --label <label> | --uuid <uuid>
 
- blkid [-c <file>] [-ghlLv] [--output <format>] [-s <tag>]
-       [-t <token>] [<dev> ...]
+ blkid [--cache-file <file>] [-ghlLv] [--output <format>] [--match-tag <tag>]
+       [--match-token <token>] [<dev> ...]
 
- blkid -p [-s <tag>] [-O <offset>] [-S <size>]
-       [-o <format>] <dev> ...
+ blkid -p [--match-tag <tag>] [--offset <offset>] [--size <size>]
+       [--output <format>] <dev> ...
 
- blkid -i [-s <tag>] [-o <format>] <dev> ...
+ blkid -i [--match-tag <tag>] [--output <format>] <dev> ...
 
 Options:
  -c, --cache-file <file>    read from <file> instead of reading from the default
@@ -54,7 +55,7 @@ Options:
  -d, --no-encoding          don't encode non-printing characters
  -g, --garbage-collect      garbage collect the blkid cache
  -o, --output <format>      output format; can be one of:
-                              value, device, export or full; (default: full)
+                              value, device, export, json or full; (default: full)
  -k, --list-filesystems     list all known filesystems/RAIDs and exit
  -s, --match-tag <tag>      show specified tag(s) (default show all tags)
  -t, --match-token <token>  find device with a specific token (NAME=value pair)
@@ -66,13 +67,20 @@ Low-level probing options:
  -p, --probe                low-level superblocks probing (bypass cache)
  -i, --info                 gather information about I/O limits
  -H, --hint <value>         set hint for probing function
- -S, --size <size>          overwrite device size
+ -S, --size <size>          override device size
  -O, --offset <offset>      probe at the given offset
  -u, --usages <list>        filter by \"usage\" (e.g. -u filesystem,raid)
  -n, --match-types <list>   filter by filesystem type (e.g. -n vfat,ext3)
+ -D, --no-part-details      don't print info from partition table
 
  -h, --help                 display this help
  -V, --version              display version
+
+Arguments:
+ Values for <size> and <offset> may be followed by a suffix: KiB, MiB,
+ GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).
+
+ <dev> specify device(s) to probe (default: all devices)
 
 For more details see blkid(8).
 ";
@@ -240,20 +248,20 @@ fn run(args: &[OsString]) -> i32 {
     let mut probe_mode = false;
     let mut list_fs = false;
 
-    let mut g = Getopt::from_env(&argv[1..], "c:dgko:s:t:lL:U:pimH:S:O:u:n:Vh", LONGS);
+    let mut g = Getopt::from_env(&argv[1..], "c:dgko:s:t:lL:U:pimH:S:O:u:n:VhD", LONGS);
     while let Some(r) = g.next_opt() {
         let o = match r {
             Ok(o) => o,
             Err(e) => {
                 io::eprint(format!("{}\n", e.message(&argv0)));
                 ul::errtryhelp(&short);
-                return 4;
+                return 1;
             }
         };
         let arg = o.arg.clone().map(|a| io::lossy(&a)).unwrap_or_default();
         match o.short() {
             Some('c') | Some('d') | Some('g') | Some('H') | Some('i') | Some('m') | Some('u')
-            | Some('n') => {}
+            | Some('n') | Some('D') => {}
             Some('o') => {
                 if !matches!(arg.as_str(), "value" | "device" | "export" | "full" | "udev") {
                     ul::warnx(&short, format!("unsupported output format {arg}"));
@@ -281,7 +289,10 @@ fn run(args: &[OsString]) -> i32 {
                 }
             }
             Some('V') => {
-                ul::print_version(&short);
+                let mut out = io::stdout();
+                let _ = out.write_all(
+                    format!("{short} from util-linux 2.41.5  (libblkid 2.41.5, 16-Jun-2026)\n").as_bytes(),
+                );
                 return 0;
             }
             Some('h') => {
@@ -291,7 +302,7 @@ fn run(args: &[OsString]) -> i32 {
             }
             _ => {
                 ul::errtryhelp(&short);
-                return 4;
+                return 1;
             }
         }
     }

@@ -446,7 +446,9 @@ fn run(args: &[OsString]) -> i32 {
         .map(|l| cols.iter().map(|c| value(*c, l, bytes)).collect())
         .collect();
 
-    if json {
+    if rows.is_empty() && !json {
+        // Sem travas, a tabela não imprime nem o cabeçalho.
+    } else if json {
         out.push_str("{\n   \"locks\": [");
         for (n, row) in rows.iter().enumerate() {
             out.push_str(if n == 0 { "\n" } else { ",\n" });

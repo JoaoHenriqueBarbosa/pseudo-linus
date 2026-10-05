@@ -1,10 +1,11 @@
 //! `lslogins` do util-linux 2.41: informações sobre as contas conhecidas do sistema.
 //!
-//! Porte do `login-utils/lslogins.c`. Lê `/etc/passwd`, `/etc/group` e `/etc/shadow` (e os caminhos
-//! alternativos `--passwd-path` e `--group-path`), o `/etc/login.defs` (faixas de UID), os registros
-//! de login de `/var/log/wtmp` e `/var/log/btmp` (ausentes, as colunas de último login ficam vazias) e
-//! a lista de processos em `/proc` para a coluna `PROC`. Saída em tabela, `--raw`, `--colon-separate`,
-//! `--export`, `--newline` e `--json`. Tempos são exibidos em UTC.
+//! Porte do `login-utils/lslogins.c`. Lê `/etc/passwd`, `/etc/group` e `/etc/shadow`, o
+//! `/etc/login.defs` (faixas de UID), os registros de login de `/var/log/wtmp` e `/var/log/btmp`
+//! (ausentes, as colunas de último login ficam vazias) e a lista de processos em `/proc` para a
+//! coluna `PROC`. Saída em tabela, `--raw`, `--colon-separate`, `--export` e `--newline`. O
+//! lslogins 2.41.5 não tem `--json` nem caminhos alternativos de passwd e group: o oráculo rejeita
+//! essas opções, e aqui também. Tempos são exibidos em UTC.
 
 use std::ffi::OsString;
 use std::io::Write;
@@ -42,8 +43,9 @@ const COLS: &[ColDef] = &[
     ColDef { name: "SHELL", help: "login shell", kind: Kind::Text },
     ColDef { name: "NOLOGIN", help: "log in disabled by nologin(8) or pam_nologin(8)", kind: Kind::Flag },
     ColDef { name: "PWD-LOCK", help: "password defined, but locked", kind: Kind::Flag },
-    ColDef { name: "PWD-EMPTY", help: "password not required", kind: Kind::Flag },
-    ColDef { name: "PWD-DENY", help: "password authentication disabled", kind: Kind::Flag },
+    ColDef { name: "PWD-EMPTY", help: "password not defined", kind: Kind::Flag },
+    ColDef { name: "PWD-DENY", help: "login by password disabled", kind: Kind::Flag },
+    ColDef { name: "PWD-METHOD", help: "password encryption method", kind: Kind::Text },
     ColDef { name: "GROUP", help: "primary group name", kind: Kind::Text },
     ColDef { name: "GID", help: "primary group ID", kind: Kind::Num },
     ColDef { name: "SUPP-GROUPS", help: "supplementary group names", kind: Kind::Text },
@@ -55,10 +57,10 @@ const COLS: &[ColDef] = &[
     ColDef { name: "FAILED-TTY", help: "where did the login fail?", kind: Kind::Text },
     ColDef { name: "HUSHED", help: "user's hush settings", kind: Kind::Flag },
     ColDef { name: "PWD-WARN", help: "days user is warned of password expiration", kind: Kind::Num },
-    ColDef { name: "PWD-MIN", help: "minimum days required between password changes", kind: Kind::Num },
-    ColDef { name: "PWD-MAX", help: "maximum days the password is valid", kind: Kind::Num },
     ColDef { name: "PWD-CHANGE", help: "date of last password change", kind: Kind::Date },
-    ColDef { name: "PWD-EXPIR", help: "date when the password expires", kind: Kind::Date },
+    ColDef { name: "PWD-MIN", help: "number of days required between changes", kind: Kind::Num },
+    ColDef { name: "PWD-MAX", help: "max number of days a password may remain unchanged", kind: Kind::Num },
+    ColDef { name: "PWD-EXPIR", help: "password expiration date", kind: Kind::Date },
     ColDef { name: "CONTEXT", help: "the user's security context", kind: Kind::Text },
     ColDef { name: "PROC", help: "number of processes run by the user", kind: Kind::Num },
 ];
@@ -88,7 +90,7 @@ Display information about known users in the system.
 
 Options:
  -a, --acc-expiration     display info about passwords expiration
- -c, --colon-separate     display data in a colon-separated format
+ -c, --colon-separate     display data in a format similar to /etc/passwd
  -e, --export             display in an export-able output format
  -f, --failed             display data about the users' last failed logins
  -G, --supp-groups        display information about groups
@@ -100,17 +102,18 @@ Options:
      --notruncate         don't truncate output
  -o, --output[=<list>]    define the columns to output
      --output-all         output all columns
- -p, --pwd                display information related to login by password.
+ -p, --pwd                display information related to login by password
  -r, --raw                display in raw mode
  -s, --system-accs        display system accounts
-     --time-format=<type> display time in given format: short, full or iso
+     --time-format=<type> display dates in short, full or iso format
  -u, --user-accs          display user accounts
- -Z, --context            display SELinux security context information
+ -y, --shell              use column names to be usable as shell variable identifiers
+ -Z, --context            display SELinux contexts
  -z, --print0             delimit user entries with a nul character
      --wtmp-file <path>   set an alternate path for wtmp
      --btmp-file <path>   set an alternate path for btmp
      --lastlog <path>     set an alternate path for lastlog
- -J, --json               use JSON output format
+     --lastlog2 <path>    set an alternate path for lastlog2
 
  -h, --help               display this help
  -V, --version            display version
@@ -119,7 +122,7 @@ Available output columns:
 "
     );
     for c in COLS {
-        s.push_str(&format!(" {:>13}  {}\n", c.name, c.help));
+        s.push_str(&format!(" {:>14}  {}\n", c.name, c.help));
     }
     s.push_str(&format!("\nFor more details see {short}(1).\n"));
     s
@@ -360,19 +363,28 @@ fn count_procs() -> Vec<(u32, u64)> {
     counts
 }
 
-fn json_escape(s: &str) -> String {
-    let mut o = String::new();
-    for c in s.chars() {
-        match c {
-            '"' => o.push_str("\\\""),
-            '\\' => o.push_str("\\\\"),
-            '\n' => o.push_str("\\n"),
-            '\t' => o.push_str("\\t"),
-            c if (c as u32) < 0x20 => o.push_str(&format!("\\u{:04x}", c as u32)),
-            c => o.push(c),
-        }
+/// Nome do método de criptografia a partir do prefixo do hash do shadow.
+fn pwd_method(hash: &str) -> Option<&'static str> {
+    if hash.starts_with("$1$") {
+        Some("MD5")
+    } else if hash.starts_with("$2") {
+        Some("BLOWFISH")
+    } else if hash.starts_with("$5$") {
+        Some("SHA256")
+    } else if hash.starts_with("$6$") {
+        Some("SHA512")
+    } else if hash.starts_with("$y$") {
+        Some("YESCRYPT")
+    } else {
+        None
     }
-    o
+}
+
+/// Nome de coluna utilizável como identificador de shell (`-y`).
+fn shell_name(name: &str) -> String {
+    name.chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '_' })
+        .collect()
 }
 
 /// Codificação do libsmartcols para raw e export: o espaço vira `\x20`.
@@ -397,7 +409,6 @@ enum Mode {
     Colon,
     Export,
     Newline,
-    Json,
 }
 
 struct Ctx {
@@ -445,6 +456,9 @@ impl Ctx {
             "PWD-LOCK" => flag(self.shadow(u).is_some_and(|s| s.hash.starts_with('!'))),
             "PWD-EMPTY" => flag(self.shadow(u).is_some_and(|s| s.hash.is_empty())),
             "PWD-DENY" => flag(self.shadow(u).is_some_and(|s| s.hash.starts_with('*'))),
+            "PWD-METHOD" => self
+                .shadow(u)
+                .and_then(|s| pwd_method(&s.hash).map(str::to_string)),
             "GROUP" => self.group_name(u.gid),
             "GID" => Some(u.gid.to_string()),
             "SUPP-GROUPS" => {
@@ -518,10 +532,12 @@ fn run(args: &[OsString]) -> i32 {
     let mut groups_sel: Vec<String> = Vec::new();
     let mut output_all = false;
     let mut time_fmt = TimeFmt::Short;
+    let mut shellvar = false;
+    let mut excl_first: Option<&'static str> = None;
     let mut wtmp_path = DEFAULT_WTMP.to_string();
     let mut btmp_path = DEFAULT_BTMP.to_string();
-    let mut passwd_path = "/etc/passwd".to_string();
-    let mut group_path = "/etc/group".to_string();
+    let passwd_path = "/etc/passwd";
+    let group_path = "/etc/group";
 
     // (nome, tem argumento)
     let longs: &[(&str, bool)] = &[
@@ -540,6 +556,8 @@ fn run(args: &[OsString]) -> i32 {
         ("output-all", false),
         ("last", false),
         ("lastlog", true),
+        ("lastlog2", true),
+        ("shell", false),
         ("raw", false),
         ("system-accs", false),
         ("time-format", true),
@@ -550,9 +568,6 @@ fn run(args: &[OsString]) -> i32 {
         ("btmp-file", true),
         ("pwd", false),
         ("context", false),
-        ("json", false),
-        ("passwd-path", true),
-        ("group-path", true),
     ];
     let long_to_short = |n: &str| -> &'static str {
         match n {
@@ -574,16 +589,15 @@ fn run(args: &[OsString]) -> i32 {
             "print0" => "-z",
             "pwd" => "-p",
             "context" => "-Z",
-            "json" => "-J",
+            "shell" => "-y",
             "noheadings" => "--noheadings",
             "notruncate" => "--notruncate",
             "output-all" => "--output-all",
             "lastlog" => "--lastlog",
+            "lastlog2" => "--lastlog2",
             "time-format" => "--time-format",
             "wtmp-file" => "--wtmp-file",
             "btmp-file" => "--btmp-file",
-            "passwd-path" => "--passwd-path",
-            "group-path" => "--group-path",
             _ => "",
         }
     };
@@ -648,7 +662,7 @@ fn run(args: &[OsString]) -> i32 {
                 let c = a[k];
                 match c {
                     b'a' | b'c' | b'e' | b'f' | b'G' | b'L' | b'n' | b'p' | b'r' | b's' | b'u'
-                    | b'z' | b'Z' | b'J' | b'h' | b'V' => {
+                    | b'z' | b'Z' | b'y' | b'h' | b'V' => {
                         let key: &'static str = match c {
                             b'a' => "-a",
                             b'c' => "-c",
@@ -663,7 +677,7 @@ fn run(args: &[OsString]) -> i32 {
                             b'u' => "-u",
                             b'z' => "-z",
                             b'Z' => "-Z",
-                            b'J' => "-J",
+                            b'y' => "-y",
                             b'h' => "-h",
                             _ => "-V",
                         };
@@ -713,21 +727,37 @@ fn run(args: &[OsString]) -> i32 {
                     return 0;
                 }
                 "-V" => {
-                    ul::print_version(&short);
+                    let mut out = io::stdout();
+                    let _ = out.write_all(
+                        format!("{short} from util-linux 2.41.5 (features: lastlog2)\n").as_bytes(),
+                    );
                     return 0;
                 }
+                "-c" | "-n" | "-r" | "-z" => {
+                    match excl_first {
+                        Some(f) if f != key => {
+                            return errx(
+                                &short,
+                                "mutually exclusive arguments: --colon-separate --newline --raw --print0",
+                            );
+                        }
+                        _ => excl_first = Some(key),
+                    }
+                    match key {
+                        "-c" => mode = Mode::Colon,
+                        "-n" => mode = Mode::Newline,
+                        "-r" => mode = Mode::Raw,
+                        _ => print0 = true,
+                    }
+                }
+                "-y" => shellvar = true,
                 "-a" => mode_flags.push("-a"),
                 "-f" => mode_flags.push("-f"),
                 "-G" => mode_flags.push("-G"),
                 "-L" => mode_flags.push("-L"),
                 "-p" => mode_flags.push("-p"),
                 "-Z" => mode_flags.push("-Z"),
-                "-c" => mode = Mode::Colon,
                 "-e" => mode = Mode::Export,
-                "-n" => mode = Mode::Newline,
-                "-r" => mode = Mode::Raw,
-                "-J" => mode = Mode::Json,
-                "-z" => print0 = true,
                 "-s" => want_sys = true,
                 "-u" => want_user = true,
                 "--noheadings" => noheadings = true,
@@ -736,7 +766,7 @@ fn run(args: &[OsString]) -> i32 {
                 "-o" => output = Some(val.unwrap_or_default()),
                 "-g" => groups_sel.extend(split_list(&val.unwrap_or_default())),
                 "-l" => logins.extend(split_list(&val.unwrap_or_default())),
-                "--lastlog" => {}
+                "--lastlog" | "--lastlog2" => {}
                 "--time-format" => {
                     let v = val.unwrap_or_default();
                     time_fmt = match v.as_slice() {
@@ -753,8 +783,6 @@ fn run(args: &[OsString]) -> i32 {
                 }
                 "--wtmp-file" => wtmp_path = io::lossy(&val.unwrap_or_default()).to_string(),
                 "--btmp-file" => btmp_path = io::lossy(&val.unwrap_or_default()).to_string(),
-                "--passwd-path" => passwd_path = io::lossy(&val.unwrap_or_default()).to_string(),
-                "--group-path" => group_path = io::lossy(&val.unwrap_or_default()).to_string(),
                 _ => {}
             }
         }
@@ -763,7 +791,7 @@ fn run(args: &[OsString]) -> i32 {
     if operands.len() > 1 {
         return errx(
             &short,
-            "only one user may be specified. Use -l for multiple users",
+            "Only one user may be specified. Use -l for multiple users.",
         );
     }
     if let Some(u) = operands.first() {
@@ -829,11 +857,11 @@ fn run(args: &[OsString]) -> i32 {
     }
 
     // Dados.
-    let Some(passwd) = read_text(&passwd_path) else {
+    let Some(passwd) = read_text(passwd_path) else {
         return errx(&short, format!("cannot open {passwd_path}"));
     };
     let users_all = parse_passwd(&passwd);
-    let groups = read_text(&group_path).map(|t| parse_group(&t)).unwrap_or_default();
+    let groups = read_text(group_path).map(|t| parse_group(&t)).unwrap_or_default();
     let defs = read_text("/etc/login.defs").unwrap_or_default();
     let uid_min = login_defs(&defs, "UID_MIN").unwrap_or(1000);
     let uid_max = login_defs(&defs, "UID_MAX").unwrap_or(60000);
@@ -918,26 +946,6 @@ fn run(args: &[OsString]) -> i32 {
     let eol = if print0 { '\0' } else { '\n' };
     let mut out = String::new();
     match mode {
-        Mode::Json => {
-            out.push_str("{\n   \"lslogins\": [");
-            for (n, row) in rows.iter().enumerate() {
-                out.push_str(if n == 0 { "\n" } else { ",\n" });
-                out.push_str("      {\n");
-                for (k, c) in cols.iter().enumerate() {
-                    let key = COLS[*c].name.to_ascii_lowercase();
-                    let rendered = match (&row[k], COLS[*c].kind) {
-                        (None, _) => "null".to_string(),
-                        (Some(v), Kind::Num) => v.clone(),
-                        (Some(v), Kind::Flag) => (v == "1").to_string(),
-                        (Some(v), _) => format!("\"{}\"", json_escape(v)),
-                    };
-                    out.push_str(&format!("         \"{key}\": {rendered}"));
-                    out.push_str(if k + 1 < cols.len() { ",\n" } else { "\n" });
-                }
-                out.push_str("      }");
-            }
-            out.push_str("\n   ]\n}\n");
-        }
         Mode::Export => {
             for row in &rows {
                 let line: Vec<String> = cols
@@ -946,7 +954,7 @@ fn run(args: &[OsString]) -> i32 {
                     .map(|(c, v)| {
                         format!(
                             "{}=\"{}\"",
-                            COLS[*c].name,
+                            if shellvar { shell_name(COLS[*c].name) } else { COLS[*c].name.to_string() },
                             raw_escape(v.as_deref().unwrap_or(""))
                         )
                     })
@@ -958,7 +966,10 @@ fn run(args: &[OsString]) -> i32 {
         Mode::Raw | Mode::Colon => {
             let sep = if mode == Mode::Colon { ":" } else { " " };
             if !noheadings {
-                let h: Vec<&str> = cols.iter().map(|c| COLS[*c].name).collect();
+                let h: Vec<String> = cols
+                    .iter()
+                    .map(|c| if shellvar { shell_name(COLS[*c].name) } else { COLS[*c].name.to_string() })
+                    .collect();
                 out.push_str(&h.join(sep));
                 out.push(eol);
             }
