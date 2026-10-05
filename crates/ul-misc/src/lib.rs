@@ -58,6 +58,7 @@ pub mod run_parts;
 pub mod scriptreplay;
 pub mod setarch;
 pub mod setsid;
+pub mod shadowconv;
 pub mod shadowmisc;
 pub mod start_stop_daemon;
 pub mod strings;
@@ -92,6 +93,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("colrm", colrm::main),
         Program::bin("dc", dc::main),
         Program::bin("envsubst", envsubst::main),
+        Program::bin("expiry", shadowconv::expiry_main),
         Program::bin("fallocate", fallocate::main),
         Program::bin("file", file::cli::main),
         Program::bin("findfs", findfs::main),
@@ -155,6 +157,12 @@ pub fn programs() -> Vec<Program> {
         Program::bin("xxd", xxd::main),
         Program::bin("zdump", zdump::main),
         Program::sbin("add-shell", debscripts::add_shell_main),
+        Program::sbin("chgpasswd", shadowconv::chgpasswd_main),
+        Program::sbin("chpasswd", shadowconv::chpasswd_main),
+        Program::sbin("grpconv", shadowconv::grpconv_main),
+        Program::sbin("grpunconv", shadowconv::grpunconv_main),
+        Program::sbin("pwconv", shadowconv::pwconv_main),
+        Program::sbin("pwunconv", shadowconv::pwunconv_main),
         Program::sbin("groupadd", groupmgmt::groupadd_main),
         Program::sbin("groupdel", groupmgmt::groupdel_main),
         Program::sbin("groupmod", groupmgmt::groupmod_main),

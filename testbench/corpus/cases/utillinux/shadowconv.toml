@@ -1,0 +1,69 @@
+tool = "shadowconv"
+source = "manual"
+
+# pwconv, pwunconv, grpconv, grpunconv, chpasswd e chgpasswd do shadow 4.17 sobre um prefixo
+# (-P $PWD) montado no caso.
+
+[[case]]
+id = "pwconv-existing-shadow"
+script = "mkdir etc; printf 'root:x:0:0:root:/root:/bin/bash\\nbob:HASH:1000:1000::/home/bob:/bin/sh\\n' > etc/passwd; printf 'root:$6$abc:19000:0:99999:7:::\\nghost:*:19000:0:99999:7:::\\n' > etc/shadow; pwconv -P $PWD; echo \"rc=$?\"; cat etc/passwd; cut -d: -f1,2 etc/shadow"
+
+[[case]]
+id = "pwunconv-basic"
+script = "mkdir etc; printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000::/home/bob:/bin/sh\\n' > etc/passwd; printf 'root:$6$abc:19000:0:99999:7:::\\nbob:!:19000:0:99999:7:::\\n' > etc/shadow; pwunconv -P $PWD; echo \"rc=$?\"; cat etc/passwd; ls etc"
+
+[[case]]
+id = "pwunconv-no-shadow"
+script = "mkdir etc; printf 'root:x:0:0:root:/root:/bin/bash\\n' > etc/passwd; pwunconv -P $PWD; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "grpconv-existing-gshadow"
+script = "mkdir etc; printf 'root:x:0:\\ndev:secret:50:bob\\n' > etc/group; printf 'root:!::\\nold:!::\\n' > etc/gshadow; grpconv -P $PWD; echo \"rc=$?\"; cat etc/group etc/gshadow"
+
+[[case]]
+id = "grpunconv-basic"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:bob\\n' > etc/group; printf 'root:!::\\ndev:hash::bob\\n' > etc/gshadow; grpunconv -P $PWD; echo \"rc=$?\"; cat etc/group; ls etc"
+
+[[case]]
+id = "chpasswd-encrypted"
+script = "mkdir etc; printf 'root:x:0:0:root:/root:/bin/bash\\nbob:x:1000:1000::/home/bob:/bin/sh\\n' > etc/passwd; printf 'root:*:19000:0:99999:7:::\\nbob:!:19000:0:99999:7:::\\n' > etc/shadow; printf 'bob:$6$salt$hash\\n' | chpasswd -e -P $PWD; echo \"rc=$?\"; cut -d: -f1,2 etc/shadow"
+
+[[case]]
+id = "chpasswd-unknown-user"
+script = "mkdir etc; printf 'root:x:0:0:root:/root:/bin/bash\\n' > etc/passwd; printf 'root:*:19000:0:99999:7:::\\n' > etc/shadow; printf 'nobody:abc\\n' | chpasswd -e -P $PWD 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chpasswd-missing-password"
+script = "mkdir etc; printf 'root:x:0:0:root:/root:/bin/bash\\n' > etc/passwd; printf 'root:*:19000:0:99999:7:::\\n' > etc/shadow; printf 'root\\n' | chpasswd -e -P $PWD 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chgpasswd-encrypted"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; printf 'dev:!::\\n' > etc/gshadow; printf 'dev:$6$salt$hash\\n' | chgpasswd -e -P $PWD; echo \"rc=$?\"; cat etc/gshadow"
+
+[[case]]
+id = "chgpasswd-unknown-group"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; printf 'dev:!::\\n' > etc/gshadow; printf 'nogroup2:abc\\n' | chgpasswd -e -P $PWD 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pwconv-help"
+script = "pwconv -h; echo \"rc=$?\""
+
+[[case]]
+id = "pwconv-extra-arg"
+script = "pwconv foo 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pwconv-invalid-option"
+script = "pwconv -Z 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chpasswd-invalid-option"
+script = "chpasswd -Z 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "expiry-no-args"
+script = "expiry 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "expiry-help"
+script = "expiry -h; echo \"rc=$?\""
