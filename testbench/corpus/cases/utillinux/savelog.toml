@@ -1,0 +1,226 @@
+tool = "savelog"
+source = "manual"
+
+# savelog do debianutils 5.23 (script /bin/sh): rotação com ciclos, compressão (gzip, -j bzip2, -J xz, -l
+# nenhuma), -t, -m, -p, -n, -r, -d, -c, -C, -q, -x e as saídas de erro. O conteúdo comprimido é conferido
+# por zcat/bzcat/xzcat e a mensagem de rotação passa por sed (a data muda).
+
+[[case]]
+id = "savelog-usage-help"
+script = "savelog -h; echo \"rc=$?\""
+
+[[case]]
+id = "savelog-usage-invalid-option"
+script = "savelog -Z 2>/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "savelog-usage-no-files-runs-nothing"
+script = "savelog; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "savelog-usage-by-path"
+script = "/usr/bin/savelog -h | head -2"
+
+[[case]]
+id = "savelog-count-too-small"
+script = "echo x > log; savelog -c 1 log; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "savelog-count-zero"
+script = "echo x > log; savelog -c 0 log; echo \"rc=$?\""
+
+[[case]]
+id = "savelog-first-rotation"
+script = "echo one > log; savelog log | sed \"s/ at .*/ at DATE./\"; echo \"rc=$?\"; ls; cat log.0"
+
+[[case]]
+id = "savelog-first-rotation-quiet"
+script = "echo one > log; savelog -q log; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "savelog-second-rotation-compresses"
+script = "echo one > log; savelog -q log; echo two > log; savelog -q log; ls; cat log.0; zcat log.1.gz"
+
+[[case]]
+id = "savelog-three-rotations"
+script = "for i in 1 2 3; do echo $i > log; savelog -q log; done; ls; cat log.0; zcat log.1.gz; zcat log.2.gz"
+
+[[case]]
+id = "savelog-cycle-limit"
+script = "for i in 1 2 3 4 5 6; do echo $i > log; savelog -q -c 4 log; done; ls; cat log.0; zcat log.1.gz log.2.gz log.3.gz"
+
+[[case]]
+id = "savelog-cycle-limit-two"
+script = "for i in 1 2 3 4; do echo $i > log; savelog -q -c 2 log; done; ls; cat log.0"
+
+[[case]]
+id = "savelog-default-cycle-seven"
+script = "for i in 1 2 3 4 5 6 7 8 9 10; do echo $i > log; savelog -q log; done; ls"
+
+[[case]]
+id = "savelog-original-removed-without-touch"
+script = "echo one > log; savelog -q log; test -e log && echo exists || echo gone"
+
+[[case]]
+id = "savelog-touch-recreates"
+script = "echo one > log; savelog -q -t log; ls; wc -c < log; cat log.0"
+
+[[case]]
+id = "savelog-touch-missing-file-creates-and-rotates"
+script = "savelog -q -t log; echo \"rc=$?\"; ls; wc -c < log; wc -c < log.0"
+
+[[case]]
+id = "savelog-missing-file-created-empty-and-rotated"
+script = "savelog -q log; echo \"rc=$?\"; ls; wc -c < log.0"
+
+[[case]]
+id = "savelog-empty-file-rotated-by-default"
+script = ": > log; savelog -q log; ls"
+
+[[case]]
+id = "savelog-no-rotate-empty"
+script = ": > log; savelog -q -n log; echo \"rc=$?\"; ls; test -s log || echo still-empty"
+
+[[case]]
+id = "savelog-no-rotate-empty-nonempty-rotates"
+script = "echo x > log; savelog -q -n log; ls"
+
+[[case]]
+id = "savelog-no-rotate-empty-with-touch-creates"
+script = "savelog -q -n -t log; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "savelog-no-rotate-empty-missing-no-touch"
+script = "savelog -q -n log; echo \"rc=$?\"; ls | wc -l"
+
+[[case]]
+id = "savelog-mode"
+script = "echo one > log; savelog -q -m 640 -t log; stat -c '%a' log log.0"
+
+[[case]]
+id = "savelog-mode-applies-to-compressed"
+script = "echo one > log; savelog -q -m 600 log; echo two > log; savelog -q -m 600 log; stat -c '%a' log.0 log.1.gz"
+
+[[case]]
+id = "savelog-preserve"
+script = "echo one > log; chmod 640 log; savelog -q -p log; stat -c '%a' log log.0; cat log.0"
+
+[[case]]
+id = "savelog-preserve-keeps-hardlinked-content"
+script = "echo data > log; savelog -q -p log; wc -c < log; cat log.0"
+
+[[case]]
+id = "savelog-no-compression"
+script = "echo one > log; savelog -q -l log; echo two > log; savelog -q -l log; ls; cat log.0 log.1"
+
+[[case]]
+id = "savelog-no-compression-three"
+script = "for i in 1 2 3; do echo $i > log; savelog -q -l log; done; ls; cat log.0 log.1 log.2"
+
+[[case]]
+id = "savelog-bzip2"
+script = "echo one > log; savelog -q -j log; echo two > log; savelog -q -j log; ls; cat log.0; bzcat log.1.bz2"
+
+[[case]]
+id = "savelog-xz"
+script = "echo one > log; savelog -q -J log; echo two > log; savelog -q -J log; ls; cat log.0; xzcat log.1.xz"
+
+[[case]]
+id = "savelog-compression-strength"
+script = "echo one > log; savelog -q -1 log; echo two > log; savelog -q -1 log; ls; zcat log.1.gz"
+
+[[case]]
+id = "savelog-compression-strength-nine"
+script = "echo one > log; savelog -q -9 log; echo two > log; savelog -q -9 log; zcat log.1.gz"
+
+[[case]]
+id = "savelog-rolldir"
+script = "echo one > log; savelog -q -r old log; ls; ls old; cat old/log.0"
+
+[[case]]
+id = "savelog-rolldir-existing"
+script = "mkdir old; echo one > log; savelog -q -r old log; echo two > log; savelog -q -r old log; ls old; zcat old/log.1.gz"
+
+[[case]]
+id = "savelog-rolldir-absolute"
+script = "mkdir abs; echo one > log; savelog -q -r \"$PWD/abs\" log; ls abs"
+
+[[case]]
+id = "savelog-rolldir-created-mode"
+script = "echo one > log; savelog -q -r old log; stat -c '%a' old"
+
+[[case]]
+id = "savelog-file-in-subdirectory"
+script = "mkdir sub; echo one > sub/log; savelog -q sub/log; ls sub"
+
+[[case]]
+id = "savelog-file-in-subdirectory-rolldir"
+script = "mkdir sub; echo one > sub/log; savelog -q -r old sub/log; ls sub sub/old"
+
+[[case]]
+id = "savelog-multiple-files"
+script = "echo a > a.log; echo b > b.log; savelog -q a.log b.log; ls; cat a.log.0 b.log.0"
+
+[[case]]
+id = "savelog-not-a-regular-file"
+script = "mkdir d; savelog d; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "savelog-not-a-regular-file-then-continues"
+script = "mkdir d; echo x > log; savelog -q d log; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "savelog-date-names"
+script = "echo one > log; savelog -q -d log; ls | sed 's/[0-9]\\{14\\}/DATE/'; cat log.[0-9]*"
+
+[[case]]
+id = "savelog-date-format-override"
+script = "echo one > log; savelog -q -d -D '%Y' log; ls | sed \"s/$(date +%Y)/YEAR/\""
+
+[[case]]
+id = "savelog-force-clean"
+script = "for i in 1 2 3 4 5; do echo $i > log; savelog -q -c 3 log; done; ls; touch log.9.gz log.8.gz; savelog -q -c 3 -C log; ls"
+
+[[case]]
+id = "savelog-hook-script"
+script = "echo one > log; SHELL=/bin/sh savelog -q -x 'echo hook:$FILE' log"
+
+[[case]]
+id = "savelog-hook-script-failure"
+script = "echo one > log; SHELL=/bin/sh savelog -x 'exit 3' log 2>&1 | sed \"s/ at .*/ at DATE./\"; echo \"rc=$?\""
+
+[[case]]
+id = "savelog-hook-script-failure-quiet"
+script = "echo one > log; SHELL=/bin/sh savelog -q -x 'exit 3' log; echo \"rc=$?\""
+
+[[case]]
+id = "savelog-message-format"
+script = "echo one > log; savelog log | sed \"s/ at .*/ at DATE./\""
+
+[[case]]
+id = "savelog-message-date-shape"
+script = "echo one > log; savelog log | grep -cE \"^Rotated \\`log' at .+\\.\\$\""
+
+[[case]]
+id = "savelog-user-without-permission-ignored-by-root"
+script = "echo one > log; savelog -q -u root -g root log; stat -c '%U %G' log.0"
+
+[[case]]
+id = "savelog-user-unknown"
+script = "echo one > log; savelog -q -u nosuchuser log 2>&1 | sed 's/^[^:]*: [0-9]*: //'; echo \"rc=$?\""
+
+[[case]]
+id = "savelog-numeric-order-after-ten-rotations"
+script = "for i in 1 2 3 4 5 6 7 8 9 10 11 12; do echo $i > log; savelog -q -c 10 log; done; ls; zcat log.9.gz; zcat log.1.gz"
+
+[[case]]
+id = "savelog-preserves-uncompressed-zero"
+script = "for i in 1 2; do echo $i > log; savelog -q log; done; cat log.0; file_type=$(head -c 2 log.1.gz | od -An -tx1 | tr -d ' '); echo $file_type"
+
+[[case]]
+id = "savelog-exit-status-bad-count"
+script = "savelog -c 1 x >/dev/null 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "savelog-exit-status-not-regular"
+script = "mkdir d; savelog d >/dev/null 2>&1; echo \"rc=$?\""

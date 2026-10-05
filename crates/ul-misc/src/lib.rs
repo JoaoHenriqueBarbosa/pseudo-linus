@@ -3,7 +3,8 @@
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst` (gettext 0.23),
 //! `less` não interativo, `clear`/`tput` (ncurses 6.5), `iconv`, `getconf` e `locale` (glibc 2.41).
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`. Do debianutils 5.23 também: `tempfile`, `ischroot`, `run-parts`.
+//! `whereis`, `mcookie`. Do debianutils 5.23 também: `tempfile`, `run-parts`, `savelog`, `ischroot`,
+//! `add-shell`, `remove-shell` (os três últimos são os scripts originais rodando no `sh`).
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
@@ -12,6 +13,7 @@ pub mod col;
 pub mod colcrt;
 pub mod column;
 pub mod colrm;
+pub mod debscripts;
 pub mod envsubst;
 pub mod file;
 pub mod getopt_cmd;
@@ -57,6 +59,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("rename.ul", rename_ul::main),
         Program::bin("rev", rev::main),
         Program::bin("run-parts", run_parts::main),
+        Program::bin("savelog", debscripts::savelog_main),
         Program::bin("strings", strings::main),
         Program::bin("tempfile", tempfile::main),
         Program::bin("tree", tree::main),
@@ -64,5 +67,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("whereis", whereis::main),
         Program::bin("which", which::main),
         Program::bin("xxd", xxd::main),
+        Program::sbin("add-shell", debscripts::add_shell_main),
+        Program::sbin("remove-shell", debscripts::remove_shell_main),
     ]
 }
