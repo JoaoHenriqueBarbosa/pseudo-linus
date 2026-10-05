@@ -1,0 +1,548 @@
+tool = "whereis"
+source = "manual"
+
+# whereis do util-linux 2.41: argumentos lidos à mão (sem getopt), listas -B/-M/-S terminadas por -f,
+# -b/-m/-s cumulativos, -u, -g, -l, sufixos de manual e de fonte. Os diretórios de busca vêm da própria
+# fixture (cada tipo com um arquivo por diretório, porque a ordem dentro do diretório é a do readdir).
+
+[[case]]
+id = "whereis-help"
+argv = ["whereis", "--help"]
+
+[[case]]
+id = "whereis-help-short"
+argv = ["whereis", "-h"]
+
+[[case]]
+id = "whereis-version"
+argv = ["whereis", "--version"]
+
+[[case]]
+id = "whereis-version-short"
+argv = ["whereis", "-V"]
+
+[[case]]
+id = "whereis-no-args"
+argv = ["whereis"]
+
+[[case]]
+id = "whereis-bad-option"
+argv = ["whereis", "-x", "ls"]
+
+[[case]]
+id = "whereis-double-dash-is-bad-usage"
+argv = ["whereis", "--", "ls"]
+
+[[case]]
+id = "whereis-long-option-not-first"
+argv = ["whereis", "ls", "--help"]
+
+[[case]]
+id = "whereis-help-not-first-is-bad"
+argv = ["whereis", "-b", "--help"]
+
+[[case]]
+id = "whereis-dir-option-with-suffix-chars"
+argv = ["whereis", "-Bx", "bin", "ls"]
+[case.files]
+"bin" = { dir = true }
+
+[[case]]
+id = "whereis-f-missing"
+argv = ["whereis", "-B", "bin", "ls"]
+[case.files]
+"bin" = { dir = true }
+"bin/ls" = ""
+
+[[case]]
+id = "whereis-f-missing-at-end"
+argv = ["whereis", "-B", "bin", "-f", "ls", "-M", "man"]
+[case.files]
+"bin" = { dir = true }
+"bin/ls" = ""
+"man" = { dir = true }
+
+[[case]]
+id = "whereis-f-then-name"
+argv = ["whereis", "-B", "bin", "-f", "ls"]
+[case.files]
+"bin" = { dir = true }
+"bin/ls" = ""
+
+[[case]]
+id = "whereis-f-immediately-after-dir-flag"
+argv = ["whereis", "-B", "-f", "ls"]
+
+[[case]]
+id = "whereis-dirs-flag-without-dirs"
+argv = ["whereis", "-B"]
+
+[[case]]
+id = "whereis-custom-bin-only"
+argv = ["whereis", "-b", "-B", "bin", "-f", "ls"]
+[case.files]
+"bin" = { dir = true }
+"bin/ls" = ""
+"bin/lsx" = ""
+
+[[case]]
+id = "whereis-custom-bin-two-dirs"
+argv = ["whereis", "-b", "-B", "bin1", "bin2", "-f", "tool"]
+[case.files]
+"bin1" = { dir = true }
+"bin1/tool" = ""
+"bin2" = { dir = true }
+"bin2/tool" = ""
+
+[[case]]
+id = "whereis-custom-bin-dirs-order"
+argv = ["whereis", "-b", "-B", "bin2", "bin1", "-f", "tool"]
+[case.files]
+"bin1" = { dir = true }
+"bin1/tool" = ""
+"bin2" = { dir = true }
+"bin2/tool" = ""
+
+[[case]]
+id = "whereis-custom-bin-no-match"
+argv = ["whereis", "-b", "-B", "bin", "-f", "nothing"]
+[case.files]
+"bin" = { dir = true }
+"bin/ls" = ""
+
+[[case]]
+id = "whereis-custom-bin-ignores-man-style-names"
+argv = ["whereis", "-b", "-B", "bin", "-f", "ls"]
+[case.files]
+"bin" = { dir = true }
+"bin/ls.1" = ""
+"bin/ls.c" = ""
+
+[[case]]
+id = "whereis-custom-bin-directory-match"
+argv = ["whereis", "-b", "-B", "bin", "-f", "sub"]
+[case.files]
+"bin" = { dir = true }
+"bin/sub" = { dir = true }
+
+[[case]]
+id = "whereis-custom-missing-dir-ignored"
+argv = ["whereis", "-b", "-B", "nope", "bin", "-f", "ls"]
+[case.files]
+"bin" = { dir = true }
+"bin/ls" = ""
+
+[[case]]
+id = "whereis-custom-file-as-dir-ignored"
+argv = ["whereis", "-b", "-B", "afile", "bin", "-f", "ls"]
+[case.files]
+"afile" = ""
+"bin" = { dir = true }
+"bin/ls" = ""
+
+[[case]]
+id = "whereis-custom-duplicate-dir-ignored"
+argv = ["whereis", "-b", "-B", "bin", "./bin", "bin/../bin", "-f", "ls"]
+[case.files]
+"bin" = { dir = true }
+"bin/ls" = ""
+
+[[case]]
+id = "whereis-custom-symlinked-dir-same-inode"
+argv = ["whereis", "-b", "-B", "bin", "link", "-f", "ls"]
+[case.files]
+"bin" = { dir = true }
+"bin/ls" = ""
+"link" = { symlink = "bin" }
+
+[[case]]
+id = "whereis-custom-symlinked-dir-canonical-in-list"
+argv = ["whereis", "-B", "link", "-M", "link", "-S", "link", "-f", "-l"]
+[case.files]
+"real" = { dir = true }
+"link" = { symlink = "real" }
+
+[[case]]
+id = "whereis-man-suffixes"
+argv = ["whereis", "-m", "-M", "m1", "m2", "m3", "m4", "m5", "m6", "-f", "ls"]
+[case.files]
+"m1" = { dir = true }
+"m1/ls.1.gz" = ""
+"m2" = { dir = true }
+"m2/ls.1.bz2" = ""
+"m3" = { dir = true }
+"m3/ls.1.xz" = ""
+"m4" = { dir = true }
+"m4/ls.1.Z" = ""
+"m5" = { dir = true }
+"m5/ls.1.zst" = ""
+"m6" = { dir = true }
+"m6/ls.1" = ""
+
+[[case]]
+id = "whereis-man-non-matching"
+argv = ["whereis", "-m", "-M", "m1", "m2", "m3", "m4", "-f", "ls"]
+[case.files]
+"m1" = { dir = true }
+"m1/lsx.1.gz" = ""
+"m2" = { dir = true }
+"m2/ls" = ""
+"m3" = { dir = true }
+"m3/ls.tar.gz" = ""
+"m4" = { dir = true }
+"m4/ls.1.foo.gz" = ""
+
+[[case]]
+id = "whereis-man-section-names"
+argv = ["whereis", "-m", "-M", "m1", "m2", "m3", "-f", "ls"]
+[case.files]
+"m1" = { dir = true }
+"m1/ls.1" = ""
+"m2" = { dir = true }
+"m2/ls.8" = ""
+"m3" = { dir = true }
+"m3/ls.3pm" = ""
+
+[[case]]
+id = "whereis-man-dot-C-suffix"
+argv = ["whereis", "-m", "-M", "m1", "m2", "-f", "ls"]
+[case.files]
+"m1" = { dir = true }
+"m1/ls.1.C" = ""
+"m2" = { dir = true }
+"m2/ls.1.Cx" = ""
+
+[[case]]
+id = "whereis-src-names"
+argv = ["whereis", "-s", "-S", "s1", "s2", "s3", "s4", "s5", "-f", "ls"]
+[case.files]
+"s1" = { dir = true }
+"s1/ls.c" = ""
+"s2" = { dir = true }
+"s2/s.ls.c" = ""
+"s3" = { dir = true }
+"s3/s.ls" = ""
+"s4" = { dir = true }
+"s4/ls.tar.gz" = ""
+"s5" = { dir = true }
+"s5/ls.1.gz" = ""
+
+[[case]]
+id = "whereis-all-types"
+argv = ["whereis", "-B", "bin", "-M", "man", "-S", "src", "-f", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+"man" = { dir = true }
+"man/tool.1.gz" = ""
+"src" = { dir = true }
+"src/tool.c" = ""
+
+[[case]]
+id = "whereis-all-types-each-closed"
+argv = ["whereis", "-B", "bin", "-f", "-M", "man", "-f", "-S", "src", "-f", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+"man" = { dir = true }
+"man/tool.1.gz" = ""
+"src" = { dir = true }
+"src/tool.c" = ""
+
+[[case]]
+id = "whereis-replaced-list-goes-to-the-end"
+argv = ["whereis", "-B", "bin", "-f", "-M", "man", "-f", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+"man" = { dir = true }
+"man/tool.1" = ""
+
+[[case]]
+id = "whereis-want-binaries-only"
+argv = ["whereis", "-b", "-B", "bin", "-M", "man", "-S", "src", "-f", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+"man" = { dir = true }
+"man/tool.1" = ""
+"src" = { dir = true }
+"src/tool.c" = ""
+
+[[case]]
+id = "whereis-want-man-only"
+argv = ["whereis", "-m", "-B", "bin", "-M", "man", "-S", "src", "-f", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+"man" = { dir = true }
+"man/tool.1" = ""
+"src" = { dir = true }
+"src/tool.c" = ""
+
+[[case]]
+id = "whereis-want-src-only"
+argv = ["whereis", "-s", "-B", "bin", "-M", "man", "-S", "src", "-f", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+"man" = { dir = true }
+"man/tool.1" = ""
+"src" = { dir = true }
+"src/tool.c" = ""
+
+[[case]]
+id = "whereis-want-bin-and-man-cumulative"
+argv = ["whereis", "-b", "-m", "-B", "bin", "-M", "man", "-S", "src", "-f", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+"man" = { dir = true }
+"man/tool.1" = ""
+"src" = { dir = true }
+"src/tool.c" = ""
+
+[[case]]
+id = "whereis-want-combined-flags"
+argv = ["whereis", "-bs", "-B", "bin", "-M", "man", "-S", "src", "-f", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+"man" = { dir = true }
+"man/tool.1" = ""
+"src" = { dir = true }
+"src/tool.c" = ""
+
+[[case]]
+id = "whereis-want-persists-over-names"
+argv = ["whereis", "-b", "-B", "bin", "-M", "man", "-f", "one", "two"]
+[case.files]
+"bin" = { dir = true }
+"bin/one" = ""
+"bin/two" = ""
+"man" = { dir = true }
+"man/one.1" = ""
+"man/two.1" = ""
+
+[[case]]
+id = "whereis-want-resets-after-lookup"
+argv = ["whereis", "-B", "bin", "-M", "man", "-f", "-b", "one", "-m", "one"]
+[case.files]
+"bin" = { dir = true }
+"bin/one" = ""
+"man" = { dir = true }
+"man/one.1" = ""
+
+[[case]]
+id = "whereis-want-accumulates-before-lookup"
+argv = ["whereis", "-B", "bin", "-M", "man", "-f", "-b", "-m", "one"]
+[case.files]
+"bin" = { dir = true }
+"bin/one" = ""
+"man" = { dir = true }
+"man/one.1" = ""
+
+[[case]]
+id = "whereis-multiple-names"
+argv = ["whereis", "-b", "-B", "bin", "-f", "a", "b", "missing"]
+[case.files]
+"bin" = { dir = true }
+"bin/a" = ""
+"bin/b" = ""
+
+[[case]]
+id = "whereis-name-with-path-uses-basename"
+argv = ["whereis", "-b", "-B", "bin", "-f", "/some/where/tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+
+[[case]]
+id = "whereis-name-with-trailing-slash-is-empty-basename"
+argv = ["whereis", "-b", "-B", "bin", "-f", "bin/"]
+[case.files]
+"bin" = { dir = true }
+"bin/x" = ""
+
+[[case]]
+id = "whereis-unusual"
+argv = ["whereis", "-u", "-B", "bin1", "bin2", "-f", "-b", "tool"]
+[case.files]
+"bin1" = { dir = true }
+"bin1/tool" = ""
+"bin2" = { dir = true }
+"bin2/tool" = ""
+
+[[case]]
+id = "whereis-unusual-single-match-prints-nothing"
+argv = ["whereis", "-u", "-B", "bin", "-f", "-b", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+
+[[case]]
+id = "whereis-unusual-three-matches"
+argv = ["whereis", "-u", "-B", "bin1", "bin2", "bin3", "-f", "-b", "tool"]
+[case.files]
+"bin1" = { dir = true }
+"bin1/tool" = ""
+"bin2" = { dir = true }
+"bin2/tool" = ""
+"bin3" = { dir = true }
+"bin3/tool" = ""
+
+[[case]]
+id = "whereis-unusual-no-match-prints-nothing"
+argv = ["whereis", "-u", "-B", "bin", "-f", "-b", "nothing"]
+[case.files]
+"bin" = { dir = true }
+
+[[case]]
+id = "whereis-unusual-after-name-applies-to-later-names"
+argv = ["whereis", "-b", "-B", "bin1", "bin2", "-f", "tool", "-u", "tool"]
+[case.files]
+"bin1" = { dir = true }
+"bin1/tool" = ""
+"bin2" = { dir = true }
+"bin2/tool" = ""
+
+[[case]]
+id = "whereis-glob"
+argv = ["whereis", "-g", "-b", "-B", "bin", "-f", "t*"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+
+[[case]]
+id = "whereis-glob-question-and-class"
+argv = ["whereis", "-g", "-b", "-B", "bin", "-f", "[a-b]?"]
+[case.files]
+"bin" = { dir = true }
+"bin/a1" = ""
+
+[[case]]
+id = "whereis-glob-man-keeps-full-name"
+argv = ["whereis", "-g", "-m", "-M", "man", "-f", "tool.1*"]
+[case.files]
+"man" = { dir = true }
+"man/tool.1.gz" = ""
+
+[[case]]
+id = "whereis-glob-no-suffix-magic"
+argv = ["whereis", "-g", "-m", "-M", "man", "-f", "tool"]
+[case.files]
+"man" = { dir = true }
+"man/tool.1.gz" = ""
+
+[[case]]
+id = "whereis-without-glob-star-is-literal"
+argv = ["whereis", "-b", "-B", "bin", "-f", "t*"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+
+[[case]]
+id = "whereis-list-custom"
+argv = ["whereis", "-B", "bin1", "bin2", "-f", "-M", "man", "-f", "-S", "src", "-f", "-l"]
+[case.files]
+"bin1" = { dir = true }
+"bin2" = { dir = true }
+"man" = { dir = true }
+"src" = { dir = true }
+
+[[case]]
+id = "whereis-list-after-replacement-moves-type-to-end"
+argv = ["whereis", "-B", "bin", "-f", "-M", "man", "-S", "src", "-f", "-B", "bin2", "-f", "-l"]
+[case.files]
+"bin" = { dir = true }
+"bin2" = { dir = true }
+"man" = { dir = true }
+"src" = { dir = true }
+
+[[case]]
+id = "whereis-list-then-lookup"
+argv = ["whereis", "-B", "bin", "-M", "man", "-S", "src", "-f", "-l", "-b", "tool"]
+[case.files]
+"bin" = { dir = true }
+"bin/tool" = ""
+"man" = { dir = true }
+"src" = { dir = true }
+
+[[case]]
+id = "whereis-list-twice"
+argv = ["whereis", "-B", "bin", "-f", "-M", "man", "-f", "-S", "src", "-f", "-ll"]
+[case.files]
+"bin" = { dir = true }
+"man" = { dir = true }
+"src" = { dir = true }
+
+[[case]]
+id = "whereis-list-with-duplicates"
+argv = ["whereis", "-B", "bin", "bin", "./bin", "-f", "-M", "bin", "-f", "-S", "bin", "-f", "-l"]
+[case.files]
+"bin" = { dir = true }
+
+[[case]]
+id = "whereis-path-env-lookup"
+argv = ["whereis", "tool"]
+env = { PATH = "/work/case/p1:/work/case/p2:/usr/bin", MANPATH = "/work/case/m1" }
+[case.files]
+"p1" = { dir = true }
+"p1/tool" = ""
+"p2" = { dir = true }
+"p2/tool" = ""
+"m1" = { dir = true }
+"m1/tool.1" = ""
+
+[[case]]
+id = "whereis-manpath-env-only-man-list"
+argv = ["whereis", "-m", "tool"]
+env = { PATH = "/work/case/p1:/usr/bin", MANPATH = "/work/case/m1:/work/case/m2" }
+[case.files]
+"p1" = { dir = true }
+"p1/tool" = ""
+"m1" = { dir = true }
+"m1/tool.1" = ""
+"m2" = { dir = true }
+"m2/tool.5" = ""
+
+[[case]]
+id = "whereis-path-empty-elements-skipped"
+argv = ["whereis", "-b", "tool"]
+env = { PATH = "::/work/case/p1::/usr/bin" }
+[case.files]
+"p1" = { dir = true }
+"p1/tool" = ""
+
+[[case]]
+id = "whereis-default-dirs-find-ls"
+argv = ["whereis", "-b", "ls"]
+
+[[case]]
+id = "whereis-default-dirs-not-found"
+argv = ["whereis", "-b", "no-such-program-xyz"]
+
+[[case]]
+id = "whereis-default-dirs-binary-with-path-argument"
+argv = ["whereis", "-b", "/usr/bin/ls"]
+
+[[case]]
+id = "whereis-default-dirs-unusual-none"
+argv = ["whereis", "-u", "-b", "ls"]
+
+[[case]]
+id = "whereis-default-dirs-glob"
+argv = ["whereis", "-g", "-b", "ls"]
+
+[[case]]
+id = "whereis-exit-status"
+script = "whereis -b nothing-xyz >/dev/null; echo \"rc=$?\"; whereis -x >/dev/null 2>&1; echo \"rc=$?\"; whereis -B x >/dev/null 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "whereis-dir-with-star-in-argv-is-literal"
+argv = ["whereis", "-m", "-M", "base/*", "-f", "tool"]
+[case.files]
+"base" = { dir = true }
+"base/only" = { dir = true }
+"base/only/tool.1" = ""
+"base/afile" = ""

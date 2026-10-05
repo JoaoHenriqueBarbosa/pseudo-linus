@@ -5233,6 +5233,7 @@ dependencies = [
  "num-traits",
  "pl-testing",
  "regex-automata",
+ "regex-posix",
  "sysabi",
  "sysio",
  "unicode-width 0.2.2",

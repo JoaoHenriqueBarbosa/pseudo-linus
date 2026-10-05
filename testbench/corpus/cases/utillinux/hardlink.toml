@@ -1,0 +1,379 @@
+tool = "hardlink"
+source = "manual"
+
+# hardlink do util-linux 2.41: grupos de duplicados, -n, -v, -vv, -c, -s, -S, -p, -o, -t, -f, -d, -m, -M, -O,
+# -F, -i, -x, --exclude-subtree, -l, -z, -y, -q, a saída de estatísticas e os erros. A linha "Duration" muda a
+# cada execução, então sai pelo grep; a ordem de varredura e dos grupos depende do readdir, então as listas
+# passam por sort.
+
+[[case]]
+id = "hardlink-help"
+argv = ["hardlink", "--help"]
+
+[[case]]
+id = "hardlink-help-short"
+argv = ["hardlink", "-h"]
+
+[[case]]
+id = "hardlink-version"
+argv = ["hardlink", "-V"]
+
+[[case]]
+id = "hardlink-no-args"
+argv = ["hardlink"]
+
+[[case]]
+id = "hardlink-no-args-with-options"
+argv = ["hardlink", "-v", "-n"]
+
+[[case]]
+id = "hardlink-invalid-option"
+argv = ["hardlink", "-Z", "x"]
+
+[[case]]
+id = "hardlink-unrecognized-option"
+argv = ["hardlink", "--bogus", "x"]
+
+[[case]]
+id = "hardlink-mutually-exclusive-quiet-verbose"
+argv = ["hardlink", "-q", "-v", "x"]
+
+[[case]]
+id = "hardlink-mutually-exclusive-verbose-quiet-long"
+argv = ["hardlink", "--verbose", "--quiet", "x"]
+
+[[case]]
+id = "hardlink-bad-min-size"
+argv = ["hardlink", "-s", "abc", "x"]
+
+[[case]]
+id = "hardlink-bad-max-size"
+argv = ["hardlink", "-S", "1.5", "x"]
+
+[[case]]
+id = "hardlink-bad-cache-size"
+argv = ["hardlink", "-r", "-1", "x"]
+
+[[case]]
+id = "hardlink-bad-io-size"
+argv = ["hardlink", "-b", "zz", "x"]
+
+[[case]]
+id = "hardlink-bad-regex"
+argv = ["hardlink", "-x", "(", "x"]
+
+[[case]]
+id = "hardlink-bad-include-regex"
+argv = ["hardlink", "-i", "[", "x"]
+
+[[case]]
+id = "hardlink-bad-exclude-subtree-regex"
+argv = ["hardlink", "--exclude-subtree", "a{1", "x"]
+
+[[case]]
+id = "hardlink-bad-reflink-mode"
+argv = ["hardlink", "--reflink=bad", "x"]
+
+[[case]]
+id = "hardlink-missing-operand-path"
+script = "hardlink nonexistent | grep -v Duration; echo \"rc=$?\""
+
+[[case]]
+id = "hardlink-basic-link"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; cp -p d/a d/c; hardlink d | grep -v Duration; stat -c '%h' d/a d/b d/c; [ $(stat -c %i d/a) = $(stat -c %i d/b) ] && [ $(stat -c %i d/a) = $(stat -c %i d/c) ] && echo same-inode"
+
+[[case]]
+id = "hardlink-different-content-not-linked"
+script = "mkdir d; echo hello > d/a; echo world > d/b; touch -d '2020-01-01' d/a d/b; hardlink d | grep -v Duration; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-different-size-not-linked"
+script = "mkdir d; echo hello > d/a; echo hello! > d/b; touch -d '2020-01-01' d/a d/b; hardlink d | grep -v Duration; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-empty-files-skipped-by-default"
+script = "mkdir d; : > d/a; : > d/b; touch -d '2020-01-01' d/a d/b; hardlink d | grep -v Duration; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-minimum-size-zero-links-empty-files"
+script = "mkdir d; : > d/a; : > d/b; touch -d '2020-01-01' d/a d/b; hardlink -s 0 d | grep -v Duration; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-dry-run"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -n d | grep -v Duration; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-quiet"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -q d; echo \"rc=$?\"; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-verbose-link-message"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -v d | grep -v Duration | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-verbose-dry-run-message"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -nv d | grep -v Duration | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-verbose-size-in-message"
+script = "mkdir d; head -c 2048 /dev/zero > d/a; cp -p d/a d/b; hardlink -v d | grep -v Duration | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-verbose-fractional-size"
+script = "mkdir d; head -c 1536 /dev/zero > d/a; cp -p d/a d/b; hardlink -v d | grep -E 'Linking|Saved' | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-saved-units"
+script = "mkdir d; head -c 3000000 /dev/zero > d/a; cp -p d/a d/b; cp -p d/a d/c; hardlink d | grep -E 'Saved|Linked'"
+
+[[case]]
+id = "hardlink-very-verbose-skip-reasons"
+script = "mkdir d; echo hello > d/a; echo world > d/b; touch -d '2020-01-01' d/a d/b; hardlink -vvv d | grep -v Duration | grep -v '^ *[0-9]*: ' | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-very-verbose-attribute-mismatch"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; chmod 600 d/b; hardlink -vvv d | grep -v Duration | grep -v '^ *[0-9]*: ' | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-very-verbose-scan-line-format"
+script = "mkdir d; echo hello > d/a; hardlink -vvv d | grep -E '^ +[0-9]+: ' | sed -E \"s|$PWD|PWD|; s|\\[[0-9]+/[0-9]+/|[DEV/INO/|\""
+
+[[case]]
+id = "hardlink-mode-mismatch-not-linked"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; chmod 600 d/b; hardlink d | grep -E 'Linked'; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-ignore-mode"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; chmod 600 d/b; hardlink -p d | grep -E 'Linked'; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-time-mismatch-not-linked"
+script = "mkdir d; echo hello > d/a; echo hello > d/b; touch -d '2020-01-01' d/a; touch -d '2021-01-01' d/b; hardlink d | grep -E 'Linked'; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-ignore-time"
+script = "mkdir d; echo hello > d/a; echo hello > d/b; touch -d '2020-01-01' d/a; touch -d '2021-01-01' d/b; hardlink -t d | grep -E 'Linked'; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-ignore-owner"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; chown 1:1 d/b; hardlink d | grep -E 'Linked'; hardlink -o d | grep -E 'Linked'; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-content-only"
+script = "mkdir d; echo hello > d/a; echo hello > d/b; chmod 600 d/b; touch -d '2020-01-01' d/a; touch -d '2021-01-01' d/b; chown 1:1 d/b; hardlink -c d | grep -E 'Linked'; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-content-only-long"
+script = "mkdir d; echo hello > d/a; echo hello > d/b; touch -d '2020-01-01' d/a; touch -d '2021-01-01' d/b; hardlink --content d | grep -E 'Linked'"
+
+[[case]]
+id = "hardlink-respect-name"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -f d | grep -E 'Linked'; mkdir e e/s; echo hi > e/x; cp -p e/x e/s/x; cp -p e/x e/y; hardlink -f e | grep -E 'Linked'; stat -c '%h %n' e/x e/s/x e/y"
+
+[[case]]
+id = "hardlink-respect-dir"
+script = "mkdir -p r/a r/b; echo hello > r/a/f; cp -p r/a/f r/b/f; cp -p r/a/f r/a/g; hardlink -d r | grep -E 'Linked'; stat -c '%h %n' r/a/f r/b/f r/a/g"
+
+[[case]]
+id = "hardlink-respect-dir-two-roots"
+script = "mkdir -p x/sub y/sub; echo hello > x/sub/f; cp -p x/sub/f y/sub/f; cp -p x/sub/f y/f; hardlink -d x y | grep -E 'Linked'; stat -c '%h %n' x/sub/f y/sub/f y/f"
+
+[[case]]
+id = "hardlink-existing-links-counted-once"
+script = "mkdir d; echo hello > d/a; ln d/a d/a2; cp -p d/a d/b; hardlink d | grep -E 'Files|Linked|Saved'; stat -c '%h' d/a d/a2 d/b"
+
+[[case]]
+id = "hardlink-already-linked-nothing-to-do"
+script = "mkdir d; echo hello > d/a; ln d/a d/b; hardlink d | grep -E 'Files|Linked|Compared|Saved'"
+
+[[case]]
+id = "hardlink-saved-counts-only-freed-inodes"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; ln d/b outside-link; hardlink d | grep -E 'Linked|Saved'; rm -f outside-link"
+
+[[case]]
+id = "hardlink-maximize"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; ln d/b d/b2; ln d/b d/b3; hardlink -m d | grep -E 'Linked'; stat -c '%h' d/a d/b d/b2 d/b3"
+
+[[case]]
+id = "hardlink-minimize"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; ln d/b d/b2; hardlink -M d | grep -E 'Linked'; stat -c '%h' d/a d/b d/b2"
+
+[[case]]
+id = "hardlink-keep-oldest"
+script = "mkdir d; echo hello > d/new; echo hello > d/old; touch -d '2020-01-01' d/old; touch -d '2020-01-01' d/new; hardlink -O d | grep -E 'Linked'; stat -c '%h' d/new d/old"
+
+[[case]]
+id = "hardlink-prioritize-trees-first-wins"
+script = "mkdir x y; echo hello > x/f; cp -p x/f y/f; hardlink -F -v x y | grep Linking | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-prioritize-trees-second-order"
+script = "mkdir x y; echo hello > x/f; cp -p x/f y/f; hardlink -F -v y x | grep Linking | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-minimum-size"
+script = "mkdir d; head -c 10 /dev/zero > d/small1; cp -p d/small1 d/small2; head -c 100 /dev/zero > d/big1; cp -p d/big1 d/big2; hardlink -s 50 d | grep -E 'Files|Linked'; stat -c '%h %n' d/* | sort -k2"
+
+[[case]]
+id = "hardlink-minimum-size-suffix"
+script = "mkdir d; head -c 500 /dev/zero > d/s1; cp -p d/s1 d/s2; head -c 2000 /dev/zero > d/b1; cp -p d/b1 d/b2; hardlink -s 1K d | grep -E 'Files|Linked'; stat -c '%h %n' d/* | sort -k2"
+
+[[case]]
+id = "hardlink-minimum-size-verbose"
+script = "mkdir d; head -c 10 /dev/zero > d/s1; hardlink -vv -s 50 d | grep Skipped | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-maximum-size"
+script = "mkdir d; head -c 10 /dev/zero > d/small1; cp -p d/small1 d/small2; head -c 100 /dev/zero > d/big1; cp -p d/big1 d/big2; hardlink -S 50 d | grep -E 'Files|Linked'; stat -c '%h %n' d/* | sort -k2"
+
+[[case]]
+id = "hardlink-maximum-size-verbose"
+script = "mkdir d; head -c 100 /dev/zero > d/big1; hardlink -vv -S 50 d | grep Skipped | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-size-range"
+script = "mkdir d; for n in 10 100 1000; do head -c $n /dev/zero > d/a$n; cp -p d/a$n d/b$n; done; hardlink -s 50 -S 500 d | grep -E 'Files|Linked'; stat -c '%h %n' d/* | sort -k2"
+
+[[case]]
+id = "hardlink-exclude"
+script = "mkdir d; echo hello > d/a.txt; cp -p d/a.txt d/b.txt; cp -p d/a.txt d/c.log; hardlink -x '\\.log$' d | grep -E 'Files|Linked'; stat -c '%h %n' d/* | sort -k2"
+
+[[case]]
+id = "hardlink-exclude-verbose"
+script = "mkdir d; echo hello > d/a.txt; cp -p d/a.txt d/c.log; hardlink -vv -x '\\.log$' d | grep Skipped | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-include"
+script = "mkdir d; echo hello > d/a.txt; cp -p d/a.txt d/b.txt; cp -p d/a.txt d/c.log; hardlink -i '\\.txt$' d | grep -E 'Files|Linked'; stat -c '%h %n' d/* | sort -k2"
+
+[[case]]
+id = "hardlink-include-and-exclude"
+script = "mkdir d; echo hello > d/a.txt; cp -p d/a.txt d/keep.txt; cp -p d/a.txt d/skip.txt; hardlink -x '\\.txt$' -i 'keep' d | grep -E 'Files|Linked'; stat -c '%h %n' d/* | sort -k2"
+
+[[case]]
+id = "hardlink-exclude-matches-directory-path"
+script = "mkdir -p d/skipme d/ok; echo hello > d/skipme/f; cp -p d/skipme/f d/ok/f; hardlink -x skipme d | grep -E 'Files|Linked'"
+
+[[case]]
+id = "hardlink-exclude-subtree"
+script = "mkdir -p d/skipme d/ok; echo hello > d/skipme/f; cp -p d/skipme/f d/ok/f; cp -p d/skipme/f d/g; hardlink --exclude-subtree skipme d | grep -E 'Files|Linked'; stat -c '%h %n' d/skipme/f d/ok/f d/g"
+
+[[case]]
+id = "hardlink-exclude-subtree-verbose"
+script = "mkdir -p d/skipme; echo hello > d/skipme/f; hardlink -vv --exclude-subtree skipme d | grep Skipped | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-recursive-directories"
+script = "mkdir -p d/a/b d/c; echo hello > d/a/b/f; cp -p d/a/b/f d/c/f; cp -p d/a/b/f d/top; hardlink d | grep -E 'Files|Linked'; stat -c '%h' d/a/b/f d/c/f d/top"
+
+[[case]]
+id = "hardlink-multiple-operands"
+script = "mkdir x y; echo hello > x/f; cp -p x/f y/f; hardlink x y | grep -E 'Files|Linked'; stat -c '%h' x/f y/f"
+
+[[case]]
+id = "hardlink-file-operands"
+script = "echo hello > a; cp -p a b; hardlink a b | grep -E 'Files|Linked'; stat -c '%h' a b"
+
+[[case]]
+id = "hardlink-same-operand-twice"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -v d d | grep -E 'specified more than once|Files|Linked' | sed \"s|$PWD|PWD|g\" | sort"
+
+[[case]]
+id = "hardlink-symlinks-ignored"
+script = "mkdir d; echo hello > d/a; ln -s a d/l; cp -p d/a d/b; hardlink d | grep -E 'Files|Linked'; ls -l d | grep -c '^l'"
+
+[[case]]
+id = "hardlink-symlink-operand-resolved"
+script = "mkdir real; echo hello > real/a; cp -p real/a real/b; ln -s real link; hardlink link | grep -E 'Files|Linked'; stat -c '%h' real/a real/b"
+
+[[case]]
+id = "hardlink-special-files-ignored"
+script = "mkdir d; echo hello > d/a; mkfifo d/p; hardlink d | grep -E 'Files|Linked'"
+
+[[case]]
+id = "hardlink-methods"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; for m in memcmp sha1 sha256; do hardlink -n -y $m d | grep Method; done"
+
+[[case]]
+id = "hardlink-method-long-option"
+script = "mkdir d; echo hello > d/a; hardlink -n --method=memcmp d | grep Method"
+
+[[case]]
+id = "hardlink-method-unknown-falls-back"
+script = "mkdir d; echo hello > d/a; hardlink -y bogus d | grep Method; hardlink -v -y bogus d | grep -E 'cannot initialize|Method'"
+
+[[case]]
+id = "hardlink-method-memcmp-links"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -y memcmp d | grep -E 'Method|Linked'; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-xattrs-option"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -X d | grep -E 'Linked|Compared'"
+
+[[case]]
+id = "hardlink-xattrs-verbose-message"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -X -vv d | grep 'Comparing xattrs' | sed \"s|$PWD|PWD|g\""
+
+[[case]]
+id = "hardlink-reflink-option-stats-line"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink --reflink=never d | grep -E 'Skipped reflinks|Linked'; hardlink --skip-reflinks d | grep -E 'Skipped reflinks'"
+
+[[case]]
+id = "hardlink-io-and-cache-size-accepted"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -b 4K -r 1M d | grep -E 'Linked'"
+
+[[case]]
+id = "hardlink-list-duplicates"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; echo other > d/c; hardlink -l d | cut -f2 | sed \"s|$PWD|PWD|\" | sort; stat -c '%h' d/a d/b"
+
+[[case]]
+id = "hardlink-list-duplicates-groups-share-key"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; echo other! > d/c; cp -p d/c d/e; hardlink -l d | awk -F'\\t' '{ n[$1]++ } END { c = 0; for (k in n) if (n[k] == 2) c++; print c }'"
+
+[[case]]
+id = "hardlink-list-duplicates-prints-nothing-else"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -l d | grep -c -E 'Mode|Files|Saved'"
+
+[[case]]
+id = "hardlink-list-duplicates-zero-delimiter"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -lz d | tr '\\0' '\\n' | cut -f2 | sed \"s|$PWD|PWD|\" | sort"
+
+[[case]]
+id = "hardlink-list-duplicates-no-duplicates"
+script = "mkdir d; echo hello > d/a; echo world > d/b; hardlink -l d | wc -c"
+
+[[case]]
+id = "hardlink-mount-option"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink --mount d | grep -E 'Files|Linked'"
+
+[[case]]
+id = "hardlink-exit-status"
+script = "mkdir d; hardlink d >/dev/null; echo \"rc=$?\"; hardlink nonexistent >/dev/null 2>&1; echo \"rc=$?\"; hardlink >/dev/null 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "hardlink-stats-format"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink d | sed -E 's/[0-9]+\\.[0-9]{6} seconds/N.NNNNNN seconds/'"
+
+[[case]]
+id = "hardlink-stats-format-dry-run"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink -n d | sed -E 's/[0-9]+\\.[0-9]{6} seconds/N.NNNNNN seconds/'"
+
+[[case]]
+id = "hardlink-three-sizes-all-linked"
+script = "mkdir d; for n in 10 20 30; do head -c $n /dev/zero > d/f$n; cp -p d/f$n d/g$n; done; hardlink d | grep -E 'Files|Linked|Compared|Saved'; stat -c '%h' d/* | sort | uniq -c"
+
+[[case]]
+id = "hardlink-many-duplicates-one-group"
+script = "mkdir d; echo hello > d/f0; for i in 1 2 3 4 5 6 7 8 9; do cp -p d/f0 d/f$i; done; hardlink d | grep -E 'Files|Linked|Compared|Saved'; stat -c '%h' d/* | sort -u"
+
+[[case]]
+id = "hardlink-same-size-different-content-then-duplicate"
+script = "mkdir d; echo aaaaa > d/a1; echo bbbbb > d/b1; cp -p d/a1 d/a2; cp -p d/b1 d/b2; touch -d '2020-01-01' d/*; hardlink d | grep -E 'Files|Linked|Compared|Saved'; stat -c '%h' d/* | sort | uniq -c"
+
+[[case]]
+id = "hardlink-leaves-no-temporary-names"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; hardlink d >/dev/null; ls d | wc -l"
+
+[[case]]
+id = "hardlink-link-failure-warning"
+script = "mkdir d; echo hello > d/a; cp -p d/a d/b; mkdir d/b.hardlink-temporary; hardlink d 2>&1 | grep -v Duration | sed \"s|$PWD|PWD|g\"; stat -c '%h' d/a d/b"

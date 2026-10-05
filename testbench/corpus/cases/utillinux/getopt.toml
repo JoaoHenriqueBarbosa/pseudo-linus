@@ -1,0 +1,627 @@
+tool = "getopt"
+source = "manual"
+
+# getopt do util-linux 2.41 (enhanced): citação pra bash e csh, opções longas, modo de compatibilidade,
+# mensagens de erro do getopt_long da glibc e os códigos de saída 1, 2, 3 e 4.
+
+[[case]]
+id = "getopt-help"
+argv = ["getopt", "--help"]
+
+[[case]]
+id = "getopt-help-short"
+argv = ["getopt", "-h"]
+
+[[case]]
+id = "getopt-version"
+argv = ["getopt", "--version"]
+
+[[case]]
+id = "getopt-version-short"
+argv = ["getopt", "-V"]
+
+[[case]]
+id = "getopt-test"
+argv = ["getopt", "-T"]
+
+[[case]]
+id = "getopt-test-long"
+argv = ["getopt", "--test"]
+
+[[case]]
+id = "getopt-no-args"
+argv = ["getopt"]
+
+[[case]]
+id = "getopt-no-args-compat"
+argv = ["getopt"]
+env = { GETOPT_COMPATIBLE = "1" }
+
+[[case]]
+id = "getopt-missing-optstring"
+argv = ["getopt", "-u"]
+
+[[case]]
+id = "getopt-missing-optstring-quiet"
+argv = ["getopt", "-q"]
+
+[[case]]
+id = "getopt-missing-optstring-after-dashes"
+argv = ["getopt", "--"]
+
+[[case]]
+id = "getopt-own-invalid-option"
+argv = ["getopt", "-x"]
+
+[[case]]
+id = "getopt-own-unrecognized-long"
+argv = ["getopt", "--bogus"]
+
+[[case]]
+id = "getopt-own-ambiguous-long"
+argv = ["getopt", "--q", "-o", "a", "--"]
+
+[[case]]
+id = "getopt-own-shell-short-prefix"
+argv = ["getopt", "--sh=tcsh", "-o", "a", "--", "-a", "x y"]
+
+[[case]]
+id = "getopt-own-long-prefix"
+argv = ["getopt", "--opt", "ab", "--", "-a", "x"]
+
+[[case]]
+id = "getopt-own-missing-arg-short"
+argv = ["getopt", "-o"]
+
+[[case]]
+id = "getopt-own-missing-arg-long"
+argv = ["getopt", "--longoptions"]
+
+[[case]]
+id = "getopt-own-long-no-arg-allowed"
+argv = ["getopt", "--quiet=1", "-o", "a", "--"]
+
+[[case]]
+id = "getopt-own-unknown-shell"
+argv = ["getopt", "-s", "zsh", "-o", "a", "--", "-a"]
+
+[[case]]
+id = "getopt-own-shell-sh"
+argv = ["getopt", "-s", "sh", "-o", "a:", "--", "-a", "it's"]
+
+[[case]]
+id = "getopt-own-shell-bash"
+argv = ["getopt", "--shell=bash", "-o", "a:", "--", "-a", "it's"]
+
+[[case]]
+id = "getopt-own-shell-csh"
+argv = ["getopt", "-s", "csh", "-o", "a:", "--", "-a", "it's a!b"]
+
+[[case]]
+id = "getopt-own-shell-tcsh-specials"
+argv = ["getopt", "-s", "tcsh", "-o", "a:", "--", "-a", "x y\tz\\w!v'q", "a\nb"]
+
+[[case]]
+id = "getopt-own-stops-at-first-operand"
+argv = ["getopt", "-o", "a", "x", "-u", "--", "-a"]
+
+[[case]]
+id = "getopt-own-clustered-flags"
+argv = ["getopt", "-uqo", "ab", "--", "-a", "-b"]
+
+[[case]]
+id = "getopt-own-name-attached"
+argv = ["getopt", "-nprog", "-o", "a", "--", "-z"]
+
+[[case]]
+id = "getopt-own-name-long"
+argv = ["getopt", "--name=prog", "-o", "a", "--", "-z"]
+
+[[case]]
+id = "getopt-empty-long-option"
+argv = ["getopt", "-l", ":", "-o", "a", "--", "-a"]
+
+[[case]]
+id = "getopt-empty-long-option-optional"
+argv = ["getopt", "-l", "::", "-o", "a", "--", "-a"]
+
+[[case]]
+id = "getopt-basic-short"
+argv = ["getopt", "-o", "abc", "--", "-a", "-b", "-c", "x", "y"]
+
+[[case]]
+id = "getopt-basic-clustered"
+argv = ["getopt", "-o", "abc", "--", "-abc", "x"]
+
+[[case]]
+id = "getopt-short-required-attached"
+argv = ["getopt", "-o", "a:b", "--", "-afoo", "-b"]
+
+[[case]]
+id = "getopt-short-required-detached"
+argv = ["getopt", "-o", "a:b", "--", "-a", "foo", "-b"]
+
+[[case]]
+id = "getopt-short-required-takes-dash"
+argv = ["getopt", "-o", "a:b", "--", "-a", "-b"]
+
+[[case]]
+id = "getopt-short-required-in-cluster"
+argv = ["getopt", "-o", "a:b", "--", "-bafoo", "-ba", "bar"]
+
+[[case]]
+id = "getopt-short-optional-attached"
+argv = ["getopt", "-o", "a::b", "--", "-afoo", "-a", "-b"]
+
+[[case]]
+id = "getopt-short-optional-detached-is-operand"
+argv = ["getopt", "-o", "a::b", "--", "-a", "foo"]
+
+[[case]]
+id = "getopt-short-empty-argument"
+argv = ["getopt", "-o", "a:", "--", "-a", ""]
+
+[[case]]
+id = "getopt-short-empty-operand"
+argv = ["getopt", "-o", "a", "--", "", "-a", ""]
+
+[[case]]
+id = "getopt-operands-permuted"
+argv = ["getopt", "-o", "ab:", "--", "x", "-a", "y", "-b", "z", "w"]
+
+[[case]]
+id = "getopt-dash-alone-is-operand"
+argv = ["getopt", "-o", "a", "--", "-", "-a"]
+
+[[case]]
+id = "getopt-double-dash-ends-options"
+argv = ["getopt", "-o", "a", "--", "-a", "--", "-a"]
+
+[[case]]
+id = "getopt-no-double-dash-after-spec"
+argv = ["getopt", "-o", "a", "-a", "x"]
+
+[[case]]
+id = "getopt-spec-as-first-operand"
+argv = ["getopt", "ab:", "-a", "-b", "val", "rest"]
+
+[[case]]
+id = "getopt-spec-first-with-options-after"
+argv = ["getopt", "-u", "ab:", "-a", "-bfoo", "x y"]
+
+[[case]]
+id = "getopt-spec-first-unquoted"
+argv = ["getopt", "ab:", "-b", "it's mine", "a b"]
+
+[[case]]
+id = "getopt-spec-first-strips-plus"
+argv = ["getopt", "+ab", "-a", "x", "-b"]
+
+[[case]]
+id = "getopt-spec-first-strips-minus"
+argv = ["getopt", "--ab", "x"]
+
+[[case]]
+id = "getopt-spec-first-empty"
+argv = ["getopt", "", "-a"]
+
+[[case]]
+id = "getopt-spec-first-invalid"
+argv = ["getopt", "ab", "-c", "x"]
+
+[[case]]
+id = "getopt-spec-first-invalid-name"
+argv = ["/usr/bin/getopt", "ab", "-c", "x"]
+
+[[case]]
+id = "getopt-compat-forces-old-style"
+argv = ["getopt", "ab:", "-a", "-b", "x", "y"]
+env = { GETOPT_COMPATIBLE = "1" }
+
+[[case]]
+id = "getopt-compat-strips-leading-dash"
+argv = ["getopt", "-o", "ab", "-a"]
+env = { GETOPT_COMPATIBLE = "1" }
+
+[[case]]
+id = "getopt-long-basic"
+argv = ["getopt", "-o", "", "-l", "alpha,beta", "--", "--alpha", "--beta", "x"]
+
+[[case]]
+id = "getopt-long-with-short"
+argv = ["getopt", "-o", "a", "-l", "alpha,beta", "--", "-a", "--alpha", "--beta"]
+
+[[case]]
+id = "getopt-long-spec-positional"
+argv = ["getopt", "-l", "alpha,beta", "a", "--alpha", "-a", "x"]
+
+[[case]]
+id = "getopt-long-required-detached"
+argv = ["getopt", "-o", "", "-l", "file:", "--", "--file", "x y", "z"]
+
+[[case]]
+id = "getopt-long-required-attached"
+argv = ["getopt", "-o", "", "-l", "file:", "--", "--file=a=b", "z"]
+
+[[case]]
+id = "getopt-long-required-empty-attached"
+argv = ["getopt", "-o", "", "-l", "file:", "--", "--file=", "z"]
+
+[[case]]
+id = "getopt-long-required-takes-dash"
+argv = ["getopt", "-o", "", "-l", "file:,x", "--", "--file", "--x"]
+
+[[case]]
+id = "getopt-long-optional-bare"
+argv = ["getopt", "-o", "", "-l", "color::", "--", "--color", "x"]
+
+[[case]]
+id = "getopt-long-optional-attached"
+argv = ["getopt", "-o", "", "-l", "color::", "--", "--color=red", "x"]
+
+[[case]]
+id = "getopt-long-optional-empty-attached"
+argv = ["getopt", "-o", "", "-l", "color::", "--", "--color=", "x"]
+
+[[case]]
+id = "getopt-long-several-l-options"
+argv = ["getopt", "-l", "one", "-l", "two:", "--longoptions=three::", "-o", "", "--", "--one", "--two", "2", "--three"]
+
+[[case]]
+id = "getopt-long-separators"
+argv = ["getopt", "-l", "a1, b2,c3\td4", "-o", "", "--", "--a1", "--b2", "--c3", "--d4"]
+
+[[case]]
+id = "getopt-long-prefix-unique"
+argv = ["getopt", "-o", "", "-l", "verbose,quiet:", "--", "--verb", "--qu", "x"]
+
+[[case]]
+id = "getopt-long-exact-beats-prefix"
+argv = ["getopt", "-o", "", "-l", "ver,verbose", "--", "--ver", "--verb"]
+
+[[case]]
+id = "getopt-long-ambiguous"
+argv = ["getopt", "-o", "", "-l", "alpha,alpine,beta", "--", "--al", "--beta"]
+
+[[case]]
+id = "getopt-long-ambiguous-quiet"
+argv = ["getopt", "-q", "-o", "", "-l", "alpha,alpine,beta", "--", "--al", "--beta"]
+
+[[case]]
+id = "getopt-long-ambiguous-three"
+argv = ["getopt", "-o", "", "-l", "aa,ab,ac,b", "--", "--a"]
+
+[[case]]
+id = "getopt-long-ambiguous-with-value"
+argv = ["getopt", "-o", "", "-l", "alpha:,alpine:", "--", "--al=3"]
+
+[[case]]
+id = "getopt-long-unrecognized"
+argv = ["getopt", "-o", "", "-l", "alpha", "--", "--zeta", "--alpha"]
+
+[[case]]
+id = "getopt-long-unrecognized-with-value"
+argv = ["getopt", "-o", "", "-l", "alpha", "--", "--zeta=5"]
+
+[[case]]
+id = "getopt-long-unrecognized-quiet"
+argv = ["getopt", "-q", "-o", "", "-l", "alpha", "--", "--zeta", "--alpha"]
+
+[[case]]
+id = "getopt-long-requires-argument"
+argv = ["getopt", "-o", "", "-l", "file:", "--", "--file"]
+
+[[case]]
+id = "getopt-long-requires-argument-quiet"
+argv = ["getopt", "-q", "-o", "", "-l", "file:", "--", "--file"]
+
+[[case]]
+id = "getopt-long-doesnt-allow-argument"
+argv = ["getopt", "-o", "", "-l", "flag", "--", "--flag=1", "--flag"]
+
+[[case]]
+id = "getopt-long-doesnt-allow-argument-prefix"
+argv = ["getopt", "-o", "", "-l", "flag", "--", "--fl=1"]
+
+[[case]]
+id = "getopt-long-requires-argument-prefix"
+argv = ["getopt", "-o", "", "-l", "filename:", "--", "--fi"]
+
+[[case]]
+id = "getopt-long-single-dash-is-short"
+argv = ["getopt", "-o", "a", "-l", "alpha", "--", "-alpha"]
+
+[[case]]
+id = "getopt-long-with-name"
+argv = ["getopt", "-n", "mytool", "-o", "", "-l", "alpha", "--", "--beta"]
+
+[[case]]
+id = "getopt-alternative-long-single-dash"
+argv = ["getopt", "-a", "-o", "", "-l", "alpha,beta:", "--", "-alpha", "-beta", "x"]
+
+[[case]]
+id = "getopt-alternative-short-wins-when-exact-char"
+argv = ["getopt", "-a", "-o", "a", "-l", "alpha", "--", "-a", "-alpha"]
+
+[[case]]
+id = "getopt-alternative-prefix"
+argv = ["getopt", "-a", "-o", "x", "-l", "verbose", "--", "-verb"]
+
+[[case]]
+id = "getopt-alternative-ambiguous"
+argv = ["getopt", "-a", "-l", "alpha,alpine", "-o", "", "--", "-alp"]
+
+[[case]]
+id = "getopt-alternative-ambiguous-same-flags"
+argv = ["getopt", "-a", "-l", "foo,foobar", "-o", "", "--", "-fo"]
+
+[[case]]
+id = "getopt-alternative-unrecognized"
+argv = ["getopt", "-a", "-o", "a", "-l", "alpha", "--", "-zeta"]
+
+[[case]]
+id = "getopt-alternative-unrecognized-short"
+argv = ["getopt", "-a", "-o", "a", "--", "-z", "-a"]
+
+[[case]]
+id = "getopt-alternative-cluster-after-long-miss"
+argv = ["getopt", "-a", "-o", "ab", "-l", "zzz", "--", "-ab"]
+
+[[case]]
+id = "getopt-alternative-long-doubledash"
+argv = ["getopt", "-a", "-o", "", "-l", "alpha", "--", "--alpha", "--alp"]
+
+[[case]]
+id = "getopt-alternative-single-dash-value"
+argv = ["getopt", "-a", "-o", "", "-l", "file:,opt::", "--", "-file", "x", "-file=y", "-opt", "-opt=z", "-f", "w"]
+
+[[case]]
+id = "getopt-error-invalid-short"
+argv = ["getopt", "-o", "ab", "--", "-a", "-x", "-b"]
+
+[[case]]
+id = "getopt-error-invalid-short-in-cluster"
+argv = ["getopt", "-o", "ab", "--", "-axb"]
+
+[[case]]
+id = "getopt-error-invalid-short-quiet"
+argv = ["getopt", "-q", "-o", "ab", "--", "-a", "-x", "-b"]
+
+[[case]]
+id = "getopt-error-invalid-short-name"
+argv = ["getopt", "-n", "my prog", "-o", "ab", "--", "-x"]
+
+[[case]]
+id = "getopt-error-colon-is-invalid"
+argv = ["getopt", "-o", "a", "--", "-:"]
+
+[[case]]
+id = "getopt-error-semicolon-is-invalid"
+argv = ["getopt", "-o", "a;", "--", "-;"]
+
+[[case]]
+id = "getopt-error-missing-short-arg"
+argv = ["getopt", "-o", "a:b", "--", "-b", "-a"]
+
+[[case]]
+id = "getopt-error-missing-short-arg-quiet"
+argv = ["getopt", "-q", "-o", "a:b", "--", "-b", "-a"]
+
+[[case]]
+id = "getopt-error-missing-short-arg-colon-prefix"
+argv = ["getopt", "-o", ":a:b", "--", "-b", "-a"]
+
+[[case]]
+id = "getopt-error-colon-prefix-invalid-silent"
+argv = ["getopt", "-o", ":a", "--", "-x", "-a"]
+
+[[case]]
+id = "getopt-error-colon-prefix-long-missing-arg"
+argv = ["getopt", "-o", ":a", "-l", "file:", "--", "--file"]
+
+[[case]]
+id = "getopt-error-missing-arg-in-cluster"
+argv = ["getopt", "-o", "ab:", "--", "-ab"]
+
+[[case]]
+id = "getopt-error-continues-after-error"
+argv = ["getopt", "-o", "ab", "--", "-x", "-a", "-y", "-b", "op"]
+
+[[case]]
+id = "getopt-error-argv0-with-slashes"
+argv = ["/usr/bin/getopt", "-o", "a", "--", "-x"]
+
+[[case]]
+id = "getopt-error-argv0-help"
+argv = ["/usr/bin/getopt", "--help"]
+
+[[case]]
+id = "getopt-error-argv0-version"
+argv = ["/usr/bin/getopt", "-V"]
+
+[[case]]
+id = "getopt-error-argv0-parse-error"
+argv = ["/usr/bin/getopt"]
+
+[[case]]
+id = "getopt-quiet-output"
+argv = ["getopt", "-Q", "-o", "a", "--", "-a", "x"]
+
+[[case]]
+id = "getopt-quiet-output-error"
+argv = ["getopt", "-Q", "-o", "a", "--", "-z", "x"]
+
+[[case]]
+id = "getopt-quiet-output-quiet-error"
+argv = ["getopt", "-Q", "-q", "-o", "a", "--", "-z", "x"]
+
+[[case]]
+id = "getopt-quiet-output-long"
+argv = ["getopt", "--quiet-output", "--quiet", "-o", "a", "--", "-z"]
+
+[[case]]
+id = "getopt-unquoted-simple"
+argv = ["getopt", "-u", "-o", "a:", "-l", "file:", "--", "-a", "x y", "--file", "it's", "z w"]
+
+[[case]]
+id = "getopt-unquoted-long-flag"
+argv = ["getopt", "--unquoted", "-o", "a:", "--", "-a", "x'y"]
+
+[[case]]
+id = "getopt-unquoted-empty-args"
+argv = ["getopt", "-u", "-o", "a:", "--", "-a", "", ""]
+
+[[case]]
+id = "getopt-quote-single-quotes"
+argv = ["getopt", "-o", "a:", "--", "-a", "'", "''", "a'b'c"]
+
+[[case]]
+id = "getopt-quote-specials-bash"
+argv = ["getopt", "-o", "a", "--", "$HOME", "`ls`", "\"q\"", "a;b", "!x", "\\n", "*"]
+
+[[case]]
+id = "getopt-quote-newline-tab-bash"
+argv = ["getopt", "-o", "a", "--", "a\nb", "c\td"]
+
+[[case]]
+id = "getopt-quote-tcsh-backslash-bang"
+argv = ["getopt", "-s", "tcsh", "-o", "a", "--", "\\", "!", "a\\!b", "!!"]
+
+[[case]]
+id = "getopt-quote-tcsh-whitespace"
+argv = ["getopt", "-s", "tcsh", "-o", "a", "--", " ", "a b", "\t", "\r", "\u000b", "\u000c", "a\nb"]
+
+[[case]]
+id = "getopt-quote-tcsh-single-quote"
+argv = ["getopt", "-s", "tcsh", "-o", "a:", "--", "-a", "it's", "'"]
+
+[[case]]
+id = "getopt-quote-tcsh-optarg-long"
+argv = ["getopt", "-s", "tcsh", "-o", "", "-l", "msg:", "--", "--msg", "hello world!"]
+
+[[case]]
+id = "getopt-quote-utf8"
+argv = ["getopt", "-o", "a:", "--", "-a", "ação", "日本語", "é"]
+
+[[case]]
+id = "getopt-error-utf8-option"
+argv = ["getopt", "-o", "a", "--", "-é"]
+
+[[case]]
+id = "getopt-short-all-ascii-specials-as-options"
+argv = ["getopt", "-o", "a+b-c?d", "--", "-+", "-c", "-?", "-d", "--", "-"]
+
+[[case]]
+id = "getopt-order-return-in-order"
+argv = ["getopt", "-o", "-ab:", "--", "x", "-a", "y", "-b", "z", "w"]
+
+[[case]]
+id = "getopt-order-return-in-order-long"
+argv = ["getopt", "-o", "-a", "-l", "long:", "--", "one", "--long", "v", "two", "--", "three", "-a"]
+
+[[case]]
+id = "getopt-order-return-in-order-empty-operand"
+argv = ["getopt", "-o", "-a", "--", "", "-a", ""]
+
+[[case]]
+id = "getopt-order-require-order"
+argv = ["getopt", "-o", "+ab:", "--", "-a", "x", "-b", "y"]
+
+[[case]]
+id = "getopt-order-require-order-long"
+argv = ["getopt", "-o", "+a", "-l", "long", "--", "--long", "x", "--long", "-a"]
+
+[[case]]
+id = "getopt-order-require-order-dashdash"
+argv = ["getopt", "-o", "+a", "--", "-a", "--", "-a"]
+
+[[case]]
+id = "getopt-order-posixly-correct"
+argv = ["getopt", "-o", "ab", "--", "-a", "x", "-b"]
+env = { POSIXLY_CORRECT = "1" }
+
+[[case]]
+id = "getopt-order-posixly-correct-long"
+argv = ["getopt", "-o", "a", "-l", "long", "--", "--long", "x", "-a"]
+env = { POSIXLY_CORRECT = "1" }
+
+[[case]]
+id = "getopt-order-posixly-correct-plus-spec"
+argv = ["getopt", "-o", "+ab", "--", "-a", "x", "-b"]
+env = { POSIXLY_CORRECT = "1" }
+
+[[case]]
+id = "getopt-order-posixly-correct-minus-spec"
+argv = ["getopt", "-o", "-ab", "--", "-a", "x", "-b"]
+env = { POSIXLY_CORRECT = "1" }
+
+[[case]]
+id = "getopt-order-posixly-correct-empty-env"
+argv = ["getopt", "-o", "ab", "--", "-a", "x", "-b"]
+env = { POSIXLY_CORRECT = "" }
+
+[[case]]
+id = "getopt-order-posixly-correct-spec-first"
+argv = ["getopt", "ab", "-a", "x", "-b"]
+env = { POSIXLY_CORRECT = "1" }
+
+[[case]]
+id = "getopt-order-posixly-correct-own-options"
+argv = ["getopt", "-o", "ab", "-u", "--", "-a", "x", "-b"]
+env = { POSIXLY_CORRECT = "1" }
+
+[[case]]
+id = "getopt-w-semicolon"
+argv = ["getopt", "-o", "W;a", "-l", "foo:,bar", "--", "-W", "foo=1", "-Wbar", "-a"]
+
+[[case]]
+id = "getopt-w-semicolon-missing-arg"
+argv = ["getopt", "-o", "W;a", "-l", "foo", "--", "-W"]
+
+[[case]]
+id = "getopt-w-semicolon-unrecognized"
+argv = ["getopt", "-o", "W;a", "-l", "foo", "--", "-W", "zzz"]
+
+[[case]]
+id = "getopt-w-semicolon-ambiguous"
+argv = ["getopt", "-o", "W;a", "-l", "foo,fob", "--", "-Wfo"]
+
+[[case]]
+id = "getopt-long-duplicate-names"
+argv = ["getopt", "-o", "", "-l", "dup,dup:", "--", "--dup", "x"]
+
+[[case]]
+id = "getopt-long-equal-in-value"
+argv = ["getopt", "-o", "", "-l", "kv:", "--", "--kv=a=b=c"]
+
+[[case]]
+id = "getopt-long-name-with-dash"
+argv = ["getopt", "-o", "", "-l", "no-color,with-arg:", "--", "--no-color", "--with-arg", "1", "--no", "--with-a=2"]
+
+[[case]]
+id = "getopt-exit-code-mixed"
+script = "getopt -o ab -- -a -z >out.txt 2>err.txt; echo \"rc=$?\"; cat out.txt err.txt"
+
+[[case]]
+id = "getopt-script-eval-set"
+script = "eval set -- \"$(getopt -o ab:c:: -l alpha,beta: -- -a -b 'x y' -cfoo --beta=3 'it'\\''s' last)\"; echo \"$#\"; for a; do echo \"[$a]\"; done"
+
+[[case]]
+id = "getopt-script-eval-loop"
+script = "set -- -v --name='John D' -- file1 'file 2'; eval set -- \"$(getopt -n t -o vn: -l name: -- \"$@\")\"; while true; do case \"$1\" in -v) echo verbose; shift;; -n|--name) echo \"name=$2\"; shift 2;; --) shift; break;; esac; done; printf '<%s>\\n' \"$@\""
+
+[[case]]
+id = "getopt-script-test-version"
+script = "getopt -T; echo \"rc=$?\""
+
+[[case]]
+id = "getopt-script-stdout-stderr-split"
+script = "getopt -o a -- -a -z 2>/dev/null; echo \"rc=$?\"; getopt -o a -- -a -z >/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "getopt-script-name-from-path"
+script = "cd /tmp 2>/dev/null; /usr/bin/getopt --version; /usr/bin/getopt -h | head -4"
+
+[[case]]
+id = "getopt-script-optional-argument-eval"
+script = "eval set -- \"$(getopt -o 'a::' -l 'opt::' -- -a --opt -aX --opt=Y z)\"; printf '<%s>\\n' \"$@\""

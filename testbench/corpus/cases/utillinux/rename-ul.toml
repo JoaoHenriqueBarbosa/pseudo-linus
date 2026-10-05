@@ -1,0 +1,387 @@
+tool = "rename.ul"
+source = "manual"
+
+# rename.ul do util-linux 2.41: troca de cadeia em nomes de arquivo, -v, -n, -o, -s, -a, -l, -i sem
+# terminal, códigos de saída 0, 1, 2, 4 e 64, mensagens de erro e o corte de barras finais.
+
+[[case]]
+id = "rename-help"
+argv = ["rename.ul", "--help"]
+
+[[case]]
+id = "rename-help-short"
+argv = ["rename.ul", "-h"]
+
+[[case]]
+id = "rename-version"
+argv = ["rename.ul", "-V"]
+
+[[case]]
+id = "rename-no-args"
+argv = ["rename.ul"]
+
+[[case]]
+id = "rename-not-enough-args-two"
+argv = ["rename.ul", "a", "b"]
+
+[[case]]
+id = "rename-invalid-option"
+argv = ["rename.ul", "-x", "a", "b", "c"]
+
+[[case]]
+id = "rename-unrecognized-option"
+argv = ["rename.ul", "--bogus", "a", "b", "c"]
+
+[[case]]
+id = "rename-exclusive-all-last"
+argv = ["rename.ul", "-a", "-l", "a", "b", "c"]
+
+[[case]]
+id = "rename-exclusive-last-all-long"
+argv = ["rename.ul", "--last", "--all", "a", "b", "c"]
+
+[[case]]
+id = "rename-exclusive-interactive-no-overwrite"
+argv = ["rename.ul", "-i", "-o", "a", "b", "c"]
+
+[[case]]
+id = "rename-exclusive-no-overwrite-interactive"
+argv = ["rename.ul", "-o", "-i", "a", "b", "c"]
+
+[[case]]
+id = "rename-same-option-twice-ok"
+argv = ["rename.ul", "-a", "-a", "a", "X", "banana"]
+[case.files]
+"banana" = ""
+
+[[case]]
+id = "rename-long-prefix"
+argv = ["rename.ul", "--verb", "--no-a", "a", "X", "banana"]
+[case.files]
+"banana" = ""
+
+[[case]]
+id = "rename-from-equals-to"
+argv = ["rename.ul", "x", "x", "file"]
+[case.files]
+"file" = ""
+
+[[case]]
+id = "rename-from-equals-to-missing-file"
+argv = ["rename.ul", "x", "x", "nope"]
+
+[[case]]
+id = "rename-simple"
+script = "touch foo.txt; rename.ul .txt .md foo.txt; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-verbose"
+script = "touch foo.txt bar.txt; rename.ul -v .txt .md foo.txt bar.txt; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-no-act"
+script = "touch foo.txt; rename.ul -n .txt .md foo.txt; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-no-act-verbose"
+script = "touch foo.txt bar.txt; rename.ul -nv .txt .md foo.txt bar.txt; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-no-match"
+script = "touch foo.txt; rename.ul .doc .md foo.txt; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-no-match-verbose"
+script = "touch foo.txt; rename.ul -v .doc .md foo.txt; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-no-match-no-act-verbose"
+script = "touch foo.txt; rename.ul -nv .doc .md foo.txt; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-partial-match"
+script = "touch foo.txt bar.doc; rename.ul .txt .md foo.txt bar.doc; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-first-occurrence"
+script = "touch banana; rename.ul a X banana; ls"
+
+[[case]]
+id = "rename-all"
+script = "touch banana; rename.ul -a a X banana; ls"
+
+[[case]]
+id = "rename-all-long"
+script = "touch banana; rename.ul --all an AN banana; ls"
+
+[[case]]
+id = "rename-last"
+script = "touch banana; rename.ul -l a X banana; ls"
+
+[[case]]
+id = "rename-last-overlapping"
+script = "touch aaaa; rename.ul -l aa X aaaa; ls"
+
+[[case]]
+id = "rename-all-nonoverlapping"
+script = "touch aaaaa; rename.ul -a aa X aaaaa; ls"
+
+[[case]]
+id = "rename-empty-expression-prefix"
+script = "touch file; rename.ul '' pre- file; ls"
+
+[[case]]
+id = "rename-empty-expression-all"
+script = "touch abc; rename.ul -a '' - abc; ls"
+
+[[case]]
+id = "rename-empty-expression-last"
+script = "touch abc; rename.ul -l '' - abc; ls"
+
+[[case]]
+id = "rename-empty-replacement"
+script = "touch foo.txt; rename.ul .txt '' foo.txt; ls"
+
+[[case]]
+id = "rename-replacement-longer"
+script = "touch ab; rename.ul a LONGER ab; ls"
+
+[[case]]
+id = "rename-only-last-component"
+script = "mkdir dir-a; touch dir-a/a-file; rename.ul a X dir-a/a-file; ls dir-a"
+
+[[case]]
+id = "rename-slash-in-expression-matches-whole-path"
+script = "mkdir dir-a; touch dir-a/file; rename.ul dir-a/ new/ dir-a/file; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-slash-in-expression-moves-file"
+script = "mkdir old new; touch old/f; rename.ul old/ new/ old/f; ls old new"
+
+[[case]]
+id = "rename-slash-in-replacement-only"
+script = "mkdir d; touch d/a.txt; rename.ul a. d/ d/a.txt; echo \"rc=$?\"; ls d"
+
+[[case]]
+id = "rename-path-trailing-slash"
+script = "mkdir adir; rename.ul -v a b adir/; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-path-trailing-slashes-many"
+script = "mkdir adir; rename.ul -v a b adir///; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-path-subdir-trailing-slash"
+script = "mkdir -p p/adir; rename.ul -v a b p/adir/; echo \"rc=$?\"; ls p"
+
+[[case]]
+id = "rename-missing-file"
+script = "rename.ul a b nope; echo \"rc=$?\""
+
+[[case]]
+id = "rename-missing-file-among-good"
+script = "touch a1; rename.ul a b a1 nope; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-existing-target-overwritten"
+script = "echo one > a1; echo two > b1; rename.ul a b a1; echo \"rc=$?\"; ls; cat b1"
+
+[[case]]
+id = "rename-no-overwrite"
+script = "echo one > a1; echo two > b1; rename.ul -o a b a1; echo \"rc=$?\"; ls; cat a1 b1"
+
+[[case]]
+id = "rename-no-overwrite-verbose"
+script = "echo one > a1; echo two > b1; rename.ul -ov a b a1; echo \"rc=$?\""
+
+[[case]]
+id = "rename-no-overwrite-target-absent"
+script = "echo one > a1; rename.ul -ov a b a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-no-overwrite-long"
+script = "echo one > a1; echo two > b1; rename.ul --no-overwrite a b a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-no-overwrite-dangling-target-counts-absent"
+script = "touch a1; ln -s nowhere b1; rename.ul -ov a b a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-interactive-yes"
+script = "echo one > a1; echo two > b1; printf 'y\\n' | rename.ul -i a b a1; echo \"rc=$?\"; ls; cat b1"
+
+[[case]]
+id = "rename-interactive-upper-yes"
+script = "echo one > a1; echo two > b1; printf 'Y\\n' | rename.ul -i a b a1; echo \"rc=$?\"; ls; cat b1"
+
+[[case]]
+id = "rename-interactive-no"
+script = "echo one > a1; echo two > b1; printf 'n\\n' | rename.ul -i a b a1; echo \"rc=$?\"; ls; cat a1 b1"
+
+[[case]]
+id = "rename-interactive-other-letter"
+script = "echo one > a1; echo two > b1; printf 'maybe\\n' | rename.ul -i a b a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-interactive-yes-word"
+script = "echo one > a1; echo two > b1; printf 'yes please\\n' | rename.ul -iv a b a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-interactive-empty-line"
+script = "echo one > a1; echo two > b1; printf '\\n' | rename.ul -i a b a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-interactive-eof"
+script = "echo one > a1; echo two > b1; rename.ul -i a b a1 </dev/null; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-interactive-eof-verbose"
+script = "echo one > a1; echo two > b1; rename.ul -iv a b a1 </dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "rename-interactive-target-absent-no-prompt"
+script = "echo one > a1; rename.ul -iv a b a1 </dev/null; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-interactive-two-files"
+script = "echo 1 > a1; echo 2 > a2; echo x > b1; echo y > b2; printf 'y\\nn\\n' | rename.ul -iv a b a1 a2; echo \"rc=$?\"; ls; cat b1 b2"
+
+[[case]]
+id = "rename-interactive-no-act"
+script = "echo one > a1; echo two > b1; printf 'y\\n' | rename.ul -in a b a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-interactive-no-act-verbose"
+script = "echo one > a1; echo two > b1; printf 'y\\n' | rename.ul -inv a b a1; echo \"rc=$?\""
+
+[[case]]
+id = "rename-interactive-long"
+script = "echo one > a1; echo two > b1; printf 'y\\n' | rename.ul --interactive a b a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-symlink"
+script = "touch real.txt; ln -s real.txt link; rename.ul -s .txt .md link; echo \"rc=$?\"; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-verbose"
+script = "ln -s real.txt link; rename.ul -sv .txt .md link; echo \"rc=$?\""
+
+[[case]]
+id = "rename-symlink-no-act-verbose"
+script = "ln -s real.txt link; rename.ul -snv .txt .md link; echo \"rc=$?\"; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-no-match"
+script = "ln -s real.txt link; rename.ul -s .doc .md link; echo \"rc=$?\""
+
+[[case]]
+id = "rename-symlink-no-match-no-act-verbose"
+script = "ln -s real.txt link; rename.ul -snv .doc .md link; echo \"rc=$?\""
+
+[[case]]
+id = "rename-symlink-no-match-verbose"
+script = "ln -s real.txt link; rename.ul -sv .doc .md link; echo \"rc=$?\""
+
+[[case]]
+id = "rename-symlink-not-a-link"
+script = "touch f; rename.ul -s a b f; echo \"rc=$?\""
+
+[[case]]
+id = "rename-symlink-missing"
+script = "rename.ul -s a b nope; echo \"rc=$?\""
+
+[[case]]
+id = "rename-symlink-all"
+script = "ln -s aXaXa link; rename.ul -sa a b link; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-last"
+script = "ln -s a/aa/a link; rename.ul -sl a b link; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-target-only-last-component"
+script = "ln -s dir-a/a-file link; rename.ul -s a X link; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-target-trailing-slash"
+script = "ln -s adir/ link; rename.ul -sv a b link; echo \"rc=$?\"; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-no-overwrite-existing"
+script = "ln -s a.txt link; touch b.txt; rename.ul -sov a b link; echo \"rc=$?\"; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-no-overwrite-absent"
+script = "ln -s a.txt link; rename.ul -sov a b link; echo \"rc=$?\"; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-interactive-yes"
+script = "ln -s a.txt link; touch b.txt; printf 'y\\n' | rename.ul -siv a b link; echo \"rc=$?\"; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-interactive-no"
+script = "ln -s a.txt link; touch b.txt; printf 'n\\n' | rename.ul -siv a b link; echo \"rc=$?\"; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-dangling-ok"
+script = "ln -s nowhere link; rename.ul -s nowhere elsewhere link; echo \"rc=$?\"; ls -l link | sed 's/.* link/link/'"
+
+[[case]]
+id = "rename-symlink-mixed"
+script = "ln -s a.txt l1; touch plain; ln -s b.txt l2; rename.ul -s .txt .md l1 plain l2; echo \"rc=$?\"; ls -l l1 l2 | sed 's/.* l/l/'"
+
+[[case]]
+id = "rename-rename-fails-into-missing-dir"
+script = "touch a1; rename.ul a nodir/b a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-rename-fails-over-nonempty-dir"
+script = "mkdir -p tgt/sub; touch a1; rename.ul a1 tgt a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-exit-code-all-failed"
+script = "rename.ul a b n1 n2 >/dev/null 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "rename-exit-code-some-ok"
+script = "touch a1; rename.ul a b a1 nope >/dev/null 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "rename-exit-code-nothing"
+script = "touch f; rename.ul a b f; echo \"rc=$?\""
+
+[[case]]
+id = "rename-exit-code-ok"
+script = "touch a1; rename.ul a b a1; echo \"rc=$?\""
+
+[[case]]
+id = "rename-utf8-names"
+script = "touch ação.txt; rename.ul ção cao ação.txt; ls"
+
+[[case]]
+id = "rename-names-with-spaces"
+script = "touch 'my file.txt'; rename.ul -v ' ' _ 'my file.txt'; ls"
+
+[[case]]
+id = "rename-names-starting-with-dash"
+script = "touch ./-x1; rename.ul x y ./-x1; ls"
+
+[[case]]
+id = "rename-options-after-operands-are-options"
+script = "touch a1; rename.ul a b a1 -v; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-double-dash-ends-options"
+script = "touch -- -a1; rename.ul -- a b -a1; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "rename-many-files"
+script = "touch f1.c f2.c f3.c; rename.ul .c .rs f*.c; ls"
+
+[[case]]
+id = "rename-overwrite-self-collision"
+script = "touch aa; rename.ul -a a b aa; ls"
+
+[[case]]
+id = "rename-from-longer-than-name"
+script = "touch ab; rename.ul abcdef X ab; echo \"rc=$?\"; ls"

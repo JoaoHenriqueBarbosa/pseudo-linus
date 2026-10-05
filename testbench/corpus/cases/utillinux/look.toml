@@ -1,0 +1,278 @@
+tool = "look"
+source = "manual"
+
+# look do util-linux 2.41 (bsdextrautils): busca binária e linear num arquivo ordenado, as opções
+# -d, -f, -t, o arquivo de palavras padrão ausente e as mensagens de erro.
+
+[[case]]
+id = "look-help"
+argv = ["look", "--help"]
+
+[[case]]
+id = "look-version"
+argv = ["look", "-V"]
+
+[[case]]
+id = "look-no-args"
+argv = ["look"]
+
+[[case]]
+id = "look-too-many-args"
+argv = ["look", "a", "words", "extra"]
+[case.files]
+"words" = "a\nb\n"
+
+[[case]]
+id = "look-invalid-option"
+argv = ["look", "-x", "a", "words"]
+[case.files]
+"words" = "a\nb\n"
+
+[[case]]
+id = "look-unrecognized-option"
+argv = ["look", "--bogus", "a"]
+
+[[case]]
+id = "look-terminate-missing-arg"
+argv = ["look", "-t"]
+
+[[case]]
+id = "look-long-prefix"
+argv = ["look", "--ignore", "AP", "words"]
+[case.files]
+"words" = "apple\napricot\nbanana\n"
+
+[[case]]
+id = "look-default-wordlist-missing"
+argv = ["look", "foo"]
+
+[[case]]
+id = "look-alternative-wordlist-missing"
+argv = ["look", "-a", "foo"]
+
+[[case]]
+id = "look-wordlist-env"
+argv = ["look", "ch"]
+env = { WORDLIST = "words" }
+[case.files]
+"words" = "apple\nbanana\ncherry\nchestnut\ndate\n"
+
+[[case]]
+id = "look-wordlist-env-missing"
+argv = ["look", "ch"]
+env = { WORDLIST = "nonexistent" }
+
+[[case]]
+id = "look-wordlist-env-ignored-with-file"
+argv = ["look", "ba", "words"]
+env = { WORDLIST = "other" }
+[case.files]
+"words" = "apple\nbanana\ncherry\n"
+"other" = "bar\n"
+
+[[case]]
+id = "look-file-missing"
+argv = ["look", "x", "nope.txt"]
+
+[[case]]
+id = "look-file-empty"
+argv = ["look", "x", "empty"]
+[case.files]
+"empty" = ""
+
+[[case]]
+id = "look-file-directory"
+argv = ["look", "x", "dir"]
+[case.files]
+"dir" = { dir = true }
+
+[[case]]
+id = "look-basic"
+argv = ["look", "ban", "words"]
+[case.files]
+"words" = "apple\nbanana\nbandana\nbanjo\ncherry\ndate\n"
+
+[[case]]
+id = "look-basic-case-sensitive"
+argv = ["look", "Ban", "words"]
+[case.files]
+"words" = "Banana\napple\nbanana\n"
+
+[[case]]
+id = "look-no-match"
+argv = ["look", "zzz", "words"]
+[case.files]
+"words" = "apple\nbanana\ncherry\n"
+
+[[case]]
+id = "look-no-match-between"
+argv = ["look", "bb", "words"]
+[case.files]
+"words" = "apple\nbanana\ncherry\n"
+
+[[case]]
+id = "look-first-line"
+argv = ["look", "a", "words"]
+[case.files]
+"words" = "apple\napricot\nbanana\ncherry\n"
+
+[[case]]
+id = "look-last-line"
+argv = ["look", "ch", "words"]
+[case.files]
+"words" = "apple\nbanana\ncherry\n"
+
+[[case]]
+id = "look-last-line-no-newline"
+argv = ["look", "ch", "words"]
+[case.files]
+"words" = "apple\nbanana\ncherry"
+
+[[case]]
+id = "look-single-line"
+argv = ["look", "x", "words"]
+[case.files]
+"words" = "xyz\n"
+
+[[case]]
+id = "look-exact-match-and-longer"
+argv = ["look", "ban", "words"]
+[case.files]
+"words" = "ban\nbanana\nband\nbank\nbat\n"
+
+[[case]]
+id = "look-string-longer-than-line"
+argv = ["look", "bananas", "words"]
+[case.files]
+"words" = "banana\nbananas\nbananas split\nbandana\n"
+
+[[case]]
+id = "look-empty-string"
+argv = ["look", "", "words"]
+[case.files]
+"words" = "a\nb\nc\n"
+
+[[case]]
+id = "look-ignore-case-f"
+argv = ["look", "-f", "ban", "words"]
+[case.files]
+"words" = "apple\nBanana\nbanjo\nBANK\ncherry\n"
+
+[[case]]
+id = "look-alphanum-d"
+argv = ["look", "-d", "b.an", "words"]
+[case.files]
+"words" = "apple\nb-an\nbanana\nb.an\ncherry\n"
+
+[[case]]
+id = "look-alphanum-d-line-punctuation"
+argv = ["look", "-d", "ban", "words"]
+[case.files]
+"words" = "a\nb a-n\nbana\n"
+
+[[case]]
+id = "look-alphanum-d-blank"
+argv = ["look", "-d", "a b", "words"]
+[case.files]
+"words" = "a\na b\na bc\nab\n"
+
+[[case]]
+id = "look-alphanum-d-only-punctuation"
+argv = ["look", "-d", "...", "words"]
+[case.files]
+"words" = "a\nb\nc\n"
+
+[[case]]
+id = "look-d-and-f"
+argv = ["look", "-df", "B-A", "words"]
+[case.files]
+"words" = "apple\nBa\nba-n\nBAN\ncherry\n"
+
+[[case]]
+id = "look-terminate"
+argv = ["look", "-t", "a", "ban", "words"]
+[case.files]
+"words" = "apple\nbanana\nbandana\nbat\nbay\n"
+
+[[case]]
+id = "look-terminate-long"
+argv = ["look", "--terminate=n", "banana", "words"]
+[case.files]
+"words" = "apple\nbanana\nbandana\nbanjo\nbat\n"
+
+[[case]]
+id = "look-terminate-absent-char"
+argv = ["look", "-t", "z", "ban", "words"]
+[case.files]
+"words" = "apple\nbanana\nbandana\nbat\n"
+
+[[case]]
+id = "look-terminate-empty-arg"
+argv = ["look", "-t", "", "ban", "words"]
+[case.files]
+"words" = "apple\nbanana\nbandana\nbat\n"
+
+[[case]]
+id = "look-terminate-first-char"
+argv = ["look", "-t", "b", "banana", "words"]
+[case.files]
+"words" = "apple\nb\nbanana\nbat\n"
+
+[[case]]
+id = "look-single-operand-implies-df"
+argv = ["look", "B-A"]
+env = { WORDLIST = "words" }
+[case.files]
+"words" = "apple\nBanana\nbandana\ncherry\n"
+
+[[case]]
+id = "look-stdin-style-dash-file"
+argv = ["look", "a", "-"]
+
+[[case]]
+id = "look-unsorted-file"
+argv = ["look", "ban", "words"]
+[case.files]
+"words" = "apple\nzebra\nbanana\nband\ncherry\nbanjo\nzulu\nbank\n"
+
+[[case]]
+id = "look-unsorted-file-two"
+argv = ["look", "m", "words"]
+[case.files]
+"words" = "z\ny\nx\nmm\nm\nl\nk\nj\nmn\ni\n"
+
+[[case]]
+id = "look-crlf-lines"
+argv = ["look", "ab", "words"]
+[case.files]
+"words" = "aa\r\nab\r\nac\r\n"
+
+[[case]]
+id = "look-utf8-lines"
+argv = ["look", "caf", "words"]
+[case.files]
+"words" = "cacao\ncafé\ncafeteria\ncaffè\n"
+
+[[case]]
+id = "look-utf8-alphanum-d"
+argv = ["look", "-d", "cafe", "words"]
+[case.files]
+"words" = "cacao\ncafé\ncafeteria\n"
+
+[[case]]
+id = "look-blank-lines-in-file"
+argv = ["look", "b", "words"]
+[case.files]
+"words" = "\n\na\nb\nbb\n"
+
+[[case]]
+id = "look-script-exit-codes"
+script = "printf 'a\\nb\\n' > w; look a w; echo \"rc=$?\"; look z w; echo \"rc=$?\"; look a nope; echo \"rc=$?\""
+
+[[case]]
+id = "look-script-wordlist-from-env-readable"
+script = "printf 'one\\ntwo\\n' > w; WORDLIST=w look t; echo \"rc=$?\"; WORDLIST=w look -a t; echo \"rc=$?\""
+
+[[case]]
+id = "look-script-two-args-no-implicit-df"
+script = "printf 'Apple\\nbanana\\n' > w; look apple w; echo \"rc=$?\"; look apple < /dev/null; echo \"rc=$?\""

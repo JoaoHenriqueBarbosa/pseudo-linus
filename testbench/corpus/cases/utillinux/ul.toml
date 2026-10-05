@@ -1,0 +1,453 @@
+tool = "ul"
+source = "manual"
+
+# ul do util-linux 2.41 (bsdextrautils): sublinhado e negrito por capacidades de terminal (terminfo do
+# Debian 13), TERM ausente, desconhecido ou dumb, -t/-T, -i, meias linhas, SO/SI e erros. A saída passa
+# por od -c pra mostrar as sequências de escape.
+
+[[case]]
+id = "ul-help"
+argv = ["ul", "--help"]
+env = { TERM = "dumb" }
+
+[[case]]
+id = "ul-help-short"
+argv = ["ul", "-h"]
+env = { TERM = "dumb" }
+
+[[case]]
+id = "ul-version"
+argv = ["ul", "-V"]
+env = { TERM = "dumb" }
+
+[[case]]
+id = "ul-invalid-option"
+argv = ["ul", "-x"]
+env = { TERM = "dumb" }
+
+[[case]]
+id = "ul-unrecognized-option"
+argv = ["ul", "--bogus"]
+env = { TERM = "dumb" }
+
+[[case]]
+id = "ul-terminal-missing-arg"
+argv = ["ul", "-t"]
+env = { TERM = "dumb" }
+
+[[case]]
+id = "ul-file-missing"
+argv = ["ul", "nope.txt"]
+env = { TERM = "dumb" }
+
+[[case]]
+id = "ul-file-missing-after-good"
+argv = ["ul", "good.txt", "nope.txt"]
+env = { TERM = "dumb" }
+[case.files]
+"good.txt" = "hello\n"
+
+[[case]]
+id = "ul-file-directory"
+argv = ["ul", "dir"]
+env = { TERM = "dumb" }
+[case.files]
+"dir" = { dir = true }
+
+[[case]]
+id = "ul-two-files"
+argv = ["ul", "a.txt", "b.txt"]
+env = { TERM = "dumb" }
+[case.files]
+"a.txt" = "first\n"
+"b.txt" = "second\n"
+
+[[case]]
+id = "ul-plain-stdin"
+argv = ["ul"]
+env = { TERM = "dumb" }
+stdin = "hello\nworld\n"
+
+[[case]]
+id = "ul-empty-input"
+argv = ["ul"]
+env = { TERM = "dumb" }
+stdin = ""
+
+[[case]]
+id = "ul-term-unset"
+script = "env -u TERM ul f.txt; echo \"rc=$?\""
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-term-unset-with-terminal-option"
+script = "env -u TERM ul -t xterm f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-term-unset-with-unknown-terminal-option"
+script = "env -u TERM ul -t nosuchterm f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-term-empty"
+script = "TERM= ul f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-term-unknown"
+script = "TERM=nosuchterm ul f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-terminal-option-unknown"
+script = "TERM=xterm ul -t nosuchterm f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-terminal-option-empty"
+script = "TERM=xterm ul -t '' f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-terminal-option-upper-t"
+script = "TERM=dumb ul -T xterm f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-terminal-option-long"
+script = "TERM=dumb ul --terminal=xterm f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-terminal-option-attached"
+script = "TERM=dumb ul -txterm f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-terminal-option-dumb-overrides"
+script = "TERM=xterm ul -t dumb f.txt | od -c"
+[case.files]
+"f.txt" = "x_\bx\n"
+
+[[case]]
+id = "ul-dumb-underline-backspace"
+script = "printf 'h_\\bhe_\\bel_\\bll_\\blo_\\bo\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-underline-nroff"
+script = "printf '_\\bh_\\be_\\bl_\\bl_\\bo\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-bold"
+script = "printf 'b\\bbo\\bol\\bld\\bd\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-indicated"
+script = "printf 'h_\\bhe_\\bel\\bll\\bld\\bd\\n' | TERM=dumb ul -i | od -c"
+
+[[case]]
+id = "ul-dumb-indicated-long"
+script = "printf 'a_\\bab\\bb\\n' | TERM=dumb ul --indicated | od -c"
+
+[[case]]
+id = "ul-dumb-indicated-plain-line"
+script = "printf 'plain\\na_\\bb\\n' | TERM=dumb ul -i | od -c"
+
+[[case]]
+id = "ul-dumb-plain"
+script = "printf 'abc\\ndef\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-no-trailing-newline"
+script = "printf 'abc' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-blank-lines"
+script = "printf 'a\\n\\n\\nb\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-spaces-kept-interior"
+script = "printf 'a  b   c\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-leading-spaces"
+script = "printf '   a\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-trailing-spaces-dropped"
+script = "printf 'a   \\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-tab"
+script = "printf 'a\\tb\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-carriage-return"
+script = "printf 'abc\\rX\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-carriage-return-overwrite-equal"
+script = "printf 'abc\\rabc\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-backspace-overwrite-different-ignored"
+script = "printf 'abc\\b\\bX\\ny\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-backspace-at-start"
+script = "printf '\\b\\bab\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-form-feed"
+script = "printf 'a\\fb\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-unprintable-dropped"
+script = "printf 'a\\001b\\177c\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-so-si"
+script = "printf 'a\\016b\\017c\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-so-si-indicated"
+script = "printf 'a\\016bc\\017d\\n' | TERM=dumb ul -i | od -c"
+
+[[case]]
+id = "ul-dumb-so-stays-across-lines"
+script = "printf 'a\\016b\\nc\\017d\\n' | TERM=dumb ul -i | od -c"
+
+[[case]]
+id = "ul-dumb-esc-8-superscript"
+script = "printf 'x\\0338 2\\0339y\\n' | TERM=dumb ul -i | od -c"
+
+[[case]]
+id = "ul-dumb-esc-9-subscript"
+script = "printf 'H\\0339 2\\0338O\\n' | TERM=dumb ul -i | od -c"
+
+[[case]]
+id = "ul-dumb-esc-7-reverse-line"
+script = "printf 'abc\\n\\0337xyz\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-esc-8-twice-reverse"
+script = "printf 'abc\\0338\\0338\\0338d\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-esc-9-three-forward"
+script = "printf 'abc\\0339\\0339\\0339d\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-esc-unknown"
+script = "printf 'a\\033Xb' | TERM=dumb ul; echo \"rc=$?\""
+
+[[case]]
+id = "ul-dumb-esc-unknown-after-output"
+script = "printf 'ok\\nbad\\033Zb\\n' | TERM=dumb ul; echo \"rc=$?\""
+
+[[case]]
+id = "ul-dumb-esc-at-eof"
+script = "printf 'a\\033' | TERM=dumb ul; echo \"rc=$?\""
+
+[[case]]
+id = "ul-dumb-esc-unicode-unknown"
+script = "printf 'a\\033\\303\\251' | TERM=dumb ul; echo \"rc=$?\""
+
+[[case]]
+id = "ul-dumb-wide-char-underline"
+script = "printf '_\\b\\346\\227\\245x\\n' | TERM=dumb ul -i | od -c"
+
+[[case]]
+id = "ul-dumb-wide-char-underline-after"
+script = "printf '\\346\\227\\245\\b_\\b_x\\n' | TERM=dumb ul -i | od -c"
+
+[[case]]
+id = "ul-dumb-wide-chars-text"
+script = "printf '\\346\\227\\245\\346\\234\\254 abc\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-combining-mark"
+script = "printf 'e\\314\\201x\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-utf8-text"
+script = "printf 'caf\\303\\251\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-invalid-utf8"
+script = "printf 'ab\\377cd\\n' | TERM=dumb ul; echo \"rc=$?\""
+
+[[case]]
+id = "ul-dumb-invalid-utf8-second-line"
+script = "printf 'ab\\ncd\\377\\n' | TERM=dumb ul; echo \"rc=$?\""
+
+[[case]]
+id = "ul-dumb-incomplete-utf8-at-eof"
+script = "printf 'ab\\343\\201' | TERM=dumb ul | od -c; echo \"rc=$?\""
+
+[[case]]
+id = "ul-dumb-long-line"
+script = "{ head -c 9000 /dev/zero | tr '\\0' 'x'; echo; echo next; } | TERM=dumb ul | od -c | tail -4"
+
+[[case]]
+id = "ul-dumb-underscore-only"
+script = "printf '___\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-underscore-over-underscore"
+script = "printf '_\\b_\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-dumb-underscore-over-char"
+script = "printf 'a\\b_\\n' | TERM=dumb ul -i | od -c"
+
+[[case]]
+id = "ul-dumb-stale-cell-after-overwrite"
+script = "printf 'abc\\b\\bX\\n\\t\\ty\\n' | TERM=dumb ul | od -c"
+
+[[case]]
+id = "ul-xterm-underline-backspace"
+script = "printf 'h_\\bhe_\\bel_\\bll_\\blo_\\bo\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-underline-nroff"
+script = "printf '_\\bh_\\be_\\bl_\\bl_\\bo\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-underline-partial"
+script = "printf 'ab_\\bcd\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-bold"
+script = "printf 'b\\bbo\\bol\\bld\\bd\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-bold-and-underline"
+script = "printf 'a_\\b\\bab\\bb\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-bold-then-underline-adjacent"
+script = "printf 'b\\bbu_\\bu\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-bold-underline-same-cell"
+script = "printf '_\\bb\\bb\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-256color"
+script = "printf 'a_\\ba\\n' | TERM=xterm-256color ul | od -c"
+
+[[case]]
+id = "ul-xterm-indicated"
+script = "printf 'a_\\bab\\bb\\n' | TERM=xterm ul -i | od -c"
+
+[[case]]
+id = "ul-xterm-so-si"
+script = "printf 'a\\016b\\017c\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-so-underline"
+script = "printf '\\016a_\\ba\\017\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-superscript"
+script = "printf 'x\\0338 2\\0339y\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-subscript"
+script = "printf 'H\\0339 2\\0338O\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-reverse-line"
+script = "printf 'abc\\n\\0337xyz\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-reverse-line-mid-text"
+script = "printf 'abc\\0337xyz\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-half-reverse-three"
+script = "printf 'abc\\0338\\0338\\0338d\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-half-forward-three"
+script = "printf 'abc\\0339\\0339\\0339d\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-form-feed"
+script = "printf 'a\\fb\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-mode-ends-line"
+script = "printf 'ab_\\b_\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-wide-underline"
+script = "printf '_\\b\\346\\227\\245x\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-xterm-terminal-flag"
+script = "printf 'a_\\ba\\n' | TERM=dumb ul -t xterm | od -c"
+
+[[case]]
+id = "ul-xterm-multiple-lines-mode-resets"
+script = "printf 'a_\\ba\\nb\\nc_\\bc\\n' | TERM=xterm ul | od -c"
+
+[[case]]
+id = "ul-vt100-underline"
+script = "printf 'a_\\ba\\n' | TERM=vt100 ul | od -c"
+
+[[case]]
+id = "ul-vt100-bold"
+script = "printf 'b\\bb\\n' | TERM=vt100 ul | od -c"
+
+[[case]]
+id = "ul-vt100-superscript"
+script = "printf 'x\\0338 2\\0339y\\n' | TERM=vt100 ul | od -c"
+
+[[case]]
+id = "ul-linux-underline"
+script = "printf 'a_\\ba\\n' | TERM=linux ul | od -c"
+
+[[case]]
+id = "ul-linux-bold-and-so"
+script = "printf 'b\\bb\\016c\\017\\n' | TERM=linux ul | od -c"
+
+[[case]]
+id = "ul-ansi-underline-bold"
+script = "printf 'a_\\ba b\\bb\\n' | TERM=ansi ul | od -c"
+
+[[case]]
+id = "ul-ansi-reverse-line"
+script = "printf 'abc\\n\\0337xyz\\n' | TERM=ansi ul | od -c"
+
+[[case]]
+id = "ul-screen-reverse-line"
+script = "printf 'abc\\n\\0337xyz\\n' | TERM=screen ul | od -c"
+
+[[case]]
+id = "ul-screen-underline"
+script = "printf 'a_\\ba\\n' | TERM=screen ul | od -c"
+
+[[case]]
+id = "ul-vt52-fallbacks"
+script = "printf 'a_\\ba b\\bb\\n' | TERM=vt52 ul | od -c"
+
+[[case]]
+id = "ul-cons25-fallbacks"
+script = "printf 'a_\\ba b\\bb x\\0338 2\\n' | TERM=cons25 ul | od -c"
+
+[[case]]
+id = "ul-signal-exit-code"
+script = "printf 'a\\n' | TERM=dumb ul >/dev/null; echo \"rc=$?\""

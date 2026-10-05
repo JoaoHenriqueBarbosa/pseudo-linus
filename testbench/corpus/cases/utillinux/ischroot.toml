@@ -1,0 +1,118 @@
+tool = "ischroot"
+source = "manual"
+
+# ischroot do debianutils 5.23: ajuda, versão, erros de opção, o conflito entre -f e -t, o atalho do
+# fakechroot (sempre 0) e a detecção sem forçar resultado. Dentro do oráculo e do sandbox "não é chroot"
+# dá 1.
+
+[[case]]
+id = "ischroot-help"
+argv = ["ischroot", "--help"]
+
+[[case]]
+id = "ischroot-help-short"
+argv = ["ischroot", "-h"]
+
+[[case]]
+id = "ischroot-version"
+argv = ["ischroot", "--version"]
+
+[[case]]
+id = "ischroot-version-short"
+argv = ["ischroot", "-V"]
+
+[[case]]
+id = "ischroot-invalid-option"
+argv = ["ischroot", "-x"]
+
+[[case]]
+id = "ischroot-invalid-option-by-path"
+argv = ["/usr/bin/ischroot", "-x"]
+
+[[case]]
+id = "ischroot-unrecognized-option"
+argv = ["ischroot", "--bogus"]
+
+[[case]]
+id = "ischroot-ambiguous-option"
+argv = ["ischroot", "--d"]
+
+[[case]]
+id = "ischroot-ambiguous-option-default"
+argv = ["ischroot", "--def"]
+
+[[case]]
+id = "ischroot-long-option-exact"
+script = "ischroot --default-true; echo \"rc=$?\"; ischroot --default-false; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-unique-long-prefix"
+script = "ischroot --default-t; echo \"rc=$?\"; ischroot --default-f; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-both-defaults"
+argv = ["ischroot", "-f", "-t"]
+
+[[case]]
+id = "ischroot-both-defaults-long"
+argv = ["ischroot", "--default-true", "--default-false"]
+
+[[case]]
+id = "ischroot-both-defaults-clustered"
+argv = ["ischroot", "-tf"]
+
+[[case]]
+id = "ischroot-help-wins-over-conflict"
+argv = ["ischroot", "-f", "-t", "-h"]
+
+[[case]]
+id = "ischroot-conflict-checked-after-parsing"
+argv = ["ischroot", "-f", "-t", "-V"]
+
+[[case]]
+id = "ischroot-invalid-after-valid"
+argv = ["ischroot", "-f", "-x"]
+
+[[case]]
+id = "ischroot-fakechroot-detected"
+script = "FAKECHROOT=true FAKECHROOT_BASE=/x LD_PRELOAD=libfakechroot.so ischroot 2>/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-fakechroot-preload-with-path-and-others"
+script = "FAKECHROOT=true FAKECHROOT_BASE=/x LD_PRELOAD=/usr/lib/xlibfakechroot.so.1:/other.so ischroot 2>/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-fakechroot-needs-true"
+script = "FAKECHROOT=yes FAKECHROOT_BASE=/x LD_PRELOAD=libfakechroot.so ischroot 2>/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-fakechroot-needs-base"
+script = "FAKECHROOT=true LD_PRELOAD=libfakechroot.so ischroot 2>/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-fakechroot-needs-preload"
+script = "FAKECHROOT=true FAKECHROOT_BASE=/x ischroot; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-fakechroot-empty-base-counts"
+script = "FAKECHROOT=true FAKECHROOT_BASE= LD_PRELOAD=libfakechroot.so ischroot 2>/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-fakechroot-with-default-false"
+script = "FAKECHROOT=true FAKECHROOT_BASE=/x LD_PRELOAD=libfakechroot.so ischroot -f 2>/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-fakechroot-with-default-true"
+script = "FAKECHROOT=true FAKECHROOT_BASE=/x LD_PRELOAD=libfakechroot.so ischroot -t 2>/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-not-a-chroot"
+script = "ischroot; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-operands-ignored"
+script = "ischroot extra operands; echo \"rc=$?\""
+
+[[case]]
+id = "ischroot-double-dash"
+script = "ischroot -- ; echo \"rc=$?\""

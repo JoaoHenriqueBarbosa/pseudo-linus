@@ -1,0 +1,470 @@
+tool = "namei"
+source = "manual"
+
+# namei do util-linux 2.41: caminho componente a componente, symlinks seguidos (limite de 20),
+# -m, -o, -l, -n, -v, -x, -Z, larguras de dono e grupo, componentes inexistentes e erros.
+
+[[case]]
+id = "namei-help"
+argv = ["namei", "--help"]
+
+[[case]]
+id = "namei-help-short"
+argv = ["namei", "-h"]
+
+[[case]]
+id = "namei-version"
+argv = ["namei", "-V"]
+
+[[case]]
+id = "namei-no-args"
+argv = ["namei"]
+
+[[case]]
+id = "namei-only-options"
+argv = ["namei", "-l"]
+
+[[case]]
+id = "namei-invalid-option"
+argv = ["namei", "-q", "x"]
+
+[[case]]
+id = "namei-unrecognized-option"
+argv = ["namei", "--bogus", "x"]
+
+[[case]]
+id = "namei-nosymlinks-long-is-not-an-option"
+argv = ["namei", "--nosymlinks", "x"]
+
+[[case]]
+id = "namei-long-prefix"
+argv = ["namei", "--mod", "a/b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = { content = "x", mode = 0o644 }
+
+[[case]]
+id = "namei-ambiguous-long-prefix"
+argv = ["namei", "--no", "a"]
+[case.files]
+"a" = { dir = true }
+
+[[case]]
+id = "namei-simple"
+argv = ["namei", "a/b/c"]
+[case.files]
+"a" = { dir = true }
+"a/b" = { dir = true }
+"a/b/c" = "data\n"
+
+[[case]]
+id = "namei-relative-single"
+argv = ["namei", "file.txt"]
+[case.files]
+"file.txt" = "x"
+
+[[case]]
+id = "namei-absolute-root"
+argv = ["namei", "/"]
+
+[[case]]
+id = "namei-absolute-usr-bin"
+argv = ["namei", "/usr/bin"]
+
+[[case]]
+id = "namei-absolute-double-slashes"
+argv = ["namei", "//usr//bin//"]
+
+[[case]]
+id = "namei-trailing-slashes"
+argv = ["namei", "a/b///"]
+[case.files]
+"a" = { dir = true }
+"a/b" = { dir = true }
+
+[[case]]
+id = "namei-dot-and-dotdot"
+argv = ["namei", "a/./b/../b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = { dir = true }
+
+[[case]]
+id = "namei-multiple-args"
+argv = ["namei", "a", "b/c", "nope", "a/b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = ""
+"b" = { dir = true }
+"b/c" = ""
+
+[[case]]
+id = "namei-empty-arg"
+argv = ["namei", "", "a"]
+[case.files]
+"a" = ""
+
+[[case]]
+id = "namei-missing-component"
+argv = ["namei", "a/missing/deeper"]
+[case.files]
+"a" = { dir = true }
+
+[[case]]
+id = "namei-missing-first-component"
+argv = ["namei", "missing/x"]
+
+[[case]]
+id = "namei-missing-leaf"
+argv = ["namei", "a/missing"]
+[case.files]
+"a" = { dir = true }
+
+[[case]]
+id = "namei-not-a-directory"
+argv = ["namei", "f/x/y"]
+[case.files]
+"f" = "data"
+
+[[case]]
+id = "namei-modes"
+argv = ["namei", "-m", "a/b/c"]
+[case.files]
+"a" = { dir = true }
+"a/b" = { dir = true }
+"a/b/c" = { content = "x", mode = 0o640 }
+
+[[case]]
+id = "namei-modes-special-bits"
+script = "mkdir -p d/s d/t d/u; chmod 4755 d/s; chmod 1777 d/t; chmod 2745 d/u; touch d/f; chmod 4644 d/f; touch d/g; chmod 2655 d/g; touch d/h; chmod 1666 d/h; namei -m d/s d/t d/u d/f d/g d/h"
+
+[[case]]
+id = "namei-modes-no-permissions"
+script = "mkdir d; touch d/f; chmod 000 d/f; chmod 000 d; namei -m d/f; chmod 755 d"
+
+[[case]]
+id = "namei-owners"
+argv = ["namei", "-o", "a/b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = ""
+
+[[case]]
+id = "namei-owners-modes"
+argv = ["namei", "-om", "a/b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = { content = "x", mode = 0o600 }
+
+[[case]]
+id = "namei-long"
+argv = ["namei", "-l", "a/b/c"]
+[case.files]
+"a" = { dir = true }
+"a/b" = { dir = true }
+"a/b/c" = ""
+
+[[case]]
+id = "namei-long-option"
+argv = ["namei", "--long", "a/b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = ""
+
+[[case]]
+id = "namei-long-absolute"
+argv = ["namei", "-l", "/etc/passwd"]
+
+[[case]]
+id = "namei-long-missing"
+argv = ["namei", "-l", "a/missing/x"]
+[case.files]
+"a" = { dir = true }
+
+[[case]]
+id = "namei-long-widths-accumulate"
+argv = ["namei", "-l", "a", "/etc/hostname"]
+[case.files]
+"a" = { dir = true }
+
+[[case]]
+id = "namei-vertical"
+argv = ["namei", "-v", "a/b/c"]
+[case.files]
+"a" = { dir = true }
+"a/b" = { dir = true }
+"a/b/c" = ""
+
+[[case]]
+id = "namei-vertical-modes"
+argv = ["namei", "-vm", "a/b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = ""
+
+[[case]]
+id = "namei-vertical-symlink"
+argv = ["namei", "-v", "l/f"]
+[case.files]
+"d" = { dir = true }
+"d/f" = ""
+"l" = { symlink = "d" }
+
+[[case]]
+id = "namei-context"
+argv = ["namei", "-Z", "a/b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = ""
+
+[[case]]
+id = "namei-context-long"
+argv = ["namei", "-lZ", "a/b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = ""
+
+[[case]]
+id = "namei-context-missing"
+argv = ["namei", "-Z", "a/missing"]
+[case.files]
+"a" = { dir = true }
+
+[[case]]
+id = "namei-context-missing-long"
+argv = ["namei", "-lZ", "a/missing"]
+[case.files]
+"a" = { dir = true }
+
+[[case]]
+id = "namei-context-long-option"
+argv = ["namei", "--context", "a"]
+[case.files]
+"a" = ""
+
+[[case]]
+id = "namei-mountpoints-root"
+argv = ["namei", "-x", "/"]
+
+[[case]]
+id = "namei-mountpoints-relative"
+argv = ["namei", "-x", "a/b"]
+[case.files]
+"a" = { dir = true }
+"a/b" = { dir = true }
+
+[[case]]
+id = "namei-mountpoints-modes"
+argv = ["namei", "-xm", "/"]
+
+[[case]]
+id = "namei-mountpoints-root-symlink"
+argv = ["namei", "-x", "l"]
+[case.files]
+"l" = { symlink = "/" }
+
+[[case]]
+id = "namei-mountpoints-long-option"
+argv = ["namei", "--mountpoints", "/"]
+
+[[case]]
+id = "namei-mountpoints-dotdot"
+argv = ["namei", "-x", "a/.."]
+[case.files]
+"a" = { dir = true }
+
+[[case]]
+id = "namei-symlink-relative"
+argv = ["namei", "l/f"]
+[case.files]
+"d" = { dir = true }
+"d/e" = { dir = true }
+"d/e/f" = ""
+"l" = { symlink = "d/e" }
+
+[[case]]
+id = "namei-symlink-final"
+argv = ["namei", "l"]
+[case.files]
+"target" = "x"
+"l" = { symlink = "target" }
+
+[[case]]
+id = "namei-symlink-absolute"
+argv = ["namei", "l"]
+[case.files]
+"l" = { symlink = "/usr/bin" }
+
+[[case]]
+id = "namei-symlink-absolute-long"
+argv = ["namei", "-l", "l"]
+[case.files]
+"l" = { symlink = "/usr/bin" }
+
+[[case]]
+id = "namei-symlink-in-subdir-relative"
+argv = ["namei", "x/l"]
+[case.files]
+"x" = { dir = true }
+"x/y" = { dir = true }
+"x/y/z" = ""
+"x/l" = { symlink = "y/z" }
+
+[[case]]
+id = "namei-symlink-dotdot"
+argv = ["namei", "x/l/file"]
+[case.files]
+"x" = { dir = true }
+"x/l" = { symlink = "../y" }
+"y" = { dir = true }
+"y/file" = ""
+
+[[case]]
+id = "namei-symlink-chain"
+argv = ["namei", "a"]
+[case.files]
+"a" = { symlink = "b" }
+"b" = { symlink = "c" }
+"c" = { symlink = "d" }
+"d" = ""
+
+[[case]]
+id = "namei-symlink-chain-long"
+argv = ["namei", "-l", "a"]
+[case.files]
+"a" = { symlink = "b" }
+"b" = { symlink = "c" }
+"c" = ""
+
+[[case]]
+id = "namei-symlink-dangling"
+argv = ["namei", "l"]
+[case.files]
+"l" = { symlink = "nowhere" }
+
+[[case]]
+id = "namei-symlink-dangling-long"
+argv = ["namei", "-lo", "l"]
+[case.files]
+"l" = { symlink = "nowhere" }
+
+[[case]]
+id = "namei-symlink-dangling-modes"
+argv = ["namei", "-m", "l"]
+[case.files]
+"l" = { symlink = "nowhere/deeper" }
+
+[[case]]
+id = "namei-symlink-to-file-then-component"
+argv = ["namei", "l/x"]
+[case.files]
+"f" = ""
+"l" = { symlink = "f" }
+
+[[case]]
+id = "namei-symlink-dot"
+argv = ["namei", "dot/dot/f"]
+[case.files]
+"dot" = { symlink = "." }
+"f" = ""
+
+[[case]]
+id = "namei-symlink-loop"
+argv = ["namei", "l"]
+[case.files]
+"l" = { symlink = "l" }
+
+[[case]]
+id = "namei-symlink-loop-two"
+argv = ["namei", "a"]
+[case.files]
+"a" = { symlink = "b" }
+"b" = { symlink = "a" }
+
+[[case]]
+id = "namei-symlink-loop-then-ok"
+argv = ["namei", "l", "f"]
+[case.files]
+"l" = { symlink = "l" }
+"f" = ""
+
+[[case]]
+id = "namei-symlink-exactly-twenty"
+script = "for i in $(seq 1 19); do ln -s l$((i+1)) l$i; done; touch l20; namei l1 | wc -l; echo rc=$?"
+
+[[case]]
+id = "namei-symlink-twenty-one"
+script = "for i in $(seq 1 21); do ln -s l$((i+1)) l$i; done; touch l22; namei l1 | tail -3; namei l1 >/dev/null 2>&1; echo rc=$?"
+
+[[case]]
+id = "namei-nolinks"
+argv = ["namei", "-n", "l/f"]
+[case.files]
+"d" = { dir = true }
+"d/f" = ""
+"l" = { symlink = "d" }
+
+[[case]]
+id = "namei-nolinks-long"
+argv = ["namei", "-nl", "l"]
+[case.files]
+"l" = { symlink = "target" }
+"target" = ""
+
+[[case]]
+id = "namei-nolinks-long-option"
+argv = ["namei", "--nolinks", "l"]
+[case.files]
+"l" = { symlink = "target" }
+
+[[case]]
+id = "namei-nolinks-loop"
+argv = ["namei", "-n", "l"]
+[case.files]
+"l" = { symlink = "l" }
+
+[[case]]
+id = "namei-file-types"
+script = "mkdir d; mkfifo d/p; ln -s p d/s; touch d/r; namei -m d/p d/s d/r"
+
+[[case]]
+id = "namei-char-device"
+argv = ["namei", "-l", "/dev/null"]
+
+[[case]]
+id = "namei-modes-dev-null"
+argv = ["namei", "-m", "/dev/null"]
+
+[[case]]
+id = "namei-exit-status-dangling-final"
+script = "ln -s nowhere l; namei l >/dev/null; echo \"rc=$?\"; touch f; namei f >/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "namei-exit-status-multiple"
+script = "touch f; namei f nope f >/dev/null 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "namei-utf8-names"
+argv = ["namei", "-l", "dir/ação"]
+[case.files]
+"dir" = { dir = true }
+"dir/ação" = ""
+
+[[case]]
+id = "namei-spaces-in-names"
+argv = ["namei", "-m", "my dir/my file"]
+[case.files]
+"my dir" = { dir = true }
+"my dir/my file" = ""
+
+[[case]]
+id = "namei-owner-without-name"
+script = "mkdir d; chown 4242:4343 d; namei -o d; namei -l d"
+
+[[case]]
+id = "namei-owner-without-name-width"
+script = "mkdir d; touch d/a; chown 12345678:87654321 d/a; namei -o d/a /"
+
+[[case]]
+id = "namei-stdout-order-with-warning"
+script = "ln -s l l; namei l a 2>&1 | tail -3"

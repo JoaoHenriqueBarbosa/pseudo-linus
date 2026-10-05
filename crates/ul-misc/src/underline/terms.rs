@@ -1,0 +1,71 @@
+//! Capacidades de terminal que o `ul` consulta (`tigetstr`/`tigetflag` do ncurses 6.5), extraídas do
+//! banco terminfo do Debian 13 (`ncurses-base`), um item por terminal. Gerado com `infocmp -1 -x`
+//! dentro do oráculo; as sequências de preenchimento (`$<2>`) já foram removidas, porque o `tputs`
+//! não emite nada delas quando a saída não é um terminal.
+
+/// `cuu1`, `cuf1`, `cub1`, `smso`, `rmso`, `smul`, `rmul`, `dim`, `bold`, `rev`, `sgr0`, `uc` e as
+/// flags `os` e `ul`, nesta ordem.
+pub struct T(
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub Option<&'static str>,
+    pub bool,
+    pub bool,
+);
+
+/// Os terminais conhecidos, ordenados por nome.
+pub const TERMS: &[(&str, T)] = &[
+    ("Eterm", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("Eterm-color", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("ansi", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x1b[D"), Some("\x1b[7m"), Some("\x1b[m"), Some("\x1b[4m"), Some("\x1b[m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0;10m"), None, false, false)),
+    ("cons25", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[m"), None, None, Some("\x1b[30;1m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m"), None, false, false)),
+    ("cygwin", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0;10m"), None, false, false)),
+    ("dumb", T(None, None, None, None, None, None, None, None, None, None, None, None, false, false)),
+    ("hurd", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0m"), None, false, false)),
+    ("linux", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("mach", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[0m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0m"), None, false, false)),
+    ("mach-bold", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[0m"), Some("\x1b[1m"), Some("\x1b[0m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0m"), None, false, false)),
+    ("mach-color", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0m"), None, false, false)),
+    ("mach-gnu", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[0m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0m"), None, false, false)),
+    ("mach-gnu-color", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0m"), None, false, false)),
+    ("pcansi", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x1b[D"), Some("\x1b[7m"), Some("\x1b[m"), Some("\x1b[4m"), Some("\x1b[m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0;10m"), None, false, false)),
+    ("rxvt", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("rxvt-basic", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0m\x0f"), None, false, false)),
+    ("rxvt-m", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[0m\x0f"), None, false, false)),
+    ("rxvt-unicode", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x1b(B"), None, false, false)),
+    ("rxvt-unicode-256color", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x1b(B"), None, false, false)),
+    ("screen", T(Some("\x1bM"), Some("\x1b[C"), Some("\x08"), Some("\x1b[3m"), Some("\x1b[23m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("screen-256color", T(Some("\x1bM"), Some("\x1b[C"), Some("\x08"), Some("\x1b[3m"), Some("\x1b[23m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("screen-256color-bce", T(Some("\x1bM"), Some("\x1b[C"), Some("\x08"), Some("\x1b[3m"), Some("\x1b[23m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("screen-bce", T(Some("\x1bM"), Some("\x1b[C"), Some("\x08"), Some("\x1b[3m"), Some("\x1b[23m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("screen-s", T(Some("\x1bM"), Some("\x1b[C"), Some("\x08"), Some("\x1b[3m"), Some("\x1b[23m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("screen-w", T(Some("\x1bM"), Some("\x1b[C"), Some("\x08"), Some("\x1b[3m"), Some("\x1b[23m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("screen.xterm-256color", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b(B\x1b[m"), None, false, false)),
+    ("sun", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[m"), None, None, None, None, Some("\x1b[7m"), Some("\x1b[m"), None, false, false)),
+    ("tmux", T(Some("\x1bM"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("tmux-256color", T(Some("\x1bM"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("vt100", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[m"), Some("\x1b[4m"), Some("\x1b[m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("vt102", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[m"), Some("\x1b[4m"), Some("\x1b[m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+    ("vt220", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x1b(B"), None, false, false)),
+    ("vt52", T(Some("\x1bA"), Some("\x1bC"), Some("\x1bD"), None, None, None, None, None, None, None, None, None, false, false)),
+    ("wsvt25", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x1b(B"), None, false, false)),
+    ("wsvt25m", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x1b(B"), None, false, false)),
+    ("xterm", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b(B\x1b[m"), None, false, false)),
+    ("xterm-256color", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b(B\x1b[m"), None, false, false)),
+    ("xterm-color", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[m"), Some("\x1b[4m"), Some("\x1b[m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m"), None, false, false)),
+    ("xterm-debian", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b(B\x1b[m"), None, false, false)),
+    ("xterm-mono", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[m"), Some("\x1b[4m"), Some("\x1b[m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m"), None, false, false)),
+    ("xterm-r5", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[m"), Some("\x1b[4m"), Some("\x1b[m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m"), None, false, false)),
+    ("xterm-r6", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[m"), Some("\x1b[4m"), Some("\x1b[m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m"), None, false, false)),
+    ("xterm-vt220", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), Some("\x1b[2m"), Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b(B\x1b[m"), None, false, false)),
+    ("xterm-xfree86", T(Some("\x1b[A"), Some("\x1b[C"), Some("\x08"), Some("\x1b[7m"), Some("\x1b[27m"), Some("\x1b[4m"), Some("\x1b[24m"), None, Some("\x1b[1m"), Some("\x1b[7m"), Some("\x1b[m\x0f"), None, false, false)),
+];

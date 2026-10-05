@@ -1,0 +1,97 @@
+tool = "add-shell"
+source = "manual"
+
+# add-shell e remove-shell do debianutils 5.23 sobre $DPKG_ROOT/etc/shells de uma raiz criada pelo caso.
+# O $0 das mensagens de uso é o caminho do script (/usr/sbin/add-shell).
+
+[[case]]
+id = "add-shell-no-args"
+script = "add-shell; echo \"rc=$?\""
+
+[[case]]
+id = "add-shell-no-args-by-path"
+script = "/usr/sbin/add-shell; echo \"rc=$?\""
+
+[[case]]
+id = "remove-shell-no-args"
+script = "remove-shell; echo \"rc=$?\""
+
+[[case]]
+id = "remove-shell-no-args-stderr"
+script = "remove-shell 2>&1 >/dev/null; echo \"rc=$?\""
+
+[[case]]
+id = "add-shell-appends"
+script = "mkdir -p root/etc; printf '/bin/sh\\n/bin/bash\\n' > root/etc/shells; DPKG_ROOT=$PWD/root add-shell /bin/zsh; echo \"rc=$?\"; cat root/etc/shells; ls root/etc"
+
+[[case]]
+id = "add-shell-already-present"
+script = "mkdir -p root/etc; printf '/bin/sh\\n/bin/bash\\n' > root/etc/shells; DPKG_ROOT=$PWD/root add-shell /bin/bash; echo \"rc=$?\"; cat root/etc/shells"
+
+[[case]]
+id = "add-shell-multiple"
+script = "mkdir -p root/etc; printf '/bin/sh\\n' > root/etc/shells; DPKG_ROOT=$PWD/root add-shell /bin/a /bin/b /bin/a; echo \"rc=$?\"; cat root/etc/shells"
+
+[[case]]
+id = "add-shell-real-path-variant"
+script = "mkdir -p root/etc real; ln -s real link; printf '/bin/sh\\n' > root/etc/shells; DPKG_ROOT=$PWD/root add-shell \"$PWD/link/zsh\" | cat; echo \"rc=$?\"; sed \"s|$PWD|PWD|\" root/etc/shells"
+
+[[case]]
+id = "add-shell-keeps-mode"
+script = "mkdir -p root/etc; printf '/bin/sh\\n' > root/etc/shells; chmod 600 root/etc/shells; DPKG_ROOT=$PWD/root add-shell /bin/zsh; stat -c '%a' root/etc/shells"
+
+[[case]]
+id = "add-shell-regex-metacharacters-in-name"
+script = "mkdir -p root/etc; printf '/bin/shX\\n' > root/etc/shells; DPKG_ROOT=$PWD/root add-shell /bin/sh.; echo \"rc=$?\"; cat root/etc/shells"
+
+[[case]]
+id = "add-shell-leftover-tmpfile"
+script = "mkdir -p root/etc; printf '/bin/sh\\n' > root/etc/shells; printf 'old\\n' > root/etc/shells.tmp; DPKG_ROOT=$PWD/root add-shell /bin/zsh 2>&1 | grep -v 'cannot create' | sed \"s|$PWD|PWD|g\"; cat root/etc/shells root/etc/shells.tmp"
+
+[[case]]
+id = "add-shell-missing-shells-file"
+script = "mkdir -p root/etc; DPKG_ROOT=$PWD/root add-shell /bin/zsh 2>&1 | sed \"s|$PWD|PWD|g\"; ls root/etc"
+
+[[case]]
+id = "add-shell-no-trailing-newline-in-file"
+script = "mkdir -p root/etc; printf '/bin/sh' > root/etc/shells; DPKG_ROOT=$PWD/root add-shell /bin/zsh; cat root/etc/shells"
+
+[[case]]
+id = "remove-shell-removes"
+script = "mkdir -p root/etc; printf '/bin/sh\\n/bin/zsh\\n/bin/bash\\n' > root/etc/shells; DPKG_ROOT=$PWD/root remove-shell /bin/zsh; echo \"rc=$?\"; cat root/etc/shells; ls root/etc"
+
+[[case]]
+id = "remove-shell-absent"
+script = "mkdir -p root/etc; printf '/bin/sh\\n/bin/bash\\n' > root/etc/shells; DPKG_ROOT=$PWD/root remove-shell /bin/zsh; echo \"rc=$?\"; cat root/etc/shells"
+
+[[case]]
+id = "remove-shell-multiple"
+script = "mkdir -p root/etc; printf '/bin/sh\\n/bin/a\\n/bin/b\\n/bin/c\\n' > root/etc/shells; DPKG_ROOT=$PWD/root remove-shell /bin/a /bin/c; cat root/etc/shells"
+
+[[case]]
+id = "remove-shell-last-line"
+script = "mkdir -p root/etc; printf '/bin/sh\\n' > root/etc/shells; DPKG_ROOT=$PWD/root remove-shell /bin/sh; echo \"rc=$?\"; wc -c < root/etc/shells"
+
+[[case]]
+id = "remove-shell-only-exact-lines"
+script = "mkdir -p root/etc; printf '/bin/sh\\n/bin/sh2\\n/usr/bin/sh\\n' > root/etc/shells; DPKG_ROOT=$PWD/root remove-shell /bin/sh; cat root/etc/shells"
+
+[[case]]
+id = "remove-shell-regex-dot-matches-any"
+script = "mkdir -p root/etc; printf '/bin/shX\\n/bin/sh.\\n' > root/etc/shells; DPKG_ROOT=$PWD/root remove-shell /bin/sh.; cat root/etc/shells"
+
+[[case]]
+id = "remove-shell-duplicates-removed"
+script = "mkdir -p root/etc; printf '/bin/sh\\n/bin/zsh\\n/bin/zsh\\n' > root/etc/shells; DPKG_ROOT=$PWD/root remove-shell /bin/zsh; cat root/etc/shells"
+
+[[case]]
+id = "remove-shell-keeps-mode"
+script = "mkdir -p root/etc; printf '/bin/sh\\n/bin/zsh\\n' > root/etc/shells; chmod 640 root/etc/shells; DPKG_ROOT=$PWD/root remove-shell /bin/zsh; stat -c '%a' root/etc/shells"
+
+[[case]]
+id = "remove-shell-leftover-tmpfile"
+script = "mkdir -p root/etc; printf '/bin/sh\\n/bin/zsh\\n' > root/etc/shells; printf 'old\\n' > root/etc/shells.tmp; DPKG_ROOT=$PWD/root remove-shell /bin/zsh 2>&1 | grep -v 'cannot create' | sed \"s|$PWD|PWD|g\"; cat root/etc/shells root/etc/shells.tmp"
+
+[[case]]
+id = "add-then-remove-roundtrip"
+script = "mkdir -p root/etc; printf '/bin/sh\\n' > root/etc/shells; export DPKG_ROOT=$PWD/root; add-shell /bin/zsh; remove-shell /bin/zsh; cat root/etc/shells"

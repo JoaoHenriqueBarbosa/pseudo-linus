@@ -1,0 +1,319 @@
+tool = "colcrt"
+source = "manual"
+
+# colcrt do util-linux 2.41 (bsdextrautils): sublinhado em segunda linha, meias linhas (ESC 7/8/9),
+# a opção solitária "-", -2, a largura de 132 colunas (pipe e arquivo) e os erros de abertura e leitura.
+
+[[case]]
+id = "colcrt-help"
+argv = ["colcrt", "--help"]
+
+[[case]]
+id = "colcrt-help-short"
+argv = ["colcrt", "-h"]
+
+[[case]]
+id = "colcrt-version"
+argv = ["colcrt", "-V"]
+
+[[case]]
+id = "colcrt-invalid-option"
+argv = ["colcrt", "-x"]
+
+[[case]]
+id = "colcrt-unrecognized-option"
+argv = ["colcrt", "--bogus"]
+
+[[case]]
+id = "colcrt-long-prefix"
+argv = ["colcrt", "--no", "x"]
+[case.files]
+"x" = "a\n"
+
+[[case]]
+id = "colcrt-file-missing"
+argv = ["colcrt", "nope.txt"]
+
+[[case]]
+id = "colcrt-file-missing-after-good"
+argv = ["colcrt", "good.txt", "nope.txt"]
+[case.files]
+"good.txt" = "hello\n"
+
+[[case]]
+id = "colcrt-file-directory"
+argv = ["colcrt", "dir"]
+[case.files]
+"dir" = { dir = true }
+
+[[case]]
+id = "colcrt-plain-stdin"
+argv = ["colcrt"]
+stdin = "hello\nworld\n"
+
+[[case]]
+id = "colcrt-plain-file"
+argv = ["colcrt", "f.txt"]
+[case.files]
+"f.txt" = "one\ntwo\n"
+
+[[case]]
+id = "colcrt-two-files"
+argv = ["colcrt", "a.txt", "b.txt"]
+[case.files]
+"a.txt" = "first\n"
+"b.txt" = "second\n"
+
+[[case]]
+id = "colcrt-files-and-hyphen-position"
+argv = ["colcrt", "a.txt", "-", "b.txt"]
+[case.files]
+"a.txt" = "a_\bb\n"
+"b.txt" = "c_\bd\n"
+
+[[case]]
+id = "colcrt-dash-stdin-meaning"
+argv = ["colcrt", "-"]
+stdin = "x_\n"
+
+[[case]]
+id = "colcrt-dash-after-double-dash"
+argv = ["colcrt", "--", "-"]
+stdin = "x_\n"
+
+[[case]]
+id = "colcrt-empty-input"
+argv = ["colcrt"]
+stdin = ""
+
+[[case]]
+id = "colcrt-no-trailing-newline"
+script = "printf 'abc' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-blank-lines"
+script = "printf 'a\\n\\n\\nb\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-trailing-spaces-trimmed"
+script = "printf 'abc   \\ndef \\t\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-underline-underscore"
+script = "printf 'ab_\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-underline-overstrike"
+script = "printf 'h_\\bhe_\\bel_\\bll_\\blo_\\bo\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-underline-nroff-style"
+script = "printf '_\\bh_\\be_\\bl_\\bl_\\bo\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-underline-suppressed-dash-arg"
+script = "printf 'h_\\bhe_\\be\\n' | colcrt - | od -c"
+
+[[case]]
+id = "colcrt-underline-suppressed-long"
+script = "printf 'h_\\bhe_\\be\\n' | colcrt --no-underlining | od -c"
+
+[[case]]
+id = "colcrt-underline-multiple-lines"
+script = "printf 'a_\\nb_\\nc\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-underline-only-line"
+script = "printf '___\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-underline-trailing-spaces-in-underline"
+script = "printf 'ab_ c\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-esc-8-half-reverse"
+script = "printf 'ab\\0338c\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-esc-7-reverse"
+script = "printf 'abc\\0337d\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-esc-7-at-start"
+script = "printf '\\0337abc\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-esc-8-at-start"
+script = "printf '\\0338abc\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-esc-9-other"
+script = "printf 'a\\0339b\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-esc-then-newline"
+script = "printf 'a\\033\\nb\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-esc-at-eof"
+script = "printf 'a\\033' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-esc-sup-sub-script"
+script = "printf 'x\\0338 2\\0337y\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-tab-expand"
+script = "printf 'a\\tb\\tc\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-tab-at-column-multiple-of-eight"
+script = "printf 'abcdefgh\\tx\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-tab-at-start"
+script = "printf '\\tx\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-tab-leading-two"
+script = "printf '\\t\\tx\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-unprintable-ignored"
+script = "printf 'a\\001b\\002c\\rd\\bX\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-form-feed-and-vt"
+script = "printf 'a\\fb\\vc\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-del-and-nul"
+script = "printf 'a\\177b\\000c\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-half-lines-option"
+script = "printf 'abc\\ndef\\n' | colcrt -2 | od -c"
+
+[[case]]
+id = "colcrt-half-lines-long"
+script = "printf 'abc\\n' | colcrt --half-lines | od -c"
+
+[[case]]
+id = "colcrt-half-lines-underline"
+script = "printf 'ab_\\ncd\\n' | colcrt -2 | od -c"
+
+[[case]]
+id = "colcrt-half-lines-blank-line"
+script = "printf 'a\\n\\nb\\n' | colcrt -2 | od -c"
+
+[[case]]
+id = "colcrt-half-lines-no-underlining"
+script = "printf 'a_\\nb\\n' | colcrt -2 - | od -c"
+
+[[case]]
+id = "colcrt-half-lines-empty-input"
+script = "printf '' | colcrt -2 | od -c"
+
+[[case]]
+id = "colcrt-half-lines-two-files"
+script = "printf 'one\\n' > a; printf 'two\\n' > b; colcrt -2 a b | od -c"
+
+[[case]]
+id = "colcrt-print-nl-resets-between-files"
+script = "printf 'a_\\n' > a; printf 'b\\n' > b; colcrt a b | od -c"
+
+[[case]]
+id = "colcrt-unicode-text"
+script = "printf 'caf\\303\\251\\n\\346\\227\\245\\346\\234\\254\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-unicode-underline"
+script = "printf '\\303\\251_\\b\\303\\251\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-nbsp-and-ideographic-space"
+script = "printf 'a\\302\\240 \\343\\200\\200\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-invalid-utf8"
+script = "printf 'ab\\377cd\\n' | colcrt; echo \"rc=$?\""
+
+[[case]]
+id = "colcrt-invalid-utf8-later-line"
+script = "printf 'ab\\ncd\\377\\n' | colcrt; echo \"rc=$?\""
+
+[[case]]
+id = "colcrt-incomplete-utf8-at-eof"
+script = "printf 'ab\\343\\201' | colcrt | od -c; echo \"rc=$?\""
+
+[[case]]
+id = "colcrt-exactly-132-columns-pipe"
+script = "head -c 132 /dev/zero | tr '\\0' 'x' | { cat; echo; echo next; } | colcrt | od -c | tail -4"
+
+[[case]]
+id = "colcrt-131-columns-pipe"
+script = "{ head -c 131 /dev/zero | tr '\\0' 'x'; echo; echo next; } | colcrt | od -c | tail -4"
+
+[[case]]
+id = "colcrt-long-line-pipe-stops"
+script = "{ head -c 200 /dev/zero | tr '\\0' 'x'; echo; echo next; } | colcrt | od -c | tail -4"
+
+[[case]]
+id = "colcrt-long-line-file-skips-rest"
+script = "{ head -c 200 /dev/zero | tr '\\0' 'x'; echo; echo next; } > long.txt; colcrt < long.txt | od -c | tail -5"
+
+[[case]]
+id = "colcrt-long-line-file-operand"
+script = "{ head -c 200 /dev/zero | tr '\\0' 'y'; echo; echo next; echo more; } > long.txt; colcrt long.txt | od -c | tail -5"
+
+[[case]]
+id = "colcrt-long-line-file-no-newline-at-end"
+script = "head -c 200 /dev/zero | tr '\\0' 'x' > long.txt; colcrt long.txt | od -c | tail -4"
+
+[[case]]
+id = "colcrt-long-line-newline-right-after-132"
+script = "{ head -c 132 /dev/zero | tr '\\0' 'x'; echo; echo next; } > long.txt; colcrt long.txt | od -c | tail -4"
+
+[[case]]
+id = "colcrt-long-line-underline"
+script = "{ head -c 130 /dev/zero | tr '\\0' 'x'; printf '_zzzzz\\nnext\\n'; } > long.txt; colcrt long.txt | od -c | tail -6"
+
+[[case]]
+id = "colcrt-long-line-half-lines"
+script = "{ head -c 140 /dev/zero | tr '\\0' 'x'; echo; echo next; } > long.txt; colcrt -2 long.txt | od -c | tail -5"
+
+[[case]]
+id = "colcrt-tab-reaching-132"
+script = "{ head -c 129 /dev/zero | tr '\\0' 'x'; printf '\\tZ\\nnext\\n'; } > long.txt; colcrt long.txt | od -c | tail -5"
+
+[[case]]
+id = "colcrt-tab-reaching-132-pipe"
+script = "{ head -c 129 /dev/zero | tr '\\0' 'x'; printf '\\tZ\\nnext\\n'; } | colcrt | od -c | tail -5"
+
+[[case]]
+id = "colcrt-esc-hole-truncates-line"
+script = "printf 'ab\\033Xcd\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-esc-7-hole"
+script = "printf 'abcd\\0337\\0337X\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-underline-hole"
+script = "printf '_ab\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-table-sample"
+script = "printf 'Name\\tAge\\n----\\t---\\nBob_\\bB\\t42\\n' | colcrt | od -c"
+
+[[case]]
+id = "colcrt-stdin-file-redirect"
+script = "printf 'x_\\n' > f.txt; colcrt < f.txt | od -c"
+
+[[case]]
+id = "colcrt-stdin-and-file-mix"
+script = "printf 'from stdin\\n' | colcrt - f.txt 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "colcrt-exit-status"
+script = "printf 'a\\n' | colcrt >/dev/null; echo \"rc=$?\"; colcrt nope >/dev/null 2>&1; echo \"rc=$?\""
