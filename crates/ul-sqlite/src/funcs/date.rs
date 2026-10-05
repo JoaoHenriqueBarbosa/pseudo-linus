@@ -242,9 +242,7 @@ fn compute_jd(p: &mut DateTime) {
 
 /// `computeFloor`.
 fn compute_floor(p: &mut DateTime) {
-    if p.d <= 28 {
-        p.n_floor = 0;
-    } else if (1 << p.mo) & 0x15aa != 0 {
+    if p.d <= 28 || (1 << p.mo) & 0x15aa != 0 {
         p.n_floor = 0;
     } else if p.mo != 2 {
         p.n_floor = i32::from(p.d == 31);

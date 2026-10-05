@@ -36,6 +36,9 @@ pub struct SedRegex {
 /// `None` é a regex vazia (`//`): usa a última aplicada.
 pub type RegexRef = Option<Arc<SedRegex>>;
 
+/// Pares (origem, destino) de caracteres do comando `y`.
+type TranslitPairs = Vec<(Vec<u8>, Vec<u8>)>;
+
 #[derive(Debug)]
 pub enum Addr {
     Line(u64),
@@ -1030,7 +1033,7 @@ impl Parser {
         (parts, max_ref)
     }
 
-    fn translit(&mut self, r: &mut Reader<'_>) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Fail> {
+    fn translit(&mut self, r: &mut Reader<'_>) -> Result<TranslitPairs, Fail> {
         let Some(delim) = r.get() else { return Err("unterminated `y' command".into()) };
         let Some(src) = self.delimited(r, delim, false)? else {
             return Err("unterminated `y' command".into());

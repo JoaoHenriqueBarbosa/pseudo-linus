@@ -130,12 +130,7 @@ impl Stream {
             }
             Sink::Pipe { fd, child } => {
                 let _ = s.close(fd);
-                loop {
-                    match s.wait4(WaitTarget::Pid(child), WaitOptions::empty()) {
-                        Err(Errno::EINTR) => continue,
-                        _ => break,
-                    }
-                }
+                while let Err(Errno::EINTR) = s.wait4(WaitTarget::Pid(child), WaitOptions::empty()) {}
             }
             other => self.sink = other,
         }

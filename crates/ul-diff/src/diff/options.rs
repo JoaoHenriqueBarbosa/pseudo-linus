@@ -279,8 +279,7 @@ pub fn parse(argv: &[Vec<u8>]) -> Parsed {
     };
 
     let mut g = Getopt::from_env(argv, SHORTS, LONGS);
-    loop {
-        let Some(item) = g.next() else { break };
+    while let Some(item) = g.next() {
         let opt = match item {
             Ok(Item::Operand(v)) => {
                 o.operands.push(v);

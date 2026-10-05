@@ -1057,10 +1057,11 @@ fn dot_open(sh: &mut Shell, args: &[Vec<u8>]) -> Result<i32, Exit> {
             open_mode = OpenMode::Deserialize;
         } else if option_match(z, "maxsize") && i + 1 < args.len() {
             i += 1;
-        } else if option_match(z, "zip") || option_match(z, "append") || option_match(z, "hexdb") {
-            sh.eputs(&format!("unknown option: {}\n", lossy(z)));
-            return Ok(1);
-        } else if z.first() == Some(&b'-') {
+        } else if option_match(z, "zip")
+            || option_match(z, "append")
+            || option_match(z, "hexdb")
+            || z.first() == Some(&b'-')
+        {
             sh.eputs(&format!("unknown option: {}\n", lossy(z)));
             return Ok(1);
         } else if file.is_some() {
@@ -1904,8 +1905,11 @@ fn dump_table(sh: &mut Shell, table: &[u8], kind: &[u8], sql: &[u8], writable: &
     Ok(())
 }
 
+/// Resultado de `tableColumnList`: (coluna do rowid a preservar, colunas).
+type ColumnList = (Option<Vec<u8>>, Vec<Vec<u8>>);
+
 /// `tableColumnList`: (coluna do rowid a preservar, colunas).
-fn table_column_list(sh: &mut Shell, table: &[u8]) -> Option<(Option<Vec<u8>>, Vec<Vec<u8>>)> {
+fn table_column_list(sh: &mut Shell, table: &[u8]) -> Option<ColumnList> {
     let conn = sh.conn();
     let rows = query_text(conn, &format!("PRAGMA table_info={}", lossy(&text::squote(table)))).ok()?;
     let mut cols = Vec::new();

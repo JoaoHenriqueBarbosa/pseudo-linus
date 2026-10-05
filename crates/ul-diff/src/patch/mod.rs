@@ -28,6 +28,9 @@ use parse::{Body, Chunk, Fatal, Scanner};
 
 use crate::sysutil::{self, Output};
 
+/// Dados para gravar o rejeito: hunks, nomes do cabeçalho antigo e novo, e a flag final.
+type RejectInfo<'a> = (&'a [Hunk], &'a Option<HeaderName>, &'a Option<HeaderName>, bool);
+
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     let argv = sysutil::args_bytes(args);
     let argv0 = sysutil::argv0(&argv);
@@ -766,7 +769,7 @@ impl Run {
     fn skip_hunks(
         &mut self,
         hunks: &[Hunk],
-        rej: Option<(&[Hunk], &Option<HeaderName>, &Option<HeaderName>, bool)>,
+        rej: Option<RejectInfo<'_>>,
         error: Option<Fatal>,
         target: &[u8],
     ) -> Result<(), Fail> {

@@ -257,12 +257,12 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     if operands.len() > 4 {
         return try_help(&format!("extra operand '{}'", String::from_utf8_lossy(&operands[4])));
     }
-    for k in 0..2 {
+    for (k, slot) in skip.iter_mut().enumerate() {
         if let Some(s) = operands.get(2 + k) {
             match parse_number(s) {
                 Some(n) => {
-                    if skip[k].is_none() {
-                        skip[k] = Some(n);
+                    if slot.is_none() {
+                        *slot = Some(n);
                     }
                 }
                 None => {
@@ -301,8 +301,7 @@ fn run(argv0: &str, kind: Kind, print_bytes: bool, limit: Option<u64>, names: &[
     };
     let mut inputs: Vec<Input> = Vec::with_capacity(2);
     let mut stats = Vec::with_capacity(2);
-    for k in 0..2 {
-        let name = &names[k];
+    for name in names {
         let (fd, owned) = if name.as_slice() == b"-" {
             (Fd::STDIN, false)
         } else {

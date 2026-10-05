@@ -653,12 +653,12 @@ fn columnar(sh: &mut Shell, names: &[Vec<u8>], rows: &[Vec<Cell>]) {
         Mode::Column => {
             if sh.show_header {
                 let mut line = Vec::new();
-                for i in 0..ncol {
+                for (i, d) in data.iter().enumerate().take(ncol) {
                     let mut w = sh.actual_width[i];
                     if sh.col_width[i] < 0 {
                         w = -w;
                     }
-                    line.extend(text::width_print(w, &data[i]));
+                    line.extend(text::width_print(w, d));
                     line.extend_from_slice(if i == ncol - 1 { b"\n" } else { b"  " });
                 }
                 for i in 0..ncol {
@@ -674,11 +674,11 @@ fn columnar(sh: &mut Shell, names: &[Vec<u8>], rows: &[Vec<Cell>]) {
                 row_separator(sh, ncol, "+");
             }
             let mut line = b"| ".to_vec();
-            for i in 0..ncol {
+            for (i, d) in data.iter().enumerate().take(ncol) {
                 let w = sh.actual_width[i];
-                let n = text::strlen_char(&data[i]) as i32;
+                let n = text::strlen_char(d) as i32;
                 line.extend(std::iter::repeat_n(b' ', ((w - n) / 2).max(0) as usize));
-                line.extend_from_slice(&data[i]);
+                line.extend_from_slice(d);
                 line.extend(std::iter::repeat_n(b' ', ((w - n + 1) / 2).max(0) as usize));
                 line.extend_from_slice(if i == ncol - 1 { b" |\n" } else { b" | " });
             }
@@ -689,11 +689,11 @@ fn columnar(sh: &mut Shell, names: &[Vec<u8>], rows: &[Vec<Cell>]) {
         Mode::Box => {
             box_separator(sh, ncol, BOX_23, BOX_234, BOX_34);
             let mut line = format!("{BOX_13} ").into_bytes();
-            for i in 0..ncol {
+            for (i, d) in data.iter().enumerate().take(ncol) {
                 let w = sh.actual_width[i];
-                let n = text::strlen_char(&data[i]) as i32;
+                let n = text::strlen_char(d) as i32;
                 line.extend(std::iter::repeat_n(b' ', ((w - n) / 2).max(0) as usize));
-                line.extend_from_slice(&data[i]);
+                line.extend_from_slice(d);
                 line.extend(std::iter::repeat_n(b' ', ((w - n + 1) / 2).max(0) as usize));
                 line.extend_from_slice(if i == ncol - 1 { format!(" {BOX_13}\n") } else { format!(" {BOX_13} ") }.as_bytes());
             }
@@ -798,8 +798,8 @@ pub fn output_row(sh: &mut Shell, names: &[Vec<u8>], cells: &[Cell]) {
                     o.extend(text::width_print(WIDTHS[i], &names[i]));
                     o.extend_from_slice(if i == nargs - 1 { b"\n" } else { b"  " });
                 }
-                for i in 0..nargs {
-                    o.extend(print_dashes(WIDTHS[i]));
+                for (i, &wd) in WIDTHS.iter().enumerate().take(nargs) {
+                    o.extend(print_dashes(wd));
                     o.extend_from_slice(if i == nargs - 1 { b"\n" } else { b"  " });
                 }
             }

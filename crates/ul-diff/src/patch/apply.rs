@@ -372,8 +372,7 @@ impl<'a> Builder<'a> {
                     self.put(l);
                 }
                 Item::Diff { w0, w1, .. } => {
-                    for w in *w0..*w1 {
-                        let l = window[w];
+                    for &l in &window[*w0..*w1] {
                         self.put(l);
                     }
                 }
