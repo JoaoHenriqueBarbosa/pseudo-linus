@@ -8,10 +8,12 @@
 
 pub mod common;
 pub mod free;
+pub mod fuser;
 pub mod kill;
 pub mod killall;
 pub mod killall5;
 pub mod matcher;
+pub mod peekfd;
 pub mod pgrep;
 pub mod pidof;
 pub mod pmap;
@@ -36,9 +38,11 @@ use sysabi::Program;
 pub fn programs() -> Vec<Program> {
     vec![
         Program::bin("free", free::main),
+        Program::bin("fuser", fuser::main),
         Program::bin("kill", kill::main),
         Program::bin("killall", killall::main),
         Program::bin("killall5", killall5::main),
+        Program::bin("peekfd", peekfd::main),
         Program::bin("pgrep", pgrep::pgrep_main),
         Program::bin("pidof", pidof::main),
         Program::bin("pidwait", pgrep::pidwait_main),

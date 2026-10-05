@@ -1,0 +1,49 @@
+tool = "procps"
+source = "manual"
+
+# fuser e peekfd (psmisc 23.7): uso, versão e opções inválidas. Nenhuma saída leva pid.
+
+[[case]]
+id = "fuser-no-args-usage"
+script = "fuser 2>&1; echo \"exit=$?\""
+tags = ["fuser", "usage", "error"]
+
+[[case]]
+id = "fuser-version"
+script = "fuser -V 2>&1; echo \"exit=$?\""
+tags = ["fuser", "version"]
+
+[[case]]
+id = "fuser-list-signals"
+script = "fuser -l; echo \"exit=$?\""
+tags = ["fuser", "list"]
+
+[[case]]
+id = "fuser-invalid-option"
+script = "fuser -Q /tmp 2>&1; echo \"exit=$?\""
+tags = ["fuser", "usage", "error"]
+
+[[case]]
+id = "fuser-missing-file"
+script = "fuser /nonexistent-path-xyz 2>&1; echo \"exit=$?\""
+tags = ["fuser", "error"]
+
+[[case]]
+id = "peekfd-no-args-usage"
+script = "peekfd 2>&1; echo \"exit=$?\""
+tags = ["peekfd", "usage", "error"]
+
+[[case]]
+id = "peekfd-help"
+script = "peekfd -h 2>&1; echo \"exit=$?\""
+tags = ["peekfd", "usage"]
+
+[[case]]
+id = "peekfd-version"
+script = "peekfd -V 2>&1; echo \"exit=$?\""
+tags = ["peekfd", "version"]
+
+[[case]]
+id = "peekfd-invalid-option"
+script = "peekfd -Z 1 2>&1; echo \"exit=$?\""
+tags = ["peekfd", "usage", "error"]
