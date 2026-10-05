@@ -40,14 +40,15 @@ const USAGE_BODY: &str = " Displays the sizes of sections inside binary files\n\
 \x20If no input file(s) are specified, a.out is assumed\n\
 \x20The options are:\n\
 \x20 -A|-B|-G  --format={sysv|berkeley|gnu}  Select output style (default is berkeley)\n\
-\x20 -o|-d|-x  --radix={8|10|16}             Display numbers in octal, decimal or hex\n\
-\x20 -t        --totals                      Display the total sizes (Berkeley only)\n\
-\x20           --common                      Display total size for *COM* syms\n\
-\x20           --target=<bfdname>            Set the binary file format\n\
-\x20           @<file>                       Read options from <file>\n\
-\x20 -h        --help                        Display this information\n\
-\x20 -v        --version                     Display the program's version\n\
-\x20\n";
+\x20 -o|-d|-x  --radix={8|10|16}         Display numbers in octal, decimal or hex\n\
+\x20 -t        --totals                  Display the total sizes (Berkeley only)\n\
+\x20 -f                                  Ignored.\n\
+\x20           --common                  Display total size for *COM* syms\n\
+\x20           --target=<bfdname>        Set the binary file format\n\
+\x20           @<file>                   Read options from <file>\n\
+\x20 -h|-H|-?  --help                    Display this information\n\
+\x20 -v|-V     --version                 Display the program's version\n\
+\n";
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Format {
@@ -166,7 +167,7 @@ fn run(args: &[OsString]) -> i32 {
                 totals.2 += t.2;
                 count += 1;
             }
-            Err(()) => status = 1,
+            Err(c) => status = c,
         }
     }
     if o.format == Format::Berkeley && o.totals && count > 0 {
@@ -203,7 +204,7 @@ fn process(
     path: &[u8],
     o: &Opts,
     header_done: &mut bool,
-) -> Result<(u64, u64, u64), ()> {
+) -> Result<(u64, u64, u64), i32> {
     let say = |parts: &[&[u8]]| {
         let mut m = format!("{prog}: ").into_bytes();
         for p in parts {
@@ -215,15 +216,15 @@ fn process(
     match sys::stat(path) {
         Err(Errno::ENOENT) => {
             say(&[b"'", path, b"': No such file"]);
-            return Err(());
+            return Err(1);
         }
         Err(e) => {
             say(&[path, b": ", e.message().as_bytes()]);
-            return Err(());
+            return Err(1);
         }
         Ok(st) if st.file_type() == FileType::Directory => {
             say(&[b"Warning: '", path, b"' is a directory"]);
-            return Err(());
+            return Err(1);
         }
         Ok(_) => {}
     }
@@ -231,12 +232,12 @@ fn process(
         Ok(d) => d,
         Err(e) => {
             say(&[path, b": ", e.message().as_bytes()]);
-            return Err(());
+            return Err(1);
         }
     };
     let Some(elf) = Elf::parse(&data) else {
         say(&[path, b": file format not recognized"]);
-        return Err(());
+        return Err(3);
     };
     let mut text = 0u64;
     let mut dat = 0u64;

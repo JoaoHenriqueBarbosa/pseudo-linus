@@ -78,6 +78,11 @@ fn run(args: &[OsString]) -> i32 {
             Ok(x) => x,
             Err(e) => {
                 io::eprint(format!("{}\n", e.message(&prog)));
+                io::eprint(format!(
+                    "{}{prog}: supported targets: {}\n",
+                    include_str!("nm_usage.txt"),
+                    crate::strings::TARGETS.join(" ")
+                ));
                 return 1;
             }
         };

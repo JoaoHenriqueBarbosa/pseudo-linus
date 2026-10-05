@@ -65,13 +65,14 @@ const AR_USAGE_BODY: &str = "       ar -M [<mri-script]\n\
 \x20 [U]          - use actual timestamps and uids/gids\n\
 \x20 [N]          - use instance [count] of name\n\
 \x20 [f]          - truncate inserted file names\n\
-\x20 [P]          - use full path names when matching or storing inside archive\n\
+\x20 [P]          - use full path names when matching\n\
 \x20 [o]          - preserve original dates\n\
 \x20 [O]          - display offsets of files in the archive\n\
 \x20 [u]          - only replace files that are newer than current archive contents\n\
 \x20generic modifiers:\n\
 \x20 [c]          - do not warn if the library had to be created\n\
 \x20 [s]          - create an archive index (cf. ranlib)\n\
+\x20 [l <text> ]  - specify the dependencies of this library\n\
 \x20 [S]          - do not build a symbol table\n\
 \x20 [T]          - deprecated, use --thin instead\n\
 \x20 [v]          - be verbose\n\
@@ -83,7 +84,7 @@ const AR_USAGE_BODY: &str = "       ar -M [<mri-script]\n\
 \x20 --thin       - make a thin archive\n\
 \x20optional:\n\
 \x20 --plugin <p> - load the specified plugin\n\
-\x20emulation options:\n\
+\x20emulation options: \n\
 \x20 No emulation specific options\n";
 
 const RANLIB_USAGE_BODY: &str = " Generate an index to speed access to archives\n\
@@ -311,7 +312,7 @@ fn serialize(members: &[Member], armap: bool) -> Vec<u8> {
         }
     }
     if !ext.is_empty() {
-        out.extend(header(b"//", "", "", "", "", ext.len()));
+        out.extend(header(b"//", "", "", "", "", ext.len() + (ext.len() & 1)));
         out.extend_from_slice(&ext);
         if ext.len() & 1 == 1 {
             out.push(b'\n');
@@ -502,7 +503,10 @@ fn run(args: &[OsString]) -> i32 {
     }
     match f.op {
         None if f.write_map == 1 => ranlib_archive(&prog, archive),
-        None => fatal(&prog, "no operation specified"),
+        None => {
+            io::eprint(format!("{}: invalid option -- '.'\n", String::from_utf8_lossy(&argv[1])));
+            ar_usage(&prog, false)
+        }
         Some(op) => {
             let ctx = Ctx {
                 prog: &prog,
@@ -568,7 +572,7 @@ impl Ctx<'_> {
                     self.prog,
                     &[self.archive, b": ", Errno::ENOENT.message().as_bytes()],
                 );
-                Err(1)
+                Err(9)
             }
         }
     }
@@ -774,8 +778,7 @@ impl Ctx<'_> {
                 match self.find(&members, file, 0) {
                     Some(i) => selected.push(i),
                     None => {
-                        msg(self.prog, &[b"no entry ", file, b" in archive"]);
-                        status = 1;
+                        io::eprint([b"no entry ".as_slice(), file, b" in archive\n"].concat());
                     }
                 }
             }
@@ -860,7 +863,7 @@ fn ranlib_archive(prog: &str, path: &[u8]) -> i32 {
             }
         },
         Ok(None) => {
-            msg(prog, &[path, b": ", Errno::ENOENT.message().as_bytes()]);
+            msg(prog, &[b"'", path, b"': No such file"]);
             1
         }
         Err(c) => c,
@@ -886,12 +889,14 @@ pub fn ranlib_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
         ];
         let rest: Vec<Vec<u8>> = argv[1..].to_vec();
         let mut g = Getopt::new(&rest, RL_SHORT, RL_LONG, false);
+        let mut bad = false;
         while let Some(r) = g.next_opt() {
             let o = match r {
                 Ok(o) => o,
                 Err(e) => {
                     io::eprint(format!("{}\n", e.message(&prog)));
-                    return ranlib_usage(&prog, false);
+                    bad = true;
+                    continue;
                 }
             };
             match u8::try_from(o.id).unwrap_or(0) {
@@ -907,7 +912,8 @@ pub fn ranlib_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
         let Some(archive) = operands.first() else {
             return ranlib_usage(&prog, false);
         };
-        ranlib_archive(&prog, archive)
+        let rc = ranlib_archive(&prog, archive);
+        if bad { 1 } else { rc }
     })
 }
 
