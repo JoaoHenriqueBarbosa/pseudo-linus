@@ -896,7 +896,9 @@ fn compile(e: &Entry) -> Vec<u8> {
         push16(&mut out, ext_b.len() as i32);
         push16(&mut out, ext_n.len() as i32);
         push16(&mut out, ext_s.len() as i32);
-        push16(&mut out, (ext_b.len() + ext_n.len() + 2 * ext_s.len()) as i32);
+        // O ncurses não conta o valor de uma string cancelada no limite (golden `tic-extended-cancel`).
+        let live_strs = ext_s.iter().filter(|c| matches!(c.val, ExtVal::Str(Str::Val(_)))).count();
+        push16(&mut out, (ext_b.len() + ext_n.len() + ext_s.len() + live_strs) as i32);
         push16(&mut out, etable.len() as i32);
         for c in &ext_b {
             if let ExtVal::Bool(b) = c.val {
@@ -1524,6 +1526,11 @@ fn run(args: &[OsString]) -> i32 {
             }
             let mut tt = to_termtype(e);
             let pred: PredFn<'_> = &dump_predicate;
+            // O `dump_entry` solta os avisos "(... removed to fit entry within N bytes)" no stdout.
+            if !infodump {
+                let mut probe = tt.clone();
+                dump.dump_entry(&mut probe, suppress_untranslatable, limited, numbers, pred);
+            }
             let len = dump.fmt_entry(&mut tt, pred, true, true, infodump, numbers);
             if len > limit {
                 let _ = io::flush_stdout();

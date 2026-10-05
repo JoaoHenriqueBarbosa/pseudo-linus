@@ -12,7 +12,7 @@ use sysabi::{AtFlags, Clock, Fd, FileType, RenameFlags, sys};
 
 use crate::groupmgmt::{
     Spec, fields, is_data, join, name_eq, parse, parse_id, read_lines, usage, valid_name,
-    write_lines,
+    write_backup, write_lines,
 };
 use crate::util::io;
 
@@ -105,7 +105,23 @@ fn today() -> i64 {
 
 // ---------------------------------------------------------------- userdel
 
-const USERDEL_USAGE: &str = "Usage: userdel [options] LOGIN\n\nOptions:\n  -f, --force                   force removal of files,\n                                even if not owned by user\n  -h, --help                    display this help message and exit\n  -r, --remove                  remove home directory and mail spool\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -Z, --selinux-user            remove any SELinux user mapping for the user\n\n";
+const USERDEL_USAGE: &str = "Usage: userdel [options] LOGIN\n\nOptions:\n  -f, --force                   force some actions that would fail otherwise\n                                e.g. removal of user still logged in\n                                or files, even if not owned by the user\n  -h, --help                    display this help message and exit\n  -r, --remove                  remove home directory and mail spool\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -Z, --selinux-user            remove any SELinux user mapping for the user\n\n";
+
+/// Caminho sob o prefixo como o original concatena: `PREFIXO` + `/` + caminho cru (barra dupla).
+fn under_prefix(prefix: &[u8], p: &[u8]) -> Vec<u8> {
+    if prefix.is_empty() {
+        return p.to_vec();
+    }
+    let mut v = prefix.to_vec();
+    v.push(b'/');
+    v.extend_from_slice(p);
+    v
+}
+
+/// Grava o backup `arquivo-` com o conteúdo anterior e depois o novo conteúdo.
+fn write_with_backup(path: &[u8], old: &[Vec<u8>], new: &[Vec<u8>]) -> bool {
+    write_backup(path, old) && write_lines(path, new)
+}
 
 pub fn userdel_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| userdel(args))
@@ -151,7 +167,6 @@ fn userdel(args: &[OsString]) -> i32 {
     };
     let pf = owned(&entry, 7);
     let uid = parse_id(&pf[2]);
-    let gid = parse_id(&pf[3]);
     let home = pf[5].clone();
 
     let group = match read_lines(&gpath) {
@@ -163,27 +178,7 @@ fn userdel(args: &[OsString]) -> i32 {
     };
     let gshadow = read_lines(&gspath).ok();
 
-    // Grupo privado (mesmo nome e GID primário do usuário), removido se ninguém mais o usa.
-    let mut drop_group = false;
-    if let Some(g) = group.iter().find(|l| is_data(l) && name_eq(l, &name)) {
-        let ggid = fields(g).get(2).and_then(|f| parse_id(f));
-        if ggid != gid {
-            io::eprint(format!(
-                "{P}: group {shown} not removed because it is not the primary group of user {shown}.\n"
-            ));
-        } else {
-            let others = passwd.iter().filter(|l| is_data(l) && !name_eq(l, &name)).any(|l| {
-                let f = fields(l);
-                f.len() > 3 && parse_id(f[3]) == gid
-            });
-            if others {
-                io::eprint(format!("{P}: group {shown} not removed because it has other members.\n"));
-            } else {
-                drop_group = true;
-            }
-        }
-    }
-
+    // Sob prefixo o oráculo não remove o grupo privado: só tira o usuário das listas de membros.
     let new_passwd: Vec<Vec<u8>> =
         passwd.iter().filter(|l| !(is_data(l) && name_eq(l, &name))).cloned().collect();
     let strip = |line: &[u8], cols: &[usize]| -> Vec<u8> {
@@ -197,21 +192,15 @@ fn userdel(args: &[OsString]) -> i32 {
     let mut new_group: Vec<Vec<u8>> = Vec::new();
     for l in &group {
         if is_data(l) {
-            if drop_group && name_eq(l, &name) {
-                continue;
-            }
             new_group.push(strip(l, &[3]));
         } else {
             new_group.push(l.clone());
         }
     }
-    let new_gshadow: Option<Vec<Vec<u8>>> = gshadow.map(|sh| {
+    let new_gshadow: Option<Vec<Vec<u8>>> = gshadow.as_ref().map(|sh| {
         let mut ns = Vec::new();
-        for l in &sh {
+        for l in sh {
             if is_data(l) {
-                if drop_group && name_eq(l, &name) {
-                    continue;
-                }
                 ns.push(strip(l, &[2, 3]));
             } else {
                 ns.push(l.clone());
@@ -219,26 +208,27 @@ fn userdel(args: &[OsString]) -> i32 {
         }
         ns
     });
-    let new_shadow = read_lines(&spath)
-        .ok()
-        .map(|s| s.into_iter().filter(|l| !(is_data(l) && name_eq(l, &name))).collect::<Vec<_>>());
+    let old_shadow = read_lines(&spath).ok();
+    let new_shadow = old_shadow
+        .as_ref()
+        .map(|s| s.iter().filter(|l| !(is_data(l) && name_eq(l, &name))).cloned().collect::<Vec<_>>());
 
-    if !write_lines(&ppath, &new_passwd) {
+    if !write_with_backup(&ppath, &passwd, &new_passwd) {
         io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&ppath)));
         return 1;
     }
-    if let Some(s) = &new_shadow {
-        if !write_lines(&spath, s) {
+    if let (Some(s), Some(old)) = (&new_shadow, &old_shadow) {
+        if !write_with_backup(&spath, old, s) {
             io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&spath)));
             return 1;
         }
     }
-    if !write_lines(&gpath, &new_group) {
+    if new_group != group && !write_with_backup(&gpath, &group, &new_group) {
         io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&gpath)));
         return 10;
     }
-    if let Some(sh) = &new_gshadow {
-        if !write_lines(&gspath, sh) {
+    if let (Some(sh), Some(old)) = (&new_gshadow, &gshadow) {
+        if sh != old && !write_with_backup(&gspath, old, sh) {
             io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&gspath)));
             return 10;
         }
@@ -247,10 +237,12 @@ fn userdel(args: &[OsString]) -> i32 {
     let mut rc = 0;
     if o.has(b'r') {
         let force = o.has(b'f');
-        let mail_rel = format!("/var/mail/{shown}");
-        let mail = join(&prefix, &mail_rel);
+        let mail = under_prefix(&prefix, format!("/var/mail/{shown}").as_bytes());
         match sys::lstat(&mail) {
-            Err(_) => io::eprint(format!("{P}: {shown} mail spool ({mail_rel}) not found\n")),
+            Err(_) => io::eprint(format!(
+                "{P}: {shown} mail spool ({}) not found\n",
+                io::lossy(&mail)
+            )),
             Ok(st) => {
                 if !force && Some(u64::from(st.uid)) != uid {
                     io::eprint(format!(
@@ -264,7 +256,7 @@ fn userdel(args: &[OsString]) -> i32 {
                 }
             }
         }
-        let hpath = join(&prefix, &io::lossy(&home));
+        let hpath = under_prefix(&prefix, &home);
         match sys::lstat(&hpath) {
             Err(_) => io::eprint(format!(
                 "{P}: {shown} home directory ({}) not found\n",
@@ -295,7 +287,7 @@ fn userdel(args: &[OsString]) -> i32 {
 
 // ---------------------------------------------------------------- usermod
 
-const USERMOD_USAGE: &str = "Usage: usermod [options] LOGIN\n\nOptions:\n  -a, --append                  append the user to the supplemental GROUPS\n                                mentioned by the -G option without removing\n                                the user from other groups\n  -b, --badname                 allow bad names\n  -c, --comment COMMENT         new value of the GECOS field\n  -d, --home HOME_DIR           new home directory for the user account\n  -e, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -f, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -g, --gid GROUP               force use GROUP as new primary group\n  -G, --groups GROUPS           new list of supplementary GROUPS\n  -h, --help                    display this help message and exit\n  -l, --login NEW_LOGIN         new value of the login name\n  -L, --lock                    lock the user account\n  -m, --move-home               move contents of the home directory to the\n                                new location (use only with -d)\n  -o, --non-unique              allow using duplicate (non-unique) UID\n  -p, --password PASSWORD       use encrypted password for the new password\n  -r, --remove                  remove the user from only the supplemental GROUPS\n                                mentioned by the -G option without removing\n                                the user from other groups\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -s, --shell SHELL             new login shell for the user account\n  -u, --uid UID                 new UID for the user account\n  -U, --unlock                  unlock the user account\n  -v, --add-subuids FIRST-LAST  add range of subordinate uids\n  -V, --del-subuids FIRST-LAST  remove range of subordinate uids\n  -w, --add-subgids FIRST-LAST  add range of subordinate gids\n  -W, --del-subgids FIRST-LAST  remove range of subordinate gids\n  -Z, --selinux-user SEUSER     new SELinux user mapping for the user account\n\n";
+const USERMOD_USAGE: &str = "Usage: usermod [options] LOGIN\n\nOptions:\n  -a, --append                  append the user to the supplemental GROUPS\n                                mentioned by the -G option without removing\n                                the user from other groups\n  -b, --badname                 allow bad names (DEPRECATED)\n  -c, --comment COMMENT         new value of the GECOS field\n  -d, --home HOME_DIR           new home directory for the user account\n  -e, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -f, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -g, --gid GROUP               force use GROUP as new primary group\n  -G, --groups GROUPS           new list of supplementary GROUPS\n  -h, --help                    display this help message and exit\n  -l, --login NEW_LOGIN         new value of the login name\n  -L, --lock                    lock the user account\n  -m, --move-home               move contents of the home directory to the\n                                new location (use only with -d)\n  -o, --non-unique              allow using duplicate (non-unique) UID\n  -p, --password PASSWORD       use encrypted password for the new password\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -r, --remove                  remove the user from only the supplemental GROUPS\n                                mentioned by the -G option without removing\n                                the user from other groups\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --shell SHELL             new login shell for the user account\n  -u, --uid UID                 new UID for the user account\n  -U, --unlock                  unlock the user account\n  -v, --add-subuids FIRST-LAST  add range of subordinate uids\n  -V, --del-subuids FIRST-LAST  remove range of subordinate uids\n  -w, --add-subgids FIRST-LAST  add range of subordinate gids\n  -W, --del-subgids FIRST-LAST  remove range of subordinate gids\n  -Z, --selinux-user SEUSER     new SELinux user mapping for the user account\n      --selinux-range SERANGE   new SELinux MLS range for the user account\n\n";
 
 pub fn usermod_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| usermod(args))
@@ -371,7 +363,7 @@ fn usermod(args: &[OsString]) -> i32 {
     let gpath = join(&prefix, "/etc/group");
     let gspath = join(&prefix, "/etc/gshadow");
 
-    let need_groups = o.has(b'g') || o.has(b'G') || o.has(b'l');
+    let need_groups = o.has(b'g') || o.has(b'G');
     let group_lines: Option<Vec<Vec<u8>>> = if need_groups {
         match read_lines(&gpath) {
             Ok(g) => Some(g),
@@ -516,8 +508,8 @@ fn usermod(args: &[OsString]) -> i32 {
     };
 
     if !b"cdefgGlLpsuUmoarvVwWZ".iter().any(|c| o.has(*c)) {
-        io::eprint(format!("{P}: no options\n"));
-        return usage(USERMOD_USAGE, 2);
+        io::eprint(format!("{P}: no changes\n"));
+        return 0;
     }
     for (flag, text) in [(b'a', "-a"), (b'r', "-r")] {
         if o.has(flag) && !o.has(b'G') {
@@ -538,6 +530,7 @@ fn usermod(args: &[OsString]) -> i32 {
         return usage(USERMOD_USAGE, 2);
     }
     let mut shadow = read_lines(&spath).ok();
+    let shadow_old = shadow.clone();
     if (expire.is_some() || inactive.is_some()) && shadow.is_none() {
         io::eprint(format!("{P}: shadow passwords required for -e and -f\n"));
         return 2;
@@ -558,6 +551,7 @@ fn usermod(args: &[OsString]) -> i32 {
         }
     }
     let old_home = pf[5].clone();
+    let passwd_old = passwd.clone();
     let final_name = new_login.clone().unwrap_or_else(|| name.clone());
 
     let sidx = shadow.as_ref().and_then(|s| s.iter().position(|l| is_data(l) && name_eq(l, &name)));
@@ -617,10 +611,16 @@ fn usermod(args: &[OsString]) -> i32 {
         for &c in cols {
             let mut m = members(&v[c]);
             if new_login.is_some() {
-                for x in &mut m {
-                    if *x == name {
-                        *x = final_name.clone();
+                let mut renamed = false;
+                for x in std::mem::take(&mut m) {
+                    if x == name {
+                        renamed = true;
+                    } else {
+                        m.push(x);
                     }
+                }
+                if renamed && !m.contains(&final_name) {
+                    m.push(final_name.clone());
                 }
             }
             if sup.is_some() {
@@ -641,40 +641,50 @@ fn usermod(args: &[OsString]) -> i32 {
         }
         join_fields(&v)
     };
-    let mut group_out: Option<Vec<Vec<u8>>> = None;
-    let mut gshadow_out: Option<Vec<Vec<u8>>> = None;
+    let mut group_out: Option<(Vec<Vec<u8>>, Vec<Vec<u8>>)> = None;
+    let mut gshadow_out: Option<(Vec<Vec<u8>>, Vec<Vec<u8>>)> = None;
     if new_login.is_some() || sup.is_some() {
-        let g = group_lines.clone().unwrap_or_default();
-        group_out = Some(
-            g.iter().map(|l| if is_data(l) { edit_members(l, false) } else { l.clone() }).collect(),
-        );
+        let g = match group_lines.clone() {
+            Some(g) => g,
+            None => read_lines(&gpath).unwrap_or_default(),
+        };
+        let edited: Vec<Vec<u8>> =
+            g.iter().map(|l| if is_data(l) { edit_members(l, false) } else { l.clone() }).collect();
+        if edited != g {
+            group_out = Some((g, edited));
+        }
         if let Ok(gs) = read_lines(&gspath) {
-            gshadow_out = Some(
-                gs.iter()
-                    .map(|l| if is_data(l) { edit_members(l, true) } else { l.clone() })
-                    .collect(),
-            );
+            let edited: Vec<Vec<u8>> = gs
+                .iter()
+                .map(|l| if is_data(l) { edit_members(l, true) } else { l.clone() })
+                .collect();
+            if edited != gs {
+                gshadow_out = Some((gs, edited));
+            }
         }
     }
 
-    if !write_lines(&ppath, &passwd) {
+    // O original só regrava passwd quando algum campo dele muda (não em -e, -f nem só -G).
+    let pw_changed = b"cdglsuLUp".iter().any(|c| o.has(*c));
+    let sp_changed = b"lLUpef".iter().any(|c| o.has(*c));
+    if pw_changed && !write_with_backup(&ppath, &passwd_old, &passwd) {
         io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&ppath)));
         return 1;
     }
-    if let (Some(sh), Some(_)) = (&shadow, sidx) {
-        if !write_lines(&spath, sh) {
+    if let (Some(sh), Some(old), Some(_)) = (&shadow, &shadow_old, sidx) {
+        if sp_changed && !write_with_backup(&spath, old, sh) {
             io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&spath)));
             return 1;
         }
     }
-    if let Some(g) = &group_out {
-        if !write_lines(&gpath, g) {
+    if let Some((old, g)) = &group_out {
+        if !write_with_backup(&gpath, old, g) {
             io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&gpath)));
             return 10;
         }
     }
-    if let Some(g) = &gshadow_out {
-        if !write_lines(&gspath, g) {
+    if let Some((old, g)) = &gshadow_out {
+        if !write_with_backup(&gspath, old, g) {
             io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&gspath)));
             return 10;
         }
@@ -683,8 +693,8 @@ fn usermod(args: &[OsString]) -> i32 {
     if o.has(b'm') {
         let new_home = home.clone().unwrap_or_default();
         if new_home != old_home {
-            let from = join(&prefix, &io::lossy(&old_home));
-            let to = join(&prefix, &io::lossy(&new_home));
+            let from = under_prefix(&prefix, &old_home);
+            let to = under_prefix(&prefix, &new_home);
             if sys::lstat(&to).is_ok() {
                 io::eprint(format!("{P}: directory {} exists\n", io::lossy(&to)));
                 return 12;

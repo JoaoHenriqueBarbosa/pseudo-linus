@@ -17,7 +17,7 @@ pub fn error_text(code: i32) -> &'static str {
         2 => "Unexpected end of zip file",
         3 => "Zip file structure invalid",
         4 => "Out of memory",
-        6 => "Entry too large to split",
+        6 => "Entry too big to split, read, or write",
         7 => "Invalid comment format",
         9 => "Interrupted",
         10 => "Temporary file failure",

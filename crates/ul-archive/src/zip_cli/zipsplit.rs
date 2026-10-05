@@ -230,7 +230,8 @@ pub fn main(args: &[Vec<u8>]) -> i32 {
     let denom = size.max(1) * (nzips_real - 1) + sizes[nzips_real - 1];
     let efficiency = (200 * sum / denom.max(1) + 1) / 2;
     if !quiet || test {
-        put_stdout(format!("{} zip files will be made ({}% efficiency)\n", nzips_real, efficiency).as_bytes());
+        let verb = if test { "would" } else { "will" };
+        put_stdout(format!("{} zip files {} be made ({}% efficiency)\n", nzips_real, verb, efficiency).as_bytes());
     }
     if test {
         return 0;
