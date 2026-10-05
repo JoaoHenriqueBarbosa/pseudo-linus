@@ -1,0 +1,30 @@
+tool = "utillinux"
+source = "manual"
+
+# scriptreplay do util-linux 2.41: ajuda, versão, erros de argumento e reprodução com atraso zero
+# (sem sleep, para o caso ser determinístico).
+
+[[case]]
+id = "scriptreplay-help"
+argv = ["scriptreplay", "--help"]
+tags = ["scriptreplay", "usage"]
+
+[[case]]
+id = "scriptreplay-version"
+argv = ["scriptreplay", "-V"]
+tags = ["scriptreplay", "version"]
+
+[[case]]
+id = "scriptreplay-no-args"
+argv = ["scriptreplay"]
+tags = ["scriptreplay", "usage", "error"]
+
+[[case]]
+id = "scriptreplay-bad-option"
+argv = ["scriptreplay", "-Z"]
+tags = ["scriptreplay", "usage", "error"]
+
+[[case]]
+id = "scriptreplay-missing-timing"
+argv = ["scriptreplay", "/nonexistent/timing", "/nonexistent/typescript"]
+tags = ["scriptreplay", "error"]

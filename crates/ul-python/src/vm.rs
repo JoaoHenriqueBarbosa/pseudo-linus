@@ -21,8 +21,8 @@ use std::rc::Rc;
 use crate::ast::{CmpOp, Operator, UnaryOp};
 use crate::compile::{Code, Op};
 use crate::object::{
-    exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, Dict, ExcObj, ObjError, PyStr,
-    Range, Set, Value, EXC_CLASSES,
+    exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, Dict, ExcObj, FuncObj, ObjError,
+    PyStr, Range, Set, Value, EXC_CLASSES,
 };
 
 /// Exceção Python levantada durante a execução: o nome da classe e a mensagem (`str(exc)`). Quando
@@ -32,8 +32,9 @@ pub struct PyException {
     pub kind: &'static str,
     pub msg: String,
     pub value: Option<Value>,
-    /// Linha da instrução que a levantou (0 até o laço principal preencher).
-    pub lineno: usize,
+    /// Quadros que a exceção atravessou sem tratamento: linha e nome do código, do mais interno
+    /// para o mais externo.
+    pub tb: Vec<(usize, String)>,
 }
 
 impl PyException {
@@ -49,7 +50,7 @@ impl PyException {
     fn from_value(v: &Value) -> PyException {
         match v {
             Value::Exception(e) => {
-                PyException { kind: e.kind, msg: exc_str(e), value: Some(v.clone()), lineno: 0 }
+                PyException { kind: e.kind, msg: exc_str(e), value: Some(v.clone()), tb: Vec::new() }
             }
             _ => type_error("exceptions must derive from BaseException"),
         }
@@ -66,7 +67,7 @@ pub struct RuntimeError {
 type PyResult<T> = Result<T, PyException>;
 
 fn exc(kind: &'static str, msg: impl Into<String>) -> PyException {
-    PyException { kind, msg: msg.into(), value: None, lineno: 0 }
+    PyException { kind, msg: msg.into(), value: None, tb: Vec::new() }
 }
 
 fn type_error(msg: impl Into<String>) -> PyException {
@@ -84,10 +85,15 @@ impl From<ObjError> for PyException {
     }
 }
 
-/// Traceback do CPython para exceção no nível de módulo de um `-c`, sem a linha fonte.
+/// Traceback do CPython para exceção de um `-c`, sem a linha fonte.
 pub fn format_traceback(err: &RuntimeError) -> String {
     let mut out = String::from("Traceback (most recent call last):\n");
-    out.push_str(&format!("  File \"<string>\", line {}, in <module>\n", err.lineno));
+    if err.exc.tb.is_empty() {
+        out.push_str(&format!("  File \"<string>\", line {}, in <module>\n", err.lineno));
+    }
+    for (line, name) in err.exc.tb.iter().rev() {
+        out.push_str(&format!("  File \"<string>\", line {line}, in {name}\n"));
+    }
     if err.exc.msg.is_empty() {
         out.push_str(err.exc.kind);
         out.push('\n');
@@ -187,7 +193,12 @@ pub struct Vm {
     pub stdout: Vec<u8>,
     /// Exceções sendo tratadas (a mais recente por último), para `raise` sem argumento.
     handled: Vec<Value>,
+    /// Profundidade de chamadas de função em andamento.
+    depth: usize,
 }
+
+/// Limite de recursão (`sys.getrecursionlimit()` do CPython).
+const MAX_DEPTH: usize = 1000;
 
 /// Bloco protegido aberto por `SetupTry`.
 struct Block {
@@ -207,6 +218,15 @@ impl Vm {
 
     /// Executa o código de um módulo.
     pub fn run(&mut self, code: &Code) -> Result<(), RuntimeError> {
+        let mut locals = HashMap::new();
+        match self.exec(code, &mut locals) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(RuntimeError { lineno: e.tb.last().map_or(0, |t| t.0), exc: e }),
+        }
+    }
+
+    /// Executa o código de um módulo ou de uma função até o `Return` (ou o fim do módulo).
+    fn exec(&mut self, code: &Code, locals: &mut HashMap<String, Value>) -> PyResult<Value> {
         let mut stack: Vec<Slot> = Vec::new();
         let mut blocks: Vec<Block> = Vec::new();
         let mut pc = 0;
@@ -221,32 +241,101 @@ impl Vm {
                     blocks.pop();
                     Ok(None)
                 }
-                _ => self.step(code, op, &mut stack),
+                Op::Return => match stack.pop() {
+                    Some(Slot::Val(v)) => return Ok(v),
+                    _ => Err(internal("bad value stack")),
+                },
+                _ => self.step(code, op, &mut stack, locals),
             };
             match result {
                 Ok(Some(target)) => pc = target,
                 Ok(None) => pc += 1,
-                Err(mut e) => {
-                    if e.lineno == 0 {
-                        e.lineno = code.lines[pc];
+                Err(mut e) => match blocks.pop() {
+                    Some(b) => {
+                        stack.truncate(b.depth);
+                        self.handled.truncate(b.handled);
+                        stack.push(Slot::Val(e.to_value()));
+                        pc = b.handler;
                     }
-                    match blocks.pop() {
-                        Some(b) => {
-                            stack.truncate(b.depth);
-                            self.handled.truncate(b.handled);
-                            stack.push(Slot::Val(e.to_value()));
-                            pc = b.handler;
-                        }
-                        None => return Err(RuntimeError { lineno: e.lineno, exc: e }),
+                    None => {
+                        e.tb.push((code.lines[pc], code.name.clone()));
+                        return Err(e);
                     }
+                },
+            }
+        }
+        Ok(Value::None)
+    }
+
+    fn call_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+        let code = f.code.clone();
+        let name = code.name.as_str();
+        let params = &code.params;
+        let ndefaults = f.defaults.len();
+        let required = params.len() - ndefaults;
+        if args.len() > params.len() {
+            let takes = if ndefaults == 0 {
+                format!("{}", params.len())
+            } else {
+                format!("from {required} to {}", params.len())
+            };
+            let plural = if ndefaults == 0 && params.len() == 1 { "" } else { "s" };
+            let given = if args.len() == 1 { "was" } else { "were" };
+            return Err(type_error(format!(
+                "{name}() takes {takes} positional argument{plural} but {} {given} given",
+                args.len()
+            )));
+        }
+        let mut locals: HashMap<String, Value> = HashMap::new();
+        for (p, a) in params.iter().zip(args) {
+            locals.insert(p.clone(), a);
+        }
+        for (k, v) in kwargs {
+            if !params.contains(&k) {
+                return Err(type_error(format!("{name}() got an unexpected keyword argument '{k}'")));
+            }
+            if locals.contains_key(&k) {
+                return Err(type_error(format!("{name}() got multiple values for argument '{k}'")));
+            }
+            locals.insert(k, v);
+        }
+        let mut missing: Vec<&String> = Vec::new();
+        for (i, p) in params.iter().enumerate() {
+            if !locals.contains_key(p) {
+                if i >= required {
+                    locals.insert(p.clone(), f.defaults[i - required].clone());
+                } else {
+                    missing.push(p);
                 }
             }
         }
-        Ok(())
+        if !missing.is_empty() {
+            let quoted: Vec<String> = missing.iter().map(|m| format!("'{m}'")).collect();
+            let list = match quoted.as_slice() {
+                [one] => one.clone(),
+                [a, b] => format!("{a} and {b}"),
+                many => format!("{}, and {}", many[..many.len() - 1].join(", "), many[many.len() - 1]),
+            };
+            let plural = if missing.len() == 1 { "" } else { "s" };
+            return Err(type_error(format!("{name}() missing {} required positional argument{plural}: {list}", missing.len())));
+        }
+        if self.depth >= MAX_DEPTH {
+            return Err(exc("RecursionError", "maximum recursion depth exceeded"));
+        }
+        self.depth += 1;
+        let result = self.exec(&code, &mut locals);
+        self.depth -= 1;
+        result
     }
 
     /// Executa uma instrução; `Some(alvo)` quando ela salta.
-    fn step(&mut self, code: &Code, op: Op, stack: &mut Vec<Slot>) -> PyResult<Option<usize>> {
+    fn step(
+        &mut self,
+        code: &Code,
+        op: Op,
+        stack: &mut Vec<Slot>,
+        locals: &mut HashMap<String, Value>,
+    ) -> PyResult<Option<usize>> {
         fn pop(stack: &mut Vec<Slot>) -> PyResult<Value> {
             match stack.pop() {
                 Some(Slot::Val(v)) => Ok(v),
@@ -418,7 +507,28 @@ impl Vm {
                 let value = pop(stack)?;
                 store_subscript(&container, &index, value)?;
             }
-            Op::SetupTry(_) | Op::PopBlock => {}
+            Op::SetupTry(_) | Op::PopBlock | Op::Return => {}
+            Op::LoadLocal(i) => {
+                let name = &code.names[i as usize];
+                match locals.get(name) {
+                    Some(v) => stack.push(Slot::Val(v.clone())),
+                    None => {
+                        return Err(exc(
+                            "UnboundLocalError",
+                            format!("cannot access local variable '{name}' where it is not associated with a value"),
+                        ))
+                    }
+                }
+            }
+            Op::StoreLocal(i) => {
+                let v = pop(stack)?;
+                locals.insert(code.names[i as usize].clone(), v);
+            }
+            Op::MakeFunction { code: idx, ndefaults } => {
+                let defaults = pop_n(stack, ndefaults as usize)?;
+                let f = FuncObj { code: code.functions[idx as usize].clone(), defaults };
+                stack.push(Slot::Val(Value::Function(Rc::new(f))));
+            }
             Op::PushExc => {
                 let v = top(stack)?.clone();
                 self.handled.push(v);
@@ -450,7 +560,12 @@ impl Vm {
                 return Err(PyException::from_value(&v));
             }
             Op::DeleteName(i) => {
-                self.globals.remove(&code.names[i as usize]);
+                let name = &code.names[i as usize];
+                if code.is_function {
+                    locals.remove(name);
+                } else {
+                    self.globals.remove(name);
+                }
             }
             Op::LoadAttr(i) => {
                 let obj = pop(stack)?;
@@ -493,6 +608,9 @@ impl Vm {
     }
 
     fn call(&mut self, func: &Value, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+        if let Value::Function(f) = func {
+            return self.call_function(f, args, kwargs);
+        }
         let Value::Builtin(name) = func else {
             return Err(type_error(format!("'{}' object is not callable", func.type_name())));
         };
@@ -770,7 +888,7 @@ fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
                 kind: "KeyError",
                 msg: repr(index),
                 value: Some(Value::Exception(Rc::new(ExcObj { kind: "KeyError", args: vec![index.clone()] }))),
-                lineno: 0,
+                tb: Vec::new(),
             }),
         },
         _ => Err(type_error(format!("'{}' object is not subscriptable", container.type_name()))),
@@ -1262,11 +1380,20 @@ mod tests {
 
     /// Executa `src` e devolve o stdout e, se houver, o traceback.
     fn run(src: &str) -> (String, Option<String>) {
-        let module = parse_module(src).expect("parse");
-        let code = compile_module(&module).expect("compile");
-        let mut vm = Vm::new();
-        let err = vm.run(&code).err().map(|e| format_traceback(&e));
-        (String::from_utf8(vm.stdout).expect("utf-8"), err)
+        // Pilha grande: o limite de recursão de 1000 chamadas não cabe nos 2 MiB de uma thread de teste.
+        let src = src.to_string();
+        std::thread::Builder::new()
+            .stack_size(1 << 30)
+            .spawn(move || {
+                let module = parse_module(&src).expect("parse");
+                let code = compile_module(&module).expect("compile");
+                let mut vm = Vm::new();
+                let err = vm.run(&code).err().map(|e| format_traceback(&e));
+                (String::from_utf8(vm.stdout).expect("utf-8"), err)
+            })
+            .expect("thread")
+            .join()
+            .expect("join")
     }
 
     fn out(src: &str) -> String {
@@ -1357,6 +1484,40 @@ mod tests {
     }
 
     #[test]
+    fn functions() {
+        let src = "def add(a, b=10):\n    return a + b\nprint(add(1), add(1, 2), add(b=5, a=1))\n";
+        assert_eq!(out(src), "11 3 6\n");
+        let src = "def fib(n):\n    if n < 2:\n        return n\n    return fib(n - 1) + fib(n - 2)\nprint(fib(15))\n";
+        assert_eq!(out(src), "610\n");
+        let src = "count = 0\ndef inc():\n    global count\n    count += 1\ninc()\ninc()\nprint(count)\n";
+        assert_eq!(out(src), "2\n");
+        let src = "def f():\n    x = 1\n    for i in range(3):\n        x += i\n    return x\nprint(f(), f)\n";
+        assert!(out(src).starts_with("4 <function f at 0x"));
+        let src = "def f():\n    try:\n        return 1\n    finally:\n        print('fin')\nprint(f())\n";
+        assert_eq!(out(src), "fin\n1\n");
+        let src = "def f(n):\n    for i in range(10):\n        try:\n            if i == n:\n                return i\n        finally:\n            print('f', i)\nprint(f(1))\n";
+        assert_eq!(out(src), "f 0\nf 1\n1\n");
+        let src = "def f():\n    pass\nprint(f())\n";
+        assert_eq!(out(src), "None\n");
+        let src = "def f(a, b):\n    return a / b\ntry:\n    f(1, 0)\nexcept ZeroDivisionError as e:\n    print('caught', e)\n";
+        assert_eq!(out(src), "caught division by zero\n");
+        assert_eq!(
+            error("def f():\n    return 1 / 0\ndef g():\n    return f()\ng()\n"),
+            "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n  File \"<string>\", line 4, in g\n  \
+             File \"<string>\", line 2, in f\nZeroDivisionError: division by zero\n"
+        );
+        assert!(error("def f(a):\n    pass\nf()\n").ends_with("TypeError: f() missing 1 required positional argument: 'a'\n"));
+        assert!(error("def f(a):\n    pass\nf(1, 2)\n").ends_with("TypeError: f() takes 1 positional argument but 2 were given\n"));
+        assert!(error("def f(a, b=1):\n    pass\nf(1, 2, 3)\n")
+            .ends_with("TypeError: f() takes from 1 to 2 positional arguments but 3 were given\n"));
+        assert!(error("def f(a):\n    pass\nf(1, a=2)\n").ends_with("TypeError: f() got multiple values for argument 'a'\n"));
+        assert!(error("def f(a):\n    pass\nf(z=2)\n").ends_with("TypeError: f() got an unexpected keyword argument 'z'\n"));
+        assert!(error("def f():\n    print(x)\n    x = 1\nf()\n")
+            .ends_with("UnboundLocalError: cannot access local variable 'x' where it is not associated with a value\n"));
+        assert!(error("def f():\n    return f()\nf()\n").ends_with("RecursionError: maximum recursion depth exceeded\n"));
+    }
+
+    #[test]
     fn try_except_flow() {
         let src = "try:\n    1 / 0\nexcept ZeroDivisionError as e:\n    print('z', e, repr(e), e.args)\n";
         assert_eq!(out(src), "z division by zero ZeroDivisionError('division by zero') ('division by zero',)\n");
@@ -1379,5 +1540,44 @@ mod tests {
         assert!(error("raise ValueError\n").ends_with("ValueError\n"));
         assert!(error("raise 5\n").ends_with("TypeError: exceptions must derive from BaseException\n"));
         assert!(error("try:\n    raise ValueError('x')\nfinally:\n    print('f')\n").ends_with("ValueError: x\n"));
+    }
+
+    #[test]
+    fn exception_edge_cases() {
+        // 1. except sem casamento propaga com traceback
+        let msg = error("try:\n    raise KeyError(1)\nexcept ValueError:\n    print('no')\n");
+        assert!(msg.contains("Traceback"));
+        assert!(msg.ends_with("KeyError: 1\n"));
+        // 2. finally depois de break dentro de while
+        let src = "i = 0\nwhile True:\n    try:\n        i += 1\n        break\n    finally:\n        print('f', i)\nprint('end')\n";
+        assert_eq!(out(src), "f 1\nend\n");
+        // 3. try aninhado com raise dentro de except
+        let src = "try:\n    try:\n        raise ValueError('a')\n    except ValueError:\n        raise KeyError('b')\nexcept KeyError as k:\n    print('k', k)\n";
+        assert_eq!(out(src), "k 'b'\n");
+        // 4. except com tupla
+        let src = "try:\n    {}['x']\nexcept (ValueError, KeyError) as e:\n    print('t', repr(e))\n";
+        assert_eq!(out(src), "t KeyError('x')\n");
+        // 5. args com vários argumentos
+        let src = "try:\n    raise ValueError(1, 2)\nexcept ValueError as e:\n    print(e.args, str(e))\n";
+        assert_eq!(out(src), "(1, 2) (1, 2)\n");
+        // 6. str(KeyError('a'))
+        assert_eq!(out("print(str(KeyError('a')))\n"), "'a'\n");
+        // 7. raise ValueError() sem mensagem
+        let src = "try:\n    raise ValueError()\nexcept ValueError as e:\n    print(repr(str(e)), e.args)\n";
+        assert_eq!(out(src), "'' ()\n");
+        assert!(error("raise ValueError()\n").ends_with("ValueError\n"));
+        // 8. assert sem mensagem
+        let src = "try:\n    assert False\nexcept AssertionError as e:\n    print(repr(e), e.args)\n";
+        assert_eq!(out(src), "AssertionError() ()\n");
+        // 9. NameError capturada por except NameError
+        let src = "try:\n    undefined_name\nexcept NameError as e:\n    print(e)\n";
+        assert_eq!(out(src), "name 'undefined_name' is not defined\n");
+        // 10. ZeroDivisionError por except ArithmeticError
+        let src = "try:\n    1 / 0\nexcept ArithmeticError as e:\n    print(repr(e))\n";
+        assert_eq!(out(src), "ZeroDivisionError('division by zero')\n");
+        // 11. print(ValueError('x'))
+        assert_eq!(out("print(ValueError('x'))\n"), "x\n");
+        // 12. repr(Exception())
+        assert_eq!(out("print(repr(Exception()))\n"), "Exception()\n");
     }
 }

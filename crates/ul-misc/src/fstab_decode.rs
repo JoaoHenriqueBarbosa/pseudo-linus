@@ -46,7 +46,7 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
     if argv.len() < 2 {
-        io::eprint("Usage: fstab-decode COMMAND [ARG]...\n".to_string());
+        io::eprint("Usage: fstab-decode command [arguments]\n".to_string());
         return 1;
     }
     let cmd: Vec<Vec<u8>> = argv[1..].iter().map(|a| decode(a)).collect();

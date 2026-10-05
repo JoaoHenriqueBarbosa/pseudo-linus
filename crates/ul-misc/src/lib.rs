@@ -5,12 +5,14 @@
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
 //! `getent`, `locale` e `iconv` (glibc 2.41).
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`, `setarch` (e links) e `chrt`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
+//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`, `setarch` (e links), `chrt` e `choom`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
 //! e, como os scripts originais rodando no `sh`, `savelog`, `add-shell` e `remove-shell`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
 pub mod bc;
+pub mod bzip2recover;
+pub mod choom;
 pub mod chrt;
 pub mod col;
 pub mod colcrt;
@@ -21,6 +23,7 @@ pub mod debscripts;
 pub mod envsubst;
 pub mod fallocate;
 pub mod file;
+pub mod findfs;
 pub mod fstab_decode;
 pub mod getconf;
 pub mod getent;
@@ -40,10 +43,13 @@ pub mod mountpoint;
 pub mod namei;
 pub mod nologin;
 pub mod pager;
+pub mod pwck;
 pub mod rename_ul;
 pub mod renice;
+pub mod lzmainfo;
 pub mod rev;
 pub mod run_parts;
+pub mod scriptreplay;
 pub mod setarch;
 pub mod setsid;
 pub mod strings;
@@ -64,6 +70,8 @@ use sysabi::Program;
 pub fn programs() -> Vec<Program> {
     vec![
         Program::bin("bc", bc::main),
+        Program::bin("bzip2recover", bzip2recover::main),
+        Program::bin("choom", choom::main),
         Program::bin("chrt", chrt::main),
         Program::bin("clear", term::clear::main),
         Program::bin("col", col::main),
@@ -74,6 +82,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("envsubst", envsubst::main),
         Program::bin("fallocate", fallocate::main),
         Program::bin("file", file::cli::main),
+        Program::bin("findfs", findfs::main),
         Program::bin("fstab-decode", fstab_decode::main),
         Program::bin("getconf", getconf::main),
         Program::bin("getent", getent::main),
@@ -99,9 +108,11 @@ pub fn programs() -> Vec<Program> {
         Program::bin("rename.ul", rename_ul::main),
         Program::bin("renice", renice::main),
         Program::bin("reset", term::tset::main),
+        Program::bin("lzmainfo", lzmainfo::main),
         Program::bin("rev", rev::main),
         Program::bin("run-parts", run_parts::main),
         Program::bin("savelog", debscripts::savelog_main),
+        Program::bin("scriptreplay", scriptreplay::main),
         Program::bin("setarch", setarch::main),
         Program::bin("linux32", setarch::main),
         Program::bin("linux64", setarch::main),
@@ -125,6 +136,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("zdump", zdump::main),
         Program::sbin("add-shell", debscripts::add_shell_main),
         Program::sbin("nologin", nologin::main),
+        Program::sbin("pwck", pwck::main),
         Program::sbin("remove-shell", debscripts::remove_shell_main),
     ]
 }

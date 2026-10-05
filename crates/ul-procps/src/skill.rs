@@ -19,7 +19,11 @@ use ul_misc::util::io;
 use crate::common::{self, Names, out};
 use crate::procfs::{self, Want};
 
-const USAGE_OPTS: &str = "\nOptions:\n -f, --fast         fast mode (not implemented)\n -i, --interactive  interactive\n -l, --list         list all signal names\n -L, --table        list all signal names in a nice table\n -n, --no-action    do not actually kill processes; just print what would happen\n -v, --verbose      explain what is being done\n -w, --warnings     enable warnings (not implemented)\n\nExpression can be: terminal, user, pid, command.\n -c, --command <command>  expression is a command name\n -p, --pid <pid>          expression is a process id number\n -t, --tty <tty>          expression is a terminal\n -u, --user <username>    expression is a username\n\nAlternatively, expression can be:\n --ns <pid>               match the processes that belong to the same\n                          namespace as <pid>\n --nslist <ns,...>        list which namespaces will be considered for\n                          the --ns option; available namespaces are:\n                          ipc, mnt, net, pid, user, uts\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nThe default signal is TERM. Use -l or -L to list available signals.\nParticularly useful signals include HUP, INT, KILL, STOP, CONT, and 0.\nAlternatively, signals can be specified by number.\n\nFor more details see skill(1).\n";
+const USAGE_OPTS: &str = "\nOptions:\n -f, --fast         fast mode (not implemented)\n -i, --interactive  interactive\n -l, --list         list all signal names\n -L, --table        list all signal names in a nice table\n -n, --no-action    do not actually kill processes; just print what would happen\n -v, --verbose      explain what is being done\n -w, --warnings     enable warnings (not implemented)\n\nExpression can be: terminal, user, pid, command.\nThe options below may be used to ensure correct interpretation.\n -c, --command <command>  expression is a command name\n -p, --pid <pid>          expression is a process id number\n -t, --tty <tty>          expression is a terminal\n -u, --user <username>    expression is a username\n\nAlternatively, expression can be:\n --ns <pid>               match the processes that belong to the same\n                          namespace as <pid>\n --nslist <ns,...>        list which namespaces will be considered for\n                          the --ns option; available namespaces are:\n                          ipc, mnt, net, pid, user, uts\n\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n";
+
+const USAGE_TAIL_SKILL: &str = "\nThe default signal is TERM. Use -l or -L to list available signals.\nParticularly useful signals include HUP, INT, KILL, STOP, CONT, and 0.\nAlternate signals may be specified in three ways: -SIGKILL -KILL -9\n\nFor more details see skill(1).\n";
+
+const USAGE_TAIL_SNICE: &str = "\nThe default priority is +4. (snice +4 ...)\nPriority numbers range from +20 (slowest) to -20 (fastest).\nNegative priority numbers are restricted to administrative users.\n\nFor more details see snice(1).\n";
 
 const NS: i32 = 300;
 const NSLIST: i32 = 301;
@@ -49,11 +53,8 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 
 fn usage(prog: &str) -> String {
     let first = if prog == "snice" { "[new priority]" } else { "[signal]" };
-    format!("\nUsage:\n {prog} {first} [options] <expression>\n{USAGE_OPTS}")
-}
-
-fn usage_try(prog: &str) -> String {
-    format!("Try '{prog} --help' for more information.\n")
+    let tail = if prog == "snice" { USAGE_TAIL_SNICE } else { USAGE_TAIL_SKILL };
+    format!("\nUsage:\n {prog} {first} [options] <expression>\n{USAGE_OPTS}{tail}")
 }
 
 /// `-<sinal>` do skill: número 0 a 64 ou nome da tabela / tempo real.
@@ -153,7 +154,7 @@ fn run(args: &[OsString]) -> i32 {
         let opt = match r {
             Ok(x) => x,
             Err(er) => {
-                io::eprint(format!("{}\n{}", er.message(&argv0), usage_try(prog)));
+                io::eprint(format!("{}\n{}", er.message(&argv0), usage(prog)));
                 return 1;
             }
         };
@@ -163,17 +164,14 @@ fn run(args: &[OsString]) -> i32 {
             x if x == 'p' as i32 => match common::parse_long(&a) {
                 Some(v) if v > 0 => e.pids.push(v as Pid),
                 _ => {
-                    common::warn(prog, &format!("invalid process id: {a}"));
+                    common::warn(prog, &format!("failed to parse argument: '{a}'"));
                     return 1;
                 }
             },
             x if x == 't' as i32 => e.ttys.push(a.strip_prefix("/dev/").unwrap_or(&a).to_string()),
             x if x == 'u' as i32 => match names.uid_of(&a) {
                 Some(u) => e.users.push(u),
-                None => {
-                    common::warn(prog, &format!("unknown user: {a}"));
-                    return 1;
-                }
+                None => {}
             },
             x if x == 'f' as i32 || x == 'w' as i32 => {}
             x if x == 'i' as i32 => interactive = true,
@@ -228,7 +226,7 @@ fn run(args: &[OsString]) -> i32 {
         }
     }
     if e.is_empty() {
-        io::eprint(format!("{prog}: no process selection criteria\n{}", usage_try(prog)));
+        io::eprint(format!("{prog}: no process selection criteria\n"));
         return 1;
     }
 

@@ -1,0 +1,32 @@
+tool = "pwck"
+source = "manual"
+
+# pwck do shadow 4.17, só o modo -r (leitura): arquivos de passwd montados no caso.
+
+[[case]]
+id = "pwck-read-only-clean"
+script = "printf 'root:x:0:0:root:/:/bin/sh\\n' > pw; pwck -r pw; echo \"rc=$?\""
+
+[[case]]
+id = "pwck-read-only-missing-home"
+script = "printf 'bob:x:0:0:b:/nonexistent-home:/bin/sh\\n' > pw; pwck -r pw 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pwck-read-only-missing-shell"
+script = "printf 'bob:x:0:0:b:/:/bin/nonexistent-shell\\n' > pw; pwck -r pw 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pwck-read-only-bad-field-count"
+script = "printf 'bob:x:0:0\\n' > pw; pwck -r pw 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pwck-read-only-duplicate"
+script = "printf 'bob:x:0:0:b:/:/bin/sh\\nbob:x:0:0:b:/:/bin/sh\\n' > pw; pwck -r pw 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pwck-read-only-no-group"
+script = "printf 'bob:x:1:54321:b:/:/bin/sh\\n' > pw; pwck -r pw 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "pwck-missing-file"
+script = "pwck -r nope 2>&1; echo \"rc=$?\""

@@ -1,0 +1,59 @@
+tool = "bzip2recover"
+source = "manual"
+
+# bzip2recover do bzip2 1.0.8: banner, uso, arquivo ausente, arquivo sem fronteiras de bloco e
+# recuperação de blocos de um .bz2 válido (gerado com bzip2 no próprio caso).
+
+[[case]]
+id = "bzip2recover-no-args"
+argv = ["bzip2recover"]
+
+[[case]]
+id = "bzip2recover-too-many-args"
+argv = ["bzip2recover", "a.bz2", "b.bz2"]
+
+[[case]]
+id = "bzip2recover-missing-file"
+argv = ["bzip2recover", "nope.bz2"]
+
+[[case]]
+id = "bzip2recover-directory"
+argv = ["bzip2recover", "dir"]
+[case.files]
+"dir" = { dir = true }
+
+[[case]]
+id = "bzip2recover-empty-file"
+argv = ["bzip2recover", "empty.bz2"]
+[case.files]
+"empty.bz2" = ""
+
+[[case]]
+id = "bzip2recover-not-bzip2"
+argv = ["bzip2recover", "text.bz2"]
+[case.files]
+"text.bz2" = "isto não é um arquivo bzip2 de verdade\n"
+
+[[case]]
+id = "bzip2recover-single-block"
+script = "printf 'hello world\\n%.0s' $(seq 1 200) | bzip2 -9 > f.bz2; bzip2recover f.bz2; ls; bzip2 -dc rec00001f.bz2 | cmp - <(bzip2 -dc f.bz2) && echo same; cmp rec00001f.bz2 f.bz2 && echo identical"
+
+[[case]]
+id = "bzip2recover-multiple-blocks"
+script = "head -c 300000 /dev/zero | tr '\\0' 'a' | bzip2 -1 > f.bz2; bzip2recover f.bz2; ls; for f in rec*f.bz2; do bzip2 -t $f && echo ok; done"
+
+[[case]]
+id = "bzip2recover-corrupted-middle"
+script = "seq 1 200000 | bzip2 -1 > f.bz2; printf '\\377\\377\\377\\377' | dd of=f.bz2 bs=1 seek=40000 conv=notrunc 2>/dev/null; bzip2recover f.bz2; ls; for f in rec*f.bz2; do bzip2 -t $f 2>&1 && echo ok; done"
+
+[[case]]
+id = "bzip2recover-truncated"
+script = "seq 1 200000 | bzip2 -1 > f.bz2; head -c 150000 f.bz2 > t.bz2; bzip2recover t.bz2; ls"
+
+[[case]]
+id = "bzip2recover-path-in-name"
+script = "mkdir sub; printf 'abc\\n%.0s' $(seq 1 500) | bzip2 > sub/g.bz2; bzip2recover sub/g.bz2; ls; ls sub"
+
+[[case]]
+id = "bzip2recover-name-without-bz2-suffix"
+script = "printf 'abc\\n%.0s' $(seq 1 500) | bzip2 > g.dat; bzip2recover g.dat; ls"

@@ -15,6 +15,7 @@ use crate::util::{Getopt, HasArg, LongOpt};
 const NOLOGIN_TXT: &[u8] = b"/etc/nologin.txt";
 
 const LONGS: &[LongOpt] = &[
+    LongOpt::new("command", HasArg::Required, b'c' as i32),
     LongOpt::new("help", HasArg::No, b'h' as i32),
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
@@ -32,8 +33,9 @@ Usage:
 Politely refuse a login.
 
 Options:
- -h, --help     display this help
- -V, --version  display version
+ -c, --command <command>  does nothing (for compatibility with su -c)
+ -h, --help               display this help
+ -V, --version            display version
 
 For more details see nologin(8).
 "
@@ -68,7 +70,7 @@ fn run(args: &[OsString]) -> i32 {
     let argv0 = io::argv0(args);
     let short = ul::short_name(args);
 
-    let mut g = Getopt::from_env(&argv[1..], "hV", LONGS);
+    let mut g = Getopt::from_env(&argv[1..], "c:hV", LONGS);
     while let Some(r) = g.next_opt() {
         let o = match r {
             Ok(o) => o,
@@ -79,14 +81,15 @@ fn run(args: &[OsString]) -> i32 {
             }
         };
         match o.short() {
+            Some('c') => {}
             Some('h') => {
                 let mut out = io::stdout();
                 let _ = out.write_all(usage(&short).as_bytes());
-                return 0;
+                return 1;
             }
             Some('V') => {
                 ul::print_version(&short);
-                return 0;
+                return 1;
             }
             _ => {
                 ul::errtryhelp(&short);

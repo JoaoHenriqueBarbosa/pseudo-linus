@@ -1,0 +1,32 @@
+{
+  "scriptreplay-bad-option": {
+    "stdout": "",
+    "stderr": "scriptreplay: invalid option -- 'Z'\nTry 'scriptreplay --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "scriptreplay-help": {
+    "stdout": "\nUsage:\n scriptreplay [options] <timingfile> [<typescript> [<divisor>]]\n\nPlay back terminal typescripts, using timing information.\n\nOptions:\n -t, --timing <file>     script timing log file\n -T, --log-timing <file> alias to -t\n -I, --log-in <file>     script stdin log file\n -O, --log-out <file>    script stdout log file (default)\n -B, --log-io <file>     script stdin and stdout log file\n\n -s, --typescript <file> deprecated alias to -O\n\n     --summary           display overview about recorded session and exit\n -d, --divisor <num>     speed up or slow down execution with time divisor\n -m, --maxdelay <num>    wait at most this many seconds between updates\n -x, --stream <name>     stream type (out, in, signal or info)\n -c, --cr-mode <type>    CR char mode (auto, never, always)\n\n -h, --help              display this help\n -V, --version           display version\n\nKey bindings:\n space        toggles between pause and play\n up-arrow     increases playback speed with ten percent\n down-arrow   decreases playback speed with ten percent\n\nFor more details see scriptreplay(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "scriptreplay-missing-timing": {
+    "stdout": "",
+    "stderr": "scriptreplay: cannot open /nonexistent/timing: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "scriptreplay-no-args": {
+    "stdout": "",
+    "stderr": "scriptreplay: timing file not specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "scriptreplay-version": {
+    "stdout": "scriptreplay from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

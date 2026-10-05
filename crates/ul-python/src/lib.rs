@@ -244,8 +244,23 @@ pub struct Outcome {
     pub status: i32,
 }
 
-/// Executa o texto de um `-c`: analisa, compila e roda no nível de módulo.
+/// Executa o texto de um `-c`: analisa, compila e roda no nível de módulo. A execução corre numa
+/// thread com pilha grande (reservada, não comprometida) para o limite de recursão de 1000 chamadas
+/// caber na pilha nativa, já que a VM chama a si mesma a cada `def` invocada.
 pub fn run_source(src: &str) -> Outcome {
+    let owned = src.to_string();
+    let spawned = std::thread::Builder::new().stack_size(1 << 30).spawn(move || run_source_inner(&owned));
+    match spawned.map(|h| h.join()) {
+        Ok(Ok(outcome)) => outcome,
+        _ => Outcome {
+            stdout: Vec::new(),
+            stderr: "Fatal Python error: could not run the interpreter thread\n".into(),
+            status: 1,
+        },
+    }
+}
+
+fn run_source_inner(src: &str) -> Outcome {
     // O `-c` do CPython compila o texto como um arquivo que termina em nova linha.
     let mut src = src.to_string();
     if !src.ends_with('\n') {
@@ -269,7 +284,7 @@ pub fn run_source(src: &str) -> Outcome {
                 format!("  File \"<string>\", line {}\n{}: {}\n", e.lineno, e.kind, e.msg)
             } else {
                 vm::format_traceback(&vm::RuntimeError {
-                    exc: vm::PyException { kind: e.kind, msg: e.msg, value: None, lineno: e.lineno },
+                    exc: vm::PyException { kind: e.kind, msg: e.msg, value: None, tb: Vec::new() },
                     lineno: e.lineno,
                 })
             };

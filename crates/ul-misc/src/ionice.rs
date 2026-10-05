@@ -176,16 +176,9 @@ fn run(args: &[OsString]) -> i32 {
             data = None;
         }
         Some(c) if !(0..=3).contains(&c) => {
-            ul::warnx(&short, format!("unknown scheduling class: '{c}'"));
-            return 1;
+            ul::warnx(&short, format!("unknown prio class {c}"));
         }
         _ => {}
-    }
-    if let Some(n) = data {
-        if !(0..8).contains(&n) {
-            ul::warnx(&short, format!("invalid class data argument: '{n}'"));
-            return 1;
-        }
     }
 
     let set = class.is_some() || data.is_some();
@@ -226,7 +219,7 @@ fn run(args: &[OsString]) -> i32 {
         if set {
             let value = ioprio_value(class.unwrap_or(IOPRIO_CLASS_BE), data.unwrap_or(0));
             if let Err(e) = sys::current().ioprio_set(which, id, value) {
-                if !tolerant {
+                if !tolerant && data.unwrap_or(0) < 8 {
                     ul::warn(&short, "ioprio_set failed".to_string(), e);
                     rc = 1;
                 }
@@ -245,6 +238,8 @@ fn query(short: &str, which: i32, who: i32, tolerant: bool) -> i32 {
             let name = CLASS_NAMES.get(c as usize).copied().unwrap_or("unknown");
             let line = if c == IOPRIO_CLASS_IDLE {
                 format!("{name}\n")
+            } else if c == IOPRIO_CLASS_NONE {
+                "none: prio 0\n".to_string()
             } else {
                 format!("{name}: prio {}\n", ioprio_level(v))
             };

@@ -1,0 +1,80 @@
+{
+  "choom-adjust-out-of-range": {
+    "stdout": "",
+    "stderr": "choom: failed to set score adjust value: Invalid argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "choom-bad-adjust": {
+    "stdout": "",
+    "stderr": "choom: invalid adjust argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "choom-bad-option": {
+    "stdout": "",
+    "stderr": "choom: invalid option -- 'x'\nTry 'choom --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "choom-bad-pid": {
+    "stdout": "",
+    "stderr": "choom: invalid PID argument: 'xyz'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "choom-command": {
+    "stdout": "50\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "choom-command-missing": {
+    "stdout": "choom: failed to execute no-such-command-here: No such file or directory\n127\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "choom-help": {
+    "stdout": "\nUsage:\n choom [options] -p pid\n choom [options] -n number -p pid\n choom [options] -n number [--] command [args...]]\n\nDisplay and adjust OOM-killer score.\n\nOptions:\n -n, --adjust <num>     specify the adjust score value\n -p, --pid <num>        process ID\n\n -h, --help             display this help\n -V, --version          display version\n\nFor more details see choom(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "choom-missing-pid": {
+    "stdout": "",
+    "stderr": "choom: failed to read OOM score value: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "choom-no-args": {
+    "stdout": "",
+    "stderr": "choom: no PID or COMMAND specified\nTry 'choom --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "choom-pid-and-command": {
+    "stdout": "",
+    "stderr": "choom: invalid argument: true\nTry 'choom --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "choom-self": {
+    "stdout": "pid N's current OOM score: V\npid N's current OOM score adjust value: V\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "choom-set-self": {
+    "stdout": "pid N's OOM score adjust value changed from 0 to 100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "choom-version": {
+    "stdout": "choom from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

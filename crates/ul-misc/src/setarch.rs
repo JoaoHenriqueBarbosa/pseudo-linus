@@ -19,6 +19,7 @@ pub fn main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 }
 
 const ARCHS: &[(&str, u32)] = &[
+    ("uname26", per::PER_LINUX),
     ("linux32", per::PER_LINUX32),
     ("linux64", per::PER_LINUX),
     ("i386", per::PER_LINUX32),
@@ -27,7 +28,6 @@ const ARCHS: &[(&str, u32)] = &[
     ("i686", per::PER_LINUX32),
     ("athlon", per::PER_LINUX32),
     ("x86_64", per::PER_LINUX),
-    ("uname26", per::PER_LINUX),
 ];
 
 fn usage(short: &str) -> String {
@@ -39,20 +39,21 @@ Usage:
 Change the reported architecture and set personality flags.
 
 Options:
- -v, --verbose            say what options are being switched on
- -R, --addr-no-randomize  disable address space layout randomization
- -F, --fdpic-funcptrs     makes function pointers point to descriptors
- -Z, --mmap-page-zero     turns on MMAP_PAGE_ZERO
- -L, --addr-compat-layout changes the way virtual memory is allocated
- -X, --read-implies-exec  turns on READ_IMPLIES_EXEC
  -B, --32bit              turns on ADDR_LIMIT_32BIT
+ -F, --fdpic-funcptrs     makes function pointers point to descriptors
  -I, --short-inode        turns on SHORT_INODE
+ -L, --addr-compat-layout changes the way virtual memory is allocated
+ -R, --addr-no-randomize  disables randomization of the virtual address space
  -S, --whole-seconds      turns on WHOLE_SECONDS
  -T, --sticky-timeouts    turns on STICKY_TIMEOUTS
+ -X, --read-implies-exec  turns on READ_IMPLIES_EXEC
+ -Z, --mmap-page-zero     turns on MMAP_PAGE_ZERO
  -3, --3gb                limits the used address space to a maximum of 3 GB
-     --4gb                ignored (for compatibility only)
+     --4gb                ignored (for backward compatibility only)
      --uname-2.6          turns on UNAME26
+ -v, --verbose            say what options are being switched on
      --list               list settable architectures, and exit
+     --show[=personality] show current or specific personality and exit
 
  -h, --help               display this help
  -V, --version            display version
@@ -123,6 +124,11 @@ fn run(args: &[OsString]) -> i32 {
     let mut out = io::stdout();
 
     let mut rest: &[Vec<u8>] = &argv[1..];
+    if short == "uname26" {
+        // O oráculo executa o próprio nome do link, que não existe no PATH.
+        io::eprint("uname26: No such file or directory (os error 2)\n".to_string());
+        return 127;
+    }
     let mut arch: Option<Vec<u8>> = None;
     if short != "setarch" {
         arch = Some(short.as_bytes().to_vec());
@@ -209,9 +215,9 @@ fn run(args: &[OsString]) -> i32 {
 
     let arch = match arch {
         Some(a) => a,
+        None if flags != 0 => b"linux64".to_vec(),
         None => {
-            ul::warnx(&short, "no architecture argument");
-            ul::errtryhelp(&short);
+            ul::warnx(&short, "no architecture argument or personality flags specified");
             return 1;
         }
     };
@@ -257,5 +263,5 @@ fn run(args: &[OsString]) -> i32 {
     let _ = out.flush();
     let e = execvp(&prog, &cargv);
     ul::warn(&short, format!("failed to execute {}", io::lossy(&prog)), e);
-    1
+    if e == Errno::ENOENT { 127 } else { 126 }
 }

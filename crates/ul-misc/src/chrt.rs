@@ -20,8 +20,7 @@ pub fn main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 
 fn usage(short: &str) -> String {
     format!(
-        "
-Show or change the real-time scheduling attributes of a process.
+        "Show or change the real-time scheduling attributes of a process.
 
 Set policy:
  {short} [options] <priority> <command> [<arg>...]
@@ -39,7 +38,7 @@ Policy options:
  -r, --rr             set policy to SCHED_RR (default)
 
 Scheduling options:
- -R, --reset-on-fork       set SCHED_RESET_ON_FORK for FIFO or RR
+ -R, --reset-on-fork       set reset-on-fork flag
  -T, --sched-runtime <ns>  runtime parameter for DEADLINE
  -P, --sched-period <ns>   period parameter for DEADLINE
  -D, --sched-deadline <ns> deadline parameter for DEADLINE
@@ -178,9 +177,14 @@ fn show_sched_info(short: &str, pid: Pid, verbose_old: Option<&str>) -> i32 {
         }
     };
     let _ = out.write_all(format!("pid {pid}'s {word} scheduling priority: {}\n", param.priority).as_bytes());
-    if pol & !sched::SCHED_RESET_ON_FORK == sched::SCHED_DEADLINE {
+    let base = pol & !sched::SCHED_RESET_ON_FORK;
+    if base == sched::SCHED_DEADLINE {
         if let Ok(a) = sys.sched_getattr(pid, sched::SCHED_ATTR_SIZE_VER1, 0) {
             let _ = out.write_all(format!("pid {pid}'s {word} runtime/deadline/period parameters: {}/{}/{}\n", a.runtime, a.deadline, a.period).as_bytes());
+        }
+    } else if base == sched::SCHED_OTHER || base == sched::SCHED_BATCH {
+        if let Ok(a) = sys.sched_getattr(pid, sched::SCHED_ATTR_SIZE_VER1, 0) {
+            let _ = out.write_all(format!("pid {pid}'s {word} runtime parameter: {}\n", a.runtime).as_bytes());
         }
     }
     0
@@ -322,7 +326,7 @@ fn run(args: &[OsString]) -> i32 {
 
     let needed = if pid_mode { 1 } else { 2 };
     let is_dl = policy == sched::SCHED_DEADLINE;
-    if rest.is_empty() || (!is_dl && rest.len() < needed) || (is_dl && !pid_mode && rest.is_empty()) {
+    if rest.is_empty() || rest.len() < needed {
         ul::warnx(&short, "bad usage");
         ul::errtryhelp(&short);
         return 1;
@@ -350,10 +354,18 @@ fn run(args: &[OsString]) -> i32 {
             Err(e) => return bad_number(&short, "invalid priority argument", &rest[0], e),
         }
     };
-    let cmd = if is_dl { &rest[..] } else { &rest[1..] };
+    let cmd = &rest[1..];
 
     let sys = sys::current();
-    if verbose {
+    if !is_dl {
+        let min = sys.sched_get_priority_min(policy).unwrap_or(0);
+        let max = sys.sched_get_priority_max(policy).unwrap_or(0);
+        if priority < min || priority > max {
+            ul::warnx(&short, format!("unsupported priority value for the policy: {priority}: see --max for valid range"));
+            return 1;
+        }
+    }
+    if verbose && pid_mode {
         let r = show_sched_info(&short, pid, Some("old"));
         if r != 0 {
             return r;
@@ -384,12 +396,11 @@ fn run(args: &[OsString]) -> i32 {
         sys.sched_setscheduler(pid, pol, SchedParam { priority })
     };
     if let Err(e) = result {
-        let shown = if pid == 0 { sys.getpid() } else { pid };
-        ul::warn(&short, format!("failed to set pid {shown}'s policy"), e);
+        ul::warn(&short, format!("failed to set pid {pid}'s policy"), e);
         return 1;
     }
 
-    if verbose {
+    if verbose && pid_mode {
         let r = show_sched_info(&short, pid, Some("new"));
         if r != 0 {
             return r;
@@ -418,7 +429,7 @@ fn run(args: &[OsString]) -> i32 {
             last
         };
         ul::warn(&short, format!("failed to execute {}", io::lossy(&prog)), e);
-        return 1;
+        return if e == Errno::ENOENT { 127 } else { 126 };
     }
     0
 }

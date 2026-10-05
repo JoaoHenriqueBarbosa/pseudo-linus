@@ -1,0 +1,169 @@
+tool = "lzmainfo"
+source = "manual"
+
+# lzmainfo do xz-utils 5.8.1: tabela do cabeçalho de 13 bytes do .lzma (lc/lp/pb, dicionário com
+# potência de dois e MB arredondado, tamanho conhecido, desconhecido ou enorme), cabeçalho recusado,
+# linhas em branco entre arquivos, entrada padrão e opções. Fixtures montadas à mão no oráculo.
+
+[[case]]
+id = "lzmainfo-real-file"
+argv = ["lzmainfo", "t.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"t.lzma" = { content_b64 = "XQAAgAD//////////wA0GUnujekXiTozX/2BRBNUJ///+umAAA==" }
+
+[[case]]
+id = "lzmainfo-known-size-nonpow2-dict"
+argv = ["lzmainfo", "a.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"a.lzma" = { content_b64 = "XQAAAAMFAAAAAAAAAA==" }
+
+[[case]]
+id = "lzmainfo-unknown-size"
+argv = ["lzmainfo", "b.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"b.lzma" = { content_b64 = "XQAAEAD//////////w==" }
+
+[[case]]
+id = "lzmainfo-invalid-props"
+argv = ["lzmainfo", "c.lzma"]
+tags = ["lzmainfo", "error"]
+[case.files]
+"c.lzma" = { content_b64 = "4QAAEAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "lzmainfo-props-zero"
+argv = ["lzmainfo", "d.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"d.lzma" = { content_b64 = "AAEAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "lzmainfo-dict-zero"
+argv = ["lzmainfo", "e.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"e.lzma" = { content_b64 = "XQAAAAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "lzmainfo-huge-size"
+argv = ["lzmainfo", "f.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"f.lzma" = { content_b64 = "XQAAEAAAAAAAAAAAQA==" }
+
+[[case]]
+id = "lzmainfo-dict-rounding"
+argv = ["lzmainfo", "g.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"g.lzma" = { content_b64 = "XQAAkAABAAAAAAAAAA==" }
+
+[[case]]
+id = "lzmainfo-size-one-mib"
+argv = ["lzmainfo", "i.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"i.lzma" = { content_b64 = "XQAAAAEAABAAAAAAAA==" }
+
+[[case]]
+id = "lzmainfo-too-small"
+argv = ["lzmainfo", "h.lzma"]
+tags = ["lzmainfo", "error"]
+[case.files]
+"h.lzma" = { content_b64 = "XQAAEAA=" }
+
+[[case]]
+id = "lzmainfo-empty-file"
+argv = ["lzmainfo", "empty.lzma"]
+tags = ["lzmainfo", "error"]
+[case.files]
+"empty.lzma" = ""
+
+[[case]]
+id = "lzmainfo-two-files"
+argv = ["lzmainfo", "a.lzma", "b.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"a.lzma" = { content_b64 = "XQAAAAMFAAAAAAAAAA==" }
+"b.lzma" = { content_b64 = "XQAAEAD//////////w==" }
+
+[[case]]
+id = "lzmainfo-missing-then-ok"
+argv = ["lzmainfo", "missing.lzma", "a.lzma"]
+tags = ["lzmainfo", "error"]
+[case.files]
+"a.lzma" = { content_b64 = "XQAAAAMFAAAAAAAAAA==" }
+
+[[case]]
+id = "lzmainfo-bad-then-ok-then-bad"
+argv = ["lzmainfo", "h.lzma", "b.lzma", "c.lzma"]
+tags = ["lzmainfo", "error"]
+[case.files]
+"h.lzma" = { content_b64 = "XQAAEAA=" }
+"b.lzma" = { content_b64 = "XQAAEAD//////////w==" }
+"c.lzma" = { content_b64 = "4QAAEAAAAAAAAAAAAA==" }
+
+[[case]]
+id = "lzmainfo-directory"
+argv = ["lzmainfo", "."]
+tags = ["lzmainfo", "error"]
+
+[[case]]
+id = "lzmainfo-stdin-too-small"
+argv = ["lzmainfo"]
+stdin = "abc\n"
+tags = ["lzmainfo", "error"]
+
+[[case]]
+id = "lzmainfo-stdin-empty"
+argv = ["lzmainfo"]
+stdin = ""
+tags = ["lzmainfo", "error"]
+
+[[case]]
+id = "lzmainfo-dash-then-file"
+argv = ["lzmainfo", "-", "b.lzma"]
+stdin = "abc\n"
+tags = ["lzmainfo", "error"]
+[case.files]
+"b.lzma" = { content_b64 = "XQAAEAD//////////w==" }
+
+[[case]]
+id = "lzmainfo-dashdash-file"
+argv = ["lzmainfo", "--", "a.lzma"]
+tags = ["lzmainfo"]
+[case.files]
+"a.lzma" = { content_b64 = "XQAAAAMFAAAAAAAAAA==" }
+
+[[case]]
+id = "lzmainfo-help"
+argv = ["lzmainfo", "--help"]
+tags = ["lzmainfo", "options"]
+
+[[case]]
+id = "lzmainfo-help-short"
+argv = ["lzmainfo", "-h"]
+tags = ["lzmainfo", "options"]
+
+[[case]]
+id = "lzmainfo-version"
+argv = ["lzmainfo", "--version"]
+tags = ["lzmainfo", "options"]
+
+[[case]]
+id = "lzmainfo-version-short"
+argv = ["lzmainfo", "-V"]
+tags = ["lzmainfo", "options"]
+
+[[case]]
+id = "lzmainfo-invalid-option"
+argv = ["lzmainfo", "-x"]
+tags = ["lzmainfo", "options", "error"]
+
+[[case]]
+id = "lzmainfo-unrecognized-option"
+argv = ["lzmainfo", "--bogus"]
+tags = ["lzmainfo", "options", "error"]

@@ -13,9 +13,12 @@
 //! suportado (funções, classes, `import`, `try`, atributos, fatias, f-strings...) vira
 //! `CompileError` do tipo `NotImplementedError`, que as próximas fatias vão eliminando.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
-use crate::ast::{BoolOp, CmpOp, Constant, ExceptHandler, Expr, ExprKind as E, Mod, Operator, Stmt, StmtKind as S, UnaryOp};
+use crate::ast::{
+    Arguments, BoolOp, CmpOp, Constant, ExceptHandler, Expr, ExprKind as E, Mod, Operator, Stmt, StmtKind as S, UnaryOp,
+};
 use crate::object::Value;
 
 /// Instrução da VM. Os operandos `u32` são índices em `consts`/`names` ou alvos de salto.
@@ -84,9 +87,16 @@ pub enum Op {
     DeleteName(u32),
     /// `objeto.nome`.
     LoadAttr(u32),
+    /// Variável local da função em execução (`UnboundLocalError` se ainda sem valor).
+    LoadLocal(u32),
+    StoreLocal(u32),
+    /// Cria a função `functions[code]` com `ndefaults` valores padrão tirados da pilha.
+    MakeFunction { code: u32, ndefaults: u32 },
+    /// Devolve o topo ao chamador.
+    Return,
 }
 
-/// Código compilado de um módulo.
+/// Código compilado de um módulo ou de uma função.
 #[derive(Debug, Default)]
 pub struct Code {
     pub ops: Vec<Op>,
@@ -94,6 +104,11 @@ pub struct Code {
     pub lines: Vec<usize>,
     pub consts: Vec<Value>,
     pub names: Vec<String>,
+    /// Nome da função (`<module>` no nível de módulo, vazio por `Default`).
+    pub name: String,
+    pub params: Vec<String>,
+    pub is_function: bool,
+    pub functions: Vec<Rc<Code>>,
 }
 
 /// Erro de compilação: `SyntaxError` dos que o CPython detecta no compilador (`'break' outside
@@ -110,9 +125,62 @@ pub fn compile_module(module: &Mod) -> Result<Code, CompileError> {
     let Mod::Module { body, .. } = module else {
         return Err(CompileError { kind: "NotImplementedError", msg: "only modules can be compiled".into(), lineno: 1 });
     };
-    let mut c = Compiler { code: Code::default(), line: 1, loops: Vec::new(), name_index: HashMap::new(), tries: Vec::new() };
+    let mut c = Compiler {
+        code: Code { name: "<module>".into(), ..Code::default() },
+        line: 1,
+        loops: Vec::new(),
+        name_index: HashMap::new(),
+        tries: Vec::new(),
+        locals: None,
+    };
     c.block(body)?;
     Ok(c.code)
+}
+
+/// Nomes ligados no corpo de uma função (alvos de atribuição, `for`, `except as`, `def`) e os
+/// declarados `global`; os primeiros, menos os segundos, são as variáveis locais.
+fn collect_scope(body: &[Stmt], locals: &mut HashSet<String>, globals: &mut HashSet<String>) {
+    fn target(e: &Expr, locals: &mut HashSet<String>) {
+        match &e.kind {
+            E::Name { id, .. } => {
+                locals.insert(id.clone());
+            }
+            E::Tuple { elts, .. } | E::List { elts, .. } => elts.iter().for_each(|x| target(x, locals)),
+            E::Starred { value, .. } => target(value, locals),
+            _ => {}
+        }
+    }
+    for s in body {
+        match &s.kind {
+            S::Assign { targets, .. } => targets.iter().for_each(|t| target(t, locals)),
+            S::AugAssign { target: t, .. } => target(t, locals),
+            S::For { target: t, body, orelse, .. } => {
+                target(t, locals);
+                collect_scope(body, locals, globals);
+                collect_scope(orelse, locals, globals);
+            }
+            S::While { body, orelse, .. } | S::If { body, orelse, .. } => {
+                collect_scope(body, locals, globals);
+                collect_scope(orelse, locals, globals);
+            }
+            S::Try { body, handlers, orelse, finalbody } => {
+                collect_scope(body, locals, globals);
+                for h in handlers {
+                    if let Some(n) = &h.name {
+                        locals.insert(n.clone());
+                    }
+                    collect_scope(&h.body, locals, globals);
+                }
+                collect_scope(orelse, locals, globals);
+                collect_scope(finalbody, locals, globals);
+            }
+            S::FunctionDef { name, .. } => {
+                locals.insert(name.clone());
+            }
+            S::Global { names } => globals.extend(names.iter().cloned()),
+            _ => {}
+        }
+    }
 }
 
 struct LoopCtx {
@@ -136,6 +204,8 @@ struct Compiler {
     loops: Vec<LoopCtx>,
     name_index: HashMap<String, u32>,
     tries: Vec<TryCtx>,
+    /// Variáveis locais da função sendo compilada (`None` no módulo).
+    locals: Option<HashSet<String>>,
 }
 
 impl Compiler {
@@ -310,8 +380,7 @@ impl Compiler {
                 self.expr(test)?;
                 let ok = self.emit(Op::PopJumpIfTrue(0));
                 self.line = stmt.pos.lineno;
-                let n = self.name("AssertionError");
-                self.emit(Op::LoadName(n));
+                self.emit_load("AssertionError");
                 let argc = if let Some(m) = msg {
                     self.expr(m)?;
                     1
@@ -324,9 +393,31 @@ impl Compiler {
                 let end = self.here();
                 self.patch(ok, end);
             }
-            S::FunctionDef { .. } | S::AsyncFunctionDef { .. } | S::Return { .. } => {
-                return Err(self.unsupported("def"))
+            S::FunctionDef { name, args, body, decorator_list, returns, .. } => {
+                if !decorator_list.is_empty() || returns.is_some() {
+                    return Err(self.unsupported("decorators and annotations"));
+                }
+                self.function_def(stmt, name, args, body)?;
             }
+            S::Return { value } => {
+                if !self.code.is_function {
+                    return Err(CompileError {
+                        kind: "SyntaxError",
+                        msg: "'return' outside function".into(),
+                        lineno: self.line,
+                    });
+                }
+                match value {
+                    Some(v) => self.expr(v)?,
+                    None => {
+                        let c = self.constant_none();
+                        self.emit(Op::LoadConst(c));
+                    }
+                }
+                self.line = stmt.pos.lineno;
+                self.emit_return()?;
+            }
+            S::AsyncFunctionDef { .. } => return Err(self.unsupported("async def")),
             S::ClassDef { .. } => return Err(self.unsupported("class")),
             S::Import { .. } | S::ImportFrom { .. } => return Err(self.unsupported("import")),
             S::TryStar { .. } => return Err(self.unsupported("except*")),
@@ -400,8 +491,7 @@ impl Compiler {
             }
             match &h.name {
                 Some(name) => {
-                    let n = self.name(name);
-                    self.emit(Op::StoreName(n));
+                    self.emit_store(name);
                 }
                 None => {
                     self.emit(Op::Pop);
@@ -447,14 +537,78 @@ impl Compiler {
         result
     }
 
+    fn emit_load(&mut self, id: &str) {
+        let n = self.name(id);
+        let local = self.locals.as_ref().is_some_and(|l| l.contains(id));
+        self.emit(if local { Op::LoadLocal(n) } else { Op::LoadName(n) });
+    }
+
+    fn emit_store(&mut self, id: &str) {
+        let n = self.name(id);
+        let local = self.locals.as_ref().is_some_and(|l| l.contains(id));
+        self.emit(if local { Op::StoreLocal(n) } else { Op::StoreName(n) });
+    }
+
+    /// `def nome(a, b=1): ...`: compila o corpo num `Code` próprio (nomes atribuídos viram locais,
+    /// salvo os declarados `global`) e guarda o nome da função no escopo atual.
+    fn function_def(&mut self, stmt: &Stmt, name: &str, args: &Arguments, body: &[Stmt]) -> Result<(), CompileError> {
+        if !args.posonlyargs.is_empty()
+            || args.vararg.is_some()
+            || !args.kwonlyargs.is_empty()
+            || args.kwarg.is_some()
+        {
+            return Err(self.unsupported("this kind of parameter"));
+        }
+        let params: Vec<String> = args.args.iter().map(|a| a.arg.clone()).collect();
+        let mut locals: HashSet<String> = params.iter().cloned().collect();
+        let mut globals: HashSet<String> = HashSet::new();
+        collect_scope(body, &mut locals, &mut globals);
+        for g in &globals {
+            locals.remove(g);
+        }
+        let mut inner = Compiler {
+            code: Code { name: name.to_string(), params: params.clone(), is_function: true, ..Code::default() },
+            line: stmt.pos.lineno,
+            loops: Vec::new(),
+            name_index: HashMap::new(),
+            tries: Vec::new(),
+            locals: Some(locals),
+        };
+        inner.block(body)?;
+        let c = inner.constant_none();
+        inner.emit(Op::LoadConst(c));
+        inner.emit(Op::Return);
+        let code = Rc::new(inner.code);
+        self.line = stmt.pos.lineno;
+        for d in &args.defaults {
+            self.expr(d)?;
+        }
+        self.line = stmt.pos.lineno;
+        self.code.functions.push(code);
+        let idx = (self.code.functions.len() - 1) as u32;
+        self.emit(Op::MakeFunction { code: idx, ndefaults: args.defaults.len() as u32 });
+        self.emit_store(name);
+        Ok(())
+    }
+
+    fn constant_none(&mut self) -> u32 {
+        self.constant(Value::None)
+    }
+
+    /// `return` com o valor já na pilha: fecha os `try` abertos (repetindo os `finally`).
+    fn emit_return(&mut self) -> Result<(), CompileError> {
+        self.leave_tries(0)?;
+        self.emit(Op::Return);
+        Ok(())
+    }
+
     fn aug_assign(&mut self, target: &Expr, op: Operator, value: &Expr) -> Result<(), CompileError> {
         match &target.kind {
             E::Name { id, .. } => {
-                let n = self.name(id);
-                self.emit(Op::LoadName(n));
+                self.emit_load(id);
                 self.expr(value)?;
                 self.emit(Op::Binary { op, inplace: true });
-                self.emit(Op::StoreName(n));
+                self.emit_store(id);
             }
             E::Subscript { value: container, slice, .. } => {
                 self.expr(container)?;
@@ -477,8 +631,7 @@ impl Compiler {
         self.line = target.pos.lineno;
         match &target.kind {
             E::Name { id, .. } => {
-                let n = self.name(id);
-                self.emit(Op::StoreName(n));
+                self.emit_store(id);
             }
             E::Subscript { value, slice, .. } => {
                 self.expr(value)?;
@@ -523,8 +676,7 @@ impl Compiler {
                 self.emit(Op::LoadConst(i));
             }
             E::Name { id, .. } => {
-                let n = self.name(id);
-                self.emit(Op::LoadName(n));
+                self.emit_load(id);
             }
             E::BinOp { left, op, right } => {
                 self.expr(left)?;

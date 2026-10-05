@@ -1,0 +1,70 @@
+tool = "choom"
+source = "manual"
+
+# choom do util-linux 2.41. Os alvos são o próprio shell ($$) ou processos que não existem; a
+# pontuação varia entre execuções, então os casos com $$ mostram só a forma das linhas.
+
+[[case]]
+id = "choom-help"
+argv = ["choom", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "choom-version"
+argv = ["choom", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "choom-no-args"
+argv = ["choom"]
+tags = ["error"]
+
+[[case]]
+id = "choom-bad-option"
+argv = ["choom", "-x"]
+tags = ["error"]
+
+[[case]]
+id = "choom-bad-adjust"
+argv = ["choom", "-n", "abc", "-p", "1"]
+tags = ["error"]
+
+[[case]]
+id = "choom-adjust-out-of-range"
+argv = ["choom", "-n", "1001", "-p", "1"]
+tags = ["error"]
+
+[[case]]
+id = "choom-bad-pid"
+argv = ["choom", "-p", "xyz"]
+tags = ["error"]
+
+[[case]]
+id = "choom-missing-pid"
+argv = ["choom", "-p", "999999"]
+tags = ["error"]
+
+[[case]]
+id = "choom-pid-and-command"
+argv = ["choom", "-p", "1", "true"]
+tags = ["error"]
+
+[[case]]
+id = "choom-self"
+script = "choom -p $$ | sed 's/[0-9][0-9]*/N/; s/: [0-9-]*$/: V/'"
+tags = ["process"]
+
+[[case]]
+id = "choom-set-self"
+script = "choom -n 100 -p $$ | sed 's/^pid [0-9]*/pid N/; s/OOM score: [0-9]*/OOM score: S/'"
+tags = ["process"]
+
+[[case]]
+id = "choom-command"
+script = "choom -n 50 -- cat /proc/self/oom_score_adj"
+tags = ["process"]
+
+[[case]]
+id = "choom-command-missing"
+script = "choom -n 50 -- no-such-command-here 2>&1; echo $?"
+tags = ["process", "error"]

@@ -256,9 +256,14 @@ struct Raw {
 }
 
 /// Um campo terminado por vírgula: o texto e onde o scanner estava ao consumir a vírgula.
+#[derive(Clone)]
 struct Field {
     text: Vec<u8>,
     end: Pos,
+    /// Índice em `Raw::body` onde o texto do campo começa.
+    start: usize,
+    /// O campo acabou no fim do arquivo, sem a vírgula.
+    unterminated: bool,
 }
 
 /// Separa os campos por vírgulas não escapadas. Um último campo sem vírgula é descartado.
@@ -267,6 +272,7 @@ fn split_fields(raw: &Raw) -> Vec<Field> {
     let mut fields: Vec<Field> = Vec::new();
     let mut cur: Vec<u8> = Vec::new();
     let mut i = 0;
+    let mut start = 0;
     while i < body.len() {
         if body[i] == b'\\' && i + 1 < body.len() {
             cur.push(body[i]);
@@ -278,11 +284,26 @@ fn split_fields(raw: &Raw) -> Vec<Field> {
             fields.push(Field {
                 text: std::mem::take(&mut cur),
                 end: raw.pos[i],
+                start,
+                unterminated: false,
             });
+            start = i + 1;
         } else {
             cur.push(body[i]);
         }
         i += 1;
+    }
+    // Uma capacidade no fim do arquivo sem vírgula ainda vale, com um aviso (o scanner avisa depois de
+    // ler o fim do arquivo, uma coluna adiante do último caractere).
+    if !fields.is_empty() && !trim_start(&cur).is_empty() {
+        if let Some(&(l, c)) = raw.pos.last() {
+            fields.push(Field {
+                text: cur,
+                end: (l, c + 1),
+                start,
+                unterminated: true,
+            });
+        }
     }
     fields
 }
@@ -386,6 +407,8 @@ fn unctrl(c: u8) -> String {
 /// coluna (o `-1` do `tic -I`) saem só o arquivo e o terminal.
 struct Diag {
     file: String,
+    /// Um erro que o scanner marca como falha: o `tic` sai com 1 sem gravar nada.
+    failed: std::cell::Cell<bool>,
 }
 
 impl Diag {
@@ -448,7 +471,11 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
     let mut e = Entry::new(names);
     e.comment = raw.comment.clone();
     e.line = raw.line;
-    for fld in &fields[1..] {
+    let mut queue: Vec<Field> = fields[1..].to_vec();
+    let mut qi = 0;
+    while qi < queue.len() {
+        let fld = queue[qi].clone();
+        qi += 1;
         let mut f: &[u8] = trim_start(&fld.text);
         if f.is_empty() {
             continue;
@@ -469,10 +496,23 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
         let c0 = f[0];
         if !(c0.is_ascii_alphanumeric() || c0 == b'_' || b"@%&*!#".contains(&c0)) {
             warn(format!(
-                "Illegal character (expected alphanumeric or @%&*!#) - {}",
+                "Illegal character (expected alphanumeric or @%&*!#) - '{}'",
                 unctrl(c0)
             ));
             continue;
+        }
+        // Um ':' no lugar do separador do nome da capacidade é sintaxe termcap misturada.
+        if let Some(p) = f
+            .iter()
+            .position(|b| matches!(*b, b'=' | b'#' | b'@' | b':'))
+        {
+            if f[p] == b':' {
+                let off = (f.as_ptr() as usize - fld.text.as_ptr() as usize) + p;
+                let (l, c) = raw.pos[fld.start + off];
+                diag.warn(Some(l), Some(c), &term, "Separator inconsistent with syntax");
+                diag.failed.set(true);
+                continue;
+            }
         }
         let sep_pos = f.iter().position(|b| matches!(*b, b'=' | b'#' | b'@'));
         let (name, sep, value): (&[u8], u8, &[u8]) = match sep_pos {
@@ -484,8 +524,21 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
             continue;
         }
         let nm = String::from_utf8_lossy(name).into_owned();
-        let wrong_type = || format!("Wrong type used for capability \"{nm}\"");
-        let unknown = || format!("Unknown Capability - '{nm}'");
+        if fld.unterminated {
+            warn(format!("Missing separator for `{nm}'"));
+        }
+        // O tipo avisado é o da capacidade real, não o usado na fonte.
+        let real_kind = || {
+            if find_type_entry(name, Kind::Bool).is_some() {
+                "boolean"
+            } else if find_type_entry(name, Kind::Num).is_some() {
+                "numeric"
+            } else {
+                "string"
+            }
+        };
+        let wrong_type = || format!("wrong type used for {} capability '{nm}'", real_kind());
+        let unknown = || format!("unknown capability '{nm}'");
         match sep {
             0 => {
                 if let Some(i) = find_type_entry(name, Kind::Bool) {
@@ -514,6 +567,36 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
                 }
             }
             b'#' => {
+                if let Some(&bad) = value.first() {
+                    if !bad.is_ascii_digit() && !super::c_isspace(bad) {
+                        // O scanner só lê dígitos: sem nenhum, a capacidade fica com 0 e o resto do
+                        // campo (depois do primeiro caractere) vira outro token.
+                        let off = (value.as_ptr() as usize) - (fld.text.as_ptr() as usize);
+                        let (bl, bc) = raw.pos[fld.start + off];
+                        diag.warn(Some(bl), Some(bc), &term, &format!("no value given for `{nm}'"));
+                        diag.warn(
+                            Some(bl),
+                            Some(bc),
+                            &term,
+                            &format!("Missing separator for `{nm}'"),
+                        );
+                        if let Some(i) = find_type_entry(name, Kind::Num) {
+                            e.nums[i] = 0;
+                        }
+                        if value.len() > 1 {
+                            queue.insert(
+                                qi,
+                                Field {
+                                    text: value[1..].to_vec(),
+                                    end: fld.end,
+                                    start: fld.start + off + 1,
+                                    unterminated: false,
+                                },
+                            );
+                        }
+                        continue;
+                    }
+                }
                 let (v, _) = strtol(trim_start(value));
                 let v = v.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32;
                 if let Some(i) = find_type_entry(name, Kind::Num) {
@@ -800,23 +883,31 @@ fn mkdir_p(path: &[u8]) -> Result<(), Errno> {
 }
 
 /// `_nc_set_writedir`: o diretório de saída existe (ou é criado), e é um diretório.
-fn ensure_dir(path: &[u8], progname: &str) -> Result<(), String> {
+fn ensure_dir(path: &[u8], file: &str, term: &[u8]) -> Result<(), String> {
     match sys::stat(path) {
         Ok(st) => {
             if matches!(st.file_type(), FileType::Directory) {
                 Ok(())
             } else {
                 Err(format!(
-                    "{progname}: {}: not a directory",
-                    io::lossy(path)
+                    "\"{}\", line 1, terminal '{}': {}: (errno {}) {}",
+                    file,
+                    io::lossy(term),
+                    io::lossy(path),
+                    Errno::EPERM.0,
+                    Errno::EPERM.message()
                 ))
             }
         }
         Err(_) => match mkdir_p(path) {
             Ok(()) => Ok(()),
-            Err(_) => Err(format!(
-                "{progname}: {}: permission denied",
-                io::lossy(path)
+            Err(er) => Err(format!(
+                "\"{}\", line 1, terminal '{}': {}: (errno {}) {}",
+                file,
+                io::lossy(term),
+                io::lossy(path),
+                er.0,
+                er.message()
             )),
         },
     }
@@ -1265,7 +1356,10 @@ fn run(args: &[OsString]) -> i32 {
     } else {
         io::lossy(&file).to_string()
     };
-    let diag = Diag { file: file_name };
+    let diag = Diag {
+        file: file_name,
+        failed: std::cell::Cell::new(false),
+    };
     let text_mode = infodump || capdump;
 
     let (raws, eof_pos) = split_entries(&data);
@@ -1282,6 +1376,10 @@ fn run(args: &[OsString]) -> i32 {
                 return 1;
             }
         }
+    }
+
+    if diag.failed.get() {
+        return 1;
     }
 
     // `-I`, `-L` e `-C` só resolvem os `use=` com `-r`; compilar e conferir sempre resolvem.
@@ -1341,7 +1439,8 @@ fn run(args: &[OsString]) -> i32 {
 
     if !text_mode {
         let dir = output_dir(outdir.as_deref());
-        if let Err(msg) = ensure_dir(&dir, &progname) {
+        let first_term = entries.first().map_or(&b""[..], |e| first_name(&e.names));
+        if let Err(msg) = ensure_dir(&dir, &diag.file, first_term) {
             let _ = io::flush_stdout();
             io::eprint(format!("{msg}\n"));
             return 1;
@@ -1400,6 +1499,7 @@ mod tests {
     fn parse_one(src: &[u8], x: bool) -> Entry {
         let diag = Diag {
             file: "t".to_string(),
+            failed: std::cell::Cell::new(false),
         };
         let (raws, _) = split_entries(src);
         parse_entry(&raws[0], x, false, &diag).unwrap()
@@ -1442,6 +1542,7 @@ mod tests {
         let src = b"base|b,\n\tcols#80, am,\nchild|c,\n\tcols#100, use=base,\n";
         let diag = Diag {
             file: "t".to_string(),
+            failed: std::cell::Cell::new(false),
         };
         let (raws, _) = split_entries(src);
         let mut entries: Vec<Entry> = raws

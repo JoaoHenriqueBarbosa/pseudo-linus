@@ -22,6 +22,7 @@ fn usage(short: &str) -> String {
     format!(
         "Usage: {short} [options] [mask | cpu-list] [pid|cmd [args...]]
 
+
 Show or change the CPU affinity of a process.
 
 Options:
@@ -33,7 +34,7 @@ Options:
 
 The default behavior is to run a new command:
     {short} 03 sshd -b 1024
-You can also retrieve the CPU affinity of an existing task:
+You can retrieve the mask of an existing task:
     {short} -p 700
 Or set it:
     {short} -p 03 700
@@ -221,7 +222,8 @@ fn run(args: &[OsString]) -> i32 {
     let rest = &argv[idx.min(argv.len())..];
 
     if rest.is_empty() || (!pid_mode && rest.len() < 2) {
-        io::eprint(usage(&short));
+        ul::warnx(&short, "bad usage");
+        ul::errtryhelp(&short);
         return 1;
     }
     if !pid_mode {
@@ -238,6 +240,19 @@ fn run(args: &[OsString]) -> i32 {
         }
     };
 
+    let parsed = match mask_arg {
+        Some(m) => {
+            let p = if list { parse_list(m) } else { parse_mask(m) };
+            let Some(cpus) = p else {
+                let what = if list { "list" } else { "mask" };
+                ul::warnx(&short, format!("failed to parse CPU {what}: {}", io::lossy(m)));
+                return 1;
+            };
+            Some(cpus)
+        }
+        None => None,
+    };
+
     let cur = match get_affinity(pid) {
         Ok(c) => c,
         Err(e) => {
@@ -246,15 +261,8 @@ fn run(args: &[OsString]) -> i32 {
         }
     };
     show(&short, pid, "current", &cur, list);
-    let Some(m) = mask_arg else {
-        return 0;
-    };
-
-    let parsed = if list { parse_list(m) } else { parse_mask(m) };
     let Some(cpus) = parsed else {
-        let what = if list { "list" } else { "mask" };
-        ul::warnx(&short, format!("failed to parse CPU {what}: {}", io::lossy(m)));
-        return 1;
+        return 0;
     };
     let target = match to_pid(pid) {
         Ok(p) => p,

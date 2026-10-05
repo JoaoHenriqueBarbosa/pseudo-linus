@@ -1,0 +1,317 @@
+{
+  "lzmainfo-bad-then-ok-then-bad": {
+    "stdout": "\n\nb.lzma\nUncompressed size:             Unknown\nDictionary size:               1 MB (2^20 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n\n",
+    "stderr": "lzmainfo: h.lzma: File is too small to be a .lzma file\nlzmainfo: c.lzma: Not a .lzma file\n",
+    "exit": 1,
+    "files": {
+      "b.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "bd5f7da4f761bbf219c28156da6f6ea9d0902ff5fbb1220e58259af7f030cb96",
+        "data": {
+          "b64": "XQAAEAD//////////w=="
+        }
+      },
+      "c.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "3869ddf79b14b6fb2943cd869d5417fc2f2eeaf8f5b75772d00211430a7dfb65",
+        "data": {
+          "b64": "4QAAEAAAAAAAAAAAAA=="
+        }
+      },
+      "h.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "83870bd8360d694254d2bce36ea7e449740d475b8eba0aab7502cb04a509d8e9",
+        "data": "]\u0000\u0000\u0010\u0000"
+      }
+    }
+  },
+  "lzmainfo-dash-then-file": {
+    "stdout": "\nb.lzma\nUncompressed size:             Unknown\nDictionary size:               1 MB (2^20 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "lzmainfo: (stdin): File is too small to be a .lzma file\n",
+    "exit": 1,
+    "files": {
+      "b.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "bd5f7da4f761bbf219c28156da6f6ea9d0902ff5fbb1220e58259af7f030cb96",
+        "data": {
+          "b64": "XQAAEAD//////////w=="
+        }
+      }
+    }
+  },
+  "lzmainfo-dashdash-file": {
+    "stdout": "\na.lzma\nUncompressed size:             0 MB (5 bytes)\nDictionary size:               48 MB (2^25 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "4d8d993331f1e7a639d57149693201c997418edd28b498fb56f87f9c67ac9c14",
+        "data": "]\u0000\u0000\u0000\u0003\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "lzmainfo-dict-rounding": {
+    "stdout": "\ng.lzma\nUncompressed size:             0 MB (1 bytes)\nDictionary size:               9 MB (2^23 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "g.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "dca146cf5bd07a60e67d855b86bde7a234d195f3d9b74e1194d0b8ded4ff6d3e",
+        "data": {
+          "b64": "XQAAkAABAAAAAAAAAA=="
+        }
+      }
+    }
+  },
+  "lzmainfo-dict-zero": {
+    "stdout": "\ne.lzma\nUncompressed size:             0 MB (0 bytes)\nDictionary size:               0 MB (2^0 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "e.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "9467afe302976206993b6b8991928f9e91f9d9239f2d4bd2abe8d6e1af600c03",
+        "data": "]\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "lzmainfo-directory": {
+    "stdout": "\n\n",
+    "stderr": "lzmainfo: .: Is a directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lzmainfo-empty-file": {
+    "stdout": "\n\n",
+    "stderr": "lzmainfo: empty.lzma: File is too small to be a .lzma file\n",
+    "exit": 1,
+    "files": {
+      "empty.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "lzmainfo-help": {
+    "stdout": "Usage: lzmainfo [--help] [--version] [FILE]...\nShow information stored in the .lzma file header.\nWith no FILE, or when FILE is -, read standard input.\n\nReport bugs to <xz@tukaani.org> (in English or Finnish).\nXZ Utils home page: <https://tukaani.org/xz/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lzmainfo-help-short": {
+    "stdout": "",
+    "stderr": "lzmainfo: invalid option -- 'h'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lzmainfo-huge-size": {
+    "stdout": "\nf.lzma\nUncompressed size:             4398046511104 MB (4611686018427387904 bytes)\nDictionary size:               1 MB (2^20 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "298cffbafca2360eaf763a69f55dbbca8b456acee9865791a4b6d13d7fb0bddd",
+        "data": "]\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000@"
+      }
+    }
+  },
+  "lzmainfo-invalid-option": {
+    "stdout": "",
+    "stderr": "lzmainfo: invalid option -- 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lzmainfo-invalid-props": {
+    "stdout": "\n\n",
+    "stderr": "lzmainfo: c.lzma: Not a .lzma file\n",
+    "exit": 1,
+    "files": {
+      "c.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "3869ddf79b14b6fb2943cd869d5417fc2f2eeaf8f5b75772d00211430a7dfb65",
+        "data": {
+          "b64": "4QAAEAAAAAAAAAAAAA=="
+        }
+      }
+    }
+  },
+  "lzmainfo-known-size-nonpow2-dict": {
+    "stdout": "\na.lzma\nUncompressed size:             0 MB (5 bytes)\nDictionary size:               48 MB (2^25 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "4d8d993331f1e7a639d57149693201c997418edd28b498fb56f87f9c67ac9c14",
+        "data": "]\u0000\u0000\u0000\u0003\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "lzmainfo-missing-then-ok": {
+    "stdout": "\na.lzma\nUncompressed size:             0 MB (5 bytes)\nDictionary size:               48 MB (2^25 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "lzmainfo: missing.lzma: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "4d8d993331f1e7a639d57149693201c997418edd28b498fb56f87f9c67ac9c14",
+        "data": "]\u0000\u0000\u0000\u0003\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "lzmainfo-props-zero": {
+    "stdout": "\nd.lzma\nUncompressed size:             0 MB (0 bytes)\nDictionary size:               0 MB (2^0 bytes)\nLiteral context bits (lc):     0\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       0\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "8cae346d6bd97fe72925fef0849ae2efb8999d39c34ed0c9b2282def0b3449f6",
+        "data": "\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "lzmainfo-real-file": {
+    "stdout": "\nt.lzma\nUncompressed size:             Unknown\nDictionary size:               8 MB (2^23 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "t.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "80b7d92aa588b3cf3850ac5ed0d474e9aa03f6a323b26e2082095f39bcc92c23",
+        "data": {
+          "b64": "XQAAgAD//////////wA0GUnujekXiTozX/2BRBNUJ///+umAAA=="
+        }
+      }
+    }
+  },
+  "lzmainfo-size-one-mib": {
+    "stdout": "\ni.lzma\nUncompressed size:             1 MB (1048576 bytes)\nDictionary size:               16 MB (2^24 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "i.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "a1cf02a179e29a9c9b83e467fac6c117f7f21086a945d6757e96ee3ecf85a18a",
+        "data": "]\u0000\u0000\u0000\u0001\u0000\u0000\u0010\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "lzmainfo-stdin-empty": {
+    "stdout": "",
+    "stderr": "lzmainfo: (stdin): File is too small to be a .lzma file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lzmainfo-stdin-too-small": {
+    "stdout": "",
+    "stderr": "lzmainfo: (stdin): File is too small to be a .lzma file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lzmainfo-too-small": {
+    "stdout": "\n\n",
+    "stderr": "lzmainfo: h.lzma: File is too small to be a .lzma file\n",
+    "exit": 1,
+    "files": {
+      "h.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "83870bd8360d694254d2bce36ea7e449740d475b8eba0aab7502cb04a509d8e9",
+        "data": "]\u0000\u0000\u0010\u0000"
+      }
+    }
+  },
+  "lzmainfo-two-files": {
+    "stdout": "\na.lzma\nUncompressed size:             0 MB (5 bytes)\nDictionary size:               48 MB (2^25 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\nb.lzma\nUncompressed size:             Unknown\nDictionary size:               1 MB (2^20 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "4d8d993331f1e7a639d57149693201c997418edd28b498fb56f87f9c67ac9c14",
+        "data": "]\u0000\u0000\u0000\u0003\u0005\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      },
+      "b.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "bd5f7da4f761bbf219c28156da6f6ea9d0902ff5fbb1220e58259af7f030cb96",
+        "data": {
+          "b64": "XQAAEAD//////////w=="
+        }
+      }
+    }
+  },
+  "lzmainfo-unknown-size": {
+    "stdout": "\nb.lzma\nUncompressed size:             Unknown\nDictionary size:               1 MB (2^20 bytes)\nLiteral context bits (lc):     3\nLiteral pos bits (lp):         0\nNumber of pos bits (pb):       2\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.lzma": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "bd5f7da4f761bbf219c28156da6f6ea9d0902ff5fbb1220e58259af7f030cb96",
+        "data": {
+          "b64": "XQAAEAD//////////w=="
+        }
+      }
+    }
+  },
+  "lzmainfo-unrecognized-option": {
+    "stdout": "",
+    "stderr": "lzmainfo: unrecognized option '--bogus'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lzmainfo-version": {
+    "stdout": "lzmainfo (XZ Utils) 5.8.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lzmainfo-version-short": {
+    "stdout": "",
+    "stderr": "lzmainfo: invalid option -- 'V'\n",
+    "exit": 1,
+    "files": {}
+  }
+}

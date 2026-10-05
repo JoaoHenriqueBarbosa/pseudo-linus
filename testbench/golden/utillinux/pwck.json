@@ -1,0 +1,92 @@
+{
+  "pwck-missing-file": {
+    "stdout": "pwck: cannot open nope\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwck-read-only-bad-field-count": {
+    "stdout": "invalid password file entry\ndelete line 'bob:x:0:0'? No\npwck: no changes\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pw": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "4f9f0211c7eb14e6e823f381efee6589f8f3a79eb90a431db2b8b57f53882b05",
+        "data": "bob:x:0:0\n"
+      }
+    }
+  },
+  "pwck-read-only-clean": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pw": {
+        "kind": "file",
+        "mode": 420,
+        "size": 26,
+        "sha256": "5cba27664958b4261ec7071c47f76b5d66d5aa9a1a5333868658f1f57c3563fb",
+        "data": "root:x:0:0:root:/:/bin/sh\n"
+      }
+    }
+  },
+  "pwck-read-only-duplicate": {
+    "stdout": "duplicate password entry\ndelete line 'bob:x:0:0:b:/:/bin/sh'? No\nduplicate password entry\ndelete line 'bob:x:0:0:b:/:/bin/sh'? No\npwck: no changes\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pw": {
+        "kind": "file",
+        "mode": 420,
+        "size": 44,
+        "sha256": "3ecc1d1233e525164048955a3f970fdd13d3478ea311cfc284c9154811f56552",
+        "data": "bob:x:0:0:b:/:/bin/sh\nbob:x:0:0:b:/:/bin/sh\n"
+      }
+    }
+  },
+  "pwck-read-only-missing-home": {
+    "stdout": "user 'bob': directory '/nonexistent-home' does not exist\npwck: no changes\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pw": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "9577176c917ff06a39f606f7e335df715b5bc1bd8aa3a977c572e720528b2d33",
+        "data": "bob:x:0:0:b:/nonexistent-home:/bin/sh\n"
+      }
+    }
+  },
+  "pwck-read-only-missing-shell": {
+    "stdout": "user 'bob': program '/bin/nonexistent-shell' does not exist\npwck: no changes\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pw": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "421f1ed1b50ce5c524c96be6ea29c93449b576bbf67b0735fa26166c1afe6e26",
+        "data": "bob:x:0:0:b:/:/bin/nonexistent-shell\n"
+      }
+    }
+  },
+  "pwck-read-only-no-group": {
+    "stdout": "user 'bob': no group 54321\npwck: no changes\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pw": {
+        "kind": "file",
+        "mode": 420,
+        "size": 26,
+        "sha256": "b266cb66dceb5d814b815e9b31e2364099606c56868f7a718f51cd5fde060ff8",
+        "data": "bob:x:1:54321:b:/:/bin/sh\n"
+      }
+    }
+  }
+}

@@ -49,6 +49,15 @@ pub enum Value {
     Builtin(&'static str),
     /// Instância de exceção (`ValueError('x')`): classe pelo nome e os `args`.
     Exception(Rc<ExcObj>),
+    /// Função definida por `def`.
+    Function(Rc<FuncObj>),
+}
+
+/// Função de usuário: o código compilado e os valores padrão dos últimos parâmetros.
+#[derive(Debug)]
+pub struct FuncObj {
+    pub code: Rc<crate::compile::Code>,
+    pub defaults: Vec<Value>,
 }
 
 /// Instância de uma exceção embutida.
@@ -76,6 +85,8 @@ pub const EXC_CLASSES: &[(&str, &str)] = &[
     ("NotImplementedError", "RuntimeError"),
     ("SystemError", "Exception"),
     ("AttributeError", "Exception"),
+    ("UnboundLocalError", "NameError"),
+    ("RecursionError", "RuntimeError"),
 ];
 
 /// `issubclass(kind, base)` entre exceções embutidas.
@@ -204,6 +215,7 @@ impl Value {
             Value::Builtin(name) if is_builtin_type(name) => "type",
             Value::Builtin(_) => "builtin_function_or_method",
             Value::Exception(e) => e.kind,
+            Value::Function(_) => "function",
         }
     }
 
@@ -221,7 +233,7 @@ impl Value {
             Value::Dict(d) => !d.borrow().is_empty(),
             Value::Set(s) => !s.borrow().is_empty(),
             Value::Range(r) => !r.is_empty(),
-            Value::Builtin(_) | Value::Exception(_) => true,
+            Value::Builtin(_) | Value::Exception(_) | Value::Function(_) => true,
         }
     }
 }
@@ -301,6 +313,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Builtin(name) if is_builtin_type(name) => out.push_str(&format!("<class '{name}'>")),
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
         Value::Exception(e) => out.push_str(&exc_repr(e)),
+        Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.code.name, addr(f))),
     }
 }
 
@@ -318,6 +331,7 @@ pub fn is(a: &Value, b: &Value) -> bool {
         (Value::Set(x), Value::Set(y)) => Rc::ptr_eq(x, y),
         (Value::Builtin(x), Value::Builtin(y)) => x == y,
         (Value::Exception(x), Value::Exception(y)) => Rc::ptr_eq(x, y),
+        (Value::Function(x), Value::Function(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -379,6 +393,7 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
         (Value::Range(x), Value::Range(y)) => range_eq(x, y),
         (Value::Builtin(x), Value::Builtin(y)) => x == y,
         (Value::Exception(x), Value::Exception(y)) => Rc::ptr_eq(x, y),
+        (Value::Function(x), Value::Function(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -406,6 +421,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         // O CPython usa o endereço; aqui basta um valor estável por função.
         Value::Builtin(name) => Ok(PyStr::new(*name).hash()),
         Value::Exception(e) => Ok((Rc::as_ptr(e) as usize >> 4) as i64),
+        Value::Function(f) => Ok((Rc::as_ptr(f) as usize >> 4) as i64),
         Value::List(_) | Value::Dict(_) | Value::Set(_) => {
             Err(ObjError::TypeError(format!("unhashable type: '{}'", v.type_name())))
         }

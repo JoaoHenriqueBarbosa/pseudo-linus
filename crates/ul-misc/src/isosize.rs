@@ -23,14 +23,13 @@ const LONGS: &[LongOpt] = &[
 
 const USAGE: &str = "
 Usage:
- isosize [options] <iso9660_image_file>
+ isosize [options] <iso9660_image_file> ...
 
 Show the length of an ISO-9660 filesystem.
 
 Options:
- -d, --divisor <number>  divide the amount of bytes by <number>
- -x, --sectors           show sector count and sector size
-
+ -d, --divisor=<number>  divide the amount of bytes by <number>
+ -x, --sectors           show sector count and size
  -h, --help              display this help
  -V, --version           display version
 
@@ -87,7 +86,7 @@ fn run(args: &[OsString]) -> i32 {
             }
             Some('h') => {
                 let mut out = io::stdout();
-                let _ = out.write_all(&USAGE.as_bytes()[1..]);
+                let _ = out.write_all(USAGE.as_bytes());
                 return 0;
             }
             _ => {
@@ -99,6 +98,7 @@ fn run(args: &[OsString]) -> i32 {
 
     let files = g.operands();
     if files.is_empty() {
+        ul::warnx(&short, "no device specified".to_string());
         ul::errtryhelp(&short);
         return 1;
     }
@@ -112,7 +112,7 @@ fn run(args: &[OsString]) -> i32 {
             Err(e) => {
                 let _ = out.flush();
                 ul::warn(&short, format!("cannot open {name}"), e);
-                return 1;
+                return 32;
             }
         };
         let mut buf = vec![0u8; NEEDED];

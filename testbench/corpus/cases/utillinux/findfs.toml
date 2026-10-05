@@ -1,0 +1,36 @@
+tool = "findfs"
+source = "manual"
+
+# findfs do util-linux 2.41: ajuda, versão, erros de uso e etiquetas que não resolvem (saída 2).
+
+[[case]]
+id = "findfs-help"
+argv = ["findfs", "--help"]
+
+[[case]]
+id = "findfs-version"
+argv = ["findfs", "-V"]
+
+[[case]]
+id = "findfs-invalid-option"
+argv = ["findfs", "-x"]
+
+[[case]]
+id = "findfs-no-operand"
+script = "findfs; echo \"rc=$?\""
+
+[[case]]
+id = "findfs-too-many"
+script = "findfs LABEL=a LABEL=b; echo \"rc=$?\""
+
+[[case]]
+id = "findfs-label-unresolved"
+script = "findfs LABEL=nothing; echo \"rc=$?\""
+
+[[case]]
+id = "findfs-uuid-unresolved"
+script = "findfs UUID=00000000-0000-0000-0000-000000000000; echo \"rc=$?\""
+
+[[case]]
+id = "findfs-malformed-tag"
+script = "findfs nonsense; echo \"rc=$?\""
