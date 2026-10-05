@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 use winnow::{
     ascii::{digit1, Uint},
-    combinator::{alt, delimited, not, opt, peek, preceded, repeat, separated},
+    combinator::{alt, delimited, not, opt, peek, preceded, repeat, separated, terminated},
     error::{ContextError, ParserError, StrContext, StrContextValue},
     stream::AsChar,
     token::{none_of, one_of, take_while},
@@ -41,6 +41,23 @@ where
     E: ParserError<&'a str>,
 {
     take_while(1.., (' ', '\t', '\n', '\x0B', '\x0C', '\r')).parse_next(input)
+}
+
+/// Parse a keyword as a whole word, like the lexer of GNU `date` does
+///
+/// The `yylex` of `parse-datetime.y` reads every run of letters and periods as
+/// a single word and only then looks it up in its tables. A keyword is thus not
+/// a prefix match: `agoo`, `nowx` and `pmx` are unknown words (and so invalid
+/// dates), not `ago`, `now` and `pm` followed by something else. The input is
+/// already lowercase here.
+pub(super) fn keyword<'a, E>(word: &'static str) -> impl Parser<&'a str, &'a str, E>
+where
+    E: ParserError<&'a str>,
+{
+    terminated(
+        s(word),
+        peek(not(one_of(|c: char| c.is_ascii_alphabetic() || c == '.'))),
+    )
 }
 
 /// Parse the space in-between tokens

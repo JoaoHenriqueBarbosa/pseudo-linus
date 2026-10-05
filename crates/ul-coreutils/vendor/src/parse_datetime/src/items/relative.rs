@@ -37,7 +37,11 @@ use winnow::{
     ModalResult, Parser,
 };
 
-use super::{epoch::sec_and_nsec, ordinal::ordinal, primitive::s};
+use super::{
+    epoch::sec_and_nsec,
+    ordinal::ordinal,
+    primitive::{keyword, s},
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) enum Relative {
@@ -69,11 +73,11 @@ impl TryFrom<Relative> for jiff::Span {
 
 pub(super) fn parse(input: &mut &str) -> ModalResult<Relative> {
     alt((
-        s("tomorrow").value(Relative::Days(1)),
-        s("yesterday").value(Relative::Days(-1)),
+        keyword("tomorrow").value(Relative::Days(1)),
+        keyword("yesterday").value(Relative::Days(-1)),
         // For "today" and "now", the unit is arbitrary
-        s("today").value(Relative::Days(0)),
-        s("now").value(Relative::Days(0)),
+        keyword("today").value(Relative::Days(0)),
+        keyword("now").value(Relative::Days(0)),
         seconds,
         displacement,
     ))
@@ -120,8 +124,14 @@ fn displacement(input: &mut &str) -> ModalResult<Relative> {
         .parse_next(input)
 }
 
+/// The trailing `ago` negates a relative item, the equivalent `hence` keeps it.
+///
+/// Both are whole words (`tAGO` in the GNU grammar), so `agoo` is neither.
+/// Returns whether the item has to be negated.
 fn ago(input: &mut &str) -> ModalResult<bool> {
-    opt(s("ago")).map(|o| o.is_some()).parse_next(input)
+    opt(alt((keyword("ago").value(true), keyword("hence").value(false))))
+        .map(|o| o.unwrap_or(false))
+        .parse_next(input)
 }
 
 #[cfg(test)]
@@ -210,6 +220,32 @@ mod tests {
         ] {
             let mut t = s;
             assert_eq!(parse(&mut t).ok(), Some(rel), "Failed string: {s}")
+        }
+    }
+
+    #[test]
+    fn hence_keeps_the_sign() {
+        for (s, rel) in [
+            ("2 days hence", Relative::Days(2)),
+            ("2 days ago", Relative::Days(-2)),
+            ("-2 days hence", Relative::Days(-2)),
+            ("3 seconds hence", Relative::Seconds(3, 0)),
+        ] {
+            let mut t = s;
+            assert_eq!(parse(&mut t).ok(), Some(rel), "Failed string: {s}")
+        }
+    }
+
+    #[test]
+    fn keywords_are_whole_words() {
+        // `agoo` is an unknown word, not `ago` followed by `o`.
+        let mut t = "2 days agoo";
+        assert_eq!(parse(&mut t).ok(), Some(Relative::Days(2)));
+        assert_eq!(t, " agoo");
+
+        for s in ["nowx", "today.", "tomorrowly", "yesterdayx"] {
+            let mut t = s;
+            assert!(parse(&mut t).is_err(), "Should fail: {s}");
         }
     }
 }

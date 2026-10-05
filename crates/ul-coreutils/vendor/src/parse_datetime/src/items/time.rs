@@ -46,7 +46,7 @@ use winnow::{
 use super::{
     epoch::sec_and_nsec,
     offset::{timezone_offset, Offset},
-    primitive::{colon, ctx_err, dec_uint, s},
+    primitive::{colon, ctx_err, dec_uint, keyword, s},
 };
 
 #[derive(PartialEq, Clone, Debug, Default)]
@@ -85,6 +85,20 @@ pub(crate) fn parse(input: &mut &str) -> ModalResult<Time> {
 /// Parse an ISO 8601 time string
 ///
 /// Also used by the [`combined`](super::combined) module
+///
+/// This follows `iso_8601_time` of the GNU grammar:
+///
+/// ```txt
+/// iso_8601_time = tUNUMBER zone_offset
+///               | tUNUMBER ':' tUNUMBER o_zone_offset
+///               | tUNUMBER ':' tUNUMBER ':' unsigned_seconds o_zone_offset
+/// ```
+///
+/// A signed number that follows a time with minutes is always its zone
+/// correction, even when a unit comes next: in `12:00 +3 hours` the `+3` is the
+/// zone and `hours` a lone unit (worth one hour). The hours-only form is the
+/// exception, because there `12 +3 hours` is a pure number followed by the
+/// relative item `+3 hours`, see [`timezone_offset`].
 pub(super) fn iso(input: &mut &str) -> ModalResult<Time> {
     alt((
         (hour24, timezone_offset).map(|(hour, offset)| Time {
@@ -121,10 +135,10 @@ fn am_pm_time(input: &mut &str) -> ModalResult<Time> {
         opt(preceded(colon, minute)),
         opt(preceded(colon, second)),
         alt((
-            s("am").value(Meridiem::Am),
-            s("a.m.").value(Meridiem::Am),
-            s("pm").value(Meridiem::Pm),
-            s("p.m.").value(Meridiem::Pm),
+            keyword("am").value(Meridiem::Am),
+            keyword("a.m.").value(Meridiem::Am),
+            keyword("pm").value(Meridiem::Pm),
+            keyword("p.m.").value(Meridiem::Pm),
         )),
     )
         .parse_next(input)?;
@@ -411,6 +425,17 @@ mod tests {
                 Some(reference.clone()),
                 "Format string: {old_s}"
             );
+        }
+    }
+
+    #[test]
+    fn meridiem_is_a_whole_word() {
+        let mut s = "12pm";
+        assert!(parse(&mut s).is_ok());
+
+        for mut s in ["12pmx", "12 amm", "12 p.m", "12 am."] {
+            let old_s = s.to_owned();
+            assert!(parse(&mut s).is_err(), "Format string: {old_s}");
         }
     }
 
