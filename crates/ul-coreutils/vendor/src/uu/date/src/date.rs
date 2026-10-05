@@ -6,13 +6,14 @@
 // spell-checker:ignore strtime ; (format) DATEFILE MMDDhhmm ; (vars) datetime datetimes getres AWST ACST AEST foobarbaz unparseable
 // spell-checker:ignore ohos OHOS tzdata
 
-mod format_modifiers;
+// Porte pseudo-linus: o formatador do `nstrftime` do GNU no lugar do strtime do jiff.
+mod gnu_strftime;
 mod locale;
 
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use clap::{Arg, ArgAction, Command};
-use jiff::fmt::strtime::{self, BrokenDownTime, Config, PosixCustom};
+use jiff::fmt::strtime;
 use jiff::tz::{Offset, TimeZone, TimeZoneDatabase};
 use jiff::{Timestamp, Zoned};
 use parse_datetime::{ExtendedDateTime, ParsedDateTime};
@@ -96,6 +97,13 @@ enum DateError {
     ExtraOperand { operand: String },
     #[error("{}", translate!("date-error-invalid-date", "date" => uucore::display::locale_quote(.date)))]
     InvalidDate { date: String },
+    // Porte pseudo-linus: opções de saída repetidas (-I, -R, --rfc-3339, +FORMAT), como o date.c.
+    #[error("{}", translate!("date-error-multiple-formats"))]
+    MultipleFormats,
+    #[error("{}", translate!("date-error-mutually-exclusive-dates"))]
+    MutuallyExclusiveDates,
+    #[error("{}", translate!("date-error-mutually-exclusive-set"))]
+    MutuallyExclusiveSet,
     #[error("{}", translate!("date-error-format-missing-plus", "arg" => .arg))]
     FormatMissingPlus { arg: String },
     #[error("{}", translate!("date-error-expected-file-got-directory", "path" => .path))]
@@ -115,7 +123,10 @@ enum DateError {
 impl UError for DateError {
     // Porte pseudo-linus: operando a mais é erro de uso no GNU ("Try 'date --help'...").
     fn usage(&self) -> bool {
-        matches!(self, Self::ExtraOperand { .. })
+        matches!(
+            self,
+            Self::ExtraOperand { .. } | Self::MutuallyExclusiveDates | Self::MutuallyExclusiveSet
+        )
     }
 }
 
@@ -352,6 +363,20 @@ fn parse_military_timezone_with_offset(s: &str) -> Option<(i32, DayDelta)> {
 pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let matches = uucore::clap_localization::handle_clap_result(uu_app(), args)?;
 
+    // Porte pseudo-linus: o date.c do GNU recusa as opções que escolhem a data a imprimir (-d, -f,
+    // -r, --resolution) juntas, e as que imprimem junto com -s, com mensagem própria e a dica de
+    // uso (o clap daria o erro de conflito dele).
+    let date_options = [OPT_DATE, OPT_FILE, OPT_REFERENCE]
+        .iter()
+        .filter(|id| matches.contains_id(**id))
+        .count()
+        + usize::from(matches.get_flag(OPT_RESOLUTION));
+    if date_options > 1 {
+        return Err(Box::new(DateError::MutuallyExclusiveDates));
+    }
+    if date_options > 0 && matches.contains_id(OPT_SET) {
+        return Err(Box::new(DateError::MutuallyExclusiveSet));
+    }
     let date_source = if let Some(date_os) = matches.get_one::<std::ffi::OsString>(OPT_DATE) {
         // Convert OsString to String, handling invalid UTF-8 with GNU-compatible error
         let date = date_os.to_str().ok_or_else(|| {
@@ -381,6 +406,15 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
                 operand: format_args[1].clone(),
             }));
         }
+    }
+
+    // Porte pseudo-linus: -I, -R, --rfc-3339 e +FORMAT são formatos de saída que se excluem.
+    let format_options = usize::from(matches.contains_id(OPT_ISO_8601))
+        + usize::from(matches.get_flag(OPT_RFC_EMAIL))
+        + usize::from(matches.contains_id(OPT_RFC_3339))
+        + usize::from(matches.contains_id(OPT_FORMAT));
+    if format_options > 1 {
+        return Err(Box::new(DateError::MultipleFormats));
     }
 
     let format = if let Some(fmt) = matches.get_one::<String>(OPT_FORMAT) {
@@ -634,7 +668,6 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let mut stdout = BufWriter::new(sysio::io::stdout().lock());
 
     // Format all the dates
-    let config = Config::new().custom(PosixCustom::new()).lenient(true);
     for date in dates {
         match date {
             Ok(date) => {
@@ -647,15 +680,10 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
                         } else {
                             date
                         };
-                        format_date_with_locale_aware_months(
-                            &date,
-                            format_string,
-                            &config,
-                            skip_localization,
-                        )
+                        format_date_with_locale_aware_months(&date, format_string, skip_localization)
                     }
                     ParsedDateTime::Extended(date) => {
-                        format_extended_default(&date, format_string, &config, &output_time_zone)
+                        format_extended_default(&date, format_string, &output_time_zone)
                     }
                 };
                 match formatted {
@@ -706,7 +734,6 @@ pub fn uu_app() -> Command {
                 .long(OPT_FILE)
                 .value_name("DATEFILE")
                 .value_hint(clap::ValueHint::FilePath)
-                .conflicts_with(OPT_DATE)
                 .help(translate!("date-help-file")),
         )
         .arg(
@@ -724,7 +751,6 @@ pub fn uu_app() -> Command {
         .arg(
             Arg::new(OPT_RESOLUTION)
                 .long(OPT_RESOLUTION)
-                .conflicts_with_all([OPT_DATE, OPT_FILE])
                 .overrides_with(OPT_RESOLUTION)
                 .help(translate!("date-help-resolution"))
                 .action(ArgAction::SetTrue),
@@ -758,7 +784,6 @@ pub fn uu_app() -> Command {
                 .long(OPT_REFERENCE)
                 .value_name("FILE")
                 .value_hint(clap::ValueHint::AnyPath)
-                .conflicts_with_all([OPT_DATE, OPT_FILE, OPT_RESOLUTION])
                 .overrides_with(OPT_REFERENCE)
                 .help(translate!("date-help-reference")),
         )
@@ -796,91 +821,9 @@ pub fn uu_app() -> Command {
         .arg(Arg::new(OPT_FORMAT).num_args(0..))
 }
 
-/// Replace bare `%s` conversion specifiers in `fmt` with the Unix epoch second
-/// using floor semantics.
-///
-/// GNU `date` rounds `%s` toward negative infinity for negative fractional
-/// timestamps, whereas jiff's `%s` truncates toward zero. `%%` escapes are
-/// preserved and every other specifier is left untouched for jiff to render.
-fn substitute_epoch_seconds(fmt: &str, date: &Zoned) -> String {
-    if !fmt.contains("%s") {
-        return fmt.to_string();
-    }
-
-    let seconds = ParsedDateTime::InRange(date.clone())
-        .unix_epoch_second()
-        .to_string();
-
-    let mut out = String::with_capacity(fmt.len());
-    let mut chars = fmt.chars().peekable();
-    while let Some(c) = chars.next() {
-        if c != '%' {
-            out.push(c);
-            continue;
-        }
-        match chars.peek() {
-            Some('s') => {
-                chars.next();
-                out.push_str(&seconds);
-            }
-            // Keep `%%` intact so jiff still renders it as a literal percent.
-            Some('%') => {
-                chars.next();
-                out.push_str("%%");
-            }
-            _ => out.push('%'),
-        }
-    }
-    out
-}
-
-/// Remove the `O` strftime modifier from `fmt`.
-///
-/// In the C locale `%O` requests alternative numeric symbols that do not
-/// exist, so GNU `date` treats it as a no-op: `%Om` renders exactly like
-/// `%m` (issue #11656). jiff does not know the modifier and would emit it
-/// literally, so strip it before jiff sees the format string.
-///
-/// The `O` is only dropped when it actually modifies something, that is,
-/// when a specifier letter follows it. A dangling `%O` (at the end of the
-/// string, or followed by a non-letter) stays literal, as does any `O`
-/// that merely follows the `%%` escape.
-fn strip_o_modifier(fmt: &str) -> String {
-    if !fmt.contains("%O") {
-        return fmt.to_string();
-    }
-
-    let mut out = String::with_capacity(fmt.len());
-    let mut chars = fmt.chars().peekable();
-    while let Some(c) = chars.next() {
-        if c != '%' {
-            out.push(c);
-            continue;
-        }
-        match chars.peek() {
-            Some('O') => {
-                let mut lookahead = chars.clone();
-                lookahead.next();
-                if lookahead.peek().is_some_and(char::is_ascii_alphabetic) {
-                    chars.next();
-                }
-                out.push('%');
-            }
-            // Keep `%%` intact: an `O` after a literal percent is plain text.
-            Some('%') => {
-                chars.next();
-                out.push_str("%%");
-            }
-            _ => out.push('%'),
-        }
-    }
-    out
-}
-
 fn format_extended_default(
     date: &ExtendedDateTime,
     format_string: &str,
-    config: &Config<PosixCustom>,
     output_time_zone: &TimeZone,
 ) -> Result<String, String> {
     // Apply the output timezone to an equivalent in-range instant, then let the
@@ -906,9 +849,14 @@ fn format_extended_default(
         surrogate.offset().seconds(),
     )
     .map_err(str::to_string)?;
-    let format_string = substitute_extended_year(format_string, output.year)?;
 
-    format_date_with_locale_aware_months(&surrogate, &format_string, config, false)
+    // Porte pseudo-linus: o dia da semana e o dia do ano do substituto valem para o ano real (o
+    // calendário gregoriano repete a cada 400 anos); o ano e o epoch são os verdadeiros.
+    let mut tm = gnu_strftime::Tm::from_zoned(&surrogate);
+    tm.year = i64::from(output.year);
+    tm.epoch = date.unix_seconds();
+    let fmt = localize_names(&surrogate, format_string, false);
+    gnu_strftime::format(&fmt, &tm)
 }
 
 fn surrogate_year(year: u32) -> i16 {
@@ -917,72 +865,31 @@ fn surrogate_year(year: u32) -> i16 {
     (BASE + (i64::from(year) - BASE).rem_euclid(400)) as i16
 }
 
-fn substitute_extended_year(format_string: &str, year: u32) -> Result<String, String> {
-    let mut output = String::with_capacity(format_string.len() + 8);
-    let mut chars = format_string.chars().peekable();
-    let year = year.to_string();
-    let mut replaced = false;
-
-    while let Some(ch) = chars.next() {
-        if ch != '%' {
-            output.push(ch);
-            continue;
-        }
-
-        match chars.next() {
-            Some('%') => output.push_str("%%"),
-            Some('Y') => {
-                output.push_str(&year);
-                replaced = true;
-            }
-            Some(specifier) => {
-                output.push('%');
-                output.push(specifier);
-            }
-            None => output.push('%'),
-        }
+/// Troca os nomes de mês e de dia pelos do locale quando ele não é o C (ICU).
+// Porte pseudo-linus: separada do formatador, que agora é o `gnu_strftime`.
+#[cfg(feature = "i18n-datetime")]
+fn localize_names<'a>(date: &Zoned, format_string: &'a str, skip_localization: bool) -> Cow<'a, str> {
+    if !skip_localization && should_use_icu_locale() {
+        Cow::Owned(localize_format_string(format_string, date.date()))
+    } else {
+        Cow::Borrowed(format_string)
     }
+}
 
-    replaced
-        .then_some(output)
-        .ok_or_else(|| "default date format does not contain %Y".to_string())
+#[cfg(not(feature = "i18n-datetime"))]
+fn localize_names<'a>(_date: &Zoned, format_string: &'a str, _skip_localization: bool) -> Cow<'a, str> {
+    Cow::Borrowed(format_string)
 }
 
 fn format_date_with_locale_aware_months(
     date: &Zoned,
     format_string: &str,
-    config: &Config<PosixCustom>,
-    #[cfg(feature = "i18n-datetime")] skip_localization: bool,
-    #[cfg(not(feature = "i18n-datetime"))] _skip_localization: bool,
+    skip_localization: bool,
 ) -> Result<String, String> {
-    // Apply locale-aware name substitution (month/day names) before modifier
-    // processing, so that formats like "%-e" don't bypass localization of "%b"/"%A".
-    // The owned String is kept in `localized` so `fmt` can borrow from it for the
-    // rest of the function without a dangling reference.
-    #[cfg(feature = "i18n-datetime")]
-    let localized: Option<String> = (!skip_localization && should_use_icu_locale())
-        .then(|| localize_format_string(format_string, date.date()));
-    #[cfg(feature = "i18n-datetime")]
-    let fmt: &str = localized.as_deref().unwrap_or(format_string);
-    #[cfg(not(feature = "i18n-datetime"))]
-    let fmt = format_string;
-
-    // jiff renders `%s` by truncating toward zero, but GNU `date` floors toward
-    // negative infinity (e.g. `@-1.5` → `-2`, not `-1`). Every other field jiff
-    // produces already agrees with GNU, so only `%s` needs correcting; rewrite it
-    // to the floored epoch second before jiff sees the format string.
-    let fmt_owned = strip_o_modifier(&substitute_epoch_seconds(fmt, date));
-    let fmt = fmt_owned.as_str();
-
-    // Check if format string has GNU modifiers (width/flags) and format if present
-    if let Some(result) = format_modifiers::format_with_modifiers_if_present(date, fmt, config) {
-        return result.map_err(|e| e.to_string());
-    }
-
-    let broken_down = BrokenDownTime::from(date);
-    broken_down
-        .to_string_with_config(config, fmt)
-        .map_err(|e| e.to_string())
+    // Apply locale-aware name substitution (month/day names) before formatting, so that
+    // formats like "%-e" don't bypass localization of "%b"/"%A".
+    let fmt = localize_names(date, format_string, skip_localization);
+    gnu_strftime::format(&fmt, &gnu_strftime::Tm::from_zoned(date))
 }
 
 /// Return the appropriate format string for the given settings.

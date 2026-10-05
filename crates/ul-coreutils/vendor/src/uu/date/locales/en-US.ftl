@@ -106,6 +106,10 @@ date-error-setting-date-not-supported-macos = setting the date is not supported 
 date-error-setting-date-not-supported-redox = setting the date is not supported by Redox
 date-error-cannot-set-date = cannot set date
 date-error-extra-operand = extra operand {$operand}
+# Porte pseudo-linus: mensagens do date.c do GNU para opções que se excluem.
+date-error-multiple-formats = multiple output formats specified
+date-error-mutually-exclusive-dates = the options to specify dates for printing are mutually exclusive
+date-error-mutually-exclusive-set = the options to print and to set the date are mutually exclusive
 date-error-write = write error: {$error}
 date-error-format-modifier-width-too-large = format modifier width '{$width}' is too large for specifier '%{$specifier}'
 date-error-format-missing-plus = the argument {$arg} lacks a leading '+';

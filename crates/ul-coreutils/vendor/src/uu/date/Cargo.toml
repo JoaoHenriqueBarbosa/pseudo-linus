@@ -84,7 +84,10 @@ features = [
 version = "0.2.2"
 optional = true
 
+# Porte pseudo-linus: parse_datetime vendorizado (resolução da data local como a do GNU date).
 [dependencies.parse_datetime]
+path = "../../parse_datetime"
+package = "pl-parse-datetime"
 version = "0.16.0"
 
 [dependencies.thiserror]

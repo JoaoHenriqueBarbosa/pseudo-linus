@@ -2548,6 +2548,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pl-parse-datetime"
+version = "0.16.0"
+dependencies = [
+ "jiff",
+ "num-traits",
+ "winnow 1.0.4",
+]
+
+[[package]]
 name = "pl-testing"
 version = "0.1.0"
 dependencies = [
@@ -2768,7 +2777,7 @@ dependencies = [
  "jiff",
  "jiff-icu",
  "jiff-tzdb",
- "parse_datetime",
+ "pl-parse-datetime",
  "pl-uucore",
  "sysabi",
  "sysio",

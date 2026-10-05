@@ -1,0 +1,42 @@
+# Porte pseudo-linus: cópia do parse_datetime 0.16.0 do uutils (licença MIT, ver LICENSE) com a
+# resolução da data local reescrita no builder para o comportamento do GNU date (mktime com a dica
+# de horário de verão, ver `items/builder.rs`). Pacote renomeado para não colidir com o do
+# crates.io, que o `touch` ainda usa; o nome da lib continua `parse_datetime`.
+[package]
+edition = "2021"
+rust-version = "1.71.1"
+name = "pl-parse-datetime"
+version = "0.16.0"
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "parsing human-readable time strings and converting them to a Zoned datetime"
+license = "MIT"
+repository = "https://github.com/uutils/parse_datetime"
+
+[lib]
+name = "parse_datetime"
+path = "src/lib.rs"
+test = false
+doctest = false
+
+[dependencies.jiff]
+version = "0.2.15"
+features = [
+    "tz-system",
+    "tzdb-bundle-platform",
+    "tzdb-zoneinfo",
+]
+default-features = false
+
+[dependencies.num-traits]
+version = "0.2.19"
+
+[dependencies.winnow]
+version = "1.0.0"
+
+[lints.rust]
+unsafe_code = "forbid"
