@@ -57,55 +57,89 @@ const LONGOPTS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, 'v' as i32),
 ];
 
-const USAGE_BODY: &str = " Display information about the contents of ELF format files\n\
-\x20Options are:\n\
-\x20 -a --all               Equivalent to: -h -l -S -s -r -d -V -A -I\n\
-\x20 -h --file-header       Display the ELF file header\n\
-\x20 -l --program-headers   Display the program headers\n\
-\x20    --segments          An alias for --program-headers\n\
-\x20 -S --section-headers   Display the sections' header\n\
-\x20    --sections          An alias for --section-headers\n\
-\x20 -g --section-groups    Display the section groups\n\
-\x20 -t --section-details   Display the section details\n\
-\x20 -e --headers           Equivalent to: -h -l -S\n\
-\x20 -s --syms              Display the symbol table\n\
-\x20    --symbols           An alias for --syms\n\
-\x20    --dyn-syms          Display the dynamic symbol table\n\
-\x20    --lto-syms          Display LTO symbol tables\n\
-\x20    --sym-base=[0|8|10|16] \n\
-\x20                        Force base for symbol sizes.  The options are \n\
-\x20                        mixed (the default), octal, decimal, hexadecimal.\n\
-\x20 -C --demangle[=STYLE]  Decode low-level symbol names into user-level names\n\
-\x20                         The STYLE, if specified, can be `auto' (the default),\n\
-\x20                         `gnu-v3', `java', `gnat', `dlang', `rust'\n\
-\x20    --no-demangle       Do not demangle low-level symbol names.  (This is the default)\n\
-\x20    --recurse-limit     Enable a demangling recursion limit.  (This is the default)\n\
-\x20    --no-recurse-limit  Disable a demangling recursion limit\n\
-\x20 -n --notes             Display the core notes (if present)\n\
-\x20 -r --relocs            Display the relocations (if present)\n\
-\x20 -u --unwind            Display the unwind info (if present)\n\
-\x20 -d --dynamic           Display the dynamic section (if present)\n\
-\x20 -V --version-info      Display the version sections (if present)\n\
-\x20 -A --arch-specific     Display architecture specific information (if any)\n\
-\x20 -c --archive-index     Display the symbol/file index in an archive\n\
-\x20 -D --use-dynamic       Use the dynamic section info when displaying symbols\n\
-\x20 -L --lint|--enable-checks\n\
-\x20                        Display warning messages for possible problems\n\
-\x20 -x --hex-dump=<number|name>\n\
-\x20                        Dump the contents of section <number|name> as bytes\n\
-\x20 -p --string-dump=<number|name>\n\
-\x20                        Dump the contents of section <number|name> as strings\n\
-\x20 -R --relocated-dump=<number|name>\n\
-\x20                        Dump the relocated contents of section <number|name>\n\
-\x20 -z --decompress        Decompress section before dumping it\n\
-\x20 -j --display-section=<number|name>\n\
-\x20                        Display the contents of the specified section\n\
-\x20 -I --histogram         Display histogram of bucket list lengths\n\
-\x20 -W --wide              Allow output width to exceed 80 characters\n\
-\x20 -T --silent-truncation If a symbol name is truncated, do not add [...] suffix\n\
-\x20 @<file>                Read options from <file>\n\
-\x20 -H --help              Display this information\n\
-\x20 -v --version           Display the version number of readelf\n";
+/// Corpo do usage, uma linha por item (preserva espaços iniciais e finais byte a byte).
+const USAGE_LINES: &[&str] = &[
+    " Display information about the contents of ELF format files",
+    " Options are:",
+    "  -a --all               Equivalent to: -h -l -S -s -r -d -V -A -I",
+    "  -h --file-header       Display the ELF file header",
+    "  -l --program-headers   Display the program headers",
+    "     --segments          An alias for --program-headers",
+    "  -S --section-headers   Display the sections' header",
+    "     --sections          An alias for --section-headers",
+    "  -g --section-groups    Display the section groups",
+    "  -t --section-details   Display the section details",
+    "  -e --headers           Equivalent to: -h -l -S",
+    "  -s --syms              Display the symbol table",
+    "     --symbols           An alias for --syms",
+    "     --dyn-syms          Display the dynamic symbol table",
+    "     --lto-syms          Display LTO symbol tables",
+    "     --sym-base=[0|8|10|16] ",
+    "                         Force base for symbol sizes.  The options are ",
+    "                         mixed (the default), octal, decimal, hexadecimal.",
+    "  -C --demangle[=STYLE]  Decode mangled/processed symbol names",
+    "                           STYLE can be \"none\", \"auto\", \"gnu-v3\", \"java\",",
+    "                           \"gnat\", \"dlang\", \"rust\"",
+    "     --no-demangle       Do not demangle low-level symbol names.  (default)",
+    "     --recurse-limit     Enable a demangling recursion limit.  (default)",
+    "     --no-recurse-limit  Disable a demangling recursion limit",
+    "     -U[dlexhi] --unicode=[default|locale|escape|hex|highlight|invalid]",
+    "                         Display unicode characters as determined by the current locale",
+    "                          (default), escape sequences, \"<hex sequences>\", highlighted",
+    "                          escape sequences, or treat them as invalid and display as",
+    "                          \"{hex sequences}\"",
+    "     -X --extra-sym-info Display extra information when showing symbols",
+    "     --no-extra-sym-info Do not display extra information when showing symbols (default)",
+    "  -n --notes             Display the contents of note sections (if present)",
+    "  -r --relocs            Display the relocations (if present)",
+    "  -u --unwind            Display the unwind info (if present)",
+    "  -d --dynamic           Display the dynamic section (if present)",
+    "  -V --version-info      Display the version sections (if present)",
+    "  -A --arch-specific     Display architecture specific information (if any)",
+    "  -c --archive-index     Display the symbol/file index in an archive",
+    "  -D --use-dynamic       Use the dynamic section info when displaying symbols",
+    "  -L --lint|--enable-checks",
+    "                         Display warning messages for possible problems",
+    "  -x --hex-dump=<number|name>",
+    "                         Dump the contents of section <number|name> as bytes",
+    "  -p --string-dump=<number|name>",
+    "                         Dump the contents of section <number|name> as strings",
+    "  -R --relocated-dump=<number|name>",
+    "                         Dump the relocated contents of section <number|name>",
+    "  -z --decompress        Decompress section before dumping it",
+    "",
+    "  -j --display-section=<name|number>",
+    "\t\t         Display the contents of the indicated section.  Can be repeated",
+    "  -w --debug-dump[a/=abbrev, A/=addr, r/=aranges, c/=cu_index, L/=decodedline,",
+    "                  f/=frames, F/=frames-interp, g/=gdb_index, i/=info, o/=loc,",
+    "                  m/=macro, p/=pubnames, t/=pubtypes, R/=Ranges, l/=rawline,",
+    "                  s/=str, O/=str-offsets, u/=trace_abbrev, T/=trace_aranges,",
+    "                  U/=trace_info]",
+    "                         Display the contents of DWARF debug sections",
+    "  -wk --debug-dump=links Display the contents of sections that link to separate",
+    "                          debuginfo files",
+    "  -P --process-links     Display the contents of non-debug sections in separate",
+    "                          debuginfo files.  (Implies -wK)",
+    "  -wK --debug-dump=follow-links",
+    "                         Follow links to separate debug info files (default)",
+    "  -wN --debug-dump=no-follow-links",
+    "                         Do not follow links to separate debug info files",
+    "  --dwarf-depth=N        Do not display DIEs at depth N or greater",
+    "  --dwarf-start=N        Display DIEs starting at offset N",
+    "  --ctf=<number|name>    Display CTF info from section <number|name>",
+    "  --ctf-parent=<name>    Use CTF archive member <name> as the CTF parent",
+    "  --ctf-symbols=<number|name>",
+    "                         Use section <number|name> as the CTF external symtab",
+    "  --ctf-strings=<number|name>",
+    "                         Use section <number|name> as the CTF external strtab",
+    "  --sframe[=NAME]        Display SFrame info from section NAME, (default '.sframe')",
+    "  -I --histogram         Display histogram of bucket list lengths",
+    "  -W --wide              Allow output width to exceed 80 characters",
+    "  -T --silent-truncation If a symbol name is truncated, do not add [...] suffix",
+    "  @<file>                Read options from <file>",
+    "  -H --help              Display this information",
+    "  -v --version           Display the version number of readelf",
+];
 
 const SHF_ALLOC: u64 = 2;
 const SHF_TLS: u64 = 0x400;
@@ -524,27 +558,29 @@ fn clip(name: &str, width: usize, silent: bool) -> String {
     if silent {
         chars[..width].iter().collect()
     } else {
-        let keep: String = chars[..width - 5].iter().collect();
+        let keep: String = chars[..width.saturating_sub(5)].iter().collect();
         format!("{keep}[...]")
     }
 }
 
-fn print_sections(e: &Elf<'_>, wide: bool, silent: bool, out: &mut String) {
+fn print_sections(e: &Elf<'_>, wide: bool, silent: bool, summary: bool, out: &mut String) {
     if e.sh.is_empty() {
         out.push_str("\nThere are no sections in this file.\n");
         return;
     }
-    if e.sh.len() == 1 {
-        out.push_str(&format!(
-            "\nThere is 1 section header, starting at offset 0x{:x}:\n",
-            e.shoff
-        ));
-    } else {
-        out.push_str(&format!(
-            "\nThere are {} section headers, starting at offset 0x{:x}:\n",
-            e.sh.len(),
-            e.shoff
-        ));
+    if summary {
+        if e.sh.len() == 1 {
+            out.push_str(&format!(
+                "There is 1 section header, starting at offset 0x{:x}:\n",
+                e.shoff
+            ));
+        } else {
+            out.push_str(&format!(
+                "There are {} section headers, starting at offset 0x{:x}:\n",
+                e.sh.len(),
+                e.shoff
+            ));
+        }
     }
     out.push_str("\nSection Headers:\n");
     if wide {
@@ -645,24 +681,26 @@ fn in_segment(s: &Shdr, p: &Phdr) -> bool {
     true
 }
 
-fn print_segments(e: &Elf<'_>, wide: bool, out: &mut String) {
+fn print_segments(e: &Elf<'_>, wide: bool, summary: bool, out: &mut String) {
     if e.ph.is_empty() {
         out.push_str("\nThere are no program headers in this file.\n");
         return;
     }
-    out.push_str(&format!("\nElf file type is {}\n", e.type_text()));
-    out.push_str(&format!("Entry point 0x{:x}\n", e.entry));
-    if e.ph.len() == 1 {
-        out.push_str(&format!(
-            "There is 1 program header, starting at offset {}\n",
-            e.phoff
-        ));
-    } else {
-        out.push_str(&format!(
-            "There are {} program headers, starting at offset {}\n",
-            e.ph.len(),
-            e.phoff
-        ));
+    if summary {
+        out.push_str(&format!("\nElf file type is {}\n", e.type_text()));
+        out.push_str(&format!("Entry point 0x{:x}\n", e.entry));
+        if e.ph.len() == 1 {
+            out.push_str(&format!(
+                "There is 1 program header, starting at offset {}\n",
+                e.phoff
+            ));
+        } else {
+            out.push_str(&format!(
+                "There are {} program headers, starting at offset {}\n",
+                e.ph.len(),
+                e.phoff
+            ));
+        }
     }
     out.push_str("\nProgram Headers:\n");
     if wide {
@@ -1035,11 +1073,6 @@ fn print_symbols(e: &Elf<'_>, want_dyn: bool, want_sym: bool, wide: bool, silent
                     name = String::from_utf8_lossy(&sec.name).into_owned();
                 }
             }
-            let name = if wide {
-                name
-            } else {
-                clip(&name, 25, silent)
-            };
             let mut ver = String::new();
             if is_dyn {
                 if let Some(&vs) = versions.versym.get(n) {
@@ -1057,6 +1090,12 @@ fn print_symbols(e: &Elf<'_>, want_dyn: bool, want_sym: bool, wide: bool, silent
                     }
                 }
             }
+            // No modo estreito o nome divide 21 colunas com o sufixo de versão.
+            let name = if wide {
+                name
+            } else {
+                clip(&name, 21usize.saturating_sub(ver.chars().count()), silent)
+            };
             let vis = match other & 3 {
                 0 => "DEFAULT",
                 1 => "INTERNAL",
@@ -1091,7 +1130,8 @@ pub fn main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 
 fn usage(prog: &str, to_stdout: bool) -> i32 {
     let mut text = format!("Usage: {prog} <option(s)> elf-file(s)\n");
-    text.push_str(USAGE_BODY);
+    text.push_str(&USAGE_LINES.join("\n"));
+    text.push('\n');
     if to_stdout {
         text.push_str("Report bugs to <https://sourceware.org/bugzilla/>\n");
         let mut out = io::stdout();
@@ -1192,7 +1232,6 @@ fn run(args: &[OsString]) -> i32 {
     }
     let files = g.operands();
     if !acted {
-        io::eprint(format!("{prog}: Warning: Nothing to do.\n"));
         return usage(&prog, false);
     }
     if files.is_empty() {
@@ -1233,6 +1272,10 @@ fn process(prog: &str, path: &[u8], o: &Opts, show_name: bool) -> Result<(), ()>
             return Err(());
         }
     };
+    if data.len() < 16 {
+        say(format!("{shown}: Failed to read file's magic number"));
+        return Err(());
+    }
     let elf = match Elf::parse(&data) {
         Ok(e) => e,
         Err(m) => {
@@ -1247,11 +1290,11 @@ fn process(prog: &str, path: &[u8], o: &Opts, show_name: bool) -> Result<(), ()>
     if o.header {
         print_header(&elf, &mut out);
     }
-    if o.segments {
-        print_segments(&elf, o.wide, &mut out);
-    }
     if o.sections {
-        print_sections(&elf, o.wide, o.silent, &mut out);
+        print_sections(&elf, o.wide, o.silent, !o.header, &mut out);
+    }
+    if o.segments {
+        print_segments(&elf, o.wide, !o.header, &mut out);
     }
     if o.dynamic {
         print_dynamic(&elf, &mut out);

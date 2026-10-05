@@ -33,6 +33,8 @@ const ID_NO_MERGE_NOTES: i32 = 260;
 const ID_KEEP_SECTION_SYMBOLS: i32 = 261;
 const ID_KEEP_FILE_SYMBOLS: i32 = 262;
 const ID_INFO: i32 = 263;
+const ID_REMOVE_RELOCS: i32 = 264;
+const ID_STRIP_SECTION_HEADERS: i32 = 265;
 
 const LONGOPTS: &[LongOpt] = &[
     LongOpt::new("input-target", HasArg::Required, 'I' as i32),
@@ -61,40 +63,45 @@ const LONGOPTS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, 'V' as i32),
     LongOpt::new("help", HasArg::No, 'h' as i32),
     LongOpt::new("info", HasArg::No, ID_INFO),
+    LongOpt::new("remove-relocations", HasArg::Required, ID_REMOVE_RELOCS),
+    LongOpt::new("strip-section-headers", HasArg::No, ID_STRIP_SECTION_HEADERS),
 ];
 
-const USAGE_BODY: &str = " Removes symbols and sections from files\n\
-\x20The options are:\n\
-\x20 -I --input-target=<bfdname>      Assume input file is in format <bfdname>\n\
-\x20 -O --output-target=<bfdname>     Create an output file in format <bfdname>\n\
-\x20 -F --target=<bfdname>            Set both input and output format to <bfdname>\n\
-\x20 -p --preserve-dates              Copy modified/access timestamps to the output\n\
-\x20 -D --enable-deterministic-archives\n\
-\x20                                  Produce deterministic output when stripping archives (default)\n\
-\x20 -U --disable-deterministic-archives\n\
-\x20                                  Disable -D behavior\n\
-\x20 -R --remove-section=<name>       Also remove section <name> from the output\n\
-\x20    --keep-section=<name>         Do not strip section <name>\n\
-\x20 -s --strip-all                   Remove all symbol and relocation information\n\
-\x20 -g -S -d --strip-debug           Remove all debugging symbols & sections\n\
-\x20    --strip-dwo                   Remove all DWO sections\n\
-\x20    --strip-unneeded              Remove all symbols not needed by relocations\n\
-\x20    --only-keep-debug             Strip everything but the debug information\n\
-\x20 -M  --merge-notes                Remove redundant entries in note sections (default)\n\
-\x20     --no-merge-notes             Do not attempt to remove redundant notes\n\
-\x20 -N --strip-symbol=<name>         Do not copy symbol <name>\n\
-\x20    --keep-section-symbols        Do not strip section symbols\n\
-\x20 -K --keep-symbol=<name>          Do not strip symbol <name>\n\
-\x20    --keep-file-symbols           Do not strip file symbol(s)\n\
-\x20 -w --wildcard                    Permit wildcard in symbol comparison\n\
-\x20 -x --discard-all                 Remove all non-global symbols\n\
-\x20 -X --discard-locals              Remove any compiler-generated symbols\n\
-\x20 -v --verbose                     List all object files modified\n\
-\x20 -V --version                     Show this program's version number\n\
-\x20 -h --help                        Display this output\n\
-\x20    --info                        List object formats & architectures supported\n\
-\x20 -o <file>                        Place stripped output into <file>\n\
-\x20@<file>                          Read options from <file>\n";
+const USAGE_LINES: &[&str] = &[
+    " Removes symbols and sections from files",
+    " The options are:",
+    "  -I --input-target=<bfdname>      Assume input file is in format <bfdname>",
+    "  -O --output-target=<bfdname>     Create an output file in format <bfdname>",
+    "  -F --target=<bfdname>            Set both input and output format to <bfdname>",
+    "  -p --preserve-dates              Copy modified/access timestamps to the output",
+    "  -D --enable-deterministic-archives",
+    "                                   Produce deterministic output when stripping archives (default)",
+    "  -U --disable-deterministic-archives",
+    "                                   Disable -D behavior",
+    "  -R --remove-section=<name>       Also remove section <name> from the output",
+    "     --remove-relocations <name>   Remove relocations from section <name>",
+    "     --strip-section-headers       Strip section headers from the output",
+    "  -s --strip-all                   Remove all symbol and relocation information",
+    "  -g -S -d --strip-debug           Remove all debugging symbols & sections",
+    "     --strip-dwo                   Remove all DWO sections",
+    "     --strip-unneeded              Remove all symbols not needed by relocations",
+    "     --only-keep-debug             Strip everything but the debug information",
+    "  -M  --merge-notes                Remove redundant entries in note sections (default)",
+    "      --no-merge-notes             Do not attempt to remove redundant notes",
+    "  -N --strip-symbol=<name>         Do not copy symbol <name>",
+    "     --keep-section=<name>         Do not strip section <name>",
+    "  -K --keep-symbol=<name>          Do not strip symbol <name>",
+    "     --keep-section-symbols        Do not strip section symbols",
+    "     --keep-file-symbols           Do not strip file symbol(s)",
+    "  -w --wildcard                    Permit wildcard in symbol comparison",
+    "  -x --discard-all                 Remove all non-global symbols",
+    "  -X --discard-locals              Remove any compiler-generated symbols",
+    "  -v --verbose                     List all object files modified",
+    "  -V --version                     Display this program's version number",
+    "  -h --help                        Display this output",
+    "     --info                        List object formats & architectures supported",
+    "  -o <file>                        Place stripped output into <file>",
+];
 
 const SHT_SYMTAB: u32 = 2;
 const SHT_RELA: u32 = 4;
@@ -324,6 +331,10 @@ fn strip_bytes(d: &[u8], mode: Mode, remove: &[Vec<u8>]) -> Option<Vec<u8>> {
     }
     rm[p.shstrndx] = false;
     rm[0] = false;
+    // Nada a remover: o binutils reescreve o arquivo com o mesmo layout, então a saída é idêntica.
+    if !rm.iter().any(|&x| x) {
+        return Some(d.to_vec());
+    }
     let mut map = vec![0u32; n];
     let mut count = 0u32;
     for i in 0..n {
@@ -422,7 +433,8 @@ pub fn main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 
 fn usage(prog: &str, to_stdout: bool) -> i32 {
     let mut text = format!("Usage: {prog} <option(s)> in-file(s)\n");
-    text.push_str(USAGE_BODY);
+    text.push_str(&USAGE_LINES.join("\n"));
+    text.push('\n');
     text.push_str(&format!(
         "{prog}: supported targets: {}\n",
         TARGETS.join(" ")
@@ -465,7 +477,8 @@ fn run(args: &[OsString]) -> i32 {
                 return usage(&prog, true);
             }
             ID_KEEP_SECTION | ID_STRIP_DWO | ID_ONLY_KEEP_DEBUG | ID_NO_MERGE_NOTES
-            | ID_KEEP_SECTION_SYMBOLS | ID_KEEP_FILE_SYMBOLS => {}
+            | ID_KEEP_SECTION_SYMBOLS | ID_KEEP_FILE_SYMBOLS | ID_REMOVE_RELOCS
+            | ID_STRIP_SECTION_HEADERS => {}
             id => match u8::try_from(id).unwrap_or(0) {
                 b's' => mode = Mode::All,
                 b'g' | b'S' | b'd' => mode = Mode::Debug,

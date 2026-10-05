@@ -39,19 +39,21 @@ const USAGE_BODY: &str = "Options are:\n\
 \x20 [-_|--strip-underscore]     Ignore first leading underscore\n\
 \x20 [-n|--no-strip-underscore]  Do not ignore a leading underscore (default)\n\
 \x20 [-p|--no-params]            Do not display function arguments\n\
-\x20 [-r|--no-recurse-limit]     Disable a demangling recursion limit\n\
-\x20 [-R|--recurse-limit]        Enable a demangling recursion limit (default)\n\
+\x20 [-i|--no-verbose]           Do not show implementation details (if any)\n\
+\x20 [-R|--recurse-limit]        Enable a limit on recursion whilst demangling.  [Default]\n\
+\x20 ]-r|--no-recurse-limit]     Disable a limit on recursion whilst demangling\n\
 \x20 [-t|--types]                Also attempt to demangle type encodings\n\
-\x20 [-i|--no-verbose]           Do not show implementation details (default)\n\
-\x20 [-s|--format ...]           Specify the mangling style: auto, gnu-v3, java, gnat, dlang, rust (default: auto)\n\
+\x20 [-s|--format {none,auto,gnu-v3,java,gnat,dlang,rust}]\n\
 \x20 [@<file>]                   Read extra options from <file>\n\
 \x20 [-h|--help]                 Display this information\n\
-\x20 [-v|--version]              Show the version of this program\n\
+\x20 [-v|--version]              Show the version information\n\
 Demangled names are displayed to stdout.\n\
-If a name cannot be demangled it is simply displayed as is.\n\
+If a name cannot be demangled it is just echoed to stdout.\n\
 If no names are provided on the command line, stdin is read.\n";
 
-const STYLES: &[&[u8]] = &[b"auto", b"gnu-v3", b"java", b"gnat", b"dlang", b"rust"];
+const STYLES: &[&[u8]] = &[
+    b"none", b"auto", b"gnu-v3", b"java", b"gnat", b"dlang", b"rust",
+];
 
 pub fn main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
@@ -61,7 +63,7 @@ fn usage(prog: &str, to_stdout: bool) -> i32 {
     let mut text = format!("Usage: {prog} [options] [mangled names]\n");
     text.push_str(USAGE_BODY);
     if to_stdout {
-        text.push_str("Report bugs to <https://sourceware.org/bugzilla/>\n");
+        text.push_str("Report bugs to <https://sourceware.org/bugzilla/>.\n");
         let mut out = io::stdout();
         let _ = out.write_all(text.as_bytes());
         0
