@@ -67,6 +67,7 @@ impl ChildSpec {
             umask: self.umask,
             now: sb.now(),
             pid: pid_hint,
+            tid: pid_hint,
             fsize_limit: self.rlimits[Resource::Fsize as usize].cur,
         }
     }
@@ -228,6 +229,7 @@ pub(crate) fn insert_child(sb: &Arc<SbInner>, spec: ChildSpec) -> Result<Arc<Tas
         parent.children.insert(pid);
     }
     t.live += 1;
+    t.forks += 1;
     Ok(task)
 }
 
@@ -248,6 +250,10 @@ fn rollback_child(sb: &Arc<SbInner>, task: &Arc<Task>) {
 
 /// Cria a thread do SO de um processo novo.
 pub(crate) fn start_process(sb: &Arc<SbInner>, task: Arc<Task>, body: Body) -> Result<(), Errno> {
+    if matches!(body, Body::Func(_)) {
+        // `fork` sem `execve`: o processo roda uma função do pai (`PF_FORKNOEXEC`).
+        task.proc.fork_noexec.store(true, Ordering::Relaxed);
+    }
     let name = format!("pl{}-{}", sb.id, task.proc.pid);
     let t2 = task.clone();
     match sb.spawn_os_thread(name, Box::new(move || task_main(t2, TaskBody::Main(body)))) {
@@ -267,10 +273,13 @@ pub(crate) fn start_thread(cur: &Task, body: ThreadFn) -> Result<Pid, Errno> {
         let mut t = sb.table.lock();
         let tid = t.alloc_pid().ok_or(Errno::EAGAIN)?;
         t.tids.insert(tid);
+        t.forks += 1;
         tid
     };
     let task = Task::new(tid, proc.clone(), sb.clone());
     proc.threads.lock().live.insert(tid, task.clone());
+    // O espaço de endereçamento cresce com a pilha da thread nova: registra o pico.
+    let _ = crate::procmem::snapshot(&proc);
     let name = format!("pl{}-{}-{}", sb.id, proc.pid, tid);
     let t2 = task.clone();
     if let Err(e) = sb.spawn_os_thread(name, Box::new(move || task_main(t2, TaskBody::Thread(body)))) {
@@ -433,4 +442,9 @@ pub(crate) fn commit_exec(task: &Arc<Task>, img: &Image, live: bool) {
     st.comm = comm_of(&img.filename);
     st.exe = Some(PinnedLoc::new(img.exe.clone()));
     st.pending_exec = None;
+    drop(st);
+    // Imagem nova, `mm` novo: o pico de memória recomeça e o processo deixa de ser um fork puro.
+    proc.fork_noexec.store(false, Ordering::Relaxed);
+    proc.peak_size_kb.store(0, Ordering::Relaxed);
+    proc.peak_rss_kb.store(0, Ordering::Relaxed);
 }

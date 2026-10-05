@@ -24,12 +24,56 @@ use parking_lot::Mutex;
 use sched::{Features, GroupId, MonotonicClock, Sched, SchedConfig, TaskId, Topology, Tunables};
 use sysabi::Errno;
 
+use crate::loadavg::LoadAvg;
 use crate::park::Parker;
 
 /// HZ do kernel do Debian 13 (CONFIG_HZ_250).
 pub(crate) const HZ: u64 = 250;
 /// Tempo sem atender um pedido de troca até o watchdog agir.
 pub(crate) const WATCHDOG_NS: u64 = 8_000_000;
+/// `LOAD_FREQ`: de quanto em quanto tempo as médias de carga são recalculadas (5 s mais um tick).
+const LOAD_FREQ_NS: u64 = (5 * HZ + 1) * (1_000_000_000 / HZ);
+/// Teto de um crédito de tick: depois de uma parada longa da thread de tick, o tempo parado não vira CPU
+/// usada.
+const MAX_TICK_CREDIT_NS: u64 = 50_000_000;
+
+/// Contabilidade de CPU de um sandbox, o que o `/proc/stat` dele mostra (`kernel_cpustat` e
+/// `nr_context_switches`). Como o `account_process_tick` do kernel, cada tick credita o tempo desde o
+/// tick anterior à CPU que estava rodando uma tarefa do sandbox: como `nice` se a tarefa tem nice
+/// positivo, como usuário senão. O sandbox não separa tempo de sistema, então não há coluna de sistema.
+#[derive(Debug)]
+pub(crate) struct CpuAcct {
+    user_ns: Vec<AtomicU64>,
+    nice_ns: Vec<AtomicU64>,
+    switches: AtomicU64,
+}
+
+impl CpuAcct {
+    pub(crate) fn new(ncpus: usize) -> Arc<CpuAcct> {
+        Arc::new(CpuAcct {
+            user_ns: (0..ncpus).map(|_| AtomicU64::new(0)).collect(),
+            nice_ns: (0..ncpus).map(|_| AtomicU64::new(0)).collect(),
+            switches: AtomicU64::new(0),
+        })
+    }
+
+    fn credit(&self, cpu: usize, nice: bool, ns: u64) {
+        let v = if nice { &self.nice_ns } else { &self.user_ns };
+        if let Some(c) = v.get(cpu) {
+            c.fetch_add(ns, Ordering::Relaxed);
+        }
+    }
+
+    /// `(usuário, nice)` em ns, uma entrada por CPU virtual.
+    pub(crate) fn times(&self) -> Vec<(u64, u64)> {
+        self.user_ns.iter().zip(&self.nice_ns).map(|(u, n)| (u.load(Ordering::Relaxed), n.load(Ordering::Relaxed))).collect()
+    }
+
+    /// Trocas de contexto que puseram uma tarefa do sandbox numa CPU.
+    pub(crate) fn switches(&self) -> u64 {
+        self.switches.load(Ordering::Relaxed)
+    }
+}
 
 /// O lado "escalonável" de uma thread de pseudo-processo.
 #[derive(Debug)]
@@ -46,6 +90,12 @@ pub(crate) struct CpuTask {
     reniced: AtomicBool,
     pub host_tid: AtomicI32,
     pub attention: Arc<AtomicBool>,
+    /// Contabilidade do sandbox dono da tarefa.
+    acct: Arc<CpuAcct>,
+    /// Trocas de contexto voluntárias (dormiu) e involuntárias (preemptada, cedeu com `sched_yield` ou
+    /// foi tirada pelo watchdog), as de `voluntary_ctxt_switches` e `nonvoluntary_ctxt_switches`.
+    pub nvcsw: AtomicU64,
+    pub nivcsw: AtomicU64,
     /// Só pra esperar o token. É separado do parker de eventos da thread: uma concessão de CPU nunca
     /// consome o aviso de um evento (senão a thread que conferiu a condição, perdeu a CPU no checkpoint
     /// e esperou o token engoliria o aviso e dormiria pra sempre).
@@ -53,7 +103,7 @@ pub(crate) struct CpuTask {
 }
 
 impl CpuTask {
-    pub(crate) fn new(attention: Arc<AtomicBool>) -> Arc<CpuTask> {
+    pub(crate) fn new(attention: Arc<AtomicBool>, acct: Arc<CpuAcct>) -> Arc<CpuTask> {
         Arc::new(CpuTask {
             id: Mutex::new(None),
             granted: AtomicUsize::new(0),
@@ -63,6 +113,9 @@ impl CpuTask {
             reniced: AtomicBool::new(false),
             host_tid: AtomicI32::new(0),
             attention,
+            acct,
+            nvcsw: AtomicU64::new(0),
+            nivcsw: AtomicU64::new(0),
             grant: Parker::default(),
         })
     }
@@ -94,6 +147,8 @@ struct Inner {
     free_groups: HashMap<GroupId, Vec<GroupId>>,
     /// Instante (relógio do escalonador) de quando cada CPU ficou com o corrente atual.
     clock: MonotonicClock,
+    /// Instante do último tick contabilizado.
+    last_tick_ns: u64,
 }
 
 /// As CPUs virtuais de um kernel.
@@ -101,6 +156,9 @@ pub(crate) struct Cpus {
     inner: Mutex<Inner>,
     ncpus: usize,
     stop: AtomicBool,
+    /// Sandboxes que recalculam a média de carga a cada `LOAD_FREQ`.
+    samplers: Mutex<Vec<Weak<LoadAvg>>>,
+    next_load_ns: AtomicU64,
 }
 
 impl std::fmt::Debug for Cpus {
@@ -125,9 +183,18 @@ impl Cpus {
         let cfg = SchedConfig::new(ncpus, topology, tun, Features::default());
         let s = Sched::new(clock, cfg);
         let cpus = Arc::new(Cpus {
-            inner: Mutex::new(Inner { s, tasks: HashMap::new(), running: vec![None; ncpus], free_groups: HashMap::new(), clock }),
+            inner: Mutex::new(Inner {
+                s,
+                tasks: HashMap::new(),
+                running: vec![None; ncpus],
+                free_groups: HashMap::new(),
+                clock,
+                last_tick_ns: 0,
+            }),
             ncpus,
             stop: AtomicBool::new(false),
+            samplers: Mutex::new(Vec::new()),
+            next_load_ns: AtomicU64::new(LOAD_FREQ_NS),
         });
         let weak = Arc::downgrade(&cpus);
         let tick = Duration::from_nanos(tun.tick_nsec);
@@ -203,6 +270,7 @@ impl Cpus {
             }
             ct.sleeping.store(true, Ordering::Release);
             ct.resched.store(false, Ordering::Relaxed);
+            ct.nvcsw.fetch_add(1, Ordering::Relaxed);
             let next = g.s.schedule(cpu, true);
             switch(&mut g, cpu, next);
             kick(&mut g);
@@ -233,6 +301,9 @@ impl Cpus {
                 && g.s.need_resched(cpu)
             {
                 let next = g.s.schedule(cpu, false);
+                if next != ct.id() {
+                    ct.nivcsw.fetch_add(1, Ordering::Relaxed);
+                }
                 switch(&mut g, cpu, next);
                 kick(&mut g);
             }
@@ -242,7 +313,7 @@ impl Cpus {
         }
     }
 
-    /// `sched_yield`.
+    /// `sched_yield`: no kernel o `schedule()` do yield conta como troca involuntária.
     pub(crate) fn yield_now(&self, ct: &Arc<CpuTask>) {
         {
             let mut g = self.inner.lock();
@@ -251,6 +322,9 @@ impl Cpus {
                 return;
             }
             let next = g.s.yield_current(cpu);
+            if next != ct.id() {
+                ct.nivcsw.fetch_add(1, Ordering::Relaxed);
+            }
             switch(&mut g, cpu, next);
             kick(&mut g);
         }
@@ -287,13 +361,23 @@ impl Cpus {
     /// Tempo de CPU da tarefa até agora, em ns.
     pub(crate) fn runtime(&self, ct: &CpuTask) -> u64 {
         let g = self.inner.lock();
-        ct.id().map(|id| g.s.task_runtime_now(id)).unwrap_or(0)
+        ct.id().filter(|id| g.s.contains(*id)).map(|id| g.s.task_runtime_now(id)).unwrap_or(0)
     }
 
     /// CPU em que a tarefa está (ou esteve por último).
     pub(crate) fn task_cpu(&self, ct: &CpuTask) -> usize {
         let g = self.inner.lock();
-        ct.id().map(|id| g.s.task(id).cpu).unwrap_or(0)
+        ct.id().filter(|id| g.s.contains(*id)).map(|id| g.s.task(id).cpu).unwrap_or(0)
+    }
+
+    /// Tempo de CPU em ns, trocas de contexto que puseram a tarefa numa CPU e última CPU, numa só
+    /// consulta (o `schedstat` e o `stat`). Tudo 0 pra uma tarefa que já saiu do escalonador.
+    pub(crate) fn task_stats(&self, ct: &CpuTask) -> (u64, u64, usize) {
+        let g = self.inner.lock();
+        match ct.id().filter(|id| g.s.contains(*id)) {
+            Some(id) => (g.s.task_runtime_now(id), g.s.task(id).nr_switches_in, g.s.task(id).cpu),
+            None => (0, 0, 0),
+        }
     }
 
     /// Tarefas prontas ou rodando, por CPU (pro loadavg e o `/proc/stat`).
@@ -340,8 +424,15 @@ impl Cpus {
 
     fn tick(&self) {
         let mut g = self.inner.lock();
+        // Crédito de tick: o tempo desde o tick anterior vai pro sandbox da tarefa que ocupa cada CPU.
+        let t0 = sched::Clock::now_ns(&g.clock);
+        let dt = t0.saturating_sub(g.last_tick_ns).min(MAX_TICK_CREDIT_NS);
+        g.last_tick_ns = t0;
         for cpu in 0..self.ncpus {
-            if g.s.current(cpu).is_some() {
+            if let Some(id) = g.s.current(cpu) {
+                if let Some(ct) = g.tasks.get(&id) {
+                    ct.acct.credit(cpu, g.s.task(id).nice > 0, dt);
+                }
                 g.s.tick(cpu);
             }
         }
@@ -351,6 +442,30 @@ impl Cpus {
         }
         kick(&mut g);
         watchdog(&mut g, now);
+        drop(g);
+        self.run_samplers(now);
+    }
+
+    /// Registra um sandbox pra recalcular a média de carga a cada `LOAD_FREQ`.
+    pub(crate) fn add_sampler(&self, l: &Arc<LoadAvg>) {
+        self.samplers.lock().push(Arc::downgrade(l));
+    }
+
+    /// `calc_global_load`: de 5 em 5 segundos (mais um tick) cada sandbox amostra as tarefas dele. Roda
+    /// fora da trava do escalonador, porque a amostra olha a tabela de processos do sandbox.
+    fn run_samplers(&self, now: u64) {
+        if now < self.next_load_ns.load(Ordering::Relaxed) {
+            return;
+        }
+        self.next_load_ns.store(now + LOAD_FREQ_NS, Ordering::Relaxed);
+        let live: Vec<Arc<LoadAvg>> = {
+            let mut s = self.samplers.lock();
+            s.retain(|w| w.strong_count() > 0);
+            s.iter().filter_map(Weak::upgrade).collect()
+        };
+        for l in live {
+            l.sample();
+        }
     }
 }
 
@@ -389,6 +504,9 @@ fn switch(g: &mut Inner, cpu: usize, next: Option<TaskId>) {
         p.granted.store(0, Ordering::Release);
     }
     if let Some(n) = &next_ct {
+        if !prev.as_ref().is_some_and(|p| Arc::ptr_eq(n, p)) {
+            n.acct.switches.fetch_add(1, Ordering::Relaxed);
+        }
         n.resched.store(false, Ordering::Relaxed);
         n.granted.store(cpu + 1, Ordering::Release);
         n.grant.unpark();
@@ -447,6 +565,7 @@ fn watchdog(g: &mut Inner, now: u64) {
         }
         let next = g.s.schedule(cpu, false);
         if next.is_some_and(|n| Some(n) != ct.id()) {
+            ct.nivcsw.fetch_add(1, Ordering::Relaxed);
             switch(g, cpu, next);
         }
     }

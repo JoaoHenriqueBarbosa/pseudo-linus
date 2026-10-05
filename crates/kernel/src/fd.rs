@@ -59,6 +59,9 @@ pub(crate) struct Ofd {
     pub writable: bool,
     /// O_ACCMODE original (pro F_GETFL).
     pub accmode: u32,
+    /// Flags de abertura que o `f_flags` guarda e `status` não (`O_DIRECTORY`, `O_NOFOLLOW`): só o
+    /// `/proc/<pid>/fdinfo` as mostra.
+    pub open_extra: u32,
     pub st: Mutex<OfdState>,
     /// Tabela de travas do sandbox (pra soltar as travas desta descrição no último close).
     pub locks: Weak<crate::sandbox::LockTable>,
@@ -99,6 +102,7 @@ impl Ofd {
             readable,
             writable,
             accmode,
+            open_extra: flags.bits() & (OFlags::DIRECTORY.bits() | OFlags::NOFOLLOW.bits()),
             st: Mutex::new(OfdState { status: flags & keep, pos: 0, dir_cookie: 0 }),
             locks,
         })
@@ -146,6 +150,8 @@ pub(crate) struct Slot {
 #[derive(Debug, Default, Clone)]
 pub(crate) struct FdTable {
     fds: BTreeMap<i32, Slot>,
+    /// Maior fd já instalado: a tabela do Linux cresce em potências de 2 e não encolhe (`FDSize`).
+    high: i32,
 }
 
 impl FdTable {
@@ -179,12 +185,14 @@ impl FdTable {
     /// Instala no menor fd livre.
     pub(crate) fn install(&mut self, ofd: Arc<Ofd>, cloexec: bool, min: i32, limit: u64) -> Result<Fd, Errno> {
         let fd = self.lowest_free(min, limit)?;
+        self.high = self.high.max(fd);
         self.fds.insert(fd, Slot { ofd, cloexec });
         Ok(Fd(fd))
     }
 
     /// Põe num fd específico, devolvendo o que estava lá (pra fechar fora da trava).
     pub(crate) fn put(&mut self, fd: Fd, ofd: Arc<Ofd>, cloexec: bool) -> Option<Slot> {
+        self.high = self.high.max(fd.0);
         self.fds.insert(fd.0, Slot { ofd, cloexec })
     }
 
@@ -198,6 +206,17 @@ impl FdTable {
 
     pub(crate) fn len(&self) -> usize {
         self.fds.len()
+    }
+
+    /// `max_fds` da tabela do Linux (`FDSize`): 64 no começo, e ao passar disso o menor múltiplo de 128
+    /// que é potência de 2 vezes 128 e cobre o maior fd (`expand_fdtable`).
+    pub(crate) fn fdsize(&self) -> u32 {
+        let mut max = 64u32;
+        let high = self.high.max(0) as u32;
+        while high >= max {
+            max = 128 * (high / 128 + 1).next_power_of_two();
+        }
+        max
     }
 
     /// Fecha os fds com FD_CLOEXEC (execve). Devolve as descrições pra soltar fora da trava.

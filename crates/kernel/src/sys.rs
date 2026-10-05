@@ -24,8 +24,8 @@ use crate::signal::{Action, Generated};
 use crate::spawn::{self, Body, GroupExitUnwind};
 
 /// Release do `uname -r` e versão do `uname -v` do Debian 13 da bancada.
-const UNAME_RELEASE: &[u8] = b"6.12.101+deb13-amd64";
-const UNAME_VERSION: &[u8] = b"#1 SMP PREEMPT_DYNAMIC Debian 6.12.101-1 (2026-08-05)";
+pub(crate) const UNAME_RELEASE: &[u8] = b"6.12.101+deb13-amd64";
+pub(crate) const UNAME_VERSION: &[u8] = b"#1 SMP PREEMPT_DYNAMIC Debian 6.12.101-1 (2026-08-05)";
 /// `f_type` do pipefs.
 const PIPEFS_MAGIC: u64 = 0x5049_5045;
 
@@ -145,6 +145,7 @@ impl Task {
             umask: st.umask,
             now: self.sb.now(),
             pid: self.proc.pid,
+            tid: self.tid(),
             fsize_limit: st.rlimits[Resource::Fsize as usize].cur,
         }
     }

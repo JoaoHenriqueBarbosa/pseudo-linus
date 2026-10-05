@@ -107,6 +107,11 @@ pub(crate) struct Proc {
     pub start_ns: u64,
     /// CPU das threads que já terminaram, em ns.
     pub cpu_done_ns: AtomicU64,
+    /// Criado por `fork` (`spawn_fn`) e sem `execve` desde então (`PF_FORKNOEXEC`).
+    pub fork_noexec: AtomicBool,
+    /// Pico do espaço de endereçamento e do residente, em kB (`VmPeak` e `VmHWM`).
+    pub peak_size_kb: AtomicU64,
+    pub peak_rss_kb: AtomicU64,
 }
 
 impl Proc {
@@ -122,6 +127,9 @@ impl Proc {
             host_waiters: Mutex::new(WaitList::default()),
             start_ns,
             cpu_done_ns: AtomicU64::new(0),
+            fork_noexec: AtomicBool::new(false),
+            peak_size_kb: AtomicU64::new(0),
+            peak_rss_kb: AtomicU64::new(0),
         })
     }
 
@@ -182,7 +190,7 @@ impl Task {
     pub(crate) fn new(tid: Tid, proc: Arc<Proc>, sb: Arc<SbInner>) -> Arc<Task> {
         let parker = Parker::new();
         let attention = Arc::new(AtomicBool::new(false));
-        let ct = CpuTask::new(attention.clone());
+        let ct = CpuTask::new(attention.clone(), sb.cpu_acct.clone());
         Arc::new(Task { tid: AtomicI32::new(tid), proc, sb, parker, attention, blocked: AtomicBool::new(false), ct })
     }
 
@@ -254,6 +262,8 @@ pub(crate) struct Table {
     wrapped: bool,
     /// Processos vivos, sem contar o init e os zumbis.
     pub live: u32,
+    /// Processos e threads criados desde o boot do sandbox (`total_forks`).
+    pub forks: u64,
 }
 
 impl Table {
@@ -276,7 +286,12 @@ impl Table {
                 },
             },
         );
-        Table { map, tids: BTreeSet::new(), next_pid: INIT_PID + 1, wrapped: false, live: 0 }
+        Table { map, tids: BTreeSet::new(), next_pid: INIT_PID + 1, wrapped: false, live: 0, forks: 0 }
+    }
+
+    /// Último pid alocado (o `last_pid` do namespace de pids), 1 se só o init existiu.
+    pub(crate) fn last_pid(&self) -> Pid {
+        self.next_pid - 1
     }
 
     /// Próximo pid livre (`alloc_pid`): sobe até `pid_max`, dá a volta pra 300, pula pids em uso como

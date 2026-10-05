@@ -18,9 +18,11 @@ use vfs::tmpfs::{Tmpfs, TmpfsLimits, TmpfsSnapshot};
 use vfs::{Caller, Cred, MountFlags, Namespace, Opened, PinnedLoc, Start, WritePos};
 
 use crate::config::{ClockMode, SandboxConfig, SpawnerInfo};
+use crate::cpu::CpuAcct;
 use crate::fd::FdTable;
 use crate::image;
 use crate::kernel::KernelInner;
+use crate::loadavg::LoadAvg;
 use crate::park::{Parker, WaitList};
 use crate::pipe::Pipe;
 use crate::proc::{INIT_PID, PState, Proc, Table, default_rlimits};
@@ -223,6 +225,10 @@ pub(crate) struct SbInner {
     pub cpu_group: sched::GroupId,
     /// CPU das threads que já terminaram, em ns.
     pub cpu_done_ns: std::sync::atomic::AtomicU64,
+    /// Tempos de CPU por CPU virtual e trocas de contexto, pro `/proc/stat` do sandbox.
+    pub cpu_acct: Arc<CpuAcct>,
+    /// Médias de carga do sandbox (`/proc/loadavg`).
+    pub load: Arc<LoadAvg>,
     /// Threads do host esperando algum processo terminar (destroy).
     exit_waiters: Mutex<WaitList>,
 }
@@ -436,6 +442,7 @@ impl Sandbox {
         procfs.set_namespace(&ns);
         let proc_dir = vfs::namei::Walker::new(&ns, &cx).lookup_child(&root, b"proc")?;
         ns.mount(&proc_dir, procfs.clone(), MountFlags::NOSUID | MountFlags::NODEV | MountFlags::NOEXEC | MountFlags::RELATIME, "proc", "")?;
+        let ncpus = kernel.cpus.ncpus();
         let cpu_group = kernel.cpus.create_group(
             cfg.user_group.as_ref().map(|u| u.id()),
             crate::cpu::GroupLimits { weight: cfg.cpu_weight, max: cfg.cpu_max },
@@ -482,9 +489,13 @@ impl Sandbox {
             destroyed: AtomicBool::new(false),
             cpu_group,
             cpu_done_ns: std::sync::atomic::AtomicU64::new(0),
+            cpu_acct: CpuAcct::new(ncpus),
+            load: LoadAvg::new(),
             exit_waiters: Mutex::new(WaitList::default()),
         });
         let _ = provider.sb.set(Arc::downgrade(&inner));
+        inner.load.bind(&inner);
+        inner.kernel.cpus.add_sampler(&inner.load);
         Ok(Sandbox { inner })
     }
 

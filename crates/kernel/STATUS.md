@@ -32,6 +32,11 @@ teste próprios: echo, cat, yes, head, sleep, um pipeline mínimo e cenários).
   executável por programa), `/dev` em tmpfs próprio, `/proc` montado, `uname` do Debian 13.
 - Host: `run`, `spawn` com `HostStdio`, `wait`, `kill`, `processes`, `usage`, FS direto, `tree`,
   snapshot/restore, sandbox derivada, relógio fixo (faketime), destruição.
+- Dados do `/proc` (marco 3, ver `crates/vfs/STATUS.md`): `procinfo.rs` entrega ao procfs processo e
+  thread (estado, tempos de CPU do escalonador, rlimits, sinais, trocas de contexto voluntárias e
+  involuntárias contadas em `cpu.rs`, tabela de fds com `FDSize`), fdinfo, e o estado do sandbox:
+  tempos por CPU virtual creditados por tick (`CpuAcct`), trocas de contexto, processos criados, média
+  de carga de 5 em 5 s (`loadavg.rs`, o `calc_load` do kernel) e memória (`procmem.rs`).
 
 Desvio pedido pelo dono: `/usr/lib/os-release` tem `ID_LIKE=debian` (o Debian real não tem essa linha).
 
@@ -40,10 +45,10 @@ Desvio pedido pelo dono: `/usr/lib/os-release` tem `ID_LIKE=debian` (o Debian re
 - Marco 2: tokens de CPU com o EEVDF, grupos usuário > sandbox > processo (`create_user_group`), timer,
   watchdog nice 19, `sched_yield`/nice/`setpriority` no escalonador, utime/stime do escalonador (hoje: CPU
   da thread do host; `getrusage` não soma threads vivas que não sejam a que chama).
-- Marco 3: `/proc` completo (stat, status, statm, task/, meminfo, cpuinfo, stat, uptime, loadavg, limits,
-  fdinfo), statfs dos pseudo-fs, RLIMIT_NPROC já vale, RLIMIT_CPU, `kernel::mem` (tracker do E07,
-  `mem_bytes`), `net_connect` com allowlist (hoje: política vazia, toda conexão dá EACCES), hostfs,
-  setpgid de filho que já fez exec (EACCES).
+- Marco 3: statfs dos pseudo-fs, RLIMIT_NPROC já vale, RLIMIT_CPU, `kernel::mem` (tracker do E07,
+  `mem_bytes`: hoje a memória do `/proc` é o modelo de `procmem.rs`, sem medir uso real de heap),
+  `net_connect` com allowlist (hoje: política vazia, toda conexão dá EACCES), hostfs, setpgid de filho que
+  já fez exec (EACCES).
 - Marco 4: pty e line discipline, `isatty`/`tcgetwinsize` reais (hoje sempre falso/ENOTTY), terminal de
   controle, job control com grupos órfãos e SIGTTIN/SIGTTOU, `tcsetpgrp`.
 - O_TMPFILE (EOPNOTSUPP), ETXTBSY.
