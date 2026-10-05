@@ -147,7 +147,6 @@ pub fn parse(prog: &str, sources: Vec<Source>, loader: &mut IncludeLoader<'_>) -
         }
     }
     // Conferências do fim do parse.
-    let mut st = st;
     for (name, src, line) in std::mem::take(&mut st.var_uses) {
         if let Some(&f) = st.funcs.get(&name)
             && st.program.functions[f as usize].defined {
@@ -327,10 +326,6 @@ impl<'a, 's, 'l> Parser<'a, 's, 'l> {
 
     fn plain_error(&mut self, line: u32, msg: &str) {
         self.st.errors.push_str(&format!("{}: {}:{}: {msg}\n", self.prog, self.src_name, line));
-    }
-
-    fn warning(&mut self, line: u32, msg: &str) {
-        self.st.warnings.push_str(&format!("{}: {}:{}: warning: {msg}\n", self.prog, self.src_name, line));
     }
 
     fn is(&self, t: &Tok) -> bool {

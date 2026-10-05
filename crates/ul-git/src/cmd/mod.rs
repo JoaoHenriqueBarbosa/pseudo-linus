@@ -24,6 +24,7 @@ pub mod restore;
 pub mod rev_parse;
 pub mod revert;
 pub mod rm;
+pub mod shortlog;
 pub mod stash;
 pub mod status;
 pub mod tag;
@@ -115,7 +116,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "show" => (Setup::Repo, log::run_show),
         "whatchanged" => (Setup::Repo, log::run_whatchanged),
         "rev-list" => (Setup::Repo, log::run_rev_list),
-        "shortlog" => (Setup::Gently, log::run_shortlog),
+        "shortlog" => (Setup::Gently, shortlog::run),
         "diff" => (Setup::Gently, diff_cmd::run_diff),
         "diff-index" => (Setup::Repo, diff_cmd::run_diff_index),
         "diff-files" => (Setup::WorkTree, diff_cmd::run_diff_files),

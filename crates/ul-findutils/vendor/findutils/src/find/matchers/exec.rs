@@ -63,7 +63,7 @@ impl Command {
         self
     }
 
-    fn status(&mut self) -> io::Result<ExitStatus> {
+    fn status(&mut self) -> ExitStatus {
         let mut cmd = sysio::process::Command::new(&self.argv[0]);
         cmd.args(&self.argv[1..]);
         if let Some(cwd) = &self.cwd {
@@ -72,11 +72,11 @@ impl Command {
         // Como o GNU: o filho que não consegue executar diz o motivo e sai com 1; morte por sinal
         // também conta como falha.
         match cmd.status() {
-            Ok(st) => Ok(ExitStatus(st.code().unwrap_or(1))),
+            Ok(st) => ExitStatus(st.code().unwrap_or(1)),
             Err(e) => {
                 let msg = e.raw_os_error().map_or_else(|| e.to_string(), |n| sysio::sysabi::Errno(n).message().clone());
                 let _ = writeln!(&mut stderr(), "find: ‘{}’: {msg}", self.argv[0].to_string_lossy());
-                Ok(ExitStatus(1))
+                ExitStatus(1)
             }
         }
     }
@@ -193,19 +193,7 @@ impl Matcher for SingleExecMatcher {
                 }
             }
         }
-        match command.status() {
-            Ok(status) => status.success(),
-            Err(e) => {
-                writeln!(
-                    &mut stderr(),
-                    "Failed to run {}: {}",
-                    resolved_executable.to_string_lossy(),
-                    e
-                )
-                .unwrap();
-                false
-            }
-        }
+        command.status().success()
     }
 
     fn has_side_effects(&self) -> bool {
@@ -244,16 +232,8 @@ impl MultiExecMatcher {
     }
 
     fn run_command(&self, command: &mut Command, matcher_io: &mut MatcherIO) {
-        match command.status() {
-            Ok(status) => {
-                if !status.success() {
-                    matcher_io.set_exit_code(1);
-                }
-            }
-            Err(e) => {
-                writeln!(&mut stderr(), "Failed to run {}: {}", self.executable, e).unwrap();
-                matcher_io.set_exit_code(1);
-            }
+        if !command.status().success() {
+            matcher_io.set_exit_code(1);
         }
     }
 }

@@ -257,17 +257,14 @@ struct WalkDirOptions {
     max_open: usize,
     min_depth: usize,
     max_depth: usize,
-    sorter: Option<
-        Box<
-            dyn FnMut(&DirEntry, &DirEntry) -> Ordering
-                + Send
-                + Sync
-                + 'static,
-        >,
-    >,
+    sorter: Option<Sorter>,
     contents_first: bool,
     same_file_system: bool,
 }
+
+/// Função de ordenação das entradas de um diretório.
+type Sorter =
+    Box<dyn FnMut(&DirEntry, &DirEntry) -> Ordering + Send + Sync + 'static>;
 
 impl fmt::Debug for WalkDirOptions {
     fn fmt(
@@ -308,7 +305,7 @@ impl WalkDir {
                 follow_root_links: true,
                 max_open: 10,
                 min_depth: 0,
-                max_depth: ::std::usize::MAX,
+                max_depth: usize::MAX,
                 sorter: None,
                 contents_first: false,
                 same_file_system: false,
@@ -1085,10 +1082,7 @@ where
     /// an error value. The error will be wrapped in an `Option::Some`.
     fn next(&mut self) -> Option<Result<DirEntry>> {
         loop {
-            let dent = match self.it.next() {
-                None => return None,
-                Some(result) => itry!(result),
-            };
+            let dent = itry!(self.it.next()?);
             if !(self.predicate)(&dent) {
                 if dent.is_dir() {
                     self.it.skip_current_dir();

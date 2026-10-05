@@ -77,6 +77,30 @@
     "exit": 0,
     "files": {}
   },
+  "git-shortlog-committer-group": {
+    "stdout": "Agent (2):\n      one\n      two\n\nCarol (1):\n      three\n\n     2\tAgent\n     1\tCarol\n     3\tAgent\n     1\tBob\n     1\tCarol\n     3\tAgent\n     1\tBob\n     1\tCarol\nexit=129\n",
+    "stderr": "error: unknown group type: bogus\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-shortlog-numbered-summary-email": {
+    "stdout": "Bob (2):\n      two\n      three\n\nAgent (1):\n      one\n\n     1\tAgent\n     2\tBob\n     2\tBob\n     1\tAgent\n     2\tBob <bob@example.com>\n     1\tAgent <agent@example.com>\nAgent <agent@example.com> (1):\n      one\n\nBob <bob@example.com> (1):\n      two\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-shortlog-paths-and-stdin": {
+    "stdout": "Agent (1):\n      one\n\nBob (1):\n      two\n\n     1\tBob\nBob (1):\n      two\n\nAgent (1):\n      one\n\nBob (2):\n      add g\n      two\n\n     2\tBob <bob@example.com>\n     1\tAgent <agent@example.com>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-shortlog-two-authors": {
+    "stdout": "Agent (2):\n      one\n      three\n\nBob (3):\n      two\n      four\n      five\n\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "git-stash-message-apply-drop": {
     "stdout": "Saved working directory and index state On main: wip\nSaved working directory and index state WIP on main: acc56ec one\nstash@{0}: WIP on main: acc56ec one\nstash@{1}: On main: wip\nOn branch main\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   f\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\nexit=0\nDropped refs/stash@{0} (7a4c8835a00b474dbca59f5e2dedc3572d06f873)\nexit=0\nstash@{0}: On main: wip\nexit=128\n",
     "stderr": "fatal: log for 'stash' only has 1 entries\n",

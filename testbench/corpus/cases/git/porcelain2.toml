@@ -41,6 +41,54 @@ GIT_AUTHOR_DATE = "1768478400 +0000"
 GIT_COMMITTER_DATE = "1768478400 +0000"
 
 [[case]]
+id = "git-shortlog-two-authors"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; echo b >> f; GIT_AUTHOR_NAME=Bob GIT_AUTHOR_EMAIL=bob@example.com git commit -qam two; echo c >> f; git commit -qam three; echo d >> f; GIT_AUTHOR_NAME=Bob GIT_AUTHOR_EMAIL=bob@example.com git commit -qam four; echo e >> f; GIT_AUTHOR_NAME=Bob GIT_AUTHOR_EMAIL=bob@example.com git commit -qam five; git shortlog HEAD; echo "exit=$?"; rm -rf .git f'''
+tags = ["shortlog"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-shortlog-numbered-summary-email"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; echo b >> f; GIT_AUTHOR_NAME=Bob GIT_AUTHOR_EMAIL=bob@example.com git commit -qam two; echo c >> f; GIT_AUTHOR_NAME=Bob GIT_AUTHOR_EMAIL=bob@example.com git commit -qam three; git shortlog -n HEAD; git shortlog -s HEAD; git shortlog -sn HEAD; git shortlog -sne HEAD; git shortlog -e HEAD~1; rm -rf .git f'''
+tags = ["shortlog"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-shortlog-committer-group"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; echo b >> f; GIT_AUTHOR_NAME=Bob GIT_AUTHOR_EMAIL=bob@example.com git commit -qam two; echo c >> f; GIT_COMMITTER_NAME=Carol GIT_COMMITTER_EMAIL=carol@example.com git commit -qam three; git shortlog -c HEAD; git shortlog -s --group=committer HEAD; git shortlog -s --group=author --group=committer HEAD; git shortlog -s -c --group=author HEAD; git shortlog --group=bogus HEAD; echo "exit=$?"; rm -rf .git f'''
+tags = ["shortlog"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-shortlog-paths-and-stdin"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; echo g > g; git add g; GIT_AUTHOR_NAME=Bob GIT_AUTHOR_EMAIL=bob@example.com git commit -qm 'add g'; echo b >> f; GIT_AUTHOR_NAME=Bob GIT_AUTHOR_EMAIL=bob@example.com git commit -qam two; git shortlog HEAD -- f; git shortlog -s HEAD -- g; git shortlog HEAD~1..HEAD; git log HEAD | git shortlog; git log HEAD | git shortlog -sne; rm -rf .git f g'''
+tags = ["shortlog"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
 id = "git-remote-add-list-show"
 script = '''git init -q -b main; git remote add origin https://example.com/r.git; git remote add up /srv/up.git; git remote; git remote -v; git remote get-url origin; git remote show -n origin; cat .git/config; rm -rf .git'''
 tags = ["remote"]

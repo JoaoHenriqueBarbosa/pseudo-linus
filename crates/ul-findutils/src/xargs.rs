@@ -176,8 +176,11 @@ pub(crate) fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     }
 }
 
+/// Resultado de `parse_options`: opções e operandos, ou o código de saída já decidido.
+type Parsed = Result<(Options, Vec<Vec<u8>>), i32>;
+
 /// Opções e operandos; `Err(código)` quando a opção já resolveu tudo (`--help`, `--version`).
-fn parse_options(argv: &[Vec<u8>]) -> Result<Result<(Options, Vec<Vec<u8>>), i32>, Exit> {
+fn parse_options(argv: &[Vec<u8>]) -> Result<Parsed, Exit> {
     let mut o = Options {
         delim: None,
         arg_file: None,

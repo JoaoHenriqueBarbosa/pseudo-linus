@@ -20,6 +20,9 @@ const READ_CHUNK: usize = 64 * 1024;
 /// Acima disso o buffer de um fluxo de saída é descarregado.
 const OUT_LIMIT: usize = 64 * 1024;
 
+/// Um registro lido e o terminador dele (`RT`), `None` no fim do fluxo.
+pub type RecordResult = Result<Option<(Vec<u8>, Vec<u8>)>, Errno>;
+
 /// Separador de registros vigente.
 #[derive(Clone)]
 pub enum RsMode {
@@ -97,7 +100,7 @@ impl Reader {
     }
 
     /// Próximo registro e o terminador (`RT`), ou `None` no fim.
-    pub fn read_record(&mut self, sys: &Arc<dyn Syscalls>, rs: &RsMode) -> Result<Option<(Vec<u8>, Vec<u8>)>, Errno> {
+    pub fn read_record(&mut self, sys: &Arc<dyn Syscalls>, rs: &RsMode) -> RecordResult {
         match rs {
             RsMode::Newline => self.read_until_byte(sys, b'\n'),
             RsMode::Char(c, icase) => {
@@ -112,7 +115,7 @@ impl Reader {
         }
     }
 
-    fn read_until_byte(&mut self, sys: &Arc<dyn Syscalls>, sep: u8) -> Result<Option<(Vec<u8>, Vec<u8>)>, Errno> {
+    fn read_until_byte(&mut self, sys: &Arc<dyn Syscalls>, sep: u8) -> RecordResult {
         let mut scan_from = self.pos;
         loop {
             if let Some(i) = memchr(sep, &self.buf[scan_from..]) {
@@ -139,7 +142,7 @@ impl Reader {
         }
     }
 
-    fn read_until_seq(&mut self, sys: &Arc<dyn Syscalls>, sep: &[u8], icase: bool) -> Result<Option<(Vec<u8>, Vec<u8>)>, Errno> {
+    fn read_until_seq(&mut self, sys: &Arc<dyn Syscalls>, sep: &[u8], icase: bool) -> RecordResult {
         loop {
             let hay = &self.buf[self.pos..];
             let found = if icase {
@@ -165,7 +168,7 @@ impl Reader {
         }
     }
 
-    fn read_paragraph(&mut self, sys: &Arc<dyn Syscalls>) -> Result<Option<(Vec<u8>, Vec<u8>)>, Errno> {
+    fn read_paragraph(&mut self, sys: &Arc<dyn Syscalls>) -> RecordResult {
         // Pula os newlines do começo.
         loop {
             while self.pos < self.buf.len() && self.buf[self.pos] == b'\n' {
@@ -227,7 +230,7 @@ impl Reader {
         }
     }
 
-    fn read_regex(&mut self, sys: &Arc<dyn Syscalls>, re: &Regex) -> Result<Option<(Vec<u8>, Vec<u8>)>, Errno> {
+    fn read_regex(&mut self, sys: &Arc<dyn Syscalls>, re: &Regex) -> RecordResult {
         loop {
             if self.pos >= self.buf.len() && !self.fill(sys)? {
                 return Ok(None);

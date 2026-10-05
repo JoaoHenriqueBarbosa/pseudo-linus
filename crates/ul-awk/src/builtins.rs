@@ -68,7 +68,7 @@ impl Random {
         }
         self.last = self.raw();
         for _ in 0..630 {
-            self.next();
+            self.draw();
         }
     }
 
@@ -82,7 +82,7 @@ impl Random {
     }
 
     /// Um sorteio, passando pela tabela de embaralhamento.
-    pub fn next(&mut self) -> u32 {
+    pub fn draw(&mut self) -> u32 {
         let j = (self.last & 511) as usize;
         self.last = self.table[j];
         self.table[j] = self.raw();
@@ -92,8 +92,8 @@ impl Random {
     pub fn rand(&mut self) -> f64 {
         const DIV: f64 = 2147483648.0;
         loop {
-            let d1 = self.next() as f64;
-            let d2 = self.next() as f64;
+            let d1 = self.draw() as f64;
+            let d2 = self.draw() as f64;
             let mut t = 0.5 + ((d1 / DIV + d2) / DIV);
             t -= 0.5;
             if t != 1.0 {
@@ -666,7 +666,7 @@ impl<'p> Interp<'p> {
             let mut a = sa.borrow_mut();
             a.clear();
             for (i, sep) in seps {
-                let idx = if pat { i as i64 } else { i as i64 };
+                let idx = i as i64;
                 a.insert(Subscript::from_int(idx), Cell::Val(Value::strnum(&sep)));
             }
         }

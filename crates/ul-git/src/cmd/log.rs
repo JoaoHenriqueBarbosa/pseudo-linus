@@ -1,4 +1,4 @@
-//! `git log`, `show`, `whatchanged`, `rev-list` e `shortlog`: a caminhada pelos commits (data de
+//! `git log`, `show`, `whatchanged` e `rev-list` (o `shortlog` reaproveita a caminhada): a caminhada pelos commits (data de
 //! commit decrescente, `A..B`, `^A`, `--all`, caminhos com a simplificação padrão do histórico),
 //! os filtros (`--author`, `--grep`, `--since`...), os formatos (`oneline`, `short`, `medium`,
 //! `full`, `fuller`, `raw` e `--format`) e o diff de cada commit.
@@ -59,7 +59,7 @@ const LOG_SPECS: &[Spec] = &[
     opts::flag(None, "graph", "graph"),
 ];
 
-fn all_specs() -> Vec<Spec> {
+pub(crate) fn all_specs() -> Vec<Spec> {
     let mut v = DIFF_SPECS.to_vec();
     v.extend_from_slice(LOG_SPECS);
     v
@@ -660,7 +660,7 @@ fn build_decorations(repo: &Repo, full: bool) -> R<HashMap<Oid, Vec<String>>> {
 // ---- filtros ----------------------------------------------------------------------------------
 
 #[derive(Default)]
-struct Filters {
+pub(crate) struct Filters {
     authors: Vec<Regex>,
     committers: Vec<Regex>,
     greps: Vec<Regex>,
@@ -673,7 +673,7 @@ struct Filters {
 }
 
 impl Filters {
-    fn from(p: &Parsed) -> R<Filters> {
+    pub(crate) fn from(p: &Parsed) -> R<Filters> {
         let flavor = if p.has("fixed") {
             Flavor::Fixed
         } else if p.has("extended") {
@@ -713,7 +713,7 @@ impl Filters {
         })
     }
 
-    fn accepts(&self, c: &Commit) -> bool {
+    pub(crate) fn accepts(&self, c: &Commit) -> bool {
         if let Some(only) = self.merges
             && (c.parents.len() > 1) != only
         {
@@ -748,10 +748,10 @@ impl Filters {
 // ---- revisões e caminhada ---------------------------------------------------------------------
 
 #[derive(Default)]
-struct Revs {
-    include: Vec<Oid>,
-    exclude: Vec<Oid>,
-    paths: Vec<Vec<u8>>,
+pub(crate) struct Revs {
+    pub(crate) include: Vec<Oid>,
+    pub(crate) exclude: Vec<Oid>,
+    pub(crate) paths: Vec<Vec<u8>>,
     names: Vec<Vec<u8>>,
 }
 
@@ -805,7 +805,7 @@ fn add_refs(repo: &Repo, prefix: &str, r: &mut Revs) -> R<()> {
     Ok(())
 }
 
-fn resolve_revs(repo: &Repo, p: &Parsed) -> R<Revs> {
+pub(crate) fn resolve_revs(repo: &Repo, p: &Parsed) -> R<Revs> {
     let (before, after) = p.split_dashdash();
     let dashed = p.dashdash.is_some();
     let mut r = Revs::default();
@@ -862,7 +862,7 @@ fn resolve_revs(repo: &Repo, p: &Parsed) -> R<Revs> {
 /// Caminhada por data de commit (mais novo primeiro, empate na ordem de entrada). Com caminhos, a
 /// simplificação padrão: commit igual a um dos pais nesses caminhos não aparece e só esse pai é
 /// seguido.
-struct Walker<'a> {
+pub(crate) struct Walker<'a> {
     repo: &'a Repo,
     g: Graph<'a>,
     queue: DateQueue,
@@ -873,7 +873,7 @@ struct Walker<'a> {
 }
 
 impl<'a> Walker<'a> {
-    fn new(repo: &'a Repo, include: &[Oid], exclude: &[Oid], first_parent: bool, ps: Option<&'a Pathspec>) -> R<Walker<'a>> {
+    pub(crate) fn new(repo: &'a Repo, include: &[Oid], exclude: &[Oid], first_parent: bool, ps: Option<&'a Pathspec>) -> R<Walker<'a>> {
         let mut g = Graph::new(repo);
         let excluded = if exclude.is_empty() { HashSet::new() } else { g.reachable(exclude)? };
         let mut w = Walker { repo, g, queue: DateQueue::new(), seen: HashSet::new(), excluded, first_parent, ps };
@@ -887,7 +887,7 @@ impl<'a> Walker<'a> {
     }
 
     /// Próximo commit e se ele deve aparecer.
-    fn next(&mut self) -> R<Option<(Oid, bool)>> {
+    pub(crate) fn next(&mut self) -> R<Option<(Oid, bool)>> {
         let Some((_, id)) = self.queue.pop() else { return Ok(None) };
         let parents = self.g.parents(&id)?;
         let candidates: Vec<Oid> = if self.first_parent { parents.iter().take(1).copied().collect() } else { parents.clone() };
@@ -1008,7 +1008,7 @@ fn date_mode(p: &Parsed) -> R<DateMode> {
     }
 }
 
-fn unrecognized(p: &Parsed) -> R<()> {
+pub(crate) fn unrecognized(p: &Parsed) -> R<()> {
     if let Some(u) = p.unknown.first() {
         return Err(Fail::Fatal(format!("unrecognized argument: {}", os::lossy(u))));
     }
@@ -1796,103 +1796,6 @@ pub fn run_rev_list(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
             }
         }
         out.push(b'\n');
-    }
-    os::out(&out);
-    Ok(0)
-}
-
-// ---- shortlog ---------------------------------------------------------------------------------
-
-/// `git shortlog [-s] [-n] [-e] [<rev>...]`. Sem revisões, lê um `git log` da entrada padrão.
-pub fn run_shortlog(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
-    let usage = git.usage();
-    let mut specs = all_specs();
-    specs.push(opts::flag(Some(b's'), "summary", "summary"));
-    specs.push(opts::flag(None, "numbered", "numbered"));
-    specs.push(opts::short_flag(b'e', "email"));
-    // `-s` do diff (sem patch) e `-n` do log têm outro sentido aqui.
-    specs.retain(|s| !(s.short == Some(b's') && s.id == "no-patch") && !(s.short == Some(b'n') && s.id == "max-count"));
-    specs.push(opts::short_flag(b'n', "numbered"));
-    let p = opts::parse(&specs, args, opts::KEEP_UNKNOWN, usage)?;
-    unrecognized(&p)?;
-    let with_email = p.has("email");
-    let mut groups: Vec<(Vec<u8>, Vec<Vec<u8>>)> = Vec::new();
-    let mut add = |name: Vec<u8>, email: Vec<u8>, subject: Vec<u8>| {
-        let key = if with_email {
-            let mut k = name.clone();
-            k.extend_from_slice(b" <");
-            k.extend_from_slice(&email);
-            k.push(b'>');
-            k
-        } else {
-            name
-        };
-        match groups.iter_mut().find(|(k, _)| *k == key) {
-            Some((_, v)) => v.push(subject),
-            None => groups.push((key, vec![subject])),
-        }
-    };
-    let (before, _after) = p.split_dashdash();
-    if before.is_empty() && !p.has("all") {
-        // Entrada padrão: blocos `Author: Nome <e-mail>` seguidos da mensagem recuada.
-        let data = os::stdin_all();
-        let mut current: Option<(Vec<u8>, Vec<u8>)> = None;
-        for line in data.split(|c| *c == b'\n') {
-            if let Some(rest) = line.strip_prefix(b"Author: ") {
-                let lt = rest.iter().position(|c| *c == b'<').unwrap_or(rest.len());
-                let name = object::trim_ascii(&rest[..lt]).to_vec();
-                let email = rest.get(lt + 1..).map(|e| e.split(|c| *c == b'>').next().unwrap_or(&[]).to_vec()).unwrap_or_default();
-                current = Some((name, email));
-            } else if let Some(sub) = line.strip_prefix(b"    ")
-                && !object::trim_ascii(sub).is_empty()
-                && let Some((n, e)) = current.take()
-            {
-                add(n, e, object::trim_ascii(sub).to_vec());
-            }
-        }
-    } else {
-        let repo = git.repo()?;
-        let revs = resolve_revs(repo, &p)?;
-        let ps = if revs.paths.is_empty() { None } else { Some(git.pathspec(&revs.paths)?) };
-        let filters = Filters::from(&p)?;
-        let mut walker = Walker::new(repo, &revs.include, &revs.exclude, p.has("first-parent"), ps.as_ref())?;
-        let mut found: Vec<Commit> = Vec::new();
-        while let Some((id, show)) = walker.next()? {
-            if !show {
-                continue;
-            }
-            let c = repo.read_commit(&id)?;
-            if filters.accepts(&c) {
-                found.push(c);
-            }
-        }
-        // Do mais velho pro mais novo dentro de cada autor.
-        for c in found.iter().rev() {
-            let a = c.author_ident();
-            add(a.name, a.email, c.subject());
-        }
-    }
-    if p.has("numbered") {
-        groups.sort_by(|a, b| b.1.len().cmp(&a.1.len()).then_with(|| a.0.cmp(&b.0)));
-    } else {
-        groups.sort_by(|a, b| a.0.cmp(&b.0));
-    }
-    let mut out: Vec<u8> = Vec::new();
-    for (name, subjects) in &groups {
-        if p.has("summary") {
-            out.extend_from_slice(format!("{:>6}\t", subjects.len()).as_bytes());
-            out.extend_from_slice(name);
-            out.push(b'\n');
-        } else {
-            out.extend_from_slice(name);
-            out.extend_from_slice(format!(" ({}):\n", subjects.len()).as_bytes());
-            for sub in subjects {
-                out.extend_from_slice(b"      ");
-                out.extend_from_slice(sub);
-                out.push(b'\n');
-            }
-            out.push(b'\n');
-        }
     }
     os::out(&out);
     Ok(0)

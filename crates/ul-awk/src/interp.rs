@@ -2153,7 +2153,6 @@ impl<'p> Interp<'p> {
             Expr::Group(e) => self.eval(e),
             Expr::Assign(lv, e) => {
                 let v = self.eval(e)?;
-                let v = v;
                 self.assign(lv, v.clone())?;
                 Ok(v)
             }
@@ -2527,7 +2526,7 @@ impl<'p> Interp<'p> {
     /// Fim de um `getline` redirecionado (`< arquivo`, `cmd |`, `cmd |&`). No gawk 5.2 nenhum deles
     /// mexe em NR nem em FNR (o manual diz que `cmd | getline` incrementa NR, o código do
     /// `do_getline_redir` não): só o `getline` simples conta registros.
-    fn finish_getline(&mut self, r: Result<Option<(Vec<u8>, Vec<u8>)>, Errno>, target: Option<&LValue>) -> R<Value> {
+    fn finish_getline(&mut self, r: crate::io::RecordResult, target: Option<&LValue>) -> R<Value> {
         match r {
             Ok(Some((rec, rt))) => {
                 self.set_rt(rt);
