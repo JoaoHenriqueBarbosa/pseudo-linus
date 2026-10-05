@@ -23,8 +23,18 @@ const MAX_ARG_STRLEN: usize = 32 * 4096;
 /// `ARG_MAX` efetivo com a pilha de 8 MiB do Debian (um quarto da pilha).
 const ARG_MAX: usize = 2 * 1024 * 1024;
 
+/// O `/usr/bin/true` real do Debian 13 (coreutils 9.7), copiado do oráculo: as ferramentas de ELF
+/// (readelf, size, strip) precisam de um binário verdadeiro para inspecionar.
+pub(crate) const REAL_TRUE: &[u8] = include_bytes!("../real/true.elf");
+const REAL_TRUE_PATH: &str = "/usr/bin/true";
+/// Quanto do início do arquivo identifica o `true` real.
+const REAL_TRUE_PREFIX: usize = 256;
+
 /// Conteúdo do arquivo de um programa embutido.
 pub(crate) fn builtin_file(path: &str) -> Vec<u8> {
+    if path == REAL_TRUE_PATH {
+        return REAL_TRUE.to_vec();
+    }
     let mut h = vec![0u8; ELF_HEADER_LEN];
     h[..4].copy_from_slice(b"\x7fELF");
     h[4] = 2; // ELFCLASS64
@@ -45,6 +55,9 @@ pub(crate) fn builtin_file(path: &str) -> Vec<u8> {
 
 /// Caminho do programa embutido, se o cabeçalho for de um.
 fn parse_builtin(head: &[u8]) -> Option<&[u8]> {
+    if head.len() >= REAL_TRUE_PREFIX && head[..REAL_TRUE_PREFIX] == REAL_TRUE[..REAL_TRUE_PREFIX] {
+        return Some(REAL_TRUE_PATH.as_bytes());
+    }
     if head.len() <= ELF_HEADER_LEN + BUILTIN_MARKER.len() || !head.starts_with(b"\x7fELF") {
         return None;
     }
