@@ -177,6 +177,8 @@ pub struct SessionEntry {
     pub owner: String,
     pub sandbox_id: String,
     pub created_at: u64,
+    /// Estado do shell depois do último comando; com ele a sessão é recriada se o worker cair.
+    pub snapshot: Option<crate::session::SessionSnapshot>,
 }
 
 /// O que um usuário está usando agora.
@@ -196,6 +198,9 @@ pub struct State {
     pub sessions: HashMap<String, SessionEntry>,
     /// Sessões que acabaram (o shell saiu) ou se perderam, com o motivo, pra responder com clareza.
     pub dead_sessions: HashMap<String, (String, String, u64)>,
+    /// Sessões cujo worker caiu mas cuja sandbox tem snapshot persistido: voltam no próximo comando,
+    /// com o estado do shell, quando a sandbox terminar de ser recuperada.
+    pub orphan_sessions: HashMap<String, SessionEntry>,
     pub user_worker: HashMap<String, usize>,
     pub users: HashMap<String, UserUsage>,
     pub total_mem: u64,
@@ -206,6 +211,20 @@ pub struct State {
 impl State {
     pub fn usage(&self, user: &str) -> UserUsage {
         self.users.get(user).cloned().unwrap_or_default()
+    }
+
+    /// Enterra as sessões órfãs de uma sandbox que não voltou (a recuperação falhou ou ela foi apagada).
+    pub fn bury_orphans(&mut self, sb_id: &str, reason: &str) {
+        let ids: Vec<String> = self.orphan_sessions.values().filter(|s| s.sandbox_id == sb_id).map(|s| s.id.clone()).collect();
+        let now = now_unix();
+        for id in ids {
+            if let Some(s) = self.orphan_sessions.remove(&id) {
+                if let Some(u) = self.users.get_mut(&s.owner) {
+                    u.sessions = u.sessions.saturating_sub(1);
+                }
+                self.dead_sessions.insert(id, (s.owner, format!("a sessão se perdeu: {reason}"), now));
+            }
+        }
     }
 
     /// Devolve as reservas de uma sandbox (uma vez só).
@@ -688,6 +707,12 @@ impl Supervisor {
             };
             for sid in sessions {
                 if let Some(s) = st.sessions.remove(&sid) {
+                    if matches!(st.sandboxes[&id].status, SbStatus::Recovering { .. }) {
+                        // O VFS volta do snapshot; a sessão volta junto, no próximo comando. Continua
+                        // contando na cota do usuário.
+                        st.orphan_sessions.insert(sid, s);
+                        continue;
+                    }
                     if let Some(u) = st.users.get_mut(&s.owner) {
                         u.sessions = u.sessions.saturating_sub(1);
                     }
@@ -742,11 +767,10 @@ impl Supervisor {
                     tracing::info!(sandbox = %sb_id, snapshot = %from, "sandbox recuperada do snapshot persistido");
                 }
                 Err(e) => {
-                    sb.status = SbStatus::Lost {
-                        reason: format!("o worker {idx} caiu e a recuperação do snapshot {from} falhou: {}", e.message),
-                        at: now_unix(),
-                    };
+                    let reason = format!("o worker {idx} caiu e a recuperação do snapshot {from} falhou: {}", e.message);
+                    sb.status = SbStatus::Lost { reason: reason.clone(), at: now_unix() };
                     st.release(&sb_id);
+                    st.bury_orphans(&sb_id, &reason);
                     tracing::error!(sandbox = %sb_id, "recuperação falhou: {}", e.message);
                 }
             }

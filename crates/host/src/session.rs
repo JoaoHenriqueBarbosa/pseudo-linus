@@ -251,6 +251,28 @@ pub struct SessionOutcome {
     pub cwd: Option<String>,
     pub reset: bool,
     pub closed: bool,
+    /// O estado do shell depois do comando, pro supervisor recriar a sessão se o worker cair.
+    #[serde(default)]
+    pub snapshot: Option<SessionSnapshot>,
+}
+
+/// O [`ShellState`] no formato que atravessa o IPC (texto no cwd e no ambiente, base64 no dump).
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SessionSnapshot {
+    pub cwd: String,
+    pub env: Vec<String>,
+    #[serde(with = "crate::api::b64")]
+    pub dump: Vec<u8>,
+}
+
+impl ShellState {
+    pub fn to_snapshot(&self) -> SessionSnapshot {
+        SessionSnapshot {
+            cwd: String::from_utf8_lossy(&self.cwd).into_owned(),
+            env: self.env.iter().map(|e| String::from_utf8_lossy(e).into_owned()).collect(),
+            dump: self.dump.clone(),
+        }
+    }
 }
 
 struct Inner {
@@ -452,6 +474,7 @@ impl Session {
                 cwd: None,
                 reset,
                 closed: true,
+                snapshot: None,
             });
         }
 
@@ -481,6 +504,7 @@ impl Session {
                 cwd: Some(String::from_utf8_lossy(&inner.state.cwd).into_owned()),
                 reset: true,
                 closed: inner.closed.is_some(),
+                snapshot: Some(inner.state.to_snapshot()),
             });
         }
 
@@ -517,6 +541,7 @@ impl Session {
             cwd: Some(String::from_utf8_lossy(&inner.state.cwd).into_owned()),
             reset,
             closed: false,
+            snapshot: Some(inner.state.to_snapshot()),
         })
     }
 

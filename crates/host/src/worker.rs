@@ -211,12 +211,12 @@ impl Worker {
                 let outcome = exec::run(&*rt.sb, req, e.stdin, e.limits.to_exec(), sink_ref, cancel)?;
                 Ok(Reply::Exec { outcome })
             }
-            Call::SessionOpen { sandbox_id, session_id, cwd, env, workdir } => {
+            Call::SessionOpen { sandbox_id, session_id, cwd, env, workdir, dump } => {
                 let rt = self.sandbox(&sandbox_id)?;
                 let state = ShellState {
                     cwd: cwd.into_bytes(),
                     env: env.into_iter().map(String::into_bytes).collect(),
-                    dump: Vec::new(),
+                    dump,
                 };
                 let session = Session::open(rt.sb.clone(), &session_id, state, workdir.as_bytes())?;
                 rt.sessions.lock().insert(session_id.clone());

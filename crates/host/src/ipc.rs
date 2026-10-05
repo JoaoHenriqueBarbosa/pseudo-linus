@@ -89,6 +89,9 @@ pub enum Call {
         cwd: String,
         env: Vec<String>,
         workdir: String,
+        /// Dump do shell de uma sessão recriada depois da queda do worker (vazio numa sessão nova).
+        #[serde(default, with = "b64")]
+        dump: Vec<u8>,
     },
     SessionExec {
         session_id: String,

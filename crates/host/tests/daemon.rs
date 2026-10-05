@@ -190,6 +190,7 @@ fn worker_crash_loses_or_recovers_sandboxes_and_comes_back() {
     assert!(snap["persisted_bytes"].as_u64().unwrap() > 0);
     c.call("fs.write", json!({ "sandbox_id": keep, "path": "/work/depois", "data": "se perde" })).unwrap();
     let sess = c.call("session.open", json!({ "sandbox_id": keep })).unwrap()["session_id"].as_str().unwrap().to_string();
+    c.call("session.exec", json!({ "session_id": sess, "command": "cd /work; export B=2" })).unwrap();
 
     // O processo do worker aborta (o equivalente a um stack overflow que escapou do stacker).
     let e = c.call("exec", json!({ "sandbox_id": lose, "command": "crash" })).unwrap_err();
@@ -199,10 +200,6 @@ fn worker_crash_loses_or_recovers_sandboxes_and_comes_back() {
     // Sem snapshot: perdida, com o motivo.
     let e = c.call("exec", json!({ "sandbox_id": lose, "command": "true" })).unwrap_err();
     assert!(matches!(rpc_code(&e), codes::SANDBOX_LOST | codes::WORKER_UNAVAILABLE), "{e}");
-    // A sessão se perdeu.
-    let e = c.call("session.exec", json!({ "session_id": sess, "command": "pwd" })).unwrap_err();
-    assert_eq!(rpc_code(&e), codes::SESSION_LOST);
-
     // O worker volta e a sandbox com snapshot persistido também, no estado do snapshot.
     d.wait_health(|v| v["status"] == "ok" && v["workers"].as_array().unwrap().iter().any(|w| w["restarts"] == 1), Duration::from_secs(20));
     let deadline = Instant::now() + Duration::from_secs(10);
@@ -218,6 +215,11 @@ fn worker_crash_loses_or_recovers_sandboxes_and_comes_back() {
     assert_eq!(info["recovered_from"], snap["snapshot_id"]);
     let r = c.call("fs.read", json!({ "sandbox_id": keep, "path": "/work/f" })).unwrap();
     assert_eq!(r["data"], "sobrevive");
+    // A sessão da sandbox recuperada volta no próximo comando, com o cwd e o ambiente de antes.
+    let r = c.call("session.exec", json!({ "session_id": sess, "command": "pwd; printenv B" })).unwrap();
+    assert_eq!(r["stdout"], "/work\n2\n", "{r}");
+    assert_eq!(r["session_reset"], true);
+    c.call("session.close", json!({ "session_id": sess })).unwrap();
     let e = c.call("fs.read", json!({ "sandbox_id": keep, "path": "/work/depois" })).unwrap_err();
     assert_eq!(rpc_code(&e), codes::OS_ERROR);
     let e = c.call("exec", json!({ "sandbox_id": lose, "command": "true" })).unwrap_err();

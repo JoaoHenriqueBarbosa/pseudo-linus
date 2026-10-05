@@ -693,6 +693,7 @@ impl Supervisor {
             cwd,
             env,
             workdir: sb.workdir.clone(),
+            dump: Vec::new(),
         };
         let res = self.call(sb.worker, call, None).await;
         let mut st = self.state.lock();
@@ -700,7 +701,13 @@ impl Supervisor {
             Ok(_) => {
                 st.sessions.insert(
                     session_id.clone(),
-                    SessionEntry { id: session_id.clone(), owner: p.user.clone(), sandbox_id: sb.id.clone(), created_at: now_unix() },
+                    SessionEntry {
+                        id: session_id.clone(),
+                        owner: p.user.clone(),
+                        sandbox_id: sb.id.clone(),
+                        created_at: now_unix(),
+                        snapshot: None,
+                    },
                 );
                 if let Some(e) = st.sandboxes.get_mut(&sb.id) {
                     e.sessions.insert(session_id.clone());
@@ -744,7 +751,52 @@ impl Supervisor {
         }
     }
 
+    /// Recria, no worker novo, a sessão que ficou órfã com a queda do worker, com o estado do shell do
+    /// último comando (cwd, ambiente, variáveis, funções, aliases). `false` se a sessão não é órfã.
+    /// Enquanto a sandbox ainda está sendo recuperada, devolve o erro `recovering` e a sessão continua órfã.
+    async fn revive_session(self: &Arc<Self>, p: &Principal, id: &str) -> Result<bool, RpcError> {
+        let entry = {
+            let st = self.state.lock();
+            match st.orphan_sessions.get(id) {
+                Some(s) if s.owner == p.user || p.is_admin() => s.clone(),
+                _ => return Ok(false),
+            }
+        };
+        let sb = self.active(p, &entry.sandbox_id)?;
+        // Reivindica a sessão antes da chamada, pra dois comandos concorrentes não a recriarem duas vezes.
+        if self.state.lock().orphan_sessions.remove(id).is_none() {
+            return Ok(true);
+        }
+        let (cwd, env, dump) = match &entry.snapshot {
+            Some(s) => (s.cwd.clone(), s.env.clone(), s.dump.clone()),
+            None => (sb.workdir.clone(), sb.full_env(&BTreeMap::new(), false), Vec::new()),
+        };
+        let call = Call::SessionOpen {
+            sandbox_id: sb.id.clone(),
+            session_id: id.to_string(),
+            cwd,
+            env,
+            workdir: sb.workdir.clone(),
+            dump,
+        };
+        match self.call(sb.worker, call, None).await {
+            Ok(_) => {
+                let mut st = self.state.lock();
+                st.sessions.insert(id.to_string(), entry.clone());
+                if let Some(e) = st.sandboxes.get_mut(&sb.id) {
+                    e.sessions.insert(id.to_string());
+                }
+                Ok(true)
+            }
+            Err(e) => {
+                self.state.lock().orphan_sessions.insert(id.to_string(), entry);
+                Err(e)
+            }
+        }
+    }
+
     async fn session_exec(self: &Arc<Self>, p: &Principal, r: SessionExecParams, notifier: Option<Notifier>) -> Result<Value, RpcError> {
+        let revived = self.revive_session(p, &r.session_id).await?;
         let s = self.session_of(p, &r.session_id)?;
         if r.command.contains('\0') {
             return Err(RpcError::invalid_params("command com NUL"));
@@ -781,14 +833,31 @@ impl Supervisor {
             let code = outcome.exec.exit_code.map(|c| format!(" com {c}")).unwrap_or_default();
             self.bury_session(&s.id, format!("a sessão terminou: o shell saiu{code}"));
         }
+        if let Some(snap) = outcome.snapshot.clone()
+            && let Some(e) = self.state.lock().sessions.get_mut(&s.id)
+        {
+            e.snapshot = Some(snap);
+        }
         let mut res = to_result(&outcome.exec, r.encoding, streamed);
         res.cwd = outcome.cwd;
-        res.session_reset = outcome.reset;
+        res.session_reset = outcome.reset || revived;
         res.session_closed = outcome.closed;
         Ok(json_of(&res))
     }
 
     async fn session_close(self: &Arc<Self>, p: &Principal, id: &str) -> Result<Value, RpcError> {
+        // Sessão órfã (o worker caiu e a sandbox ainda volta): fechar só tira o registro.
+        {
+            let mut st = self.state.lock();
+            if st.orphan_sessions.get(id).is_some_and(|s| s.owner == p.user || p.is_admin())
+                && let Some(s) = st.orphan_sessions.remove(id)
+            {
+                if let Some(u) = st.users.get_mut(&s.owner) {
+                    u.sessions = u.sessions.saturating_sub(1);
+                }
+                return Ok(json!({ "closed": true }));
+            }
+        }
         let s = match self.session_of(p, id) {
             Ok(s) => s,
             // Fechar uma sessão que já tinha acabado não é erro.

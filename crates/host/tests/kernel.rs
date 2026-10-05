@@ -234,6 +234,12 @@ fn worker_crash_with_real_kernel() {
     let lose = sandbox(&c);
     c.call("fs.write", json!({ "sandbox_id": keep, "path": "/work/f", "data": "fica" })).unwrap();
     c.call("snapshot", json!({ "sandbox_id": keep, "persist": true })).unwrap();
+    let sess = c.call("session.open", json!({ "sandbox_id": keep })).unwrap()["session_id"].as_str().unwrap().to_string();
+    c.call(
+        "session.exec",
+        json!({ "session_id": sess, "command": "cd /work; plain=local; greet() { echo \"oi $1\"; }; export B=2" }),
+    )
+    .unwrap();
     let e = c.call("exec", json!({ "sandbox_id": lose, "argv": ["pl-crash"] })).unwrap_err();
     assert_eq!(rpc_code(&e), codes::WORKER_CRASHED, "{e}");
     d.wait_health(|v| v["status"] == "ok" && v["workers"].as_array().unwrap().iter().any(|w| w["restarts"] == 1), Duration::from_secs(30));
@@ -248,6 +254,13 @@ fn worker_crash_with_real_kernel() {
         thread::sleep(Duration::from_millis(100));
     }
     assert_eq!(run(&c, &keep, &["cat", "/work/f"], json!({}))["stdout"], "fica");
+    // A sessão volta com o shell de antes: cwd, exportada, não exportada e função.
+    let r = c
+        .call("session.exec", json!({ "session_id": sess, "command": "pwd; echo $B $plain; greet mundo" }))
+        .unwrap();
+    assert_eq!(r["stdout"], "/work\n2 local\noi mundo\n", "{r}");
+    assert_eq!(r["session_reset"], true);
+    c.call("session.close", json!({ "session_id": sess })).unwrap();
     // Os programas do userland continuam lá depois da recuperação (vieram pelo tar).
     assert_eq!(run(&c, &keep, &["wc", "-c"], json!({ "stdin": "abc" }))["stdout"], "3\n");
     let e = c.call("exec", json!({ "sandbox_id": lose, "argv": ["cat"] })).unwrap_err();
