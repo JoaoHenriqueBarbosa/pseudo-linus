@@ -167,100 +167,136 @@ unsafe impl<'vtab> VTab<'vtab> for SeriesTab {
 }
 
 /// A cursor for the Series virtual table
+///
+/// Segue o `SequenceSpec` do series.c do SQLite 3.46.1: a sequência é
+/// `start + k*step` para `k` em `0..=seq_index_max`, e `is_reversing`
+/// percorre os índices de trás para frente (usado só para ORDER BY).
 #[derive(Default)]
 #[repr(C)]
 struct SeriesTabCursor<'vtab> {
     /// Base class. Must be first
     base: ffi::sqlite3_vtab_cursor,
-    /// True to count down rather than up
-    is_desc: bool,
     /// The rowid
     row_id: i64,
-    /// Current value ("value")
-    value: i64,
-    /// Minimum value ("start")
-    min_value: i64,
-    /// Maximum value ("stop")
-    max_value: i64,
-    /// Increment ("step")
+    /// Valor "start" informado
+    start: i64,
+    /// Valor "stop" informado
+    stop: i64,
+    /// Passo efetivo (0 já convertido em 1)
     step: i64,
+    /// Maior índice da sequência
+    seq_index_max: u64,
+    /// Índice corrente
+    seq_index: u64,
+    /// Percorre a sequência ao contrário
+    is_reversing: bool,
+    /// Ainda há linhas
+    is_not_eof: bool,
     phantom: PhantomData<&'vtab SeriesTab>,
+}
+
+impl SeriesTabCursor<'_> {
+    /// Equivalente ao setupSequence do series.c.
+    fn setup_sequence(&mut self) {
+        self.seq_index_max = 0;
+        self.is_not_eof = false;
+        if self.step > 0 {
+            if self.stop >= self.start {
+                let span = (self.stop as i128 - self.start as i128) as u128;
+                self.seq_index_max = (span / self.step as u128) as u64;
+                self.is_not_eof = true;
+            }
+        } else if self.step < 0 && self.start >= self.stop {
+            let span = (self.start as i128 - self.stop as i128) as u128;
+            let abs = -(self.step as i128) as u128;
+            self.seq_index_max = (span / abs) as u64;
+            self.is_not_eof = true;
+        }
+        self.seq_index = if self.is_reversing {
+            self.seq_index_max
+        } else {
+            0
+        };
+    }
+
+    fn value(&self) -> i64 {
+        (self.start as i128 + self.seq_index as i128 * self.step as i128) as i64
+    }
 }
 
 unsafe impl VTabCursor for SeriesTabCursor<'_> {
     fn filter(&mut self, idx_num: c_int, _idx_str: Option<&str>, args: &Filters<'_>) -> Result<()> {
-        let mut idx_num = QueryPlanFlags::from_bits_truncate(idx_num);
+        let idx_num = QueryPlanFlags::from_bits_truncate(idx_num);
         let mut i = 0;
         if idx_num.contains(QueryPlanFlags::START) {
-            self.min_value = args.get::<Option<_>>(i)?.unwrap_or_default();
+            self.start = args.get::<Option<_>>(i)?.unwrap_or_default();
             i += 1;
         } else {
-            self.min_value = 0;
+            self.start = 0;
         }
         if idx_num.contains(QueryPlanFlags::STOP) {
-            self.max_value = args.get::<Option<_>>(i)?.unwrap_or_default();
+            self.stop = args.get::<Option<_>>(i)?.unwrap_or_default();
             i += 1;
         } else {
-            self.max_value = 0xffff_ffff;
+            self.stop = 0xffff_ffff;
         }
         if idx_num.contains(QueryPlanFlags::STEP) {
             self.step = args.get::<Option<_>>(i)?.unwrap_or_default();
             if self.step == 0 {
                 self.step = 1;
-            } else if self.step < 0 {
-                self.step = -self.step;
-                if !idx_num.contains(QueryPlanFlags::ASC) {
-                    idx_num |= QueryPlanFlags::DESC;
-                }
             }
         } else {
             self.step = 1;
         }
+        // A inversão só existe para atender ORDER BY value consumido no
+        // best_index: DESC com passo positivo, ou ASC com passo negativo.
+        self.is_reversing = if idx_num.contains(QueryPlanFlags::DESC) {
+            self.step > 0
+        } else if idx_num.contains(QueryPlanFlags::ASC) {
+            self.step < 0
+        } else {
+            false
+        };
+        self.setup_sequence();
         for arg in args.iter() {
             if arg.data_type() == Type::Null {
-                // If any of the constraints have a NULL value, then return no rows.
-                self.min_value = 1;
-                self.max_value = 0;
+                // Qualquer restrição NULL faz a série ficar vazia.
+                self.is_not_eof = false;
                 break;
             }
-        }
-        self.is_desc = idx_num.contains(QueryPlanFlags::DESC);
-        if self.is_desc {
-            self.value = self.max_value;
-            if self.step > 0 {
-                self.value -= (self.max_value - self.min_value) % self.step;
-            }
-        } else {
-            self.value = self.min_value;
         }
         self.row_id = 1;
         Ok(())
     }
 
     fn next(&mut self) -> Result<()> {
-        if self.is_desc {
-            self.value -= self.step;
-        } else {
-            self.value += self.step;
+        if self.is_not_eof {
+            if self.is_reversing {
+                if self.seq_index == 0 {
+                    self.is_not_eof = false;
+                } else {
+                    self.seq_index -= 1;
+                }
+            } else if self.seq_index >= self.seq_index_max {
+                self.is_not_eof = false;
+            } else {
+                self.seq_index += 1;
+            }
         }
         self.row_id += 1;
         Ok(())
     }
 
     fn eof(&self) -> bool {
-        if self.is_desc {
-            self.value < self.min_value
-        } else {
-            self.value > self.max_value
-        }
+        !self.is_not_eof
     }
 
     fn column(&self, ctx: &mut Context, i: c_int) -> Result<()> {
         let x = match i {
-            SERIES_COLUMN_START => self.min_value,
-            SERIES_COLUMN_STOP => self.max_value,
+            SERIES_COLUMN_START => self.start,
+            SERIES_COLUMN_STOP => self.stop,
             SERIES_COLUMN_STEP => self.step,
-            _ => self.value,
+            _ => self.value(),
         };
         ctx.set_result(&x)
     }
