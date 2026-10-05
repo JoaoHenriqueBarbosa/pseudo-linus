@@ -59,6 +59,11 @@ pub fn uz_opts(g: &mut Uz, args: &mut [Vec<u8>]) -> OptsResult {
             let c = arg[pos];
             pos += 1;
             let neg = negative != 0;
+            // O `unzipsfx` só aceita as opções do texto de uso dele; as demais caem no erro.
+            if g.sfx && !b"-abjnoqCLDMVXtfupczd".contains(&c) {
+                error = true;
+                continue;
+            }
             match c {
                 b'-' => negative += 1,
                 b'a' => {
@@ -362,6 +367,10 @@ pub fn zi_opts(g: &mut Uz, args: &mut [Vec<u8>]) -> OptsResult {
 
 /// O texto de uso: no stdout quando pedido, no stderr (com `PK_PARAM`) quando é erro.
 pub fn usage(g: &mut Uz, error: bool) -> i32 {
+    if g.sfx {
+        g.info(u32::from(error), [text::SFX_BANNER, text::SFX_VALID_OPTIONS].concat());
+        return if error { PK_PARAM } else { PK_OK };
+    }
     let text = if g.o.zipinfo_mode { text::ZIPINFO_USAGE } else { text::UNZIP_USAGE };
     g.info(u32::from(error), text);
     if error { PK_PARAM } else { PK_OK }

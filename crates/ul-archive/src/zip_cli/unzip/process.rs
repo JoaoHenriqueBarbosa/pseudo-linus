@@ -340,6 +340,11 @@ impl Uz {
         let st = match sysabi::sys::stat(&self.zipfn) {
             Ok(st) if st.file_type() != sysabi::FileType::Directory => st,
             other => {
+                if self.sfx {
+                    let msg = [b"unzipsfx:  cannot find myself! [".as_slice(), &self.zipfn, b"]\n"].concat();
+                    self.info(MSG_STDERR, msg);
+                    return PK_NOZIP;
+                }
                 let is_dir = other.is_ok();
                 if lastchance && self.o.qflag < 3 {
                     let prog: &[u8] = if self.o.zipinfo_mode { b"zipinfo" } else { b"unzip" };
@@ -369,7 +374,7 @@ impl Uz {
         self.zin.bufstart = 0;
         self.zin.inptr = 0;
         let o = &self.o;
-        if (!o.zipinfo_mode && o.qflag == 0 && !o.t_flag) || (o.zipinfo_mode && o.hflag != 0) {
+        if !self.sfx && ((!o.zipinfo_mode && o.qflag == 0 && !o.t_flag) || (o.zipinfo_mode && o.hflag != 0)) {
             let msg = [b"Archive:  ".as_slice(), &self.zipfn, b"\n"].concat();
             self.info(0, msg);
         }
@@ -454,7 +459,8 @@ impl Uz {
                 self.ecrec.offset_start_central_directory = self.zin.extra_bytes as u64;
                 self.zin.extra_bytes = 0;
                 error_in_archive = PK_ERR;
-            } else {
+            } else if !self.sfx {
+                // No autoextraível o prefixo (o próprio executável) é esperado, sem aviso.
                 let n = self.zin.extra_bytes;
                 let msg = [b"warning [".as_slice(), &zipfn, format!("]:  {n} extra byte{} at beginning or within zipfile\n  (attempting to process anyway)\n", if n == 1 { "" } else { "s" }).as_bytes()].concat();
                 self.info(MSG_STDERR, msg);

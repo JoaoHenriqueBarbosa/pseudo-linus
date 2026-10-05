@@ -4,15 +4,20 @@
 use super::ztools::{self, Archive, Entry, ZE_FORM, ZE_PARMS};
 use crate::sysutil::{self, Output};
 
-const HELP: &str = "Copyright (c) 1990-2008 Info-ZIP - Type 'zipcloak \"-L\"' for software license.\n\
+const HELP: &str = "\nZipCloak 3.0 (July 5th 2008)\n\
+Usage:  zipcloak [-dq] [-b path] zipfile\n\
+\x20 the default action is to encrypt all unencrypted entries in the zip file\n\
 \n\
-ZipCloak 3.0 (July 5th 2008)\n\
-Usage:  zipcloak [-d] [-b path] zipfile\n\
-\x20 -d   decrypt - decrypt all files in zip archive\n\
-\x20 -b   use \"path\" for the temporary zip file\n\
-\x20 -h   show this help    -v   show version info    -L   show software license\n";
+\x20 -d  --decrypt      decrypt encrypted entries (copy if given wrong password)\n\
+\x20 -b  --temp-path    use \"path\" for the temporary zip file\n\
+\x20 -O  --output-file  write output to new zip file\n\
+\x20 -q  --quiet        quiet operation, suppress some informational messages\n\
+\x20 -h  --help         show this help\n\
+\x20 -v  --version      show version info\n\
+\x20 -L  --license      show software license\n";
 
 const VERSION: &str = "Copyright (c) 1990-2008 Info-ZIP - Type 'zipcloak \"-L\"' for software license.\n\
+\n\
 This is ZipCloak 3.0 (July 5th 2008), by Info-ZIP.\n\
 Currently maintained by E. Gordon.  Please send bug reports to\n\
 the authors using the web page at www.info-zip.org; see README for details.\n\
@@ -23,13 +28,17 @@ as of above date; see http://www.info-zip.org/ for other sites.\n\
 Compiled with gcc 14.2.0 for Unix (Linux ELF).\n\
 \n\
 ZipCloak special compilation options:\n\
-\t[none]\n";
+\t[encryption, version 2.91 of 05 Jan 2007]\n";
 
 /// Tamanho do cabeçalho de criptografia que precede os dados de cada entrada.
 const HEAD: usize = 12;
 
+/// `ZE_ZIPNULL` do `ziperr.h`: zip ausente ou vazio.
+const ZE_ZIPNULL: i32 = 13;
+
+/// O `ziperr` do zipcloak escreve na saída padrão, não no erro padrão.
 fn fail(code: i32, h: &str) -> i32 {
-    sysutil::eprint(format!("zipcloak error: {} ({})\n", ztools::error_text(code), h));
+    put_stdout(&format!("zipcloak error: {} ({})\n", ztools::error_text(code), h));
     code
 }
 
@@ -110,11 +119,37 @@ fn prompt(msg: &str) -> Option<Vec<u8>> {
 
 pub fn main(args: &[Vec<u8>]) -> i32 {
     let mut decrypt = false;
+    let mut quiet = false;
+    let mut output: Option<Vec<u8>> = None;
     let mut zipfile: Option<Vec<u8>> = None;
     let mut i = 1;
     while i < args.len() {
         let a = &args[i];
-        if a.len() > 1 && a[0] == b'-' {
+        if a.starts_with(b"--") && a.len() > 2 {
+            match &a[2..] {
+                b"help" => {
+                    put_stdout(HELP);
+                    return 0;
+                }
+                b"version" => {
+                    put_stdout(VERSION);
+                    return 0;
+                }
+                b"decrypt" => decrypt = true,
+                b"quiet" => quiet = true,
+                b"temp-path" | b"output-file" => {
+                    let is_out = &a[2..] == b"output-file";
+                    i += 1;
+                    if i >= args.len() {
+                        return fail(ZE_PARMS, &format!("option '{}' requires a value", String::from_utf8_lossy(a)));
+                    }
+                    if is_out {
+                        output = Some(args[i].clone());
+                    }
+                }
+                _ => return fail(ZE_PARMS, &format!("long option '{}' not supported", String::from_utf8_lossy(&a[2..]))),
+            }
+        } else if a.len() > 1 && a[0] == b'-' {
             let mut k = 1;
             while k < a.len() {
                 match a[k] {
@@ -127,18 +162,30 @@ pub fn main(args: &[Vec<u8>]) -> i32 {
                         return 0;
                     }
                     b'd' => decrypt = true,
-                    b'b' => {
-                        // O diretório do temporário: a escrita aqui é direta, então só se consome.
-                        if k + 1 < a.len() {
+                    b'q' => quiet = true,
+                    b'b' | b'O' => {
+                        let is_out = a[k] == b'O';
+                        // O argumento vem colado ou no próximo parâmetro. O diretório do temporário
+                        // é só consumido: a escrita aqui é direta.
+                        let value = if k + 1 < a.len() {
+                            let v = a[k + 1..].to_vec();
                             k = a.len();
-                            continue;
+                            v
+                        } else {
+                            i += 1;
+                            if i >= args.len() {
+                                return fail(ZE_PARMS, &format!("option '{}' requires a value", a[k] as char));
+                            }
+                            args[i].clone()
+                        };
+                        if is_out {
+                            output = Some(value);
                         }
-                        i += 1;
-                        if i >= args.len() {
-                            return fail(ZE_PARMS, "Use option -h for help.");
+                        if k >= a.len() {
+                            break;
                         }
                     }
-                    _ => return fail(ZE_PARMS, "unknown option"),
+                    c => return fail(ZE_PARMS, &format!("short option '{}' not supported", c as char)),
                 }
                 k += 1;
             }
@@ -153,31 +200,42 @@ pub fn main(args: &[Vec<u8>]) -> i32 {
         put_stdout(HELP);
         return 0;
     };
+    let name = String::from_utf8_lossy(&zipfile).into_owned();
     let data = match sysutil::read_path(&zipfile) {
-        Ok(d) => d,
-        Err(_) => {
-            sysutil::eprint("\nzipcloak error: Interrupted (aborting)\n");
-            return ztools::ZE_ABORT;
-        }
+        Ok(d) if !d.is_empty() => d,
+        _ => return fail(ZE_ZIPNULL, &name),
     };
     let arc = match ztools::parse(&data) {
         Ok(a) => a,
-        Err(c) => return fail(c, &String::from_utf8_lossy(&zipfile)),
+        Err(c) => {
+            let tail = &data[data.len().saturating_sub(65_557)..];
+            if !tail.windows(4).any(|w| w == b"PK\x05\x06") {
+                put_stdout(
+                    "zipcloak warning: missing end signature--probably not a zip file (did you\n\
+                     zipcloak warning: remember to use binary mode when you transferred it?)\n\
+                     zipcloak warning: (if you are trying to read a damaged archive try -F)\n",
+                );
+            }
+            return fail(c, &name);
+        }
     };
-    run(&zipfile, &data, arc, decrypt)
+    let target = output.unwrap_or_else(|| zipfile.clone());
+    run(&target, &data, arc, decrypt, quiet)
 }
 
 /// A senha para a operação: na cifragem, pedida duas vezes e conferida.
 fn ask_password(decrypt: bool) -> Result<Vec<u8>, i32> {
+    // Sem terminal de controle, o original recusa antes de pedir a senha.
+    let no_tty = "stderr is not a tty (you may never see this message!)";
     let Some(pw) = prompt("Enter password: ") else {
-        return Err(fail(ZE_PARMS, "no password"));
+        return Err(fail(ZE_PARMS, no_tty));
     };
     if pw.is_empty() {
         return Err(fail(ZE_PARMS, "zero length password not allowed"));
     }
     if !decrypt {
         let Some(again) = prompt("Verify password: ") else {
-            return Err(fail(ZE_PARMS, "no password"));
+            return Err(fail(ZE_PARMS, no_tty));
         };
         if again != pw {
             return Err(fail(ZE_PARMS, "password verification failed"));
@@ -199,7 +257,7 @@ fn split_local<'a>(data: &'a [u8], e: &Entry) -> Result<Raw<'a>, i32> {
     Ok(Raw { local: &data[o..o + len], data_start })
 }
 
-fn run(zipfile: &[u8], data: &[u8], arc: Archive, decrypt: bool) -> i32 {
+fn run(zipfile: &[u8], data: &[u8], arc: Archive, decrypt: bool, quiet: bool) -> i32 {
     let wanted = |e: &Entry| (e.flg & 1 != 0) == decrypt;
     let password = if arc.entries.iter().any(wanted) {
         match ask_password(decrypt) {
@@ -222,7 +280,9 @@ fn run(zipfile: &[u8], data: &[u8], arc: Archive, decrypt: bool) -> i32 {
         };
         let mut cen = e.cen.clone();
         if !wanted(e) {
-            put_stdout(&format!("skipping: {}  {}\n", name, if decrypt { "not encrypted" } else { "already encrypted" }));
+            if !quiet {
+                put_stdout(&format!("skipping: {}  {}\n", name, if decrypt { "not encrypted" } else { "already encrypted" }));
+            }
             out.extend_from_slice(raw.local);
             cds.push(ztools::central(e, off, &e.name, &e.comment));
             continue;
@@ -246,7 +306,9 @@ fn run(zipfile: &[u8], data: &[u8], arc: Archive, decrypt: bool) -> i32 {
             }
             new_body.extend_from_slice(&plain[HEAD..]);
             new_csize = (csize - HEAD) as u32;
-            put_stdout(&format!("decrypting: {}\n", name));
+            if !quiet {
+                put_stdout(&format!("decrypting: {}\n", name));
+            }
         } else {
             let crc = le32(&e.cen, 16);
             // Os dez primeiros bytes do cabeçalho são ruído; o original usa `rand()` semeado pelo relógio.
@@ -263,7 +325,9 @@ fn run(zipfile: &[u8], data: &[u8], arc: Archive, decrypt: bool) -> i32 {
                 new_body.push(k.encode(c));
             }
             new_csize = (csize + HEAD) as u32;
-            put_stdout(&format!("encrypting: {}\n", name));
+            if !quiet {
+                put_stdout(&format!("encrypting: {}\n", name));
+            }
         }
         // Cabeçalho local: bit de cifra e tamanho comprimido (zerado quando o descritor o carrega).
         let flg = le16(&hdr, 6) as u16;

@@ -8,6 +8,9 @@ pub const ZIPINFO_USAGE: &[u8] = include_bytes!("text/zipinfo_usage.txt");
 pub const VERSION_HEAD: &[u8] = include_bytes!("text/version.txt");
 
 pub const NOT_EXTRACTING: &str = "caution:  not extracting; -d ignored\n";
+/// O cabeçalho do `unzipsfx` e a linha de opções válidas do uso dele.
+pub const SFX_BANNER: &str = "UnZipSFX 6.00 of 20 April 2009, by Info-ZIP (http://www.info-zip.org).\n";
+pub const SFX_VALID_OPTIONS: &str = "Valid options are -tfupcz and -d <exdir>; modifiers are -abjnoqCLDMVX.\n";
 pub const MUST_GIVE_EXDIR: &str = "error:  must specify directory to which to extract with -d option\n";
 pub const ONLY_ONE_EXDIR: &str = "error:  -d option used more than once (only one exdir allowed)\n";
 pub const MUST_GIVE_PASSWD: &str = "error:  must give decryption password with -P option\n";

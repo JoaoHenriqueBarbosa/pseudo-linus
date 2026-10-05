@@ -279,36 +279,12 @@ pub fn main(argv: &[Vec<u8>]) -> i32 {
     run(argv, false)
 }
 
-/// Acha o próprio executável como o `unzipsfx` faz: um `argv[0]` com barra é o caminho; sem barra,
-/// a primeira entrada do `PATH` que tenha um arquivo regular com esse nome.
-fn find_myself(argv0: &[u8]) -> Option<Vec<u8>> {
-    if argv0.is_empty() {
-        return None;
-    }
-    let is_file = |p: &[u8]| sysabi::sys::stat(p).is_ok_and(|st| st.file_type() != sysabi::FileType::Directory);
-    if argv0.contains(&b'/') {
-        return is_file(argv0).then(|| argv0.to_vec());
-    }
-    let path = crate::sysutil::getenv("PATH")?;
-    for dir in path.split(|&c| c == b':') {
-        let dir: &[u8] = if dir.is_empty() { b"." } else { dir };
-        let cand = [dir, b"/", argv0].concat();
-        if is_file(&cand) {
-            return Some(cand);
-        }
-    }
-    None
-}
-
 /// `unzipsfx`: o extrator autoextraível. O arquivo zip é o próprio executável (com o zip colado no
-/// fim), então os operandos são só membros e padrões; as opções são as do `unzip`.
+/// fim), então os operandos são só membros e padrões; as opções são as do `unzip`. O executável é o
+/// `argv[0]` como veio, sem busca no `PATH`; se não existir, o erro sai depois do cabeçalho.
 pub fn main_sfx(argv: &[Vec<u8>]) -> i32 {
     let argv0 = argv.first().cloned().unwrap_or_default();
-    let Some(me) = find_myself(&argv0) else {
-        let msg = [b"unzipsfx:  cannot find myself! [".as_slice(), &argv0, b"]\n"].concat();
-        let _ = sysabi::sys::write_all(Fd::STDERR, &msg);
-        return PK_PARAM;
-    };
+    let me = argv0.clone();
     // O arquivo zip entra depois das opções (e do argumento solto de `-d`), antes dos membros.
     let mut full = vec![argv0];
     let mut inserted = false;
@@ -349,6 +325,9 @@ fn run(argv: &[Vec<u8>], sfx: bool) -> i32 {
     };
     if let Err(code) = split_operands(&mut g, rest) {
         return code;
+    }
+    if sfx {
+        g.info(0, text::SFX_BANNER);
     }
     if g.o.exdir.is_some() && !g.extract_flag {
         g.info(MSG_STDERR, text::NOT_EXTRACTING);
