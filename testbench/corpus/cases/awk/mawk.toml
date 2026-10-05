@@ -1,0 +1,116 @@
+tool = "mawk"
+source = "manual"
+
+[[case]]
+id = "mawk-w-version"
+argv = ["mawk", "-W", "version"]
+
+[[case]]
+id = "mawk-w-version-short"
+argv = ["mawk", "-Wv"]
+
+[[case]]
+id = "mawk-w-help"
+argv = ["mawk", "-W", "help"]
+
+[[case]]
+id = "mawk-w-usage"
+argv = ["mawk", "-W", "usage"]
+
+[[case]]
+id = "mawk-no-args"
+argv = ["mawk"]
+
+[[case]]
+id = "mawk-bad-option"
+argv = ["mawk", "-x", "BEGIN { print 1 }"]
+
+[[case]]
+id = "mawk-vacuous-w"
+argv = ["mawk", "-W", "bogus", "BEGIN { print 1 }"]
+
+[[case]]
+id = "mawk-syntax-error"
+argv = ["mawk", "BEGIN { print ( }"]
+
+[[case]]
+id = "mawk-syntax-error-line2"
+argv = ["mawk", "BEGIN { x = 1\n  y = = 2 }"]
+
+[[case]]
+id = "mawk-div-zero"
+argv = ["mawk", "BEGIN { x = 0; print 1 / x }"]
+
+[[case]]
+id = "mawk-mod-zero"
+argv = ["mawk", "BEGIN { x = 0; print 5 % x }"]
+
+[[case]]
+id = "mawk-getline-missing-file"
+argv = ["mawk", "BEGIN { r = (getline line < \"nope.txt\"); print r }"]
+
+[[case]]
+id = "mawk-missing-input-file"
+argv = ["mawk", "{ print }", "nope.txt"]
+
+[[case]]
+id = "mawk-printf-c"
+argv = ["mawk", "BEGIN { printf \"%c|%c|%c|%c\\n\", 65, \"hello\", 256, 321 }"]
+
+[[case]]
+id = "mawk-printf-d-large"
+argv = ["mawk", "BEGIN { printf \"%d %d %d\\n\", 2147483648, 9007199254740993, -1e30 }"]
+
+[[case]]
+id = "mawk-printf-d-nan"
+argv = ["mawk", "BEGIN { printf \"%d\\n\", \"abc\"; printf \"%i\\n\", 3.99 }"]
+
+[[case]]
+id = "mawk-substr-fractional"
+argv = ["mawk", "BEGIN { s = \"abcdefgh\"; print substr(s, 1.5, 3); print substr(s, 0, 3); print substr(s, -1, 3); print substr(s, 2.5); print substr(s, 7, 100) }"]
+
+[[case]]
+id = "mawk-split-regex"
+argv = ["mawk", "BEGIN { n = split(\"a1b22c333d\", p, /[0-9]+/); print n; for (i = 1; i <= n; i++) print p[i] }"]
+
+[[case]]
+id = "mawk-split-single-space"
+argv = ["mawk", "BEGIN { n = split(\"  a  b  \", p, \" \"); print n, p[1], p[2]; n = split(\"abc\", q, \"\"); print n, q[1], q[3] }"]
+
+[[case]]
+id = "mawk-strnum-compare"
+argv = ["mawk", "{ print ($1 == $2), ($1 < $2), ($3 == 0) }"]
+stdin = "10 9.0 0x0\n1e1 10 +0\nabc abd -0\n 5  5.0 .0\n"
+
+[[case]]
+id = "mawk-uninitialized"
+argv = ["mawk", "BEGIN { print (x == 0), (x == \"\"), length(x); if (!x) print \"falsy\" }"]
+
+[[case]]
+id = "mawk-srand-rand"
+argv = ["mawk", "BEGIN { srand(1); a = rand(); srand(1); b = rand(); print (a == b), (a >= 0 && a < 1); print srand(5), srand() }"]
+
+[[case]]
+id = "mawk-v-and-F"
+argv = ["mawk", "-F:", "-v", "n=2", "{ print $n }"]
+stdin = "a:b:c\nd:e:f\n"
+
+[[case]]
+id = "mawk-f-file"
+argv = ["mawk", "-f", "prog.awk", "in.txt"]
+[case.files]
+"prog.awk" = "{ s += $1 } END { print s }\n"
+"in.txt" = "1\n2\n3\n"
+
+[[case]]
+id = "mawk-w-exec"
+argv = ["mawk", "-W", "exec", "prog.awk", "in.txt"]
+[case.files]
+"prog.awk" = "{ print NR \": \" $0 }\n"
+"in.txt" = "x\ny\n"
+
+[[case]]
+id = "mawk-getline-var-file"
+argv = ["mawk", "BEGIN { while ((getline l < \"in.txt\") > 0) n++; print n, l; close(\"in.txt\") }"]
+[case.files]
+"in.txt" = "one\ntwo\nthree\n"

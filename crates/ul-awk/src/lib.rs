@@ -17,6 +17,7 @@ pub mod format;
 pub mod interp;
 pub mod io;
 pub mod lexer;
+pub mod mawk;
 pub mod parser;
 pub mod regex;
 pub mod sort;
@@ -30,7 +31,13 @@ use sysabi::{Ctx, Program};
 
 /// Os programas deste crate.
 pub fn programs() -> Vec<Program> {
-    vec![Program::bin("awk", awk_main), Program::bin("gawk", awk_main)]
+    vec![Program::bin("awk", awk_main), Program::bin("gawk", awk_main), Program::bin("mawk", mawk_main)]
+}
+
+fn mawk_main(ctx: &mut Ctx, args: &[OsString]) -> i32 {
+    let argv: Vec<Vec<u8>> = args.iter().map(|a| a.as_bytes().to_vec()).collect();
+    let sys = ctx.sys().clone();
+    mawk::run(sys, argv)
 }
 
 fn awk_main(ctx: &mut Ctx, args: &[OsString]) -> i32 {
