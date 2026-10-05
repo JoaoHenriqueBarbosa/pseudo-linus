@@ -202,6 +202,16 @@ pub(super) fn timezone_offset(input: &mut &str) -> ModalResult<Offset> {
         return Err(ErrMode::Backtrack(ContextError::new()));
     }
 
+    signed_offset.parse_next(input)
+}
+
+/// Parse a signed numeric timezone correction (`tSNUMBER o_colon_minutes` in the
+/// GNU grammar) without asking whether a unit follows it.
+///
+/// After a time with minutes (`12:00 +3 hours`) the yacc parser has no other
+/// choice than the zone, so the number is a correction whatever comes next;
+/// [`timezone_offset`] is for the places where the relative item wins.
+pub(super) fn signed_offset(input: &mut &str) -> ModalResult<Offset> {
     alt((timezone_offset_colon, timezone_offset_colonless)).parse_next(input)
 }
 

@@ -45,7 +45,7 @@ use winnow::{
 
 use super::{
     epoch::sec_and_nsec,
-    offset::{timezone_offset, Offset},
+    offset::{signed_offset, timezone_offset, Offset},
     primitive::{colon, ctx_err, dec_uint, keyword, s},
 };
 
@@ -113,7 +113,7 @@ pub(super) fn iso(input: &mut &str) -> ModalResult<Time> {
             colon,
             minute,
             opt(preceded(colon, second)),
-            opt(timezone_offset),
+            opt(signed_offset),
         )
             .map(|(hour, _, minute, sec_nsec, offset)| Time {
                 hour,
@@ -426,6 +426,25 @@ mod tests {
                 "Format string: {old_s}"
             );
         }
+    }
+
+    #[test]
+    fn offset_before_unit() {
+        // After a time with minutes the signed number is the zone, whatever
+        // comes next: `hours` is left over for the relative item.
+        for (input, rest) in [
+            ("12:00 +3 hours", " hours"),
+            ("12:00:30 -2 days ago", " days ago"),
+            ("12:00 +3:30 days", " days"),
+        ] {
+            let mut s = input;
+            let time = parse(&mut s).unwrap();
+            assert!(time.offset.is_some(), "{input}");
+            assert_eq!(s, rest, "{input}");
+        }
+
+        // With hours only it is a pure number followed by a relative item.
+        assert!(parse(&mut "12 +3 hours").is_err());
     }
 
     #[test]
