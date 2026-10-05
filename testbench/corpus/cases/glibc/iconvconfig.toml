@@ -1,0 +1,42 @@
+tool = "iconvconfig"
+source = "manual"
+
+[[case]]
+id = "iconvconfig-help"
+argv = ["iconvconfig", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "iconvconfig-help-short"
+argv = ["iconvconfig", "-?"]
+tags = ["help"]
+
+[[case]]
+id = "iconvconfig-usage"
+argv = ["iconvconfig", "--usage"]
+tags = ["help"]
+
+[[case]]
+id = "iconvconfig-version"
+argv = ["iconvconfig", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "iconvconfig-bad-option"
+argv = ["iconvconfig", "-x"]
+tags = ["error", "options"]
+
+[[case]]
+id = "iconvconfig-bad-long-option"
+argv = ["iconvconfig", "--frobnicate"]
+tags = ["error", "options"]
+
+[[case]]
+id = "iconvconfig-missing-argument"
+argv = ["iconvconfig", "-o"]
+tags = ["error", "options"]
+
+[[case]]
+id = "iconvconfig-output-created"
+script = "mkdir -p gconv && printf 'alias ISO-FOO// ISO-8859-1//\\nmodule ISO-8859-1// INTERNAL ISO8859-1 1\\n' > gconv/gconv-modules && iconvconfig --nostdlib -o out.cache gconv; echo \"exit=$?\"; test -s out.cache && echo gerado"
+tags = ["output"]

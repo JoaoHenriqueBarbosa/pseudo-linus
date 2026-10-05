@@ -1,0 +1,153 @@
+tool = "zic"
+source = "manual"
+
+# Cada caso compila uma zona pequena para `out` e confere os bytes com `od` ou o resultado com o
+# `zdump` apontando `TZDIR` para o diretório de saída.
+
+[[case]]
+id = "zic-slim-fixed-od"
+script = "zic -d out z.in && od -An -tx1 out/Test/Fixed"
+tags = ["slim", "fixed"]
+[case.files]
+"z.in" = "Zone Test/Fixed -3:00 - -03\n"
+
+[[case]]
+id = "zic-fat-fixed-od"
+script = "zic -b fat -d out z.in && od -An -tx1 out/Test/Fixed"
+tags = ["fat", "fixed"]
+[case.files]
+"z.in" = "Zone Test/Fixed -3:00 - -03\n"
+
+[[case]]
+id = "zic-slim-dst-od"
+script = "zic -d out z.in && od -An -tx1 out/Test/Dst"
+tags = ["slim", "rules", "footer"]
+[case.files]
+"z.in" = """
+Rule TR 2000 max - Mar Sun>=8 2:00 1:00 D
+Rule TR 2000 max - Nov Sun>=1 2:00 0 S
+Zone Test/Dst -5:00 TR E%sT
+"""
+
+[[case]]
+id = "zic-fat-dst-od"
+script = "zic -b fat -d out z.in && od -An -tx1 out/Test/Dst"
+tags = ["fat", "rules", "footer"]
+[case.files]
+"z.in" = """
+Rule TR 2000 max - Mar Sun>=8 2:00 1:00 D
+Rule TR 2000 max - Nov Sun>=1 2:00 0 S
+Zone Test/Dst -5:00 TR E%sT
+"""
+
+[[case]]
+id = "zic-dst-zdump"
+script = "zic -d out z.in && TZDIR=out zdump -v -c 2023,2025 Test/Dst"
+tags = ["rules", "zdump"]
+[case.files]
+"z.in" = """
+Rule TR 2000 max - Mar Sun>=8 2:00 1:00 D
+Rule TR 2000 max - Nov Sun>=1 2:00 0 S
+Zone Test/Dst -5:00 TR E%sT
+"""
+
+[[case]]
+id = "zic-history-zdump"
+script = "zic -d out z.in && TZDIR=out zdump -i Test/Hist"
+tags = ["rules", "zdump", "continuation"]
+[case.files]
+"z.in" = """
+# Zona com várias linhas, regras históricas e fim em horário padrão fixo.
+Rule Old 1990 1992 - Oct Sun>=1 0:00 0 -
+Rule Old 1991 1993 - Feb Sun>=15 0:00 1:00 -
+Zone Test/Hist -3:00 Old -03/-02 1994 Jan 1
+	-4:00 - -04 2000 Jun 15 12:00u
+	-2:30 - -0230
+"""
+
+[[case]]
+id = "zic-percent-z"
+script = "zic -d out z.in && TZDIR=out zdump -v -c 2000,2001 Test/Pz"
+tags = ["format", "zdump"]
+[case.files]
+"z.in" = "Zone Test/Pz 5:30 - %z\n"
+
+[[case]]
+id = "zic-link-hard"
+script = "zic -d out z.in && ls -i out/Test/Real out/Alias | awk '{print $1}' | sort -u | wc -l && cmp out/Test/Real out/Alias"
+tags = ["link"]
+[case.files]
+"z.in" = "Zone Test/Real 1:00 - +01\nLink Test/Real Alias\n"
+
+[[case]]
+id = "zic-link-remove"
+script = "zic -d out z.in && zic -d out r.in; ls out"
+tags = ["link"]
+[case.files]
+"z.in" = "Zone Test/Real 1:00 - +01\nLink Test/Real Alias\n"
+"r.in" = "Link - Alias\n"
+
+[[case]]
+id = "zic-range-r"
+script = "zic -r @0/@1000000000 -d out z.in && od -An -tx1 out/Test/Fixed"
+tags = ["range"]
+[case.files]
+"z.in" = "Zone Test/Fixed -3:00 - -03\n"
+
+[[case]]
+id = "zic-stdin"
+script = "printf 'Zone Test/Stdin 2:00 - EET\\n' | zic -d out - && od -An -tx1 out/Test/Stdin"
+tags = ["stdin"]
+
+[[case]]
+id = "zic-error-bad-month"
+argv = ["zic", "-d", "out", "z.in"]
+tags = ["error"]
+[case.files]
+"z.in" = "Rule X 2000 only - Foo 1 0 1:00 D\nZone Test/Bad 0 X %sT\n"
+
+[[case]]
+id = "zic-error-fields"
+argv = ["zic", "-d", "out", "z.in"]
+tags = ["error"]
+[case.files]
+"z.in" = "Zone Test/Bad 0\n"
+
+[[case]]
+id = "zic-error-unknown-line"
+argv = ["zic", "-d", "out", "z.in"]
+tags = ["error"]
+[case.files]
+"z.in" = "Bogus a b c\n"
+
+[[case]]
+id = "zic-missing-file"
+argv = ["zic", "-d", "out", "nada.in"]
+tags = ["error"]
+
+[[case]]
+id = "zic-bad-option"
+argv = ["zic", "-x"]
+tags = ["error", "usage"]
+
+[[case]]
+id = "zic-bad-b"
+argv = ["zic", "-b", "thin", "-d", "out", "z.in"]
+tags = ["error", "usage"]
+[case.files]
+"z.in" = "Zone Test/Fixed -3:00 - -03\n"
+
+[[case]]
+id = "zic-help"
+argv = ["zic", "--help"]
+tags = ["usage"]
+
+[[case]]
+id = "zic-version"
+argv = ["zic", "--version"]
+tags = ["usage"]
+
+[[case]]
+id = "zic-equals-operand"
+argv = ["zic", "="]
+tags = ["usage", "edge"]

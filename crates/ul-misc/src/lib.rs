@@ -5,7 +5,7 @@
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
 //! `getent`, `locale` e `iconv` (glibc 2.41). Do dpkg 1.22 também o `update-alternatives`.
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`, `setarch` (e links), `chrt`, `choom`, `lsns` e `prlimit`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
+//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`, `setarch` (e links), `chrt`, `choom`, `lsns` e `prlimit`. Da glibc 2.41 também o `zdump` e o `zic` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
 //! e, como os scripts originais rodando no `sh`, `savelog`, `add-shell` e `remove-shell`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
@@ -63,6 +63,7 @@ pub mod groupmgmt;
 pub mod hardlink;
 pub mod hexdump;
 pub mod iconv;
+pub mod iconvconfig;
 pub mod ionice;
 pub mod ipcmk;
 pub mod ipcrm;
@@ -70,6 +71,7 @@ pub mod ipcs;
 pub mod ischroot;
 pub mod isosize;
 pub mod lessecho;
+pub mod ldconfig;
 pub mod lesskey;
 pub mod losetup;
 pub mod mkswap;
@@ -127,6 +129,7 @@ pub mod which;
 pub mod wipefs;
 pub mod xxd;
 pub mod zdump;
+pub mod zic;
 
 use sysabi::Program;
 
@@ -251,6 +254,8 @@ pub fn programs() -> Vec<Program> {
         Program::sbin("add-shell", debscripts::add_shell_main),
         Program::sbin("blkdiscard", blkdiscard::main),
         Program::sbin("fsfreeze", fsfreeze::main),
+        Program::sbin("iconvconfig", iconvconfig::main),
+        Program::sbin("ldconfig", ldconfig::main),
         Program::sbin("fstrim", fstrim::main),
         Program::sbin("pivot_root", pivot_root::main),
         Program::sbin("switch_root", switch_root::main),
@@ -269,6 +274,7 @@ pub fn programs() -> Vec<Program> {
         Program::sbin("swapoff", swapoff::main),
         Program::sbin("swapon", swapon::main),
         Program::sbin("wipefs", wipefs::main),
+        Program::sbin("zic", zic::main),
         Program::sbin("chgpasswd", shadowconv::chgpasswd_main),
         Program::sbin("chpasswd", shadowconv::chpasswd_main),
         Program::sbin("grpconv", shadowconv::grpconv_main),

@@ -1,0 +1,95 @@
+tool = "ldconfig"
+source = "manual"
+
+# ldconfig da glibc 2.41 (libc-bin). Os casos de cache usam um root vazio (-r) para não depender
+# das bibliotecas do sistema.
+
+[[case]]
+id = "ldconfig-help"
+argv = ["ldconfig", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "ldconfig-help-short"
+argv = ["ldconfig", "-?"]
+tags = ["help"]
+
+[[case]]
+id = "ldconfig-usage"
+argv = ["ldconfig", "--usage"]
+tags = ["help"]
+
+[[case]]
+id = "ldconfig-version"
+argv = ["ldconfig", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "ldconfig-bad-option"
+argv = ["ldconfig", "-x"]
+tags = ["error", "options"]
+
+[[case]]
+id = "ldconfig-bad-long-option"
+argv = ["ldconfig", "--frobnicate"]
+tags = ["error", "options"]
+
+[[case]]
+id = "ldconfig-missing-argument"
+argv = ["ldconfig", "-C"]
+tags = ["error", "options"]
+
+[[case]]
+id = "ldconfig-print-missing-cache"
+script = "ldconfig -p -C nao-existe.cache; echo \"exit=$?\""
+tags = ["print", "error"]
+
+[[case]]
+id = "ldconfig-print-not-a-cache"
+script = "echo lixo > fake.cache; ldconfig -p -C fake.cache; echo \"exit=$?\""
+tags = ["print", "error"]
+
+[[case]]
+id = "ldconfig-bad-root"
+script = "ldconfig -r nao-existe; echo \"exit=$?\""
+tags = ["error", "root"]
+
+[[case]]
+id = "ldconfig-empty-cache-print"
+script = "mkdir -p root/etc && : > root/etc/ld.so.conf && ldconfig -r \"$PWD/root\"; echo \"exit=$?\"; ldconfig -p -r \"$PWD/root\"; echo \"exit=$?\""
+tags = ["cache", "print"]
+
+[[case]]
+id = "ldconfig-cache-magic"
+script = "mkdir -p root/etc && : > root/etc/ld.so.conf && ldconfig -r \"$PWD/root\" && head -c 20 root/etc/ld.so.cache; echo"
+tags = ["cache", "format"]
+
+[[case]]
+id = "ldconfig-custom-cache-file"
+script = "mkdir -p root/etc && : > root/etc/ld.so.conf && ldconfig -r \"$PWD/root\" -C /etc/other.cache && ldconfig -p -r \"$PWD/root\" -C /etc/other.cache"
+tags = ["cache", "print"]
+
+[[case]]
+id = "ldconfig-no-cache-flag"
+script = "mkdir -p root/etc && : > root/etc/ld.so.conf && ldconfig -N -r \"$PWD/root\"; echo \"exit=$?\"; test -e root/etc/ld.so.cache && echo existe || echo ausente"
+tags = ["cache", "options"]
+
+[[case]]
+id = "ldconfig-only-cmdline-no-cache"
+script = "mkdir -p root/etc root/lib && ldconfig -n -r \"$PWD/root\" /lib; echo \"exit=$?\"; test -e root/etc/ld.so.cache && echo existe || echo ausente"
+tags = ["cache", "options"]
+
+[[case]]
+id = "ldconfig-missing-conf-warning"
+script = "mkdir -p root/etc && ldconfig -N -r \"$PWD/root\" -f /etc/nao-existe.conf; echo \"exit=$?\""
+tags = ["conf", "error"]
+
+[[case]]
+id = "ldconfig-manual-link-missing"
+script = "ldconfig -l nao-existe.so.1; echo \"exit=$?\""
+tags = ["link", "error"]
+
+[[case]]
+id = "ldconfig-manual-link-not-elf"
+script = "echo texto > libfoo.so.1; ldconfig -l libfoo.so.1; echo \"exit=$?\""
+tags = ["link", "error"]
