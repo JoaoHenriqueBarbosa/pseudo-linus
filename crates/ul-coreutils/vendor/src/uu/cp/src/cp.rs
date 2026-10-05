@@ -2853,7 +2853,7 @@ fn copy_file(
         // fall back to the original source path
         let src_for_attrs = canonicalize(source, MissingHandling::Normal, ResolveMode::Physical)
             .ok()
-            .filter(|p| p.sys_exists())
+            .filter(sysio::path::PathExt::sys_exists)
             .unwrap_or_else(|| source.to_path_buf());
         copy_attributes(
             &src_for_attrs,
@@ -3062,7 +3062,7 @@ fn copy_fifo(dest: &Path, overwrite: OverwriteMode, debug: bool) -> CopyResult<(
         fs::remove_file(dest)?;
     }
     // Porte pseudo-linus: mkfifo(3) do pseudo-processo.
-    sysio::fs::mkfifo(dest, 0o666)
+    fs::mkfifo(dest, 0o666)
         .map_err(|_| translate!("cp-error-cannot-create-fifo", "path" => dest.quote()).into())
 }
 
@@ -3075,7 +3075,7 @@ fn copy_socket(dest: &Path, overwrite: OverwriteMode, debug: bool) -> CopyResult
 
     // Porte pseudo-linus: o nó de socket pelo mknod(2) do pseudo-kernel (o `UnixListener::bind`
     // criava o socket no host). O GNU também recria o nó com mknod.
-    sysio::fs::mknod(dest, libc::S_IFSOCK | 0o777, 0)?;
+    fs::mknod(dest, libc::S_IFSOCK | 0o777, 0)?;
     Ok(())
 }
 
@@ -3093,7 +3093,7 @@ fn copy_node(
     // Porte pseudo-linus: mknod(2) do pseudo-kernel.
     let sflag = if source_metadata.file_type().is_char_device() { libc::S_IFCHR } else { libc::S_IFBLK };
     let mode = source_metadata.mode() & 0o7777;
-    sysio::fs::mknod(dest, sflag | mode, source_metadata.rdev())
+    fs::mknod(dest, sflag | mode, source_metadata.rdev())
         .map_err(|e| translate!("cp-error-cannot-create-special-file", "path" => dest.quote(), "error" => strip_errno(&e)).into())
 }
 

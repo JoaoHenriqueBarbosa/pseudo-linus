@@ -99,12 +99,11 @@ fn write_fd(sys: &Arc<dyn Syscalls>, fd: Fd, s: &[u8]) {
 /// Lê um arquivo inteiro pelo sysabi.
 fn read_file(sys: &Arc<dyn Syscalls>, path: &[u8]) -> Result<Vec<u8>, sysabi::Errno> {
     let fd = sys.openat(Fd::CWD, path, OFlags::RDONLY | OFlags::CLOEXEC, 0)?;
-    if let Ok(st) = sys.fstat(fd) {
-        if st.file_type() == sysabi::FileType::Directory {
+    if let Ok(st) = sys.fstat(fd)
+        && st.file_type() == sysabi::FileType::Directory {
             let _ = sys.close(fd);
             return Err(sysabi::Errno::EISDIR);
         }
-    }
     let mut out = Vec::new();
     let mut buf = vec![0u8; 65536];
     loop {
@@ -144,11 +143,10 @@ fn find_source(sys: &Arc<dyn Syscalls>, name: &str) -> Result<(String, Vec<u8>),
             }
         }
     }
-    if !name.ends_with(".awk") {
-        if let Ok(d) = read_file(sys, format!("{name}.awk").as_bytes()) {
+    if !name.ends_with(".awk")
+        && let Ok(d) = read_file(sys, format!("{name}.awk").as_bytes()) {
             return Ok((format!("{name}.awk"), d));
         }
-    }
     first.map(|d| (name.to_string(), d))
 }
 

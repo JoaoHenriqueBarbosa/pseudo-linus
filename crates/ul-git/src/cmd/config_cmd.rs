@@ -278,12 +278,11 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
                         out.push(if z { 0 } else { b'\t' });
                     }
                     out.extend_from_slice(e.key.as_bytes());
-                    if !p.has("name-only") {
-                        if let Some(v) = &e.value {
+                    if !p.has("name-only")
+                        && let Some(v) = &e.value {
                             out.push(if z { b'\n' } else { b'=' });
                             out.extend_from_slice(&canonical_value(&e.key, Some(v), t)?);
                         }
-                    }
                     out.push(if z { 0 } else { b'\n' });
                 }
             }

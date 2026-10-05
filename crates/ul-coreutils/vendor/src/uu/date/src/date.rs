@@ -14,7 +14,7 @@ mod locale;
 use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use clap::{Arg, ArgAction, Command};
 use jiff::fmt::strtime;
-use jiff::tz::{Offset, TimeZone, TimeZoneDatabase};
+use jiff::tz::{Offset, TimeZone};
 use jiff::{Timestamp, Zoned};
 use parse_datetime::{ExtendedDateTime, ParsedDateTime};
 use std::borrow::Cow;
@@ -487,7 +487,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     // uso (o clap daria o erro de conflito dele).
     let date_options = [OPT_DATE, OPT_FILE, OPT_REFERENCE]
         .iter()
-        .filter(|id| matches.contains_id(**id))
+        .filter(|id| matches.contains_id(id))
         .count()
         + usize::from(matches.get_flag(OPT_RESOLUTION));
     if date_options > 1 {

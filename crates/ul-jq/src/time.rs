@@ -54,18 +54,15 @@ impl TimeZone {
         let name = text.strip_prefix(':').unwrap_or(&text);
         // Arquivo no sistema de arquivos do sandbox (caminho absoluto ou relativo ao TZDIR).
         let path = if name.starts_with('/') { name.to_string() } else { format!("/usr/share/zoneinfo/{name}") };
-        if !name.contains("..") {
-            if let Ok(data) = sysabi::sys::read_file(path.as_bytes()) {
-                if let Ok(tz) = jiff::tz::TimeZone::tzif(name, &data) {
+        if !name.contains("..")
+            && let Ok(data) = sysabi::sys::read_file(path.as_bytes())
+                && let Ok(tz) = jiff::tz::TimeZone::tzif(name, &data) {
                     return TimeZone { tz: Some(tz), fallback: name.into() };
                 }
-            }
-        }
-        if let Some((canon, data)) = jiff_tzdb::get(name) {
-            if let Ok(tz) = jiff::tz::TimeZone::tzif(canon, data) {
+        if let Some((canon, data)) = jiff_tzdb::get(name)
+            && let Ok(tz) = jiff::tz::TimeZone::tzif(canon, data) {
                 return TimeZone { tz: Some(tz), fallback: name.into() };
             }
-        }
         if let Ok(tz) = jiff::tz::TimeZone::posix(name) {
             return TimeZone { tz: Some(tz), fallback: name.into() };
         }
@@ -312,10 +309,7 @@ pub fn strftime(v: &Val, fmt: &Val, tz: Option<&TimeZone>) -> ValR {
         Val::Num(n) => {
             let f = n.as_f64();
             let tm = if tz.is_some() { localtime_r(to_time_t(f), zone) } else { gmtime_r(to_time_t(f)) };
-            match broken_down(tm, f) {
-                Ok(a) => a,
-                Err(e) => return Err(e),
-            }
+            broken_down(tm, f)?
         }
         Val::Arr(_) => {
             if !fmt.is_str() {
@@ -586,7 +580,7 @@ fn parse_tm<'a>(input: &'a str, fmt: &str, tm: &mut Tm, tz: &TimeZone) -> Option
         if st.want_century {
             tm.year = tm.year % 100 + (c - 19) * 100;
         } else {
-            tm.year = (c - 19) * 100 + tm.year;
+            tm.year += (c - 19) * 100;
         }
     }
     if st.want_xday && !st.have_wday {

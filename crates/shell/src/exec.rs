@@ -240,12 +240,11 @@ impl Shell {
             return Ok(());
         }
         let in_func = self.in_function();
-        if let Some(cmd) = self.traps.err.clone() {
-            if (!in_func || self.opts.get("errtrace")) && self.in_trap == 0 {
+        if let Some(cmd) = self.traps.err.clone()
+            && (!in_func || self.opts.get("errtrace")) && self.in_trap == 0 {
                 self.run_trap_command(&cmd, status)?;
                 self.status = status;
             }
-        }
         if self.opts.get("errexit") {
             return Err(Flow::Exit(status));
         }
@@ -510,10 +509,7 @@ impl Shell {
         self.exit_trap_done = true;
         if let Some(cmd) = self.traps.signals.get(&crate::shell::TRAP_EXIT).cloned() {
             self.traps.signals.remove(&crate::shell::TRAP_EXIT);
-            match self.run_trap_command(&cmd, status) {
-                Err(Flow::Exit(n)) => return n & 0xff,
-                _ => {}
-            }
+            if let Err(Flow::Exit(n)) = self.run_trap_command(&cmd, status) { return n & 0xff }
         }
         status & 0xff
     }
@@ -703,21 +699,19 @@ impl Shell {
         if self.in_trap == 0 {
             self.current_command = crate::print::simple_text(s);
         }
-        if let Some(dbg) = self.traps.debug.clone() {
-            if self.in_trap == 0 && (!self.in_function() || self.opts.get("functrace")) {
+        if let Some(dbg) = self.traps.debug.clone()
+            && self.in_trap == 0 && (!self.in_function() || self.opts.get("functrace")) {
                 self.run_trap_command(&dbg, self.status)?;
             }
-        }
         // 1. Palavras.
         let decl = s.words.first().is_some_and(|w| is_decl_name(&w.raw));
         let mut args: Vec<Arg> = Vec::with_capacity(s.words.len());
         for (i, w) in s.words.iter().enumerate() {
-            if decl && i > 0 {
-                if let Some(a) = &w.assign {
+            if decl && i > 0
+                && let Some(a) = &w.assign {
                     args.push(Arg::Assign(self.expand_decl_arg(a)?));
                     continue;
                 }
-            }
             for f in self.expand_word_fields(w)? {
                 args.push(Arg::Word(f));
             }
@@ -908,8 +902,8 @@ impl Shell {
     /// Procura no PATH (usando e preenchendo a tabela do `hash`).
     pub fn find_in_path(&mut self, name: &[u8], use_hash: bool) -> Option<Vec<u8>> {
         let key = String::from_utf8_lossy(name).into_owned();
-        if use_hash {
-            if let Some((p, hits)) = self.hash.get_mut(&key) {
+        if use_hash
+            && let Some((p, hits)) = self.hash.get_mut(&key) {
                 *hits += 1;
                 let p = p.clone();
                 if is_executable_file(&p) {
@@ -917,13 +911,11 @@ impl Shell {
                 }
                 self.hash.remove(&key);
             }
-        }
         let found = self.search_path(name);
-        if let Some(p) = &found {
-            if use_hash && self.opts.get("hashall") {
+        if let Some(p) = &found
+            && use_hash && self.opts.get("hashall") {
                 self.hash.insert(key, (p.clone(), 1));
             }
-        }
         found
     }
 
@@ -1009,12 +1001,11 @@ impl Shell {
             }
             return Ok(127);
         }
-        if let Ok(st) = sys().fstatat(Fd::CWD, path, AtFlags::empty()) {
-            if st.file_type() == FileType::Directory {
+        if let Ok(st) = sys().fstatat(Fd::CWD, path, AtFlags::empty())
+            && st.file_type() == FileType::Directory {
                 self.error(format!("{shown}: Is a directory"));
                 return Ok(126);
             }
-        }
         self.error(format!("{shown}: {}", e.message()));
         Ok(126)
     }
@@ -1096,12 +1087,11 @@ impl Shell {
             Err(Flow::Return(n)) => Ok(n),
             other => other,
         };
-        if let Some(ret) = self.traps.ret.clone() {
-            if self.in_trap == 0 && (self.opts.get("functrace") || true) {
+        if let Some(ret) = self.traps.ret.clone()
+            && self.in_trap == 0 && (self.opts.get("functrace") || true) {
                 let st = *r.as_ref().unwrap_or(&self.status);
                 let _ = self.run_trap_command(&ret, st);
             }
-        }
         self.func_depth -= 1;
         self.loop_depth = saved_loop;
         self.params = saved_params;
@@ -1162,11 +1152,10 @@ impl Shell {
                 builtins::select_loop(self, var, items, body)
             }
             CompoundKind::ArithFor { init, cond, step, body } => {
-                if let Some(i) = init {
-                    if let Err(f) = self.arith_command_eval(i, "((") {
+                if let Some(i) = init
+                    && let Err(f) = self.arith_command_eval(i, "((") {
                         return f;
                     }
-                }
                 let mut status = 0;
                 self.loop_depth += 1;
                 let r = loop {
@@ -1193,11 +1182,10 @@ impl Shell {
                         }
                         Err(f) => break Err(f),
                     }
-                    if let Some(s) = step {
-                        if let Err(f) = self.arith_command_eval(s, "((") {
+                    if let Some(s) = step
+                        && let Err(f) = self.arith_command_eval(s, "((") {
                             break f;
                         }
-                    }
                 };
                 self.loop_depth -= 1;
                 r
@@ -1485,13 +1473,12 @@ impl Shell {
         }
         let sigs = sys().take_caught_signals();
         for sig in sigs {
-            if let Some(cmd) = self.traps.signals.get(&sig.0).cloned() {
-                if !cmd.is_empty() {
+            if let Some(cmd) = self.traps.signals.get(&sig.0).cloned()
+                && !cmd.is_empty() {
                     let st = self.status;
                     self.run_trap_command(&cmd, st)?;
                     self.status = st;
                 }
-            }
         }
         Ok(())
     }

@@ -148,14 +148,13 @@ impl Run {
     }
 
     fn main(&mut self) -> Result<(), Fail> {
-        if let Some(dir) = self.o.directory.clone() {
-            if let Err(e) = sys::current().chdir(&dir) {
+        if let Some(dir) = self.o.directory.clone()
+            && let Err(e) = sys::current().chdir(&dir) {
                 let mut m = b"Can't change to directory ".to_vec();
                 m.extend_from_slice(&self.q(&dir));
                 m.extend_from_slice(format!(" : {}", e.message()).as_bytes());
                 return Err(m);
             }
-        }
         let raw = self.read_patch()?;
         // O GNU abre a saída do -o logo no começo (fica vazia se nada for aplicado; um arquivo que já
         // existe é truncado e mantém o modo).
@@ -540,8 +539,8 @@ impl Run {
             }
             if let Some(style) = self.o.merge {
                 // --merge: sem fuzz, aplica direto; senão, fusão de três vias na melhor posição.
-                if let Some(pos) = locate_level(builder.lines(), &h, &cursor, 0, &matcher) {
-                    if builder.apply(&h, pos).is_ok() {
+                if let Some(pos) = locate_level(builder.lines(), &h, &cursor, 0, &matcher)
+                    && builder.apply(&h, pos).is_ok() {
                         let offset = pos as isize - h.old_first as isize;
                         cursor.in_offset = offset;
                         if offset != 0 {
@@ -550,7 +549,6 @@ impl Run {
                         net += h.new.len() as isize - h.old.len() as isize;
                         continue;
                     }
-                }
                 let mut pos = None;
                 for f in 1..=self.o.fuzz {
                     if let Some(p) = locate_level(builder.lines(), &h, &cursor, f, &matcher) {

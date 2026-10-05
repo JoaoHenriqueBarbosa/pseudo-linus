@@ -18,7 +18,6 @@ use std::num::IntErrorKind;
 use std::path::PathBuf;
 use std::str::Utf8Error;
 use std::string::FromUtf8Error;
-use std::time::SystemTime;
 use thiserror::Error;
 
 use uucore::display::Quotable;

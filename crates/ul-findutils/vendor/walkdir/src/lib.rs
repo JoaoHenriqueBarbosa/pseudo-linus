@@ -897,8 +897,8 @@ impl IntoIter {
     }
 
     fn get_deferred_dir(&mut self) -> Option<DirEntry> {
-        if self.opts.contents_first {
-            if self.depth < self.deferred_dirs.len() {
+        if self.opts.contents_first
+            && self.depth < self.deferred_dirs.len() {
                 // Unwrap is safe here because we've guaranteed that
                 // `self.deferred_dirs.len()` can never be less than 1
                 let deferred: DirEntry = self
@@ -909,7 +909,6 @@ impl IntoIter {
                     return Some(deferred);
                 }
             }
-        }
         None
     }
 
@@ -928,7 +927,7 @@ impl IntoIter {
         if let Some(ref mut cmp) = self.opts.sorter {
             let mut entries: Vec<_> = list.collect();
             entries.sort_by(|a, b| match (a, b) {
-                (&Ok(ref a), &Ok(ref b)) => cmp(a, b),
+                (Ok(a), Ok(b)) => cmp(a, b),
                 (&Err(_), &Err(_)) => Ordering::Equal,
                 (&Ok(_), &Err(_)) => Ordering::Greater,
                 (&Err(_), &Ok(_)) => Ordering::Less,
@@ -936,7 +935,7 @@ impl IntoIter {
             list = DirList::Closed(entries.into_iter());
         }
         if self.opts.follow_links {
-            let ancestor = Ancestor::new(&dent)
+            let ancestor = Ancestor::new(dent)
                 .map_err(|err| Error::from_io(self.depth, err))?;
             self.stack_path.push(ancestor);
         }

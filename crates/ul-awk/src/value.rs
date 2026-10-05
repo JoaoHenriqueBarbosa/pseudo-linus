@@ -7,8 +7,10 @@ use std::rc::Rc;
 pub type Str = Rc<[u8]>;
 
 #[derive(Clone, Debug)]
+#[derive(Default)]
 pub enum Value {
     /// Variável nunca atribuída: vale `""` e `0` ao mesmo tempo.
+    #[default]
     Uninit,
     Num(f64),
     Str(Str),
@@ -21,11 +23,6 @@ pub enum Value {
     Bool(bool),
 }
 
-impl Default for Value {
-    fn default() -> Self {
-        Value::Uninit
-    }
-}
 
 pub fn empty_str() -> Str {
     Rc::from(&b""[..])

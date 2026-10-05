@@ -481,12 +481,11 @@ impl<'p> Interp<'p> {
         let t = match args.get(1) {
             Some(e) => {
                 let x = self.eval_num(e)?;
-                if x < 0.0 || !x.is_finite() {
-                    if x < 0.0 {
+                if (x < 0.0 || !x.is_finite())
+                    && x < 0.0 {
                         self.warning("strftime: second argument less than 0 or too big for time_t");
                         return Ok(Value::Str(empty_str()));
                     }
-                }
                 x as i64
             }
             None => self.now(),
@@ -532,13 +531,12 @@ impl<'p> Interp<'p> {
         };
         match arg {
             Expr::Var(v) => {
-                if let Var::Global(i) = v {
-                    if *i < sv::COUNT && !matches!(*i, sv::ENVIRON | sv::ARGV | sv::PROCINFO | sv::SYMTAB | sv::FUNCTAB) {
+                if let Var::Global(i) = v
+                    && *i < sv::COUNT && !matches!(*i, sv::ENVIRON | sv::ARGV | sv::PROCINFO | sv::SYMTAB | sv::FUNCTAB) {
                         let x = self.read_var(*v)?;
                         let s = self.to_str(&x);
                         return Ok(Value::Num(char_count(&s) as f64));
                     }
-                }
                 match self.var_cell(*v) {
                     Cell::Arr(a) => Ok(Value::Num(a.borrow().len() as f64)),
                     Cell::Uninit => {
@@ -599,13 +597,12 @@ impl<'p> Interp<'p> {
     fn array_arg(&mut self, e: &Expr, fname: &str, argno: usize) -> R<ArrRef> {
         match e {
             Expr::Var(v) => {
-                if let Var::Global(i) = v {
-                    if *i < sv::COUNT && !matches!(*i, sv::ENVIRON | sv::ARGV | sv::PROCINFO | sv::SYMTAB | sv::FUNCTAB) {
+                if let Var::Global(i) = v
+                    && *i < sv::COUNT && !matches!(*i, sv::ENVIRON | sv::ARGV | sv::PROCINFO | sv::SYMTAB | sv::FUNCTAB) {
                         let _ = argno;
                         let n = crate::parser::SPECIALS[*i as usize];
                         return Err(self.fatal(format!("{fname}: cannot use special variable `{n}' as {}", ordinal_arg(argno))));
                     }
-                }
                 self.get_array(*v)
             }
             Expr::Index(v, groups) => self.array_at(*v, groups),
@@ -1057,11 +1054,10 @@ pub fn gensub(re: &Regex, s: &[u8], repl: &[u8], which: Option<usize>) -> Vec<u8
         } else {
             pos = me;
         }
-        if let Some(n) = which {
-            if nth >= n {
+        if let Some(n) = which
+            && nth >= n {
                 break;
             }
-        }
     }
     if pos < s.len() {
         out.extend_from_slice(&s[pos..]);

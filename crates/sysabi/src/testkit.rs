@@ -1166,11 +1166,10 @@ impl Syscalls for ProcHandle {
             if r.name.is_empty() || r.name == b"." {
                 return Err(Errno::EINVAL);
             }
-            if let Kind::Dir(m) = &w.node(ino).kind {
-                if !m.is_empty() {
+            if let Kind::Dir(m) = &w.node(ino).kind
+                && !m.is_empty() {
                     return Err(Errno::ENOTEMPTY);
                 }
-            }
         } else {
             if is_dir {
                 return Err(Errno::EISDIR);
@@ -1203,11 +1202,10 @@ impl Syscalls for ProcHandle {
                 (true, false) => return Err(Errno::ENOTDIR),
                 (false, true) => return Err(Errno::EISDIR),
                 (true, true) => {
-                    if let Kind::Dir(m) = &w.node(d).kind {
-                        if !m.is_empty() {
+                    if let Kind::Dir(m) = &w.node(d).kind
+                        && !m.is_empty() {
                             return Err(Errno::ENOTEMPTY);
                         }
-                    }
                 }
                 _ => {}
             }
@@ -1441,8 +1439,8 @@ impl Syscalls for ProcHandle {
         let e = self.fd_entry(old)?;
         let removed = self.with_proc(|w, pid| {
             let p = w.procs.get_mut(&pid).expect("processo");
-            let prev = p.fds.insert(new.0, FdEntry { file: e.file.clone(), cloexec });
-            prev
+            
+            p.fds.insert(new.0, FdEntry { file: e.file.clone(), cloexec })
         });
         drop(removed);
         Ok(new)
@@ -1697,15 +1695,14 @@ impl Syscalls for ProcHandle {
                 self.deliver(sig)?;
             } else {
                 let mut w = self.w();
-                if let Some(p) = w.procs.get_mut(&pid) {
-                    if p.status.is_none() {
+                if let Some(p) = w.procs.get_mut(&pid)
+                    && p.status.is_none() {
                         match p.sigs.get(&sig.0).copied().unwrap_or(SigDisposition::Default) {
                             SigDisposition::Catch => p.caught.push(sig),
                             SigDisposition::Ignore => {}
                             SigDisposition::Default => p.pending_fatal = Some(sig),
                         }
                     }
-                }
             }
         }
         Ok(())
@@ -2148,13 +2145,12 @@ impl TestKit {
     /// Ajusta o mtime (e atime) de um caminho já existente.
     pub fn set_mtime(&self, path: &[u8], sec: i64) {
         let mut w = lock(&self.world);
-        if let Ok(r) = w.resolve(b"/", path, false) {
-            if let Some(ino) = r.ino {
+        if let Ok(r) = w.resolve(b"/", path, false)
+            && let Some(ino) = r.ino {
                 let n = w.node_mut(ino);
                 n.mtime = TimeSpec { sec, nsec: 0 };
                 n.atime = TimeSpec { sec, nsec: 0 };
             }
-        }
     }
 
     pub fn cwd(mut self, path: &str) -> TestKit {

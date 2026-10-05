@@ -312,7 +312,7 @@ impl Repo {
             if pre == "refs" {
                 continue;
             }
-            if matches!(self.read_ref(&pre)?, Some(_)) && !os::is_dir(&self.ref_file(&pre)) {
+            if self.read_ref(&pre)?.is_some() && !os::is_dir(&self.ref_file(&pre)) {
                 return Err(Fail::Fatal(format!("cannot lock ref '{name}': '{pre}' exists; cannot create '{name}'")));
             }
         }

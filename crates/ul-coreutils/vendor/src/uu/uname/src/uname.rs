@@ -10,32 +10,32 @@ use std::ffi::{OsStr, OsString};
 use clap::{Arg, ArgAction, Command};
 // Porte pseudo-linus: o `platform_info` (uname(2) do host) vira o uname(2) do pseudo-kernel, com a
 // mesma interface.
-struct PlatformInfo(sysio::sysabi::Utsname);
+struct PlatformInfo(sysabi::Utsname);
 
 impl PlatformInfo {
     fn new() -> Result<Self, ()> {
         Ok(Self(sysio::unistd::uname()))
     }
-    fn field(b: &[u8]) -> &std::ffi::OsStr {
+    fn field(b: &[u8]) -> &OsStr {
         std::os::unix::ffi::OsStrExt::from_bytes(b)
     }
-    fn sysname(&self) -> &std::ffi::OsStr {
+    fn sysname(&self) -> &OsStr {
         Self::field(&self.0.sysname)
     }
-    fn nodename(&self) -> &std::ffi::OsStr {
+    fn nodename(&self) -> &OsStr {
         Self::field(&self.0.nodename)
     }
-    fn release(&self) -> &std::ffi::OsStr {
+    fn release(&self) -> &OsStr {
         Self::field(&self.0.release)
     }
-    fn version(&self) -> &std::ffi::OsStr {
+    fn version(&self) -> &OsStr {
         Self::field(&self.0.version)
     }
-    fn machine(&self) -> &std::ffi::OsStr {
+    fn machine(&self) -> &OsStr {
         Self::field(&self.0.machine)
     }
-    fn osname(&self) -> &std::ffi::OsStr {
-        std::ffi::OsStr::new("GNU/Linux")
+    fn osname(&self) -> &OsStr {
+        OsStr::new("GNU/Linux")
     }
 }
 use uucore::display::{print_verbatim, println_verbatim};

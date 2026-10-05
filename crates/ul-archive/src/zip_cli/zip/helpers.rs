@@ -285,15 +285,14 @@ impl Zip {
                 return ZE_CREAT;
             }
         }
-        if !copy {
-            if let Err(e) = sys::current().renameat2(Fd::CWD, s, Fd::CWD, d, sysabi::RenameFlags::empty()) {
+        if !copy
+            && let Err(e) = sys::current().renameat2(Fd::CWD, s, Fd::CWD, d, sysabi::RenameFlags::empty()) {
                 self.last_errno = Some(e);
                 copy = true;
                 if e != Errno::EXDEV {
                     return ZE_CREAT;
                 }
             }
-        }
         if copy {
             let data = match sysutil::read_path(s) {
                 Ok(d) => d,
@@ -423,11 +422,10 @@ impl Zip {
                 }
             }
         }
-        if self.dispose {
-            if let Err(code) = self.trash() {
+        if self.dispose
+            && let Err(code) = self.trash() {
                 return Err(self.ziperr(code, "was deleting moved files and directories"));
             }
-        }
         if let Some(fd) = self.logfile.take() {
             let _ = sys::close(fd);
         }

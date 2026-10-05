@@ -102,7 +102,7 @@ pub fn format_ifdef(out: &mut Vec<u8>, changes: &[Change], a: &[&[u8]], b: &[&[u
         let (end0, end1) = (ch.line0 + ch.deleted, ch.line1 + ch.inserted);
         if next0 < ch.line0 || next1 < ch.line1 {
             let g = Group { a: (next0, ch.line0), b: (next1, ch.line1) };
-            let _ = ctx.group_format(out, &fmts.group(Kind::Unchanged), g);
+            ctx.group_format(out, &fmts.group(Kind::Unchanged), g);
         }
         let kind = match (ch.deleted > 0, ch.inserted > 0) {
             (true, true) => Kind::Changed,
@@ -111,13 +111,13 @@ pub fn format_ifdef(out: &mut Vec<u8>, changes: &[Change], a: &[&[u8]], b: &[&[u
             (false, false) => continue,
         };
         let g = Group { a: (ch.line0, end0), b: (ch.line1, end1) };
-        let _ = ctx.group_format(out, &fmts.group(kind), g);
+        ctx.group_format(out, &fmts.group(kind), g);
         next0 = end0;
         next1 = end1;
     }
     if next0 < a.len() || next1 < b.len() {
         let g = Group { a: (next0, a.len()), b: (next1, b.len()) };
-        let _ = ctx.group_format(out, &fmts.group(Kind::Unchanged), g);
+        ctx.group_format(out, &fmts.group(Kind::Unchanged), g);
     }
 }
 
@@ -304,11 +304,10 @@ impl Ctx<'_> {
                                 i += 1;
                                 if f.get(i) == Some(&b'(') {
                                     depth += 1;
-                                } else if f.get(i) == Some(&b'c') && f.get(i + 1) == Some(&b'\'') {
-                                    if let Some((_, n)) = parse_char(&f[i + 1..]) {
+                                } else if f.get(i) == Some(&b'c') && f.get(i + 1) == Some(&b'\'')
+                                    && let Some((_, n)) = parse_char(&f[i + 1..]) {
                                         i += n;
                                     }
-                                }
                             } else if f[i] == b')' {
                                 depth -= 1;
                             }

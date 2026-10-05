@@ -271,11 +271,10 @@ pub fn expand_user(p: &[u8]) -> Vec<u8> {
         if let Some(h) = os::getenv("HOME") {
             return os::join(&h, rest);
         }
-    } else if p == b"~" {
-        if let Some(h) = os::getenv("HOME") {
+    } else if p == b"~"
+        && let Some(h) = os::getenv("HOME") {
             return h;
         }
-    }
     p.to_vec()
 }
 

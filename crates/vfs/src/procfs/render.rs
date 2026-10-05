@@ -78,9 +78,9 @@ pub(super) fn stat(p: &ProcData) -> Vec<u8> {
     o.extend_from_slice(&p.comm);
     let (vsize, rss) = p.mem.map_or((0, 0), |m| (m.vm_size * 1024, m.vm_rss / 4));
     let sigmask = 0x7fff_ffff;
-    let _ = write!(
+    let _ = writeln!(
         o,
-        ") {} {} {} {} 0 -1 {} 0 0 0 0 {} {} {} {} {} {} {} 0 {} {} {} {} 0 0 0 0 0 {} {} {} {} {} 0 0 {} {} 0 0 0 0 0 0 0 0 0 0 0 0 {}\n",
+        ") {} {} {} {} 0 -1 {} 0 0 0 0 {} {} {} {} {} {} {} 0 {} {} {} {} 0 0 0 0 0 {} {} {} {} {} 0 0 {} {} 0 0 0 0 0 0 0 0 0 0 0 0 {}",
         p.state,
         p.ppid,
         p.pgid,

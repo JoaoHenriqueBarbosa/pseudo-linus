@@ -254,7 +254,7 @@ pub fn read_meminfo() -> Result<MemVals, String> {
         avail,
         swap_total,
         swap_free,
-        swap_used: if swap_free < swap_total { swap_total - swap_free } else { 0 },
+        swap_used: swap_total.saturating_sub(swap_free),
     })
 }
 

@@ -369,6 +369,7 @@ pub enum SortOrder {
 
 /// Opções de casamento de padrão em vigor (posicionais: valem pros padrões seguintes).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Default)]
 pub struct MatchFlags {
     pub anchored: Option<bool>,
     pub ignore_case: bool,
@@ -376,11 +377,6 @@ pub struct MatchFlags {
     pub match_slash: Option<bool>,
 }
 
-impl Default for MatchFlags {
-    fn default() -> Self {
-        MatchFlags { anchored: None, ignore_case: false, wildcards: None, match_slash: None }
-    }
-}
 
 /// Um operando, com o diretório (`-C`) e as opções de casamento em vigor quando apareceu.
 #[derive(Clone, Debug)]

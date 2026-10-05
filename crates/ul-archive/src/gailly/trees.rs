@@ -307,6 +307,12 @@ pub struct Trees {
     pub bits: BitOut,
 }
 
+impl Default for Trees {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Trees {
     pub fn new() -> Trees {
         Trees {
@@ -719,7 +725,7 @@ impl Trees {
             self.cmpr_bytelen = stored_len;
             self.file_method = STORE;
         } else if stored_len + 4 <= opt_lenb && buf.is_some() {
-            self.bits.send_bits((0 << 1) + eof_bit, 3);
+            self.bits.send_bits(eof_bit, 3);
             self.cmpr_bytelen += ((self.cmpr_len_bits + 3 + 7) >> 3) + stored_len + 4;
             self.cmpr_len_bits = 0;
             let block = buf.unwrap();

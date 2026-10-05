@@ -6,7 +6,7 @@
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use crate::platform::Writer;
 use sysio::env;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use sysio::io::{Error, Result};
 use sysio::io::{ErrorKind, Write};
 use std::path::Path;

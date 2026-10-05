@@ -251,11 +251,10 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         if hook_exists {
             let _ = os::unlink(&temp);
         }
-        if let Some(code) = result? {
-            if code != 0 {
+        if let Some(code) = result?
+            && code != 0 {
                 return Ok(1);
             }
-        }
     }
 
     let tree = repo.write_tree_from_index(tree_idx)?;
@@ -373,14 +372,13 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         message.push(b'\n');
     }
     os::write(&editmsg, &message, 0o666).map_err(|e| Fail::Fatal(format!("could not write '{}': {}", os::lossy(&editmsg), e.message())))?;
-    if p.flag("no-verify") != Some(true) {
-        if let Some(code) = editor::run_hook(&hooks, "commit-msg", &[editmsg.as_slice()], &[])? {
+    if p.flag("no-verify") != Some(true)
+        && let Some(code) = editor::run_hook(&hooks, "commit-msg", &[editmsg.as_slice()], &[])? {
             if code != 0 {
                 return Ok(1);
             }
             message = os::read(&editmsg).unwrap_or(message);
         }
-    }
 
     // O commit.
     let mut parents: Vec<Oid> = match (&head_commit, amend) {

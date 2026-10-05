@@ -51,7 +51,7 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     let mut absolute_paths = false;
     let mut i = 0;
     // Saída de um id de acordo com as opções.
-    let mut push_line = |out: &mut Vec<u8>, s: &[u8]| {
+    let push_line = |out: &mut Vec<u8>, s: &[u8]| {
         out.extend_from_slice(s);
         out.push(b'\n');
     };
@@ -391,23 +391,21 @@ fn rev_arg(
             return Ok(true);
         }
         // `A^@` (pais) e `A^!` (A sem os pais).
-        if let Some(base) = a.strip_suffix(b"^@") {
-            if let Some(c) = r.rev_parse_commit(base)? {
+        if let Some(base) = a.strip_suffix(b"^@")
+            && let Some(c) = r.rev_parse_commit(base)? {
                 for p in r.parents(&c)? {
                     line(out, not, &fmt(&p));
                 }
                 return Ok(true);
             }
-        }
-        if let Some(base) = a.strip_suffix(b"^!") {
-            if let Some(c) = r.rev_parse_commit(base)? {
+        if let Some(base) = a.strip_suffix(b"^!")
+            && let Some(c) = r.rev_parse_commit(base)? {
                 line(out, not, &fmt(&c));
                 for p in r.parents(&c)? {
                     line(out, !not, &fmt(&p));
                 }
                 return Ok(true);
             }
-        }
     }
     let Some(id) = r.rev_parse(a)? else { return Ok(false) };
     if verify && !r.odb.exists(&id) {
@@ -432,15 +430,12 @@ fn rev_arg(
     }
     if symbolic_full {
         let name = os::lossy(a);
-        match r.dwim_ref_name(&name)? {
-            Some(full) => {
-                let full = match r.resolve_ref(&full)? {
-                    Some((f, _)) => f,
-                    None => full,
-                };
-                line(out, not, full.as_bytes());
-            }
-            None => {}
+        if let Some(full) = r.dwim_ref_name(&name)? {
+            let full = match r.resolve_ref(&full)? {
+                Some((f, _)) => f,
+                None => full,
+            };
+            line(out, not, full.as_bytes());
         }
         return Ok(true);
     }

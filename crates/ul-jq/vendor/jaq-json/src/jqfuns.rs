@@ -290,7 +290,7 @@ fn implode(v: &Val) -> ValR {
             return Err(type_error(n, "can't be imploded, unicode codepoint needs to be numeric"));
         };
         let nv = f.clamp(i32::MIN as f64, i32::MAX as f64) as i64;
-        let c = if nv < 0 || nv > 0x10FFFF || (0xD800..=0xDFFF).contains(&nv) { 0xFFFD } else { nv as u32 };
+        let c = if !(0..=0x10FFFF).contains(&nv) || (0xD800..=0xDFFF).contains(&nv) { 0xFFFD } else { nv as u32 };
         s.push(char::from_u32(c).unwrap_or('\u{FFFD}'));
     }
     Ok(Val::from(s))

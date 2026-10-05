@@ -129,29 +129,23 @@ fn split_ranges(data: &[u8], split: &ContextSplit) -> Vec<(usize, usize)> {
         ContextSplit::Whole => ranges.push((0, n)),
         ContextSplit::Lines => {
             while start < n {
-                match data[start..].iter().position(|&b| b == b'\n') {
-                    Some(rel) => {
-                        ranges.push((start, start + rel));
-                        start += rel + 1;
-                    }
-                    None => {
-                        ranges.push((start, n));
-                        start = n;
-                    }
+                if let Some(rel) = data[start..].iter().position(|&b| b == b'\n') {
+                    ranges.push((start, start + rel));
+                    start += rel + 1;
+                } else {
+                    ranges.push((start, n));
+                    start = n;
                 }
             }
         }
         ContextSplit::Sentences => {
             while start < n {
-                match next_sentence_end(data, start) {
-                    Some((end, next)) => {
-                        ranges.push((start, end));
-                        start = next;
-                    }
-                    None => {
-                        ranges.push((start, n));
-                        start = n;
-                    }
+                if let Some((end, next)) = next_sentence_end(data, start) {
+                    ranges.push((start, end));
+                    start = next;
+                } else {
+                    ranges.push((start, n));
+                    start = n;
                 }
             }
         }
@@ -269,16 +263,14 @@ pub(crate) struct WordFilter {
 
 impl WordFilter {
     fn allows(&self, word: &[u8]) -> bool {
-        if let Some(only) = &self.only {
-            if !only.contains(word) {
+        if let Some(only) = &self.only
+            && !only.contains(word) {
                 return false;
             }
-        }
-        if let Some(ignore) = &self.ignore {
-            if ignore.contains(word) {
+        if let Some(ignore) = &self.ignore
+            && ignore.contains(word) {
                 return false;
             }
-        }
         true
     }
 }

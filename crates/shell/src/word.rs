@@ -175,13 +175,12 @@ impl WordParser<'_> {
             if in_brace && (c == b',' || c == b'}') {
                 break;
             }
-            if tilde_ok && c == b'~' && mode == Mode::Normal {
-                if let Some(t) = self.try_tilde() {
+            if tilde_ok && c == b'~' && mode == Mode::Normal
+                && let Some(t) = self.try_tilde() {
                     parts.push(t);
                     tilde_ok = false;
                     continue;
                 }
-            }
             tilde_ok = false;
             match c {
                 b'\\' => {
@@ -380,11 +379,10 @@ impl WordParser<'_> {
         let quotes_special = !in_double && matches!(self.opts.mode, Mode::Normal | Mode::Subscript | Mode::PatternInDouble);
         match next {
             Some(b'(') => {
-                if self.at(2) == Some(b'(') {
-                    if let Some(p) = self.try_arith()? {
+                if self.at(2) == Some(b'(')
+                    && let Some(p) = self.try_arith()? {
                         return Ok(DollarResult::Part(p));
                     }
-                }
                 self.parse_comsub().map(DollarResult::Part)
             }
             Some(b'[') => {
@@ -654,13 +652,11 @@ impl WordParser<'_> {
         if ok && alts.len() >= 2 {
             return Ok(Some(Part::Brace(alts)));
         }
-        if ok && alts.len() == 1 {
-            if let [Part::Lit(text)] = alts[0].as_slice() {
-                if let Some(seq) = parse_brace_seq(text) {
+        if ok && alts.len() == 1
+            && let [Part::Lit(text)] = alts[0].as_slice()
+                && let Some(seq) = parse_brace_seq(text) {
                     return Ok(Some(Part::BraceSeq(seq)));
                 }
-            }
-        }
         self.i = save_i;
         self.line = save_line;
         Ok(None)
@@ -682,9 +678,9 @@ pub fn find_brace_end(s: &[u8], src: &str, start: usize) -> Option<usize> {
             b'\\' => j += 2,
             b'\'' => {
                 // Dentro de `${...}` as aspas simples protegem `}` (bash).
-                match s[j + 1..].iter().position(|b| *b == b'\'') {
-                    Some(p) => j += p + 2,
-                    None => return None,
+                {
+                    let p = s[j + 1..].iter().position(|b| *b == b'\'')?;
+                    j += p + 2
                 }
             }
             b'"' => {
@@ -847,21 +843,19 @@ pub fn parse_param_inner(inner: &str, in_dq: bool, line: Line) -> Result<ParamEx
     }
 
     // `${#parametro}` (comprimento), a não ser que o resto não seja só um parâmetro.
-    if t[0] == b'#' && t.len() > 1 {
-        if let Some((name, n)) = scan_param_name(&t[1..]) {
+    if t[0] == b'#' && t.len() > 1
+        && let Some((name, n)) = scan_param_name(&t[1..]) {
             let mut k = 1 + n;
             let mut index = None;
-            if matches!(name, ParamName::Var(_)) && t.get(k) == Some(&b'[') {
-                if let Some(e) = scan_subscript(&t[k..]) {
+            if matches!(name, ParamName::Var(_)) && t.get(k) == Some(&b'[')
+                && let Some(e) = scan_subscript(&t[k..]) {
                     index = Some(index_of(&inner[k + 1..k + e], line)?);
                     k += e + 1;
                 }
-            }
             if k == t.len() {
                 return Ok(ParamExp { name, index, indirect: false, op: ParamOp::Length, braced: true, raw });
             }
         }
-    }
 
     let mut j = 0;
     let mut indirect = false;
@@ -928,9 +922,9 @@ fn find_unquoted(s: &[u8], src: &str, target: u8) -> Option<usize> {
     while j < s.len() {
         match s[j] {
             b'\\' => j += 2,
-            b'\'' => match s[j + 1..].iter().position(|b| *b == b'\'') {
-                Some(p) => j += p + 2,
-                None => return None,
+            b'\'' => {
+                let p = s[j + 1..].iter().position(|b| *b == b'\'')?;
+                j += p + 2
             },
             b'"' => {
                 j += 1;

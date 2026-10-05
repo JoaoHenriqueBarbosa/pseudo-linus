@@ -11,7 +11,6 @@ use sysio::fs::File;
 use sysio::io::{self, BufReader, BufWriter, Read, Write, stdin, stdout};
 use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 use clap::{Arg, ArgAction, Command, builder::ValueParser};
 use rand::{

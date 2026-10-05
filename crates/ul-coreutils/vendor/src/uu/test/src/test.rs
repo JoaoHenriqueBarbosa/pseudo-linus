@@ -387,7 +387,7 @@ fn path(path: &OsStr, condition: &PathCondition) -> bool {
     // Porte pseudo-linus: -r, -w e -x pelo `euidaccess` do GNU (o `faccessat` com o uid efetivo
     // do pseudo-kernel), que sabe que o root lê e escreve em qualquer arquivo e só executa o que
     // tem algum bit de execução. A conta pelos bits do modo dava falso pro root em modo 000.
-    let accessible = |mode: sysio::fs::Access| sysio::fs::eaccess(path, mode).is_ok();
+    let accessible = |mode: fs::Access| fs::eaccess(path, mode).is_ok();
 
     let metadata = if condition == &PathCondition::SymLink {
         fs::symlink_metadata(path)
@@ -414,12 +414,12 @@ fn path(path: &OsStr, condition: &PathCondition) -> bool {
         PathCondition::Sticky => metadata.mode() & S_ISVTX != 0,
         PathCondition::UserOwns => metadata.uid() == geteuid(),
         PathCondition::Fifo => file_type.is_fifo(),
-        PathCondition::Readable => accessible(sysio::fs::Access::R_OK),
+        PathCondition::Readable => accessible(fs::Access::R_OK),
         PathCondition::Socket => file_type.is_socket(),
         PathCondition::NonEmpty => metadata.size() > 0,
         PathCondition::UserIdFlag => metadata.mode() & S_ISUID != 0,
-        PathCondition::Writable => accessible(sysio::fs::Access::W_OK),
-        PathCondition::Executable => accessible(sysio::fs::Access::X_OK),
+        PathCondition::Writable => accessible(fs::Access::W_OK),
+        PathCondition::Executable => accessible(fs::Access::X_OK),
     }
 }
 

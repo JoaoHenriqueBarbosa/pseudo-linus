@@ -67,11 +67,10 @@ impl InputState {
     fn read_more(&mut self) -> bool {
         let at_eof = self.current.as_ref().is_none_or(|s| s.at_eof() || s.error.is_some());
         if at_eof {
-            if let Some(src) = &self.current {
-                if let Some(e) = src.error {
+            if let Some(src) = &self.current
+                && let Some(e) = src.error {
                     io::stderr(format!("jq: error: {}\n", io::strerror(e)).as_bytes());
                 }
-            }
             if self.current.is_some() {
                 self.current = None;
                 self.current_filename = None;
@@ -109,11 +108,10 @@ impl InputState {
                     self.current_line += 1;
                 }
                 // Com parser, o jq mede o pedaço com `strlen`: um NUL corta o resto.
-                if self.parser.is_some() && !line.contains(&b'\n') {
-                    if let Some(nul) = line.iter().position(|b| *b == 0) {
+                if self.parser.is_some() && !line.contains(&b'\n')
+                    && let Some(nul) = line.iter().position(|b| *b == 0) {
                         line.truncate(nul);
                     }
-                }
                 self.buf = line;
             }
         }
@@ -122,11 +120,10 @@ impl InputState {
 
     /// `jq_util_input_next_input`, com `--stream` aplicado por cima.
     pub fn next_value(&mut self) -> Input {
-        if let Some(st) = &mut self.stream {
-            if let Some(v) = st.pending.pop_front() {
+        if let Some(st) = &mut self.stream
+            && let Some(v) = st.pending.pop_front() {
                 return Some(Ok(v));
             }
-        }
         let r = self.next_raw();
         match (r, &mut self.stream) {
             (Some(Ok(v)), Some(st)) => {

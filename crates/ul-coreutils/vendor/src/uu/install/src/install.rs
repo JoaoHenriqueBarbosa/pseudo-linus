@@ -872,7 +872,7 @@ fn create_dest(to: &Path) -> UResult<File> {
 
 fn metadata_for_source(path: &Path) -> UResult<fs::Metadata> {
     // Porte pseudo-linus: stat(2) no FS do pseudo-processo.
-    sysio::path::PathExt::sys_metadata(path)
+    PathExt::sys_metadata(path)
         .map_err_context(|| format!("cannot stat {}", path.quote()))
 }
 

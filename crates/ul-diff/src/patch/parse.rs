@@ -207,8 +207,8 @@ fn strip_newline(v: &mut Vec<u8>) {
 
 fn git_names(rest: &[u8]) -> (Option<Vec<u8>>, Option<Vec<u8>>) {
     let l = super::names::strip_eol(rest);
-    if l.first() == Some(&b'"') {
-        if let Some(a) = fetch_name(l) {
+    if l.first() == Some(&b'"')
+        && let Some(a) = fetch_name(l) {
             // Depois do primeiro nome entre aspas vem o segundo.
             let mut quoted_len = 1;
             let mut esc = false;
@@ -225,7 +225,6 @@ fn git_names(rest: &[u8]) -> (Option<Vec<u8>>, Option<Vec<u8>>) {
             let b = fetch_name(&l[quoted_len.min(l.len())..]).map(|h| h.name);
             return (Some(a.name), b);
         }
-    }
     // a/x b/x: corta no meio quando os dois lados têm o mesmo caminho, senão no " b/".
     let n = l.len();
     if n % 2 == 1 {
@@ -452,12 +451,11 @@ impl<'a> Scanner<'a> {
                 self.pos = n;
                 return Some(Chunk { old: None, new: None, index, git, leading, input_line: i + 1, body: Body::Ed(script) });
             }
-            if let Some(g) = git.take() {
-                if g.has_effect() {
+            if let Some(g) = git.take()
+                && g.has_effect() {
                     self.pos = i;
                     return Some(self.header_only(start, i, i, index, g));
                 }
-            }
             i += 1;
         }
         if let Some(g) = git.take()

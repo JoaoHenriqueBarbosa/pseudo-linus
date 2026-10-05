@@ -1091,9 +1091,9 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         error(&format!("Your local changes to the following files would be overwritten by merge:\n  {}", os::lossy(&names)));
         return strategy_failed(&strategy);
     }
-    let clean: bool;
-    if strategy == "ours" {
-        clean = true;
+    
+    let clean: bool = if strategy == "ours" {
+        true
     } else {
         let mopts = merge_options(repo, &mo, &remote.name)?;
         let ordered: Vec<Oid> = bases.iter().rev().copied().collect();
@@ -1105,8 +1105,8 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         }
         repo.write_pseudoref("AUTO_MERGE", format!("{}\n", outcome.tree).as_bytes())?;
         outcome.display();
-        clean = outcome.clean;
-    }
+        outcome.clean
+    };
 
     let heads = [remote.obj];
     if clean && mo.option_commit != 0 {

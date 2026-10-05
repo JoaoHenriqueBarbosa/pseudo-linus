@@ -170,11 +170,10 @@ pub fn tty_dev_by_name(name: &str) -> Option<u64> {
         tries.push(format!("/dev/pts/{name}"));
     }
     for t in tries {
-        if let Ok(st) = sys::stat(t.as_bytes()) {
-            if st.file_type() == FileType::CharDevice {
+        if let Ok(st) = sys::stat(t.as_bytes())
+            && st.file_type() == FileType::CharDevice {
                 return Some(st.rdev);
             }
-        }
     }
     None
 }
@@ -210,10 +209,9 @@ pub fn signal_rt(s: &str) -> Option<i32> {
     let bare = up.strip_prefix("SIG").unwrap_or(&up);
     let (base, rest) = if let Some(r) = bare.strip_prefix("RTMIN") {
         (sysabi::linux::SIGRTMIN, r)
-    } else if let Some(r) = bare.strip_prefix("RTMAX") {
-        (sysabi::linux::SIGRTMAX, r)
     } else {
-        return None;
+        let r = bare.strip_prefix("RTMAX")?;
+        (sysabi::linux::SIGRTMAX, r)
     };
     if rest.is_empty() {
         return Some(base);
@@ -279,7 +277,7 @@ pub fn utmp_users() -> usize {
     const RECORD: usize = 384;
     const USER_PROCESS: i16 = 7;
     let Some(data) = sys::read_file(b"/var/run/utmp").ok() else { return 0 };
-    data.chunks_exact(RECORD)
+    data.as_chunks::<RECORD>().0.iter()
         .filter(|r| i16::from_le_bytes([r[0], r[1]]) == USER_PROCESS && r[44] != 0)
         .count()
 }

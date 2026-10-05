@@ -56,11 +56,10 @@ impl Zip {
                         }
                     }
                 }
-                b'i' => {
-                    if imatch {
+                b'i'
+                    if imatch => {
                         continue;
                     }
-                }
                 _ => {}
             }
             if self.matches(&pat.zname, p, casesensitive) {
@@ -110,7 +109,7 @@ impl Zip {
                 self.scan_start = self.now_sec();
             }
             self.scan_count += 1;
-            if self.scan_count % 100 == 0 {
+            if self.scan_count.is_multiple_of(100) {
                 let current = self.now_sec();
                 if current - self.scan_start > self.scan_delay {
                     if self.scan_last == 0 {
@@ -155,23 +154,20 @@ impl Zip {
             // Não acrescenta o próprio arquivo zip a ele mesmo.
             if self.zipstate == -1 {
                 self.zipstatb = None;
-                if self.zipfile != b"-" {
-                    if let Ok(s) = sysutil::stat(&self.zipfile) {
+                if self.zipfile != b"-"
+                    && let Ok(s) = sysutil::stat(&self.zipfile) {
                         self.zipstatb = Some(s);
                     }
-                }
                 self.zipstate = self.zipstatb.is_some() as i32;
             }
-            if self.zipstate == 1 {
-                if let (Some(zs), Ok(sb)) = (self.zipstatb.as_ref(), sysutil::stat(name)) {
-                    if zs.mode == sb.mode && zs.ino == sb.ino && zs.dev == sb.dev && zs.uid == sb.uid && zs.gid == sb.gid && zs.size == sb.size && zs.mtime.sec == sb.mtime.sec && zs.ctime.sec == sb.ctime.sec {
+            if self.zipstate == 1
+                && let (Some(zs), Ok(sb)) = (self.zipstatb.as_ref(), sysutil::stat(name))
+                    && zs.mode == sb.mode && zs.ino == sb.ino && zs.dev == sb.dev && zs.uid == sb.uid && zs.gid == sb.gid && zs.size == sb.size && zs.mtime.sec == sb.mtime.sec && zs.ctime.sec == sb.ctime.sec {
                         if self.verbose > 0 {
                             self.mesg_raw(b"file matches zip file -- skipping\n");
                         }
                         return Ok(());
                     }
-                }
-            }
             let uname = local_to_utf8(&iname);
             self.found.push(Flist { name: name.to_vec(), iname, zname, oname, uname, dosflag, usize: 0 });
         }
@@ -223,8 +219,8 @@ impl Zip {
                     self.newname(&p, true, caseflag)?;
                 }
             }
-            if self.recurse != 0 {
-                if let Ok(entries) = sysabi::sys::read_dir(n) {
+            if self.recurse != 0
+                && let Ok(entries) = sysabi::sys::read_dir(n) {
                     for e in entries {
                         if e.name == b"." || e.name == b".." {
                             continue;
@@ -241,7 +237,6 @@ impl Zip {
                         }
                     }
                 }
-            }
         } else if mode & S_IFIFO == S_IFIFO {
             if self.allow_fifo {
                 if self.noisy {
@@ -281,8 +276,8 @@ impl Zip {
         }
         // Também os nomes Unicode escapados.
         for i in 0..self.zfiles.len() {
-            if let Some(zu) = self.zfiles[i].zuname.clone() {
-                if self.matches(&p, &zu, caseflag) {
+            if let Some(zu) = self.zfiles[i].zuname.clone()
+                && self.matches(&p, &zu, caseflag) {
                     let mark = if !self.patterns.is_empty() { self.filter(&zu, caseflag) as i32 } else { 1 };
                     self.zfiles[i].mark = mark;
                     if self.verbose > 0 {
@@ -295,7 +290,6 @@ impl Zip {
                     }
                     m = false;
                 }
-            }
         }
         Ok(if m { ZE_MISS } else { ZE_OK })
     }
@@ -309,14 +303,13 @@ impl Zip {
         if let Some(i) = bsearch(&self.zsort, |idx| namecmp(n, &self.zfiles[idx].zname)) {
             return Some(i);
         }
-        if self.unicode_mismatch != 3 && self.fix != 2 {
-            if let Some(i) = bsearch(&self.zusort, |idx| {
+        if self.unicode_mismatch != 3 && self.fix != 2
+            && let Some(i) = bsearch(&self.zusort, |idx| {
                 let z = &self.zfiles[idx];
                 namecmp(n, z.zuname.as_deref().unwrap_or(&z.zname))
             }) {
                 return Some(i);
             }
-        }
         None
     }
 

@@ -529,7 +529,7 @@ pub fn remove(files: &[&OsStr], options: &Options) -> bool {
         }
 
         // Porte pseudo-linus: lstat(2) no FS do pseudo-processo.
-        had_err = match sysio::path::PathExt::sys_symlink_metadata(file) {
+        had_err = match PathExt::sys_symlink_metadata(file) {
             Ok(metadata) => {
                 // Create progress bar on first successful file metadata read
                 if options.progress && progress_bar.is_none() {

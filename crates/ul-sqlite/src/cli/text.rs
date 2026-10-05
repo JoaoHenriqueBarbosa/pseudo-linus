@@ -271,7 +271,7 @@ pub fn html_string(z: &[u8]) -> Vec<u8> {
 
 /// `needCsvQuote` do shell.c.
 fn need_csv_quote(c: u8) -> bool {
-    c < 0x20 || c == b' ' || c == b'"' || c == b'\'' || c >= 0x7f
+    c <= 0x20 || c == b'"' || c == b'\'' || c >= 0x7f
 }
 
 /// Um termo de CSV (`output_csv` sem o separador).

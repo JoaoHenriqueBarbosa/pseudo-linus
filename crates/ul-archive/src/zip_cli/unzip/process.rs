@@ -277,8 +277,8 @@ impl Uz {
                 error_in_archive = error;
             }
         }
-        if win + warn + lose == 0 && miss_dirs + miss_files == 1 {
-            if let Some(last) = lastzipfn {
+        if win + warn + lose == 0 && miss_dirs + miss_files == 1
+            && let Some(last) = lastzipfn {
                 (miss_dirs, miss_files) = (0, 0);
                 error_in_archive = PK_OK;
                 self.zipfn = [last.as_slice(), b".zip"].concat();
@@ -303,7 +303,6 @@ impl Uz {
                 }
                 error_in_archive = error_in_archive.max(error);
             }
-        }
         let o = &self.o;
         if matching::is_wild(&self.wildzipfn) && o.qflag < 3 && !(o.t_flag && !o.zipinfo_mode && o.qflag > 1) {
             if (miss_files + lose + warn > 0 || win != 1) && !(o.t_flag && !o.zipinfo_mode && o.qflag != 0) && !(o.tflag != 0 && o.qflag > 1) {

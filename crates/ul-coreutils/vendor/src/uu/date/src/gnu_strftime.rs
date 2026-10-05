@@ -71,13 +71,13 @@ pub struct Tm {
 
 impl Tm {
     /// Decompõe um instante com o fuso que ele carrega.
-    pub fn from_zoned(z: &Zoned) -> Tm {
+    pub fn from_zoned(z: &Zoned) -> Self {
         let ts = z.timestamp();
         let mut epoch = ts.as_second();
         if ts.subsec_nanosecond() < 0 {
             epoch -= 1;
         }
-        Tm {
+        Self {
             year: i64::from(z.year()),
             mon: i32::from(z.month()) - 1,
             mday: i32::from(z.day()),
@@ -432,12 +432,11 @@ fn directive(
         sp.width = w;
     }
     let mut modifier = '\0';
-    if let Some(&m) = fmt.get(f) {
-        if m == 'E' || m == 'O' {
+    if let Some(&m) = fmt.get(f)
+        && (m == 'E' || m == 'O') {
             modifier = m;
             f += 1;
         }
-    }
     // `%` no fim do formato: o que veio depois do `%` sai como texto.
     let Some(&fc) = fmt.get(f) else {
         return bad(out, fmt, start, f - 1, &sp);

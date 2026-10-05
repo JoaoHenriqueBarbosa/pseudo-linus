@@ -926,12 +926,9 @@ impl EnvAppData {
             let mut cmd = sysio::process::Command::new(prog_os);
             cmd.arg0(arg0_os).args(args);
             let e = cmd.exec();
-            match e.raw_os_error() {
-                Some(sysio::errno::ENOENT) => Err(self.make_error_no_such_file_or_dir(&prog)),
-                _ => {
-                    uucore::show_error!("{}: {}", uucore::display::locale_quote(&*prog), strip_errno(&e));
-                    Err(126.into())
-                }
+            if let Some(sysio::errno::ENOENT) = e.raw_os_error() { Err(self.make_error_no_such_file_or_dir(&prog)) } else {
+                uucore::show_error!("{}: {}", uucore::display::locale_quote(&*prog), strip_errno(&e));
+                Err(126.into())
             }
         }
 

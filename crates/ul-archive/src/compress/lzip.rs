@@ -720,7 +720,7 @@ fn index(data: &[u8]) -> Option<(Vec<(u32, u64)>, u64)> {
 
 /// Dicionário como o lzip mostra: "N KiB" ou "N MiB".
 fn format_ds(d: u32) -> String {
-    if d % (1 << 20) == 0 { format!("{} MiB", d >> 20) } else { format!("{} KiB", d >> 10) }
+    if d.is_multiple_of(1 << 20) { format!("{} MiB", d >> 20) } else { format!("{} KiB", d >> 10) }
 }
 
 /// Coluna "saved" do `-l`.

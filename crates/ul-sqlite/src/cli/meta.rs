@@ -685,10 +685,7 @@ fn dispatch(sh: &mut Shell, args: &[Vec<u8>]) -> Result<i32, Exit> {
                 z.extend_from_slice(a);
             }
         }
-        let x = match popen_system(&z) {
-            Some(st) => st,
-            None => 127 << 8,
-        };
+        let x = popen_system(&z).unwrap_or(127 << 8);
         if x != 0 {
             sh.eputs(&format!("System command returns {x}\n"));
         }

@@ -912,14 +912,11 @@ impl Shell {
                         }
                     } else {
                         self.open_db(false)?;
-                        match exec::shell_exec(self, &z)? {
-                            Some(err) => {
-                                self.eputs(&format!("Error: {}\n", err.message));
-                                if self.bail {
-                                    return Ok(if err.rc != 0 { err.rc } else { 1 });
-                                }
+                        if let Some(err) = exec::shell_exec(self, &z)? {
+                            self.eputs(&format!("Error: {}\n", err.message));
+                            if self.bail {
+                                return Ok(if err.rc != 0 { err.rc } else { 1 });
                             }
-                            None => {}
                         }
                     }
                 }

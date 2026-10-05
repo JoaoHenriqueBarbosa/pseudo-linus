@@ -175,11 +175,10 @@ impl Options {
             if *c == b'i' {
                 continue;
             }
-            if let Some(i) = Self::letter_index(*c) {
-                if self.set[i] {
+            if let Some(i) = Self::letter_index(*c)
+                && self.set[i] {
                     out.push(*c);
                 }
-            }
         }
         out
     }

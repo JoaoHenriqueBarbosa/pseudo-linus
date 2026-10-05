@@ -149,14 +149,13 @@ pub fn parse(prog: &str, sources: Vec<Source>, loader: &mut IncludeLoader<'_>) -
     // Conferências do fim do parse.
     let mut st = st;
     for (name, src, line) in std::mem::take(&mut st.var_uses) {
-        if let Some(&f) = st.funcs.get(&name) {
-            if st.program.functions[f as usize].defined {
+        if let Some(&f) = st.funcs.get(&name)
+            && st.program.functions[f as usize].defined {
                 let loc = location(&st.program.sources, src, line);
                 st.errors.push_str(&format!(
                     "{prog}: {loc}: error: function `{name}' called with space between name and `(',\nor used as a variable or an array\n"
                 ));
             }
-        }
     }
     for (f, nargs, src, line) in std::mem::take(&mut st.calls) {
         let func = &st.program.functions[f as usize];
@@ -615,11 +614,10 @@ impl<'a, 's, 'l> Parser<'a, 's, 'l> {
     }
 
     fn resolve_var(&mut self, raw: &str, line: u32) -> Var {
-        if let Some(locals) = &self.locals {
-            if let Some(i) = locals.iter().position(|p| &**p == raw) {
+        if let Some(locals) = &self.locals
+            && let Some(i) = locals.iter().position(|p| &**p == raw) {
                 return Var::Local(i as u32);
             }
-        }
         let name = self.qualify(raw);
         self.st.var_uses.push((name.clone(), self.src_idx, line));
         Var::Global(self.global_index(&name))
@@ -844,9 +842,9 @@ impl<'a, 's, 'l> Parser<'a, 's, 'l> {
         } else {
             let e = self.exp()?;
             if self.is(&Tok::RParen) {
-                if let Expr::In(keys, arr, path) = e {
-                    if keys.len() == 1 {
-                        if let Expr::Var(v) = &keys[0] {
+                if let Expr::In(keys, arr, path) = e
+                    && keys.len() == 1
+                        && let Expr::Var(v) = &keys[0] {
                             let v = *v;
                             self.advance()?;
                             self.loop_depth += 1;
@@ -854,8 +852,6 @@ impl<'a, 's, 'l> Parser<'a, 's, 'l> {
                             self.loop_depth -= 1;
                             return Ok(self.mk(StmtKind::ForIn(v, arr, path, Box::new(body?)), line));
                         }
-                    }
-                }
                 return Err(self.error_here());
             }
             let e = self.check_expr(e)?;
@@ -1082,15 +1078,14 @@ impl<'a, 's, 'l> Parser<'a, 's, 'l> {
     /// Se vier operador de atribuição depois de um alvo simples, é atribuição.
     fn maybe_assign(&mut self, e: Expr, no_gt: bool) -> PResult<Expr> {
         let Some(op) = is_assign_op(&self.tok.tok) else { return Ok(e) };
-        if let Expr::IncDec(target, false, _) = &e {
-            if let LValue::Field(_) = **target {
+        if let Expr::IncDec(target, false, _) = &e
+            && let LValue::Field(_) = **target {
                 // O gawk só percebe ao reduzir a atribuição: o circunflexo fica depois do lado direito.
                 self.advance()?;
                 let _ = self.exp_ctx(no_gt)?;
                 let t = self.tok.clone();
                 return Err(self.error_at(&t, "cannot assign a value to the result of a field post-increment expression"));
             }
-        }
         if !e.is_lvalue() {
             return Err(self.error_here());
         }
@@ -1599,16 +1594,14 @@ impl<'a, 's, 'l> Parser<'a, 's, 'l> {
             }
             Tok::FuncName(n) => {
                 let name = self.qualify(&n);
-                if let Some(locals) = &self.locals {
-                    if locals.iter().any(|p| **p == *n) {
+                if let Some(locals) = &self.locals
+                    && locals.iter().any(|p| **p == *n) {
                         self.semantic_error(tok.line, &format!("attempt to use non-function `{n}' in function call"));
                     }
-                }
-                if let Some(&g) = self.st.globals.get(&name) {
-                    if g < sv::COUNT {
+                if let Some(&g) = self.st.globals.get(&name)
+                    && g < sv::COUNT {
                         self.semantic_error(tok.line, &format!("attempt to use non-function `{name}' in function call"));
                     }
-                }
                 self.advance()?;
                 let args = self.call_args()?;
                 let idx = self.func_index(&name);
@@ -1629,11 +1622,10 @@ impl<'a, 's, 'l> Parser<'a, 's, 'l> {
             Tok::Builtin(name) if !crate::lexer::is_posix_builtin(name) && self.shadowed_builtin(name) => {
                 // Extensão do gawk sombreada por parâmetro, variável ou função de outro namespace.
                 self.advance()?;
-                if let Some(locals) = &self.locals {
-                    if let Some(i) = locals.iter().position(|p| &**p == name) {
+                if let Some(locals) = &self.locals
+                    && let Some(i) = locals.iter().position(|p| &**p == name) {
                         return Ok(Expr::Var(Var::Local(i as u32)));
                     }
-                }
                 let q = self.qualify(name);
                 if self.is(&Tok::LParen) && !tok.space_before {
                     let args = self.call_args()?;
@@ -1695,11 +1687,10 @@ impl<'a, 's, 'l> Parser<'a, 's, 'l> {
     /// O nome de uma extensão do gawk está sombreado aqui? (parâmetro da função corrente, ou namespace
     /// fora do `awk` em que o nome não é seguido de `(` ou já existe a função `ns::nome`).
     fn shadowed_builtin(&self, name: &str) -> bool {
-        if let Some(locals) = &self.locals {
-            if locals.iter().any(|p| &**p == name) {
+        if let Some(locals) = &self.locals
+            && locals.iter().any(|p| &**p == name) {
                 return true;
             }
-        }
         if self.st.namespace == "awk" {
             return false;
         }

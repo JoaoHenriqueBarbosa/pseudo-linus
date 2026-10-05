@@ -74,7 +74,7 @@ impl Command {
         match cmd.status() {
             Ok(st) => Ok(ExitStatus(st.code().unwrap_or(1))),
             Err(e) => {
-                let msg = e.raw_os_error().map(|n| sysio::sysabi::Errno(n).message().to_string()).unwrap_or_else(|| e.to_string());
+                let msg = e.raw_os_error().map_or_else(|| e.to_string(), |n| sysio::sysabi::Errno(n).message().clone());
                 let _ = writeln!(&mut stderr(), "find: ‘{}’: {msg}", self.argv[0].to_string_lossy());
                 Ok(ExitStatus(1))
             }

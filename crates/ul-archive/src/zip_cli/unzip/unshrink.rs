@@ -32,7 +32,7 @@ const STACK_AT: usize = VALUE_AT + HSIZE;
 
 impl Shrink {
     fn from_area(area: &[u8]) -> Shrink {
-        let parent = area[..VALUE_AT].chunks_exact(4).map(|c| i32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect();
+        let parent = area[..VALUE_AT].as_chunks::<4>().0.iter().map(|c| i32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect();
         Shrink { parent, value: area[VALUE_AT..STACK_AT].to_vec(), stack: area[STACK_AT..STACK_AT + HSIZE].to_vec() }
     }
 

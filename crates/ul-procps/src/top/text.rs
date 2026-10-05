@@ -213,21 +213,18 @@ pub fn scale_tics(tics: u64, hertz: u64, width: i32, justr: bool, target: u32) -
     let fits = |s: String| -> Option<Vec<u8>> {
         (width >= s.len() as i32).then(|| justify_pad(s.as_bytes(), width, justr))
     };
-    if target == 0 && mins < 361 {
-        if let Some(r) = fits(format!("{}:{:02}.{:02}", mins, secs % 60, cent)) {
+    if target == 0 && mins < 361
+        && let Some(r) = fits(format!("{}:{:02}.{:02}", mins, secs % 60, cent)) {
             return r;
         }
-    }
-    if target <= 1 && mins < 361 {
-        if let Some(r) = fits(format!("{}:{:02}", mins, secs % 60)) {
+    if target <= 1 && mins < 361
+        && let Some(r) = fits(format!("{}:{:02}", mins, secs % 60)) {
             return r;
         }
-    }
-    if target <= 2 && hour < 97 {
-        if let Some(r) = fits(format!("{},{:02}", hour, mins % 60)) {
+    if target <= 2 && hour < 97
+        && let Some(r) = fits(format!("{},{:02}", hour, mins % 60)) {
             return r;
         }
-    }
     if target <= 3 {
         if days < 15 {
             if let Some(r) = fits(format!("{}d+{}h", days, hour % 24)) {
@@ -237,16 +234,14 @@ pub fn scale_tics(tics: u64, hertz: u64, width: i32, justr: bool, target: u32) -
                 return r;
             }
         }
-    } else if target == 4 {
-        if let Some(r) = fits(format!("{days}d")) {
+    } else if target == 4
+        && let Some(r) = fits(format!("{days}d")) {
             return r;
         }
-    }
-    if target <= 5 {
-        if let Some(r) = fits(format!("{}w+{}d", week, days % 7)) {
+    if target <= 5
+        && let Some(r) = fits(format!("{}w+{}d", week, days % 7)) {
             return r;
         }
-    }
     if let Some(r) = fits(format!("{week}w")) {
         return r;
     }

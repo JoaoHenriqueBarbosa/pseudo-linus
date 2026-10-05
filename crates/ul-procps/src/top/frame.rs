@@ -231,13 +231,11 @@ impl Top {
     pub fn adj_geometry(&mut self) {
         // O que o ncurses deixa em `columns` e `lines` (o terminfo do dumb, mudado por COLUMNS/LINES).
         let mut cols = env_positive("COLUMNS").map_or(80, |v| v as i32);
-        if let Some(sysc) = sys::try_current() {
-            if let Ok(ws) = sysc.tcgetwinsize(Fd::STDOUT) {
-                if ws.cols > 0 && ws.rows > 0 {
+        if let Some(sysc) = sys::try_current()
+            && let Ok(ws) = sysc.tcgetwinsize(Fd::STDOUT)
+                && ws.cols > 0 && ws.rows > 0 {
                     cols = i32::from(ws.cols);
                 }
-            }
-        }
         cols = cols.clamp(W_MIN_COL, SCREENMAX);
         if !self.w_set {
             if self.width_mode > 0 {

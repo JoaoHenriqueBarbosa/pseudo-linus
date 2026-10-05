@@ -645,7 +645,7 @@ impl<'p> Exec<'p> {
                 let re = self.resolve(r)?;
                 re.re.is_match(&self.ps)
             }
-            Addr::Step(first, step) => self.line_no >= *first && (self.line_no - first) % step == 0,
+            Addr::Step(first, step) => self.line_no >= *first && (self.line_no - first).is_multiple_of(*step),
             Addr::Zero => false,
         })
     }
@@ -668,8 +668,8 @@ impl<'p> Exec<'p> {
                     re.re.is_match(&self.ps)
                 }
                 Addr2::Plus(_) => line >= self.ranges[pc].end_line,
-                Addr2::Mult(m) => *m == 0 || line % m == 0,
-                Addr2::Step(f, s) => line >= *f && (line - f) % s == 0,
+                Addr2::Mult(m) => *m == 0 || line.is_multiple_of(*m),
+                Addr2::Step(f, s) => line >= *f && (line - f).is_multiple_of(*s),
             };
             if end {
                 self.ranges[pc].active = false;
@@ -687,8 +687,8 @@ impl<'p> Exec<'p> {
                 self.ranges[pc].end_line = line + n;
                 *n > 0
             }
-            Addr2::Mult(m) => !(*m == 0 || line % m == 0),
-            Addr2::Step(f, s) => !(line >= *f && (line - f) % s == 0),
+            Addr2::Mult(m) => !(*m == 0 || line.is_multiple_of(*m)),
+            Addr2::Step(f, s) => !(line >= *f && (line - f).is_multiple_of(*s)),
         };
         self.ranges[pc].active = stays;
         Ok(true)

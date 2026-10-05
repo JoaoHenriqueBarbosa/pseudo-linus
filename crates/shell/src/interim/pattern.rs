@@ -184,15 +184,14 @@ fn class_has(items: &[ClassItem], c: u32, nocase: bool) -> bool {
     if test(c) {
         return true;
     }
-    if nocase {
-        if let Some(ch) = ch {
+    if nocase
+        && let Some(ch) = ch {
             for alt in ch.to_lowercase().chain(ch.to_uppercase()) {
                 if test(alt as u32) {
                     return true;
                 }
             }
         }
-    }
     false
 }
 

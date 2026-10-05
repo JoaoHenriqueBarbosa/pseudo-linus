@@ -272,11 +272,10 @@ fn find_source(sh: &Shell, name: &[u8]) -> Option<Vec<u8>> {
             let mut cand = if dir.is_empty() { b".".to_vec() } else { dir.to_vec() };
             cand.push(b'/');
             cand.extend_from_slice(name);
-            if let Ok(st) = sys().fstatat(Fd::CWD, &cand, sysabi::AtFlags::empty()) {
-                if st.file_type() != sysabi::FileType::Directory {
+            if let Ok(st) = sys().fstatat(Fd::CWD, &cand, sysabi::AtFlags::empty())
+                && st.file_type() != sysabi::FileType::Directory {
                     return Some(cand);
                 }
-            }
         }
     }
     if sh.posix {
@@ -427,11 +426,10 @@ fn default_path_search(name: &[u8]) -> Option<Vec<u8>> {
         let mut cand = dir.to_vec();
         cand.push(b'/');
         cand.extend_from_slice(name);
-        if let Ok(st) = sys().fstatat(Fd::CWD, &cand, sysabi::AtFlags::empty()) {
-            if st.file_type() != sysabi::FileType::Directory && st.mode & 0o111 != 0 {
+        if let Ok(st) = sys().fstatat(Fd::CWD, &cand, sysabi::AtFlags::empty())
+            && st.file_type() != sysabi::FileType::Directory && st.mode & 0o111 != 0 {
                 return Some(cand);
             }
-        }
     }
     None
 }
@@ -529,8 +527,8 @@ fn describe(sh: &mut Shell, name: &[u8], mode: DescribeMode, all: bool, force_pa
         return found;
     }
     // Arquivo: hash primeiro (só se não for -a), depois PATH.
-    if !all {
-        if let Some((p, _)) = sh.hash.get(&n).cloned() {
+    if !all
+        && let Some((p, _)) = sh.hash.get(&n).cloned() {
             let ps = String::from_utf8_lossy(&p).into_owned();
             match mode {
                 DescribeMode::Short | DescribeMode::Path => emit(sh, format!("{ps}\n")),
@@ -539,7 +537,6 @@ fn describe(sh: &mut Shell, name: &[u8], mode: DescribeMode, all: bool, force_pa
             }
             return true;
         }
-    }
     let paths: Vec<Vec<u8>> = if all { all_in_path(sh, name) } else { sh.search_path(name).into_iter().collect() };
     for p in paths {
         if !is_exec(&p) && !all {
@@ -570,11 +567,10 @@ fn all_in_path(sh: &Shell, name: &[u8]) -> Vec<Vec<u8>> {
         let mut cand = if dir.is_empty() { b".".to_vec() } else { dir.to_vec() };
         cand.push(b'/');
         cand.extend_from_slice(name);
-        if let Ok(st) = sys().fstatat(Fd::CWD, &cand, sysabi::AtFlags::empty()) {
-            if st.file_type() != sysabi::FileType::Directory && st.mode & 0o111 != 0 && !out.contains(&cand) {
+        if let Ok(st) = sys().fstatat(Fd::CWD, &cand, sysabi::AtFlags::empty())
+            && st.file_type() != sysabi::FileType::Directory && st.mode & 0o111 != 0 && !out.contains(&cand) {
                 out.push(cand);
             }
-        }
     }
     out
 }

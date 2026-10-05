@@ -134,11 +134,11 @@ fn parse_timezone(z: &[u8], p: &mut DateTime) -> bool {
     }
     p.tz = 0;
     let c = at(z, i);
-    let sgn;
-    if c == b'-' {
-        sgn = -1;
+    
+    let sgn = if c == b'-' {
+        -1
     } else if c == b'+' {
-        sgn = 1;
+        1
     } else if c == b'Z' || c == b'z' {
         i += 1;
         p.is_local = false;
@@ -149,7 +149,7 @@ fn parse_timezone(z: &[u8], p: &mut DateTime) -> bool {
         return at(z, i) != 0;
     } else {
         return c != 0;
-    }
+    };
     i += 1;
     let mut v = [0; 2];
     if get_digits(&z[i.min(z.len())..], &[(2, 0, 14, b':'), (2, 0, 59, 0)], &mut v) != 2 {
@@ -790,7 +790,7 @@ fn numeric_modifier(z: &[u8], p: &mut DateTime) -> Result<bool, String> {
     if !(3..=10).contains(&len) {
         return Ok(true);
     }
-    if rest[len - 1].to_ascii_lowercase() == b's' {
+    if rest[len - 1].eq_ignore_ascii_case(&b's') {
         len -= 1;
     }
     compute_jd(p);

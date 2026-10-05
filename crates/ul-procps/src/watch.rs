@@ -390,7 +390,7 @@ impl Watch {
         if width < rhlen {
             return;
         }
-        if rhlen + hlen + 1 <= width {
+        if rhlen + hlen < width {
             self.put_str(0, 0, &header, None);
             if rhlen + hlen + 2 <= width {
                 if width < rhlen + hlen + 4 {
@@ -522,14 +522,13 @@ impl Watch {
                         x += 1;
                         continue;
                     }
-                    if let Some(ch) = c {
-                        if x == width - 1 && wcwidth(ch as u32) == 2 {
+                    if let Some(ch) = c
+                        && x == width - 1 && wcwidth(ch as u32) == 2 {
                             y += 1;
                             x = 0;
                             carry = Some(ch);
                             continue;
                         }
-                    }
                     if c.is_none() || c == Some('\n') || c == Some('\t') {
                         c = Some(' ');
                     }
@@ -731,8 +730,8 @@ fn run(args: &[OsString]) -> i32 {
         w.height = incoming_rows;
         let _ = sysc.setenv(b"LINES", format!("{}", w.height).as_bytes());
     }
-    if let Ok(ws) = sysc.tcgetwinsize(Fd::STDERR) {
-        if incoming_cols < 0 || incoming_rows < 0 {
+    if let Ok(ws) = sysc.tcgetwinsize(Fd::STDERR)
+        && (incoming_cols < 0 || incoming_rows < 0) {
             if incoming_rows < 0 && ws.rows > 0 {
                 w.height = i64::from(ws.rows);
                 let _ = sysc.setenv(b"LINES", format!("{}", w.height).as_bytes());
@@ -742,7 +741,6 @@ fn run(args: &[OsString]) -> i32 {
                 let _ = sysc.setenv(b"COLUMNS", format!("{}", w.width).as_bytes());
             }
         }
-    }
     // initscr(): abre o terminal pelo terminfo.
     let term = sys::getenv("TERM").filter(|t| !t.is_empty());
     let found = term.as_deref().is_some_and(terminfo_exists);

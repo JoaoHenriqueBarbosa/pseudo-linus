@@ -100,8 +100,8 @@ fn bracket(p: &[u8], start: usize, c: u8, ic: bool) -> Option<(bool, usize)> {
             break;
         }
         first = false;
-        if b == b'[' && p.get(i + 1) == Some(&b':') {
-            if let Some(end) = p[i + 2..].windows(2).position(|w| w == b":]") {
+        if b == b'[' && p.get(i + 1) == Some(&b':')
+            && let Some(end) = p[i + 2..].windows(2).position(|w| w == b":]") {
                 let name = &p[i + 2..i + 2 + end];
                 if class_matches(name, c) {
                     matched = true;
@@ -109,7 +109,6 @@ fn bracket(p: &[u8], start: usize, c: u8, ic: bool) -> Option<(bool, usize)> {
                 i += 2 + end + 2;
                 continue;
             }
-        }
         let lo = if b == b'\\' && i + 1 < p.len() {
             i += 1;
             p[i]

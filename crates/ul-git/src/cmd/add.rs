@@ -248,7 +248,7 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
             let clean = path.strip_suffix(b"/").unwrap_or(&path).to_vec();
             for (i, it) in ps.items.iter().enumerate() {
                 if let Some(h) = crate::pathspec::match_item(it, &clean, path.ends_with(b"/"))
-                    && (h == Hit::Exact || (it.path.len() > 0 && !crate::wildmatch::has_glob(&it.path) && clean.starts_with(&it.path)))
+                    && (h == Hit::Exact || (!it.path.is_empty() && !crate::wildmatch::has_glob(&it.path) && clean.starts_with(&it.path)))
                 {
                     seen[i] = true;
                     if !ignored_named.contains(&it.path) && h == Hit::Exact {
@@ -278,7 +278,7 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     os::outs(&out);
     // Pathspec que não casou com nada.
     if !p.has("ignore-missing") {
-        for it in ps.unmatched(&seen) {
+        if let Some(it) = ps.unmatched(&seen).into_iter().next() {
             // Caminho que existe só como diretório vazio também não casa.
             if changed && !dry {
                 idx.write(&ipath)?;

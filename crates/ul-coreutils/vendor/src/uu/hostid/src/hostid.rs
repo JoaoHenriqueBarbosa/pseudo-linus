@@ -29,7 +29,7 @@ fn gethostid() -> c_long {
         if let Ok(hosts) = sysio::fs::read("/etc/hosts") {
             for line in hosts.split(|b| *b == b'\n') {
                 let line = line.split(|b| *b == b'#').next().unwrap_or(&[]);
-                let mut fields = line.split(|b| b.is_ascii_whitespace()).filter(|f| !f.is_empty());
+                let mut fields = line.split(u8::is_ascii_whitespace).filter(|f| !f.is_empty());
                 let Some(addr) = fields.next() else { continue };
                 if !fields.any(|name| name == hostname.as_slice()) {
                     continue;

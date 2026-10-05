@@ -55,14 +55,11 @@ fn sleep(args: &[&str]) -> UResult<()> {
 
     let sleep_dur = args
         .iter()
-        .filter_map(|input| match parse_time::from_str(input, true) {
-            Ok(duration) => Some(duration),
-            Err(_) => {
-                arg_error = true;
-                // Porte pseudo-linus: o GNU cita o operando com aspas curvas (`quote` do gnulib).
-                show_error!("invalid time interval {}", locale_quote(*input));
-                None
-            }
+        .filter_map(|input| if let Ok(duration) = parse_time::from_str(input, true) { Some(duration) } else {
+            arg_error = true;
+            // Porte pseudo-linus: o GNU cita o operando com aspas curvas (`quote` do gnulib).
+            show_error!("invalid time interval {}", locale_quote(*input));
+            None
         })
         .fold(Duration::ZERO, Duration::saturating_add);
 

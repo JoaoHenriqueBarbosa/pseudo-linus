@@ -892,12 +892,11 @@ impl Uz {
                         None => false,
                     };
                 }
-                if selected {
-                    if let Some(i) = self.pxnames.iter().position(m) {
+                if selected
+                    && let Some(i) = self.pxnames.iter().position(m) {
                         xn_matched[i] = true;
                         selected = false;
                     }
-                }
             }
             if !selected {
                 for len in [self.crec.extra_field_length, self.crec.file_comment_length] {

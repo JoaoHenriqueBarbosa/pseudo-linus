@@ -358,7 +358,7 @@ pub fn symbolic_ref(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
             let name = os::lossy(&p.args[0]);
             let target = os::lossy(&p.args[1]);
             if name == "HEAD" && !target.starts_with("refs/") {
-                return Err(Fail::Fatal(format!("Refusing to point HEAD outside of refs/")));
+                return Err(Fail::Fatal("Refusing to point HEAD outside of refs/".to_string()));
             }
             if !refs::check_refname_format(&target, true, false) {
                 return Err(Fail::Fatal(format!("Refusing to set '{name}' to invalid ref '{target}'")));
@@ -450,7 +450,7 @@ pub fn show_ref(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         return Ok(if repo.read_ref(&name)?.is_some() {
             0
         } else {
-            error(&format!("reference does not exist"));
+            error(&"reference does not exist".to_string());
             2
         });
     }
@@ -841,13 +841,12 @@ pub fn check_ref_format(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
             b"--branch" => {
                 let name = os::lossy(args.get(i + 1).map(|v| v.as_slice()).unwrap_or_default());
                 let mut resolved = name.clone();
-                if let Some(n) = name.strip_prefix("@{-").and_then(|r| r.strip_suffix('}')).and_then(|r| r.parse::<usize>().ok()) {
-                    if let Some(repo) = git.repo.as_ref()
+                if let Some(n) = name.strip_prefix("@{-").and_then(|r| r.strip_suffix('}')).and_then(|r| r.parse::<usize>().ok())
+                    && let Some(repo) = git.repo.as_ref()
                         && let Some(b) = repo.nth_prior_branch(n)?
                     {
                         resolved = b;
                     }
-                }
                 if !refs::valid_branch_name(&resolved) {
                     return Err(Fail::Fatal(format!("'{name}' is not a valid branch name")));
                 }

@@ -289,14 +289,13 @@ fn authorizer(ctx: AuthContext<'_>) -> Authorization {
                 ATTACH_WAL.with(|a| a.set(true));
             }
         }
-        AuthAction::Pragma { pragma_name, pragma_value } => {
+        AuthAction::Pragma { pragma_name, pragma_value }
             if pragma_name.eq_ignore_ascii_case("journal_mode")
                 && pragma_value.is_some_and(|v| v.eq_ignore_ascii_case("wal"))
-            {
+            => {
                 let schema = ctx.database_name.map(str::to_string);
                 WAL_REQUEST.with(|w| w.borrow_mut().push(schema));
             }
-        }
         _ => {}
     }
     if AUTH_TRACE.with(|a| a.get()) {

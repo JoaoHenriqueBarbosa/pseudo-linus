@@ -255,13 +255,12 @@ pub fn run(sh: &mut Shell, name: &str, args: &[Arg]) -> Exec {
             continue;
         }
         // Readonly não pode mudar.
-        if let Some(v) = sh.vars.get(&vname) {
-            if v.attrs.has(Attrs::READONLY) && (has_value || clear_attrs.has(Attrs::READONLY)) && !(make_local && sh.vars.current_function_scope().is_some_and(|i| sh.vars.get_in(i, &vname).is_none())) {
+        if let Some(v) = sh.vars.get(&vname)
+            && v.attrs.has(Attrs::READONLY) && (has_value || clear_attrs.has(Attrs::READONLY)) && !(make_local && sh.vars.current_function_scope().is_some_and(|i| sh.vars.get_in(i, &vname).is_none())) {
                 sh.builtin_error(name, format!("{vname}: readonly variable"));
                 status = 1;
                 continue;
             }
-        }
         // Escolhe o escopo e prepara a entrada com os atributos.
         let existed;
         {
@@ -336,11 +335,10 @@ pub fn run(sh: &mut Shell, name: &str, args: &[Arg]) -> Exec {
         } else if set_attrs.has(Attrs::INTEGER) || set_attrs.has(Attrs::LOWER) || set_attrs.has(Attrs::UPPER) {
             // Atributo novo num valor existente: o bash não reconverte o valor atual.
         }
-        if set_attrs.has(Attrs::READONLY) {
-            if let Some(v) = target_var(sh, &vname, make_local, global) {
+        if set_attrs.has(Attrs::READONLY)
+            && let Some(v) = target_var(sh, &vname, make_local, global) {
                 v.attrs.set(Attrs::READONLY);
             }
-        }
         if set_attrs.has(Attrs::EXPORT) && name == "export" && !has_value {
             // `export x` de variável inexistente: fica declarada e exportada, sem valor.
         }
@@ -403,11 +401,10 @@ fn parse_word_assignment(w: &[u8]) -> Option<AssignArg> {
         let items: Vec<(Option<Vec<u8>>, bool, Vec<u8>)> = inner
             .split_whitespace()
             .map(|it| {
-                if it.starts_with('[') {
-                    if let Some(close) = it.find("]=") {
+                if it.starts_with('[')
+                    && let Some(close) = it.find("]=") {
                         return (Some(it[1..close].as_bytes().to_vec()), false, it[close + 2..].as_bytes().to_vec());
                     }
-                }
                 (None, false, it.as_bytes().to_vec())
             })
             .collect();
@@ -534,13 +531,12 @@ pub fn unset(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
             continue;
         }
         if opts.has(b'n') {
-            if let Some(v) = sh.vars.get(&s) {
-                if v.attrs.has(Attrs::READONLY) {
+            if let Some(v) = sh.vars.get(&s)
+                && v.attrs.has(Attrs::READONLY) {
                     sh.builtin_error("unset", format!("{s}: cannot unset: readonly variable"));
                     status = 1;
                     continue;
                 }
-            }
             sh.vars.unset(&s);
             continue;
         }
@@ -558,12 +554,11 @@ pub fn unset(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
 
 fn unset_element(sh: &mut Shell, name: &str, key: &[u8]) -> Result<bool, crate::shell::Flow> {
     let real = sh.resolve_nameref(name);
-    if let Some(v) = sh.vars.get(&real) {
-        if v.attrs.has(Attrs::READONLY) {
+    if let Some(v) = sh.vars.get(&real)
+        && v.attrs.has(Attrs::READONLY) {
             sh.builtin_error("unset", format!("{real}: cannot unset: readonly variable"));
             return Ok(false);
         }
-    }
     let is_assoc = sh.vars.get(&real).is_some_and(|v| matches!(v.value, Value::Assoc(_)));
     if is_assoc {
         let w = crate::word::make_word(&String::from_utf8_lossy(key), crate::word::WordOpts::mode(crate::word::Mode::Subscript, sh.lineno))

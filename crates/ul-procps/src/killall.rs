@@ -803,19 +803,17 @@ fn kill_all(o: &Opts, signal: i32, names: &[Vec<u8>], pwent_uid: Option<u32>, sc
             Ok(st) if st.file_type() == FileType::Directory => {}
             _ => continue,
         }
-        if let Some(uid) = pwent_uid {
-            if !match_process_uid(pid, uid)? {
+        if let Some(uid) = pwent_uid
+            && !match_process_uid(pid, uid)? {
                 continue;
             }
-        }
         if o.opt_ns_pid != 0 && ns_ino != 0 && ns_ino != get_ns_pid(pid) {
             continue;
         }
-        if let Some(ctx) = scontext {
-            if !match_process_context(pid, ctx) {
+        if let Some(ctx) = scontext
+            && !match_process_context(pid, ctx) {
                 continue;
             }
-        }
         let load_age = o.younger_than != 0 || o.older_than != 0;
         let Some((comm, age)) = load_process_name_and_age(pid, load_age)? else { continue };
         let length = comm.len();

@@ -19,7 +19,7 @@ fn bit(sig: Signal) -> u64 {
 }
 
 pub(crate) fn is_stop_signal(sig: Signal) -> bool {
-    matches!(sig.0, 19 | 20 | 21 | 22)
+    matches!(sig.0, 19..=22)
 }
 
 const STOP_MASK: u64 = (1 << 19) | (1 << 20) | (1 << 21) | (1 << 22);

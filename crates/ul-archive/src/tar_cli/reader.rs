@@ -375,7 +375,7 @@ impl Reader {
                         numbers.push(v);
                     }
                     if let Some(n) = needed
-                        && numbers.len() >= 1 + 2 * n
+                        && numbers.len() > 2 * n
                     {
                         break;
                     }

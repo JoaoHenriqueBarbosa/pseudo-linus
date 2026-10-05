@@ -1156,7 +1156,7 @@ impl Stater {
     fn exec(&self) -> UResult<i32> {
         // Porte pseudo-linus: fstat(2) do fd 0 do pseudo-processo.
         let stdin_is_fifo = sysio::os::fd::AsFd::fstat(&io::stdin())
-            .is_ok_and(|s| sysio::os::unix::fs::FileTypeExt::is_fifo(&s.file_type()));
+            .is_ok_and(|s| FileTypeExt::is_fifo(&s.file_type()));
 
         let mut ret = 0;
         for f in &self.files {

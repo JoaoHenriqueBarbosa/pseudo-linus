@@ -24,7 +24,7 @@ pub(crate) fn paths<D: DataT>((name, arity, (run, paths)): Filter<RunPathsPtr<D>
 
 /// Creates `n` variable arguments.
 pub fn v(n: usize) -> Box<[Bind]> {
-    core::iter::repeat(Bind::Var(())).take(n).collect()
+    core::iter::repeat_n(Bind::Var(()), n).collect()
 }
 
 /// Box Once and Map Errors to exceptions.

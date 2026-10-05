@@ -45,11 +45,10 @@ impl OutFile {
         self.buf.extend_from_slice(head);
         self.flush();
         let direct = rest.len() - rest.len() % OUT_BUF;
-        if direct > 0 && self.err.is_none() {
-            if let Err(e) = sys::write_all(self.fd, &rest[..direct]) {
+        if direct > 0 && self.err.is_none()
+            && let Err(e) = sys::write_all(self.fd, &rest[..direct]) {
                 self.err = Some(e);
             }
-        }
         self.buf.extend_from_slice(&rest[direct..]);
     }
 
@@ -65,11 +64,10 @@ impl OutFile {
             return;
         }
         let data = std::mem::take(&mut self.buf);
-        if self.err.is_none() {
-            if let Err(e) = sys::write_all(self.fd, &data) {
+        if self.err.is_none()
+            && let Err(e) = sys::write_all(self.fd, &data) {
                 self.err = Some(e);
             }
-        }
     }
 
     /// Reescreve `data` na posição `off` e volta para a posição de escrita, como o C faz com
@@ -224,12 +222,11 @@ impl Zip {
 
     /// Fecha o arquivo de saída; o erro de gravação vira o código de saída dado.
     pub fn close_out(&mut self, code: i32) -> R<()> {
-        if let Some(mut y) = self.y.take() {
-            if !y.close() {
+        if let Some(mut y) = self.y.take()
+            && !y.close() {
                 let name = self.tempzip.clone().unwrap_or_default();
                 return Err(self.ziperr(code, &String::from_utf8_lossy(&name)));
             }
-        }
         Ok(())
     }
 }

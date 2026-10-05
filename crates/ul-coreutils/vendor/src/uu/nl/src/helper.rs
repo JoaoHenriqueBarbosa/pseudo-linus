@@ -68,14 +68,13 @@ pub fn validate_options(opts: &clap::ArgMatches) -> UResult<Numbers> {
             }
         }
     }
-    if let Some(format) = opts.get_one::<String>(options::NUMBER_FORMAT) {
-        if !NUMBER_FORMATS.contains(&format.as_str()) {
+    if let Some(format) = opts.get_one::<String>(options::NUMBER_FORMAT)
+        && !NUMBER_FORMATS.contains(&format.as_str()) {
             return Err(UUsageError::new(
                 1,
                 format!("invalid line numbering format: {}", locale_quote(format.as_str())),
             ));
         }
-    }
 
     let width = opts
         .get_one::<String>(options::NUMBER_WIDTH)

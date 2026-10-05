@@ -629,7 +629,7 @@ impl Xz {
         };
         let mut sink = if self.mode == Mode::Test { Sink::null() } else { Sink::fd(ofd) };
         let result = match self.mode {
-            Mode::Compress => self.encode(&mut input, &mut sink).map_err(|e| (format!("{}", e.message()), true)),
+            Mode::Compress => self.encode(&mut input, &mut sink).map_err(|e| (e.message().to_string(), true)),
             _ => match self.decode(detected.flatten().unwrap_or(Format::Xz), &mut input, &mut sink) {
                 Decoded::Ok => Ok(()),
                 Decoded::Err(m) => Err((m.to_string(), false)),
@@ -882,7 +882,7 @@ impl Xz {
                         if let Some(e) = input.error {
                             return Decoded::Read(e);
                         }
-                        return if zeros % 4 == 0 { Decoded::Ok } else { Decoded::Err("Compressed data is corrupt") };
+                        return if zeros.is_multiple_of(4) { Decoded::Ok } else { Decoded::Err("Compressed data is corrupt") };
                     }
                     let a = input.available();
                     let (n, len) = (a.iter().take_while(|&&b| b == 0).count(), a.len());
@@ -892,7 +892,7 @@ impl Xz {
                         break;
                     }
                 }
-                if zeros % 4 != 0 {
+                if !zeros.is_multiple_of(4) {
                     return Decoded::Err("Compressed data is corrupt");
                 }
                 if self.single_stream {

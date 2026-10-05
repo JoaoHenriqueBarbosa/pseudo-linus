@@ -179,7 +179,7 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
             x if x == b'i' as u32 => finalwrite = true,
             x if x == b'm' as u32 => merge = true,
             x if x == b'T' as u32 => initial_tab = true,
-            x if [b'e', b'E', b'x', b'X', b'3', b'A'].iter().any(|c| *c as u32 == x) => {
+            x if b"eExX3A".iter().any(|c| *c as u32 == x) => {
                 let k = x as u8;
                 if !kinds.contains(&k) {
                     kinds.push(k);

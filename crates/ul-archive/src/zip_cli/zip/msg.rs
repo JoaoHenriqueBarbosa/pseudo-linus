@@ -25,11 +25,10 @@ impl Zip {
 
     /// `fprintf(logfile, ...)`, se há arquivo de log.
     pub fn log_raw(&mut self, s: &[u8]) {
-        if let Some(fd) = self.logfile {
-            if !s.is_empty() {
+        if let Some(fd) = self.logfile
+            && !s.is_empty() {
                 let _ = sys::write_all(fd, s);
             }
-        }
     }
 
     /// `fprintf(stderr, ...)`.
@@ -151,11 +150,10 @@ impl Zip {
         }
         if let Some(tz) = self.tempzip.clone() {
             if tz != self.zipfile {
-                if let Some(mut y) = self.y.take() {
-                    if tz != b"-" {
+                if let Some(mut y) = self.y.take()
+                    && tz != b"-" {
                         y.close();
                     }
-                }
                 if tz != b"-" {
                     let _ = sys::current().unlinkat(Fd::CWD, &tz, sysabi::AtFlags::empty());
                 }

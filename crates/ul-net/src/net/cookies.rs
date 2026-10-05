@@ -45,7 +45,7 @@ pub fn parse_http_date(s: &str) -> Option<i64> {
     let mut month = None;
     let mut year = None;
     let mut hms = None;
-    for tok in s.split(|c: char| c == ' ' || c == ',' || c == '-' || c == '\t').filter(|t| !t.is_empty()) {
+    for tok in s.split([' ', ',', '-', '\t']).filter(|t| !t.is_empty()) {
         if tok.contains(':') {
             let p: Vec<i64> = tok.split(':').filter_map(|x| x.parse().ok()).collect();
             if p.len() == 3 {

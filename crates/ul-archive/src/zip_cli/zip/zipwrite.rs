@@ -151,12 +151,11 @@ impl Zip {
             z.lflg &= !UTF8_BIT;
         }
         let off = z.off;
-        if z.siz > ZIP_UWORD32_MAX || z.len > ZIP_UWORD32_MAX || z.off > ZIP_UWORD32_MAX || z.dsk > ZIP_UWORD16_MAX || self.force_zip64 == 1 {
-            if let Err(code) = self.add_central_zip64_extra_field(z) {
+        if (z.siz > ZIP_UWORD32_MAX || z.len > ZIP_UWORD32_MAX || z.off > ZIP_UWORD32_MAX || z.dsk > ZIP_UWORD16_MAX || self.force_zip64 == 1)
+            && let Err(code) = self.add_central_zip64_extra_field(z) {
                 let tz = self.tempzip.clone().unwrap_or_default();
                 return Err(self.ziperr(code, &String::from_utf8_lossy(&tz)));
             }
-        }
         let name = Zip::name_on_disk(z, use_uname);
         let mut b: Vec<u8> = Vec::with_capacity(CENHEAD + 4 + name.len() + z.cextra.len() + z.comment.len());
         put_lg(&mut b, CENSIG);

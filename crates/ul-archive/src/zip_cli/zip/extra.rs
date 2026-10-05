@@ -124,13 +124,12 @@ pub fn ef_scan_ut_time(ef: &[u8], is_cent: bool, z_utim: &mut IzTimes) -> i32 {
                     have_new_type_eb = true;
                 }
             }
-            EF_IZUNIX => {
-                if eb_len >= EB_UX_MINLEN && !have_new_type_eb {
+            EF_IZUNIX
+                if eb_len >= EB_UX_MINLEN && !have_new_type_eb => {
                     z_utim.atime = lg(ef, data) as i64;
                     z_utim.mtime = lg(ef, data + 4) as i64;
                     flags |= EB_UT_FL_MTIME | EB_UT_FL_ATIME;
                 }
-            }
             _ => {}
         }
         pos += eb_len + EB_HEADSIZE;

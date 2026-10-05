@@ -339,7 +339,7 @@ impl<'a> Search<'a> {
 
     fn tick(&mut self) {
         self.steps += 1;
-        if self.steps % 4096 == 0 {
+        if self.steps.is_multiple_of(4096) {
             sysabi::sys::checkpoint();
         }
     }
@@ -466,11 +466,10 @@ impl<'a> Search<'a> {
 
             // Heurística do `-H`: depois de 200 passos, se houve um snake grande, aceita a diagonal que
             // mais avançou desde que ela tenha um snake longo o bastante.
-            if self.heuristic && c > 200 && big_snake {
-                if let Some(p) = self.big_snake_split(xoff, xlim, yoff, ylim, fmin, fmax, bmin, bmax, c) {
+            if self.heuristic && c > 200 && big_snake
+                && let Some(p) = self.big_snake_split(xoff, xlim, yoff, ylim, fmin, fmax, bmin, bmax, c) {
                     return p;
                 }
-            }
 
             // Custo alto demais: corta na diagonal que mais avançou.
             if c >= self.too_expensive {

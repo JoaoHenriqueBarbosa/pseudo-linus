@@ -244,7 +244,7 @@ pub fn command_config(g: &Globals) -> R<ConfigFile> {
         items.extend(config::parse_config_parameters(&p));
     }
     if let Some(n) = os::getenv_str("GIT_CONFIG_COUNT") {
-        let n: usize = n.trim().parse().map_err(|_| Fail::Fatal(format!("bogus count in GIT_CONFIG_COUNT")))?;
+        let n: usize = n.trim().parse().map_err(|_| Fail::Fatal("bogus count in GIT_CONFIG_COUNT".to_string()))?;
         for i in 0..n {
             let k = os::getenv_str(&format!("GIT_CONFIG_KEY_{i}")).ok_or_else(|| Fail::Fatal(format!("missing config key GIT_CONFIG_KEY_{i}")))?;
             let v = os::getenv(&format!("GIT_CONFIG_VALUE_{i}")).ok_or_else(|| Fail::Fatal(format!("missing config value GIT_CONFIG_VALUE_{i}")))?;
@@ -319,7 +319,7 @@ fn not_a_repository_message() -> String {
     let ceilings = ceiling_dirs();
     let Ok(mut dir) = os::getcwd() else { return SHORT.to_string() };
     loop {
-        if dir == b"/" || dir.is_empty() || ceilings.iter().any(|c| *c == dir) {
+        if dir == b"/" || dir.is_empty() || ceilings.contains(&dir) {
             return SHORT.to_string();
         }
         let parent = os::dirname(&dir).to_vec();
@@ -378,8 +378,8 @@ pub fn discover(g: &Globals) -> R<Option<Repo>> {
             };
             return finish(g, display, dotgit, wt, &cwd, config, false).map(Some);
         }
-        if os::is_file(&dotgit) {
-            if let Some(gd) = read_gitfile(&dotgit) {
+        if os::is_file(&dotgit)
+            && let Some(gd) = read_gitfile(&dotgit) {
                 let config = full_config(g, Some(&gd), Some(&gd))?;
                 let wt = match env_work_tree {
                     Some(w) => Some(os::absolute(&w)),
@@ -387,24 +387,20 @@ pub fn discover(g: &Globals) -> R<Option<Repo>> {
                 };
                 return finish(g, gd.clone(), gd, wt, &cwd, config, false).map(Some);
             }
-        }
         if is_git_directory(&dir) {
             // Dentro de um diretório git (bare, ou o próprio `.git`).
             let config = full_config(g, Some(&dir), Some(b"."))?;
             let display = if dir == cwd { b".".to_vec() } else { dir.clone() };
             let bare = config.get_bool("core.bare")?.unwrap_or(false) || os::basename(&dir) != b".git";
             let inside_dotgit = os::basename(&dir) == b".git" && !bare;
-            let wt = match env_work_tree {
-                Some(w) => Some(os::absolute(&w)),
-                None => None,
-            };
+            let wt = env_work_tree.map(|w| os::absolute(&w));
             let mut r = finish(g, display, dir.clone(), wt, &cwd, config, true)?;
             r.bare = bare && r.work_tree.is_none();
             r.inside_git_dir = true;
             let _ = inside_dotgit;
             return Ok(Some(r));
         }
-        if dir == b"/" || ceilings.iter().any(|c| *c == dir) {
+        if dir == b"/" || ceilings.contains(&dir) {
             return Ok(None);
         }
         dir = os::dirname(&dir).to_vec();

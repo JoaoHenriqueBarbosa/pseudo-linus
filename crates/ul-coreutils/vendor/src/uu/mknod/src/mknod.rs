@@ -38,9 +38,9 @@ impl Mode {
 struct SFlag(mode_t);
 
 impl SFlag {
-    const S_IFBLK: SFlag = SFlag(sysio::errno::S_IFBLK);
-    const S_IFCHR: SFlag = SFlag(sysio::errno::S_IFCHR);
-    const S_IFIFO: SFlag = SFlag(sysio::errno::S_IFIFO);
+    const S_IFBLK: Self = Self(sysio::errno::S_IFBLK);
+    const S_IFCHR: Self = Self(sysio::errno::S_IFCHR);
+    const S_IFIFO: Self = Self(sysio::errno::S_IFIFO);
     #[allow(dead_code)]
     fn bits(&self) -> mode_t {
         self.0
@@ -154,7 +154,7 @@ fn mknod(file_name: &str, config: Config) -> i32 {
     )
     .err();
     // Porte pseudo-linus: o GNU sai com 1 (o -1 do uutils virava 255).
-    let errno = if mknod_err.is_some() { 1 } else { 0 };
+    let errno = i32::from(mknod_err.is_some());
 
     // set umask back to original value
     if let Some(prev_umask) = have_prev_umask {

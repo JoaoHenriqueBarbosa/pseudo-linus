@@ -37,6 +37,7 @@ impl Attrs {
 /// Tabela associativa com a mesma ordem de iteração do bash 5.2 (hashlib.c: FNV-1 de 32 bits,
 /// 1024 baldes, inserção no começo do balde, crescimento x4 ao chegar em 2 itens por balde).
 #[derive(Clone, Debug)]
+#[derive(Default)]
 pub struct Assoc {
     map: HashMap<Vec<u8>, Vec<u8>>,
     buckets: Vec<Vec<Vec<u8>>>,
@@ -53,11 +54,6 @@ pub fn bash_hash(s: &[u8]) -> u32 {
     h
 }
 
-impl Default for Assoc {
-    fn default() -> Self {
-        Assoc { map: HashMap::new(), buckets: Vec::new() }
-    }
-}
 
 impl Assoc {
     pub fn new() -> Assoc {

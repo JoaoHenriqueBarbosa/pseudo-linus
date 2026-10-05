@@ -387,11 +387,10 @@ impl Zip {
         z.atx = if self.dosify { a & 0xff } else { a | (z.atx & 0x0000_ff00) };
 
         if let Err(e) = self.putlocal(z, PUTLOCAL_WRITE) {
-            if let Some(fd) = ifile {
-                if !stdin_input {
+            if let Some(fd) = ifile
+                && !stdin_input {
                     let _ = sys::close(fd);
                 }
-            }
             return Err(e);
         }
         z.off = self.current_local_offset;
@@ -470,11 +469,10 @@ impl Zip {
         if rd.overflow {
             return Err(self.ziperr(ZE_BIG, "overflow in byte count"));
         }
-        if let Some(fd) = ifile {
-            if !stdin_input {
+        if let Some(fd) = ifile
+            && !stdin_input {
                 let _ = sys::close(fd);
             }
-        }
         self.tempzn += s;
         if self.translate_eol == 0 && q != -1 && rd.isize != q {
             self.zipwarn(" file size changed while zipping ", &z.name);

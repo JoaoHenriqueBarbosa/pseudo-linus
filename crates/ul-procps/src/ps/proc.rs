@@ -441,20 +441,18 @@ pub fn reap(threads: bool) -> Vec<Pt> {
 
 fn push_proc(out: &mut Vec<Pt>, tgid: i32, tid: i32, threads: bool, hide_kernel: bool) {
     if !threads {
-        if let Some(p) = load_pt(&format!("/proc/{tgid}"), tgid, tid, true) {
-            if !(hide_kernel && (p.ppid == 2 || p.tid == 2)) {
+        if let Some(p) = load_pt(&format!("/proc/{tgid}"), tgid, tid, true)
+            && !(hide_kernel && (p.ppid == 2 || p.tid == 2)) {
                 out.push(p);
             }
-        }
         return;
     }
     let Some(tids) = dir_ids(&format!("/proc/{tgid}/task")) else { return };
     for t in tids {
-        if let Some(p) = load_pt(&format!("/proc/{tgid}/task/{t}"), tgid, t, false) {
-            if !(hide_kernel && (p.ppid == 2 || p.tid == 2)) {
+        if let Some(p) = load_pt(&format!("/proc/{tgid}/task/{t}"), tgid, t, false)
+            && !(hide_kernel && (p.ppid == 2 || p.tid == 2)) {
                 out.push(p);
             }
-        }
     }
 }
 
@@ -465,18 +463,16 @@ pub fn select_pids(pids: &[u32], threads: bool) -> Vec<Pt> {
     for &pid in pids {
         let pid = pid as i32;
         let mut tgid = pid;
-        if let Some(s) = read_path(&format!("/proc/{pid}/status")) {
-            if let Some(i) = find_sub(&s, b"Tgid:") {
+        if let Some(s) = read_path(&format!("/proc/{pid}/status"))
+            && let Some(i) = find_sub(&s, b"Tgid:") {
                 tgid = strtol_prefix(&s[i + 5..]).0 as i32;
             }
-        }
         if threads {
             push_proc(&mut out, tgid, pid, true, hide_kernel);
-        } else if let Some(p) = load_pt(&format!("/proc/{pid}"), tgid, pid, true) {
-            if !(hide_kernel && (p.ppid == 2 || p.tid == 2)) {
+        } else if let Some(p) = load_pt(&format!("/proc/{pid}"), tgid, pid, true)
+            && !(hide_kernel && (p.ppid == 2 || p.tid == 2)) {
                 out.push(p);
             }
-        }
     }
     out
 }
@@ -635,11 +631,10 @@ impl Pt {
                     let mut it = rest.split_whitespace();
                     if let Some(id) = it.next().and_then(|v| v.parse::<i32>().ok()) {
                         out.0 = id;
-                        if it.next() == Some("nice") {
-                            if let Some(n) = it.next().and_then(|v| v.parse::<i32>().ok()) {
+                        if it.next() == Some("nice")
+                            && let Some(n) = it.next().and_then(|v| v.parse::<i32>().ok()) {
                                 out.1 = n;
                             }
-                        }
                     }
                 }
             }
@@ -961,22 +956,19 @@ pub fn dev_to_tty(ps: &mut Ps, dev_in: i32, pid: i32, abbrev_all: bool) -> Vec<u
         .or_else(|| link_name(maj, min, pid, "fd/255"));
     let Some(full) = found else { return b"?".to_vec() };
     let mut s: &str = &full;
-    if let Some(r) = s.strip_prefix("/dev/") {
-        if !r.is_empty() {
+    if let Some(r) = s.strip_prefix("/dev/")
+        && !r.is_empty() {
             s = r;
         }
-    }
     if abbrev_all {
-        if let Some(r) = s.strip_prefix("tty") {
-            if !r.is_empty() {
+        if let Some(r) = s.strip_prefix("tty")
+            && !r.is_empty() {
                 s = r;
             }
-        }
-        if let Some(r) = s.strip_prefix("pts/") {
-            if !r.is_empty() {
+        if let Some(r) = s.strip_prefix("pts/")
+            && !r.is_empty() {
                 s = r;
             }
-        }
     }
     s.bytes().take(63).map(|c| if c <= b' ' || c > 126 { b'?' } else { c }).collect()
 }

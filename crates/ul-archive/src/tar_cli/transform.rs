@@ -97,7 +97,7 @@ impl Expr {
             if rest[0] != b's' || rest.len() < 2 {
                 let mut m = b"Invalid transform expression".to_vec();
                 if rest.first() != Some(&b's') {
-                    m = format!("Invalid transform expression").into_bytes();
+                    m = "Invalid transform expression".to_string().into_bytes();
                 }
                 return Err(m);
             }

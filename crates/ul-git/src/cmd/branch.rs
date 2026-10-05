@@ -716,10 +716,7 @@ fn list_branches(repo: &Repo, p: &opts::Parsed, usage: &str, colopts: u32) -> R<
         if p.flag("abbrev") == Some(false) {
             Some(40)
         } else {
-            match p.value("abbrev") {
-                Some(v) => Some(os::lossy(v).parse::<usize>().unwrap_or(7).clamp(4, 40)),
-                None => None,
-            }
+            p.value("abbrev").map(|v| os::lossy(v).parse::<usize>().unwrap_or(7).clamp(4, 40))
         }
     } else {
         None

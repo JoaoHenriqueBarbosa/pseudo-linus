@@ -603,8 +603,8 @@ impl Ps {
             return Err("tell <procps@freelists.org> what you expected".into());
         }
         // Sem nada, o $PS_FORMAT vale antes do padrão.
-        if self.format_flags == 0 && self.format_modifiers == 0 && self.format_list.is_empty() {
-            if let Some(tmp) = getenv("PS_FORMAT").filter(|v| !v.is_empty()) {
+        if self.format_flags == 0 && self.format_modifiers == 0 && self.format_list.is_empty()
+            && let Some(tmp) = getenv("PS_FORMAT").filter(|v| !v.is_empty()) {
                 if self.thread_flags & TF_MUST_USE != 0 {
                     return Err("tell <procps@freelists.org> what you want (-L/-T, -m/m/H, and $PS_FORMAT)".into());
                 }
@@ -617,7 +617,6 @@ impl Ps {
                     Err(e) => io::eprint(format!("warning: $PS_FORMAT ignored. ({e})\n")),
                 }
             }
-        }
         if !self.format_list.is_empty() {
             if self.format_flags != 0 {
                 return Err("conflicting format options".into());

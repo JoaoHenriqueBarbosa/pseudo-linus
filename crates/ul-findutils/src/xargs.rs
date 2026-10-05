@@ -455,7 +455,7 @@ struct Reader {
     stopped: bool,
 }
 
-const BLANK: [u8; 2] = [b' ', b'\t'];
+const BLANK: [u8; 2] = *b" \t";
 
 impl Reader {
     fn new(fd: Fd, opts: &Options) -> Reader {

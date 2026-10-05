@@ -570,11 +570,10 @@ impl<'p> Interp<'p> {
 
     /// Fecha o arquivo corrente rodando o ENDFILE.
     fn finish_main_file(&mut self) -> R<()> {
-        if let Some(r) = self.main.reader.take() {
-            if r.owns_fd() {
+        if let Some(r) = self.main.reader.take()
+            && r.owns_fd() {
                 let _ = self.sys.close(r.fd);
             }
-        }
         if !self.p.endfile.is_empty() {
             let saved = self.rule_ctx;
             self.rule_ctx = RuleCtx::EndFile;
@@ -677,11 +676,10 @@ impl<'p> Interp<'p> {
                     Ok(()) => {}
                     Err(Flow::NextFile) => {
                         self.rule_ctx = saved;
-                        if let Ok(r) = opened {
-                            if r.owns_fd() {
+                        if let Ok(r) = opened
+                            && r.owns_fd() {
                                 let _ = self.sys.close(r.fd);
                             }
-                        }
                         return Ok(());
                     }
                     Err(e) => {
@@ -778,11 +776,10 @@ impl<'p> Interp<'p> {
                 }
                 loop {
                     self.tick();
-                    if let Some(c) = cond {
-                        if !self.eval(c)?.truthy() {
+                    if let Some(c) = cond
+                        && !self.eval(c)?.truthy() {
                             break;
                         }
-                    }
                     match self.exec(body) {
                         Ok(()) | Err(Flow::Continue) => {}
                         Err(Flow::Break) => break,
@@ -1228,9 +1225,7 @@ impl<'p> Interp<'p> {
     pub(crate) fn close_output(&mut self, idx: usize) -> R<f64> {
         let flushed = self.flush_stream(idx);
         let o = self.outputs.remove(idx);
-        if let Err(e) = flushed {
-            return Err(e);
-        }
+        flushed?;
         let sys = self.sys.clone();
         Ok(match o.kind {
             OutKind::File(fd) => {
@@ -1274,11 +1269,10 @@ impl<'p> Interp<'p> {
                 let _ = io::wait_pid(&self.sys, pid);
             }
         }
-        if let Some(r) = self.main.reader.take() {
-            if r.owns_fd() {
+        if let Some(r) = self.main.reader.take()
+            && r.owns_fd() {
                 let _ = self.sys.close(r.fd);
             }
-        }
         if self.flush_stdout().is_err() {
             code = 2;
         }
@@ -1449,11 +1443,10 @@ impl<'p> Interp<'p> {
     /// Nome com a origem de um parâmetro array (`a (from arr)`), como nas mensagens do gawk.
     pub(crate) fn var_name_from(&self, v: Var) -> String {
         let n = self.var_name(v);
-        if let Var::Local(i) = v {
-            if let Some(Some(from)) = self.local_from.get(self.frame_base() + i as usize) {
+        if let Var::Local(i) = v
+            && let Some(Some(from)) = self.local_from.get(self.frame_base() + i as usize) {
                 return format!("{n} (from {from})");
             }
-        }
         n
     }
 
@@ -1700,12 +1693,11 @@ impl<'p> Interp<'p> {
         match self.cell(s).clone() {
             Cell::Arr(a) => Ok(a),
             Cell::Uninit => {
-                if let Slot::Global(i) = s {
-                    if i < sv::COUNT {
+                if let Slot::Global(i) = s
+                    && i < sv::COUNT {
                         let n = SPECIALS[i as usize];
                         return Err(self.fatal(format!("attempt to use scalar `{n}' as an array")));
                     }
-                }
                 let a = Rc::new(RefCell::new(Array::new()));
                 *self.cell_mut(s) = Cell::Arr(a.clone());
                 Ok(a)
@@ -1782,11 +1774,10 @@ impl<'p> Interp<'p> {
     /// Nome do array de origem de uma variável (um parâmetro array é chamado pelo nome do array do
     /// chamador nas mensagens sobre elementos).
     fn array_root_name(&self, v: Var) -> String {
-        if let Var::Local(i) = v {
-            if let Some(Some(from)) = self.local_from.get(self.frame_base() + i as usize) {
+        if let Var::Local(i) = v
+            && let Some(Some(from)) = self.local_from.get(self.frame_base() + i as usize) {
                 return from.rsplit(", from ").next().unwrap_or(from).to_string();
             }
-        }
         self.var_name(v)
     }
 
@@ -1837,12 +1828,11 @@ impl<'p> Interp<'p> {
         let (last, path) = groups.split_last().expect("grupos");
         let (a, mut keys) = self.array_at_keys(v, path)?;
         let k = self.subscript(last)?;
-        if let Var::Global(sv::FUNCTAB) = v {
-            if path.is_empty() && !a.borrow().contains(&k) {
+        if let Var::Global(sv::FUNCTAB) = v
+            && path.is_empty() && !a.borrow().contains(&k) {
                 let name = String::from_utf8_lossy(k.text()).into_owned();
                 return Err(self.fatal(format!("reference to uninitialized element `FUNCTAB[\"{name}\"] is not allowed'")));
             }
-        }
         let r = {
             let mut b = a.borrow_mut();
             match b.get_or_insert_with(&k, || Cell::Uninit) {
@@ -2163,10 +2153,7 @@ impl<'p> Interp<'p> {
             Expr::Group(e) => self.eval(e),
             Expr::Assign(lv, e) => {
                 let v = self.eval(e)?;
-                let v = match v {
-                    Value::Uninit => Value::Uninit,
-                    other => other,
-                };
+                let v = v;
                 self.assign(lv, v.clone())?;
                 Ok(v)
             }
@@ -2319,11 +2306,10 @@ impl<'p> Interp<'p> {
     /// Origem de um array passado por referência, pras mensagens (`b, from a, from foo`).
     fn origin_of(&self, v: Var) -> Rc<str> {
         let n = self.var_name(v);
-        if let Var::Local(i) = v {
-            if let Some(Some(from)) = self.local_from.get(self.frame_base() + i as usize) {
+        if let Var::Local(i) = v
+            && let Some(Some(from)) = self.local_from.get(self.frame_base() + i as usize) {
                 return Rc::from(format!("{n}, from {from}"));
             }
-        }
         Rc::from(n)
     }
 
@@ -2331,11 +2317,10 @@ impl<'p> Interp<'p> {
     fn arg_cell(&mut self, a: &Expr) -> R<(Cell, Option<Rc<str>>)> {
         match a {
             Expr::Var(v) => {
-                if let Var::Global(i) = v {
-                    if *i < sv::COUNT && !matches!(*i, sv::ENVIRON | sv::ARGV | sv::PROCINFO | sv::SYMTAB | sv::FUNCTAB) {
+                if let Var::Global(i) = v
+                    && *i < sv::COUNT && !matches!(*i, sv::ENVIRON | sv::ARGV | sv::PROCINFO | sv::SYMTAB | sv::FUNCTAB) {
                         return Ok((Cell::Val(self.read_var(*v)?), None));
                     }
-                }
                 let s = self.slot(*v);
                 let from = Some(self.origin_of(*v));
                 Ok(match self.cell(s).clone() {
@@ -2513,13 +2498,12 @@ impl<'p> Interp<'p> {
             } else {
                 match self.sys.openat(Fd::CWD, name, OFlags::RDONLY | OFlags::CLOEXEC, 0) {
                     Ok(fd) => {
-                        if let Ok(st) = self.sys.fstat(fd) {
-                            if st.file_type() == sysabi::FileType::Directory {
+                        if let Ok(st) = self.sys.fstat(fd)
+                            && st.file_type() == sysabi::FileType::Directory {
                                 let _ = self.sys.close(fd);
                                 self.set_global(sv::ERRNO, Value::from_bytes(Errno::EISDIR.message().as_bytes()))?;
                                 return Ok(None);
                             }
-                        }
                         Reader::new(fd, true)
                     }
                     Err(e) => {
@@ -2564,11 +2548,10 @@ impl<'p> Interp<'p> {
     /// `close(name)`: fecha saída e/ou entrada com esse nome.
     pub(crate) fn close_named(&mut self, name: &[u8], how: Option<&[u8]>) -> R<f64> {
         if let Some(idx) = self.outputs.iter().position(|o| o.name == name) {
-            if let OutKind::Coproc { .. } = self.outputs[idx].kind {
-                if how == Some(b"to") {
+            if let OutKind::Coproc { .. } = self.outputs[idx].kind
+                && how == Some(b"to") {
                     return self.close_coproc_write(idx);
                 }
-            }
             return self.close_output(idx);
         }
         if let Some(idx) = self.inputs.iter().position(|s| s.name == name) {
@@ -2592,12 +2575,11 @@ impl<'p> Interp<'p> {
             }
             OutKind::Coproc { write: PipeState::Running { .. }, .. } => {
                 self.flush_stream(idx)?;
-                if let OutKind::Coproc { write, .. } = &mut self.outputs[idx].kind {
-                    if let PipeState::Running { fd, pid } = *write {
+                if let OutKind::Coproc { write, .. } = &mut self.outputs[idx].kind
+                    && let PipeState::Running { fd, pid } = *write {
                         let _ = self.sys.close(fd);
                         *write = PipeState::WriteClosed { pid };
                     }
-                }
             }
             _ => {}
         }

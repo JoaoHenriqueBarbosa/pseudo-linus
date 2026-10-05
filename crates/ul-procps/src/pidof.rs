@@ -74,11 +74,10 @@ fn run(args: &[OsString]) -> i32 {
                 for part in o.arg.unwrap_or_default().split(|b| *b == b',') {
                     if part == b"%PPID" {
                         omit.push(sys::current().getppid());
-                    } else if let Some(v) = std::str::from_utf8(part).ok().and_then(common::parse_long) {
-                        if v > 0 {
+                    } else if let Some(v) = std::str::from_utf8(part).ok().and_then(common::parse_long)
+                        && v > 0 {
                             omit.push(v as Pid);
                         }
-                    }
                 }
             }
             Some('q') => quiet = true,
@@ -137,13 +136,12 @@ fn run(args: &[OsString]) -> i32 {
                 if !hit && c.argv0.contains(&b' ') && c.statname == *name {
                     hit = true;
                 }
-                if !hit && scripts {
-                    if let Some(a1) = &c.argv1 {
+                if !hit && scripts
+                    && let Some(a1) = &c.argv1 {
                         let b1 = basename(a1);
                         let short: Vec<u8> = b1.iter().take(15).copied().collect();
                         hit = b1 == name.as_slice() && c.statname == short;
                     }
-                }
                 if hit {
                     hits.push(c.pid);
                 }

@@ -476,7 +476,7 @@ pub fn link(src: &Path, dst: &Path, settings: &Settings) -> LnResult<()> {
                     "dest" => dst.quote()
                 ),
             )
-        } else if hard_link_src.as_ref().is_some_and(|p| p.sys_is_dir()) {
+        } else if hard_link_src.as_ref().is_some_and(sysio::path::PathExt::sys_is_dir) {
             LnError::FailedToCreateHardLinkDir(source.to_path_buf())
         } else {
             LnError::IoContext(
@@ -530,5 +530,5 @@ pub fn symlink<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dst: P2) -> io::Result
 #[cfg(any(unix, target_os = "wasi"))]
 pub fn symlink<P1: AsRef<Path>, P2: AsRef<Path>>(src: P1, dst: P2) -> io::Result<()> {
     // Porte pseudo-linus: symlink(2) do pseudo-processo.
-    sysio::fs::symlink(src.as_ref(), dst.as_ref())
+    fs::symlink(src.as_ref(), dst.as_ref())
 }

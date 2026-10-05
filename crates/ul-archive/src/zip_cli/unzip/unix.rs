@@ -262,13 +262,11 @@ impl Uz {
             return (error & !MPN_MASK) | MPN_CREATED_DIR;
         }
         // Sem `-V`, um ";123" no fim (versão do VMS) sai.
-        if !self.o.v_flag {
-            if let Some(i) = lastsemi {
-                if comp[i + 1..].iter().all(u8::is_ascii_digit) {
+        if !self.o.v_flag
+            && let Some(i) = lastsemi
+                && comp[i + 1..].iter().all(u8::is_ascii_digit) {
                     comp.truncate(i);
                 }
-            }
-        }
         if comp == b"." {
             comp = b"_".to_vec();
         } else if comp == b".." {
@@ -346,29 +344,25 @@ impl Uz {
         if let Err(e) = sys.symlinkat(target_c, Fd::CWD, &s.fname) {
             perror("symlink error", e);
         }
-        if let Some(ids) = s.uidgid {
-            if ids.0 <= u64::from(u32::MAX) && ids.1 <= u64::from(u32::MAX) {
-                if let Err(e) = sys.fchownat(Fd::CWD, &s.fname, Some(ids.0 as u32), Some(ids.1 as u32), AtFlags::SYMLINK_NOFOLLOW) {
+        if let Some(ids) = s.uidgid
+            && ids.0 <= u64::from(u32::MAX) && ids.1 <= u64::from(u32::MAX)
+                && let Err(e) = sys.fchownat(Fd::CWD, &s.fname, Some(ids.0 as u32), Some(ids.1 as u32), AtFlags::SYMLINK_NOFOLLOW) {
                     self.warn_uidgid(ids, &s.fname, e);
                 }
-            }
-        }
     }
 
     /// Dono, datas e permissões finais de um diretório criado (`set_direc_attribs`).
     pub fn set_direc_attribs(&mut self, d: &DirAttr) -> i32 {
         let sys = super::sys();
         let mut errval = PK_OK;
-        if let Some(ids) = d.uidgid {
-            if ids.0 <= u64::from(u32::MAX) && ids.1 <= u64::from(u32::MAX) {
-                if let Err(e) = sys.fchownat(Fd::CWD, &d.fname, Some(ids.0 as u32), Some(ids.1 as u32), AtFlags::empty()) {
+        if let Some(ids) = d.uidgid
+            && ids.0 <= u64::from(u32::MAX) && ids.1 <= u64::from(u32::MAX)
+                && let Err(e) = sys.fchownat(Fd::CWD, &d.fname, Some(ids.0 as u32), Some(ids.1 as u32), AtFlags::empty()) {
                     self.warn_uidgid(ids, &d.fname, e);
                     errval = PK_WARN;
                 }
-            }
-        }
-        if self.o.d_flag <= 0 {
-            if let Err(e) = set_times(&d.fname, d.atime, d.mtime, AtFlags::empty()) {
+        if self.o.d_flag <= 0
+            && let Err(e) = set_times(&d.fname, d.atime, d.mtime, AtFlags::empty()) {
                 let mut m = b"warning:  cannot set modif./access times for ".to_vec();
                 m.extend(fnfilter(&d.fname));
                 m.extend_from_slice(format!("\n          {}\n", strerror(e)).as_bytes());
@@ -377,7 +371,6 @@ impl Uz {
                     errval = PK_WARN;
                 }
             }
-        }
         if let Err(e) = sys.fchmodat(Fd::CWD, &d.fname, d.perms, AtFlags::empty()) {
             let mut m = b"warning:  cannot set permissions for ".to_vec();
             m.extend(fnfilter(&d.fname));

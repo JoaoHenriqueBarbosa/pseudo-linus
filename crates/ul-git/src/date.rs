@@ -401,11 +401,10 @@ pub fn parse_date_basic(input: &[u8]) -> Option<(i64, i64)> {
                 f.pm = Some(true);
             } else if w.eq_ignore_ascii_case("am") {
                 f.pm = Some(false);
-            } else if let Some((_, off)) = ZONE_NAMES.iter().find(|(n, _)| n.eq_ignore_ascii_case(w)) {
-                if f.tz.is_none() {
+            } else if let Some((_, off)) = ZONE_NAMES.iter().find(|(n, _)| n.eq_ignore_ascii_case(w))
+                && f.tz.is_none() {
                     f.tz = Some(*off);
                 }
-            }
             continue;
         }
         if (c == b'+' || c == b'-') && s.get(i + 1).is_some_and(u8::is_ascii_digit) {
@@ -861,7 +860,7 @@ pub fn strftime(fmt: &str, tm: &Tm, tz: i32, t: i64) -> String {
         let pad2 = |n: u32| if nopad { n.to_string() } else { format!("{n:02}") };
         let wd = WEEKDAYS[tm.wday as usize];
         let mo = MONTHS[tm.mon as usize];
-        let h12 = if tm.hour % 12 == 0 { 12 } else { tm.hour % 12 };
+        let h12 = if tm.hour.is_multiple_of(12) { 12 } else { tm.hour % 12 };
         match k {
             'Y' => out.push_str(&tm.year.to_string()),
             'C' => out.push_str(&format!("{:02}", tm.year / 100)),

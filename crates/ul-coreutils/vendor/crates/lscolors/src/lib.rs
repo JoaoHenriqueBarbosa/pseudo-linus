@@ -489,7 +489,7 @@ impl LsColors {
 
                 self.path
                     .components()
-                    .last()
+                    .next_back()
                     .map(|c| c.as_os_str())
                     .unwrap_or_else(|| self.path.as_os_str())
                     .to_owned()

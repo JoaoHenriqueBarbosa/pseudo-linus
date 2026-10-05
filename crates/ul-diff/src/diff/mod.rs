@@ -70,7 +70,7 @@ pub(crate) struct Differ {
 /// Aspas dos nomes nos cabeçalhos (como o diffutils 3.10): entre aspas duplas, com escapes do C e octal,
 /// quando o nome tem espaço, aspas, barra invertida, controle ou byte não ASCII.
 pub fn quote_name(name: &[u8]) -> Vec<u8> {
-    let needs = name.iter().any(|&b| b < 0x20 || b == b' ' || b == b'"' || b == b'\\' || b >= 0x80);
+    let needs = name.iter().any(|&b| b <= 0x20 || b == b'"' || b == b'\\' || b >= 0x80);
     if !needs {
         return name.to_vec();
     }
@@ -86,7 +86,7 @@ pub fn quote_name(name: &[u8]) -> Vec<u8> {
             b'\r' => out.extend_from_slice(b"\\r"),
             b'\t' => out.extend_from_slice(b"\\t"),
             0x0b => out.extend_from_slice(b"\\v"),
-            b if b < 0x20 || b >= 0x80 => out.extend_from_slice(format!("\\{b:03o}").as_bytes()),
+            b if !(0x20..0x80).contains(&b) => out.extend_from_slice(format!("\\{b:03o}").as_bytes()),
             b => out.push(b),
         }
     }

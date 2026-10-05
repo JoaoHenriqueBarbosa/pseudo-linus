@@ -27,7 +27,6 @@ use progress::{check_and_reset_sigusr1, install_sigusr1_handler};
 use uucore::translate;
 
 use std::cmp;
-use sysio::env;
 use std::ffi::OsString;
 #[cfg(unix)]
 use sysio::fs::Metadata;
@@ -65,7 +64,7 @@ struct OwnedFileDescriptorOrHandle(File);
 
 impl OwnedFileDescriptorOrHandle {
     fn from(_stdout: io::Stdout) -> io::Result<Self> {
-        let _ = sysio::io::flush_stdout();
+        let _ = io::flush_stdout();
         let fd = sysio::errno::cvt(sysabi::sys::current().dup(sysabi::Fd::STDOUT))?;
         let _ = sysabi::sys::current().set_cloexec(fd, true);
         Ok(Self(File::from_raw_fd(fd.0)))

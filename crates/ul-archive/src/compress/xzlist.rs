@@ -150,7 +150,7 @@ pub fn parse(data: &[u8]) -> Result<Info, ListError> {
             }
             records.push((unpadded, uncomp));
         }
-        while pos % 4 != 0 {
+        while !pos.is_multiple_of(4) {
             if index.get(pos) != Some(&0) {
                 return Err(ListError::Corrupt);
             }
@@ -184,7 +184,7 @@ pub fn parse(data: &[u8]) -> Result<Info, ListError> {
                 number_in_file: 0,
                 comp_offset: off,
                 uncomp_offset: 0,
-                total_size: round4(*unpadded) + 0,
+                total_size: round4(*unpadded),
                 unpadded_size: *unpadded,
                 uncomp_size: *uncomp,
             });

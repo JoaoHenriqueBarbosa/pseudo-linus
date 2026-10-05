@@ -406,8 +406,8 @@ fn expand_aliases(tokens: Vec<Token>, aliases: &HashMap<String, String>, opts: &
             }
             Token::Word(w, loc) => {
                 let is_plain = !w.contains(['\'', '"', '\\', '$', '`']);
-                if cmd_pos && is_plain && guard < 10_000 && !item.active.contains(w) {
-                    if let Some(value) = aliases.get(w) {
+                if cmd_pos && is_plain && guard < 10_000 && !item.active.contains(w)
+                    && let Some(value) = aliases.get(w) {
                         let mut chain = item.active.clone();
                         chain.push(w.clone());
                         let trailing_space = value.ends_with([' ', '\t']);
@@ -427,7 +427,6 @@ fn expand_aliases(tokens: Vec<Token>, aliases: &HashMap<String, String>, opts: &
                             continue;
                         }
                     }
-                }
                 cmd_pos = opens_command(w) || (cmd_pos && is_assignment_word(w)) || item.check_next;
                 out.push(item.tok);
             }

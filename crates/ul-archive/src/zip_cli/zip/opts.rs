@@ -412,9 +412,7 @@ pub fn get_option(st: &mut OptState) -> Result<(u32, Option<Vec<u8>>, bool), Str
                 if optc == NON_OPTION_ARG {
                     first_nonoption_arg += 1;
                 }
-                let j = argn;
-                argn = first_nonoption_arg;
-                first_nonoption_arg = j;
+                std::mem::swap(&mut argn, &mut first_nonoption_arg);
             }
             if argn > argcnt || st.at(argn).is_none() {
                 option_id = 0;
@@ -496,7 +494,7 @@ pub fn envargs(argv: Vec<Vec<u8>>, env: impl Fn(&str) -> Option<Vec<u8>>) -> Vec
         v[n..].to_vec()
     };
     envptr = envptr.map(strip);
-    if envptr.as_ref().map_or(true, |v| v.is_empty()) {
+    if envptr.as_ref().is_none_or(|v| v.is_empty()) {
         envptr = env("ZIP").map(strip);
     }
     let Some(e) = envptr.filter(|v| !v.is_empty()) else { return argv };

@@ -489,11 +489,10 @@ pub fn threads(p: &Proc, want: Want) -> Vec<Proc> {
 /// O pid do próprio processo como o `/proc/self` diz (no kernel real é o `getpid`).
 pub fn self_pid() -> Pid {
     let sys = sys::current();
-    if let Ok(target) = sys.readlinkat(Fd::CWD, b"/proc/self") {
-        if let Some(p) = std::str::from_utf8(&target).ok().and_then(|s| s.parse().ok()) {
+    if let Ok(target) = sys.readlinkat(Fd::CWD, b"/proc/self")
+        && let Some(p) = std::str::from_utf8(&target).ok().and_then(|s| s.parse().ok()) {
             return p;
         }
-    }
     sys.getpid()
 }
 
@@ -654,11 +653,10 @@ impl MemInfo {
         let text = String::from_utf8_lossy(data);
         let mut map = BTreeMap::new();
         for line in text.lines() {
-            if let Some((k, v)) = line.split_once(':') {
-                if let Some(n) = v.split_ascii_whitespace().next().and_then(|x| x.parse().ok()) {
+            if let Some((k, v)) = line.split_once(':')
+                && let Some(n) = v.split_ascii_whitespace().next().and_then(|x| x.parse().ok()) {
                     map.insert(k.trim().to_string(), n);
                 }
-            }
         }
         MemInfo { map }
     }

@@ -314,11 +314,10 @@ impl Zip {
                     let region = inf.read_at(start, (size - start) as usize).unwrap_or_default();
                     let mut p = 0usize;
                     let mut found = false;
-                    if let Some(sig) = find_next_signature(&region, &mut p) {
-                        if &sig == b"PK\x06\x06" {
+                    if let Some(sig) = find_next_signature(&region, &mut p)
+                        && &sig == b"PK\x06\x06" {
                             found = true;
                         }
-                    }
                     if found {
                         let adj = start + p as u64 - 4;
                         adjust_offset = adj.wrapping_sub(z64eocdr_offset);
@@ -446,13 +445,12 @@ impl Zip {
             z.zname = z.iname.clone();
             z.name = z.zname.clone();
             z.oname = display_name(&z.iname);
-            if self.unicode_mismatch != 3 {
-                if let Some(u) = z.uname.clone() {
+            if self.unicode_mismatch != 3
+                && let Some(u) = z.uname.clone() {
                     let name = if std::str::from_utf8(&u).is_ok() { u.clone() } else { z.iname.clone() };
                     z.zuname = Some(name.clone());
                     z.ouname = Some(name);
                 }
-            }
             zlist.push(z);
         }
         if zlist.len() as u64 != cd_total_entries {

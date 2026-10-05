@@ -139,10 +139,7 @@ fn compare_member(t: &mut Tar, r: &mut Reader, m: &Member) -> R<()> {
                 let mut off = 0;
                 while off < chunk.len() {
                     let want = (chunk.len() - off).min(buf.len());
-                    let n = match sysabi::sys::read(fd, &mut buf[..want]) {
-                        Ok(n) => n,
-                        Err(_) => 0,
-                    };
+                    let n = sysabi::sys::read(fd, &mut buf[..want]).unwrap_or_default();
                     if n == 0 || buf[..n] != chunk[off..off + n] {
                         differs = true;
                         return;
@@ -293,9 +290,8 @@ pub fn delete(t: &mut Tar) -> R<()> {
             Status::Member(m) => {
                 first = false;
                 let start = m.start_offset;
-                let matched = names.find(&m.name).map(|i| {
+                let matched = names.find(&m.name).inspect(|&i| {
                     names.items[i].found += 1;
-                    i
                 });
                 if r.skip_data(m.data_size()).is_err() {
                     return Err(t.fatal("Unexpected EOF in archive"));

@@ -217,15 +217,13 @@ pub fn strip(name: &[u8], n: Option<usize>) -> Option<Vec<u8>> {
             let mut i = 0usize;
             let mut stripped = 0usize;
             while stripped < n {
-                match name[i..].iter().position(|&c| c == b'/') {
-                    Some(p) => {
-                        i += p;
-                        while i < name.len() && name[i] == b'/' {
-                            i += 1;
-                        }
-                        stripped += 1;
+                {
+                    let p = name[i..].iter().position(|&c| c == b'/')?;
+                    i += p;
+                    while i < name.len() && name[i] == b'/' {
+                        i += 1;
                     }
-                    None => return None,
+                    stripped += 1;
                 }
             }
             if i >= name.len() { None } else { Some(name[i..].to_vec()) }

@@ -172,27 +172,24 @@ pub fn switch_tree(repo: &Repo, idx: &Index, old: Option<&Oid>, new: &Oid, o: &O
                     rejects[0].push(path.clone());
                 }
             }
-            None => match nt {
-                Some(n) => {
-                    if let Some(ot) = ot
-                        && !initial
-                    {
-                        // A remoção do caminho foi preparada no índice.
-                        if !same_tree(ot, n) {
-                            rejects[0].push(path.clone());
-                        }
-                        continue;
+            None => if let Some(n) = nt {
+                if let Some(ot) = ot
+                    && !initial
+                {
+                    // A remoção do caminho foi preparada no índice.
+                    if !same_tree(ot, n) {
+                        rejects[0].push(path.clone());
                     }
-                    match verify_absent(repo, idx, path, &mut ign) {
-                        Some((kind, p)) => {
-                            if !rejects[kind].contains(&p) {
-                                rejects[kind].push(p);
-                            }
-                        }
-                        None => ups.push((path.clone(), n.0, n.1)),
-                    }
+                    continue;
                 }
-                None => {}
+                match verify_absent(repo, idx, path, &mut ign) {
+                    Some((kind, p)) => {
+                        if !rejects[kind].contains(&p) {
+                            rejects[kind].push(p);
+                        }
+                    }
+                    None => ups.push((path.clone(), n.0, n.1)),
+                }
             },
         }
     }

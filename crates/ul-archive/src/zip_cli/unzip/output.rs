@@ -198,9 +198,9 @@ impl Uz {
             self.x.slinks.push(Slink { fname: self.filename.clone(), target, perms: self.pinfo.file_attr, uidgid });
             return;
         }
-        if let Some((uid, gid)) = uidgid {
-            if uid <= u64::from(u32::MAX) && gid <= u64::from(u32::MAX) {
-                if let Err(e) = s.fchownat(fd, b"", Some(uid as u32), Some(gid as u32), AtFlags::EMPTY_PATH) {
+        if let Some((uid, gid)) = uidgid
+            && uid <= u64::from(u32::MAX) && gid <= u64::from(u32::MAX)
+                && let Err(e) = s.fchownat(fd, b"", Some(uid as u32), Some(gid as u32), AtFlags::EMPTY_PATH) {
                     let m = if self.o.qflag != 0 {
                         let mut m = format!("warning:  cannot set UID {uid} and/or GID {gid} for ").into_bytes();
                         m.extend(fnfilter(&self.filename));
@@ -211,14 +211,12 @@ impl Uz {
                     };
                     self.info(0x201, m);
                 }
-            }
-        }
         if let Err(e) = s.fchmod(fd, self.filtattr(self.pinfo.file_attr)) {
             perror("fchmod (file attributes) error", e);
         }
         let _ = s.close(fd);
-        if self.o.d_flag <= 1 {
-            if let Err(e) = set_times(&self.filename, atime, mtime, AtFlags::empty()) {
+        if self.o.d_flag <= 1
+            && let Err(e) = set_times(&self.filename, atime, mtime, AtFlags::empty()) {
                 let m = if self.o.qflag != 0 {
                     let mut m = b"warning:  cannot set modif./access times for ".to_vec();
                     m.extend(fnfilter(&self.filename));
@@ -229,6 +227,5 @@ impl Uz {
                 };
                 self.info(0x201, m);
             }
-        }
     }
 }

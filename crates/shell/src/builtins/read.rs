@@ -201,11 +201,10 @@ pub fn read(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
             return Ok(1);
         }
     }
-    if let Some(p) = opts.value(b'p') {
-        if sys().isatty(fd) {
+    if let Some(p) = opts.value(b'p')
+        && sys().isatty(fd) {
             let _ = write_fd(Fd::STDERR, p);
         }
-    }
     // `-t 0`: só diz se há dado.
     if timeout == Some(Duration::ZERO) {
         let mut fds = [PollFd { fd, events: PollEvents::IN, revents: PollEvents::empty() }];
@@ -222,11 +221,10 @@ pub fn read(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
     let mut pending_utf8 = 0usize;
     let utf8 = sh.utf8();
     loop {
-        if let Some(n) = nchars {
-            if chars >= n && pending_utf8 == 0 {
+        if let Some(n) = nchars
+            && chars >= n && pending_utf8 == 0 {
                 break;
             }
-        }
         let b = match src.next(sh) {
             Ok(Some(b)) => b,
             Ok(None) => {
@@ -459,11 +457,10 @@ pub fn mapfile(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
     let mut skipped = 0;
     let mut read = 0;
     loop {
-        if let Some(c) = count {
-            if c > 0 && read >= c {
+        if let Some(c) = count
+            && c > 0 && read >= c {
                 break;
             }
-        }
         let mut line = Vec::new();
         let mut got = false;
         let mut ended = false;
@@ -493,14 +490,13 @@ pub fn mapfile(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
         }
         sh.assign_element(&name, idx.to_string().as_bytes(), line.clone(), false)?;
         read += 1;
-        if let Some(cb) = &callback {
-            if read % quantum == 0 {
+        if let Some(cb) = &callback
+            && read % quantum == 0 {
                 let q = |b: &[u8]| String::from_utf8_lossy(&crate::quote::printf_q(b, true)).into_owned();
                 let cmd = format!("{cb} {idx} {}", q(&line));
                 let line_no = sh.lineno;
                 sh.run_text(&cmd, crate::exec::TextKind::Eval, std::sync::Arc::from("mapfile"), line_no)?;
             }
-        }
         idx += 1;
     }
     src.finish();

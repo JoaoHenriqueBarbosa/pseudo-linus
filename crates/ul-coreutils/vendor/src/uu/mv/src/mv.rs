@@ -1023,7 +1023,7 @@ fn rename_fifo_fallback(from: &Path, to: &Path) -> io::Result<()> {
         fs::remove_file(to)?;
     }
     // rustix::fs::mkfifoat is linux only
-    sysio::fs::mkfifo(to, 0o666)?;
+    fs::mkfifo(to, 0o666)?;
     fs::remove_file(from)
 }
 
@@ -1338,7 +1338,7 @@ fn copy_file_with_hardlinks_helper(
         rename_symlink_fallback(from, to)?;
     } else if is_fifo(from.sys_symlink_metadata()?.file_type()) {
         // rustix::fs::mkfifoat is linux only
-        sysio::fs::mkfifo(to, 0o666)?;
+        fs::mkfifo(to, 0o666)?;
         // Preserve ownership (uid/gid) from the source
         let _ = preserve_ownership(from, to);
     } else {

@@ -101,7 +101,7 @@ fn parse_value(cur: &mut Cursor<'_>) -> Option<Vec<u8>> {
     let mut held_ws: Vec<u8> = Vec::new();
     let mut in_quotes = false;
     let mut in_comment = false;
-    let mut emit = |value: &mut Vec<u8>, held: &mut Vec<u8>, c: u8| {
+    let emit = |value: &mut Vec<u8>, held: &mut Vec<u8>, c: u8| {
         if !value.is_empty() {
             value.append(held);
         } else {

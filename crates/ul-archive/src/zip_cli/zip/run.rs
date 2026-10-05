@@ -19,7 +19,7 @@ fn abbrevmatch(matchs: &str, abbrev: &[u8]) -> bool {
     let n = m.len().min(abbrev.len());
     for i in 0..n {
         cnt += 1;
-        if m[i].to_ascii_uppercase() != abbrev[i].to_ascii_uppercase() {
+        if !m[i].eq_ignore_ascii_case(&abbrev[i]) {
             return false;
         }
     }
@@ -60,15 +60,14 @@ fn scan_date(s: &[u8], widths: [usize; 3], sep: Option<u8>) -> Option<[i64; 3]> 
     let mut out = [0i64; 3];
     for i in 0..3 {
         out[i] = scan_int(s, &mut pos, widths[i])?;
-        if i < 2 {
-            if let Some(c) = sep {
+        if i < 2
+            && let Some(c) = sep {
                 if s.get(pos) == Some(&c) {
                     pos += 1;
                 } else {
                     return None;
                 }
             }
-        }
     }
     Some(out)
 }
@@ -495,11 +494,10 @@ impl Zip {
             let pw = self.ask_password()?;
             self.key = Some(pw);
         }
-        if let Some(k) = &self.key {
-            if k.is_empty() {
+        if let Some(k) = &self.key
+            && k.is_empty() {
                 return Err(self.ziperr(ZE_PARMS, "zero length password not allowed"));
             }
-        }
         if self.show_sd {
             self.sd("Command line read");
         }

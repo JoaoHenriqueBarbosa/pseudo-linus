@@ -35,9 +35,7 @@
 
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
-use core::ffi::CStr;
 use sysio::io::{self, Write};
-use uucore::display::Quotable;
 use uucore::entries::{self, Group, Locate, Passwd};
 use uucore::error::UResult;
 use uucore::error::{USimpleError, set_exit_code};

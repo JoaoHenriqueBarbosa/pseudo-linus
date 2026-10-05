@@ -102,8 +102,8 @@ fn batch_line(fmt: &[u8], id: &Oid, kind: Kind, size: usize, rest: &[u8]) -> Vec
     let mut out = Vec::new();
     let mut i = 0;
     while i < fmt.len() {
-        if fmt[i..].starts_with(b"%(") {
-            if let Some(end) = fmt[i..].iter().position(|c| *c == b')') {
+        if fmt[i..].starts_with(b"%(")
+            && let Some(end) = fmt[i..].iter().position(|c| *c == b')') {
                 let atom = &fmt[i + 2..i + end];
                 match atom {
                     b"objectname" => out.extend_from_slice(id.hex().as_bytes()),
@@ -118,7 +118,6 @@ fn batch_line(fmt: &[u8], id: &Oid, kind: Kind, size: usize, rest: &[u8]) -> Vec
                 i += end + 1;
                 continue;
             }
-        }
         out.push(fmt[i]);
         i += 1;
     }

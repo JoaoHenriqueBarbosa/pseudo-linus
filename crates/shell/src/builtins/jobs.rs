@@ -57,11 +57,10 @@ fn trap_lines(t: &Traps, only: Option<&[TrapSpec]>) -> String {
         }
     }
     for (spec, v, name) in [(TrapSpec::Debug, &t.debug, "DEBUG"), (TrapSpec::Err, &t.err, "ERR"), (TrapSpec::Return, &t.ret, "RETURN")] {
-        if let Some(cmd) = v {
-            if want(spec) {
+        if let Some(cmd) = v
+            && want(spec) {
                 out.push_str(&format!("trap -- {} {name}\n", q(cmd)));
             }
-        }
     }
     out
 }
@@ -451,11 +450,10 @@ pub fn jobs(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
     // Atualiza o estado sem bloquear.
     for j in &mut sh.jobs {
         for (k, pid) in j.pids.iter().enumerate() {
-            if j.status[k].is_none() {
-                if let Ok(Some((_, st))) = s.wait4(WaitTarget::Pid(*pid), WaitOptions::NOHANG) {
+            if j.status[k].is_none()
+                && let Ok(Some((_, st))) = s.wait4(WaitTarget::Pid(*pid), WaitOptions::NOHANG) {
                     j.status[k] = Some(st.shell_status());
                 }
-            }
         }
     }
     let n = sh.jobs.len();

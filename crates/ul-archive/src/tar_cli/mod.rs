@@ -624,7 +624,7 @@ pub fn report_unmatched(t: &mut Tar, names: &names::NameList) {
             names.items.iter().filter(|n| n.found > 0 && n.found < occ).map(|n| n.arg.name.clone()).collect();
         for name in short {
             let mut m = quote::colon(&name);
-            m.extend_from_slice(format!(": Required occurrence not found in archive").as_bytes());
+            m.extend_from_slice(": Required occurrence not found in archive".to_string().as_bytes());
             t.error(m);
         }
     }

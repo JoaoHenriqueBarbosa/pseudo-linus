@@ -225,7 +225,7 @@ pub enum WtState {
 }
 
 /// Compara a entrada com o arquivo (stat primeiro, conteúdo se precisar).
-pub fn check_entry(repo: &Repo, idx: &Index, e: &index::IEntry, trust_exec: bool) -> R<WtState> {
+pub fn check_entry(_repo: &Repo, idx: &Index, e: &index::IEntry, trust_exec: bool) -> R<WtState> {
     let st = match os::lstat(&e.path) {
         Ok(s) => s,
         Err(sysabi::Errno::ENOENT | sysabi::Errno::ENOTDIR) => return Ok(WtState::Deleted),

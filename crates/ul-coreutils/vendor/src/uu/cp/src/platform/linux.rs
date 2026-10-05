@@ -123,7 +123,7 @@ fn clone(
                 if !dest_existed && path_still_refers_to(dest, &dst_file) {
                     let _ = sysio::fs::remove_file(dest);
                 }
-                Err(CpError::IoErrContext(err.into(), context.to_owned()))
+                Err(CpError::IoErrContext(err, context.to_owned()))
             }
             CloneFallback::FSCopy => buf_copy::copy_fast(src_file, &mut dst_file)
                 .map_err(|e| CpError::IoErrContext(e, context.to_owned())),
@@ -139,7 +139,7 @@ fn clone(
 /// Whether `path` still resolves to the inode behind `file`.
 fn path_still_refers_to(path: &Path, file: &File) -> bool {
     // Porte pseudo-linus: lstat no FS do pseudo-processo.
-    let (Ok(current), Ok(opened)) = (sysio::path::PathExt::sys_symlink_metadata(path), file.metadata()) else {
+    let (Ok(current), Ok(opened)) = (PathExt::sys_symlink_metadata(path), file.metadata()) else {
         return false;
     };
     current.dev() == opened.dev() && current.ino() == opened.ino()
@@ -185,7 +185,7 @@ fn sparse_copy_without_hole_fd(src_file: &File, dst_file: &File, context: &str) 
     let ctx_err = |e: io::Error| CpError::IoErrContext(e, context.to_owned());
 
     let size = src_file.metadata().map_err(&ctx_err)?.size();
-    ftruncate(dst_file, size).map_err(|e| CpError::IoErrContext(e.into(), context.to_owned()))?;
+    ftruncate(dst_file, size).map_err(|e| CpError::IoErrContext(e, context.to_owned()))?;
     let mut current_offset = 0;
     // Maximize the data read at once to 16 MiB to avoid memory hogging with large files
     // 16 MiB chunks should saturate an SSD
@@ -225,7 +225,7 @@ fn sparse_copy_fd(src_file: &mut File, dst_file: &File, context: &str) -> CopyRe
     // Keep the size as u64: on 32-bit targets a usize conversion would
     // panic for sources of 4 GiB and more.
     let size = src_file.metadata().map_err(&ctx_err)?.size();
-    ftruncate(dst_file, size).map_err(|e| CpError::IoErrContext(e.into(), context.to_owned()))?;
+    ftruncate(dst_file, size).map_err(|e| CpError::IoErrContext(e, context.to_owned()))?;
 
     let blksize = dst_file.metadata().map_err(&ctx_err)?.blksize();
     let mut buf: Vec<u8> = vec![0; blksize as usize];
@@ -241,7 +241,7 @@ fn sparse_copy_fd(src_file: &mut File, dst_file: &File, context: &str) -> CopyRe
             // concurrently): shrink the dest to the bytes actually copied
             // instead of leaving a zero-filled tail up to the stale size.
             ftruncate(dst_file, current_offset)
-                .map_err(|e| CpError::IoErrContext(e.into(), context.to_owned()))?;
+                .map_err(|e| CpError::IoErrContext(e, context.to_owned()))?;
             break;
         }
         let buf = &buf[..this_read];

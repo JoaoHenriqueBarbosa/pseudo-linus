@@ -246,8 +246,8 @@ fn take_signal_option(args: &mut Vec<String>) -> Option<i32> {
             i += 2;
             continue;
         }
-        if let Some(body) = a.strip_prefix('-') {
-            if !body.is_empty() && !body.starts_with('-') {
+        if let Some(body) = a.strip_prefix('-')
+            && !body.is_empty() && !body.starts_with('-') {
                 let sig = if body.as_bytes()[0].is_ascii_digit() {
                     common::parse_long(body).filter(|n| (0..=64).contains(n)).map(|n| n as i32)
                 } else {
@@ -258,7 +258,6 @@ fn take_signal_option(args: &mut Vec<String>) -> Option<i32> {
                     return Some(s);
                 }
             }
-        }
         i += 1;
     }
     None
@@ -276,11 +275,10 @@ fn parse_opts(mode: Mode, argv: &[Vec<u8>], argv0: &str, names: &mut Names) -> R
     let prog = mode.name();
     let mut rest: Vec<String> = argv[1..].iter().map(|a| String::from_utf8_lossy(a).into_owned()).collect();
     let mut o = Opts { delim: b"\n".to_vec(), signal: Signal::SIGTERM.0, ..Opts::default() };
-    if mode == Mode::Pkill {
-        if let Some(s) = take_signal_option(&mut rest) {
+    if mode == Mode::Pkill
+        && let Some(s) = take_signal_option(&mut rest) {
             o.signal = s;
         }
-    }
     let rest_bytes: Vec<Vec<u8>> = rest.iter().map(|s| s.as_bytes().to_vec()).collect();
     let (spec, longs) = match mode {
         Mode::Pgrep => ("lad:vwcfg:G:inoO:P:s:t:u:U:xF:Lr:AhV", LONGS_PGREP),
@@ -596,15 +594,13 @@ fn run(args: &[OsString], mode: Mode) -> i32 {
         }
         matches = best.into_iter().collect();
     }
-    if matches.is_empty() {
-        if let Some(p) = &pattern {
-            if !o.full && p.len() > 15 {
+    if matches.is_empty()
+        && let Some(p) = &pattern
+            && !o.full && p.len() > 15 {
                 io::eprint(format!(
                     "{prog}: pattern that searches for process name longer than 15 characters will result in zero matches\nTry `{prog} -f' option to match against the complete command line.\n"
                 ));
             }
-        }
-    }
     match mode {
         Mode::Pgrep => {
             if o.count {

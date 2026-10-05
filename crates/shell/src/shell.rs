@@ -324,11 +324,10 @@ impl Shell {
 
     /// Nome usado nas mensagens de erro: `BASH_SOURCE[0]` se houver, senão `$0`.
     pub fn error_name(&self) -> String {
-        if let Some(src) = self.current_source() {
-            if !src.is_empty() {
+        if let Some(src) = self.current_source()
+            && !src.is_empty() {
                 return src.to_string();
             }
-        }
         String::from_utf8_lossy(&self.arg0).into_owned()
     }
 
@@ -396,11 +395,10 @@ impl Shell {
     /// Variável visível, com as especiais dinâmicas calculadas na hora e nameref resolvido.
     pub fn lookup(&mut self, name: &str) -> Option<Cow<'_, Var>> {
         let name = self.resolve_nameref(name);
-        if DYNAMIC.contains(&name.as_str()) && !self.specials_off.contains(&name) {
-            if let Some(v) = self.dynamic(&name) {
+        if DYNAMIC.contains(&name.as_str()) && !self.specials_off.contains(&name)
+            && let Some(v) = self.dynamic(&name) {
                 return Some(Cow::Owned(v));
             }
-        }
         self.vars.get(&name).map(Cow::Borrowed)
     }
 
@@ -469,11 +467,10 @@ impl Shell {
             }
             "BASH_SOURCE" => {
                 let mut items: Vec<Vec<u8>> = self.frames.iter().rev().map(|f| f.source.as_bytes().to_vec()).collect();
-                if self.script_file || !self.source_stack.is_empty() {
-                    if let Some(s) = self.source_stack.last() {
+                if (self.script_file || !self.source_stack.is_empty())
+                    && let Some(s) = self.source_stack.last() {
                         items.push(s.as_bytes().to_vec());
                     }
-                }
                 if items.is_empty() {
                     return Some(indexed(Vec::new()));
                 }
@@ -685,12 +682,11 @@ impl Shell {
     /// `unset nome`.
     pub fn unset_var(&mut self, name: &str) -> bool {
         let real = self.resolve_nameref(name);
-        if let Some(v) = self.vars.get(&real) {
-            if v.attrs.has(Attrs::READONLY) {
+        if let Some(v) = self.vars.get(&real)
+            && v.attrs.has(Attrs::READONLY) {
                 self.error(format!("unset: {real}: cannot unset: readonly variable"));
                 return false;
             }
-        }
         if DYNAMIC.contains(&real.as_str()) {
             self.specials_off.insert(real.clone());
         }
@@ -726,12 +722,11 @@ impl Shell {
                 if seen.contains_key(k) || hidden.contains(k) {
                     continue;
                 }
-                if v.attrs.has(Attrs::EXPORT) {
-                    if let Value::Scalar(s) = &v.value {
+                if v.attrs.has(Attrs::EXPORT)
+                    && let Value::Scalar(s) = &v.value {
                         seen.insert(k.clone(), s.clone());
                         continue;
                     }
-                }
                 hidden.insert(k.clone());
             }
         }
@@ -828,10 +823,7 @@ impl ArithEnv for ShellArith<'_> {
                         _ => None,
                     }
                 } else {
-                    let idx = match crate::arith::eval(sub, self) {
-                        Ok(i) => i,
-                        Err(e) => return Err(e),
-                    };
+                    let idx = crate::arith::eval(sub, self)?;
                     match self.sh.resolve_index(&real, idx) {
                         None => None,
                         Some(i) => match self.sh.lookup(&real).map(|v| v.into_owned()) {
@@ -861,9 +853,9 @@ impl ArithEnv for ShellArith<'_> {
                 let key = if assoc {
                     sub.to_vec()
                 } else {
-                    match crate::arith::eval(sub, self) {
-                        Ok(i) => i.to_string().into_bytes(),
-                        Err(e) => return Err(e),
+                    {
+                        let i = crate::arith::eval(sub, self)?;
+                        i.to_string().into_bytes()
                     }
                 };
                 self.sh.assign_element(name, &key, v, false)

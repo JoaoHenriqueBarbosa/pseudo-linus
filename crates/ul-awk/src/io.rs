@@ -404,9 +404,7 @@ pub fn start_output_pipe(sys: &Arc<dyn Syscalls>, cmd: &[u8], buf: &mut Vec<u8>)
     buf.drain(..written);
     if !buf.is_empty() {
         let rest = std::mem::take(buf);
-        if let Err(e) = write_pipe(sys, w, &rest) {
-            return Err(e);
-        }
+        write_pipe(sys, w, &rest)?;
     }
     Ok((w, pid))
 }

@@ -232,13 +232,12 @@ fn format_entry(fmt: &[u8], e: &crate::index::IEntry, name: &[u8], id: &str) -> 
             i += end + 1;
             continue;
         }
-        if fmt[i] == b'%' && fmt.get(i + 1) == Some(&b'x') && i + 3 < fmt.len() + 1 {
-            if let (Some(a), Some(b)) = (fmt.get(i + 2).and_then(|c| crate::hash::hex_val(*c)), fmt.get(i + 3).and_then(|c| crate::hash::hex_val(*c))) {
+        if fmt[i] == b'%' && fmt.get(i + 1) == Some(&b'x') && i + 3 < fmt.len() + 1
+            && let (Some(a), Some(b)) = (fmt.get(i + 2).and_then(|c| crate::hash::hex_val(*c)), fmt.get(i + 3).and_then(|c| crate::hash::hex_val(*c))) {
                 out.push((a << 4) | b);
                 i += 4;
                 continue;
             }
-        }
         if fmt[i] == b'%' && fmt.get(i + 1) == Some(&b'n') {
             out.push(b'\n');
             i += 2;

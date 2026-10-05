@@ -699,14 +699,13 @@ fn signal_abbrev(sig: i32) -> String {
     if sig == 0 || sig >= NSIG {
         return format!("BOGUS_{:02}", sig - 65);
     }
-    if sig < RTMIN - 2 {
-        if let Some(n) = crate::common::signal_name(sig) {
+    if sig < RTMIN - 2
+        && let Some(n) = crate::common::signal_name(sig) {
             return match n {
                 "POLL" => "IO".to_string(),
                 other => other.to_string(),
             };
         }
-    }
     if sig >= 34 {
         if sig == 34 {
             return "RTMIN".to_string();
@@ -749,12 +748,11 @@ fn print_signame(sig: &[u8], len_in: i32) -> Option<Vec<u8>> {
 
 fn help_pr_sig(ps: &Ps, out: &mut Vec<u8>, sig: &[u8]) -> usize {
     let len = sig.len();
-    if ps.signal_names {
-        if let Some(v) = print_signame(sig, ps.max_rightward) {
+    if ps.signal_names
+        && let Some(v) = print_signame(sig, ps.max_rightward) {
             out.extend_from_slice(&v);
             return v.len();
         }
-    }
     let s = String::from_utf8_lossy(sig).into_owned();
     if ps.wide_signals {
         if len > 8 {
@@ -983,15 +981,14 @@ pub fn pr_lxcname(_ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
 }
 
 pub fn pr_context(_ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
-    if let Some(d) = proc::read_path(&format!("/proc/{}/attr/current", p.tgid)) {
-        if !d.is_empty() {
+    if let Some(d) = proc::read_path(&format!("/proc/{}/attr/current", p.tgid))
+        && !d.is_empty() {
             let len = d.iter().take_while(|b| (0x20..0x7f).contains(*b)).count();
             if len > 0 {
                 out.extend_from_slice(&d[..len]);
                 return len;
             }
         }
-    }
     out.push(b'-');
     1
 }

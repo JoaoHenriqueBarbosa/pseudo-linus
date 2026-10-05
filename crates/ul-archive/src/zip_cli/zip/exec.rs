@@ -84,8 +84,8 @@ impl Zip {
                 if self.logfile.is_some() && !(sf == 5 || sf == 6) {
                     self.log_raw(&line(&z.oname));
                 }
-                if sf == 3 || sf == 4 {
-                    if let Some(ou) = &z.ouname {
+                if (sf == 3 || sf == 4)
+                    && let Some(ou) = &z.ouname {
                         let mut l = b"     Escaped Unicode:  ".to_vec();
                         l.extend_from_slice(ou);
                         l.push(b'\n');
@@ -94,7 +94,6 @@ impl Zip {
                         }
                         self.log_raw(&l);
                     }
-                }
                 if sf == 5 || sf == 6 {
                     let n: &[u8] = z.ouname.as_deref().unwrap_or(&z.oname);
                     if self.noisy && sf == 5 {
@@ -240,11 +239,10 @@ impl Zip {
         self.zusort.clear();
 
         // O diretório dos arquivos temporários é o do zip, salvo `-b`.
-        if self.tempath.is_none() {
-            if let Some(p) = self.zipfile.iter().rposition(|&c| c == b'/') {
+        if self.tempath.is_none()
+            && let Some(p) = self.zipfile.iter().rposition(|&c| c == b'/') {
                 self.tempath = Some(self.zipfile[..p].to_vec());
             }
-        }
 
         // Para cada entrada marcada: existe? é mais nova (-u, -f)?
         if self.show_sd {
@@ -257,7 +255,7 @@ impl Zip {
         for i in 0..self.zfiles.len() {
             if self.noisy && self.scan_last != 0 {
                 self.scan_count += 1;
-                if self.scan_count % 100 == 0 {
+                if self.scan_count.is_multiple_of(100) {
                     let current = self.now_sec();
                     if current - self.scan_last > self.scan_dot_time {
                         if !self.scan_started {
@@ -353,7 +351,7 @@ impl Zip {
         let mut kept = Vec::new();
         for mut f in found {
             if self.noisy {
-                if !self.zip_to_stdout && self.scan_last == 0 && self.scan_count % 100 == 0 {
+                if !self.zip_to_stdout && self.scan_last == 0 && self.scan_count.is_multiple_of(100) {
                     let current = self.now_sec();
                     if current - self.scan_start > self.scan_delay {
                         self.mesg_raw(b"Scanning files ");
@@ -363,7 +361,7 @@ impl Zip {
                 }
                 if self.scan_last != 0 {
                     self.scan_count += 1;
-                    if self.scan_count % 100 == 0 {
+                    if self.scan_count.is_multiple_of(100) {
                         let current = self.now_sec();
                         if current - self.scan_last > self.scan_dot_time {
                             if !self.scan_started {
@@ -378,12 +376,11 @@ impl Zip {
             }
             let mut tf: u64 = 0;
             let mut usz: i64 = 0;
-            if self.action != DELETE && self.action != FRESHEN {
-                if let Some(inf) = self.filetime(&f.name)? {
+            if self.action != DELETE && self.action != FRESHEN
+                && let Some(inf) = self.filetime(&f.name)? {
                     tf = inf.tim;
                     usz = inf.size;
                 }
-            }
             if self.action == DELETE
                 || self.action == FRESHEN
                 || tf == 0
@@ -547,7 +544,7 @@ impl Zip {
         }
 
         let mut o = false;
-        if self.zfiles.is_empty() == false && self.show_sd {
+        if !self.zfiles.is_empty() && self.show_sd {
             self.sd("Going through old zip file");
         }
         let old = std::mem::take(&mut self.zfiles);
@@ -717,11 +714,10 @@ impl Zip {
                 dosflag: f.dosflag,
                 ..Zlist::default()
             };
-            if let Some(u) = &f.uname {
-                if !is_ascii(u) {
+            if let Some(u) = &f.uname
+                && !is_ascii(u) {
                     z.uname = Some(u.clone());
                 }
-            }
             self.display_running_stats();
             let mut m = b"  adding: ".to_vec();
             m.extend_from_slice(&z.oname);

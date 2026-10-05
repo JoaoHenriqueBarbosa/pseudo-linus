@@ -16,7 +16,6 @@ use clap::{Arg, ArgAction, Command};
 use sysio::io::{ErrorKind, Write};
 use sysio::process::{self, Child, Stdio};
 use std::time::Duration;
-use uucore::display::Quotable;
 use uucore::error::{UResult, USimpleError, UUsageError};
 use uucore::parser::parse_time;
 use uucore::process::{ChildExt, TimeoutRet};

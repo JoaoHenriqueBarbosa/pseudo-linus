@@ -444,7 +444,7 @@ fn gnu_getopt_error(err: &Error, exit_code: i32) -> Option<i32> {
         .map(|a| a.to_string_lossy().into_owned())
         .take_while(|a| a != "--")
         .collect();
-    let invalid_arg = err.get(ContextKind::InvalidArg).map(|a| a.to_string());
+    let invalid_arg = err.get(ContextKind::InvalidArg).map(std::string::ToString::to_string);
     let long_name = |arg: &str| -> Option<String> {
         let first = arg.split([' ', '=']).next()?;
         first.starts_with("--").then(|| first.to_string())

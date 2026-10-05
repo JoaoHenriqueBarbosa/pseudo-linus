@@ -14,9 +14,7 @@
 #[allow(unused_imports)]
 use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do pseudo-processo.
 use sysio::{println, eprintln};
-use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::convert::identity;
 use sysio::env;
 use sysio::fs::{self, exists};
 use sysio::io;

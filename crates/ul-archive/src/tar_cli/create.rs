@@ -91,12 +91,11 @@ pub fn load_files_from(t: &mut Tar) -> R<()> {
             if line.is_empty() {
                 continue;
             }
-            if !t.o.null && !t.o.verbatim_files_from && line.first() == Some(&b'-') {
-                if let Some(dir) = super::args::files_from_option(line) {
+            if !t.o.null && !t.o.verbatim_files_from && line.first() == Some(&b'-')
+                && let Some(dir) = super::args::files_from_option(line) {
                     chdir.push(dir);
                     continue;
                 }
-            }
             let name = if t.o.unquote && !t.o.null { unquote(line) } else { line.to_vec() };
             out.push(NameArg {
                 name,
@@ -303,11 +302,10 @@ impl Creator {
             gname = if t.o.numeric_owner { Vec::new() } else { g.name.clone() };
         }
         let mut mtime = st_time(st);
-        if let Some(m) = self.mtime {
-            if !t.o.clamp_mtime || mtime > m {
+        if let Some(m) = self.mtime
+            && (!t.o.clamp_mtime || mtime > m) {
                 mtime = m;
             }
-        }
         let pax = self.format == Format::Pax;
         Member {
             name,

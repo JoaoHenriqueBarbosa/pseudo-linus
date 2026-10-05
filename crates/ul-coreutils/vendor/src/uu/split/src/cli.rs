@@ -5,7 +5,6 @@
 
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command, ValueHint};
-use sysio::env;
 use std::ffi::OsString;
 pub use uucore::{format_usage, translate};
 

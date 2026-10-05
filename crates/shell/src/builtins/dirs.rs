@@ -88,13 +88,12 @@ impl Shell {
     }
 
     fn tilde_home(&self, p: &[u8]) -> Vec<u8> {
-        if let Some(home) = self.var_bytes("HOME") {
-            if !home.is_empty() && home != b"/" && p.starts_with(home) && (p.len() == home.len() || p[home.len()] == b'/') {
+        if let Some(home) = self.var_bytes("HOME")
+            && !home.is_empty() && home != b"/" && p.starts_with(home) && (p.len() == home.len() || p[home.len()] == b'/') {
                 let mut v = b"~".to_vec();
                 v.extend_from_slice(&p[home.len()..]);
                 return v;
             }
-        }
         p.to_vec()
     }
 }
@@ -154,8 +153,8 @@ pub fn cd(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
     let mut print = print;
     let mut resolved = target.clone();
     let dot_rel = target.starts_with(b"./") || target.starts_with(b"../") || target == b"." || target == b"..";
-    if !target.starts_with(b"/") && !dot_rel {
-        if let Some(cdpath) = sh.var_bytes("CDPATH").map(|v| v.to_vec()) {
+    if !target.starts_with(b"/") && !dot_rel
+        && let Some(cdpath) = sh.var_bytes("CDPATH").map(|v| v.to_vec()) {
             for dir in cdpath.split(|c| *c == b':') {
                 let mut cand = if dir.is_empty() { b".".to_vec() } else { dir.to_vec() };
                 cand.push(b'/');
@@ -169,7 +168,6 @@ pub fn cd(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
                 }
             }
         }
-    }
     match sh.change_dir(&resolved, physical) {
         Ok(()) => {
             if print {

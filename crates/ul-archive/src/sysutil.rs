@@ -74,11 +74,10 @@ impl Output {
     }
 
     fn raw_write(&mut self, data: &[u8]) {
-        if self.err.is_none() && !data.is_empty() {
-            if let Err(e) = sys::write_all(self.fd, data) {
+        if self.err.is_none() && !data.is_empty()
+            && let Err(e) = sys::write_all(self.fd, data) {
                 self.err = Some(e);
             }
-        }
     }
 
     pub fn write(&mut self, data: &[u8]) {

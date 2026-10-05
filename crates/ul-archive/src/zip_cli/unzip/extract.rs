@@ -658,8 +658,8 @@ impl Uz {
             }
         }
         // O nome só se compara depois do campo extra, que pode trazer o nome Unicode.
-        if let Some(cname) = self.pinfo.cfilname.take() {
-            if cname != self.filename {
+        if let Some(cname) = self.pinfo.cfilname.take()
+            && cname != self.filename {
                 let mut m = fnfilter(&cname);
                 m.extend_from_slice(b":  mismatching \"local\" filename (");
                 m.extend(fnfilter(&self.filename));
@@ -670,7 +670,6 @@ impl Uz {
                     *eia = PK_WARN;
                 }
             }
-        }
         // E os tamanhos só depois do campo extra, que pode trazer o bloco Zip64.
         if self.lrec.compression_method == STORED {
             let mut csiz = self.lrec.csize;

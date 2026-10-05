@@ -15,7 +15,7 @@ const NIL: u32 = 0;
 const FAST: u16 = 4;
 const SLOW: u16 = 2;
 const TOO_FAR: u32 = 4096;
-const H_SHIFT: u32 = ((HASH_BITS + MIN_MATCH - 1) / MIN_MATCH) as u32;
+const H_SHIFT: u32 = HASH_BITS.div_ceil(MIN_MATCH) as u32;
 
 /// (good_length, max_lazy, nice_length, max_chain) por nível.
 const CONFIG: [(u32, u32, i32, u32); 10] =

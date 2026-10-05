@@ -38,24 +38,21 @@ impl Ps {
         let sysc = sys::current();
         let mut ws = None;
         for fd in [Fd(1), Fd(2), Fd(0)] {
-            if let Ok(w) = sysc.tcgetwinsize(fd) {
-                if w.cols > 0 && w.rows > 0 {
+            if let Ok(w) = sysc.tcgetwinsize(fd)
+                && w.cols > 0 && w.rows > 0 {
                     ws = Some(w);
                     break;
                 }
-            }
         }
-        if ws.is_none() {
-            if let Ok(fd) = sys::open(b"/dev/tty", OFlags::NOCTTY | OFlags::NONBLOCK | OFlags::RDONLY, 0) {
+        if ws.is_none()
+            && let Ok(fd) = sys::open(b"/dev/tty", OFlags::NOCTTY | OFlags::NONBLOCK | OFlags::RDONLY, 0) {
                 let r = sysc.tcgetwinsize(fd);
                 let _ = sys::close(fd);
-                if let Ok(w) = r {
-                    if w.cols > 0 && w.rows > 0 {
+                if let Ok(w) = r
+                    && w.cols > 0 && w.rows > 0 {
                         ws = Some(w);
                     }
-                }
             }
-        }
         let (cols, rows) = match ws {
             Some(w) => (i32::from(w.cols), i32::from(w.rows)),
             None => (80, 24),
@@ -220,7 +217,7 @@ impl Ps {
         if used != s.len() {
             return Err("process ID list syntax error".into());
         }
-        if num < 1 || num > 0x7fff_ffff {
+        if !(1..=0x7fff_ffff).contains(&num) {
             return Err("process ID out of range".into());
         }
         Ok(Sel::Num(num))
@@ -674,8 +671,8 @@ impl Ps {
             }
             "cols" | "width" | "columns" | "rows" | "lines" => {
                 let rows = name == "rows" || name == "lines";
-                if let Some(arg) = self.grab_gnu_arg(&a, pos) {
-                    if !arg.is_empty() {
+                if let Some(arg) = self.grab_gnu_arg(&a, pos)
+                    && !arg.is_empty() {
                         let (t, used) = strtol_arg(&arg);
                         if used == arg.len() && t > 0 && t < 2_000_000_000 {
                             if rows {
@@ -686,7 +683,6 @@ impl Ps {
                             return Ok(());
                         }
                     }
-                }
                 Err(msg(if rows {
                     "number of rows must follow --rows or --lines"
                 } else {

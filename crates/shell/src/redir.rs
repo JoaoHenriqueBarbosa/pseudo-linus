@@ -111,11 +111,10 @@ impl Shell {
         let s = sys();
         if newfd == target {
             // O open já devolveu o próprio alvo (estava fechado): desfazer é fechar.
-            if let Some(u) = undo {
-                if !u.saved.iter().any(|(t, _)| *t == target) {
+            if let Some(u) = undo
+                && !u.saved.iter().any(|(t, _)| *t == target) {
                     u.saved.push((target, None));
                 }
-            }
             let _ = s.set_cloexec(target, false);
             return Ok(());
         }
@@ -260,9 +259,9 @@ impl Shell {
             RedirOp::ReadWrite => OFlags::RDWR | OFlags::CREAT,
             _ => OFlags::RDONLY,
         };
-        if op == RedirOp::Write && self.opts.get("noclobber") {
-            if let Ok(st) = s.fstatat(Fd::CWD, path, AtFlags::empty()) {
-                if st.file_type() == FileType::Regular {
+        if op == RedirOp::Write && self.opts.get("noclobber")
+            && let Ok(st) = s.fstatat(Fd::CWD, path, AtFlags::empty())
+                && st.file_type() == FileType::Regular {
                     let mut msg = path.to_vec();
                     if self.dash_style() {
                         // O dash: `sh: N: cannot create ARQ: File exists`.
@@ -274,8 +273,6 @@ impl Shell {
                     self.error_bytes(&msg);
                     return Err(RedirFailed);
                 }
-            }
-        }
         if path.is_empty() {
             return Err(self.redir_error(b"", Errno::ENOENT));
         }

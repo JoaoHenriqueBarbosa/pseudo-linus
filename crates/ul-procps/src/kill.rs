@@ -106,7 +106,7 @@ pub fn signal_table() -> String {
             s.push_str(&format!("{n:2} {name:<8}"));
         }
     }
-    if SIGNAL_NAMES.len() % 7 != 0 {
+    if !SIGNAL_NAMES.len().is_multiple_of(7) {
         s.push('\n');
     }
     s

@@ -224,13 +224,12 @@ impl Lowerer {
         }
         // `[k]+=v` (o brush só reconhece `[k]=v`).
         let v = value.value.as_str();
-        if v.starts_with('[') {
-            if let Some(close) = v.find("]+=") {
+        if v.starts_with('[')
+            && let Some(close) = v.find("]+=") {
                 let key = make_word(&v[1..close], WordOpts::mode(Mode::Subscript, line))?;
                 let val = make_word(&v[close + 3..], WordOpts::assignment(line))?;
                 return Ok(ArrayElem { key: Some(key), append: true, value: val });
             }
-        }
         Ok(ArrayElem { key: None, append: false, value: make_word(v, WordOpts::normal(line))? })
     }
 
