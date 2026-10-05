@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU64, Ordering};
 
 use parking_lot::Mutex;
-use sysabi::{Gid, Mode, Pid, Resource, Rlimit, Rusage, SigDisposition, Signal, Tid, Uid, WaitStatus, RLIM_INFINITY};
+use sysabi::{Gid, Mode, Pid, Resource, Rlimit, Rusage, SchedState, SigDisposition, Signal, Tid, Uid, WaitStatus, RLIM_INFINITY};
 use vfs::{Cred, PinnedLoc};
 
 use crate::cpu::CpuTask;
@@ -73,6 +73,19 @@ impl PState {
     }
 }
 
+/// Escalonamento, prioridade de E/S, personality e afinidade de um processo. Fica fora do [`PState`] pra
+/// o estado inicial ser o padrão sem mexer em quem monta o `PState`; o fork copia (ver
+/// `spawn::inherit_tune`). Ordem de travas: `st` antes de `tune`.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct Tune {
+    pub sched: SchedState,
+    /// `io_context->ioprio` (0 é a classe NONE: vale o derivado da nice).
+    pub ioprio: i32,
+    pub personality: u32,
+    /// Máscara gravada por `sched_setaffinity`; `None` são todas as CPUs.
+    pub cpus: Option<Vec<usize>>,
+}
+
 /// Como o processo está terminando.
 #[derive(Debug, Default)]
 pub(crate) struct ExitState {
@@ -95,6 +108,7 @@ pub(crate) struct Threads {
 pub(crate) struct Proc {
     pub pid: Pid,
     pub st: Mutex<PState>,
+    pub tune: Mutex<Tune>,
     pub fds: Mutex<FdTable>,
     pub sig: Mutex<SigState>,
     pub threads: Mutex<Threads>,
@@ -119,6 +133,7 @@ impl Proc {
         Arc::new(Proc {
             pid,
             st: Mutex::new(st),
+            tune: Mutex::new(Tune::default()),
             fds: Mutex::new(fds),
             sig: Mutex::new(sig),
             threads: Mutex::new(Threads::default()),

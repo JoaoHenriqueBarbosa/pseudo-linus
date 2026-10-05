@@ -31,7 +31,8 @@ const HELP: &str = concat!(
     "  or:  stty [-F DEVICE | --file=DEVICE] [-g|--save]\n",
     "Print or change terminal characteristics.\n",
     "\n",
-    "  -a, --all          print all current settings in human-readable form\n",
+    "Mandatory arguments to long options are mandatory for short options too.\n",
+    "  -a,--all          print all current settings in human-readable form\n",
     "  -g, --save         print all current settings in a stty-readable form\n",
     "  -F, --file=DEVICE  open and use the specified DEVICE instead of stdin\n",
     "      --help        display this help and exit\n",
@@ -51,7 +52,7 @@ const HELP: &str = concat!(
     " * lnext CHAR    CHAR will enter the next character quoted\n",
     "   quit CHAR     CHAR will send a quit signal\n",
     " * rprnt CHAR    CHAR will redraw the current line\n",
-    "   start CHAR    CHAR will restart output after stopping it\n",
+    "   start CHAR    CHAR will restart the output after stopping it\n",
     "   stop CHAR     CHAR will stop the output\n",
     "   susp CHAR     CHAR will send a terminal stop signal\n",
     " * swtch CHAR    CHAR will switch to a different shell layer\n",
@@ -59,16 +60,15 @@ const HELP: &str = concat!(
     "\n",
     "Special settings:\n",
     "   N             set the input and output speeds to N bauds\n",
-    " * cols N        tell the kernel that the terminal has N columns\n",
+    "   cols N        tell the kernel that the terminal has N columns\n",
     " * columns N     same as cols N\n",
-    "   [-]drain      wait for transmission before applying settings (on by default)\n",
+    " * [-]drain      wait for transmission before applying settings (on by default)\n",
     "   ispeed N      set the input speed to N\n",
     " * line N        use line discipline N\n",
     "   min N         with -icanon, set N characters minimum for a completed read\n",
     "   ospeed N      set the output speed to N\n",
-    " * rows N        tell the kernel that the terminal has N rows\n",
-    " * size          print the number of rows and columns that\n",
-    "                   the kernel thinks the terminal has\n",
+    "   rows N        tell the kernel that the terminal has N rows\n",
+    "   size          print the number of rows and columns according to the kernel\n",
     "   speed         print the terminal speed\n",
     "   time N        with -icanon, set read timeout of N tenths of a second\n",
     "\n",
@@ -78,8 +78,7 @@ const HELP: &str = concat!(
     " * [-]crtscts    enable RTS/CTS handshaking\n",
     "   csN           set character size to N bits, N in [5..8]\n",
     "   [-]cstopb     use two stop bits per character (one with '-')\n",
-    "   [-]hup        send a hangup signal when the last process closes\n",
-    "                   the tty\n",
+    "   [-]hup        send a hangup signal when the last process closes the tty\n",
     "   [-]hupcl      same as [-]hup\n",
     "   [-]parenb     generate parity bit in output and expect parity bit in input\n",
     "   [-]parodd     set odd parity (or even parity with '-')\n",
@@ -109,7 +108,7 @@ const HELP: &str = concat!(
     " * ffN           form feed delay style, N in [0..1]\n",
     " * nlN           newline delay style, N in [0..1]\n",
     " * [-]ocrnl      translate carriage return to newline\n",
-    " * [-]ofdel      use delete characters for fill instead of null characters\n",
+    " * [-]ofdel      use delete characters for fill instead of NUL characters\n",
     " * [-]ofill      use fill (padding) characters instead of timing for delays\n",
     " * [-]olcuc      translate lowercase characters to uppercase\n",
     " * [-]onlcr      translate newline to carriage return-newline\n",
@@ -129,7 +128,7 @@ const HELP: &str = concat!(
     "   [-]echo       echo input characters\n",
     " * [-]echoctl    same as [-]ctlecho\n",
     "   [-]echoe      same as [-]crterase\n",
-    "   [-]echok      echo newline after killing\n",
+    "   [-]echok      echo a newline after a kill character\n",
     " * [-]echoke     same as [-]crtkill\n",
     "   [-]echonl     echo newline even if not echoing other characters\n",
     " * [-]echoprt    echo erased characters backward, between '\\' and '/'\n",
@@ -172,16 +171,16 @@ const HELP: &str = concat!(
     "                 -isig -iuclc -ixany -imaxbel -xcase min 1 time 0\n",
     "   -raw          same as cooked\n",
     "   sane          same as cread -ignbrk brkint -inlcr -igncr icrnl\n",
-    "                 icrnl -ixoff -iuclc -ixany imaxbel opost -olcuc -ocrnl\n",
-    "                 onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 bs0 vt0\n",
-    "                 ff0 isig icanon iexten echo echoe echok -echonl\n",
-    "                 -noflsh -xcase -tostop -echoprt echoctl echoke -extproc\n",
-    "                 -flusho, all special characters to their default values\n",
+    "                 icanon iexten echo echoe echok -echonl -noflsh\n",
+    "                 -ixoff -iutf8 -iuclc -ixany imaxbel -xcase -olcuc -ocrnl\n",
+    "                 opost -ofill onlcr -onocr -onlret nl0 cr0 tab0 bs0 vt0 ff0\n",
+    "                 isig -tostop -ofdel -echoprt echoctl echoke -extproc -flusho,\n",
+    "                 all special characters to their default values\n",
     "\n",
     "Handle the tty line connected to standard input.  Without arguments,\n",
     "prints baud rate, line discipline, and deviations from stty sane.  In\n",
     "settings, CHAR is taken literally, or coded as in ^c, 0x37, 0177 or\n",
-    "M-^c; ^- or undef disables special characters.\n",
+    "127; special values ^- or undef used to disable special characters.\n",
     "\n",
     "GNU coreutils online help: <https://www.gnu.org/software/coreutils/>\n",
     "Report any translation bugs to <https://translationproject.org/team/>\n",
@@ -192,6 +191,7 @@ const HELP: &str = concat!(
 /// Texto do `--version`.
 const VERSION: &str = concat!(
     "stty (GNU coreutils) 9.7\n",
+    "Packaged by Debian (9.7-3)\n",
     "Copyright (C) 2025 Free Software Foundation, Inc.\n",
     "License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n",
     "This is free software: you are free to change and redistribute it.\n",
@@ -585,6 +585,67 @@ fn needs_quotes(s: &[u8]) -> bool {
 /// `quotef`: entre aspas só quando o nome tem algo que o shell trataria.
 fn quotef(s: &[u8]) -> String {
     if needs_quotes(s) { quote_always(s) } else { String::from_utf8_lossy(s).into_owned() }
+}
+
+/// `quote()` do coreutils em locale UTF-8: aspas curvas simples em volta do texto.
+fn quote_curly(s: &[u8]) -> String {
+    format!("\u{2018}{}\u{2019}", String::from_utf8_lossy(s))
+}
+
+/// Pré-processamento dos argumentos de configuração, que no 9.7 acontece antes do `tcgetattr`:
+/// argumento desconhecido, valor faltando e velocidades de entrada e saída diferentes.
+fn precheck_settings(app: &App, argv: &[&[u8]], consumed: &[bool]) -> Result<(), i32> {
+    let argc = argv.len();
+    let mut ispeed: Option<u64> = None;
+    let mut ospeed: Option<u64> = None;
+    let mut scratch = Termios::default();
+    let mut k = 1;
+    while k < argc {
+        if consumed[k] {
+            k += 1;
+            continue;
+        }
+        let original = argv[k];
+        let mut arg = original;
+        let mut reversed = false;
+        if arg.first() == Some(&b'-') {
+            arg = &arg[1..];
+            reversed = true;
+        }
+        if MODES.iter().any(|m| m.name.as_bytes() == arg) {
+            k += 1;
+            continue;
+        }
+        if reversed {
+            return Err(app.usage_failure(&format!("invalid argument {}", quote_curly(original))));
+        }
+        let takes_value = CONTROLS.iter().any(|c| c.name.as_bytes() == arg)
+            || matches!(arg, b"ispeed" | b"ospeed" | b"rows" | b"cols" | b"columns" | b"line");
+        if takes_value {
+            if k == argc - 1 {
+                return Err(app.usage_failure(&format!("missing argument to {}", quote_curly(arg))));
+            }
+            k += 1;
+            let number = std::str::from_utf8(argv[k]).ok().and_then(|s| s.parse::<u64>().ok());
+            if arg == b"ispeed" {
+                ispeed = number;
+            } else if arg == b"ospeed" {
+                ospeed = number;
+            }
+        } else if !(matches!(arg, b"size" | b"speed")
+            || string_to_baud(arg).is_some()
+            || recover_mode(arg, &mut scratch))
+        {
+            return Err(app.usage_failure(&format!("invalid argument {}", quote_curly(arg))));
+        }
+        k += 1;
+    }
+    if let (Some(i), Some(o)) = (ispeed, ospeed) {
+        if i != o {
+            return Err(app.die(&format!("asymmetric input ({i}), output ({o}) speeds not supported")));
+        }
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1346,10 +1407,14 @@ fn real_main(app: &mut App, args: &[OsString]) -> Result<(), i32> {
     }
 
     if verbose && recoverable {
-        return Err(app.die("the options for verbose and stty-readable output styles are mutually exclusive"));
+        return Err(app.die("the options for verbose and stty-readable output styles are\nmutually exclusive"));
     }
     if !noargs && (verbose || recoverable) {
         return Err(app.die("when specifying an output style, modes may not be set"));
+    }
+
+    if !(verbose || recoverable || noargs) {
+        precheck_settings(app, &argv, &consumed)?;
     }
 
     let sys = sysio::proc::sys();
@@ -1410,13 +1475,13 @@ fn real_main(app: &mut App, args: &[OsString]) -> Result<(), i32> {
             }
         }
         if !matched && reversed {
-            return Err(app.usage_failure(&format!("invalid argument {}", quote_always(original))));
+            return Err(app.usage_failure(&format!("invalid argument {}", quote_curly(original))));
         }
         if !matched {
             for info in CONTROLS {
                 if info.name.as_bytes() == arg {
                     if k == argc - 1 {
-                        return Err(app.usage_failure(&format!("missing argument to {}", quote_always(arg))));
+                        return Err(app.usage_failure(&format!("missing argument to {}", quote_curly(arg))));
                     }
                     matched = true;
                     k += 1;
@@ -1429,18 +1494,18 @@ fn real_main(app: &mut App, args: &[OsString]) -> Result<(), i32> {
         if !matched {
             if arg == b"ispeed" || arg == b"ospeed" {
                 if k == argc - 1 {
-                    return Err(app.usage_failure(&format!("missing argument to {}", quote_always(arg))));
+                    return Err(app.usage_failure(&format!("missing argument to {}", quote_curly(arg))));
                 }
                 k += 1;
                 let Some(code) = string_to_baud(argv[k]) else {
-                    return Err(app.die(&format!("invalid argument {}", quote_always(argv[k]))));
+                    return Err(app.die(&format!("invalid argument {}", quote_curly(argv[k]))));
                 };
                 let kind = if arg == b"ispeed" { SpeedKind::Input } else { SpeedKind::Output };
                 set_speed(kind, code, &mut mode);
                 require_set_attr = true;
             } else if arg == b"rows" || arg == b"cols" || arg == b"columns" {
                 if k == argc - 1 {
-                    return Err(app.usage_failure(&format!("missing argument to {}", quote_always(arg))));
+                    return Err(app.usage_failure(&format!("missing argument to {}", quote_curly(arg))));
                 }
                 k += 1;
                 let value = integer_arg(app, argv[k], i32::MAX as u64)? as i64;
@@ -1455,7 +1520,7 @@ fn real_main(app: &mut App, args: &[OsString]) -> Result<(), i32> {
                 display_window_size(app, &dev, false)?;
             } else if arg == b"line" {
                 if k == argc - 1 {
-                    return Err(app.usage_failure(&format!("missing argument to {}", quote_always(arg))));
+                    return Err(app.usage_failure(&format!("missing argument to {}", quote_curly(arg))));
                 }
                 k += 1;
                 let value = integer_arg(app, argv[k], i64::MAX as u64)?;
@@ -1470,7 +1535,7 @@ fn real_main(app: &mut App, args: &[OsString]) -> Result<(), i32> {
             } else if recover_mode(arg, &mut mode) {
                 require_set_attr = true;
             } else {
-                return Err(app.usage_failure(&format!("invalid argument {}", quote_always(arg))));
+                return Err(app.usage_failure(&format!("invalid argument {}", quote_curly(arg))));
             }
         }
         k += 1;

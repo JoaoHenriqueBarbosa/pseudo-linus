@@ -1,0 +1,256 @@
+{
+  "stty-a": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-a-and-g": {
+    "stdout": "",
+    "stderr": "stty: the options for verbose and stty-readable output styles are\nmutually exclusive\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-a-with-setting": {
+    "stdout": "",
+    "stderr": "stty: when specifying an output style, modes may not be set\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-ag-cluster": {
+    "stdout": "",
+    "stderr": "stty: the options for verbose and stty-readable output styles are\nmutually exclusive\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-all-abbrev": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-all-long": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-baud": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-cbreak": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-cols-set": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-control-char": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-cooked": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-drain": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-ek": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-file-dir": {
+    "stdout": "",
+    "stderr": "stty: .: Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-file-missing": {
+    "stdout": "",
+    "stderr": "stty: /dev/nao-existe: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-file-missing-spaces": {
+    "stdout": "",
+    "stderr": "stty: '/dev/nao existe': No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-file-null": {
+    "stdout": "",
+    "stderr": "stty: /dev/null: Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-file-null-a": {
+    "stdout": "",
+    "stderr": "stty: /dev/null: Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-file-null-g": {
+    "stdout": "",
+    "stderr": "stty: /dev/null: Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-file-null-setting": {
+    "stdout": "",
+    "stderr": "stty: /dev/null: Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-file-regular": {
+    "stdout": "",
+    "stderr": "stty: a.txt: Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "ebbc0293200936058b750d17049c22f952fb7f64e36aac48cccfa2dfcce18f81",
+        "data": "texto\n"
+      }
+    }
+  },
+  "stty-g": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-g-with-setting": {
+    "stdout": "",
+    "stderr": "stty: when specifying an output style, modes may not be set\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-help": {
+    "stdout": "Usage: stty [-F DEVICE | --file=DEVICE] [SETTING]...\n  or:  stty [-F DEVICE | --file=DEVICE] [-a|--all]\n  or:  stty [-F DEVICE | --file=DEVICE] [-g|--save]\nPrint or change terminal characteristics.\n\nMandatory arguments to long options are mandatory for short options too.\n  -a, --all          print all current settings in human-readable form\n  -g, --save         print all current settings in a stty-readable form\n  -F, --file=DEVICE  open and use the specified DEVICE instead of stdin\n      --help        display this help and exit\n      --version     output version information and exit\n\nOptional - before SETTING indicates negation.  An * marks non-POSIX\nsettings.  The underlying system defines which settings are available.\n\nSpecial characters:\n * discard CHAR  CHAR will toggle discarding of output\n   eof CHAR      CHAR will send an end of file (terminate the input)\n   eol CHAR      CHAR will end the line\n * eol2 CHAR     alternate CHAR for ending the line\n   erase CHAR    CHAR will erase the last character typed\n   intr CHAR     CHAR will send an interrupt signal\n   kill CHAR     CHAR will erase the current line\n * lnext CHAR    CHAR will enter the next character quoted\n   quit CHAR     CHAR will send a quit signal\n * rprnt CHAR    CHAR will redraw the current line\n   start CHAR    CHAR will restart the output after stopping it\n   stop CHAR     CHAR will stop the output\n   susp CHAR     CHAR will send a terminal stop signal\n * swtch CHAR    CHAR will switch to a different shell layer\n * werase CHAR   CHAR will erase the last word typed\n\nSpecial settings:\n   N             set the input and output speeds to N bauds\n   cols N        tell the kernel that the terminal has N columns\n * columns N     same as cols N\n * [-]drain      wait for transmission before applying settings (on by default)\n   ispeed N      set the input speed to N\n * line N        use line discipline N\n   min N         with -icanon, set N characters minimum for a completed read\n   ospeed N      set the output speed to N\n   rows N        tell the kernel that the terminal has N rows\n   size          print the number of rows and columns according to the kernel\n   speed         print the terminal speed\n   time N        with -icanon, set read timeout of N tenths of a second\n\nControl settings:\n   [-]clocal     disable modem control signals\n   [-]cread      allow input to be received\n * [-]crtscts    enable RTS/CTS handshaking\n   csN           set character size to N bits, N in [5..8]\n   [-]cstopb     use two stop bits per character (one with '-')\n   [-]hup        send a hangup signal when the last process closes the tty\n   [-]hupcl      same as [-]hup\n   [-]parenb     generate parity bit in output and expect parity bit in input\n   [-]parodd     set odd parity (or even parity with '-')\n * [-]cmspar     use \"stick\" (mark/space) parity\n\nInput settings:\n   [-]brkint     breaks cause an interrupt signal\n   [-]icrnl      translate carriage return to newline\n   [-]ignbrk     ignore break characters\n   [-]igncr      ignore carriage return\n   [-]ignpar     ignore characters with parity errors\n * [-]imaxbel    beep and do not flush a full input buffer on a character\n   [-]inlcr      translate newline to carriage return\n   [-]inpck      enable input parity checking\n   [-]istrip     clear high (8th) bit of input characters\n * [-]iutf8      assume input characters are UTF-8 encoded\n * [-]iuclc      translate uppercase characters to lowercase\n * [-]ixany      let any character restart output, not only start character\n   [-]ixoff      enable sending of start/stop characters\n   [-]ixon       enable XON/XOFF flow control\n   [-]parmrk     mark parity errors (with a 255-0-character sequence)\n   [-]tandem     same as [-]ixoff\n\nOutput settings:\n * bsN           backspace delay style, N in [0..1]\n * crN           carriage return delay style, N in [0..3]\n * ffN           form feed delay style, N in [0..1]\n * nlN           newline delay style, N in [0..1]\n * [-]ocrnl      translate carriage return to newline\n * [-]ofdel      use delete characters for fill instead of NUL characters\n * [-]ofill      use fill (padding) characters instead of timing for delays\n * [-]olcuc      translate lowercase characters to uppercase\n * [-]onlcr      translate newline to carriage return-newline\n * [-]onlret     newline performs a carriage return\n * [-]onocr      do not print carriage returns in the first column\n   [-]opost      postprocess output\n * tabN          horizontal tab delay style, N in [0..3]\n * tabs          same as tab0\n * -tabs         same as tab3\n * vtN           vertical tab delay style, N in [0..1]\n\nLocal settings:\n   [-]crterase   echo erase characters as backspace-space-backspace\n * crtkill       kill all line by obeying the echoprt and echoe settings\n * -crtkill      kill all line by obeying the echoctl and echok settings\n * [-]ctlecho    echo control characters in hat notation ('^c')\n   [-]echo       echo input characters\n * [-]echoctl    same as [-]ctlecho\n   [-]echoe      same as [-]crterase\n   [-]echok      echo a newline after a kill character\n * [-]echoke     same as [-]crtkill\n   [-]echonl     echo newline even if not echoing other characters\n * [-]echoprt    echo erased characters backward, between '\\' and '/'\n * [-]extproc    enable \"LINEMODE\"; useful with high latency links\n * [-]flusho     discard output\n   [-]icanon     enable special characters: erase, kill, werase, rprnt\n   [-]iexten     enable non-POSIX special characters\n   [-]isig       enable interrupt, quit, and suspend special characters\n   [-]noflsh     disable flushing after interrupt and quit special characters\n * [-]prterase   same as [-]echoprt\n * [-]tostop     stop background jobs that try to write to the terminal\n * [-]xcase      with icanon, escape with '\\' for uppercase characters\n\nCombination settings:\n * [-]LCASE      same as [-]lcase\n   cbreak        same as -icanon\n   -cbreak       same as icanon\n   cooked        same as brkint ignpar istrip icrnl ixon opost isig\n                 icanon, eof and eol characters to their default values\n   -cooked       same as raw\n   crt           same as echoe echoctl echoke\n   dec           same as echoe echoctl echoke -ixany intr ^c erase 0177\n                 kill ^u\n * [-]decctlq    same as [-]ixany\n   ek            erase and kill characters to their default values\n   evenp         same as parenb -parodd cs7\n   -evenp        same as -parenb cs8\n * [-]lcase      same as xcase iuclc olcuc\n   litout        same as -parenb -istrip -opost cs8\n   -litout       same as parenb istrip opost cs7\n   nl            same as -icrnl -onlcr\n   -nl           same as icrnl -inlcr -igncr onlcr -ocrnl -onlret\n   oddp          same as parenb parodd cs7\n   -oddp         same as -parenb cs8\n   [-]parity     same as [-]evenp\n   pass8         same as -parenb -istrip cs8\n   -pass8        same as parenb istrip cs7\n   raw           same as -ignbrk -brkint -ignpar -parmrk -inpck -istrip\n                 -inlcr -igncr -icrnl -ixon -ixoff -icanon -opost\n                 -isig -iuclc -ixany -imaxbel -xcase min 1 time 0\n   -raw          same as cooked\n   sane          same as cread -ignbrk brkint -inlcr -igncr icrnl\n                 icanon iexten echo echoe echok -echonl -noflsh\n                 -ixoff -iutf8 -iuclc -ixany imaxbel -xcase -olcuc -ocrnl\n                 opost -ofill onlcr -onocr -onlret nl0 cr0 tab0 bs0 vt0 ff0\n                 isig -tostop -ofdel -echoprt echoctl echoke -extproc -flusho,\n                 all special characters to their default values\n\nHandle the tty line connected to standard input.  Without arguments,\nprints baud rate, line discipline, and deviations from stty sane.  In\nsettings, CHAR is taken literally, or coded as in ^c, 0x37, 0177 or\n127; special values ^- or undef used to disable special characters.\n\nGNU coreutils online help: <https://www.gnu.org/software/coreutils/>\nReport any translation bugs to <https://translationproject.org/team/>\nFull documentation <https://www.gnu.org/software/coreutils/stty>\nor available locally via: info '(coreutils) stty invocation'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "stty-help-abbrev": {
+    "stdout": "Usage: stty [-F DEVICE | --file=DEVICE] [SETTING]...\n  or:  stty [-F DEVICE | --file=DEVICE] [-a|--all]\n  or:  stty [-F DEVICE | --file=DEVICE] [-g|--save]\nPrint or change terminal characteristics.\n\nMandatory arguments to long options are mandatory for short options too.\n  -a, --all          print all current settings in human-readable form\n  -g, --save         print all current settings in a stty-readable form\n  -F, --file=DEVICE  open and use the specified DEVICE instead of stdin\n      --help        display this help and exit\n      --version     output version information and exit\n\nOptional - before SETTING indicates negation.  An * marks non-POSIX\nsettings.  The underlying system defines which settings are available.\n\nSpecial characters:\n * discard CHAR  CHAR will toggle discarding of output\n   eof CHAR      CHAR will send an end of file (terminate the input)\n   eol CHAR      CHAR will end the line\n * eol2 CHAR     alternate CHAR for ending the line\n   erase CHAR    CHAR will erase the last character typed\n   intr CHAR     CHAR will send an interrupt signal\n   kill CHAR     CHAR will erase the current line\n * lnext CHAR    CHAR will enter the next character quoted\n   quit CHAR     CHAR will send a quit signal\n * rprnt CHAR    CHAR will redraw the current line\n   start CHAR    CHAR will restart the output after stopping it\n   stop CHAR     CHAR will stop the output\n   susp CHAR     CHAR will send a terminal stop signal\n * swtch CHAR    CHAR will switch to a different shell layer\n * werase CHAR   CHAR will erase the last word typed\n\nSpecial settings:\n   N             set the input and output speeds to N bauds\n   cols N        tell the kernel that the terminal has N columns\n * columns N     same as cols N\n * [-]drain      wait for transmission before applying settings (on by default)\n   ispeed N      set the input speed to N\n * line N        use line discipline N\n   min N         with -icanon, set N characters minimum for a completed read\n   ospeed N      set the output speed to N\n   rows N        tell the kernel that the terminal has N rows\n   size          print the number of rows and columns according to the kernel\n   speed         print the terminal speed\n   time N        with -icanon, set read timeout of N tenths of a second\n\nControl settings:\n   [-]clocal     disable modem control signals\n   [-]cread      allow input to be received\n * [-]crtscts    enable RTS/CTS handshaking\n   csN           set character size to N bits, N in [5..8]\n   [-]cstopb     use two stop bits per character (one with '-')\n   [-]hup        send a hangup signal when the last process closes the tty\n   [-]hupcl      same as [-]hup\n   [-]parenb     generate parity bit in output and expect parity bit in input\n   [-]parodd     set odd parity (or even parity with '-')\n * [-]cmspar     use \"stick\" (mark/space) parity\n\nInput settings:\n   [-]brkint     breaks cause an interrupt signal\n   [-]icrnl      translate carriage return to newline\n   [-]ignbrk     ignore break characters\n   [-]igncr      ignore carriage return\n   [-]ignpar     ignore characters with parity errors\n * [-]imaxbel    beep and do not flush a full input buffer on a character\n   [-]inlcr      translate newline to carriage return\n   [-]inpck      enable input parity checking\n   [-]istrip     clear high (8th) bit of input characters\n * [-]iutf8      assume input characters are UTF-8 encoded\n * [-]iuclc      translate uppercase characters to lowercase\n * [-]ixany      let any character restart output, not only start character\n   [-]ixoff      enable sending of start/stop characters\n   [-]ixon       enable XON/XOFF flow control\n   [-]parmrk     mark parity errors (with a 255-0-character sequence)\n   [-]tandem     same as [-]ixoff\n\nOutput settings:\n * bsN           backspace delay style, N in [0..1]\n * crN           carriage return delay style, N in [0..3]\n * ffN           form feed delay style, N in [0..1]\n * nlN           newline delay style, N in [0..1]\n * [-]ocrnl      translate carriage return to newline\n * [-]ofdel      use delete characters for fill instead of NUL characters\n * [-]ofill      use fill (padding) characters instead of timing for delays\n * [-]olcuc      translate lowercase characters to uppercase\n * [-]onlcr      translate newline to carriage return-newline\n * [-]onlret     newline performs a carriage return\n * [-]onocr      do not print carriage returns in the first column\n   [-]opost      postprocess output\n * tabN          horizontal tab delay style, N in [0..3]\n * tabs          same as tab0\n * -tabs         same as tab3\n * vtN           vertical tab delay style, N in [0..1]\n\nLocal settings:\n   [-]crterase   echo erase characters as backspace-space-backspace\n * crtkill       kill all line by obeying the echoprt and echoe settings\n * -crtkill      kill all line by obeying the echoctl and echok settings\n * [-]ctlecho    echo control characters in hat notation ('^c')\n   [-]echo       echo input characters\n * [-]echoctl    same as [-]ctlecho\n   [-]echoe      same as [-]crterase\n   [-]echok      echo a newline after a kill character\n * [-]echoke     same as [-]crtkill\n   [-]echonl     echo newline even if not echoing other characters\n * [-]echoprt    echo erased characters backward, between '\\' and '/'\n * [-]extproc    enable \"LINEMODE\"; useful with high latency links\n * [-]flusho     discard output\n   [-]icanon     enable special characters: erase, kill, werase, rprnt\n   [-]iexten     enable non-POSIX special characters\n   [-]isig       enable interrupt, quit, and suspend special characters\n   [-]noflsh     disable flushing after interrupt and quit special characters\n * [-]prterase   same as [-]echoprt\n * [-]tostop     stop background jobs that try to write to the terminal\n * [-]xcase      with icanon, escape with '\\' for uppercase characters\n\nCombination settings:\n * [-]LCASE      same as [-]lcase\n   cbreak        same as -icanon\n   -cbreak       same as icanon\n   cooked        same as brkint ignpar istrip icrnl ixon opost isig\n                 icanon, eof and eol characters to their default values\n   -cooked       same as raw\n   crt           same as echoe echoctl echoke\n   dec           same as echoe echoctl echoke -ixany intr ^c erase 0177\n                 kill ^u\n * [-]decctlq    same as [-]ixany\n   ek            erase and kill characters to their default values\n   evenp         same as parenb -parodd cs7\n   -evenp        same as -parenb cs8\n * [-]lcase      same as xcase iuclc olcuc\n   litout        same as -parenb -istrip -opost cs8\n   -litout       same as parenb istrip opost cs7\n   nl            same as -icrnl -onlcr\n   -nl           same as icrnl -inlcr -igncr onlcr -ocrnl -onlret\n   oddp          same as parenb parodd cs7\n   -oddp         same as -parenb cs8\n   [-]parity     same as [-]evenp\n   pass8         same as -parenb -istrip cs8\n   -pass8        same as parenb istrip cs7\n   raw           same as -ignbrk -brkint -ignpar -parmrk -inpck -istrip\n                 -inlcr -igncr -icrnl -ixon -ixoff -icanon -opost\n                 -isig -iuclc -ixany -imaxbel -xcase min 1 time 0\n   -raw          same as cooked\n   sane          same as cread -ignbrk brkint -inlcr -igncr icrnl\n                 icanon iexten echo echoe echok -echonl -noflsh\n                 -ixoff -iutf8 -iuclc -ixany imaxbel -xcase -olcuc -ocrnl\n                 opost -ofill onlcr -onocr -onlret nl0 cr0 tab0 bs0 vt0 ff0\n                 isig -tostop -ofdel -echoprt echoctl echoke -extproc -flusho,\n                 all special characters to their default values\n\nHandle the tty line connected to standard input.  Without arguments,\nprints baud rate, line discipline, and deviations from stty sane.  In\nsettings, CHAR is taken literally, or coded as in ^c, 0x37, 0177 or\n127; special values ^- or undef used to disable special characters.\n\nGNU coreutils online help: <https://www.gnu.org/software/coreutils/>\nReport any translation bugs to <https://translationproject.org/team/>\nFull documentation <https://www.gnu.org/software/coreutils/stty>\nor available locally via: info '(coreutils) stty invocation'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "stty-invalid-argument-no-tty": {
+    "stdout": "",
+    "stderr": "stty: invalid argument ‘bogus’\nTry 'stty --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-invalid-integer-no-tty": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-ispeed-ospeed": {
+    "stdout": "",
+    "stderr": "stty: asymmetric input (9600), output (19200) speeds not supported\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-missing-argument-no-tty": {
+    "stdout": "",
+    "stderr": "stty: missing argument to ‘rows’\nTry 'stty --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-modes-many": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-noargs": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-raw": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-restore-g-format": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-rows-set": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-sane": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-save-long": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-size": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-speed": {
+    "stdout": "",
+    "stderr": "stty: 'standard input': Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-two-devices": {
+    "stdout": "",
+    "stderr": "stty: only one device may be specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-two-devices-long": {
+    "stdout": "",
+    "stderr": "stty: only one device may be specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "stty-version": {
+    "stdout": "stty (GNU coreutils) 9.7\nPackaged by Debian (9.7-3)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by David MacKenzie.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

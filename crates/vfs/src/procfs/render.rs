@@ -81,9 +81,15 @@ pub(super) fn stat(p: &ProcData, addrs: Option<&MmAddrs>) -> Vec<u8> {
     let (vsize, rss) = p.mem.map_or((0, 0), |m| (m.vm_size * 1024, m.vm_rss / 4));
     let sigmask = 0x7fff_ffff;
     let a = addrs.copied().unwrap_or_default();
+    // `task_prio`: 20 + nice na classe justa, -1 - rt_priority em FIFO e RR, -101 em deadline.
+    let priority = match p.policy {
+        1 | 2 => -1 - i64::from(p.rt_priority),
+        6 => -101,
+        _ => 20 + i64::from(p.nice),
+    };
     let _ = writeln!(
         o,
-        ") {} {} {} {} 0 -1 {} 0 0 0 0 {} {} {} {} {} {} {} 0 {} {} {} {} {} {} {} 0 0 {} {} {} {} {} 0 0 {} {} 0 0 0 0 0 {} {} {} {} {} {} {} {}",
+        ") {} {} {} {} 0 -1 {} 0 0 0 0 {} {} {} {} {} {} {} 0 {} {} {} {} {} {} {} 0 0 {} {} {} {} {} 0 0 {} {} {} {} 0 0 0 {} {} {} {} {} {} {} {}",
         p.state,
         p.ppid,
         p.pgid,
@@ -93,7 +99,7 @@ pub(super) fn stat(p: &ProcData, addrs: Option<&MmAddrs>) -> Vec<u8> {
         ticks(p.stime_ns),
         ticks(p.cutime_ns),
         ticks(p.cstime_ns),
-        20 + p.nice,
+        priority,
         p.nice,
         p.num_threads,
         ticks(p.start_ns),
@@ -110,6 +116,8 @@ pub(super) fn stat(p: &ProcData, addrs: Option<&MmAddrs>) -> Vec<u8> {
         u8::from(p.state != 'R'),
         if p.secondary { -1 } else { 17 },
         p.last_cpu,
+        p.rt_priority,
+        p.policy,
         a.start_data,
         a.end_data,
         a.start_brk,
@@ -139,13 +147,20 @@ pub(super) fn statm(p: &ProcData) -> Vec<u8> {
     }
 }
 
-/// Máscara de CPUs em hexa, em palavras de 32 bits separadas por vírgula (`%*pb`).
-fn cpumask_hex(n: u32) -> String {
+/// Máscara de CPUs em hexa, em palavras de 32 bits separadas por vírgula (`%*pb`): `n` CPUs possíveis, com
+/// ligadas as de `allowed` (`None`: todas).
+fn cpumask_hex(n: u32, allowed: Option<&[usize]>) -> String {
     let words = n.div_ceil(32).max(1);
+    let on = |cpu: u32| allowed.is_none_or(|a| a.contains(&(cpu as usize)));
     let mut parts = Vec::new();
     for w in (0..words).rev() {
-        let bits = if w == words - 1 { n - 32 * w } else { 32 };
-        let val: u64 = if bits >= 32 { 0xffff_ffff } else { (1u64 << bits) - 1 };
+        let mut val: u32 = 0;
+        for bit in 0..32 {
+            let cpu = w * 32 + bit;
+            if cpu < n && on(cpu) {
+                val |= 1 << bit;
+            }
+        }
         if w == words - 1 {
             parts.push(format!("{val:x}"));
         } else {
@@ -155,8 +170,28 @@ fn cpumask_hex(n: u32) -> String {
     parts.join(",")
 }
 
-fn cpumask_list(n: u32) -> String {
-    if n <= 1 { "0".to_string() } else { format!("0-{}", n - 1) }
+/// A mesma máscara como lista de faixas (`%*pbl`): `0-3,5`.
+fn cpumask_list(n: u32, allowed: Option<&[usize]>) -> String {
+    let cpus: Vec<usize> = match allowed {
+        None => (0..n.max(1) as usize).collect(),
+        Some(a) => {
+            let mut v: Vec<usize> = a.iter().copied().filter(|c| *c < n as usize).collect();
+            v.sort_unstable();
+            v.dedup();
+            v
+        }
+    };
+    let mut parts: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < cpus.len() {
+        let mut j = i;
+        while j + 1 < cpus.len() && cpus[j + 1] == cpus[j] + 1 {
+            j += 1;
+        }
+        parts.push(if j == i { cpus[i].to_string() } else { format!("{}-{}", cpus[i], cpus[j]) });
+        i = j + 1;
+    }
+    parts.join(",")
 }
 
 /// Tamanho de uma linha `Vm*` (`%8lu kB`).
@@ -219,8 +254,8 @@ pub(super) fn status(p: &ProcData) -> Vec<u8> {
     o.extend_from_slice(
         b"NoNewPrivs:\t0\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tthread vulnerable\nSpeculationIndirectBranch:\tconditional enabled\n",
     );
-    let _ = writeln!(o, "Cpus_allowed:\t{}", cpumask_hex(p.ncpus));
-    let _ = writeln!(o, "Cpus_allowed_list:\t{}", cpumask_list(p.ncpus));
+    let _ = writeln!(o, "Cpus_allowed:\t{}", cpumask_hex(p.ncpus, p.cpus_allowed.as_deref()));
+    let _ = writeln!(o, "Cpus_allowed_list:\t{}", cpumask_list(p.ncpus, p.cpus_allowed.as_deref()));
     let _ = writeln!(o, "Mems_allowed:\t{MEMS_ALLOWED}");
     o.extend_from_slice(b"Mems_allowed_list:\t0\n");
     let _ = writeln!(o, "voluntary_ctxt_switches:\t{}", p.voluntary_ctxt);
@@ -721,12 +756,42 @@ mod tests {
 
     #[test]
     fn cpumask_formats() {
-        assert_eq!(cpumask_hex(16), "ffff");
-        assert_eq!(cpumask_hex(2), "3");
-        assert_eq!(cpumask_hex(32), "ffffffff");
-        assert_eq!(cpumask_hex(40), "ff,ffffffff");
-        assert_eq!(cpumask_list(1), "0");
-        assert_eq!(cpumask_list(16), "0-15");
+        assert_eq!(cpumask_hex(16, None), "ffff");
+        assert_eq!(cpumask_hex(2, None), "3");
+        assert_eq!(cpumask_hex(32, None), "ffffffff");
+        assert_eq!(cpumask_hex(40, None), "ff,ffffffff");
+        assert_eq!(cpumask_list(1, None), "0");
+        assert_eq!(cpumask_list(16, None), "0-15");
+    }
+
+    #[test]
+    fn cpumask_follows_a_restricted_affinity() {
+        let a = [0usize, 1, 2, 5, 33];
+        assert_eq!(cpumask_hex(40, Some(&a)), "2,00000027");
+        assert_eq!(cpumask_list(40, Some(&a)), "0-2,5,33");
+        assert_eq!(cpumask_hex(4, Some(&[2])), "4");
+        assert_eq!(cpumask_list(4, Some(&[2])), "2");
+    }
+
+    #[test]
+    fn stat_shows_policy_and_rt_priority() {
+        let p = ProcData { policy: 2, rt_priority: 10, ..golden_cat() };
+        let line = String::from_utf8(stat(&p, None)).unwrap();
+        let f: Vec<&str> = line.trim_end().split(' ').collect();
+        assert_eq!(f.len(), 52, "{line}");
+        assert_eq!(f[17], "-11", "priority de RR = -1 - rt_priority");
+        assert_eq!(f[39], "10", "rt_priority");
+        assert_eq!(f[40], "2", "policy");
+        let n = String::from_utf8(stat(&golden_cat(), None)).unwrap();
+        let g: Vec<&str> = n.trim_end().split(' ').collect();
+        assert_eq!((g[39], g[40]), ("0", "0"));
+    }
+
+    #[test]
+    fn status_shows_a_restricted_cpus_allowed() {
+        let p = ProcData { ncpus: 4, cpus_allowed: Some(vec![1, 3]), ..golden_cat() };
+        let s = String::from_utf8(status(&p)).unwrap();
+        assert!(s.contains("Cpus_allowed:\ta\nCpus_allowed_list:\t1,3\n"), "{s}");
     }
 
     #[test]

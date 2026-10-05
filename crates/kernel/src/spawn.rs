@@ -99,6 +99,21 @@ pub(crate) fn fork_state(parent: &Task) -> ChildSpec {
     }
 }
 
+/// O filho herda a afinidade, a personality, a prioridade de E/S e a política de escalonamento do pai
+/// (`copy_process`); `sched_fork` aplica o `reset_on_fork`: tempo real volta a `SCHED_OTHER` e nice
+/// negativa vira 0. Chamado entre `insert_child` e `commit_exec`/`start_process`, quando a nice do filho
+/// ainda não foi lida pelo escalonador.
+pub(crate) fn inherit_tune(parent: &Task, child: &Arc<Task>) {
+    let mut tune = parent.proc.tune.lock().clone();
+    {
+        let mut st = child.proc.st.lock();
+        let (sched, nice) = tune.sched.fork(st.nice);
+        tune.sched = sched;
+        st.nice = nice;
+    }
+    *child.proc.tune.lock() = tune;
+}
+
 /// Aplica os atributos de `posix_spawn`/`spawn_fn` no filho: cwd, ações de fd (na ordem), sinais.
 pub(crate) fn apply_attrs(opener: &Task, spec: &mut ChildSpec, attrs: &ProcAttrs) -> Result<(), Errno> {
     let sb = &opener.sb;
@@ -443,6 +458,12 @@ pub(crate) fn commit_exec(task: &Arc<Task>, img: &Image, live: bool) {
     st.exe = Some(PinnedLoc::new(img.exe.clone()));
     st.pending_exec = None;
     drop(st);
+    // A personality atravessa o exec. Um exec que troca as credenciais (setuid, setgid) apagaria os bits de
+    // `PER_CLEAR_ON_SETID`, mas o sandbox não tem exec setuid: o exec nunca é "secure".
+    {
+        let mut tune = proc.tune.lock();
+        tune.personality = sysabi::sched::personality::after_exec(tune.personality, false);
+    }
     // Imagem nova, `mm` novo: o pico de memória recomeça e o processo deixa de ser um fork puro.
     proc.fork_noexec.store(false, Ordering::Relaxed);
     proc.peak_size_kb.store(0, Ordering::Relaxed);

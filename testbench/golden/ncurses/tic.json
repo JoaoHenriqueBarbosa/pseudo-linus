@@ -1,0 +1,614 @@
+{
+  "tic-aliases-different-initials": {
+    "stdout": "rc=0\nt/a:\nalpha\n\nt/b:\nbeta\n\nt/z:\nzeta\nzeta|alpha|beta|description here,\n\tam,\n\tcols#80,\nzeta|alpha|beta|description here,\n\tam,\n\tcols#80,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-aliases-listing": {
+    "stdout": "rc=0\nt/a:\nalias1\nalias2\n\nt/m:\nmain\nmain|alias1|alias2|the description,\n\tam,\n\tcols#80,\nmain|alias1|alias2|the description,\n\tam,\n\tcols#80,\nmain|alias1|alias2|the description,\n\tam,\n\tcols#80,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-basic-compile-bytes": {
+    "stdout": "rc=0\n 1a 01 10 00 02 00 01 00 02 00 02 00 74 7c 74 65\n 73 74 20 74 65 72 6d 69 6e 61 6c 00 00 01 50 00\n ff ff 00 00 07 00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-basic-compile-infocmp": {
+    "stdout": "rc=0\n#\tReconstructed via infocmp from file: /work/t/t/t\nt|test terminal,\n\tam,\n\tbw,\n\tcols#80,\n\tlines#24,\n\tbel=^G,\n\tclear=\\E[H\\E[2J$<50>,\n\tcup=\\E[%i%p1%d;%p2%dH,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-blank-and-comment-lines-between-fields": {
+    "stdout": "rc=0\n 1a 01 07 00 02 00 01 00 00 00 00 00 74 7c 74 65\n 73 74 00 01 01 00 50 00\n",
+    "stderr": "\"src\", line 4, col 8, terminal 't': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-booleans-even-count-padding": {
+    "stdout": "rc=0\n 1a 01 05 00 02 00 01 00 00 00 00 00 70 7c 70 70\n 00 01 01 00 05 00\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'p': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-cancel-bool-number-string": {
+    "stdout": "rc=0\n 1a 01 11 00 01 00 03 00 03 00 02 00 63 68 69 6c\n 64 7c 63 68 69 6c 64 20 74 65 72 6d 00 01 fe ff\n ff ff 18 00 ff ff fe ff 00 00 0d 00\n#\tReconstructed via infocmp from file: /work/t/c/child\nchild|child term,\n\tbw,\n\tcols@,\n\tlines#24,\n\tbel@,\n\tcr=\\r,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-cancel-keeps-text-form": {
+    "stdout": "base|base term,\n\tam,\n\tcols#80,\n\tbel=^G,\nchild|child term,\n\tam@,\n\tcols@,\n\tbel@, use=base,\nbase|base term,\n\tam,\n\tcols#80,\n\tbel=^G,\nchild|child term,\n\tam@,\n\tcols@,\n\tbel@,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-check-only-missing-use": {
+    "stdout": "rc=0\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 2, terminal 'x': resolution of use=nosuchterminal failed\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-check-only-with-warnings": {
+    "stdout": "rc=0\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 2, col 16, terminal 'x': unknown capability 'nosuchcap'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-check-only-writes-nothing": {
+    "stdout": "rc=0\nls: cannot access 't': No such file or directory\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tic-colon-separated-capabilities": {
+    "stdout": "rc=1\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 2, col 5, terminal 'x': Separator inconsistent with syntax\nls: cannot access 't/*': No such file or directory\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tic-commented-out-capability-dot": {
+    "stdout": "rc=0\n 1a 01 05 00 02 00 00 00 00 00 00 00 78 7c 78 78\n 00 00 01 00\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-commented-out-capability-dot-a-flag": {
+    "stdout": "rc=0\n 1a 01 05 00 02 00 00 00 00 00 00 00 78 7c 78 78\n 00 00 01 00 01 00 01 00 00 00 02 00 0e 00 01 00\n 50 00 00 00 08 00 2e 6e 6f 73 75 63 68 00 2e 63\n 6f 6c 73 00\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-database-locations": {
+    "stdout": "/work/t\n/root/.terminfo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-description-is-not-an-alias": {
+    "stdout": "rc=0\nnm\n",
+    "stderr": "\"src\", line 1, col 9, terminal 'nm': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-empty-source-file": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-entry-must-start-in-column-one": {
+    "stdout": "rc=1\nls: cannot access 't': No such file or directory\n",
+    "stderr": "\"src\", line 1, col 4: Illegal character - '|'\n\"src\", line 1, col 4: Entry does not start with terminal names in column one\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tic-extended-cancel": {
+    "stdout": "rc=0\n 1a 01 08 00 00 00 00 00 00 00 00 00 6b 69 64 7c\n 6b 69 64 00 01 00 00 00 01 00 02 00 06 00 01 00\n fe ff 00 00 03 00 58 54 00 4d 73 00\n#\tReconstructed via infocmp from file: /work/t/k/kid\nkid|kid,\n\tXT,\n\tMs@,\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'base': older tic versions may treat the description field as an alias\n\"src\", line 3, col 9, terminal 'kid': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-extended-even-bool-count": {
+    "stdout": "rc=0\n 1a 01 06 00 00 00 00 00 00 00 00 00 65 7c 65 78\n 74 00 02 00 01 00 01 00 05 00 0e 00 01 01 01 00\n 00 00 00 00 03 00 06 00 09 00 76 00 58 41 00 58\n 42 00 4e 6e 00 53 73 00\n",
+    "stderr": "\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-extended-merged-through-use": {
+    "stdout": "rc=0\n#\tReconstructed via infocmp from file: /work/t/k/kid\nkid|kid,\n\tAa,\n\tDd,\n\tBn#2,\n\tEn#4,\n\tCs=one,\n\tFs=two,\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'base': older tic versions may treat the description field as an alias\n\"src\", line 3, col 9, terminal 'kid': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-extended-numbers-wide": {
+    "stdout": "rc=0\n 1a 01 06 00 00 00 01 00 00 00 00 00 65 7c 65 78\n 74 00 50 00 00 00 01 00 00 00 01 00 05 00 70 11\n 00 00 4e 62 69 67 00\n#\tReconstructed via infocmp from file: /work/t/e/e\ne|ext,\n\tcols#80,\n\tNbig#4464,\n",
+    "stderr": "\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-extended-odd-bool-count-padding": {
+    "stdout": "rc=0\n 1a 01 06 00 00 00 00 00 00 00 00 00 65 7c 65 78\n 74 00 01 00 01 00 01 00 04 00 0b 00 01 00 01 00\n 00 00 00 00 03 00 06 00 76 00 58 41 00 4e 6e 00\n 53 73 00\n",
+    "stderr": "\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-extended-repeated-name-last-wins": {
+    "stdout": "rc=0\n#\tReconstructed via infocmp from file: /work/t/e/e\ne|ext,\n\tNn#2,\n\tSs=b,\n",
+    "stderr": "\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-extended-without-x-is-dropped": {
+    "stdout": "\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n\"src\", line 2, col 9, terminal 'e': unknown capability 'XT'\n\"src\", line 2, col 17, terminal 'e': unknown capability 'Ms'\nrc=0\n#\tReconstructed via infocmp from file: /work/t/e/e\ne|ext,\n\tam,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-extended-x-order-by-type": {
+    "stdout": "rc=0\n 1a 01 06 00 02 00 00 00 00 00 00 00 65 7c 65 78\n 74 00 00 01 02 00 02 00 02 00 08 00 1a 00 01 01\n 03 00 01 00 00 00 04 00 00 00 03 00 06 00 09 00\n 0c 00 0f 00 61 62 63 00 78 79 7a 00 41 62 00 58\n 54 00 4e 78 00 5a 6e 00 4d 73 00 51 73 00\n#\tReconstructed via infocmp from file: /work/t/e/e\ne|ext,\n\tam,\n\tAb,\n\tXT,\n\tNx#3,\n\tZn#1,\n\tMs=abc,\n\tQs=xyz,\n",
+    "stderr": "\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-header-name-length-even": {
+    "stdout": "rc=0\n 1a 01 07 00 02 00 00 00 02 00 02 00 61 62 7c 61\n 62 63 00 00 01 00 ff ff 00 00 07 00\n",
+    "stderr": "\"src\", line 1, col 8, terminal 'ab': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-header-name-length-odd": {
+    "stdout": "rc=0\n 1a 01 09 00 02 00 00 00 02 00 02 00 61 62 63 7c\n 61 62 63 64 00 00 01 00 ff ff 00 00 07 00\n",
+    "stderr": "\"src\", line 1, col 10, terminal 'abc': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-illegal-character-colon": {
+    "stdout": "rc=0\n 1a 01 05 00 02 00 01 00 00 00 00 00 78 7c 78 78\n 00 00 01 00 50 00\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 2, col 7, terminal 'x': Illegal character (expected alphanumeric or @%&*!#) - ':'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-invalid-digit-option": {
+    "stdout": "",
+    "stderr": "Usage: tic [-e names] [-o dir] [-R name] [-v[n]] [-V] [-w[n]] [-1aCDcfGgIKLNrsTtUx] source-file\n\nOptions:\n  -0         format translation output all capabilities on one line\n  -1         format translation output one capability per line\n  -a         retain commented-out capabilities (sets -x also)\n  -C         translate entries to termcap source form\n  -D         print list of tic's database locations (first must be writable)\n  -c         check only, validate input without compiling or translating\n  -e<names>  translate/compile only entries named by comma-separated list\n  -f         format complex strings for readability\n  -G         format %{number} to %'char'\n  -g         format %'char' to %{number}\n  -I         translate entries to terminfo source form\n  -K         translate entries to termcap source form with BSD syntax\n  -L         translate entries to full terminfo source form\n  -N         disable smart defaults for source translation\n  -o<dir>    set output directory for compiled entry writes\n  -Q[n]      dump compiled description\n  -q    brief listing, removes headers\n  -R<name>   restrict translation to given terminfo/termcap version\n  -r         force resolution of all use entries in source translation\n  -s         print summary statistics\n  -T         remove size-restrictions on compiled description\n  -t         suppress commented-out capabilities\n  -U         suppress post-processing of entries\n  -V         print version\n  -W         wrap long strings according to -w[n] option\n  -v[n]      set verbosity level\n  -w[n]      set format width for translation output\n  -x         treat unknown capabilities as user-defined\n\nParameters:\n  <file>     file to translate or compile\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tic-invalid-option": {
+    "stdout": "",
+    "stderr": "tic: invalid option -- 'z'\nUsage: tic [-e names] [-o dir] [-R name] [-v[n]] [-V] [-w[n]] [-1aCDcfGgIKLNrsTtUx] source-file\n\nOptions:\n  -0         format translation output all capabilities on one line\n  -1         format translation output one capability per line\n  -a         retain commented-out capabilities (sets -x also)\n  -C         translate entries to termcap source form\n  -D         print list of tic's database locations (first must be writable)\n  -c         check only, validate input without compiling or translating\n  -e<names>  translate/compile only entries named by comma-separated list\n  -f         format complex strings for readability\n  -G         format %{number} to %'char'\n  -g         format %'char' to %{number}\n  -I         translate entries to terminfo source form\n  -K         translate entries to termcap source form with BSD syntax\n  -L         translate entries to full terminfo source form\n  -N         disable smart defaults for source translation\n  -o<dir>    set output directory for compiled entry writes\n  -Q[n]      dump compiled description\n  -q    brief listing, removes headers\n  -R<name>   restrict translation to given terminfo/termcap version\n  -r         force resolution of all use entries in source translation\n  -s         print summary statistics\n  -T         remove size-restrictions on compiled description\n  -t         suppress commented-out capabilities\n  -U         suppress post-processing of entries\n  -V         print version\n  -W         wrap long strings according to -w[n] option\n  -v[n]      set verbosity level\n  -w[n]      set format width for translation output\n  -x         treat unknown capabilities as user-defined\n\nParameters:\n  <file>     file to translate or compile\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tic-large-numbers-32-bit-format": {
+    "stdout": "rc=0\n 1e 02 12 00 00 00 03 00 00 00 00 00 62 69 67 7c\n 6c 61 72 67 65 20 6e 75 6d 62 65 72 73 00 40 9c\n 00 00 08 00 00 00 a0 86 01 00\n#\tReconstructed via infocmp from file: /work/t/b/big\nbig|large numbers,\n\tcols#40000,\n\tit#8,\n\tlines#100000,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-last-capability-without-comma": {
+    "stdout": "rc=0\n 1a 01 05 00 02 00 01 00 00 00 00 00 78 7c 78 78\n 00 00 01 00 50 00\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 2, col 14, terminal 'x': Missing separator for `cols'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-link-captoinfo-terminfo-source": {
+    "stdout": "# a comment\nt|test terminal,\n\tam, bw,\n\tcols#80,\n\tbel=^G, cup=\\E[%i%p1%d;%p2%dH,\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-link-infotocap": {
+    "stdout": "# a comment\nt|test terminal:\\\n\t:am:bw:\\\n\t:co#80:\\\n\t:bl=^G:cm=\\E[%i%d;%dH:\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-link-infotocap-no-arguments": {
+    "stdout": "",
+    "stderr": "infotocap: File name needed.  Usage:\n\tinfotocap [-e names] [-o dir] [-R name] [-v[n]] [-V] [-w[n]] [-1aCDcfGgIKLNrsTtUx] source-file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tic-multiple-entries-in-one-file": {
+    "stdout": "rc=0\nt/o:\none\n\nt/t:\nthree\ntwo\n 1a 01 0a 00 02 00 00 00 00 00 00 00 6f 6e 65 7c\n 66 69 72 73 74 00 00 01\n 1a 01 0b 00 01 00 00 00 00 00 00 00 74 77 6f 7c\n 73 65 63 6f 6e 64 00 01\n 1a 01 0c 00 00 00 01 00 00 00 00 00 74 68 72 65\n 65 7c 74 68 69 72 64 00 28 00\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'one': older tic versions may treat the description field as an alias\n\"src\", line 3, col 12, terminal 'two': older tic versions may treat the description field as an alias\n\"src\", line 5, col 13, terminal 'three': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-names-only-entry": {
+    "stdout": "rc=0\n 1a 01 10 00 00 00 00 00 00 00 00 00 6f 6e 6c 79\n 7c 6a 75 73 74 20 6e 61 6d 65 73 00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-no-arguments": {
+    "stdout": "",
+    "stderr": "tic: File name needed.  Usage:\n\ttic [-e names] [-o dir] [-R name] [-v[n]] [-V] [-w[n]] [-1aCDcfGgIKLNrsTtUx] source-file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tic-number-at-legacy-limit": {
+    "stdout": "rc=0\n 1e 02 0a 00 00 00 03 00 00 00 00 00 6c 69 6d 7c\n 6c 69 6d 69 74 00 ff 7f 00 00 ff ff ff ff 00 80\n 00 00\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'lim': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-number-just-under-limit-legacy": {
+    "stdout": "rc=0\n 1a 01 0a 00 00 00 01 00 00 00 00 00 6c 69 6d 7c\n 6c 69 6d 69 74 00 ff 7f\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'lim': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-numbers-hex-octal-negative": {
+    "stdout": "rc=0\n 1a 01 0a 00 00 00 04 00 00 00 00 00 6e 7c 6e 75\n 6d 62 65 72 73 00 50 00 00 00 18 00 08 00\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'n': older tic versions may treat the description field as an alias\n\"src\", line 2, col 28, terminal 'n': no value given for `it'\n\"src\", line 2, col 28, terminal 'n': Missing separator for `it'\n\"src\", line 2, col 30, terminal 'n': unknown capability '5'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-output-dir-from-terminfo-env": {
+    "stdout": "rc=0\nx\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-output-dir-is-a-file": {
+    "stdout": "rc=1\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 1, terminal 'x': t: (errno 1) Operation not permitted\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-output-dir-not-a-directory": {
+    "stdout": "rc=1\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 1, terminal 'x': /dev/null/t: (errno 20) Not a directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-overwrite-existing-entry": {
+    "stdout": "rc=0\n 1a 01 05 00 02 00 00 00 00 00 00 00 78 7c 78 78\n 00 00 01 00\nrc=0\n 1a 01 05 00 01 00 01 00 00 00 00 00 78 7c 78 78\n 00 01 50 00\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-read-stdin": {
+    "stdout": "rc=0\n 1a 01 05 00 02 00 00 00 00 00 00 00 78 7c 78 78\n 00 00 01 00\n",
+    "stderr": "\"<stdin>\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"<stdin>\", line 2, col 11, terminal 'x': unknown capability 'bogus'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-roundtrip-installed-terminal": {
+    "stdout": "rc=0\ncomparing vt100 to vt100.\n    comparing booleans.\n    comparing numbers.\n    comparing strings.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-roundtrip-installed-terminal-extended": {
+    "stdout": "rc=0\ncomparing xterm-256color to xterm-256color.\n    comparing booleans.\n    comparing numbers.\n    comparing strings.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-same-name-twice-in-one-file": {
+    "stdout": "rc=0\n 1a 01 09 00 01 00 00 00 00 00 00 00 78 7c 73 65\n 63 6f 6e 64 00 01\n",
+    "stderr": "\"src\", line 1, col 9, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 3, col 10, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 3, terminal 'x': name multiply defined.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-select-entries-with-e": {
+    "stdout": "rc=0\nthree\ntwo\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'one': older tic versions may treat the description field as an alias\n\"src\", line 3, col 12, terminal 'two': older tic versions may treat the description field as an alias\n\"src\", line 5, col 13, terminal 'three': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-select-entries-with-e-alias": {
+    "stdout": "rc=0\nt/d:\ndos\n\nt/t:\ntwo\n",
+    "stderr": "\"src\", line 1, col 15, terminal 'one': older tic versions may treat the description field as an alias\n\"src\", line 3, col 16, terminal 'two': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-select-text-with-e": {
+    "stdout": "two|second,\n\tbw,\nrc=0\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'one': older tic versions may treat the description field as an alias\n\"src\", line 3, col 12, terminal 'two': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-source-file-missing": {
+    "stdout": "rc=1\nls: cannot access 't': No such file or directory\n",
+    "stderr": "tic: cannot open '/work/no-such-source-file': No such file or directory\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tic-source-without-entries-only-comments": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-string-escapes": {
+    "stdout": "rc=0\n 1a 01 0c 00 00 00 00 00 0c 00 1a 00 65 73 63 7c\n 65 73 63 61 70 65 73 00 ff ff 00 00 0c 00 ff ff\n ff ff ff ff ff ff ff ff ff ff ff ff ff ff 16 00\n 1b 5b 48 07 0a 0d 09 08 0c 20 07 00 01 7f 5c 5e\n 2c 3a 80 80 41 00 0a 0a 33 00\nesc|escapes,\n\tbel=\\E[H\\007\\n\\r\\011\\010\\014 \\007,\n\tcr=\\001\\177\\\\\\^\\,:\\0\\0A,\n\tcud1=\\n\\n3,\n",
+    "stderr": "\"src\", line 1, col 13, terminal 'esc': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-string-padding-and-percent": {
+    "stdout": "rc=0\np|pad,\n\tclear=\\E[H\\E[2J$<50/>,\n\tcup=\\E[%i%p1%d;%p2%dH,\n\tflash=\\E[?5h$<100*>\\E[?5l,\n",
+    "stderr": "\"src\", line 1, col 7, terminal 'p': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-string-table-odd-length": {
+    "stdout": "rc=0\n 1a 01 05 00 00 00 00 00 03 00 04 00 73 7c 73 73\n 00 00 ff ff 00 00 02 00 07 00 0d 00\n",
+    "stderr": "\"src\", line 1, col 6, terminal 's': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-summary-s": {
+    "stdout": "rc=0\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 3, col 6, terminal 'y': older tic versions may treat the description field as an alias\n2 entries written to /work/t\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-tab-continuation": {
+    "stdout": "rc=0\n 1a 01 0c 00 02 00 01 00 02 00 02 00 74 62 7c 74\n 61 62 20 74 65 72 6d 00 00 01 50 00 ff ff 00 00\n 07 00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-terminal-name-with-slash": {
+    "stdout": "rc=1\na\n",
+    "stderr": "\"src\", line 1, col 14, terminal 'a/b': slashes aren't allowed in names or aliases\n\"src\", line 1, col 14, terminal 'a/b': invalid entry name \"a/b\"\n\"src\", line 1, terminal 'a/b': cannot open /work/t/a/a/b: (errno 2) No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-C-comment-name-translation": {
+    "stdout": "# moves with :cm: and :co#80: but not <nosuchthing>\none|first:\\\n\t:am:\\\n\t:cm=\\E[%i%d;%dH:\nrc=0\n# moves with <cup> and <cols#80> but not <nosuchthing>\none|first,\n\tam,\n\tcup=\\E[%i%p1%d;%p2%dH,\n",
+    "stderr": "\"src\", line 2, col 11, terminal 'one': older tic versions may treat the description field as an alias\n\"src\", line 2, col 11, terminal 'one': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-C-termcap": {
+    "stdout": "t|test terminal:\\\n\t:am:bw:\\\n\t:co#80:li#24:\\\n\t:bl=^G:cm=\\E[%i%d;%dH:cr=\\r:\nrc=0\nt|test terminal:\\\n\t:am:\\\n\t:bw:\\\n\t:co#80:\\\n\t:li#24:\\\n\t:bl=^G:\\\n\t:cm=\\E[%i%d;%dH:\\\n\t:cr=\\r:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-C-untranslatable-and-t": {
+    "stdout": "t|test terminal:\\\n\t:am:\\\n\t:co#80:\\\n\t:bl=^G:..ch=\\E[%?%p1%{8}%<%t%p1%d%e%p1%{10}%-%d%;G:\\\n\t:cm=\\E[%i%d;%dH:me=\\E[m:..rp=%p1%c\\E[%p2%{1}%-%db:\nrc=0\nt|test terminal:\\\n\t:am:\\\n\t:co#80:\\\n\t:bl=^G:cm=\\E[%i%d;%dH:me=\\E[m:\nrc=0\nt|test terminal:\\\n\t:am:\\\n\t:co#80:\\\n\t:bl=^G:..ch=\\E[%?%p1%{8}%<%t%p1%d%e%p1%{10}%-%d%;G:\\\n\t:cm=\\E[%i%d;%dH:me=\\E[m:..rp=%p1%c\\E[%p2%{1}%-%db:\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-cancelled-extended": {
+    "stdout": "e|ext,\n\tam,\n\tMs@, Nx@, XT@,\nrc=0\n",
+    "stderr": "\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-comment-without-entry-comment": {
+    "stdout": "one|first,\n\tam,\ntwo|second,\n\tbw,\nrc=0\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'one': older tic versions may treat the description field as an alias\n\"src\", line 3, col 12, terminal 'two': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-comments-echoed": {
+    "stdout": "# first comment\n# second comment\none|first,\n\tam,\n# before the second\ntwo|second,\n\tbw,\nrc=0\n",
+    "stderr": "\"src\", line 3, col 11, terminal 'one': older tic versions may treat the description field as an alias\n\"src\", line 6, col 12, terminal 'two': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-default": {
+    "stdout": "t|test terminal,\n\tam, bw,\n\tcols#80, lines#24,\n\tbel=^G, cr=\\r, cup=\\E[%i%p1%d;%p2%dH,\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-extended-x": {
+    "stdout": "e|ext,\n\tam, XT,\n\tcols#80, Nx#3,\n\tMs=abc,\nrc=0\ne|ext,\n\tam,\n\tXT,\n\tcols#80,\n\tNx#3,\n\tMs=abc,\ne|ext:\\\n\t:am:XT:\\\n\t:co#80:Nx#3:\\\n\t:Ms=abc:\ne|ext,\n\tauto_right_margin, XT,\n\tcolumns#80, Nx#3,\n\tMs=abc,\n",
+    "stderr": "\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n\"src\", line 1, col 7, terminal 'e': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-force-resolve-missing-use": {
+    "stdout": "rc=1\nchild|child term,\n\tbw, use=nosuchterminal,\nrc=0\n",
+    "stderr": "\"src\", line 2, terminal 'child': resolution of use=nosuchterminal failed\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-force-resolve-r": {
+    "stdout": "base|base term,\n\tam,\n\tcols#80,\n\tbel=^G,\nchild|child term,\n\tam, bw,\n\tcols#100,\n\tbel=^G,\nrc=0\nbase|base term:\\\n\t:am:\\\n\t:co#80:\\\n\t:bl=^G:\nchild|child term:\\\n\t:am:bw:\\\n\t:co#100:\\\n\t:bl=^G:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-formatted-f": {
+    "stdout": "t|fmt,\n\tam,\n\tcup=\\E[%i%p1%d;%p2%dH,\n\tsgr=\\E[0\n\t\t%?\n\t\t\t%p6\n\t\t\t%t;1\n\t\t%;\n\t\t%?\n\t\t\t%p1\n\t\t\t%t;7\n\t\t%;\n\t\tm,\nrc=0\nt|fmt,\n\tam,\n\tcup=\\E[%i%p1%d;%p2%dH,\n\tsgr=\\E[0\n\t\t%?\n\t\t\t%p6\n\t\t\t%t;1\n\t\t%;\n\t\t%?\n\t\t\t%p1\n\t\t\t%t;7\n\t\t%;\n\t\tm,\n",
+    "stderr": "\"src\", line 1, col 7, terminal 't': older tic versions may treat the description field as an alias\n\"src\", line 1, col 7, terminal 't': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-no-smart-defaults-N-and-U": {
+    "stdout": "x|xx,\n\tam,\n\tcols#80,\nrc=0\nx|xx,\n\tam,\n\tcols#80,\nrc=0\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-numbers-G-g": {
+    "stdout": "t|num,\n\tam,\n\thpa=\\E[%p1%{8}%+%dG,\n\tsetaf=\\E[3%p1%dm,\n\tvpa=\\E[%p1%'a'%+%dd,\nrc=0\nt|num,\n\tam,\n\thpa=\\E[%p1%{8}%+%dG,\n\tsetaf=\\E[3%p1%dm,\n\tvpa=\\E[%p1%{97}%+%dd,\n",
+    "stderr": "\"src\", line 1, col 7, terminal 't': older tic versions may treat the description field as an alias\n\"src\", line 1, col 7, terminal 't': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-restrict-R": {
+    "stdout": "t|subset,\n\tam,\n\tbw,\n\tcols#80,\n\tbel=^G,\n\tkf1=\\EOP,\n\tsmcup=\\E[?1049h,\nrc=0\nt|subset,\n\tam,\n\tbw,\n\tcols#80,\n\tbel=^G,\n\tkf1=\\EOP,\n\tsmcup=\\E[?1049h,\nt|subset,\n\tam,\n\tbw,\n\tcols#80,\n\tbel=^G,\n\tkf1=\\EOP,\n\tsmcup=\\E[?1049h,\n",
+    "stderr": "\"src\", line 1, col 10, terminal 't': older tic versions may treat the description field as an alias\n\"src\", line 1, col 10, terminal 't': older tic versions may treat the description field as an alias\n\"src\", line 1, col 10, terminal 't': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-single-column": {
+    "stdout": "t|test terminal,\n\tam,\n\tbw,\n\tcols#80,\n\tlines#24,\n\tbel=^G,\n\tcr=\\r,\n\tcup=\\E[%i%p1%d;%p2%dH,\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-single-row": {
+    "stdout": "t|test terminal,am,bw,cols#80,lines#24,bel=^G,cr=\\r,cup=\\E[%i%p1%d;%p2%dH,\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-sort-options-by-mode": {
+    "stdout": "-- I\nt|sorting,\n\tam,\n\tbw,\n\tmir,\n\txon,\n\tcols#80,\n\tit#8,\n\tlines#24,\n\tbel=^G,\n\tcr=\\r,\n\tcup=\\E[%i%p1%d;%p2%dH,\n-- L\nt|sorting,\n\tauto_left_margin,\n\tauto_right_margin,\n\tmove_insert_mode,\n\txon_xoff,\n\tcolumns#80,\n\tinit_tabs#8,\n\tlines#24,\n\tbell=^G,\n\tcarriage_return=\\r,\n\tcursor_address=\\E[%i%p1%d;%p2%dH,\n-- C\nt|sorting:\\\n\t:am:\\\n\t:bw:\\\n\t:mi:\\\n\t:xo:\\\n\t:co#80:\\\n\t:it#8:\\\n\t:li#24:\\\n\t:bl=^G:\\\n\t:cm=\\E[%i%d;%dH:\\\n\t:cr=\\r:\n",
+    "stderr": "\"src\", line 1, col 11, terminal 't': older tic versions may treat the description field as an alias\n\"src\", line 1, col 11, terminal 't': older tic versions may treat the description field as an alias\n\"src\", line 1, col 11, terminal 't': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-use-clauses-kept": {
+    "stdout": "base|base term,\n\tam,\n\tcols#80,\n\tbel=^G,\nchild|child term,\n\tbw,\n\tcols#100, use=base, use=vt100,\nrc=0\nbase|base term:\\\n\t:am:\\\n\t:co#80:\\\n\t:bl=^G:\nchild|child term:\\\n\t:bw:\\\n\t:co#100:tc=base:tc=vt100:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-I-width-split": {
+    "stdout": "t|test terminal,\n\tam, bw, mir, msgr, xon,\n\tcols#80, it#8, lines#24,\n\tbel=^G, clear=\\E[H\\E[2J, cr=\\r,\n\tcup=\\E[%i%p1%d;%p2%dH, home=\\E[H,\n",
+    "stderr": "tic: Too many file names.  Usage:\n\ttic [-e names] [-o dir] [-R name] [-v[n]] [-V] [-w[n]] [-1aCDcfGgIKLNrsTtUx] source-file\ntic: Too many file names.  Usage:\n\ttic [-e names] [-o dir] [-R name] [-v[n]] [-V] [-w[n]] [-1aCDcfGgIKLNrsTtUx] source-file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "tic-text-I-wrap-W": {
+    "stdout": "rc=1\n",
+    "stderr": "tic: Too many file names.  Usage:\n\ttic [-e names] [-o dir] [-R name] [-v[n]] [-V] [-w[n]] [-1aCDcfGgIKLNrsTtUx] source-file\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-K-bsd-termcap": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-L-long-names": {
+    "stdout": "t|test terminal,\n\tauto_left_margin, auto_right_margin,\n\tcolumns#80, lines#24,\n\tbell=^G, carriage_return=\\r,\n\tcursor_address=\\E[%i%p1%d;%p2%dH,\nrc=0\nt|test terminal,\n\tauto_left_margin,\n\tauto_right_margin,\n\tcolumns#80,\n\tlines#24,\n\tbell=^G,\n\tcarriage_return=\\r,\n\tcursor_address=\\E[%i%p1%d;%p2%dH,\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-check-length-warning": {
+    "stdout": "rc=0\n# (untranslatable capabilities removed to fit entry within 1023 bytes)\n# (terminfo-only capabilities suppressed to fit entry within 1023 bytes)\nrc=0\n",
+    "stderr": "tic: resolved big entry is 5852 bytes long\ntic: resolved big entry is 5814 bytes long\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-quick-Q-accepted": {
+    "stdout": "hex:1A0105000200010000000000787C7878000001005000\nrc=0\nx|xx,\n\tam,\n\tcols#80,\nrc=0\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-text-unknown-capability-warning": {
+    "stdout": "x|xx,\n\tam,\n\tcols#80,\nrc=0\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 2, col 17, terminal 'x': unknown capability 'frobnicate'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-too-many-file-names": {
+    "stdout": "rc=1\nls: cannot access 't': No such file or directory\n",
+    "stderr": "tic: Too many file names.  Usage:\n\ttic [-e names] [-o dir] [-R name] [-v[n]] [-V] [-w[n]] [-1aCDcfGgIKLNrsTtUx] source-file\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tic-unknown-capability-warning": {
+    "stdout": "rc=0\n 1a 01 05 00 02 00 01 00 00 00 00 00 78 7c 78 78\n 00 00 01 00 50 00\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 2, col 17, terminal 'x': unknown capability 'frobnicate'\n\"src\", line 3, col 8, terminal 'x': unknown capability 'zzz'\n\"src\", line 3, col 17, terminal 'x': unknown capability 'qqq'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-use-by-alias": {
+    "stdout": "rc=0\nkid|kid,\n\tam,\n\tbw,\n\tcols#80,\n",
+    "stderr": "\"src\", line 1, col 9, terminal 'kid': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-use-chain": {
+    "stdout": "rc=0\n== a\na|first,\n\tam,\n\tcols#80,\n\tlines#24,\n\tbel=^G,\n== b\nb|second,\n\tam,\n\tbw,\n\tcols#80,\n\tlines#50,\n\tbel=^G,\n== c\nc|third,\n\tam,\n\tbw,\n\tcols#132,\n\tlines#50,\n\tbel=^G,\n 1a 01 08 00 02 00 03 00 02 00 02 00 63 7c 74 68\n 69 72 64 00 01 01 84 00 ff ff 32 00 ff ff 00 00\n 07 00\n",
+    "stderr": "\"src\", line 1, col 9, terminal 'c': older tic versions may treat the description field as an alias\n\"src\", line 3, col 10, terminal 'b': older tic versions may treat the description field as an alias\n\"src\", line 5, col 9, terminal 'a': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-use-circular-reference": {
+    "stdout": "rc=1\nls: cannot access 't': No such file or directory\n",
+    "stderr": "\"src\", line 1, col 9, terminal 'a': older tic versions may treat the description field as an alias\n\"src\", line 3, col 10, terminal 'b': older tic versions may treat the description field as an alias\n\"src\", line 4, terminal 'b': problem with use=b\n\"src\", line 4, terminal 'b': problem with use=a\n\"src\", line 4, terminal 'b': merge failed, infinite loop\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tic-use-from-installed-database": {
+    "stdout": "rc=0\nmine|my vt100,\n\tam,\n\tmc5i,\n\tmsgr,\n\txenl,\n\txon,\n\tcols#100,\n\tit#8,\n\tlines#24,\n\tvt#3,\n\tacsc=``aaffggjjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~,\n\tbel=^G,\n\tblink=\\E[5m$<2>,\n\tbold=\\E[1m$<2>,\n\tclear=\\E[H\\E[J$<50>,\n\tcr=\\r,\n\tcsr=\\E[%i%p1%d;%p2%dr,\n\tcub=\\E[%p1%dD,\n\tcub1=^H,\n\tcud=\\E[%p1%dB,\n\tcud1=\\n,\n\tcuf=\\E[%p1%dC,\n\tcuf1=\\E[C$<2>,\n\tcup=\\E[%i%p1%d;%p2%dH$<5>,\n\tcuu=\\E[%p1%dA,\n\tcuu1=\\E[A$<2>,\n\ted=\\E[J$<50>,\n\tel=\\E[K$<3>,\n\tel1=\\E[1K$<3>,\n\tenacs=\\E(B\\E)0,\n\thome=\\E[H,\n\tht=^I,\n\thts=\\EH,\n\tind=\\n,\n\tka1=\\EOq,\n\tka3=\\EOs,\n\tkb2=\\EOr,\n\tkbs=^H,\n\tkc1=\\EOp,\n\tkc3=\\EOn,\n\tkcub1=\\EOD,\n\tkcud1=\\EOB,\n\tkcuf1=\\EOC,\n\tkcuu1=\\EOA,\n\tkent=\\EOM,\n\tkf0=\\EOy,\n\tkf1=\\EOP,\n\tkf10=\\EOx,\n\tkf2=\\EOQ,\n\tkf3=\\EOR,\n\tkf4=\\EOS,\n\tkf5=\\EOt,\n\tkf6=\\EOu,\n\tkf7=\\EOv,\n\tkf8=\\EOl,\n\tkf9=\\EOw,\n\tlf1=pf1,\n\tlf2=pf2,\n\tlf3=pf3,\n\tlf4=pf4,\n\tmc0=\\E[0i,\n\tmc4=\\E[4i,\n\tmc5=\\E[5i,\n\trc=\\E8,\n\trev=\\E[7m$<2>,\n\tri=\\EM$<5>,\n\trmacs=^O,\n\trmam=\\E[?7l,\n\trmkx=\\E[?1l\\E>,\n\trmso=\\E[m$<2>,\n\trmul=\\E[m$<2>,\n\trs2=\\E<\\E>\\E[?3;4;5l\\E[?7;8h\\E[r,\n\tsc=\\E7,\n\tsgr=\\E[0%?%p1%p6%|%t;1%;%?%p2%t;4%;%?%p1%p3%|%t;7%;%?%p4%t;5%;m%?%p9%t\\016%e\\017%;$<2>,\n\tsgr0=\\E[m\\017$<2>,\n\tsmacs=^N,\n\tsmam=\\E[?7h,\n\tsmkx=\\E[?1h\\E=,\n\tsmso=\\E[7m$<2>,\n\tsmul=\\E[4m$<2>,\n\ttbc=\\E[3g,\n\tu6=\\E[%i%d;%dR,\n\tu7=\\E[6n,\n\tu8=\\E[?%[;0123456789]c,\n\tu9=\\EZ,\ncomparing mine to vt100.\n    comparing booleans.\n    comparing numbers.\n\tcols: 100, 80.\n    comparing strings.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-use-nonexistent-terminal": {
+    "stdout": "rc=1\nls: cannot access 't': No such file or directory\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 3, terminal 'x': resolution of use=nosuchterminal failed\n",
+    "exit": 2,
+    "files": {}
+  },
+  "tic-use-on-first-line-of-entry": {
+    "stdout": "rc=0\nkid|kid,\n\tam,\n\tbw,\n\tcols#80,\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'base': older tic versions may treat the description field as an alias\n\"src\", line 3, col 8, terminal 'kid': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-use-own-capability-wins": {
+    "stdout": "rc=0\nkid|kid,\n\tcols#100,\n\tbel=^H,\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'base': older tic versions may treat the description field as an alias\n\"src\", line 3, col 9, terminal 'kid': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-use-self-reference": {
+    "stdout": "rc=1\n",
+    "stderr": "\"src\", line 1, col 9, terminal 'a': older tic versions may treat the description field as an alias\n\"src\", line 2, terminal 'a': resolution of use=a failed\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-use-two-bases-precedence": {
+    "stdout": "rc=0\n== mix\nmix|mix,\n\tcols#40,\n\tit#4,\n\tlines#10,\n\tbel=^G,\n\tcr=\\r,\n== mix2\nmix2|mix2,\n\tcols#60,\n\tit#4,\n\tlines#20,\n\tbel=^G,\n\tcr=\\r,\n",
+    "stderr": "\"src\", line 1, col 11, terminal 'left': older tic versions may treat the description field as an alias\n\"src\", line 3, col 13, terminal 'right': older tic versions may treat the description field as an alias\n\"src\", line 5, col 9, terminal 'mix': older tic versions may treat the description field as an alias\n\"src\", line 7, col 11, terminal 'mix2': older tic versions may treat the description field as an alias\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-verbose-v": {
+    "stdout": "rc=0\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 1, terminal 'x': terminal lacks cursor addressing\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-version": {
+    "stdout": "ncurses 6.5.20250216\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-version-captoinfo-link": {
+    "stdout": "ncurses 6.5.20250216\nncurses 6.5.20250216\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-warning-line-numbers": {
+    "stdout": "rc=0\n",
+    "stderr": "\"src\", line 2, col 11, terminal 'first': older tic versions may treat the description field as an alias\n\"src\", line 4, col 9, terminal 'first': unknown capability 'bogus1'\n\"src\", line 6, col 12, terminal 'second': older tic versions may treat the description field as an alias\n\"src\", line 8, col 9, terminal 'second': unknown capability 'bogus2'\n\"src\", line 9, col 9, terminal 'second': unknown capability 'bogus3'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "tic-wrong-type-warning": {
+    "stdout": "rc=0\n 1a 01 05 00 01 00 00 00 00 00 00 00 78 7c 78 78\n 00 01\n",
+    "stderr": "\"src\", line 1, col 6, terminal 'x': older tic versions may treat the description field as an alias\n\"src\", line 2, col 7, terminal 'x': wrong type used for numeric capability 'cols'\n\"src\", line 2, col 13, terminal 'x': wrong type used for boolean capability 'am'\n\"src\", line 2, col 20, terminal 'x': wrong type used for string capability 'bel'\n\"src\", line 2, col 30, terminal 'x': wrong type used for numeric capability 'lines'\n",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,1167 @@
+tool = "tic"
+source = "manual"
+
+# tic do ncurses 6.5.20250216 (ncurses-bin do Debian 13): compila fontes terminfo pequenas pro
+# formato binário e as reescreve em texto (-I, -L, -C). Cada caso monta a fonte num heredoc em /work,
+# compila com `tic -o t src` e confere o arquivo (od -An -tx1 -v) e a descompilação (infocmp -A t).
+# As continuações usam espaços, não tab, pra a coluna das mensagens ("col N") não depender do tab.
+
+[[case]]
+id = "tic-version"
+argv = ["tic", "-V"]
+
+[[case]]
+id = "tic-version-captoinfo-link"
+script = "captoinfo -V; infotocap -V"
+
+[[case]]
+id = "tic-no-arguments"
+argv = ["tic"]
+
+[[case]]
+id = "tic-invalid-option"
+argv = ["tic", "-z"]
+
+[[case]]
+id = "tic-invalid-digit-option"
+argv = ["tic", "-5", "x"]
+
+[[case]]
+id = "tic-too-many-file-names"
+script = '''
+cd /work && rm -rf t src src2
+printf 't|x,\n am,\n' > src
+printf 'u|y,\n am,\n' > src2
+tic -o t src src2; echo "rc=$?"
+ls t 2>&1
+'''
+
+[[case]]
+id = "tic-source-file-missing"
+script = '''
+cd /work && rm -rf t
+tic -o t /work/no-such-source-file; echo "rc=$?"
+ls t 2>&1
+'''
+
+[[case]]
+id = "tic-database-locations"
+script = "TERMINFO=/work/t tic -D"
+
+[[case]]
+id = "tic-basic-compile-bytes"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+t|test terminal,
+  am, cols#80, bel=^G,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/t/t
+'''
+
+[[case]]
+id = "tic-basic-compile-infocmp"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+t|test terminal,
+  am, bw, cols#80, lines#24, bel=^G, cup=\E[%i%p1%d;%p2%dH, clear=\E[H\E[2J$<50>,
+EOF
+tic -o t src; echo "rc=$?"
+infocmp -1 -A /work/t t
+'''
+
+[[case]]
+id = "tic-header-name-length-even"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+ab|abc,
+  am, bel=^G,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/a/ab
+'''
+
+[[case]]
+id = "tic-header-name-length-odd"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+abc|abcd,
+  am, bel=^G,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/a/abc
+'''
+
+[[case]]
+id = "tic-booleans-even-count-padding"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+p|pp,
+  am, bw, cols#5,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/p/p
+'''
+
+[[case]]
+id = "tic-string-table-odd-length"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+s|ss,
+  bel=^G, cr=\r,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/s/s
+'''
+
+[[case]]
+id = "tic-names-only-entry"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+only|just names,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/o/only
+'''
+
+[[case]]
+id = "tic-tab-continuation"
+script = "cd /work && rm -rf t src && printf 'tb|tab term,\\n\\tam, cols#80,\\n\\tbel=^G,\\n' > src && tic -o t src; echo \"rc=$?\"; od -An -tx1 -v t/t/tb"
+
+[[case]]
+id = "tic-multiple-entries-in-one-file"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+one|first,
+  am,
+two|second,
+  bw,
+three|third,
+  cols#40,
+EOF
+tic -o t src; echo "rc=$?"
+ls t/*
+od -An -tx1 -v t/o/one
+od -An -tx1 -v t/t/two
+od -An -tx1 -v t/t/three
+'''
+
+[[case]]
+id = "tic-aliases-listing"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+main|alias1|alias2|the description,
+  am, cols#80,
+EOF
+tic -o t src; echo "rc=$?"
+ls t/*
+for n in main alias1 alias2; do infocmp -A /work/t -1 $n | tail -n +2; done
+'''
+
+[[case]]
+id = "tic-aliases-different-initials"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+zeta|alpha|beta|description here,
+  am, cols#80,
+EOF
+tic -o t src; echo "rc=$?"
+ls t/*
+infocmp -A /work/t -1 alpha | tail -n +2
+infocmp -A /work/t -1 beta | tail -n +2
+'''
+
+[[case]]
+id = "tic-description-is-not-an-alias"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+nm|desc,
+  am,
+EOF
+tic -o t src; echo "rc=$?"
+ls t/*
+'''
+
+[[case]]
+id = "tic-terminal-name-with-slash"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+a/b|bad name,
+  am,
+EOF
+tic -o t src; echo "rc=$?"
+ls t 2>&1
+'''
+
+[[case]]
+id = "tic-output-dir-not-a-directory"
+script = '''
+cd /work && rm -rf t src
+printf 'x|xx,\n am,\n' > src
+tic -o /dev/null/t src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-output-dir-is-a-file"
+script = '''
+cd /work && rm -rf t src
+printf 'x|xx,\n am,\n' > src
+printf 'not a dir' > t
+tic -o t src; echo "rc=$?"
+rm -f t
+'''
+
+[[case]]
+id = "tic-output-dir-from-terminfo-env"
+script = '''
+cd /work && rm -rf t src
+printf 'x|xx,\n am,\n' > src
+TERMINFO=/work/t tic src; echo "rc=$?"
+ls t/*
+'''
+
+[[case]]
+id = "tic-summary-s"
+script = '''
+cd /work && rm -rf t src
+printf 'x|xx,\n am,\ny|yy,\n bw,\n' > src
+tic -s -o t src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-verbose-v"
+script = '''
+cd /work && rm -rf t src
+printf 'x|xx,\n am,\n' > src
+tic -v -o t src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-read-stdin"
+script = '''
+cd /work && rm -rf t
+printf 'x|xx,\n am, bogus,\n' | tic -o t -; echo "rc=$?"
+od -An -tx1 -v t/x/x
+'''
+
+[[case]]
+id = "tic-check-only-writes-nothing"
+script = '''
+cd /work && rm -rf t src
+printf 'x|xx,\n am,\n' > src
+tic -c -o t src; echo "rc=$?"
+ls t 2>&1
+'''
+
+[[case]]
+id = "tic-check-only-with-warnings"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+x|xx,
+  am, nosuchcap, cols#80,
+EOF
+tic -c src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-check-only-missing-use"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+x|xx,
+  am, use=nosuchterminal,
+EOF
+tic -c src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-select-entries-with-e"
+script = '''
+cd /work && rm -rf t src
+printf 'one|first,\n am,\ntwo|second,\n bw,\nthree|third,\n xon,\n' > src
+tic -e two,three -o t src; echo "rc=$?"
+ls t/*
+'''
+
+[[case]]
+id = "tic-select-entries-with-e-alias"
+script = '''
+cd /work && rm -rf t src
+printf 'one|uno|first,\n am,\ntwo|dos|second,\n bw,\n' > src
+tic -e dos -o t src; echo "rc=$?"
+ls t/*
+'''
+
+[[case]]
+id = "tic-select-text-with-e"
+script = '''
+cd /work && rm -rf src
+printf 'one|first,\n am,\ntwo|second,\n bw,\n' > src
+tic -I -e two src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-unknown-capability-warning"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+x|xx,
+  am, frobnicate, cols#80,
+  zzz#3, qqq=abc,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/x/x
+'''
+
+[[case]]
+id = "tic-wrong-type-warning"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+x|xx,
+  cols, am#3, bel#2, lines=24,
+  bw,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/x/x
+'''
+
+[[case]]
+id = "tic-illegal-character-colon"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+x|xx,
+  am, :bw:, cols#80,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/x/x
+'''
+
+[[case]]
+id = "tic-colon-separated-capabilities"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+x|xx,
+  am:bw:cols#80,
+EOF
+tic -o t src; echo "rc=$?"
+ls t/*
+'''
+
+[[case]]
+id = "tic-last-capability-without-comma"
+script = '''
+cd /work && rm -rf t src
+printf 'x|xx,\n am, cols#80' > src
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/x/x
+'''
+
+[[case]]
+id = "tic-warning-line-numbers"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+# comment line
+first|one,
+  am,
+  bogus1,
+
+second|two,
+  cols#80,
+  bogus2,
+  bogus3,
+EOF
+tic -o t src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-commented-out-capability-dot"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+x|xx,
+  am, .cols#80, .nosuch,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/x/x
+'''
+
+[[case]]
+id = "tic-commented-out-capability-dot-a-flag"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+x|xx,
+  am, .cols#80, .nosuch,
+EOF
+tic -a -o t src; echo "rc=$?"
+od -An -tx1 -v t/x/x
+'''
+
+[[case]]
+id = "tic-large-numbers-32-bit-format"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+big|large numbers,
+  cols#40000, lines#100000, it#8,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/b/big
+infocmp -1 -A /work/t big
+'''
+
+[[case]]
+id = "tic-number-at-legacy-limit"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+lim|limit,
+  cols#32767, lines#32768,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/l/lim
+'''
+
+[[case]]
+id = "tic-number-just-under-limit-legacy"
+script = '''
+cd /work && rm -rf t src
+printf 'lim|limit,\n cols#32767,\n' > src
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/l/lim
+'''
+
+[[case]]
+id = "tic-numbers-hex-octal-negative"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+n|numbers,
+  cols#0x50, lines#030, it#-5, lm#010,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/n/n
+'''
+
+[[case]]
+id = "tic-cancel-bool-number-string"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+base|base term,
+  am, bw, cols#80, lines#24, bel=^G, cr=\r,
+child|child term,
+  am@, cols@, bel@, use=base,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/c/child
+infocmp -1 -A /work/t child
+'''
+
+[[case]]
+id = "tic-cancel-keeps-text-form"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+base|base term,
+  am, cols#80, bel=^G,
+child|child term,
+  am@, cols@, bel@, use=base,
+EOF
+tic -I src
+tic -I -r src
+'''
+
+[[case]]
+id = "tic-use-chain"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+c|third,
+  cols#132, use=b,
+b|second,
+  bw, lines#50, use=a,
+a|first,
+  am, bel=^G, cols#80, lines#24,
+EOF
+tic -o t src; echo "rc=$?"
+for n in a b c; do echo "== $n"; infocmp -1 -A /work/t $n | tail -n +2; done
+od -An -tx1 -v t/c/c
+'''
+
+[[case]]
+id = "tic-use-two-bases-precedence"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+left|left,
+  cols#40, lines#10, bel=^G,
+right|right,
+  cols#60, lines#20, cr=\r,
+mix|mix,
+  it#4, use=left, use=right,
+mix2|mix2,
+  it#4, use=right, use=left,
+EOF
+tic -o t src; echo "rc=$?"
+for n in mix mix2; do echo "== $n"; infocmp -1 -A /work/t $n | tail -n +2; done
+'''
+
+[[case]]
+id = "tic-use-own-capability-wins"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+base|base,
+  cols#80, bel=^G,
+kid|kid,
+  cols#100, bel=^H, use=base,
+EOF
+tic -o t src; echo "rc=$?"
+infocmp -1 -A /work/t kid | tail -n +2
+'''
+
+[[case]]
+id = "tic-use-from-installed-database"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+mine|my vt100,
+  cols#100, use=vt100,
+EOF
+tic -o t src; echo "rc=$?"
+infocmp -1 -A /work/t mine | tail -n +2
+infocmp -d -A /work/t mine vt100
+'''
+
+[[case]]
+id = "tic-use-nonexistent-terminal"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+x|xx,
+  am,
+  use=nosuchterminal,
+EOF
+tic -o t src; echo "rc=$?"
+ls t 2>&1
+'''
+
+[[case]]
+id = "tic-use-circular-reference"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+a|first,
+  am, use=b,
+b|second,
+  bw, use=a,
+EOF
+tic -o t src; echo "rc=$?"
+ls t 2>&1
+'''
+
+[[case]]
+id = "tic-use-self-reference"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+a|first,
+  am, use=a,
+EOF
+tic -o t src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-use-by-alias"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+kid|kid,
+  bw, use=basealias,
+base|basealias|the base,
+  am, cols#80,
+EOF
+tic -o t src; echo "rc=$?"
+infocmp -1 -A /work/t kid | tail -n +2
+'''
+
+[[case]]
+id = "tic-extended-x-order-by-type"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+e|ext,
+  Ms=abc, XT, Nx#3, Ab, Zn#1, Qs=xyz, am,
+EOF
+tic -x -o t src; echo "rc=$?"
+od -An -tx1 -v t/e/e
+infocmp -x -1 -A /work/t e
+'''
+
+[[case]]
+id = "tic-extended-odd-bool-count-padding"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+e|ext,
+  XA, Nn#1, Ss=v,
+EOF
+tic -x -o t src; echo "rc=$?"
+od -An -tx1 -v t/e/e
+'''
+
+[[case]]
+id = "tic-extended-even-bool-count"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+e|ext,
+  XA, XB, Nn#1, Ss=v,
+EOF
+tic -x -o t src; echo "rc=$?"
+od -An -tx1 -v t/e/e
+'''
+
+[[case]]
+id = "tic-extended-without-x-is-dropped"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+e|ext,
+  am, XT, Ms=abc,
+EOF
+tic -o t src 2>&1; echo "rc=$?"
+infocmp -x -1 -A /work/t e
+'''
+
+[[case]]
+id = "tic-extended-numbers-wide"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+e|ext,
+  Nbig#70000, cols#80,
+EOF
+tic -x -o t src; echo "rc=$?"
+od -An -tx1 -v t/e/e
+infocmp -x -1 -A /work/t e
+'''
+
+[[case]]
+id = "tic-extended-cancel"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+base|base,
+  XT, Ms=abc,
+kid|kid,
+  XT@, Ms@, use=base,
+EOF
+tic -x -o t src; echo "rc=$?"
+od -An -tx1 -v t/k/kid
+infocmp -x -1 -A /work/t kid
+'''
+
+[[case]]
+id = "tic-extended-merged-through-use"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+base|base,
+  Aa, Bn#2, Cs=one,
+kid|kid,
+  Dd, En#4, Fs=two, use=base,
+EOF
+tic -x -o t src; echo "rc=$?"
+infocmp -x -1 -A /work/t kid
+'''
+
+[[case]]
+id = "tic-extended-repeated-name-last-wins"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+e|ext,
+  Nn#1, Ss=a, Nn#2, Ss=b,
+EOF
+tic -x -o t src; echo "rc=$?"
+infocmp -x -1 -A /work/t e
+'''
+
+[[case]]
+id = "tic-string-escapes"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+esc|escapes,
+  bel=\E[H^G\n\r\t\b\f\s\a, cr=^A^?\\\^\,\:\0\200\101, cud1=\012\0123,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/e/esc
+infocmp -1 -A /work/t esc | tail -n +2
+'''
+
+[[case]]
+id = "tic-string-padding-and-percent"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+p|pad,
+  clear=\E[H\E[2J$<50/>, flash=\E[?5h$<100*>\E[?5l, cup=\E[%i%p1%d;%p2%dH,
+EOF
+tic -o t src; echo "rc=$?"
+infocmp -1 -A /work/t p | tail -n +2
+'''
+
+[[case]]
+id = "tic-text-I-default"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|test terminal,
+  am, bw, cols#80, lines#24, bel=^G, cr=\r, cup=\E[%i%p1%d;%p2%dH,
+EOF
+tic -I src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-I-single-column"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|test terminal,
+  am, bw, cols#80, lines#24, bel=^G, cr=\r, cup=\E[%i%p1%d;%p2%dH,
+EOF
+tic -I -1 src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-I-single-row"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|test terminal,
+  am, bw, cols#80, lines#24, bel=^G, cr=\r, cup=\E[%i%p1%d;%p2%dH,
+EOF
+tic -I -0 src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-I-width-split"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|test terminal,
+  am, bw, xon, mir, msgr, cols#80, lines#24, it#8, bel=^G, cr=\r, cup=\E[%i%p1%d;%p2%dH, home=\E[H, clear=\E[H\E[2J,
+EOF
+tic -I -w 40 src
+tic -I -w40 src
+tic -I -w 0 src
+'''
+
+[[case]]
+id = "tic-text-L-long-names"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|test terminal,
+  am, bw, cols#80, lines#24, bel=^G, cr=\r, cup=\E[%i%p1%d;%p2%dH,
+EOF
+tic -L src; echo "rc=$?"
+tic -L -1 src
+'''
+
+[[case]]
+id = "tic-text-C-termcap"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|test terminal,
+  am, bw, cols#80, lines#24, bel=^G, cr=\r, cup=\E[%i%p1%d;%p2%dH,
+EOF
+tic -C src; echo "rc=$?"
+tic -C -1 src
+'''
+
+[[case]]
+id = "tic-text-K-bsd-termcap"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|test terminal,
+  am, bw, cols#80, lines#24, bel=^G, cr=\r, cup=\E[%i%p1%d;%p2%dH, setaf=\E[3%p1%dm,
+EOF
+tic -K src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-C-untranslatable-and-t"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|test terminal,
+  am, cols#80, bel=^G, cup=\E[%i%p1%d;%p2%dH,
+  hpa=\E[%?%p1%{8}%<%t%p1%d%e%p1%{10}%-%d%;G,
+  sgr0=\E[m, rep=%p1%c\E[%p2%{1}%-%db,
+EOF
+tic -C src; echo "rc=$?"
+tic -C -t src; echo "rc=$?"
+tic -C -T src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-I-comments-echoed"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+# first comment
+# second comment
+one|first,
+  am,
+# before the second
+two|second,
+  bw,
+EOF
+tic -I src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-I-comment-without-entry-comment"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+one|first,
+  am,
+two|second,
+  bw,
+EOF
+tic -I src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-C-comment-name-translation"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+# moves with <cup> and <cols#80> but not <nosuchthing>
+one|first,
+  am, cup=\E[%i%p1%d;%p2%dH,
+EOF
+tic -C src; echo "rc=$?"
+tic -I src
+'''
+
+[[case]]
+id = "tic-text-I-use-clauses-kept"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+base|base term,
+  am, cols#80, bel=^G,
+child|child term,
+  bw, cols#100, use=base, use=vt100,
+EOF
+tic -I src; echo "rc=$?"
+tic -C src
+'''
+
+[[case]]
+id = "tic-text-I-force-resolve-r"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+base|base term,
+  am, cols#80, bel=^G,
+child|child term,
+  bw, cols#100, use=base,
+EOF
+tic -I -r src; echo "rc=$?"
+tic -C -r src
+'''
+
+[[case]]
+id = "tic-text-I-force-resolve-missing-use"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+child|child term,
+  bw, use=nosuchterminal,
+EOF
+tic -I -r src; echo "rc=$?"
+tic -I src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-I-extended-x"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+e|ext,
+  am, Ms=abc, XT, Nx#3, cols#80,
+EOF
+tic -I -x src; echo "rc=$?"
+tic -I -x -1 src
+tic -C -x src
+tic -L -x src
+'''
+
+[[case]]
+id = "tic-text-I-cancelled-extended"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+e|ext,
+  XT@, Ms@, Nx@, am,
+EOF
+tic -I -x src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-I-sort-options-by-mode"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|sorting,
+  xon, am, bw, mir, cols#80, lines#24, it#8, cr=\r, bel=^G, cup=\E[%i%p1%d;%p2%dH,
+EOF
+echo "-- I"; tic -I -1 src
+echo "-- L"; tic -L -1 src
+echo "-- C"; tic -C -1 src
+'''
+
+[[case]]
+id = "tic-text-I-formatted-f"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|fmt,
+  am, sgr=\E[0%?%p6%t;1%;%?%p1%t;7%;m, cup=\E[%i%p1%d;%p2%dH,
+EOF
+tic -I -1 -f src; echo "rc=$?"
+tic -I -f src
+'''
+
+[[case]]
+id = "tic-text-I-numbers-G-g"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|num,
+  am, setaf=\E[3%p1%dm, hpa=\E[%p1%{8}%+%dG, vpa=\E[%p1%'a'%+%dd,
+EOF
+tic -I -1 -G src; echo "rc=$?"
+tic -I -1 -g src
+'''
+
+[[case]]
+id = "tic-text-I-wrap-W"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|wrap,
+  am, bel=^G, indn=\E[%p1%dS and some more padding so that the string is very long indeed to wrap, cr=\r,
+EOF
+tic -I -W -w 40 src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-I-restrict-R"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+t|subset,
+  am, bw, cols#80, bel=^G, kf1=\EOP, smcup=\E[?1049h,
+EOF
+tic -I -R SVr1 -1 src; echo "rc=$?"
+tic -I -R HP -1 src
+tic -I -R nosuch -1 src
+'''
+
+[[case]]
+id = "tic-text-unknown-capability-warning"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+x|xx,
+  am, frobnicate, cols#80,
+EOF
+tic -I src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-I-no-smart-defaults-N-and-U"
+script = '''
+cd /work && rm -rf src
+printf 'x|xx,\n am, cols#80,\n' > src
+tic -I -N src; echo "rc=$?"
+tic -I -U src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-check-length-warning"
+script = '''
+cd /work && rm -rf src
+{
+  echo 'big|big entry,'
+  i=0
+  while [ $i -lt 64 ]; do
+    echo "  kf$i=\\E[$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i;$i~,"
+    i=$((i+1))
+  done
+} > src
+tic -c -I src; echo "rc=$?"
+tic -c -C src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-text-quick-Q-accepted"
+script = '''
+cd /work && rm -rf src
+printf 'x|xx,\n am, cols#80,\n' > src
+tic -I -Q1 src; echo "rc=$?"
+tic -I -Qx src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-link-infotocap"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+# a comment
+t|test terminal,
+  am, bw, cols#80, bel=^G, cup=\E[%i%p1%d;%p2%dH,
+EOF
+infotocap src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-link-captoinfo-terminfo-source"
+script = '''
+cd /work && rm -rf src
+cat > src <<'EOF'
+# a comment
+t|test terminal,
+  am, bw, cols#80, bel=^G, cup=\E[%i%p1%d;%p2%dH,
+EOF
+captoinfo src; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-link-infotocap-no-arguments"
+argv = ["infotocap"]
+
+[[case]]
+id = "tic-roundtrip-installed-terminal"
+script = '''
+cd /work && rm -rf t src
+infocmp -I vt100 > src
+tic -o t src; echo "rc=$?"
+infocmp -d -A /work/t vt100 vt100; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-roundtrip-installed-terminal-extended"
+script = '''
+cd /work && rm -rf t src
+infocmp -I -x xterm-256color > src
+tic -x -o t src; echo "rc=$?"
+infocmp -x -d -A /work/t xterm-256color xterm-256color; echo "rc=$?"
+'''
+
+[[case]]
+id = "tic-overwrite-existing-entry"
+script = '''
+cd /work && rm -rf t src
+printf 'x|xx,\n am,\n' > src
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/x/x
+printf 'x|xx,\n bw, cols#80,\n' > src
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/x/x
+'''
+
+[[case]]
+id = "tic-same-name-twice-in-one-file"
+script = '''
+cd /work && rm -rf t src
+printf 'x|first,\n am,\nx|second,\n bw,\n' > src
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/x/x
+'''
+
+[[case]]
+id = "tic-blank-and-comment-lines-between-fields"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+
+# leading comment
+
+t|test,
+  am,
+# comment inside
+
+  bw,
+  cols#80,
+EOF
+tic -o t src; echo "rc=$?"
+od -An -tx1 -v t/t/t
+'''
+
+[[case]]
+id = "tic-empty-source-file"
+script = '''
+cd /work && rm -rf t src
+: > src
+tic -o t src; echo "rc=$?"
+ls t 2>&1
+'''
+
+[[case]]
+id = "tic-source-without-entries-only-comments"
+script = '''
+cd /work && rm -rf t src
+printf '# only a comment\n' > src
+tic -o t src; echo "rc=$?"
+ls t 2>&1
+'''
+
+[[case]]
+id = "tic-entry-must-start-in-column-one"
+script = '''
+cd /work && rm -rf t src
+printf '  x|xx,\n am,\n' > src
+tic -o t src; echo "rc=$?"
+ls t 2>&1
+'''
+
+[[case]]
+id = "tic-use-on-first-line-of-entry"
+script = '''
+cd /work && rm -rf t src
+cat > src <<'EOF'
+base|base,
+  am, cols#80,
+kid|kid, use=base, bw,
+EOF
+tic -o t src; echo "rc=$?"
+infocmp -1 -A /work/t kid | tail -n +2
+'''

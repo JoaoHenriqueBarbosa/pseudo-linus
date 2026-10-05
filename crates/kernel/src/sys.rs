@@ -11,6 +11,7 @@ use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use sysabi::*;
+use sysabi::sched;
 use vfs::{Caller, Loc, Opened, PinnedLoc, Start, WritePos};
 
 use crate::dev::Device;
@@ -752,6 +753,64 @@ impl Task {
             return Ok(self.proc.clone());
         }
         self.sb.table.lock().proc(pid).ok_or(Errno::ESRCH)
+    }
+
+    /// `__sched_setscheduler` sobre o processo `pid` (0 é o corrente). `build` recebe a nice atual do
+    /// alvo e devolve o `SchedAttr` e se a política fica (`sched_setparam`). Quem o escalonador vê da
+    /// nice (EEVDF) é atualizado se ela mudou.
+    fn sched_change(&self, pid: Pid, build: impl FnOnce(i32) -> SysResult<(SchedAttr, bool)>) -> SysResult<()> {
+        let p = self.proc_attr_caller_check(pid)?;
+        let caller_uid = self.proc.st.lock().cred.uid;
+        let mut st = p.st.lock();
+        let (attr, keep_policy) = build(st.nice)?;
+        let cx = SchedCaller {
+            same_owner: st.cred.uid == caller_uid,
+            rlim_rtprio: st.rlimits[Resource::Rtprio as usize].cur,
+            rlim_nice: st.rlimits[Resource::Nice as usize].cur,
+        };
+        let mut tune = p.tune.lock();
+        let (state, nice) = tune.sched.set(st.nice, &attr, keep_policy, &cx)?;
+        tune.sched = state;
+        drop(tune);
+        let changed = nice != st.nice;
+        st.nice = nice;
+        drop(st);
+        if changed {
+            let tasks: Vec<Arc<Task>> = p.threads.lock().live.values().cloned().collect();
+            for t in tasks {
+                self.sb.kernel.cpus.set_nice(&t.ct, nice);
+            }
+        }
+        Ok(())
+    }
+
+    /// Alvos de `ioprio_get`/`ioprio_set` (`IOPRIO_WHO_*`): `who` 0 é o processo, o grupo ou o usuário do
+    /// chamador. `which` inválido é EINVAL; sem alvo a lista vem vazia. Zumbis não entram em grupo nem
+    /// usuário.
+    fn ioprio_targets(&self, which: i32, who: i32) -> SysResult<Vec<Arc<Proc>>> {
+        match which {
+            sched::IOPRIO_WHO_PROCESS => {
+                let pid = if who == 0 { self.proc.pid } else { who };
+                Ok(self.sb.table.lock().proc(pid).into_iter().collect())
+            }
+            sched::IOPRIO_WHO_PGRP => {
+                let t = self.sb.table.lock();
+                let pgid = if who == 0 { t.rel(self.proc.pid).map_or(0, |r| r.pgid) } else { who };
+                Ok(t.group_members(pgid))
+            }
+            sched::IOPRIO_WHO_USER => {
+                let uid = if who == 0 { self.proc.st.lock().cred.uid } else { who as u32 };
+                if uid == u32::MAX {
+                    return Ok(Vec::new());
+                }
+                let procs: Vec<Arc<Proc>> = {
+                    let t = self.sb.table.lock();
+                    t.map.values().filter(|e| e.rel.zombie.is_none() && e.proc.pid != INIT_PID).map(|e| e.proc.clone()).collect()
+                };
+                Ok(procs.into_iter().filter(|p| p.st.lock().cred.uid == uid).collect())
+            }
+            _ => Err(Errno::EINVAL),
+        }
     }
 
     fn poll_one(&self, pfd: &PollFd, register: bool) -> PollEvents {
@@ -1517,6 +1576,7 @@ impl Syscalls for Task {
         let img = exec::load(&self.sb, &cx, &spec.path, spec.argv.clone(), child.env.clone())?;
         let task = spawn::insert_child(&self.sb, child)?;
         let pid = task.proc.pid;
+        spawn::inherit_tune(self, &task);
         spawn::commit_exec(&task, &img, false);
         spawn::start_process(&self.sb, task, Body::Image(img))?;
         Ok(pid)
@@ -1531,6 +1591,7 @@ impl Syscalls for Task {
         }
         let task = spawn::insert_child(&self.sb, child)?;
         let pid = task.proc.pid;
+        spawn::inherit_tune(self, &task);
         spawn::start_process(&self.sb, task, Body::Func(body))?;
         Ok(pid)
     }
@@ -1720,7 +1781,139 @@ impl Syscalls for Task {
 
     fn sched_getaffinity(&self) -> Vec<usize> {
         self.enter();
-        (0..self.sb.kernel.cpus.ncpus()).collect()
+        let n = self.sb.kernel.cpus.ncpus();
+        sched::effective_affinity(n, self.proc.tune.lock().cpus.as_deref())
+    }
+
+    fn sched_getaffinity_of(&self, pid: Pid) -> SysResult<Vec<usize>> {
+        self.enter();
+        let p = self.proc_attr_caller_check(pid)?;
+        let n = self.sb.kernel.cpus.ncpus();
+        let mask = sched::effective_affinity(n, p.tune.lock().cpus.as_deref());
+        Ok(mask)
+    }
+
+    fn sched_setaffinity(&self, pid: Pid, cpus: &[usize]) -> SysResult<()> {
+        self.enter();
+        let p = self.proc_attr_caller_check(pid)?;
+        // `check_same_owner`; o contêiner padrão não tem CAP_SYS_NICE pra passar por cima.
+        let me = self.proc.st.lock().cred.uid;
+        if p.st.lock().cred.uid != me {
+            return Err(Errno::EPERM);
+        }
+        let mask = sched::normalize_affinity(self.sb.kernel.cpus.ncpus(), cpus)?;
+        p.tune.lock().cpus = Some(mask);
+        Ok(())
+    }
+
+    fn personality(&self, persona: u32) -> SysResult<u32> {
+        self.enter();
+        let mut tune = self.proc.tune.lock();
+        let (old, new) = sched::personality::change(tune.personality, persona)?;
+        tune.personality = new;
+        Ok(old)
+    }
+
+    fn sched_getscheduler(&self, pid: Pid) -> SysResult<i32> {
+        self.enter();
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let p = self.proc_attr_caller_check(pid)?;
+        let policy = p.tune.lock().sched.scheduler();
+        Ok(policy)
+    }
+
+    fn sched_setscheduler(&self, pid: Pid, policy: i32, param: SchedParam) -> SysResult<()> {
+        self.enter();
+        if pid < 0 || policy < 0 {
+            return Err(Errno::EINVAL);
+        }
+        self.sched_change(pid, |nice| Ok((sched::attr_for_setscheduler(policy, param, nice)?, false)))
+    }
+
+    fn sched_getparam(&self, pid: Pid) -> SysResult<SchedParam> {
+        self.enter();
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let p = self.proc_attr_caller_check(pid)?;
+        let priority = p.tune.lock().sched.rt_priority as i32;
+        Ok(SchedParam { priority })
+    }
+
+    fn sched_setparam(&self, pid: Pid, param: SchedParam) -> SysResult<()> {
+        self.enter();
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        self.sched_change(pid, |nice| Ok((sched::attr_for_setparam(param, nice), true)))
+    }
+
+    fn sched_rr_get_interval(&self, pid: Pid) -> SysResult<Duration> {
+        self.enter();
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let p = self.proc_attr_caller_check(pid)?;
+        let d = p.tune.lock().sched.rr_interval(self.sb.kernel.cpus.ncpus());
+        Ok(d)
+    }
+
+    fn sched_getattr(&self, pid: Pid, size: u32, flags: u32) -> SysResult<SchedAttr> {
+        self.enter();
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        sched::check_getattr(size, flags)?;
+        let p = self.proc_attr_caller_check(pid)?;
+        let nice = p.st.lock().nice;
+        let a = p.tune.lock().sched.attr(nice, size, self.sb.kernel.cpus.ncpus());
+        Ok(a)
+    }
+
+    fn sched_setattr(&self, pid: Pid, attr: &SchedAttr, flags: u32) -> SysResult<()> {
+        self.enter();
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let attr = sched::check_setattr(attr, flags)?;
+        self.sched_change(pid, |_| Ok((attr, false)))
+    }
+
+    fn ioprio_get(&self, which: i32, who: i32) -> SysResult<i32> {
+        self.enter();
+        let targets = self.ioprio_targets(which, who)?;
+        let mut best: Option<i32> = None;
+        for p in targets {
+            // Ordem de travas: `st` antes de `tune`.
+            let nice = p.st.lock().nice;
+            let t = p.tune.lock();
+            let v = sched::ioprio_effective(t.ioprio, t.sched.policy, nice);
+            best = Some(best.map_or(v, |b| sched::ioprio_best(b, v)));
+        }
+        best.ok_or(Errno::ESRCH)
+    }
+
+    fn ioprio_set(&self, which: i32, who: i32, ioprio: i32) -> SysResult<()> {
+        self.enter();
+        sched::ioprio_check(ioprio)?;
+        let targets = self.ioprio_targets(which, who)?;
+        if targets.is_empty() {
+            return Err(Errno::ESRCH);
+        }
+        let me = self.proc.st.lock().cred.uid;
+        for p in targets {
+            // `set_task_ioprio`: só o dono (sem CAP_SYS_NICE); um processo que já terminou é ESRCH.
+            if p.st.lock().cred.uid != me {
+                return Err(Errno::EPERM);
+            }
+            if p.nthreads() == 0 && p.pid != INIT_PID {
+                return Err(Errno::ESRCH);
+            }
+            p.tune.lock().ioprio = ioprio;
+        }
+        Ok(())
     }
 
     // ---- identidade e ambiente ----
@@ -1792,14 +1985,17 @@ impl Syscalls for Task {
 
     fn uname(&self) -> Utsname {
         self.enter();
-        Utsname {
+        let mut u = Utsname {
             sysname: b"Linux".to_vec(),
             nodename: self.sb.hostname.lock().clone(),
             release: UNAME_RELEASE.to_vec(),
             version: UNAME_VERSION.to_vec(),
             machine: b"x86_64".to_vec(),
             domainname: b"(none)".to_vec(),
-        }
+        };
+        // `override_release` e `override_architecture`: UNAME26 e PER_LINUX32.
+        sched::personality::apply_to_uname(self.proc.tune.lock().personality, &mut u);
+        u
     }
 
     fn sethostname(&self, name: &[u8]) -> SysResult<()> {

@@ -113,6 +113,11 @@ pub struct ProcData {
     pub last_cpu: u32,
     /// CPUs do sandbox (`Cpus_allowed`).
     pub ncpus: u32,
+    /// Política de escalonamento (`SCHED_*`, campo 41 do `stat`) e prioridade de tempo real (campo 40).
+    pub policy: u32,
+    pub rt_priority: u32,
+    /// CPUs permitidas (`Cpus_allowed` e `Cpus_allowed_list`); `None` são as `ncpus` todas.
+    pub cpus_allowed: Option<Vec<usize>>,
     /// Criado por `fork` e ainda sem `exec` (`PF_FORKNOEXEC`).
     pub fork_noexec: bool,
     /// Status de espera de um zumbi, no formato do `wait4` (`exit_code` do `stat`); 0 num vivo.

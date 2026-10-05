@@ -20,6 +20,7 @@ use std::time::Duration;
 use crate::ctx::{Ctx, to_os_args};
 use crate::linux::{DefaultAction, Errno, Signal};
 use crate::program::{Main, Program};
+use crate::sched::{self, SchedAttr, SchedCaller, SchedParam, SchedState};
 use crate::sys::{self, ExecUnwind, ExitUnwind, KillUnwind, SysResult, Syscalls};
 use crate::types::*;
 
@@ -166,6 +167,13 @@ struct Proc {
     status: Option<WaitStatus>,
     reaped: bool,
     rlimits: BTreeMap<Resource, Rlimit>,
+    nice: i32,
+    sched: SchedState,
+    /// `io_context->ioprio` (0 = classe NONE, o padrão).
+    ioprio: i32,
+    persona: u32,
+    /// Máscara gravada por `sched_setaffinity`; `None` são todas as CPUs.
+    cpus: Option<Vec<usize>>,
 }
 
 struct World {
@@ -548,6 +556,41 @@ impl ProcHandle {
         self.w().procs[&self.pid].cwd.clone()
     }
 
+    /// O processo `pid` (0 é o corrente) pras syscalls de escalonamento, afinidade e prioridade.
+    fn sched_pid(&self, w: &World, pid: Pid) -> SysResult<Pid> {
+        let pid = if pid == 0 { self.pid } else { pid };
+        match w.procs.get(&pid) {
+            Some(p) if !p.reaped => Ok(pid),
+            _ => Err(Errno::ESRCH),
+        }
+    }
+
+    /// Quem muda o escalonamento de `p`: todo processo do testkit é root e do mesmo dono, e os rlimits
+    /// `RTPRIO` e `NICE` que ninguém ajustou valem 0, como no contêiner padrão (o `getrlimit` do
+    /// testkit os devolve ilimitados, que é só o padrão genérico dele).
+    fn sched_caller(p: &Proc) -> SchedCaller {
+        let rl = |r: Resource| p.rlimits.get(&r).map_or(0, |l| l.cur);
+        SchedCaller { same_owner: true, rlim_rtprio: rl(Resource::Rtprio), rlim_nice: rl(Resource::Nice) }
+    }
+
+    /// Alvos de `ioprio_get`/`ioprio_set`. `which` inválido é EINVAL; sem alvo a lista vem vazia.
+    fn ioprio_targets(&self, w: &World, which: i32, who: i32) -> SysResult<Vec<Pid>> {
+        let live = |p: &&Proc| !p.reaped && p.status.is_none();
+        match which {
+            sched::IOPRIO_WHO_PROCESS => {
+                let pid = if who == 0 { self.pid } else { who };
+                Ok(w.procs.get(&pid).filter(|p| !p.reaped).map(|p| vec![p.pid]).unwrap_or_default())
+            }
+            sched::IOPRIO_WHO_PGRP => {
+                let pgid = if who == 0 { w.procs[&self.pid].pgid } else { who };
+                Ok(w.procs.values().filter(live).filter(|p| p.pgid == pgid).map(|p| p.pid).collect())
+            }
+            // Todo processo do testkit é do uid 0.
+            sched::IOPRIO_WHO_USER => Ok(if who == 0 { w.procs.values().filter(live).map(|p| p.pid).collect() } else { Vec::new() }),
+            _ => Err(Errno::EINVAL),
+        }
+    }
+
     /// Caminho base pra uma syscall `*at`.
     fn base(&self, dirfd: Fd, path: &[u8]) -> SysResult<Vec<u8>> {
         if path.starts_with(b"/") || dirfd == Fd::CWD {
@@ -619,6 +662,10 @@ impl ProcHandle {
         child.pending_fatal = None;
         child.status = None;
         child.reaped = false;
+        // `sched_fork`: com reset_on_fork o filho perde tempo real e nice negativa.
+        let (sched, nice) = child.sched.fork(child.nice);
+        child.sched = sched;
+        child.nice = nice;
         if let Some(env) = &attrs.env {
             child.env = env.clone();
         }
@@ -739,10 +786,10 @@ impl ProcHandle {
         for _ in 0..4 {
             let r = self.resolve_at(Fd::CWD, &path, true)?;
             let ino = r.ino.ok_or(Errno::ENOENT)?;
-            let (kind, mode) = {
+            let (kind, mode, owner) = {
                 let w = self.w();
                 let n = w.node(ino);
-                (n.kind.clone(), n.mode)
+                (n.kind.clone(), n.mode, (n.uid, n.gid))
             };
             match kind {
                 Kind::Dir(_) => return Err(Errno::EACCES),
@@ -755,6 +802,11 @@ impl ProcHandle {
                         if let Some(e) = &env {
                             p.env = e.clone();
                         }
+                        // Exec setuid/setgid que troca o dono efetivo (todo processo aqui é root): a
+                        // personality perde os bits de `PER_CLEAR_ON_SETID`.
+                        let secure = (mode & crate::types::mode::S_ISUID != 0 && owner.0 != 0)
+                            || (mode & crate::types::mode::S_ISGID != 0 && owner.1 != 0);
+                        p.persona = sched::personality::after_exec(p.persona, secure);
                         // CLOEXEC fecha, disposições capturadas voltam ao padrão.
                         let close: Vec<i32> = p.fds.iter().filter(|(_, e)| e.cloexec).map(|(k, _)| *k).collect();
                         for k in close {
@@ -1787,11 +1839,17 @@ impl Syscalls for ProcHandle {
 
     fn sched_yield(&self) {}
 
-    fn getpriority(&self, _pid: Pid) -> SysResult<i32> {
-        Ok(0)
+    fn getpriority(&self, pid: Pid) -> SysResult<i32> {
+        let w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        Ok(w.procs[&pid].nice)
     }
 
-    fn setpriority(&self, _pid: Pid, _nice: i32) -> SysResult<()> {
+    fn setpriority(&self, pid: Pid, nice: i32) -> SysResult<()> {
+        // O testkit não tem permissões: todo mundo é root e a nice só é guardada.
+        let mut w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        w.procs.get_mut(&pid).expect("processo").nice = nice.clamp(-20, 19);
         Ok(())
     }
 
@@ -1868,7 +1926,135 @@ impl Syscalls for ProcHandle {
     }
 
     fn sched_getaffinity(&self) -> Vec<usize> {
-        (0..self.w().ncpus).collect()
+        let w = self.w();
+        sched::effective_affinity(w.ncpus, w.procs[&self.pid].cpus.as_deref())
+    }
+
+    fn sched_getaffinity_of(&self, pid: Pid) -> SysResult<Vec<usize>> {
+        let w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        Ok(sched::effective_affinity(w.ncpus, w.procs[&pid].cpus.as_deref()))
+    }
+
+    fn sched_setaffinity(&self, pid: Pid, cpus: &[usize]) -> SysResult<()> {
+        let mut w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        let mask = sched::normalize_affinity(w.ncpus, cpus)?;
+        w.procs.get_mut(&pid).expect("processo").cpus = Some(mask);
+        Ok(())
+    }
+
+    fn personality(&self, persona: u32) -> SysResult<u32> {
+        let mut w = self.w();
+        let p = w.procs.get_mut(&self.pid).expect("processo");
+        let (old, new) = sched::personality::change(p.persona, persona)?;
+        p.persona = new;
+        Ok(old)
+    }
+
+    fn sched_getscheduler(&self, pid: Pid) -> SysResult<i32> {
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        Ok(w.procs[&pid].sched.scheduler())
+    }
+
+    fn sched_setscheduler(&self, pid: Pid, policy: i32, param: SchedParam) -> SysResult<()> {
+        if pid < 0 || policy < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let mut w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        let p = w.procs.get_mut(&pid).expect("processo");
+        let attr = sched::attr_for_setscheduler(policy, param, p.nice)?;
+        let (s, n) = p.sched.set(p.nice, &attr, false, &Self::sched_caller(p))?;
+        p.sched = s;
+        p.nice = n;
+        Ok(())
+    }
+
+    fn sched_getparam(&self, pid: Pid) -> SysResult<SchedParam> {
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        Ok(SchedParam { priority: w.procs[&pid].sched.rt_priority as i32 })
+    }
+
+    fn sched_setparam(&self, pid: Pid, param: SchedParam) -> SysResult<()> {
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let mut w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        let p = w.procs.get_mut(&pid).expect("processo");
+        let attr = sched::attr_for_setparam(param, p.nice);
+        let (s, n) = p.sched.set(p.nice, &attr, true, &Self::sched_caller(p))?;
+        p.sched = s;
+        p.nice = n;
+        Ok(())
+    }
+
+    fn sched_rr_get_interval(&self, pid: Pid) -> SysResult<Duration> {
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        Ok(w.procs[&pid].sched.rr_interval(w.ncpus))
+    }
+
+    fn sched_getattr(&self, pid: Pid, size: u32, flags: u32) -> SysResult<SchedAttr> {
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        sched::check_getattr(size, flags)?;
+        let w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        let p = &w.procs[&pid];
+        Ok(p.sched.attr(p.nice, size, w.ncpus))
+    }
+
+    fn sched_setattr(&self, pid: Pid, attr: &SchedAttr, flags: u32) -> SysResult<()> {
+        if pid < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let attr = sched::check_setattr(attr, flags)?;
+        let mut w = self.w();
+        let pid = self.sched_pid(&w, pid)?;
+        let p = w.procs.get_mut(&pid).expect("processo");
+        let (s, n) = p.sched.set(p.nice, &attr, false, &Self::sched_caller(p))?;
+        p.sched = s;
+        p.nice = n;
+        Ok(())
+    }
+
+    fn ioprio_get(&self, which: i32, who: i32) -> SysResult<i32> {
+        let w = self.w();
+        let pids = self.ioprio_targets(&w, which, who)?;
+        let mut best: Option<i32> = None;
+        for pid in pids {
+            let p = &w.procs[&pid];
+            let v = sched::ioprio_effective(p.ioprio, p.sched.policy, p.nice);
+            best = Some(best.map_or(v, |b| sched::ioprio_best(b, v)));
+        }
+        best.ok_or(Errno::ESRCH)
+    }
+
+    fn ioprio_set(&self, which: i32, who: i32, ioprio: i32) -> SysResult<()> {
+        sched::ioprio_check(ioprio)?;
+        let mut w = self.w();
+        let pids = self.ioprio_targets(&w, which, who)?;
+        if pids.is_empty() {
+            return Err(Errno::ESRCH);
+        }
+        for pid in pids {
+            w.procs.get_mut(&pid).expect("processo").ioprio = ioprio;
+        }
+        Ok(())
     }
 
     fn getuid(&self) -> Uid {
@@ -1930,14 +2116,17 @@ impl Syscalls for ProcHandle {
     }
 
     fn uname(&self) -> Utsname {
-        Utsname {
+        let w = self.w();
+        let mut u = Utsname {
             sysname: b"Linux".to_vec(),
-            nodename: self.w().hostname.clone(),
+            nodename: w.hostname.clone(),
             release: b"6.12.101+deb13-amd64".to_vec(),
             version: b"#1 SMP PREEMPT_DYNAMIC Debian 6.12.101-1".to_vec(),
             machine: b"x86_64".to_vec(),
             domainname: b"(none)".to_vec(),
-        }
+        };
+        sched::personality::apply_to_uname(w.procs[&self.pid].persona, &mut u);
+        u
     }
 
     fn sethostname(&self, name: &[u8]) -> SysResult<()> {
@@ -2310,6 +2499,11 @@ impl TestKit {
                     status: None,
                     reaped: false,
                     rlimits: BTreeMap::new(),
+                    nice: 0,
+                    sched: SchedState::default(),
+                    ioprio: 0,
+                    persona: 0,
+                    cpus: None,
                 },
             );
             pid
@@ -2543,5 +2737,185 @@ mod tests {
         assert_eq!(baud_of(t.c_cflag), Some(38400));
         assert_eq!(baud_of(B115200), Some(115200));
         assert_eq!(baud_of(BOTHER), None);
+    }
+
+    fn print_line(s: String) {
+        sys::write_all(Fd::STDOUT, s.as_bytes()).ok();
+    }
+
+    fn umachine(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let u = ctx.sys().uname();
+        let line = format!("{} {}\n", String::from_utf8_lossy(&u.machine), String::from_utf8_lossy(&u.release));
+        ctx.stdout().write_all(line.as_bytes()).ok();
+        0
+    }
+
+    fn persona_probe(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let sys = ctx.sys().clone();
+        let mut out = format!("{:?} {:?} {:?}\n", sys.personality(0xffff_ffff), sys.personality(0x40000), sys.personality(0x20008));
+        let u = sys.uname();
+        out.push_str(&format!("{} {}\n", String::from_utf8_lossy(&u.machine), String::from_utf8_lossy(&u.release)));
+        // O exec herda a personality (é o que faz `setarch i686 prog` funcionar).
+        let pid = sys
+            .spawn(SpawnSpec { path: b"/usr/bin/umachine".to_vec(), argv: vec![b"umachine".to_vec()], attrs: ProcAttrs::default() })
+            .unwrap();
+        sys.wait4(WaitTarget::Pid(pid), WaitOptions::empty()).unwrap();
+        // O fork também.
+        let body: ProcessFn = Box::new(|| {
+            print_line(format!("{}\n", String::from_utf8_lossy(&sys::current().uname().machine)));
+            0
+        });
+        let pid = sys.spawn_fn(ProcAttrs::default(), b"child".to_vec(), body).unwrap();
+        sys.wait4(WaitTarget::Pid(pid), WaitOptions::empty()).unwrap();
+        // Voltar a 0 desfaz o `uname`.
+        sys.personality(0).unwrap();
+        let u = sys.uname();
+        out.push_str(&format!("{} {}\n", String::from_utf8_lossy(&u.machine), String::from_utf8_lossy(&u.release)));
+        ctx.stdout().write_all(out.as_bytes()).ok();
+        0
+    }
+
+    #[test]
+    fn personality_follows_docker_seccomp_and_uname() {
+        let r = kit().programs([Program::bin("pprobe", persona_probe), Program::bin("umachine", umachine)]).run(&["pprobe"], b"");
+        assert_eq!(
+            r.stdout_str(),
+            "i686 2.6.72+deb13-amd64\ni686\nOk(0) Err(EPERM) Ok(0)\ni686 2.6.72+deb13-amd64\nx86_64 6.12.101+deb13-amd64\n"
+        );
+    }
+
+    fn sched_probe(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let sys = ctx.sys().clone();
+        let mut o = String::new();
+        let mut line = |s: String| o.push_str(&format!("{s}\n"));
+        line(format!("{:?}", sys.sched_getscheduler(0)));
+        line(format!("{:?}", sys.sched_setscheduler(0, 1, SchedParam { priority: 10 })));
+        line(format!("{:?}", sys.sched_setscheduler(0, 2, SchedParam { priority: 0 })));
+        line(format!("{:?}", sys.sched_setscheduler(0, 3, SchedParam { priority: 7 })));
+        line(format!("{:?}", sys.sched_setscheduler(0, 3, SchedParam { priority: 0 })));
+        line(format!("{:?}", sys.sched_getscheduler(0)));
+        line(format!("{:?} {:?}", sys.sched_getscheduler(99999), sys.sched_getscheduler(-1)));
+        line(format!("{:?} {:?}", sys.sched_getparam(0), sys.sched_setparam(0, SchedParam { priority: 5 })));
+        let a = sys.sched_getattr(0, 56, 0).unwrap();
+        line(format!("{} {} {} {} {} {}", a.size, a.policy, a.nice, a.priority, a.runtime, a.util_max));
+        line(format!("{:?} {:?}", sys.sched_getattr(0, 47, 0).err(), sys.sched_getattr(0, 56, 1).err()));
+        line(format!(
+            "{:?} {:?} {:?} {:?}",
+            sys.sched_get_priority_min(1),
+            sys.sched_get_priority_max(2),
+            sys.sched_get_priority_max(5),
+            sys.sched_get_priority_max(4)
+        ));
+        let set = SchedAttr { size: 56, policy: 0, nice: 5, ..SchedAttr::default() };
+        line(format!("{:?} {:?}", sys.sched_setattr(0, &set, 0), sys.getpriority(0)));
+        let low = SchedAttr { nice: -1, ..set };
+        line(format!("{:?}", sys.sched_setattr(0, &low, 0)));
+        line(format!("{:?}", sys.sched_setattr(0, &SchedAttr { size: 8, ..set }, 0)));
+        line(format!("{:?}", sys.sched_setattr(424242, &set, 0)));
+        line(format!("{:?}", sys.sched_rr_get_interval(0)));
+        line(format!("{:?}", sys.sched_setscheduler(0, 5 | sched::SCHED_RESET_ON_FORK, SchedParam::default())));
+        line(format!("{:?}", sys.sched_getscheduler(0)));
+        let body: ProcessFn = Box::new(|| {
+            print_line(format!("{:?}\n", sys::sched_getscheduler(0)));
+            0
+        });
+        let pid = sys.spawn_fn(ProcAttrs::default(), b"child".to_vec(), body).unwrap();
+        sys.wait4(WaitTarget::Pid(pid), WaitOptions::empty()).unwrap();
+        // IDLE não volta a OTHER sem RLIMIT_NICE, como no Linux.
+        line(format!("{:?}", sys.sched_setscheduler(0, 0, SchedParam::default())));
+        ctx.stdout().write_all(o.as_bytes()).ok();
+        0
+    }
+
+    #[test]
+    fn scheduler_policies_follow_the_default_container() {
+        let r = kit().programs([Program::bin("sprobe", sched_probe)]).run(&["sprobe"], b"");
+        // A primeira linha é a do filho, que escreve antes de o pai despejar o relatório.
+        let want = [
+            "Ok(5)",
+            "Ok(0)",
+            "Err(EPERM)",
+            "Err(EINVAL)",
+            "Err(EINVAL)",
+            "Ok(())",
+            "Ok(3)",
+            "Err(ESRCH) Err(EINVAL)",
+            "Ok(SchedParam { priority: 0 }) Err(EINVAL)",
+            "56 3 0 0 750000 1024",
+            "Some(EINVAL) Some(EINVAL)",
+            "Ok(1) Ok(99) Ok(0) Err(EINVAL)",
+            "Ok(()) Ok(5)",
+            "Err(EPERM)",
+            "Err(E2BIG)",
+            "Err(ESRCH)",
+            "Ok(0ns)",
+            "Ok(())",
+            "Ok(1073741829)",
+            "Err(EPERM)",
+        ];
+        assert_eq!(r.stdout_str(), want.join("\n") + "\n");
+    }
+
+    fn affinity_probe(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let sys = ctx.sys().clone();
+        let mut o = String::new();
+        let mut line = |s: String| o.push_str(&format!("{s}\n"));
+        line(format!("{:?}", sys.sched_getaffinity_of(0)));
+        line(format!("{:?} {:?}", sys.sched_setaffinity(0, &[2, 9]), sys.sched_getaffinity_of(0)));
+        line(format!("{:?} {:?}", sys.sched_setaffinity(0, &[]), sys.sched_setaffinity(0, &[7])));
+        line(format!("{:?} {:?}", sys.sched_setaffinity(424242, &[0]), sys.sched_getaffinity_of(424242)));
+        line(format!("{:?}", sys.sched_getaffinity()));
+        let body: ProcessFn = Box::new(|| {
+            print_line(format!("{:?}\n", sys::sched_getaffinity_of(0)));
+            0
+        });
+        let pid = sys.spawn_fn(ProcAttrs::default(), b"child".to_vec(), body).unwrap();
+        sys.wait4(WaitTarget::Pid(pid), WaitOptions::empty()).unwrap();
+        ctx.stdout().write_all(o.as_bytes()).ok();
+        0
+    }
+
+    #[test]
+    fn affinity_is_per_process_validated_and_inherited() {
+        let r = kit().cpus(4).programs([Program::bin("aprobe", affinity_probe)]).run(&["aprobe"], b"");
+        assert_eq!(
+            r.stdout_str(),
+            "Ok([2])\nOk([0, 1, 2, 3])\nOk(()) Ok([2])\nErr(EINVAL) Err(EINVAL)\nErr(ESRCH) Err(ESRCH)\n[2]\n"
+        );
+    }
+
+    fn ioprio_probe(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let sys = ctx.sys().clone();
+        let mut o = String::new();
+        let mut line = |s: String| o.push_str(&format!("{s}\n"));
+        let be = |n: i32| sched::ioprio_value(sched::IOPRIO_CLASS_BE, n);
+        line(format!("{:?}", sys.ioprio_get(sched::IOPRIO_WHO_PROCESS, 0)));
+        sys.setpriority(0, 10).unwrap();
+        line(format!("{:?}", sys.ioprio_get(sched::IOPRIO_WHO_PROCESS, 0)));
+        line(format!("{:?}", sys.ioprio_set(1, 0, sched::ioprio_value(sched::IOPRIO_CLASS_RT, 0))));
+        line(format!("{:?}", sys.ioprio_set(1, 0, be(8))));
+        line(format!("{:?}", sys.ioprio_set(1, 0, sched::ioprio_value(sched::IOPRIO_CLASS_NONE, 1))));
+        line(format!("{:?} {:?}", sys.ioprio_set(1, 0, be(1)), sys.ioprio_get(1, 0)));
+        line(format!("{:?} {:?}", sys.ioprio_get(4, 0), sys.ioprio_get(1, 77777)));
+        line(format!("{:?}", sys.ioprio_set(sched::IOPRIO_WHO_PGRP, 0, sched::ioprio_value(sched::IOPRIO_CLASS_IDLE, 0))));
+        line(format!("{:?} {:?}", sys.ioprio_get(sched::IOPRIO_WHO_PGRP, 0), sys.ioprio_get(sched::IOPRIO_WHO_USER, 0)));
+        let body: ProcessFn = Box::new(|| {
+            print_line(format!("{:?}\n", sys::ioprio_get(1, 0)));
+            0
+        });
+        let pid = sys.spawn_fn(ProcAttrs::default(), b"child".to_vec(), body).unwrap();
+        sys.wait4(WaitTarget::Pid(pid), WaitOptions::empty()).unwrap();
+        ctx.stdout().write_all(o.as_bytes()).ok();
+        0
+    }
+
+    #[test]
+    fn ioprio_defaults_from_nice_and_rejects_realtime() {
+        let r = kit().programs([Program::bin("iprobe", ioprio_probe)]).run(&["iprobe"], b"");
+        // BE nível 4 (nice 0) e 6 (nice 10); IDLE é classe 3 (3 << 13 = 24576).
+        assert_eq!(
+            r.stdout_str(),
+            "Ok(24576)\nOk(16388)\nOk(16390)\nErr(EPERM)\nErr(EINVAL)\nErr(EINVAL)\nOk(()) Ok(16385)\nErr(EINVAL) Err(ESRCH)\nOk(())\nOk(24576) Ok(24576)\n"
+        );
     }
 }

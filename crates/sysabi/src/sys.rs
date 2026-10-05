@@ -17,6 +17,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::linux::{Errno, Signal};
+use crate::sched::{SchedAttr, SchedParam};
 use crate::types::*;
 
 pub type SysResult<T> = Result<T, Errno>;
@@ -172,6 +173,84 @@ pub trait Syscalls: Send + Sync {
     fn gettid(&self) -> Tid;
     /// CPUs em que o processo pode rodar (`sched_getaffinity`): as CPUs virtuais do sandbox.
     fn sched_getaffinity(&self) -> Vec<usize>;
+    /// `sched_getaffinity(pid, ...)`: a máscara do processo `pid` (0 é o corrente), só com CPUs online.
+    /// ESRCH se o processo não existe.
+    fn sched_getaffinity_of(&self, pid: Pid) -> SysResult<Vec<usize>> {
+        let _ = pid;
+        Err(Errno::ENOSYS)
+    }
+    /// `sched_setaffinity(pid, mask)`. A máscara é a lista de CPUs; as que não estão online são
+    /// ignoradas e, se não sobra nenhuma, EINVAL. ESRCH se o processo não existe, EPERM se é de outro
+    /// dono (o contêiner padrão não tem `CAP_SYS_NICE`). O filho herda a máscara no fork.
+    fn sched_setaffinity(&self, pid: Pid, cpus: &[usize]) -> SysResult<()> {
+        let _ = (pid, cpus);
+        Err(Errno::ENOSYS)
+    }
+    /// `personality(2)`: devolve a personality de antes; `0xffffffff` só lê. É por processo, herdada no
+    /// fork e no exec (o exec setuid apaga `PER_CLEAR_ON_SETID`). Segue o seccomp padrão do docker: só
+    /// 0x0, 0x8, 0x20000, 0x20008 e a leitura passam, o resto é EPERM. `uname` reflete `PER_LINUX32`
+    /// (`machine` vira `i686`) e `UNAME26` (`release` vira `2.6.N`).
+    fn personality(&self, persona: u32) -> SysResult<u32> {
+        let _ = persona;
+        Err(Errno::ENOSYS)
+    }
+    /// `sched_getscheduler`: a política, com `SCHED_RESET_ON_FORK` se ligado. EINVAL pra pid negativo.
+    fn sched_getscheduler(&self, pid: Pid) -> SysResult<i32> {
+        let _ = pid;
+        Err(Errno::ENOSYS)
+    }
+    /// `sched_setscheduler`: política (0 OTHER, 1 FIFO, 2 RR, 3 BATCH, 5 IDLE, com `SCHED_RESET_ON_FORK`
+    /// opcional) e prioridade. EINVAL de forma, ESRCH, e EPERM sem `CAP_SYS_NICE` pra tempo real e outras
+    /// escaladas (ver [`crate::sched`]).
+    fn sched_setscheduler(&self, pid: Pid, policy: i32, param: SchedParam) -> SysResult<()> {
+        let _ = (pid, policy, param);
+        Err(Errno::ENOSYS)
+    }
+    /// `sched_getparam`.
+    fn sched_getparam(&self, pid: Pid) -> SysResult<SchedParam> {
+        let _ = pid;
+        Err(Errno::ENOSYS)
+    }
+    /// `sched_setparam`: muda só a prioridade, a política fica.
+    fn sched_setparam(&self, pid: Pid, param: SchedParam) -> SysResult<()> {
+        let _ = (pid, param);
+        Err(Errno::ENOSYS)
+    }
+    fn sched_get_priority_min(&self, policy: i32) -> SysResult<i32> {
+        crate::sched::priority_min(policy)
+    }
+    fn sched_get_priority_max(&self, policy: i32) -> SysResult<i32> {
+        crate::sched::priority_max(policy)
+    }
+    /// `sched_rr_get_interval`: a fatia (100 ms em RR, 0 em FIFO).
+    fn sched_rr_get_interval(&self, pid: Pid) -> SysResult<Duration> {
+        let _ = pid;
+        Err(Errno::ENOSYS)
+    }
+    /// `sched_getattr(pid, attr, size, flags)`: `size` entre 48 e 4096 e `flags` 0, senão EINVAL.
+    fn sched_getattr(&self, pid: Pid, size: u32, flags: u32) -> SysResult<SchedAttr> {
+        let _ = (pid, size, flags);
+        Err(Errno::ENOSYS)
+    }
+    /// `sched_setattr(pid, attr, flags)`: `attr.size` abaixo de 48 é E2BIG (0 vale 48), `flags` não zero
+    /// é EINVAL.
+    fn sched_setattr(&self, pid: Pid, attr: &SchedAttr, flags: u32) -> SysResult<()> {
+        let _ = (pid, attr, flags);
+        Err(Errno::ENOSYS)
+    }
+    /// `ioprio_get(which, who)`: `which` é `IOPRIO_WHO_PROCESS` (1), `PGRP` (2) ou `USER` (3), `who` 0
+    /// é o corrente. Devolve `(classe << 13) | dados`; sem valor gravado, a classe BE com nível
+    /// `(nice + 20) / 5` (IDLE ou RT se a política do processo for essa). ESRCH sem alvo.
+    fn ioprio_get(&self, which: i32, who: i32) -> SysResult<i32> {
+        let _ = (which, who);
+        Err(Errno::ENOSYS)
+    }
+    /// `ioprio_set(which, who, ioprio)`. EINVAL pra classe ou nível inválido, EPERM pra RT (sem
+    /// `CAP_SYS_ADMIN`) e pra processo de outro dono.
+    fn ioprio_set(&self, which: i32, who: i32, ioprio: i32) -> SysResult<()> {
+        let _ = (which, who, ioprio);
+        Err(Errno::ENOSYS)
+    }
 
     // ---- identidade e ambiente ----
     fn getuid(&self) -> Uid;
@@ -308,6 +387,64 @@ pub fn read_to_end(fd: Fd) -> SysResult<Vec<u8>> {
 /// `fallocate(2)` sobre o processo corrente.
 pub fn fallocate(fd: Fd, mode: FallocFlags, offset: i64, len: i64) -> SysResult<()> {
     current().fallocate(fd, mode, offset, len)
+}
+
+/// `personality(2)` sobre o processo corrente; `0xffffffff` só lê.
+pub fn personality(persona: u32) -> SysResult<u32> {
+    current().personality(persona)
+}
+
+pub fn sched_getscheduler(pid: Pid) -> SysResult<i32> {
+    current().sched_getscheduler(pid)
+}
+
+pub fn sched_setscheduler(pid: Pid, policy: i32, param: SchedParam) -> SysResult<()> {
+    current().sched_setscheduler(pid, policy, param)
+}
+
+pub fn sched_getparam(pid: Pid) -> SysResult<SchedParam> {
+    current().sched_getparam(pid)
+}
+
+pub fn sched_setparam(pid: Pid, param: SchedParam) -> SysResult<()> {
+    current().sched_setparam(pid, param)
+}
+
+pub fn sched_get_priority_min(policy: i32) -> SysResult<i32> {
+    current().sched_get_priority_min(policy)
+}
+
+pub fn sched_get_priority_max(policy: i32) -> SysResult<i32> {
+    current().sched_get_priority_max(policy)
+}
+
+pub fn sched_rr_get_interval(pid: Pid) -> SysResult<Duration> {
+    current().sched_rr_get_interval(pid)
+}
+
+pub fn sched_getattr(pid: Pid, size: u32, flags: u32) -> SysResult<SchedAttr> {
+    current().sched_getattr(pid, size, flags)
+}
+
+pub fn sched_setattr(pid: Pid, attr: &SchedAttr, flags: u32) -> SysResult<()> {
+    current().sched_setattr(pid, attr, flags)
+}
+
+/// `sched_getaffinity(pid)`: a máscara do processo `pid` (0 é o corrente).
+pub fn sched_getaffinity_of(pid: Pid) -> SysResult<Vec<usize>> {
+    current().sched_getaffinity_of(pid)
+}
+
+pub fn sched_setaffinity(pid: Pid, cpus: &[usize]) -> SysResult<()> {
+    current().sched_setaffinity(pid, cpus)
+}
+
+pub fn ioprio_get(which: i32, who: i32) -> SysResult<i32> {
+    current().ioprio_get(which, who)
+}
+
+pub fn ioprio_set(which: i32, who: i32, ioprio: i32) -> SysResult<()> {
+    current().ioprio_set(which, who, ioprio)
 }
 
 pub fn tcgetattr(fd: Fd) -> SysResult<Termios> {

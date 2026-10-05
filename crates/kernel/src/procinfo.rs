@@ -79,6 +79,7 @@ impl SbProcProvider {
             _ => (0, false),
         };
         let st = proc.st.lock();
+        let tune = proc.tune.lock().clone();
         let mut rlimits = [(0u64, 0u64); 16];
         for (slot, l) in rlimits.iter_mut().zip(st.rlimits.iter()) {
             *slot = (l.cur, l.max);
@@ -119,6 +120,9 @@ impl SbProcProvider {
             nonvoluntary_ctxt,
             last_cpu: last_cpu as u32,
             ncpus: sb.kernel.cpus.ncpus() as u32,
+            policy: tune.sched.policy as u32,
+            rt_priority: tune.sched.rt_priority,
+            cpus_allowed: tune.cpus.clone(),
             fork_noexec: proc.fork_noexec.load(Ordering::Relaxed),
             exit_code,
             signaled,

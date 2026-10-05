@@ -1,25 +1,34 @@
-//! `tic` do ncurses 6.5.20250216 (`tic.c`, `comp_parse.c`, `parse_entry.c`, `write_entry.c`): compila
-//! uma fonte terminfo para o formato binário do banco (`~/.terminfo` ou o diretório do `-o`).
+//! `tic` do ncurses 6.5.20250216 (`tic.c`, `comp_scan.c`, `comp_parse.c`, `parse_entry.c`,
+//! `write_entry.c`): compila uma fonte terminfo para o formato binário do banco (`~/.terminfo` ou o
+//! diretório do `-o`), ou a reescreve em texto (`-I`, `-L`, `-C`, `-K`, e os nomes `captoinfo` e
+//! `infotocap`).
 //!
-//! Escopo desta versão: leitura da fonte (nomes, booleanos, números, cadeias, cancelamentos `nome@`,
-//! `use=`), capacidades estendidas com `-x`, resolução de `use=` (primeiro no próprio arquivo, depois
-//! no banco instalado), gravação no formato legado (números de 16 bits) ou no estendido de 32 bits
-//! quando algum número passa de 32767, com a tabela de cadeias na ordem das capacidades e os
-//! apelidos como links físicos. As opções de saída em texto (`-I`, `-C`, `-L`, `-r`) não existem
-//! ainda e terminam com erro; `-c` só confere a fonte.
+//! Escopo desta versão: leitura da fonte terminfo (nomes, booleanos, números, cadeias, cancelamentos
+//! `nome@`, `use=`), capacidades estendidas com `-x`, resolução de `use=` (primeiro no próprio arquivo,
+//! depois no banco instalado), gravação no formato legado (números de 16 bits) ou no estendido de
+//! 32 bits quando algum número passa de 32767, com os apelidos como links. A saída em texto reaproveita
+//! o `Dump` do `infocmp` e ecoa os comentários que antecedem cada entrada da fonte.
+//!
+//! Fica de fora: fontes em sintaxe termcap (`captoinfo` de verdade), as verificações semânticas do
+//! `_nc_check_termtype2` (`check_acs`, `check_colors`, `check_screen`, ...) e o `postprocess_terminfo`.
 
 use std::ffi::OsString;
 use std::io::Write;
 
-use sysabi::{AtFlags, Ctx, Errno, Fd, OFlags, sys};
+use sysabi::{AtFlags, Ctx, Errno, Fd, FileType, OFlags, sys};
 
+use super::dump::{Dump, OutForm, PredFn, SortMode, dump_predicate, repair_acsc};
 use super::terminfo::{Str, TermType, db_dirs, name_match, read_file_entry};
 use super::{
-    BOOLCOUNT, BOOLWRITE, Kind, NUMCOUNT, NUMWRITE, STRCOUNT, STRWRITE, VERSION, find_type_entry,
-    first_name, rootname, strtol,
+    BOOLCOUNT, BOOLS, BOOLWRITE, Kind, NUMCOUNT, NUMS, NUMWRITE, STRCOUNT, STRS, STRWRITE, VERSION,
+    find_type_entry, first_name, rootname, strtol,
 };
 use crate::util::Getopt;
 use crate::util::io;
+
+/// `MAX_TERMINFO_LENGTH` e `MAX_TERMCAP_LENGTH`: o limite que o `-c` confere.
+const MAX_TERMINFO_LENGTH: i32 = 4096;
+const MAX_TERMCAP_LENGTH: i32 = 1023;
 
 /// Valor de uma capacidade estendida (`-x`), pelo tipo.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -56,11 +65,12 @@ struct Entry {
     strs: Vec<Str>,
     ext: Vec<ExtCap>,
     uses: Vec<Vec<u8>>,
-    line: usize,
+    /// O trecho de comentários que antecede a entrada na fonte (`cstart` a `cend`), com os `\n`.
+    comment: Vec<u8>,
 }
 
 impl Entry {
-    fn new(names: Vec<u8>, line: usize) -> Entry {
+    fn new(names: Vec<u8>) -> Entry {
         Entry {
             names,
             bools: vec![0; BOOLCOUNT],
@@ -68,12 +78,12 @@ impl Entry {
             strs: vec![Str::Absent; STRCOUNT],
             ext: Vec::new(),
             uses: Vec::new(),
-            line,
+            comment: Vec::new(),
         }
     }
 
     fn from_termtype(tt: &TermType) -> Entry {
-        let mut e = Entry::new(tt.names.clone(), 0);
+        let mut e = Entry::new(tt.names.clone());
         for i in 0..BOOLCOUNT {
             e.bools[i] = tt.bools.get(i).copied().unwrap_or(0);
         }
@@ -149,6 +159,40 @@ impl Entry {
     }
 }
 
+/// A entrada como o `Dump` do `infocmp` a enxerga: as estendidas depois das predefinidas, em ordem
+/// de tipo (booleanos, números, cadeias) e, dentro do tipo, na ordem do fonte.
+fn to_termtype(e: &Entry) -> TermType {
+    let mut tt = TermType::empty();
+    tt.names = e.names.clone();
+    tt.bools = e.bools.clone();
+    tt.nums = e.nums.clone();
+    tt.strs = e.strs.clone();
+    let mut names: Vec<Vec<u8>> = Vec::new();
+    for c in &e.ext {
+        if let ExtVal::Bool(b) = c.val {
+            tt.bools.push(b);
+            tt.ext_bools += 1;
+            names.push(c.name.clone());
+        }
+    }
+    for c in &e.ext {
+        if let ExtVal::Num(n) = c.val {
+            tt.nums.push(n);
+            tt.ext_nums += 1;
+            names.push(c.name.clone());
+        }
+    }
+    for c in &e.ext {
+        if let ExtVal::Str(s) = &c.val {
+            tt.strs.push(s.clone());
+            tt.ext_strs += 1;
+            names.push(c.name.clone());
+        }
+    }
+    tt.ext_names = names;
+    tt
+}
+
 /// `_nc_trans_string`: `\E`, `\n`, `\NNN`, `^X` e afins viram os bytes; um NUL octal vira `0200`.
 fn trans_string(s: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(s.len());
@@ -195,9 +239,29 @@ fn trans_string(s: &[u8]) -> Vec<u8> {
     out
 }
 
-/// Separa os campos por vírgulas não escapadas.
-fn split_fields(body: &[u8]) -> Vec<Vec<u8>> {
-    let mut fields: Vec<Vec<u8>> = Vec::new();
+/// Posição (linha, coluna) logo depois de consumir um byte, como o `next_char` conta: a coluna
+/// cresce de um a cada caractere (o tab vale um) e volta a zero a cada linha nova.
+type Pos = (usize, usize);
+
+/// O texto cru de uma entrada: as linhas unidas (a continuação vira um espaço), a posição de cada
+/// byte e o bloco de comentários que vinha antes.
+struct Raw {
+    body: Vec<u8>,
+    pos: Vec<Pos>,
+    line: usize,
+    comment: Vec<u8>,
+}
+
+/// Um campo terminado por vírgula: o texto e onde o scanner estava ao consumir a vírgula.
+struct Field {
+    text: Vec<u8>,
+    end: Pos,
+}
+
+/// Separa os campos por vírgulas não escapadas. Um último campo sem vírgula é descartado.
+fn split_fields(raw: &Raw) -> Vec<Field> {
+    let body = &raw.body;
+    let mut fields: Vec<Field> = Vec::new();
     let mut cur: Vec<u8> = Vec::new();
     let mut i = 0;
     while i < body.len() {
@@ -208,7 +272,10 @@ fn split_fields(body: &[u8]) -> Vec<Vec<u8>> {
             continue;
         }
         if body[i] == b',' {
-            fields.push(std::mem::take(&mut cur));
+            fields.push(Field {
+                text: std::mem::take(&mut cur),
+                end: raw.pos[i],
+            });
         } else {
             cur.push(body[i]);
         }
@@ -218,38 +285,72 @@ fn split_fields(body: &[u8]) -> Vec<Vec<u8>> {
 }
 
 /// Divide a fonte em entradas: linha que começa em coluna 0 abre uma, as que começam com espaço a
-/// continuam, `#` em coluna 0 é comentário. Devolve o texto e a linha onde cada entrada começa.
-fn split_entries(data: &[u8]) -> Vec<(Vec<u8>, usize)> {
-    let mut out: Vec<(Vec<u8>, usize)> = Vec::new();
-    let mut body: Vec<u8> = Vec::new();
-    let mut start = 0usize;
-    let mut have = false;
-    for (n, line) in data.split(|b| *b == b'\n').enumerate() {
+/// continuam, `#` em coluna 0 é comentário e vai pra frente da próxima entrada (com as linhas em
+/// branco que ficam entre dois comentários). Devolve também a posição do fim do arquivo, onde o
+/// scanner para quando a resolução dos `use=` reclama.
+fn split_entries(data: &[u8]) -> (Vec<Raw>, Pos) {
+    let mut out: Vec<Raw> = Vec::new();
+    let mut cur: Option<Raw> = None;
+    let mut pending: Vec<u8> = Vec::new();
+    let mut gap: Vec<u8> = Vec::new();
+    let mut last_line = 0usize;
+    let mut last_col = 0usize;
+    let mut lines: Vec<&[u8]> = data.split(|b| *b == b'\n').collect();
+    if data.is_empty() || data.last() == Some(&b'\n') {
+        lines.pop();
+    }
+    for (n, line) in lines.iter().enumerate() {
         let lineno = n + 1;
+        last_line = lineno;
         if line.first() == Some(&b'#') {
+            if !pending.is_empty() {
+                pending.extend_from_slice(&gap);
+            }
+            gap.clear();
+            pending.extend_from_slice(line);
+            pending.push(b'\n');
+            last_col = 0;
             continue;
         }
+        last_col = line.len() + 1;
         if line.iter().all(|b| super::c_isspace(*b)) {
+            if !pending.is_empty() {
+                gap.extend_from_slice(line);
+                gap.push(b'\n');
+            }
             continue;
         }
         if super::c_isspace(line[0]) {
-            if have {
-                body.push(b' ');
-                body.extend_from_slice(line);
+            if let Some(r) = cur.as_mut() {
+                r.body.push(b' ');
+                r.pos.push((lineno, 0));
+                for (i, b) in line.iter().enumerate() {
+                    r.body.push(*b);
+                    r.pos.push((lineno, i + 1));
+                }
             }
         } else {
-            if have {
-                out.push((std::mem::take(&mut body), start));
+            if let Some(r) = cur.take() {
+                out.push(r);
             }
-            have = true;
-            start = lineno;
-            body.extend_from_slice(line);
+            gap.clear();
+            let mut r = Raw {
+                body: Vec::new(),
+                pos: Vec::new(),
+                line: lineno,
+                comment: std::mem::take(&mut pending),
+            };
+            for (i, b) in line.iter().enumerate() {
+                r.body.push(*b);
+                r.pos.push((lineno, i + 1));
+            }
+            cur = Some(r);
         }
     }
-    if have {
-        out.push((body, start));
+    if let Some(r) = cur.take() {
+        out.push(r);
     }
-    out
+    (out, (last_line, last_col))
 }
 
 fn trim_start(s: &[u8]) -> &[u8] {
@@ -265,35 +366,80 @@ fn trim_end(s: &[u8]) -> &[u8] {
     &s[..e]
 }
 
-struct Diag<'a> {
-    file: &'a str,
+/// `unctrl` pro caractere que o scanner não aceita.
+fn unctrl(c: u8) -> String {
+    if (0x20..0x7f).contains(&c) {
+        (c as char).to_string()
+    } else if c == 0x7f {
+        "^?".to_string()
+    } else if c < 0x20 {
+        format!("^{}", (c + b'@') as char)
+    } else {
+        format!("\\{c:03o}")
+    }
 }
 
-impl Diag<'_> {
-    fn warn(&self, line: usize, term: &[u8], msg: &str) {
+/// `_nc_warning` (`comp_error.c`): `"arquivo", line N, col M, terminal 'x': mensagem`. Sem linha e
+/// coluna (o `-1` do `tic -I`) saem só o arquivo e o terminal.
+struct Diag {
+    file: String,
+}
+
+impl Diag {
+    fn warn(&self, line: Option<usize>, col: Option<usize>, term: &[u8], msg: &str) {
         let _ = io::flush_stdout();
-        io::eprint(format!(
-            "\"{}\", line {}, terminal '{}': {}\n",
-            self.file,
-            line,
-            io::lossy(first_name(term)),
-            msg
-        ));
+        let mut s = format!("\"{}\"", self.file);
+        if let Some(l) = line {
+            s.push_str(&format!(", line {l}"));
+        }
+        if let Some(c) = col {
+            s.push_str(&format!(", col {c}"));
+        }
+        let t = first_name(term);
+        if !t.is_empty() {
+            s.push_str(&format!(", terminal '{}'", io::lossy(t)));
+        }
+        s.push_str(": ");
+        s.push_str(msg);
+        s.push('\n');
+        io::eprint(s);
     }
 }
 
 /// `parse_entry`: uma entrada da fonte.
-fn parse_entry(body: &[u8], line: usize, xflag: bool, diag: &Diag) -> Option<Entry> {
-    let fields = split_fields(body);
+fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry> {
+    let fields = split_fields(raw);
     let first = fields.first()?;
-    let names = trim_end(trim_start(first)).to_vec();
+    let names = trim_end(trim_start(&first.text)).to_vec();
     if names.is_empty() {
         return None;
     }
-    let mut e = Entry::new(names, line);
-    for f in &fields[1..] {
-        let f = trim_start(f);
+    let mut e = Entry::new(names);
+    e.comment = raw.comment.clone();
+    for fld in &fields[1..] {
+        let mut f: &[u8] = trim_start(&fld.text);
         if f.is_empty() {
+            continue;
+        }
+        // Um nome com ponto na frente é uma capacidade comentada: vale só com `-a`.
+        if f[0] == b'.' {
+            if !aflag {
+                continue;
+            }
+            f = &f[1..];
+            if f.is_empty() {
+                continue;
+            }
+        }
+        let (line, col) = fld.end;
+        let term = e.names.clone();
+        let warn = |msg: String| diag.warn(Some(line), Some(col), &term, &msg);
+        let c0 = f[0];
+        if !(c0.is_ascii_alphanumeric() || c0 == b'_' || b"@%&*!#".contains(&c0)) {
+            warn(format!(
+                "Illegal character (expected alphanumeric or @%&*!#) - {}",
+                unctrl(c0)
+            ));
             continue;
         }
         let sep_pos = f.iter().position(|b| matches!(*b, b'=' | b'#' | b'@'));
@@ -306,6 +452,8 @@ fn parse_entry(body: &[u8], line: usize, xflag: bool, diag: &Diag) -> Option<Ent
             continue;
         }
         let nm = String::from_utf8_lossy(name).into_owned();
+        let wrong_type = || format!("Wrong type used for capability \"{nm}\"");
+        let unknown = || format!("Unknown Capability - '{nm}'");
         match sep {
             0 => {
                 if let Some(i) = find_type_entry(name, Kind::Bool) {
@@ -313,11 +461,11 @@ fn parse_entry(body: &[u8], line: usize, xflag: bool, diag: &Diag) -> Option<Ent
                 } else if find_type_entry(name, Kind::Num).is_some()
                     || find_type_entry(name, Kind::Str).is_some()
                 {
-                    diag.warn(line, &e.names, &format!("Wrong type used for capability \"{nm}\""));
+                    warn(wrong_type());
                 } else if xflag {
                     set_ext(&mut e, name, ExtVal::Bool(1));
                 } else {
-                    diag.warn(line, &e.names, &format!("Unknown Capability - \"{nm}\""));
+                    warn(unknown());
                 }
             }
             b'@' => {
@@ -330,7 +478,7 @@ fn parse_entry(body: &[u8], line: usize, xflag: bool, diag: &Diag) -> Option<Ent
                 } else if xflag {
                     set_ext(&mut e, name, ExtVal::Bool(-2));
                 } else {
-                    diag.warn(line, &e.names, &format!("Unknown Capability - \"{nm}\""));
+                    warn(unknown());
                 }
             }
             b'#' => {
@@ -341,11 +489,11 @@ fn parse_entry(body: &[u8], line: usize, xflag: bool, diag: &Diag) -> Option<Ent
                 } else if find_type_entry(name, Kind::Bool).is_some()
                     || find_type_entry(name, Kind::Str).is_some()
                 {
-                    diag.warn(line, &e.names, &format!("Wrong type used for capability \"{nm}\""));
+                    warn(wrong_type());
                 } else if xflag {
                     set_ext(&mut e, name, ExtVal::Num(v));
                 } else {
-                    diag.warn(line, &e.names, &format!("Unknown Capability - \"{nm}\""));
+                    warn(unknown());
                 }
             }
             _ => {
@@ -355,11 +503,11 @@ fn parse_entry(body: &[u8], line: usize, xflag: bool, diag: &Diag) -> Option<Ent
                 } else if find_type_entry(name, Kind::Bool).is_some()
                     || find_type_entry(name, Kind::Num).is_some()
                 {
-                    diag.warn(line, &e.names, &format!("Wrong type used for capability \"{nm}\""));
+                    warn(wrong_type());
                 } else if xflag {
                     set_ext(&mut e, name, ExtVal::Str(Str::Val(v)));
                 } else {
-                    diag.warn(line, &e.names, &format!("Unknown Capability - \"{nm}\""));
+                    warn(unknown());
                 }
             }
         }
@@ -404,14 +552,20 @@ fn lookup_db(name: &[u8]) -> Option<Entry> {
     None
 }
 
+/// O problema que a resolução dos `use=` encontrou: o terminal e a mensagem do `_nc_warning`.
+struct ResolveErr {
+    term: Vec<u8>,
+    msg: String,
+}
+
 /// `_nc_resolve_uses2`: aplica os `use=` da entrada `idx`, recursivamente. Os `use=` valem na ordem
-/// em que aparecem, e o que veio antes prevalece. `Err` leva a mensagem do problema.
+/// em que aparecem, e o que veio antes prevalece.
 fn resolve(
     entries: &mut Vec<Entry>,
     done: &mut Vec<bool>,
     idx: usize,
     stack: &mut Vec<usize>,
-) -> Result<(), String> {
+) -> Result<(), ResolveErr> {
     if done[idx] {
         return Ok(());
     }
@@ -423,10 +577,10 @@ fn resolve(
         let base = match found {
             Some(j) => {
                 if stack.contains(&j) {
-                    return Err(format!(
-                        "circular use= (or like) reference to {}",
-                        io::lossy(u)
-                    ));
+                    return Err(ResolveErr {
+                        term: entries[idx].names.clone(),
+                        msg: format!("circular use= (or like) reference to {}", io::lossy(u)),
+                    });
                 }
                 resolve(entries, done, j, stack)?;
                 entries[j].clone()
@@ -434,11 +588,10 @@ fn resolve(
             None => match lookup_db(u) {
                 Some(b) => b,
                 None => {
-                    return Err(format!(
-                        "terminal '{}': couldn't resolve use={}",
-                        io::lossy(first_name(&entries[idx].names)),
-                        io::lossy(u)
-                    ));
+                    return Err(ResolveErr {
+                        term: entries[idx].names.clone(),
+                        msg: format!("resolution of use={} failed", io::lossy(u)),
+                    });
                 }
             },
         };
@@ -555,14 +708,12 @@ fn compile(e: &Entry) -> Vec<u8> {
             }
         }
         let mut name_offsets: Vec<i32> = Vec::new();
-        let base = etable.len() as i32;
         let mut names_part: Vec<u8> = Vec::new();
         for c in ext_b.iter().chain(ext_n.iter()).chain(ext_s.iter()) {
             name_offsets.push(names_part.len() as i32);
             names_part.extend_from_slice(&c.name);
             names_part.push(0);
         }
-        let _ = base;
         etable.extend_from_slice(&names_part);
 
         push16(&mut out, ext_b.len() as i32);
@@ -616,6 +767,29 @@ fn mkdir_p(path: &[u8]) -> Result<(), Errno> {
     }
 }
 
+/// `_nc_set_writedir`: o diretório de saída existe (ou é criado), e é um diretório.
+fn ensure_dir(path: &[u8], progname: &str) -> Result<(), String> {
+    match sys::stat(path) {
+        Ok(st) => {
+            if matches!(st.file_type(), FileType::Directory) {
+                Ok(())
+            } else {
+                Err(format!(
+                    "{progname}: {}: not a directory",
+                    io::lossy(path)
+                ))
+            }
+        }
+        Err(_) => match mkdir_p(path) {
+            Ok(()) => Ok(()),
+            Err(_) => Err(format!(
+                "{progname}: {}: permission denied",
+                io::lossy(path)
+            )),
+        },
+    }
+}
+
 /// `_nc_write_entry`: grava `dir/c/nome` e liga os apelidos a ele.
 fn write_entry(dir: &[u8], e: &Entry, progname: &str) -> Result<(), String> {
     let primary = first_name(&e.names).to_vec();
@@ -639,7 +813,7 @@ fn write_entry(dir: &[u8], e: &Entry, progname: &str) -> Result<(), String> {
             err.message()
         )
     };
-    if mkdir_p(dir).is_err() || mkdir_p(&sub).is_err() {
+    if mkdir_p(&sub).is_err() {
         // Segue: o `open` abaixo dá o erro certo.
     }
     let mut path = sub.clone();
@@ -669,17 +843,163 @@ fn write_entry(dir: &[u8], e: &Entry, progname: &str) -> Result<(), String> {
                 .linkat(Fd::CWD, &path, Fd::CWD, &apath, AtFlags::empty())
                 .is_err()
             {
-                let _ = sys::current().symlinkat(&primary, Fd::CWD, &apath);
+                // O alvo do link simbólico é relativo ao diretório do apelido.
+                let target = if alias[0] == primary[0] {
+                    primary.clone()
+                } else {
+                    let mut t = b"../".to_vec();
+                    t.push(primary[0]);
+                    t.push(b'/');
+                    t.extend_from_slice(&primary);
+                    t
+                };
+                let _ = sys::current().symlinkat(&target, Fd::CWD, &apath);
             }
         }
     }
     Ok(())
 }
 
+/// `nametrans` do `tic.c`: o nome terminfo de uma capacidade vira o nome termcap.
+fn nametrans(name: &[u8]) -> Option<&'static str> {
+    if let Some(c) = BOOLS.iter().find(|c| c.info.as_bytes() == name) {
+        return Some(c.tc);
+    }
+    if let Some(c) = NUMS.iter().find(|c| c.info.as_bytes() == name) {
+        return Some(c.tc);
+    }
+    STRS.iter().find(|c| c.info.as_bytes() == name).map(|c| c.tc)
+}
+
+/// `put_translate`: os comentários da fonte saem com `<nome>` trocado pelo nome termcap, entre
+/// dois-pontos, quando a saída é termcap. O estado atravessa as entradas, como o `static` do original.
+#[derive(Default)]
+struct Translate {
+    in_name: bool,
+    buf: Vec<u8>,
+}
+
+impl Translate {
+    fn feed(&mut self, text: &[u8], out: &mut Vec<u8>) {
+        for &c in text {
+            if self.in_name {
+                if c == b'\n' || c == b'@' {
+                    out.push(b'<');
+                    out.extend_from_slice(&self.buf);
+                    out.push(c);
+                    self.in_name = false;
+                } else if c != b'>' {
+                    self.buf.push(c);
+                } else {
+                    self.in_name = false;
+                    let mut name = std::mem::take(&mut self.buf);
+                    let mut suffix: Vec<u8> = Vec::new();
+                    let up = name
+                        .iter()
+                        .position(|b| *b == b'#' || *b == b'=')
+                        .or_else(|| {
+                            name.iter()
+                                .position(|b| *b == b'@')
+                                .filter(|p| name.get(p + 1) == Some(&b'>'))
+                        });
+                    if let Some(p) = up {
+                        suffix = name.split_off(p);
+                    }
+                    match nametrans(&name) {
+                        Some(tp) => {
+                            out.push(b':');
+                            out.extend_from_slice(tp.as_bytes());
+                            out.extend_from_slice(&suffix);
+                            out.push(b':');
+                        }
+                        None => {
+                            out.push(b'<');
+                            out.extend_from_slice(&name);
+                            out.extend_from_slice(&suffix);
+                            out.push(b'>');
+                        }
+                    }
+                }
+            } else {
+                self.buf.clear();
+                if c == b'<' {
+                    self.in_name = true;
+                } else {
+                    out.push(c);
+                }
+            }
+        }
+    }
+}
+
+/// `matches`: a entrada está na lista do `-e` (ou não há lista)?
+fn matches_list(list: &Option<Vec<Vec<u8>>>, names: &[u8]) -> bool {
+    match list {
+        None => true,
+        Some(l) => l.iter().any(|n| name_match(names, n)),
+    }
+}
+
+/// `make_namelist`: o argumento do `-e` é uma lista separada por vírgulas, ou um arquivo.
+fn make_namelist(src: &[u8]) -> Vec<Vec<u8>> {
+    let text: Vec<u8> = if src.contains(&b'/') {
+        sys::read_file(src).unwrap_or_default()
+    } else {
+        src.to_vec()
+    };
+    text.split(|b| *b == b',' || super::c_isspace(*b))
+        .filter(|s| !s.is_empty())
+        .map(<[u8]>::to_vec)
+        .collect()
+}
+
+fn optarg_to_number(arg: &[u8]) -> i32 {
+    let (v, end) = strtol(arg);
+    if end == 0 || end != arg.len() {
+        io::eprint(format!("Expected a number, not \"{}\"\n", io::lossy(arg)));
+        sys::exit(1);
+    }
+    v as i32
+}
+
 fn usage(progname: &str) -> ! {
-    io::eprint(format!(
-        "Usage: {progname} [-0acfGgrsTUVvwx1] [-e names] [-o dir] [-R subset] [-w[n]] source-file\n"
-    ));
+    const OPTIONS: &[&str] = &[
+        "  -0         format entries on one line",
+        "  -1         format entries one capability per line",
+        "  -C         translate entries to termcap source form",
+        "  -D         print list of tic's database locations (first must be writable)",
+        "  -a         retain commented-out capabilities (sets -x also)",
+        "  -c         check only, validate input without compiling or translating",
+        "  -e<names>  translate/compile only entries named by comma-separated list",
+        "  -f         format complex strings for readability",
+        "  -G         format %{number} to %'char'",
+        "  -g         format %'char' to %{number}",
+        "  -I         translate entries to terminfo source form",
+        "  -K         translate entries to termcap source form with BSD syntax",
+        "  -L         translate entries to full terminfo source form",
+        "  -N         disable smart defaults for source translation",
+        "  -o<dir>    set output directory for compiled entry writes",
+        "  -Q[n]      dump compiled description",
+        "  -q         brief listing, removes headers",
+        "  -R<name>   restrict translation to given terminfo/termcap version",
+        "  -r         force resolution of all use entries in source translation",
+        "  -s         print summary statistics",
+        "  -T         remove size-restrictions on compiled description",
+        "  -t         suppress commented-out capabilities",
+        "  -U         suppress post-processing of entries",
+        "  -V         print version",
+        "  -v[n]      set verbosity level",
+        "  -W         wrap long strings according to -w[n] option",
+        "  -w[n]      set format width for translation output",
+        "  -x         treat unknown capabilities as user-defined",
+    ];
+    let mut text = format!("Usage: {progname} [options] file\n\nOptions:\n");
+    for line in OPTIONS {
+        text.push_str(line);
+        text.push('\n');
+    }
+    text.push_str("\nParameters:\n  <file>     name of file containing terminfo source descriptions\n");
+    io::eprint(text);
     sys::exit(1)
 }
 
@@ -690,99 +1010,320 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
     let argv0 = io::argv0(args);
-    let progname = io::lossy(rootname(&argv[0]));
+    let progname: String = io::lossy(rootname(&argv[0])).to_string();
+
+    // Os links `captoinfo` e `infotocap` são o mesmo programa em modo texto.
+    let mut infodump = progname == "captoinfo";
+    let mut capdump = progname == "infotocap";
+    let mut outform = if capdump {
+        OutForm::Termcap
+    } else {
+        OutForm::Terminfo
+    };
+    let mut sortmode = if capdump {
+        SortMode::Termcap
+    } else if infodump {
+        SortMode::Terminfo
+    } else {
+        SortMode::Default
+    };
+    let mut tversion: Option<String> = None;
+    let mut width: i32 = 60;
+    let mut height: i32 = 65535;
+    let mut v_opt: i32 = -1;
+    let mut last_opt = '?';
+    let mut formatted = false;
+    let mut literal = false;
+    let mut smart_defaults = true;
+    let mut numbers: i32 = 0;
+    let mut limited = true;
+    let mut forceresolve = false;
+    let mut wrap_strings = false;
+    let mut quickdump = 0;
+    let mut quiet = false;
+    let mut showsummary = false;
+    let mut strict_bsd = false;
+    let mut suppress_untranslatable = false;
     let mut xflag = false;
+    let mut aflag = false;
     let mut check_only = false;
     let mut outdir: Option<Vec<u8>> = None;
+    let mut namelst: Option<Vec<Vec<u8>>> = None;
+
     let mut g = Getopt::from_env(
         &argv[1..],
-        "0123456789CDEGILKNR:TUVWacde:fgo:prstuvw:x1",
+        "0123456789CDIKLNQ:R:TUVWace:fGgo:qrstvwx",
         &[],
     );
     while let Some(r) = g.next_opt() {
-        match r {
-            Ok(o) => match o.short().unwrap_or('?') {
-                c if c.is_ascii_digit() => {}
-                'V' => {
-                    let _ = writeln!(io::stdout(), "{VERSION}");
-                    return 0;
-                }
-                'x' => xflag = true,
-                'c' => check_only = true,
-                'o' => outdir = o.arg.clone(),
-                'a' | 'f' | 'g' | 'G' | 's' | 'T' | 'U' | 'v' | 'w' | 'e' | 'R' | 'W' | 'N'
-                | 'D' | 'E' | 'K' | 'u' | 'p' | 'd' => {}
-                'C' | 'I' | 'L' | 'r' => {
-                    io::eprint(format!(
-                        "{progname}: option -{} (text output) is not supported\n",
-                        o.short().unwrap_or('?')
-                    ));
-                    return 1;
-                }
-                _ => usage(&progname),
-            },
+        let o = match r {
+            Ok(o) => o,
             Err(e) => {
                 io::eprint(format!("{}\n", e.message(&argv0)));
                 usage(&progname)
             }
+        };
+        let arg = o.arg.clone().unwrap_or_default();
+        let c = o.short().unwrap_or('?');
+        if let Some(d) = c.to_digit(10) {
+            // Os dígitos depois de `-v` e `-w` formam o número; os demais só valem como `-0` e `-1`.
+            let d = d as i32;
+            match last_opt {
+                'v' => v_opt = v_opt.saturating_mul(10).saturating_add(d),
+                'w' => width = width.saturating_mul(10).saturating_add(d),
+                _ => {
+                    if d != 0 && d != 1 {
+                        usage(&progname);
+                    }
+                    last_opt = c;
+                    if d == 0 {
+                        width = 65535;
+                        height = 1;
+                    } else {
+                        width = 0;
+                        height = 65535;
+                    }
+                }
+            }
+            continue;
         }
+        match c {
+            'K' | 'C' => {
+                if c == 'K' {
+                    strict_bsd = true;
+                }
+                capdump = true;
+                outform = OutForm::Termcap;
+                tversion = Some("BSD".to_string());
+                if sortmode == SortMode::Default {
+                    sortmode = SortMode::Termcap;
+                }
+            }
+            'D' => {
+                let mut out = io::stdout();
+                for d in db_dirs(None) {
+                    let _ = out.write_all(&d);
+                    let _ = out.write_all(b"\n");
+                }
+                return 0;
+            }
+            'I' => {
+                infodump = true;
+                outform = OutForm::Terminfo;
+                if sortmode == SortMode::Default {
+                    sortmode = SortMode::Variable;
+                }
+                tversion = None;
+            }
+            'L' => {
+                infodump = true;
+                outform = OutForm::Variable;
+                if sortmode == SortMode::Default {
+                    sortmode = SortMode::Variable;
+                }
+                tversion = None;
+            }
+            'N' => {
+                smart_defaults = false;
+                literal = true;
+            }
+            'Q' => quickdump = optarg_to_number(&arg),
+            'R' => tversion = Some(io::lossy(&arg).to_string()),
+            'T' => limited = false,
+            'U' => literal = true,
+            'V' => {
+                let _ = writeln!(io::stdout(), "{VERSION}");
+                return 0;
+            }
+            'W' => wrap_strings = true,
+            'a' => {
+                aflag = true;
+                xflag = true;
+            }
+            'c' => check_only = true,
+            'e' => namelst = Some(make_namelist(&arg)),
+            'f' => formatted = true,
+            'G' => numbers = 1,
+            'g' => numbers = -1,
+            'o' => outdir = o.arg.clone(),
+            'q' => quiet = true,
+            'r' => forceresolve = true,
+            's' => showsummary = true,
+            't' => suppress_untranslatable = true,
+            'v' => v_opt = 0,
+            'w' => width = 0,
+            'x' => xflag = true,
+            _ => usage(&progname),
+        }
+        last_opt = c;
     }
+    let _ = (literal, smart_defaults, quiet);
+
     let operands = g.operands();
-    if operands.len() != 1 {
+    if operands.len() > 1 {
+        io::eprint(format!("{progname}: Too many file names.\n"));
         usage(&progname);
     }
-    let file = &operands[0];
+    let file: Vec<u8> = match operands.first() {
+        Some(f) => f.clone(),
+        None => {
+            if progname == "captoinfo" {
+                b"/etc/termcap".to_vec()
+            } else {
+                io::eprint(format!("{progname}: File name needed.  Usage:\n\n"));
+                usage(&progname);
+            }
+        }
+    };
     let data = if file.as_slice() == b"-" {
         sys::read_to_end(Fd::STDIN)
     } else {
-        sys::read_file(file)
+        sys::read_file(&file)
     };
     let data = match data {
         Ok(d) => d,
         Err(_) => {
+            // `perror(source_file)`: o motivo vem de um `open` que repete o que falhou.
+            let reason = match sys::open(&file, OFlags::RDONLY, 0) {
+                Err(er) => er.message().to_string(),
+                Ok(fd) => {
+                    let _ = sys::close(fd);
+                    "Is a directory".to_string()
+                }
+            };
             let _ = io::flush_stdout();
-            io::eprint(format!(
-                "{progname}: couldn't open '{}'\n",
-                io::lossy(file)
-            ));
+            io::eprint(format!("{}: {reason}\n", io::lossy(&file)));
             return 1;
         }
     };
-    let file_name = io::lossy(file).to_string();
-    let diag = Diag { file: &file_name };
+    let file_name: String = if file.as_slice() == b"-" {
+        "<stdin>".to_string()
+    } else {
+        io::lossy(&file).to_string()
+    };
+    let diag = Diag { file: file_name };
+    let text_mode = infodump || capdump;
+
+    let (raws, eof_pos) = split_entries(&data);
     let mut entries: Vec<Entry> = Vec::new();
-    for (body, line) in split_entries(&data) {
-        match parse_entry(&body, line, xflag, &diag) {
+    for raw in &raws {
+        match parse_entry(raw, xflag, aflag, &diag) {
             Some(e) => entries.push(e),
             None => {
                 let _ = io::flush_stdout();
-                io::eprint(format!("\"{file_name}\", line {line}: unexpected end of entry\n"));
+                io::eprint(format!(
+                    "\"{}\", line {}: unexpected end of entry\n",
+                    diag.file, raw.line
+                ));
                 return 1;
             }
         }
     }
-    let mut done = vec![false; entries.len()];
-    for i in 0..entries.len() {
-        let mut stack = Vec::new();
-        if let Err(msg) = resolve(&mut entries, &mut done, i, &mut stack) {
-            let _ = io::flush_stdout();
-            io::eprint(format!(
-                "\"{file_name}\", line {}: {msg}\n",
-                entries[i].line
-            ));
-            return 1;
+
+    // `-I`, `-L` e `-C` só resolvem os `use=` com `-r`; compilar e conferir sempre resolvem.
+    if check_only || !text_mode || forceresolve {
+        let mut done = vec![false; entries.len()];
+        for i in 0..entries.len() {
+            let mut stack = Vec::new();
+            if let Err(re) = resolve(&mut entries, &mut done, i, &mut stack) {
+                diag.warn(Some(eof_pos.0), Some(eof_pos.1), &re.term, &re.msg);
+                return 1;
+            }
+        }
+    }
+
+    let mut dump = Dump::new(
+        tversion.as_deref(),
+        outform,
+        sortmode,
+        wrap_strings,
+        width,
+        height,
+        if v_opt > 0 { v_opt as u32 } else { 0 },
+        formatted,
+        check_only,
+        quickdump,
+        &progname,
+    );
+    dump.user_definable = xflag;
+    dump.strict_bsd = strict_bsd;
+
+    if check_only && text_mode {
+        let limit = if infodump {
+            MAX_TERMINFO_LENGTH
+        } else {
+            MAX_TERMCAP_LENGTH
+        };
+        for e in &entries {
+            if !matches_list(&namelst, &e.names) {
+                continue;
+            }
+            let mut tt = to_termtype(e);
+            let pred: PredFn<'_> = &dump_predicate;
+            let len = dump.fmt_entry(&mut tt, pred, true, true, infodump, numbers);
+            if len > limit {
+                let _ = io::flush_stdout();
+                io::eprint(format!(
+                    "warning: resolved {} entry is {} bytes long\n",
+                    io::lossy(first_name(&e.names)),
+                    len
+                ));
+            }
         }
     }
     if check_only {
         return 0;
     }
-    let dir = output_dir(outdir.as_deref());
-    for e in &entries {
-        if let Err(msg) = write_entry(&dir, e, &progname) {
+
+    if !text_mode {
+        let dir = output_dir(outdir.as_deref());
+        if let Err(msg) = ensure_dir(&dir, &progname) {
             let _ = io::flush_stdout();
             io::eprint(format!("{msg}\n"));
             return 1;
         }
+        let mut written = 0usize;
+        for e in &entries {
+            if !matches_list(&namelst, &e.names) {
+                continue;
+            }
+            if let Err(msg) = write_entry(&dir, e, &progname) {
+                let _ = io::flush_stdout();
+                io::eprint(format!("{msg}\n"));
+                return 1;
+            }
+            written += 1;
+        }
+        if showsummary && written != 0 {
+            let _ = io::flush_stdout();
+            io::eprint(format!(
+                "{written} entries written to {}\n",
+                io::lossy(&dir)
+            ));
+        }
+        return 0;
+    }
+
+    let mut tr = Translate::default();
+    for e in &entries {
+        if !matches_list(&namelst, &e.names) {
+            continue;
+        }
+        if infodump {
+            let _ = io::stdout().write_all(&e.comment);
+        } else {
+            let mut buf: Vec<u8> = Vec::new();
+            tr.feed(&e.comment, &mut buf);
+            let _ = io::stdout().write_all(&buf);
+        }
+        let mut tt = to_termtype(e);
+        repair_acsc(&mut tt);
+        let pred: PredFn<'_> = &dump_predicate;
+        dump.dump_entry(&mut tt, suppress_untranslatable, limited, numbers, pred);
+        for u in &e.uses {
+            dump.dump_uses(u, !capdump);
+        }
+        let _len = dump.show_entry();
     }
     0
 }
@@ -793,9 +1334,11 @@ mod tests {
     use crate::term::terminfo::read_termtype;
 
     fn parse_one(src: &[u8], x: bool) -> Entry {
-        let diag = Diag { file: "t" };
-        let parts = split_entries(src);
-        parse_entry(&parts[0].0, parts[0].1, x, &diag).unwrap()
+        let diag = Diag {
+            file: "t".to_string(),
+        };
+        let (raws, _) = split_entries(src);
+        parse_entry(&raws[0], x, false, &diag).unwrap()
     }
 
     #[test]
@@ -833,16 +1376,49 @@ mod tests {
     #[test]
     fn use_in_same_file_merges() {
         let src = b"base|b,\n\tcols#80, am,\nchild|c,\n\tcols#100, use=base,\n";
-        let diag = Diag { file: "t" };
-        let mut entries: Vec<Entry> = split_entries(src)
-            .into_iter()
-            .map(|(b, l)| parse_entry(&b, l, false, &diag).unwrap())
+        let diag = Diag {
+            file: "t".to_string(),
+        };
+        let (raws, _) = split_entries(src);
+        let mut entries: Vec<Entry> = raws
+            .iter()
+            .map(|r| parse_entry(r, false, false, &diag).unwrap())
             .collect();
         let mut done = vec![false; 2];
         for i in 0..2 {
-            resolve(&mut entries, &mut done, i, &mut Vec::new()).unwrap();
+            resolve(&mut entries, &mut done, i, &mut Vec::new())
+                .map_err(|e| e.msg)
+                .unwrap();
         }
         assert_eq!(entries[1].nums[find_type_entry(b"cols", Kind::Num).unwrap()], 100);
         assert_eq!(entries[1].bools[find_type_entry(b"am", Kind::Bool).unwrap()], 1);
+    }
+
+    #[test]
+    fn comments_go_with_the_next_entry() {
+        let src = b"# um\n# dois\na|x,\n\tam,\n\nb|y,\n\tcols#80,\n";
+        let (raws, eof) = split_entries(src);
+        assert_eq!(raws.len(), 2);
+        assert_eq!(raws[0].comment, b"# um\n# dois\n".to_vec());
+        assert!(raws[1].comment.is_empty());
+        assert_eq!(eof, (7, 10));
+    }
+
+    #[test]
+    fn field_positions_follow_the_comma() {
+        let (raws, _) = split_entries(b"t|x,\n  am, cols#80,\n");
+        let fields = split_fields(&raws[0]);
+        assert_eq!(fields.len(), 3);
+        assert_eq!(fields[0].end, (1, 4));
+        assert_eq!(fields[1].end, (2, 5));
+        assert_eq!(fields[2].end, (2, 14));
+    }
+
+    #[test]
+    fn comment_translation_to_termcap() {
+        let mut tr = Translate::default();
+        let mut out = Vec::new();
+        tr.feed(b"# usa <cup> e <zzz>\n", &mut out);
+        assert_eq!(out, b"# usa :cm: e <zzz>\n".to_vec());
     }
 }
