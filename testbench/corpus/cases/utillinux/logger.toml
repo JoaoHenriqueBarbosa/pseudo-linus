@@ -1,0 +1,45 @@
+tool = "logger"
+source = "manual"
+
+# logger do util-linux 2.41. Sem socket de syslog no sandbox, só o que é determinístico:
+# ajuda, versão, validação de argumentos e o eco de --stderr com tag fixa.
+
+[[case]]
+id = "logger-help"
+argv = ["logger", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "logger-version"
+argv = ["logger", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "logger-bad-option"
+argv = ["logger", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "logger-bad-priority"
+argv = ["logger", "-p", "user.bogus", "x"]
+tags = ["error"]
+
+[[case]]
+id = "logger-bad-facility"
+argv = ["logger", "-p", "bogus.info", "x"]
+tags = ["error"]
+
+[[case]]
+id = "logger-bad-size"
+argv = ["logger", "-S", "abc", "x"]
+tags = ["error"]
+
+[[case]]
+id = "logger-stderr-tag"
+argv = ["logger", "-s", "-t", "tag", "hello", "world"]
+tags = ["stderr"]
+
+[[case]]
+id = "logger-missing-file"
+argv = ["logger", "-f", "/nonexistent/file"]
+tags = ["error"]

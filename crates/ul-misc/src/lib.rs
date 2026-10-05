@@ -41,6 +41,7 @@ pub mod isosize;
 pub mod lessecho;
 pub mod lesskey;
 pub mod locale;
+pub mod logger;
 pub mod look;
 pub mod lscpu;
 pub mod lsmem;
@@ -118,6 +119,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("lessecho", lessecho::main),
         Program::bin("lesskey", lesskey::main),
         Program::bin("locale", locale::main),
+        Program::bin("logger", logger::main),
         Program::bin("look", look::main),
         Program::bin("lscpu", lscpu::main),
         Program::bin("lsmem", lsmem::main),
