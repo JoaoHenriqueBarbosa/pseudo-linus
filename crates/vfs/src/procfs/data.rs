@@ -211,4 +211,28 @@ pub trait ProcProvider: Send + Sync {
     fn pid_max(&self) -> u32 {
         4_194_304
     }
+    /// `/proc/sys/kernel/osrelease` (o `uname -r`), sem a quebra de linha.
+    fn os_release(&self) -> Vec<u8> {
+        b"6.12.0".to_vec()
+    }
+    /// `/proc/sys/kernel/version` (o `uname -v`), sem a quebra de linha.
+    fn kernel_version(&self) -> Vec<u8> {
+        b"#1 SMP PREEMPT_DYNAMIC".to_vec()
+    }
+    /// `nodename` do UTS do sandbox (`/proc/sys/kernel/hostname`).
+    fn hostname(&self) -> Vec<u8> {
+        b"localhost".to_vec()
+    }
+    /// `domainname` do UTS do sandbox (`/proc/sys/kernel/domainname`).
+    fn domainname(&self) -> Vec<u8> {
+        b"(none)".to_vec()
+    }
+    /// Troca o `nodename` (escrita em `/proc/sys/kernel/hostname`, já cortada em 64 bytes).
+    fn set_hostname(&self, _name: &[u8]) -> SysResult<()> {
+        Err(Errno::EPERM)
+    }
+    /// Troca o `domainname`.
+    fn set_domainname(&self, _name: &[u8]) -> SysResult<()> {
+        Err(Errno::EPERM)
+    }
 }

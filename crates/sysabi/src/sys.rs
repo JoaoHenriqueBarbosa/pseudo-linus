@@ -76,6 +76,12 @@ pub trait Syscalls: Send + Sync {
     fn pipe2(&self, flags: OFlags) -> SysResult<(Fd, Fd)>;
     fn isatty(&self, fd: Fd) -> bool;
     fn tcgetwinsize(&self, fd: Fd) -> SysResult<Winsize>;
+    /// `TCGETS2`: atributos do terminal. EBADF pra fd ruim, ENOTTY pra fd que não é terminal.
+    fn tcgetattr(&self, fd: Fd) -> SysResult<Termios>;
+    /// `TCSETS2`/`TCSETSW2`/`TCSETSF2` conforme `when`. Mesmos erros do [`Syscalls::tcgetattr`].
+    fn tcsetattr(&self, fd: Fd, when: SetAttrWhen, termios: &Termios) -> SysResult<()>;
+    /// `TIOCSWINSZ`.
+    fn tcsetwinsize(&self, fd: Fd, ws: Winsize) -> SysResult<()>;
     /// Fds abertos (pra `/proc/self/fd` e pra ferramentas que fecham tudo).
     fn open_fds(&self) -> Vec<Fd>;
 
@@ -262,6 +268,22 @@ pub fn read_to_end(fd: Fd) -> SysResult<Vec<u8>> {
 /// `fallocate(2)` sobre o processo corrente.
 pub fn fallocate(fd: Fd, mode: FallocFlags, offset: i64, len: i64) -> SysResult<()> {
     current().fallocate(fd, mode, offset, len)
+}
+
+pub fn tcgetattr(fd: Fd) -> SysResult<Termios> {
+    current().tcgetattr(fd)
+}
+
+pub fn tcsetattr(fd: Fd, when: SetAttrWhen, termios: &Termios) -> SysResult<()> {
+    current().tcsetattr(fd, when, termios)
+}
+
+pub fn tcgetwinsize(fd: Fd) -> SysResult<Winsize> {
+    current().tcgetwinsize(fd)
+}
+
+pub fn tcsetwinsize(fd: Fd, ws: Winsize) -> SysResult<()> {
+    current().tcsetwinsize(fd, ws)
 }
 
 pub fn stat(path: &[u8]) -> SysResult<Stat> {

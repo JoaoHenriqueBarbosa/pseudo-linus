@@ -259,10 +259,11 @@ fn account(perms: &[u8], diff: u64, t: &mut Totals) -> Vec<u8> {
 pub fn render(pid: Pid, cmdline: &[u8], start_stack: u64, data: Option<&[u8]>, o: &Opts) -> Option<Vec<u8>> {
     let data = data?;
     let mut s = Vec::new();
+    // A linha `pid:   cmdline` sai mesmo com `-q`, que só esconde o cabeçalho de colunas e o rodapé.
+    s.extend_from_slice(format!("{pid}:   ").as_bytes());
+    s.extend_from_slice(cmdline);
+    s.push(b'\n');
     if !o.quiet {
-        s.extend_from_slice(format!("{pid}:   ").as_bytes());
-        s.extend_from_slice(cmdline);
-        s.push(b'\n');
         if o.extended {
             s.extend_from_slice(b"Address           Kbytes     RSS   Dirty Mode  Mapping\n");
         }
@@ -455,7 +456,7 @@ mod tests {
     fn quiet_device_and_path() {
         let o = Opts { quiet: true, show_path: true, ..Opts::default() };
         let s = render(7, b"bash", 0, Some(MAPS), &o).unwrap();
-        assert!(String::from_utf8(s).unwrap().starts_with("000055d0c0a00000    112K r----   /usr/bin/bash\n"));
+        assert!(String::from_utf8(s).unwrap().starts_with("7:   bash\n000055d0c0a00000    112K r----   /usr/bin/bash\n"));
         let o = Opts { device: true, ..Opts::default() };
         let s = String::from_utf8(render(7, b"bash", 0, Some(MAPS), &o).unwrap()).unwrap();
         assert!(s.contains("000055d0c0a1c000     912 r-x-- 000000000001c000 008:00001 bash\n"));

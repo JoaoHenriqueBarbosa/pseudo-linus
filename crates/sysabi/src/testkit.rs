@@ -1539,6 +1539,22 @@ impl Syscalls for ProcHandle {
         Err(Errno::ENOTTY)
     }
 
+    // O testkit não tem terminal (o /dev/tty dá ENXIO): todo fd válido é ENOTTY.
+    fn tcgetattr(&self, fd: Fd) -> SysResult<Termios> {
+        self.fd_entry(fd)?;
+        Err(Errno::ENOTTY)
+    }
+
+    fn tcsetattr(&self, fd: Fd, _when: SetAttrWhen, _termios: &Termios) -> SysResult<()> {
+        self.fd_entry(fd)?;
+        Err(Errno::ENOTTY)
+    }
+
+    fn tcsetwinsize(&self, fd: Fd, _ws: Winsize) -> SysResult<()> {
+        self.fd_entry(fd)?;
+        Err(Errno::ENOTTY)
+    }
+
     fn open_fds(&self) -> Vec<Fd> {
         self.w().procs[&self.pid].fds.keys().map(|k| Fd(*k)).collect()
     }
@@ -2492,5 +2508,40 @@ mod tests {
         // tmpfs: readdir do mais novo pro mais antigo.
         let names: Vec<Vec<u8>> = k.tree("/work").into_iter().map(|e| e.0).collect();
         assert_eq!(names, vec![b"a".to_vec(), b"b".to_vec(), b"l".to_vec()]);
+    }
+
+    fn termios_probe(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let sys = ctx.sys().clone();
+        let t = Termios::default();
+        let ws = Winsize { rows: 24, cols: 80, xpixel: 0, ypixel: 0 };
+        let mut out = String::new();
+        for (fd, want) in [(Fd::STDIN, Errno::ENOTTY), (Fd(42), Errno::EBADF)] {
+            let g = sys.tcgetattr(fd).err() == Some(want);
+            let s = sys.tcsetattr(fd, SetAttrWhen::Now, &t).err() == Some(want);
+            let w = sys.tcsetwinsize(fd, ws).err() == Some(want);
+            out.push_str(&format!("{g} {s} {w}\n"));
+        }
+        ctx.stdout().write_all(out.as_bytes()).ok();
+        0
+    }
+
+    #[test]
+    fn termios_calls_give_enotty_or_ebadf() {
+        let r = kit().programs([Program::bin("tprobe", termios_probe)]).run(&["tprobe"], b"");
+        assert_eq!(r.stdout_str(), "true true true\ntrue true true\n");
+    }
+
+    #[test]
+    fn default_termios_matches_tty_std_termios() {
+        use crate::types::termios::*;
+        let t = Termios::default();
+        assert_eq!(t.c_iflag, 0o2400);
+        assert_eq!(t.c_oflag, 0o5);
+        assert_eq!(t.c_cflag, 0o2277);
+        assert_eq!(t.c_lflag, 0o105073);
+        assert_eq!(t.c_cc[..17], [3, 0x1c, 0x7f, 0x15, 4, 0, 1, 0, 0x11, 0x13, 0x1a, 0, 0x12, 0x0f, 0x17, 0x16, 0]);
+        assert_eq!(baud_of(t.c_cflag), Some(38400));
+        assert_eq!(baud_of(B115200), Some(115200));
+        assert_eq!(baud_of(BOTHER), None);
     }
 }

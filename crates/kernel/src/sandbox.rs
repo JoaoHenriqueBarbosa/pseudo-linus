@@ -214,6 +214,8 @@ pub(crate) struct SbInner {
     programs: HashMap<Vec<u8>, Program>,
     pub table: Mutex<Table>,
     pub hostname: Mutex<Vec<u8>>,
+    /// `domainname` do UTS (`/proc/sys/kernel/domainname`); o Linux começa com `(none)`.
+    pub domainname: Mutex<Vec<u8>>,
     clock: Mutex<ClockState>,
     pub boot: Instant,
     pub cfg: SandboxConfig,
@@ -490,6 +492,7 @@ impl Sandbox {
             programs,
             table: Mutex::new(Table::new(init)),
             hostname: Mutex::new(hostname),
+            domainname: Mutex::new(b"(none)".to_vec()),
             clock,
             boot,
             cfg,

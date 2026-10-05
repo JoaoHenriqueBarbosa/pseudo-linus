@@ -7,6 +7,7 @@ use std::io::Write as _;
 use sysabi::Resource;
 
 use super::data::*;
+use super::maps::MmAddrs;
 
 /// Um tick de `USER_HZ` (100 Hz), em ns.
 const USER_TICK_NS: u64 = 10_000_000;
@@ -70,17 +71,19 @@ fn task_flags(p: &ProcData) -> u64 {
 }
 
 /// `/proc/<pid>/stat` e `/proc/<pid>/task/<tid>/stat`: os 52 campos do `do_task_stat`. Os endereços do
-/// espaço de endereçamento (`startcode`, `startstack`, `arg_start`...) saem 0: o pseudo-processo não tem
-/// mapa de memória, é o que o kernel mostra de um processo sem `mm`.
-pub(super) fn stat(p: &ProcData) -> Vec<u8> {
+/// espaço de endereçamento (`startcode`, `endcode`, `startstack` e os do campo 45 ao 51) vêm do mapa do
+/// processo (`procfs/maps.rs`) e saem 0 quando não há `mm` (zumbi) ou quando quem lê não passa no
+/// `ptrace_may_access` (`addrs` é `None`), como no kernel.
+pub(super) fn stat(p: &ProcData, addrs: Option<&MmAddrs>) -> Vec<u8> {
     let mut o = Vec::with_capacity(320);
     let _ = write!(o, "{} (", p.tid);
     o.extend_from_slice(&p.comm);
     let (vsize, rss) = p.mem.map_or((0, 0), |m| (m.vm_size * 1024, m.vm_rss / 4));
     let sigmask = 0x7fff_ffff;
+    let a = addrs.copied().unwrap_or_default();
     let _ = writeln!(
         o,
-        ") {} {} {} {} 0 -1 {} 0 0 0 0 {} {} {} {} {} {} {} 0 {} {} {} {} 0 0 0 0 0 {} {} {} {} {} 0 0 {} {} 0 0 0 0 0 0 0 0 0 0 0 0 {}",
+        ") {} {} {} {} 0 -1 {} 0 0 0 0 {} {} {} {} {} {} {} 0 {} {} {} {} {} {} {} 0 0 {} {} {} {} {} 0 0 {} {} 0 0 0 0 0 {} {} {} {} {} {} {} {}",
         p.state,
         p.ppid,
         p.pgid,
@@ -97,6 +100,9 @@ pub(super) fn stat(p: &ProcData) -> Vec<u8> {
         vsize,
         rss,
         p.rlimits[Resource::Rss as usize].0,
+        a.start_code,
+        a.end_code,
+        a.start_stack,
         p.sig.pending & sigmask,
         p.sig.blocked & sigmask,
         p.sig.ignored & sigmask,
@@ -104,6 +110,13 @@ pub(super) fn stat(p: &ProcData) -> Vec<u8> {
         u8::from(p.state != 'R'),
         if p.secondary { -1 } else { 17 },
         p.last_cpu,
+        a.start_data,
+        a.end_data,
+        a.start_brk,
+        a.arg_start,
+        a.arg_end,
+        a.env_start,
+        a.env_end,
         p.exit_code,
     );
     o
@@ -545,7 +558,7 @@ mod tests {
             last_cpu: 3,
             ..golden_cat()
         };
-        let line = String::from_utf8(stat(&p)).unwrap();
+        let line = String::from_utf8(stat(&p, None)).unwrap();
         let f: Vec<&str> = line.trim_end().split(' ').collect();
         assert_eq!(f.len(), 52, "{line}");
         assert_eq!(&f[..8], ["59", "(cat)", "R", "7", "1", "1", "0", "-1"]);
@@ -579,11 +592,33 @@ mod tests {
             rlimits: container_rlimits(),
             ..ProcData::default()
         };
-        let line = String::from_utf8(stat(&z)).unwrap();
+        let line = String::from_utf8(stat(&z, None)).unwrap();
         assert_eq!(
             line,
             "10 (perl) Z 9 0 0 0 -1 4227148 0 0 0 0 0 0 0 0 20 0 0 0 2274901 0 0 18446744073709551615 0 0 0 0 0 0 0 0 0 1 0 0 17 12 0 0 0 0 0 0 0 0 0 0 0 0 768\n"
         );
+    }
+
+    #[test]
+    fn stat_shows_the_mm_addresses_in_their_columns() {
+        let a = MmAddrs {
+            start_code: 1,
+            end_code: 2,
+            start_stack: 3,
+            start_data: 45,
+            end_data: 46,
+            start_brk: 47,
+            arg_start: 48,
+            arg_end: 49,
+            env_start: 50,
+            env_end: 51,
+        };
+        let line = String::from_utf8(stat(&golden_cat(), Some(&a))).unwrap();
+        let f: Vec<&str> = line.trim_end().split(' ').collect();
+        assert_eq!(f.len(), 52, "{line}");
+        assert_eq!(&f[25..30], ["1", "2", "3", "0", "0"], "startcode, endcode, startstack, kstkesp, kstkeip");
+        assert_eq!(&f[44..51], ["45", "46", "47", "48", "49", "50", "51"]);
+        assert_eq!(f[51], "0");
     }
 
     #[test]

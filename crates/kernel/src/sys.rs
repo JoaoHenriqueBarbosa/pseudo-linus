@@ -1089,6 +1089,28 @@ impl Syscalls for Task {
         Err(Errno::ENOTTY)
     }
 
+    // O kernel ainda não tem dispositivo de terminal (o /dev/tty dá ENXIO por falta de terminal de
+    // controle, e não há pty nem console), então todo fd válido é não terminal: EBADF primeiro, depois
+    // ENOTTY, na ordem do `tty_ioctl`. Quando houver tty, o estado parte de `Termios::default()`.
+
+    fn tcgetattr(&self, fd: Fd) -> SysResult<Termios> {
+        self.enter();
+        self.ofd(fd)?;
+        Err(Errno::ENOTTY)
+    }
+
+    fn tcsetattr(&self, fd: Fd, _when: SetAttrWhen, _t: &Termios) -> SysResult<()> {
+        self.enter();
+        self.ofd(fd)?;
+        Err(Errno::ENOTTY)
+    }
+
+    fn tcsetwinsize(&self, fd: Fd, _ws: Winsize) -> SysResult<()> {
+        self.enter();
+        self.ofd(fd)?;
+        Err(Errno::ENOTTY)
+    }
+
     fn open_fds(&self) -> Vec<Fd> {
         self.proc.fds.lock().fds()
     }

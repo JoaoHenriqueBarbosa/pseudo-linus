@@ -275,6 +275,34 @@ impl ProcProvider for SbProcProvider {
     fn pid_max(&self) -> u32 {
         PID_MAX as u32
     }
+
+    fn os_release(&self) -> Vec<u8> {
+        UNAME_RELEASE.to_vec()
+    }
+
+    fn kernel_version(&self) -> Vec<u8> {
+        UNAME_VERSION.to_vec()
+    }
+
+    fn hostname(&self) -> Vec<u8> {
+        self.sb().map_or_else(|| b"localhost".to_vec(), |sb| sb.hostname.lock().clone())
+    }
+
+    fn domainname(&self) -> Vec<u8> {
+        self.sb().map_or_else(|| b"(none)".to_vec(), |sb| sb.domainname.lock().clone())
+    }
+
+    fn set_hostname(&self, name: &[u8]) -> Result<(), sysabi::Errno> {
+        let sb = self.sb().ok_or(sysabi::Errno::ESRCH)?;
+        *sb.hostname.lock() = name.to_vec();
+        Ok(())
+    }
+
+    fn set_domainname(&self, name: &[u8]) -> Result<(), sysabi::Errno> {
+        let sb = self.sb().ok_or(sysabi::Errno::ESRCH)?;
+        *sb.domainname.lock() = name.to_vec();
+        Ok(())
+    }
 }
 
 /// `pos`, `flags`, `mnt_id` e `ino` de uma descrição de arquivo aberto (`proc_fdinfo` + `seq_show`).

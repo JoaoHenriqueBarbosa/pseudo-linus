@@ -310,6 +310,232 @@ pub struct Winsize {
     pub ypixel: u16,
 }
 
+/// Atributos de terminal, no formato do `struct termios2` do kernel Linux x86_64
+/// (`include/uapi/asm-generic/termbits.h`).
+///
+/// Decisão sobre `c_cc`: usamos os 19 bytes do kernel (`NCCS = 19`), não os 32 da glibc. A glibc só
+/// copia os 19 primeiros no `TCGETS`/`TCSETS` e os 13 restantes nunca chegam ao kernel, então o que
+/// existe de verdade no tty são estes 19. As velocidades ficam em `c_ispeed`/`c_ospeed` como no
+/// `termios2` (`TCGETS2`); com `CBAUD` diferente de `BOTHER` elas espelham a taxa codificada em
+/// `c_cflag`.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Termios {
+    pub c_iflag: u32,
+    pub c_oflag: u32,
+    pub c_cflag: u32,
+    pub c_lflag: u32,
+    pub c_line: u8,
+    pub c_cc: [u8; termios::NCCS],
+    pub c_ispeed: u32,
+    pub c_ospeed: u32,
+}
+
+impl Default for Termios {
+    /// O `tty_std_termios` do kernel (`drivers/tty/tty_io.c`): o estado de um pty recém-aberto.
+    fn default() -> Self {
+        use termios::*;
+        let mut c_cc = [0u8; NCCS];
+        c_cc[VINTR] = 0x03;
+        c_cc[VQUIT] = 0x1c;
+        c_cc[VERASE] = 0x7f;
+        c_cc[VKILL] = 0x15;
+        c_cc[VEOF] = 0x04;
+        c_cc[VTIME] = 0;
+        c_cc[VMIN] = 1;
+        c_cc[VSWTC] = 0;
+        c_cc[VSTART] = 0x11;
+        c_cc[VSTOP] = 0x13;
+        c_cc[VSUSP] = 0x1a;
+        c_cc[VEOL] = 0;
+        c_cc[VREPRINT] = 0x12;
+        c_cc[VDISCARD] = 0x0f;
+        c_cc[VWERASE] = 0x17;
+        c_cc[VLNEXT] = 0x16;
+        c_cc[VEOL2] = 0;
+        Termios {
+            c_iflag: ICRNL | IXON,
+            c_oflag: OPOST | ONLCR,
+            c_cflag: B38400 | CS8 | CREAD | HUPCL,
+            c_lflag: ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN,
+            c_line: 0,
+            c_cc,
+            c_ispeed: 38400,
+            c_ospeed: 38400,
+        }
+    }
+}
+
+/// Quando o `tcsetattr` aplica a mudança (`TCSANOW`, `TCSADRAIN`, `TCSAFLUSH`).
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum SetAttrWhen {
+    /// `TCSANOW` (0).
+    Now,
+    /// `TCSADRAIN` (1): espera a saída pendente ser transmitida.
+    Drain,
+    /// `TCSAFLUSH` (2): espera a saída e descarta a entrada ainda não lida.
+    Flush,
+}
+
+/// Flags e índices do `termios`, com os valores do Linux x86_64 (`asm-generic/termbits.h`).
+pub mod termios {
+    pub const NCCS: usize = 19;
+
+    // Índices de c_cc.
+    pub const VINTR: usize = 0;
+    pub const VQUIT: usize = 1;
+    pub const VERASE: usize = 2;
+    pub const VKILL: usize = 3;
+    pub const VEOF: usize = 4;
+    pub const VTIME: usize = 5;
+    pub const VMIN: usize = 6;
+    pub const VSWTC: usize = 7;
+    pub const VSTART: usize = 8;
+    pub const VSTOP: usize = 9;
+    pub const VSUSP: usize = 10;
+    pub const VEOL: usize = 11;
+    pub const VREPRINT: usize = 12;
+    pub const VDISCARD: usize = 13;
+    pub const VWERASE: usize = 14;
+    pub const VLNEXT: usize = 15;
+    pub const VEOL2: usize = 16;
+
+    // c_iflag.
+    pub const IGNBRK: u32 = 0o000001;
+    pub const BRKINT: u32 = 0o000002;
+    pub const IGNPAR: u32 = 0o000004;
+    pub const PARMRK: u32 = 0o000010;
+    pub const INPCK: u32 = 0o000020;
+    pub const ISTRIP: u32 = 0o000040;
+    pub const INLCR: u32 = 0o000100;
+    pub const IGNCR: u32 = 0o000200;
+    pub const ICRNL: u32 = 0o000400;
+    pub const IUCLC: u32 = 0o001000;
+    pub const IXON: u32 = 0o002000;
+    pub const IXANY: u32 = 0o004000;
+    pub const IXOFF: u32 = 0o010000;
+    pub const IMAXBEL: u32 = 0o020000;
+    pub const IUTF8: u32 = 0o040000;
+
+    // c_oflag.
+    pub const OPOST: u32 = 0o000001;
+    pub const OLCUC: u32 = 0o000002;
+    pub const ONLCR: u32 = 0o000004;
+    pub const OCRNL: u32 = 0o000010;
+    pub const ONOCR: u32 = 0o000020;
+    pub const ONLRET: u32 = 0o000040;
+    pub const OFILL: u32 = 0o000100;
+    pub const OFDEL: u32 = 0o000200;
+    pub const NLDLY: u32 = 0o000400;
+    pub const NL0: u32 = 0o000000;
+    pub const NL1: u32 = 0o000400;
+    pub const CRDLY: u32 = 0o003000;
+    pub const CR0: u32 = 0o000000;
+    pub const CR1: u32 = 0o001000;
+    pub const CR2: u32 = 0o002000;
+    pub const CR3: u32 = 0o003000;
+    pub const TABDLY: u32 = 0o014000;
+    pub const TAB0: u32 = 0o000000;
+    pub const TAB1: u32 = 0o004000;
+    pub const TAB2: u32 = 0o010000;
+    pub const TAB3: u32 = 0o014000;
+    pub const XTABS: u32 = 0o014000;
+    pub const BSDLY: u32 = 0o020000;
+    pub const BS0: u32 = 0o000000;
+    pub const BS1: u32 = 0o020000;
+    pub const VTDLY: u32 = 0o040000;
+    pub const VT0: u32 = 0o000000;
+    pub const VT1: u32 = 0o040000;
+    pub const FFDLY: u32 = 0o100000;
+    pub const FF0: u32 = 0o000000;
+    pub const FF1: u32 = 0o100000;
+
+    // c_cflag.
+    pub const CBAUD: u32 = 0o010017;
+    pub const B0: u32 = 0o000000;
+    pub const B50: u32 = 0o000001;
+    pub const B75: u32 = 0o000002;
+    pub const B110: u32 = 0o000003;
+    pub const B134: u32 = 0o000004;
+    pub const B150: u32 = 0o000005;
+    pub const B200: u32 = 0o000006;
+    pub const B300: u32 = 0o000007;
+    pub const B600: u32 = 0o000010;
+    pub const B1200: u32 = 0o000011;
+    pub const B1800: u32 = 0o000012;
+    pub const B2400: u32 = 0o000013;
+    pub const B4800: u32 = 0o000014;
+    pub const B9600: u32 = 0o000015;
+    pub const B19200: u32 = 0o000016;
+    pub const B38400: u32 = 0o000017;
+    pub const EXTA: u32 = B19200;
+    pub const EXTB: u32 = B38400;
+    pub const CSIZE: u32 = 0o000060;
+    pub const CS5: u32 = 0o000000;
+    pub const CS6: u32 = 0o000020;
+    pub const CS7: u32 = 0o000040;
+    pub const CS8: u32 = 0o000060;
+    pub const CSTOPB: u32 = 0o000100;
+    pub const CREAD: u32 = 0o000200;
+    pub const PARENB: u32 = 0o000400;
+    pub const PARODD: u32 = 0o001000;
+    pub const HUPCL: u32 = 0o002000;
+    pub const CLOCAL: u32 = 0o004000;
+    pub const CBAUDEX: u32 = 0o010000;
+    pub const BOTHER: u32 = 0o010000;
+    pub const B57600: u32 = 0o010001;
+    pub const B115200: u32 = 0o010002;
+    pub const B230400: u32 = 0o010003;
+    pub const B460800: u32 = 0o010004;
+    pub const B500000: u32 = 0o010005;
+    pub const B576000: u32 = 0o010006;
+    pub const B921600: u32 = 0o010007;
+    pub const B1000000: u32 = 0o010010;
+    pub const B1152000: u32 = 0o010011;
+    pub const B1500000: u32 = 0o010012;
+    pub const B2000000: u32 = 0o010013;
+    pub const B2500000: u32 = 0o010014;
+    pub const B3000000: u32 = 0o010015;
+    pub const B3500000: u32 = 0o010016;
+    pub const B4000000: u32 = 0o010017;
+    pub const CIBAUD: u32 = 0o02003600000;
+    pub const IBSHIFT: u32 = 16;
+    pub const CMSPAR: u32 = 0o10000000000;
+    pub const CRTSCTS: u32 = 0o20000000000;
+
+    // c_lflag.
+    pub const ISIG: u32 = 0o000001;
+    pub const ICANON: u32 = 0o000002;
+    pub const XCASE: u32 = 0o000004;
+    pub const ECHO: u32 = 0o000010;
+    pub const ECHOE: u32 = 0o000020;
+    pub const ECHOK: u32 = 0o000040;
+    pub const ECHONL: u32 = 0o000100;
+    pub const NOFLSH: u32 = 0o000200;
+    pub const TOSTOP: u32 = 0o000400;
+    pub const ECHOCTL: u32 = 0o001000;
+    pub const ECHOPRT: u32 = 0o002000;
+    pub const ECHOKE: u32 = 0o004000;
+    pub const FLUSHO: u32 = 0o010000;
+    pub const PENDIN: u32 = 0o040000;
+    pub const IEXTEN: u32 = 0o100000;
+    pub const EXTPROC: u32 = 0o200000;
+
+    /// Taxa em bauds de um código `Bnnn` (o `tty_termios_baud_rate` sem `BOTHER`); `None` pra código
+    /// inválido ou `BOTHER`.
+    pub fn baud_of(code: u32) -> Option<u32> {
+        const LOW: [u32; 16] = [0, 50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800, 9600, 19200, 38400];
+        const HIGH: [u32; 15] =
+            [57600, 115200, 230400, 460800, 500000, 576000, 921600, 1000000, 1152000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000];
+        let code = code & CBAUD;
+        if code & CBAUDEX == 0 {
+            Some(LOW[code as usize])
+        } else {
+            let i = (code & !CBAUDEX) as usize;
+            if i == 0 { None } else { HIGH.get(i - 1).copied() }
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Clock {
     Realtime,
