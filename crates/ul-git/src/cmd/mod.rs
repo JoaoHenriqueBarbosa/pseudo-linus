@@ -6,12 +6,14 @@ pub mod cat_file;
 pub mod commit;
 pub mod config_cmd;
 pub mod diff_cmd;
+pub mod for_each_ref;
 pub mod init;
 pub mod log;
 pub mod ls;
 pub mod misc;
 pub mod mv;
 pub mod plumbing;
+pub mod reffmt;
 pub mod rev_parse;
 pub mod rm;
 pub mod status;
@@ -85,6 +87,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "status" => (Setup::WorkTree, status::run),
         "rm" => (Setup::WorkTree, rm::run),
         "mv" => (Setup::WorkTree, mv::run),
+        "for-each-ref" => (Setup::Repo, for_each_ref::run),
         "log" => (Setup::Repo, log::run_log),
         "show" => (Setup::Repo, log::run_show),
         "whatchanged" => (Setup::Repo, log::run_whatchanged),
