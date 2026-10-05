@@ -81,13 +81,13 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 
 fn usage_text(progname: &str) -> String {
     format!(
-        "{progname}: usage is {progname} [ --version ] [ --help ] [ -v ] [ -P ] \\\n\
+        "{progname}: usage is {progname} [ --version ] [ --help ] [ -v ] \\\n\
 \t[ -b {{slim|fat}} ] [ -d directory ] [ -l localtime ] [ -L leapseconds ] \\\n\
 \t[ -p posixrules ] [ -r '[@lo][/@hi]' ] [ -R '@hi' ] \\\n\
 \t[ -t localtime-link ] \\\n\
 \t[ filename ... ]\n\
 \n\
-Report bugs to http://www.debian.org/Bugs/.\n"
+Report bugs to <http://www.debian.org/Bugs/>.\n"
     )
 }
 
@@ -746,7 +746,7 @@ impl Z {
 
     fn inzsub(&mut self, f: &[String], iscont: bool) -> bool {
         let (i_stdoff, i_rule, i_format, i_untilyear) =
-            if iscont { (0, 1, 2, 3) } else { (1, 2, 3, 4) };
+            if iscont { (0, 1, 2, 3) } else { (2, 3, 4, 5) };
         let mut z = Zone {
             file: self.filename.clone().unwrap_or_default(),
             line: self.linenum,
@@ -809,7 +809,7 @@ impl Z {
             self.error("wrong number of fields on Link line");
             return;
         }
-        if f[1].is_empty() {
+        if f[1].is_empty() || f[1] == "-" {
             self.error("blank TARGET field on Link line");
             return;
         }
@@ -2156,7 +2156,10 @@ fn run(args: &[OsString]) -> i32 {
                             }
                             z.bloat = 1;
                         }
-                        _ => z.error(&format!("invalid option: -b '{arg}'")),
+                        _ => {
+                            io::eprint(format!("invalid option: -b '{arg}'\n"));
+                            return 1;
+                        }
                     },
                     Some('d') => {
                         if directory.is_some() {
@@ -2204,7 +2207,8 @@ fn run(args: &[OsString]) -> i32 {
                                     z.lo_time = z.lo_time.max(lo);
                                 }
                                 if let Some(hi) = hi {
-                                    z.hi_time = z.hi_time.min(hi);
+                                    // O limite superior de `-r` é exclusivo.
+                                    z.hi_time = z.hi_time.min(hi.saturating_sub(1));
                                 }
                                 timerange_given = true;
                             }
