@@ -14,6 +14,7 @@ pub mod pidof;
 pub mod procfs;
 pub mod ps;
 pub mod uptime;
+pub mod watch;
 
 use sysabi::Program;
 
@@ -29,5 +30,6 @@ pub fn programs() -> Vec<Program> {
         Program::bin("pkill", pgrep::pkill_main),
         Program::bin("ps", ps::main),
         Program::bin("uptime", uptime::main),
+        Program::bin("watch", watch::main),
     ]
 }

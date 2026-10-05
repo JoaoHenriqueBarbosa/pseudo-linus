@@ -18,7 +18,7 @@ mod parser;
 mod proc;
 mod sortformat;
 mod table;
-mod util;
+pub(crate) mod util;
 
 use std::ffi::OsString;
 
