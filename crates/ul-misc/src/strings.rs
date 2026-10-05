@@ -92,7 +92,7 @@ the GNU General Public License version 3 or (at your option) any later version.\
 This program has absolutely no warranty.\n";
 
 const USAGE_BODY: &str = " Display printable strings in [file(s)] (stdin by default)\n\
- The options are:\n\
+\x20The options are:\n\
 \x20 -a - --all                Scan the entire file, not just the data section [default]\n\
 \x20 -d --data                 Only scan the data sections in the file\n\
 \x20 -f --print-file-name      Print the name of the file before each string\n\
