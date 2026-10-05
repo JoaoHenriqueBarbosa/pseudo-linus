@@ -6,6 +6,7 @@ pub mod getopt;
 pub mod io;
 pub mod md5;
 pub mod time;
+pub mod tzif;
 pub mod ul;
 
 pub use getopt::{Getopt, GetoptError, HasArg, LongOpt, Opt};

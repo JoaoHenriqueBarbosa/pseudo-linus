@@ -1,0 +1,110 @@
+{
+  "zdump-V-new-york": {
+    "stdout": "America/New_York  Sun Mar 10 06:59:59 2024 UT = Sun Mar 10 01:59:59 2024 EST isdst=0 gmtoff=-18000\nAmerica/New_York  Sun Mar 10 07:00:00 2024 UT = Sun Mar 10 03:00:00 2024 EDT isdst=1 gmtoff=-14400\nAmerica/New_York  Sun Nov  3 05:59:59 2024 UT = Sun Nov  3 01:59:59 2024 EDT isdst=1 gmtoff=-14400\nAmerica/New_York  Sun Nov  3 06:00:00 2024 UT = Sun Nov  3 01:00:00 2024 EST isdst=0 gmtoff=-18000\nAmerica/New_York  Sun Mar  9 06:59:59 2025 UT = Sun Mar  9 01:59:59 2025 EST isdst=0 gmtoff=-18000\nAmerica/New_York  Sun Mar  9 07:00:00 2025 UT = Sun Mar  9 03:00:00 2025 EDT isdst=1 gmtoff=-14400\nAmerica/New_York  Sun Nov  2 05:59:59 2025 UT = Sun Nov  2 01:59:59 2025 EDT isdst=1 gmtoff=-14400\nAmerica/New_York  Sun Nov  2 06:00:00 2025 UT = Sun Nov  2 01:00:00 2025 EST isdst=0 gmtoff=-18000\nAmerica/New_York  Sun Mar  8 06:59:59 2026 UT = Sun Mar  8 01:59:59 2026 EST isdst=0 gmtoff=-18000\nAmerica/New_York  Sun Mar  8 07:00:00 2026 UT = Sun Mar  8 03:00:00 2026 EDT isdst=1 gmtoff=-14400\nAmerica/New_York  Sun Nov  1 05:59:59 2026 UT = Sun Nov  1 01:59:59 2026 EDT isdst=1 gmtoff=-14400\nAmerica/New_York  Sun Nov  1 06:00:00 2026 UT = Sun Nov  1 01:00:00 2026 EST isdst=0 gmtoff=-18000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-bad-option": {
+    "stdout": "",
+    "stderr": "zdump: invalid option -- 'x'\nzdump: usage: zdump OPTIONS TIMEZONE ...\nOptions include:\n  -c [L,]U   Start at year L (default -500), end before year U (default 2500)\n  -t [L,]U   Start at time L, end before time U (in seconds since 1970)\n  -i         List transitions briefly (format is experimental)\n  -v         List transitions verbosely\n  -V         List transitions a bit less verbosely\n  --help     Output this help\n  --version  Output version info\n\nReport bugs to <http://www.debian.org/Bugs/>.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "zdump-equals-operand": {
+    "stdout": "",
+    "stderr": "zdump: usage: zdump OPTIONS TIMEZONE ...\nOptions include:\n  -c [L,]U   Start at year L (default -500), end before year U (default 2500)\n  -t [L,]U   Start at time L, end before time U (in seconds since 1970)\n  -i         List transitions briefly (format is experimental)\n  -v         List transitions verbosely\n  -V         List transitions a bit less verbosely\n  --help     Output this help\n  --version  Output version info\n\nReport bugs to <http://www.debian.org/Bugs/>.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "zdump-help": {
+    "stdout": "zdump: usage: zdump OPTIONS TIMEZONE ...\nOptions include:\n  -c [L,]U   Start at year L (default -500), end before year U (default 2500)\n  -t [L,]U   Start at time L, end before time U (in seconds since 1970)\n  -i         List transitions briefly (format is experimental)\n  -v         List transitions verbosely\n  -V         List transitions a bit less verbosely\n  --help     Output this help\n  --version  Output version info\n\nReport bugs to <http://www.debian.org/Bugs/>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-i-lisbon": {
+    "stdout": "\nTZ=\"Europe/Lisbon\"\n-\t-\t+00\tWET\n1990-03-25\t02\t+01\tWEST\t1\n1990-09-30\t01\t+00\tWET\n1991-03-31\t02\t+01\tWEST\t1\n1991-09-29\t01\t+00\tWET\n1992-03-29\t02\t+01\tWEST\t1\n1992-09-27\t02\t+01\tCET\n1993-03-28\t03\t+02\tCEST\t1\n1993-09-26\t02\t+01\tCET\n1994-03-27\t03\t+02\tCEST\t1\n1994-09-25\t02\t+01\tCET\n1995-03-26\t03\t+02\tCEST\t1\n1995-09-24\t02\t+01\tCET\n1996-03-31\t02\t+01\tWEST\t1\n1996-10-27\t01\t+00\tWET\n1997-03-30\t02\t+01\tWEST\t1\n1997-10-26\t01\t+00\tWET\n1998-03-29\t02\t+01\tWEST\t1\n1998-10-25\t01\t+00\tWET\n1999-03-28\t02\t+01\tWEST\t1\n1999-10-31\t01\t+00\tWET\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-i-sao-paulo-full": {
+    "stdout": "\nTZ=\"America/Sao_Paulo\"\n-\t-\t-030628\tLMT\n1914-01-01\t00:06:28\t-03\n1931-10-03\t12\t-02\t\t1\n1932-03-31\t23\t-03\n1932-10-03\t01\t-02\t\t1\n1933-03-31\t23\t-03\n1949-12-01\t01\t-02\t\t1\n1950-04-16\t00\t-03\n1950-12-01\t01\t-02\t\t1\n1951-03-31\t23\t-03\n1951-12-01\t01\t-02\t\t1\n1952-03-31\t23\t-03\n1952-12-01\t01\t-02\t\t1\n1953-02-28\t23\t-03\n1963-10-23\t01\t-02\t\t1\n1964-02-29\t23\t-03\n1965-01-31\t01\t-02\t\t1\n1965-03-30\t23\t-03\n1965-12-01\t01\t-02\t\t1\n1966-02-28\t23\t-03\n1966-11-01\t01\t-02\t\t1\n1967-02-28\t23\t-03\n1967-11-01\t01\t-02\t\t1\n1968-02-29\t23\t-03\n1985-11-02\t01\t-02\t\t1\n1986-03-14\t23\t-03\n1986-10-25\t01\t-02\t\t1\n1987-02-13\t23\t-03\n1987-10-25\t01\t-02\t\t1\n1988-02-06\t23\t-03\n1988-10-16\t01\t-02\t\t1\n1989-01-28\t23\t-03\n1989-10-15\t01\t-02\t\t1\n1990-02-10\t23\t-03\n1990-10-21\t01\t-02\t\t1\n1991-02-16\t23\t-03\n1991-10-20\t01\t-02\t\t1\n1992-02-08\t23\t-03\n1992-10-25\t01\t-02\t\t1\n1993-01-30\t23\t-03\n1993-10-17\t01\t-02\t\t1\n1994-02-19\t23\t-03\n1994-10-16\t01\t-02\t\t1\n1995-02-18\t23\t-03\n1995-10-15\t01\t-02\t\t1\n1996-02-10\t23\t-03\n1996-10-06\t01\t-02\t\t1\n1997-02-15\t23\t-03\n1997-10-06\t01\t-02\t\t1\n1998-02-28\t23\t-03\n1998-10-11\t01\t-02\t\t1\n1999-02-20\t23\t-03\n1999-10-03\t01\t-02\t\t1\n2000-02-26\t23\t-03\n2000-10-08\t01\t-02\t\t1\n2001-02-17\t23\t-03\n2001-10-14\t01\t-02\t\t1\n2002-02-16\t23\t-03\n2002-11-03\t01\t-02\t\t1\n2003-02-15\t23\t-03\n2003-10-19\t01\t-02\t\t1\n2004-02-14\t23\t-03\n2004-11-02\t01\t-02\t\t1\n2005-02-19\t23\t-03\n2005-10-16\t01\t-02\t\t1\n2006-02-18\t23\t-03\n2006-11-05\t01\t-02\t\t1\n2007-02-24\t23\t-03\n2007-10-14\t01\t-02\t\t1\n2008-02-16\t23\t-03\n2008-10-19\t01\t-02\t\t1\n2009-02-14\t23\t-03\n2009-10-18\t01\t-02\t\t1\n2010-02-20\t23\t-03\n2010-10-17\t01\t-02\t\t1\n2011-02-19\t23\t-03\n2011-10-16\t01\t-02\t\t1\n2012-02-25\t23\t-03\n2012-10-21\t01\t-02\t\t1\n2013-02-16\t23\t-03\n2013-10-20\t01\t-02\t\t1\n2014-02-15\t23\t-03\n2014-10-19\t01\t-02\t\t1\n2015-02-21\t23\t-03\n2015-10-18\t01\t-02\t\t1\n2016-02-20\t23\t-03\n2016-10-16\t01\t-02\t\t1\n2017-02-18\t23\t-03\n2017-10-15\t01\t-02\t\t1\n2018-02-17\t23\t-03\n2018-11-04\t01\t-02\t\t1\n2019-02-16\t23\t-03\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-missing-arg": {
+    "stdout": "",
+    "stderr": "zdump: option requires an argument -- 'c'\nzdump: usage: zdump OPTIONS TIMEZONE ...\nOptions include:\n  -c [L,]U   Start at year L (default -500), end before year U (default 2500)\n  -t [L,]U   Start at time L, end before time U (in seconds since 1970)\n  -i         List transitions briefly (format is experimental)\n  -v         List transitions verbosely\n  -V         List transitions a bit less verbosely\n  --help     Output this help\n  --version  Output version info\n\nReport bugs to <http://www.debian.org/Bugs/>.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "zdump-no-operands": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-now-faketime": {
+    "stdout": "UTC                Thu Jan 15 12:00:00 2026 UTC\nAmerica/Sao_Paulo  Thu Jan 15 09:00:00 2026 -03\nEST5EDT            Thu Jan 15 07:00:00 2026 EST\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-posix-angle": {
+    "stdout": "<-03>3  -9223372036854775808 (gmtime failed) = -9223372036854775808 (localtime failed)\n<-03>3  -67768040609740801 (gmtime failed) = -67768040609740801 (localtime failed)\n<-03>3  Thu Jan  1 00:00:00 -2147481748 UT = -67768040609740800 (localtime failed)\n<-03>3  Thu Jan  1 02:59:59 -2147481748 UT = -67768040609730001 (localtime failed)\n<-03>3  Thu Jan  1 03:00:00 -2147481748 UT = Thu Jan  1 00:00:00 -2147481748 -03 isdst=0 gmtoff=-10800\n<-03>3  Wed Dec 31 23:59:59 2147485547 UT = Wed Dec 31 20:59:59 2147485547 -03 isdst=0 gmtoff=-10800\n<-03>3  67768036191676800 (gmtime failed) = 67768036191676800 (localtime failed)\n<-03>3  9223372036854775807 (gmtime failed) = 9223372036854775807 (localtime failed)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-t-range": {
+    "stdout": "EST5EDT,M3.2.0,M11.1.0  -9223372036854775808 (gmtime failed) = -9223372036854775808 (localtime failed)\nEST5EDT,M3.2.0,M11.1.0  -67768040609740801 (gmtime failed) = -67768040609740801 (localtime failed)\nEST5EDT,M3.2.0,M11.1.0  Thu Jan  1 00:00:00 -2147481748 UT = -67768040609740800 (localtime failed)\nEST5EDT,M3.2.0,M11.1.0  Thu Jan  1 04:59:59 -2147481748 UT = -67768040609722801 (localtime failed)\nEST5EDT,M3.2.0,M11.1.0  Thu Jan  1 05:00:00 -2147481748 UT = Thu Jan  1 00:00:00 -2147481748 EST isdst=0 gmtoff=-18000\nEST5EDT,M3.2.0,M11.1.0  Sun Mar 10 06:59:59 2024 UT = Sun Mar 10 01:59:59 2024 EST isdst=0 gmtoff=-18000\nEST5EDT,M3.2.0,M11.1.0  Sun Mar 10 07:00:00 2024 UT = Sun Mar 10 03:00:00 2024 EDT isdst=1 gmtoff=-14400\nEST5EDT,M3.2.0,M11.1.0  Wed Dec 31 23:59:59 2147485547 UT = Wed Dec 31 18:59:59 2147485547 EST isdst=0 gmtoff=-18000\nEST5EDT,M3.2.0,M11.1.0  67768036191676800 (gmtime failed) = 67768036191676800 (localtime failed)\nEST5EDT,M3.2.0,M11.1.0  9223372036854775807 (gmtime failed) = 9223372036854775807 (localtime failed)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-tzdir": {
+    "stdout": "Lisbon  Sun Mar 30 00:59:59 2025 UT = Sun Mar 30 00:59:59 2025 WET isdst=0 gmtoff=0\nLisbon  Sun Mar 30 01:00:00 2025 UT = Sun Mar 30 02:00:00 2025 WEST isdst=1 gmtoff=3600\nLisbon  Sun Oct 26 00:59:59 2025 UT = Sun Oct 26 01:59:59 2025 WEST isdst=1 gmtoff=3600\nLisbon  Sun Oct 26 01:00:00 2025 UT = Sun Oct 26 01:00:00 2025 WET isdst=0 gmtoff=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-unknown-name": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-v-sao-paulo-window": {
+    "stdout": "America/Sao_Paulo  -9223372036854775808 (gmtime failed) = -9223372036854775808 (localtime failed)\nAmerica/Sao_Paulo  -67768040609740801 (gmtime failed) = -67768040609740801 (localtime failed)\nAmerica/Sao_Paulo  Thu Jan  1 00:00:00 -2147481748 UT = -67768040609740800 (localtime failed)\nAmerica/Sao_Paulo  Thu Jan  1 03:06:27 -2147481748 UT = -67768040609729613 (localtime failed)\nAmerica/Sao_Paulo  Thu Jan  1 03:06:28 -2147481748 UT = Thu Jan  1 00:00:00 -2147481748 LMT isdst=0 gmtoff=-11188\nAmerica/Sao_Paulo  Sun Feb 21 01:59:59 2010 UT = Sat Feb 20 23:59:59 2010 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 21 02:00:00 2010 UT = Sat Feb 20 23:00:00 2010 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 17 02:59:59 2010 UT = Sat Oct 16 23:59:59 2010 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 17 03:00:00 2010 UT = Sun Oct 17 01:00:00 2010 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 20 01:59:59 2011 UT = Sat Feb 19 23:59:59 2011 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 20 02:00:00 2011 UT = Sat Feb 19 23:00:00 2011 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 16 02:59:59 2011 UT = Sat Oct 15 23:59:59 2011 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 16 03:00:00 2011 UT = Sun Oct 16 01:00:00 2011 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 26 01:59:59 2012 UT = Sat Feb 25 23:59:59 2012 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 26 02:00:00 2012 UT = Sat Feb 25 23:00:00 2012 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 21 02:59:59 2012 UT = Sat Oct 20 23:59:59 2012 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 21 03:00:00 2012 UT = Sun Oct 21 01:00:00 2012 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 17 01:59:59 2013 UT = Sat Feb 16 23:59:59 2013 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 17 02:00:00 2013 UT = Sat Feb 16 23:00:00 2013 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 20 02:59:59 2013 UT = Sat Oct 19 23:59:59 2013 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 20 03:00:00 2013 UT = Sun Oct 20 01:00:00 2013 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 16 01:59:59 2014 UT = Sat Feb 15 23:59:59 2014 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 16 02:00:00 2014 UT = Sat Feb 15 23:00:00 2014 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 19 02:59:59 2014 UT = Sat Oct 18 23:59:59 2014 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 19 03:00:00 2014 UT = Sun Oct 19 01:00:00 2014 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 22 01:59:59 2015 UT = Sat Feb 21 23:59:59 2015 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 22 02:00:00 2015 UT = Sat Feb 21 23:00:00 2015 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 18 02:59:59 2015 UT = Sat Oct 17 23:59:59 2015 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 18 03:00:00 2015 UT = Sun Oct 18 01:00:00 2015 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 21 01:59:59 2016 UT = Sat Feb 20 23:59:59 2016 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 21 02:00:00 2016 UT = Sat Feb 20 23:00:00 2016 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 16 02:59:59 2016 UT = Sat Oct 15 23:59:59 2016 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 16 03:00:00 2016 UT = Sun Oct 16 01:00:00 2016 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 19 01:59:59 2017 UT = Sat Feb 18 23:59:59 2017 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 19 02:00:00 2017 UT = Sat Feb 18 23:00:00 2017 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 15 02:59:59 2017 UT = Sat Oct 14 23:59:59 2017 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Oct 15 03:00:00 2017 UT = Sun Oct 15 01:00:00 2017 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 18 01:59:59 2018 UT = Sat Feb 17 23:59:59 2018 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 18 02:00:00 2018 UT = Sat Feb 17 23:00:00 2018 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Nov  4 02:59:59 2018 UT = Sat Nov  3 23:59:59 2018 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Sun Nov  4 03:00:00 2018 UT = Sun Nov  4 01:00:00 2018 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 17 01:59:59 2019 UT = Sat Feb 16 23:59:59 2019 -02 isdst=1 gmtoff=-7200\nAmerica/Sao_Paulo  Sun Feb 17 02:00:00 2019 UT = Sat Feb 16 23:00:00 2019 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  Wed Dec 31 23:59:59 2147485547 UT = Wed Dec 31 20:59:59 2147485547 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  67768036191676800 (gmtime failed) = Wed Dec 31 21:00:00 2147485547 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  67768036191687599 (gmtime failed) = Wed Dec 31 23:59:59 2147485547 -03 isdst=0 gmtoff=-10800\nAmerica/Sao_Paulo  67768036191687600 (gmtime failed) = 67768036191687600 (localtime failed)\nAmerica/Sao_Paulo  9223372036854775807 (gmtime failed) = 9223372036854775807 (localtime failed)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-v-utc": {
+    "stdout": "UTC  -9223372036854775808 (gmtime failed) = -9223372036854775808 (localtime failed)\nUTC  -67768040609740801 (gmtime failed) = -67768040609740801 (localtime failed)\nUTC  Thu Jan  1 00:00:00 -2147481748 UT = Thu Jan  1 00:00:00 -2147481748 UTC isdst=0 gmtoff=0\nUTC  Wed Dec 31 23:59:59 2147485547 UT = Wed Dec 31 23:59:59 2147485547 UTC isdst=0 gmtoff=0\nUTC  67768036191676800 (gmtime failed) = 67768036191676800 (localtime failed)\nUTC  9223372036854775807 (gmtime failed) = 9223372036854775807 (localtime failed)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-version": {
+    "stdout": "zdump (Debian GLIBC 2.41-12+deb13u4) 2.41\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zdump-wild-c": {
+    "stdout": "",
+    "stderr": "zdump: wild -c argument abc\n",
+    "exit": 1,
+    "files": {}
+  },
+  "zdump-wild-t": {
+    "stdout": "",
+    "stderr": "zdump: wild -t argument 1,2,3\n",
+    "exit": 1,
+    "files": {}
+  }
+}

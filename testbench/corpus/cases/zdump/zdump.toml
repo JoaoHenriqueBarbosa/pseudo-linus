@@ -1,0 +1,96 @@
+tool = "zdump"
+source = "manual"
+
+# Os casos com nome de fuso do banco (America/Sao_Paulo, Europe/Lisbon...) exigem o pacote tzdata
+# no oráculo; os de regra POSIX (EST5EDT, <-03>3, Nowhere) não dependem dele.
+
+[[case]]
+id = "zdump-now-faketime"
+argv = ["zdump", "UTC", "America/Sao_Paulo", "EST5EDT"]
+faketime = "2026-01-15 12:00:00"
+tags = ["default"]
+
+[[case]]
+id = "zdump-v-utc"
+argv = ["zdump", "-v", "UTC"]
+tags = ["verbose", "null"]
+
+[[case]]
+id = "zdump-v-sao-paulo-window"
+argv = ["zdump", "-v", "-c", "2010,2020", "America/Sao_Paulo"]
+tags = ["verbose", "tzif"]
+
+[[case]]
+id = "zdump-V-new-york"
+argv = ["zdump", "-V", "-c", "2024,2027", "America/New_York"]
+tags = ["verbose", "tzif", "footer"]
+
+[[case]]
+id = "zdump-i-lisbon"
+argv = ["zdump", "-i", "-c", "1990,2000", "Europe/Lisbon"]
+tags = ["table", "tzif"]
+
+[[case]]
+id = "zdump-i-sao-paulo-full"
+argv = ["zdump", "-i", "America/Sao_Paulo"]
+tags = ["table", "tzif"]
+
+[[case]]
+id = "zdump-t-range"
+argv = ["zdump", "-v", "-t", "1700000000,1720000000", "EST5EDT,M3.2.0,M11.1.0"]
+tags = ["verbose", "posix"]
+
+[[case]]
+id = "zdump-posix-angle"
+argv = ["zdump", "-v", "-c", "2000,2001", "<-03>3"]
+tags = ["verbose", "posix"]
+
+[[case]]
+id = "zdump-unknown-name"
+argv = ["zdump", "-V", "-c", "2000,2001", "Nowhere"]
+tags = ["verbose", "warning"]
+
+[[case]]
+id = "zdump-wild-c"
+argv = ["zdump", "-v", "-c", "abc", "UTC"]
+tags = ["error"]
+
+[[case]]
+id = "zdump-wild-t"
+argv = ["zdump", "-V", "-t", "1,2,3", "UTC"]
+tags = ["error"]
+
+[[case]]
+id = "zdump-bad-option"
+argv = ["zdump", "-x", "UTC"]
+tags = ["error", "usage"]
+
+[[case]]
+id = "zdump-missing-arg"
+argv = ["zdump", "-c"]
+tags = ["error", "usage"]
+
+[[case]]
+id = "zdump-help"
+argv = ["zdump", "--help"]
+tags = ["usage"]
+
+[[case]]
+id = "zdump-version"
+argv = ["zdump", "--version"]
+tags = ["usage"]
+
+[[case]]
+id = "zdump-no-operands"
+argv = ["zdump", "-v"]
+tags = ["edge"]
+
+[[case]]
+id = "zdump-equals-operand"
+argv = ["zdump", "="]
+tags = ["edge", "usage"]
+
+[[case]]
+id = "zdump-tzdir"
+script = "TZDIR=/usr/share/zoneinfo/Europe zdump -V -c 2025,2026 Lisbon"
+tags = ["tzdir"]
