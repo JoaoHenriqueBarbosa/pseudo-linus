@@ -55,6 +55,25 @@ impl Uz {
                     error = self.decompress_failure(r, "inflate", quiet_enough);
                 }
             }
+            SHRUNK => {
+                self.method_msg("unshrink");
+                let r = self.unshrink();
+                if r != PK_OK {
+                    if r < PK_DISK {
+                        self.failure_msg(r == PK_MEM3, "unshrink", quiet_enough);
+                    }
+                    error = r;
+                }
+            }
+            IMPLODED => {
+                self.method_msg("explod");
+                let r = self.explode();
+                if r == 5 {
+                    error = self.length_warning(quiet_enough);
+                } else if r != 0 {
+                    error = self.decompress_failure(r, "explode", quiet_enough);
+                }
+            }
             BZIPPED => {
                 self.method_msg("bunzipp");
                 let r = self.bunzip2();
@@ -155,7 +174,13 @@ impl Uz {
         if r >= PK_DISK {
             return r;
         }
-        let why = if r == 3 { "not enough memory to " } else { "invalid compressed data to " };
+        self.failure_msg(r == 3, what, quiet_enough);
+        if r == 3 { PK_MEM3 } else { PK_ERR }
+    }
+
+    /// `ErrUnzipFile` ou `ErrUnzipNoFile`.
+    fn failure_msg(&mut self, no_mem: bool, what: &str, quiet_enough: bool) {
+        let why = if no_mem { "not enough memory to " } else { "invalid compressed data to " };
         let m = if quiet_enough {
             let mut m = format!("  error:  {why}{what} ").into_bytes();
             m.extend(fnfilter(&self.filename));
@@ -165,7 +190,29 @@ impl Uz {
             format!("\n  error:  {why}{what}\n").into_bytes()
         };
         self.info(0x401, m);
-        if r == 3 { PK_MEM3 } else { PK_ERR }
+    }
+
+    /// O explode leu um número de bytes diferente do `csize` (`LengthMsg`): aviso se usou menos,
+    /// erro se usou mais.
+    fn length_warning(&mut self, quiet_enough: bool) -> i32 {
+        let used = self.x.used_csize;
+        let warning = used >= 0 && used as u64 <= self.lrec.csize;
+        let word = if warning { "warning" } else { "error" };
+        let pad = if warning { "  " } else { "" };
+        let (lead, open, close) = if quiet_enough { ("", " [", "]") } else { ("\n", "", ".") };
+        let mut m = format!(
+            "{lead}  {word}:  {used} bytes required to uncompress to {} bytes;\n    {pad}      supposed to require {} bytes",
+            self.lrec.ucsize, self.lrec.csize
+        )
+        .into_bytes();
+        m.extend_from_slice(open.as_bytes());
+        if quiet_enough {
+            m.extend(fnfilter(&self.filename));
+        }
+        m.extend_from_slice(close.as_bytes());
+        m.push(b'\n');
+        self.info(0x401, m);
+        if warning { PK_WARN } else { PK_ERR }
     }
 
     /// STORED: copia os bytes em blocos do tamanho da janela.

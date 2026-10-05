@@ -124,8 +124,11 @@ pub struct Ex {
     pub answerbuf: Vec<u8>,
     /// Um `read()` do zip falhou no meio de um membro: o C sai na hora com `PK_BADERR`.
     pub read_failed: bool,
-    /// A janela do inflate (`slide`): persiste entre membros, como o buffer global do C.
+    /// A janela do inflate (`slide`): persiste entre membros, como o buffer global do C. É a mesma
+    /// área (`G.area`, uma união) das tabelas do unshrink.
     pub slide: Vec<u8>,
+    /// Bytes comprimidos que o explode consumiu quando eles não batem com o `csize`.
+    pub used_csize: i64,
     /// As tabelas do Huffman fixo do deflate e do deflate64, montadas uma vez.
     pub fixed: [Option<super::inflate::Fixed>; 2],
     /// O modo memória (`G.mem_mode`) do inflate de um bloco do campo extra: a saída e quanto

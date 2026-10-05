@@ -7,6 +7,7 @@
 //! `matching` (match.c).
 
 mod crypt;
+mod explode;
 mod extract;
 mod fileio;
 mod inflate;
@@ -20,6 +21,7 @@ mod process;
 mod testef;
 mod text;
 mod unix;
+mod unshrink;
 mod zipinfo;
 
 use sysabi::Fd;
