@@ -190,6 +190,8 @@ enum Ent {
     Sessionid = 20,
     Maps = 21,
     Smaps = 22,
+    OomScore = 23,
+    OomScoreAdj = 24,
 }
 
 impl Ent {
@@ -218,6 +220,8 @@ impl Ent {
             20 => Ent::Sessionid,
             21 => Ent::Maps,
             22 => Ent::Smaps,
+            23 => Ent::OomScore,
+            24 => Ent::OomScoreAdj,
             _ => return None,
         })
     }
@@ -246,6 +250,8 @@ const PID_ENTRIES: &[(&str, Ent)] = &[
     ("cpuset", Ent::Cpuset),
     ("cgroup", Ent::Cgroup),
     ("sessionid", Ent::Sessionid),
+    ("oom_score", Ent::OomScore),
+    ("oom_score_adj", Ent::OomScoreAdj),
 ];
 
 /// `/proc/<pid>/task/<tid>`, na ordem de `tid_base_stuff` (tem `children` e não tem `task`).
@@ -271,6 +277,8 @@ const TASK_ENTRIES: &[(&str, Ent)] = &[
     ("cpuset", Ent::Cpuset),
     ("cgroup", Ent::Cgroup),
     ("sessionid", Ent::Sessionid),
+    ("oom_score", Ent::OomScore),
+    ("oom_score_adj", Ent::OomScoreAdj),
 ];
 
 /// Forma e permissão de uma entrada de processo.
@@ -280,7 +288,7 @@ fn ent_shape(e: Ent) -> (Shape, Mode) {
         Ent::Fd => (Shape::Dir, 0o500),
         Ent::Cwd | Ent::Root | Ent::Exe => (Shape::Link, 0o777),
         Ent::Environ => (Shape::File, 0o400),
-        Ent::Comm => (Shape::File, 0o644),
+        Ent::Comm | Ent::OomScoreAdj => (Shape::File, 0o644),
         _ => (Shape::File, 0o444),
     }
 }
@@ -301,6 +309,8 @@ pub struct Procfs {
     boot: TimeSpec,
     /// Os parâmetros graváveis de `/proc/sys` que não moram no kernel.
     tunables: Mutex<sysctl::Tunables>,
+    /// O `oom_score_adj` gravado de cada processo (o padrão é 0).
+    oom_adj: Mutex<std::collections::HashMap<Pid, i32>>,
 }
 
 impl std::fmt::Debug for Procfs {
@@ -319,7 +329,13 @@ struct NodeInfo {
 
 impl Procfs {
     pub fn new(dev: u64, provider: Arc<dyn ProcProvider>, boot: TimeSpec) -> Arc<Procfs> {
-        Arc::new(Procfs { dev, provider, ns: OnceLock::new(), boot, tunables: Mutex::new(sysctl::Tunables::default()) })
+        Arc::new(Procfs { dev, provider, ns: OnceLock::new(), boot, tunables: Mutex::new(sysctl::Tunables::default()),
+            oom_adj: Mutex::new(std::collections::HashMap::new()),
+        })
+    }
+
+    fn oom_adj_of(&self, pid: Pid) -> i32 {
+        self.oom_adj.lock().unwrap_or_else(|e| e.into_inner()).get(&pid).copied().unwrap_or(0)
     }
 
     /// Liga o procfs ao namespace onde ele está montado (pra `/proc/mounts`).
@@ -554,6 +570,8 @@ impl Procfs {
             Some(Ent::Cpuset) => Ok(b"/\n".to_vec()),
             Some(Ent::Cgroup) => Ok(b"0::/\n".to_vec()),
             Some(Ent::Sessionid) => Ok(b"4294967295".to_vec()),
+            Some(Ent::OomScore) => Ok(b"0\n".to_vec()),
+            Some(Ent::OomScoreAdj) => Ok(format!("{}\n", self.oom_adj_of(pid)).into_bytes()),
             _ => Err(Errno::EINVAL),
         }
     }
@@ -833,6 +851,14 @@ impl FileSystem for Procfs {
                         return Err(Errno::EACCES);
                     }
                 }
+                if kind == KIND_PID || kind == KIND_TASK {
+                    let e = Ent::from_u32(if kind == KIND_PID { n } else { n & 0xff });
+                    if matches!(e, Some(Ent::OomScoreAdj)) {
+                        let (_, pid, _) = split(i);
+                        let data = self.content(cx, i)?;
+                        return Ok(Box::new(OomAdjFile { fs: self, pid, data: Arc::from(data) }));
+                    }
+                }
                 // Os de processo abrem e a escrita dá EINVAL.
                 let data = self.content(cx, i)?;
                 Ok(Box::new(ProcFile { data: Arc::from(data) }))
@@ -874,6 +900,40 @@ impl FileHandle for ProcFile {
 struct ProcDir {
     fs: Arc<Procfs>,
     ino: Ino,
+}
+
+/// `/proc/<pid>/oom_score_adj`: grava o ajuste, de -1000 a 1000 (fora disso o kernel dá EINVAL).
+struct OomAdjFile {
+    fs: Arc<Procfs>,
+    pid: Pid,
+    data: Arc<[u8]>,
+}
+
+impl FileHandle for OomAdjFile {
+    fn read(&self, _cx: &Caller, off: u64, buf: &mut [u8]) -> SysResult<usize> {
+        let off = off.min(self.data.len() as u64) as usize;
+        let n = buf.len().min(self.data.len() - off);
+        buf[..n].copy_from_slice(&self.data[off..off + n]);
+        Ok(n)
+    }
+
+    fn write(&self, _cx: &Caller, _pos: WritePos, buf: &[u8]) -> SysResult<(usize, u64)> {
+        let text = std::str::from_utf8(buf).map_err(|_| Errno::EINVAL)?;
+        let v: i32 = text.trim().parse().map_err(|_| Errno::EINVAL)?;
+        if !(-1000..=1000).contains(&v) {
+            return Err(Errno::EINVAL);
+        }
+        self.fs.oom_adj.lock().unwrap_or_else(|e| e.into_inner()).insert(self.pid, v);
+        Ok((buf.len(), buf.len() as u64))
+    }
+
+    fn size(&self, _cx: &Caller) -> SysResult<u64> {
+        Ok(0)
+    }
+
+    fn seek_end_allowed(&self) -> bool {
+        false
+    }
 }
 
 /// Um arquivo de `/proc/sys` aberto: lê o valor do momento da abertura e escreve pelo handler da

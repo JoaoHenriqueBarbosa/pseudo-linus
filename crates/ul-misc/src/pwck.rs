@@ -98,6 +98,9 @@ fn run(args: &[OsString]) -> i32 {
             io::eprint(format!(
                 "duplicate password entry\ndelete line '{shown}'? No\n"
             ));
+            io::eprint(format!(
+                "duplicate password entry\ndelete line '{shown}'? No\n"
+            ));
             continue;
         }
         seen.push(f[0].to_vec());

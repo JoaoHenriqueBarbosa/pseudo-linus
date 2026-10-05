@@ -12,6 +12,7 @@
 
 pub mod ast;
 pub mod compile;
+pub mod modules;
 pub mod object;
 pub mod parser;
 pub mod token;
@@ -231,7 +232,8 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         return 0;
     }
     if let Some(command) = command {
-        return run_command(&command);
+        let rest: Vec<Vec<u8>> = args[getopt.optind.min(args.len())..].to_vec();
+        return run_command(&command, &rest);
     }
     // `-m`, arquivo e stdin: fatias 13 e 18 (ver o doc do módulo).
     usage_error(&program)
@@ -248,8 +250,20 @@ pub struct Outcome {
 /// thread com pilha grande (reservada, não comprometida) para o limite de recursão de 1000 chamadas
 /// caber na pilha nativa, já que a VM chama a si mesma a cada `def` invocada.
 pub fn run_source(src: &str) -> Outcome {
+    run_source_args(src, vec!["-c".to_string()])
+}
+
+/// Como `run_source`, com `sys.argv` explícito.
+pub fn run_source_args(src: &str, argv: Vec<String>) -> Outcome {
     let owned = src.to_string();
-    let spawned = std::thread::Builder::new().stack_size(1 << 30).spawn(move || run_source_inner(&owned));
+    // A thread nova não herda o pseudo-processo: instala o do chamador para `open`, stdin e stderr.
+    let current = sys::try_current();
+    let spawned = std::thread::Builder::new().stack_size(1 << 30).spawn(move || {
+        if let Some(c) = current {
+            sys::install(c);
+        }
+        run_source_inner(&owned, argv)
+    });
     match spawned.map(|h| h.join()) {
         Ok(Ok(outcome)) => outcome,
         _ => Outcome {
@@ -260,7 +274,7 @@ pub fn run_source(src: &str) -> Outcome {
     }
 }
 
-fn run_source_inner(src: &str) -> Outcome {
+fn run_source_inner(src: &str, argv: Vec<String>) -> Outcome {
     // O `-c` do CPython compila o texto como um arquivo que termina em nova linha.
     let mut src = src.to_string();
     if !src.ends_with('\n') {
@@ -291,7 +305,7 @@ fn run_source_inner(src: &str) -> Outcome {
             return Outcome { stdout: Vec::new(), stderr, status: 1 };
         }
     };
-    let mut machine = vm::Vm::new();
+    let mut machine = vm::Vm::with_argv(argv);
     let result = machine.run(&code);
     let stdout = std::mem::take(&mut machine.stdout);
     match result {
@@ -319,9 +333,11 @@ fn syntax_error(src: &str, kind: &str, e: &parser::ParseError) -> String {
     out
 }
 
-fn run_command(command: &[u8]) -> i32 {
+fn run_command(command: &[u8], rest: &[Vec<u8>]) -> i32 {
     let src = String::from_utf8_lossy(command);
-    let outcome = run_source(&src);
+    let mut argv = vec!["-c".to_string()];
+    argv.extend(rest.iter().map(|a| String::from_utf8_lossy(a).into_owned()));
+    let outcome = run_source_args(&src, argv);
     let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
     if !outcome.stderr.is_empty() {
         write_stderr(&outcome.stderr);
@@ -349,6 +365,18 @@ mod tests {
         assert_eq!(syn.status, 1);
         assert!(syn.stderr.starts_with("  File \"<string>\", line 1\n    1 +\n"), "{}", syn.stderr);
         assert!(syn.stderr.ends_with("SyntaxError: invalid syntax\n"), "{}", syn.stderr);
+    }
+
+    #[test]
+    fn modules_json_csv_sys() {
+        let src = "import csv, sys, json\n\
+                   w = csv.writer(sys.stdout, lineterminator='\\n')\n\
+                   w.writerow(json.loads('[\"a,b\", \"c\\\\\"d\", 1]'))\n\
+                   print(json.dumps(['é', None, True], ensure_ascii=False), sys.argv)\n\
+                   try:\n    import nope\nexcept ImportError as e:\n    print(e)\n";
+        let out = run_source(src);
+        assert_eq!(out.stderr, "");
+        assert_eq!(String::from_utf8_lossy(&out.stdout), "\"a,b\",\"c\"\"d\",1\n[\"é\", null, true] ['-c']\nNo module named 'nope'\n");
     }
 
     #[test]

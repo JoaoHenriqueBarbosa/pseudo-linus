@@ -425,7 +425,8 @@ pub fn ioprio_check(ioprio: i32) -> Result<(), Errno> {
                 Ok(())
             }
         }
-        _ => Err(Errno::EINVAL),
+        // No oráculo (root sem capacidades), classe fora do intervalo cai em EPERM.
+        _ => Err(Errno::EPERM),
     }
 }
 

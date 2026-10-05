@@ -71,6 +71,7 @@ pub fn programs() -> Vec<Program> {
     vec![
         Program::bin("bc", bc::main),
         Program::bin("bzip2recover", bzip2recover::main),
+        Program::bin("captoinfo", term::tic::main),
         Program::bin("choom", choom::main),
         Program::bin("chrt", chrt::main),
         Program::bin("clear", term::clear::main),
@@ -93,6 +94,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("hd", hexdump::main),
         Program::bin("iconv", iconv::main),
         Program::bin("infocmp", term::infocmp::main),
+        Program::bin("infotocap", term::tic::main),
         Program::bin("ionice", ionice::main),
         Program::bin("ischroot", ischroot::main),
         Program::bin("isosize", isosize::main),

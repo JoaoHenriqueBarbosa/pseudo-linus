@@ -1889,7 +1889,10 @@ impl Syscalls for Task {
             // Ordem de travas: `st` antes de `tune`.
             let nice = p.st.lock().nice;
             let t = p.tune.lock();
-            let v = sched::ioprio_effective(t.ioprio, t.sched.policy, nice);
+            // O oráculo devolve a classe NONE (prio 0) quando a prioridade de E/S nunca foi definida,
+            // em vez da classe derivada da nice.
+            let _ = nice;
+            let v = t.ioprio;
             best = Some(best.map_or(v, |b| sched::ioprio_best(b, v)));
         }
         best.ok_or(Errno::ESRCH)

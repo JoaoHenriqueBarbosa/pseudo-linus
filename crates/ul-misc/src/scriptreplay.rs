@@ -30,21 +30,32 @@ const LONGS: &[LongOpt] = &[
 
 const USAGE: &str = "
 Usage:
- scriptreplay [options] [-t] timingfile [typescript [divisor]]
+ scriptreplay [options] <timingfile> [<typescript> [<divisor>]]
 
-Play back typescripts, using timing information.
+Play back terminal typescripts, using timing information.
 
 Options:
- -t, --timing <file>     script timing output file
+ -t, --timing <file>     script timing log file
  -T, --log-timing <file> alias to -t
- -s, --typescript <file> script terminal session output file
- -O, --log-out <file>    script terminal session output file
- -B, --log-io <file>     script terminal session log file with both input and output
- -I, --log-in <file>     script terminal session input file
- -m, --maxdelay <num>    wait at most this many seconds between updates
+ -I, --log-in <file>     script stdin log file
+ -O, --log-out <file>    script stdout log file (default)
+ -B, --log-io <file>     script stdin and stdout log file
+
+ -s, --typescript <file> deprecated alias to -O
+
+     --summary           display overview about recorded session and exit
  -d, --divisor <num>     speed up or slow down execution with time divisor
+ -m, --maxdelay <num>    wait at most this many seconds between updates
+ -x, --stream <name>     stream type (out, in, signal or info)
+ -c, --cr-mode <type>    CR char mode (auto, never, always)
+
  -h, --help              display this help
  -V, --version           display version
+
+Key bindings:
+ space        toggles between pause and play
+ up-arrow     increases playback speed with ten percent
+ down-arrow   decreases playback speed with ten percent
 
 For more details see scriptreplay(1).
 ";
@@ -101,7 +112,7 @@ fn run(args: &[OsString]) -> i32 {
             }
             Some('h') => {
                 let mut out = io::stdout();
-                let _ = out.write_all(&USAGE.as_bytes()[1..]);
+                let _ = out.write_all(USAGE.as_bytes());
                 return 0;
             }
             _ => {
@@ -129,8 +140,7 @@ fn run(args: &[OsString]) -> i32 {
         }
     }
     let Some(timing) = timing else {
-        ul::warnx(&short, "no timing file specified");
-        ul::errtryhelp(&short);
+        ul::warnx(&short, "timing file not specified");
         return 1;
     };
     let typescript = typescript.unwrap_or_else(|| b"typescript".to_vec());

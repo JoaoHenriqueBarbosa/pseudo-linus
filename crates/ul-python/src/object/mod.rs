@@ -51,6 +51,52 @@ pub enum Value {
     Exception(Rc<ExcObj>),
     /// Função definida por `def`.
     Function(Rc<FuncObj>),
+    /// Módulo importado (`sys`, `csv`, `json`), pelo nome.
+    Module(&'static str),
+    /// Objeto nativo com estado (arquivo, leitor ou escritor de `csv`).
+    Native(Rc<RefCell<Native>>),
+    /// Método embutido preso ao receptor (`arquivo.write`).
+    Bound(Rc<BoundMethod>),
+}
+
+/// Método embutido com o receptor já escolhido.
+#[derive(Debug)]
+pub struct BoundMethod {
+    pub recv: Value,
+    pub name: &'static str,
+}
+
+/// De onde vem um arquivo de texto.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileKind {
+    Stdin,
+    Stdout,
+    Stderr,
+    /// Aberto para leitura: o conteúdo já foi lido e dividido em linhas.
+    Read,
+}
+
+/// Arquivo de texto do Python (`sys.stdin`, `sys.stdout`, retorno de `open`).
+#[derive(Debug)]
+pub struct PyFile {
+    pub kind: FileKind,
+    /// Linhas ainda não consumidas, com o terminador (`\n`, ou o original com `newline=''`).
+    pub lines: Vec<String>,
+    pub pos: usize,
+    /// O conteúdo de leitura já foi carregado (o stdin só carrega no primeiro uso).
+    pub loaded: bool,
+    pub closed: bool,
+    pub name: String,
+}
+
+/// Objetos nativos que guardam estado mutável.
+#[derive(Debug)]
+pub enum Native {
+    File(PyFile),
+    /// `csv.reader(arquivo)`: o leitor e a fonte de linhas.
+    CsvReader { reader: crate::modules::csv::Reader, src: Value },
+    /// `csv.writer(arquivo)`: o dialeto e o destino.
+    CsvWriter { dialect: crate::modules::csv::Dialect, target: Value },
 }
 
 /// Função de usuário: o código compilado e os valores padrão dos últimos parâmetros.
@@ -87,6 +133,14 @@ pub const EXC_CLASSES: &[(&str, &str)] = &[
     ("AttributeError", "Exception"),
     ("UnboundLocalError", "NameError"),
     ("RecursionError", "RuntimeError"),
+    ("ImportError", "Exception"),
+    ("ModuleNotFoundError", "ImportError"),
+    ("OSError", "Exception"),
+    ("FileNotFoundError", "OSError"),
+    ("StopIteration", "Exception"),
+    ("UnicodeDecodeError", "ValueError"),
+    ("_csv.Error", "Exception"),
+    ("json.decoder.JSONDecodeError", "ValueError"),
 ];
 
 /// `issubclass(kind, base)` entre exceções embutidas.
@@ -216,6 +270,13 @@ impl Value {
             Value::Builtin(_) => "builtin_function_or_method",
             Value::Exception(e) => e.kind,
             Value::Function(_) => "function",
+            Value::Module(_) => "module",
+            Value::Native(n) => match &*n.borrow() {
+                Native::File(_) => "TextIOWrapper",
+                Native::CsvReader { .. } => "_csv.reader",
+                Native::CsvWriter { .. } => "_csv.writer",
+            },
+            Value::Bound(_) => "builtin_function_or_method",
         }
     }
 
@@ -233,7 +294,12 @@ impl Value {
             Value::Dict(d) => !d.borrow().is_empty(),
             Value::Set(s) => !s.borrow().is_empty(),
             Value::Range(r) => !r.is_empty(),
-            Value::Builtin(_) | Value::Exception(_) | Value::Function(_) => true,
+            Value::Builtin(_)
+            | Value::Exception(_)
+            | Value::Function(_)
+            | Value::Module(_)
+            | Value::Native(_)
+            | Value::Bound(_) => true,
         }
     }
 }
@@ -314,6 +380,13 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
         Value::Exception(e) => out.push_str(&exc_repr(e)),
         Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.code.name, addr(f))),
+        Value::Module(name) => out.push_str(&format!("<module '{name}'>")),
+        Value::Native(n) => match &*n.borrow() {
+            Native::File(f) => out.push_str(&format!("<_io.TextIOWrapper name='{}' mode='r' encoding='utf-8'>", f.name)),
+            Native::CsvReader { .. } => out.push_str("<_csv.reader object>"),
+            Native::CsvWriter { .. } => out.push_str("<_csv.writer object>"),
+        },
+        Value::Bound(b) => out.push_str(&format!("<built-in method {} of {} object at {:#x}>", b.name, b.recv.type_name(), addr(b))),
     }
 }
 
@@ -332,6 +405,9 @@ pub fn is(a: &Value, b: &Value) -> bool {
         (Value::Builtin(x), Value::Builtin(y)) => x == y,
         (Value::Exception(x), Value::Exception(y)) => Rc::ptr_eq(x, y),
         (Value::Function(x), Value::Function(y)) => Rc::ptr_eq(x, y),
+        (Value::Module(x), Value::Module(y)) => x == y,
+        (Value::Native(x), Value::Native(y)) => Rc::ptr_eq(x, y),
+        (Value::Bound(x), Value::Bound(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -394,6 +470,9 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
         (Value::Builtin(x), Value::Builtin(y)) => x == y,
         (Value::Exception(x), Value::Exception(y)) => Rc::ptr_eq(x, y),
         (Value::Function(x), Value::Function(y)) => Rc::ptr_eq(x, y),
+        (Value::Module(x), Value::Module(y)) => x == y,
+        (Value::Native(x), Value::Native(y)) => Rc::ptr_eq(x, y),
+        (Value::Bound(x), Value::Bound(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -422,6 +501,9 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Builtin(name) => Ok(PyStr::new(*name).hash()),
         Value::Exception(e) => Ok((Rc::as_ptr(e) as usize >> 4) as i64),
         Value::Function(f) => Ok((Rc::as_ptr(f) as usize >> 4) as i64),
+        Value::Module(name) => Ok(PyStr::new(*name).hash()),
+        Value::Native(n) => Ok((Rc::as_ptr(n) as usize >> 4) as i64),
+        Value::Bound(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
         Value::List(_) | Value::Dict(_) | Value::Set(_) => {
             Err(ObjError::TypeError(format!("unhashable type: '{}'", v.type_name())))
         }

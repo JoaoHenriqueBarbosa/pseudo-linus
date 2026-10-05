@@ -58,11 +58,10 @@ fn write_adj(pid: &str, adj: i32) -> Result<(), Errno> {
     sys::write_all(f.fd(), format!("{adj}").as_bytes())
 }
 
-/// `strtos32_or_err` restrito ao intervalo aceito pelo kernel.
+/// `strtos32_or_err`: qualquer inteiro de 32 bits; a faixa de -1000 a 1000 quem confere é o kernel.
 fn parse_adj(arg: &[u8]) -> Option<i32> {
     let s = std::str::from_utf8(arg).ok()?;
-    let v: i64 = s.trim_start().parse().ok()?;
-    if (-1000..=1000).contains(&v) { Some(v as i32) } else { None }
+    s.trim_start().parse::<i32>().ok()
 }
 
 fn run(args: &[OsString]) -> i32 {
@@ -143,7 +142,7 @@ fn run(args: &[OsString]) -> i32 {
                 None => {
                     ul::warnx(
                         &short,
-                        format!("failed to parse OOM score adjust value: '{}'", io::lossy(&val)),
+                        format!("invalid adjust argument: '{}'", io::lossy(&val)),
                     );
                     return 1;
                 }
@@ -154,7 +153,7 @@ fn run(args: &[OsString]) -> i32 {
                 _ => {
                     ul::warnx(
                         &short,
-                        format!("failed to parse PID: '{}'", io::lossy(&val)),
+                        format!("invalid PID argument: '{}'", io::lossy(&val)),
                     );
                     return 1;
                 }
@@ -164,12 +163,13 @@ fn run(args: &[OsString]) -> i32 {
     }
     let cmd: &[Vec<u8>] = &argv[i.min(argv.len())..];
 
-    if (pid.is_some() && !cmd.is_empty()) || (pid.is_none() && adj.is_none()) || (pid.is_none() && cmd.is_empty())
-    {
+    if pid.is_none() && cmd.is_empty() {
+        ul::warnx(&short, "no PID or COMMAND specified");
         ul::errtryhelp(&short);
         return 1;
     }
-    if adj.is_none() && pid.is_none() {
+    if pid.is_some() && !cmd.is_empty() {
+        ul::warnx(&short, format!("invalid argument: {}", io::lossy(&cmd[0])));
         ul::errtryhelp(&short);
         return 1;
     }
@@ -178,50 +178,39 @@ fn run(args: &[OsString]) -> i32 {
         let score = match read_int(&proc_path(p, "oom_score")) {
             Ok(v) => v,
             Err(e) => {
-                ul::warn(&short, format!("failed to read OOM score: /proc/{p}/oom_score"), e);
+                ul::warn(&short, "failed to read OOM score value", e);
                 return 1;
             }
         };
         let cur = match read_int(&proc_path(p, "oom_score_adj")) {
             Ok(v) => v,
             Err(e) => {
-                ul::warn(
-                    &short,
-                    format!("failed to read OOM score adjust value: /proc/{p}/oom_score_adj"),
-                    e,
-                );
+                ul::warn(&short, "failed to read OOM score adjust value", e);
                 return 1;
             }
         };
-        let mut out = io::stdout();
-        let _ = out.write_all(
-            format!(
-                "pid {p}'s current OOM score: {score}\npid {p}'s current OOM score adjust value: {cur}\n"
-            )
-            .as_bytes(),
-        );
-    }
-
-    if let Some(a) = adj {
-        let target = pid.clone().unwrap_or_else(|| "self".to_string());
-        if let Err(e) = write_adj(&target, a) {
-            ul::warn(
-                &short,
-                format!("failed to set score adjust value: /proc/{target}/oom_score_adj"),
-                e,
-            );
-            return 1;
-        }
-        if let Some(p) = &pid {
-            let score = read_int(&proc_path(p, "oom_score")).unwrap_or(0);
-            let now = read_int(&proc_path(p, "oom_score_adj")).unwrap_or(a);
+        if adj.is_none() {
             let mut out = io::stdout();
             let _ = out.write_all(
                 format!(
-                    "pid {p}'s new OOM score: {score}\npid {p}'s new OOM score adjust value: {now}\n"
+                    "pid {p}'s current OOM score: {score}\npid {p}'s current OOM score adjust value: {cur}\n"
                 )
                 .as_bytes(),
             );
+        } else if let Some(a) = adj {
+            if let Err(e) = write_adj(p, a) {
+                ul::warn(&short, "failed to set score adjust value", e);
+                return 1;
+            }
+            let mut out = io::stdout();
+            let _ = out.write_all(
+                format!("pid {p}'s OOM score adjust value changed from {cur} to {a}\n").as_bytes(),
+            );
+        }
+    } else if let Some(a) = adj {
+        if let Err(e) = write_adj("self", a) {
+            ul::warn(&short, "failed to set score adjust value", e);
+            return 1;
         }
     }
 

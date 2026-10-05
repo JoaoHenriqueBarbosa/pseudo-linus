@@ -94,6 +94,8 @@ pub enum Op {
     MakeFunction { code: u32, ndefaults: u32 },
     /// Devolve o topo ao chamador.
     Return,
+    /// `import nome`: empilha o módulo.
+    Import(u32),
 }
 
 /// Código compilado de um módulo ou de uma função.
@@ -419,7 +421,18 @@ impl Compiler {
             }
             S::AsyncFunctionDef { .. } => return Err(self.unsupported("async def")),
             S::ClassDef { .. } => return Err(self.unsupported("class")),
-            S::Import { .. } | S::ImportFrom { .. } => return Err(self.unsupported("import")),
+            S::Import { names } => {
+                for alias in names {
+                    if alias.name.contains('.') && alias.asname.is_none() {
+                        return Err(self.unsupported("dotted imports"));
+                    }
+                    let n = self.name(&alias.name);
+                    self.emit(Op::Import(n));
+                    let bound = alias.asname.clone().unwrap_or_else(|| alias.name.clone());
+                    self.emit_store(&bound);
+                }
+            }
+            S::ImportFrom { .. } => return Err(self.unsupported("from-import")),
             S::TryStar { .. } => return Err(self.unsupported("except*")),
             S::Delete { .. } => return Err(self.unsupported("del")),
             S::With { .. } | S::AsyncWith { .. } => return Err(self.unsupported("with")),

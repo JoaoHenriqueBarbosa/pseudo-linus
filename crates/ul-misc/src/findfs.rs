@@ -3,9 +3,9 @@
 //!
 //! Porte do `misc-utils/findfs.c`. O sandbox não tem dispositivos de bloco com superbloco legível nem
 //! cache do blkid, então toda etiqueta bem formada (`LABEL=`, `UUID=`, `PARTLABEL=`, `PARTUUID=`)
-//! termina em "unable to resolve" com saída 2, como acontece no oráculo, que roda em container sem
-//! discos. Sem operando ou com operandos demais sai "bad usage" com a dica de ajuda (saída 1).
-//! Ainda sem conferência de oráculo.
+//! termina em "unable to resolve" com saída 1, como acontece no oráculo, que roda em container sem
+//! discos. Um argumento sem `=` é impresso como veio (saída 0). Sem operando, operandos demais ou
+//! opção inválida a saída é 2.
 
 use std::ffi::OsString;
 use std::io::Write;
@@ -29,13 +29,13 @@ fn usage(short: &str) -> String {
     format!(
         "
 Usage:
- {short} [options] NAME=value
+ {short} [options] {{LABEL,UUID,PARTUUID,PARTLABEL}}=<value>
 
 Find a filesystem by label or UUID.
 
 Options:
- -h, --help         display this help
- -V, --version      display version
+ -h, --help     display this help
+ -V, --version  display version
 
 For more details see findfs(8).
 "
@@ -54,7 +54,7 @@ fn run(args: &[OsString]) -> i32 {
             Err(e) => {
                 io::eprint(format!("{}\n", e.message(&argv0)));
                 ul::errtryhelp(&short);
-                return 1;
+                return 2;
             }
         };
         match o.short() {
@@ -69,7 +69,7 @@ fn run(args: &[OsString]) -> i32 {
             }
             _ => {
                 ul::errtryhelp(&short);
-                return 1;
+                return 2;
             }
         }
     }
@@ -78,9 +78,15 @@ fn run(args: &[OsString]) -> i32 {
     if rest.len() != 1 {
         io::eprint(format!("{short}: bad usage\n"));
         ul::errtryhelp(&short);
-        return 1;
+        return 2;
     }
     let tag = String::from_utf8_lossy(&rest[0]).into_owned();
+    // Sem '=' não é etiqueta: o blkid devolve o próprio argumento como caminho.
+    if !tag.contains('=') {
+        let mut out = io::stdout();
+        let _ = out.write_all(format!("{tag}\n").as_bytes());
+        return 0;
+    }
     io::eprint(format!("{short}: unable to resolve '{tag}'\n"));
-    2
+    1
 }

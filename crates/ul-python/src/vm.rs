@@ -15,14 +15,16 @@
 //!   bloco do stdout do CPython quando ele não é um terminal; `file=` fica para a fatia 13.
 //! - O traceback é a forma simples (sem a linha fonte nem os marcadores), refinada na fatia 11.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::ast::{CmpOp, Operator, UnaryOp};
 use crate::compile::{Code, Op};
+use crate::modules::{csv, json};
 use crate::object::{
-    exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, Dict, ExcObj, FuncObj, ObjError,
-    PyStr, Range, Set, Value, EXC_CLASSES,
+    exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, BoundMethod, Dict, ExcObj,
+    FileKind, FuncObj, Native, ObjError, PyFile, PyStr, Range, Set, Value, EXC_CLASSES,
 };
 
 /// Exceção Python levantada durante a execução: o nome da classe e a mensagem (`str(exc)`). Quando
@@ -104,7 +106,7 @@ pub fn format_traceback(err: &RuntimeError) -> String {
 }
 
 /// Funções embutidas desta fatia.
-const BUILTINS: &[&str] = &["print", "len", "range", "str", "int", "repr"];
+const BUILTINS: &[&str] = &["print", "len", "range", "str", "int", "repr", "open"];
 
 /// Iterador de um laço `for`, que vive na pilha da VM e não é um `Value`.
 enum PyIter {
@@ -117,34 +119,36 @@ enum PyIter {
     Range { next: i64, step: i64, remaining: i64 },
     /// Cópia dos itens (chaves de `dict`, elementos de `set`, bytes de `bytes`).
     Items(Vec<Value>, usize),
+    /// Arquivo (uma linha por passo) ou leitor de `csv` (uma lista de campos por passo).
+    Native(Rc<RefCell<Native>>),
 }
 
 impl PyIter {
-    fn next(&mut self) -> Option<Value> {
-        match self {
+    fn next(&mut self) -> PyResult<Option<Value>> {
+        Ok(match self {
             PyIter::List(items, i) => {
-                let v = items.borrow().get(*i).cloned()?;
+                let Some(v) = items.borrow().get(*i).cloned() else { return Ok(None) };
                 *i += 1;
                 Some(v)
             }
             PyIter::Tuple(items, i) => {
-                let v = items.get(*i).cloned()?;
+                let Some(v) = items.get(*i).cloned() else { return Ok(None) };
                 *i += 1;
                 Some(v)
             }
             PyIter::Items(items, i) => {
-                let v = items.get(*i).cloned()?;
+                let Some(v) = items.get(*i).cloned() else { return Ok(None) };
                 *i += 1;
                 Some(v)
             }
             PyIter::Str(s, pos) => {
-                let c = s.as_str()[*pos..].chars().next()?;
+                let Some(c) = s.as_str()[*pos..].chars().next() else { return Ok(None) };
                 *pos += c.len_utf8();
                 Some(Value::str(c.to_string()))
             }
             PyIter::Range { next, step, remaining } => {
                 if *remaining <= 0 {
-                    return None;
+                    return Ok(None);
                 }
                 let v = *next;
                 *remaining -= 1;
@@ -153,7 +157,8 @@ impl PyIter {
                 }
                 Some(Value::Int(v))
             }
-        }
+            PyIter::Native(n) => native_next(n)?,
+        })
     }
 }
 
@@ -166,6 +171,9 @@ fn get_iter(v: &Value) -> PyResult<PyIter> {
         Value::Dict(d) => PyIter::Items(d.borrow().keys().cloned().collect(), 0),
         Value::Set(s) => PyIter::Items(s.borrow().iter().cloned().collect(), 0),
         Value::Bytes(b) => PyIter::Items(b.iter().map(|&x| Value::Int(i64::from(x))).collect(), 0),
+        Value::Native(n) if matches!(&*n.borrow(), Native::File(_) | Native::CsvReader { .. }) => {
+            PyIter::Native(n.clone())
+        }
         _ => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
     })
 }
@@ -174,7 +182,7 @@ fn get_iter(v: &Value) -> PyResult<PyIter> {
 fn collect(v: &Value) -> PyResult<Vec<Value>> {
     let mut it = get_iter(v)?;
     let mut out = Vec::new();
-    while let Some(x) = it.next() {
+    while let Some(x) = it.next()? {
         out.push(x);
     }
     Ok(out)
@@ -187,7 +195,6 @@ enum Slot {
 }
 
 /// Estado do interpretador: variáveis globais e o buffer do stdout.
-#[derive(Default)]
 pub struct Vm {
     globals: HashMap<String, Value>,
     pub stdout: Vec<u8>,
@@ -195,6 +202,10 @@ pub struct Vm {
     handled: Vec<Value>,
     /// Profundidade de chamadas de função em andamento.
     depth: usize,
+    /// `sys.argv`.
+    argv: Vec<String>,
+    /// `sys.stdin`, `sys.stdout` e `sys.stderr`, criados uma vez.
+    std_files: [Rc<RefCell<Native>>; 3],
 }
 
 /// Limite de recursão (`sys.getrecursionlimit()` do CPython).
@@ -213,7 +224,28 @@ fn internal(msg: &str) -> PyException {
 
 impl Vm {
     pub fn new() -> Vm {
-        Vm::default()
+        Vm::with_argv(Vec::new())
+    }
+
+    pub fn with_argv(argv: Vec<String>) -> Vm {
+        let file = |kind, name: &str| {
+            Rc::new(RefCell::new(Native::File(PyFile {
+                kind,
+                lines: Vec::new(),
+                pos: 0,
+                loaded: !matches!(kind, FileKind::Stdin),
+                closed: false,
+                name: name.to_string(),
+            })))
+        };
+        Vm {
+            globals: HashMap::new(),
+            stdout: Vec::new(),
+            handled: Vec::new(),
+            depth: 0,
+            argv,
+            std_files: [file(FileKind::Stdin, "<stdin>"), file(FileKind::Stdout, "<stdout>"), file(FileKind::Stderr, "<stderr>")],
+        }
     }
 
     /// Executa o código de um módulo.
@@ -447,7 +479,7 @@ impl Vm {
             }
             Op::ForIter(t) => {
                 let next = match stack.last_mut() {
-                    Some(Slot::Iter(it)) => it.next(),
+                    Some(Slot::Iter(it)) => it.next()?,
                     _ => return Err(internal("FOR_ITER without iterator")),
                 };
                 match next {
@@ -567,18 +599,21 @@ impl Vm {
                     self.globals.remove(name);
                 }
             }
+            Op::Import(i) => {
+                let name = &code.names[i as usize];
+                let m = match name.as_str() {
+                    "sys" => "sys",
+                    "csv" => "csv",
+                    "json" => "json",
+                    _ => return Err(exc("ModuleNotFoundError", format!("No module named '{name}'"))),
+                };
+                stack.push(Slot::Val(Value::Module(m)));
+            }
             Op::LoadAttr(i) => {
                 let obj = pop(stack)?;
                 let name = &code.names[i as usize];
-                match (&obj, name.as_str()) {
-                    (Value::Exception(e), "args") => stack.push(Slot::Val(Value::tuple(e.args.clone()))),
-                    _ => {
-                        return Err(exc(
-                            "AttributeError",
-                            format!("'{}' object has no attribute '{name}'", obj.type_name()),
-                        ))
-                    }
-                }
+                let v = self.load_attr(&obj, name)?;
+                stack.push(Slot::Val(v));
             }
             Op::UnpackSequence(n) => {
                 let v = pop(stack)?;
@@ -611,6 +646,9 @@ impl Vm {
         if let Value::Function(f) = func {
             return self.call_function(f, args, kwargs);
         }
+        if let Value::Bound(b) = func {
+            return self.call_method(&b.recv, b.name, args, kwargs);
+        }
         let Value::Builtin(name) = func else {
             return Err(type_error(format!("'{}' object is not callable", func.type_name())));
         };
@@ -621,15 +659,42 @@ impl Vm {
             }
             return Ok(Value::Exception(Rc::new(ExcObj { kind, args })));
         }
-        if name != "print"
+        if !matches!(name, "print" | "open" | "csv.reader" | "csv.writer" | "json.dumps")
             && let Some((kw, _)) = kwargs.first() {
                 return Err(type_error(match name {
-                    "range" | "len" | "repr" => format!("{name}() takes no keyword arguments"),
+                    "range" | "len" | "repr" | "json.loads" => format!("{name}() takes no keyword arguments"),
                     _ => format!("'{kw}' is an invalid keyword argument for {name}()"),
                 }));
             }
         match name {
             "print" => self.print(args, kwargs),
+            "open" => self.open(args, kwargs),
+            "csv.reader" | "csv.writer" => self.csv_open(name, args, kwargs),
+            "json.dumps" => {
+                let mut ensure_ascii = true;
+                for (k, v) in &kwargs {
+                    match k.as_str() {
+                        "ensure_ascii" => ensure_ascii = v.is_true(),
+                        _ => return Err(type_error(format!("dumps() got an unexpected keyword argument '{k}'"))),
+                    }
+                }
+                let [v] = one_arg(name, args)?;
+                match json::dumps(&v, ensure_ascii) {
+                    Ok(s) => Ok(Value::str(s)),
+                    Err(m) if m.starts_with("Object of type") => Err(type_error(m)),
+                    Err(m) => Err(exc("ValueError", m)),
+                }
+            }
+            "json.loads" => {
+                let [v] = one_arg(name, args)?;
+                let Value::Str(s) = &v else {
+                    return Err(type_error(format!(
+                        "the JSON object must be str, bytes or bytearray, not {}",
+                        v.type_name()
+                    )));
+                };
+                json::loads(s.as_str()).map_err(|e| exc("json.decoder.JSONDecodeError", e.msg))
+            }
             "len" => {
                 let [v] = one_arg(name, args)?;
                 Ok(Value::Int(len(&v)?))
@@ -657,6 +722,7 @@ impl Vm {
     fn print(&mut self, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
         let mut sep = " ".to_string();
         let mut end = "\n".to_string();
+        let mut file: Option<Value> = None;
         for (name, value) in kwargs {
             match name.as_str() {
                 "sep" | "end" => {
@@ -679,15 +745,354 @@ impl Vm {
                     }
                 }
                 "file" if matches!(value, Value::None) => {}
-                "file" => return Err(exc("NotImplementedError", "print(file=...) is not supported yet")),
+                "file" => file = Some(value),
                 "flush" => {}
                 _ => return Err(type_error(format!("'{name}' is an invalid keyword argument for print()"))),
             }
         }
         let parts: Vec<String> = args.iter().map(to_str).collect();
-        self.stdout.extend_from_slice(parts.join(&sep).as_bytes());
-        self.stdout.extend_from_slice(end.as_bytes());
+        let text = format!("{}{}", parts.join(&sep), end);
+        match file {
+            Some(f) => {
+                self.write_to(&f, &text)?;
+            }
+            None => self.stdout.extend_from_slice(text.as_bytes()),
+        }
         Ok(Value::None)
+    }
+
+    /// `arquivo.write(texto)`: devolve a quantidade de caracteres.
+    fn write_to(&mut self, target: &Value, text: &str) -> PyResult<usize> {
+        let Value::Native(n) = target else {
+            return Err(exc("AttributeError", format!("'{}' object has no attribute 'write'", target.type_name())));
+        };
+        let kind = match &*n.borrow() {
+            Native::File(f) => {
+                if f.closed {
+                    return Err(exc("ValueError", "I/O operation on closed file."));
+                }
+                f.kind
+            }
+            _ => return Err(exc("AttributeError", format!("'{}' object has no attribute 'write'", target.type_name()))),
+        };
+        match kind {
+            FileKind::Stdout => self.stdout.extend_from_slice(text.as_bytes()),
+            FileKind::Stderr => {
+                // O stderr do CPython é sem buffer; o stdout pendente sai antes, para manter a ordem.
+                let _ = sysabi::sys::write_all(sysabi::Fd::STDOUT, &self.stdout);
+                self.stdout.clear();
+                let _ = sysabi::sys::write_all(sysabi::Fd::STDERR, text.as_bytes());
+            }
+            _ => return Err(exc("UnsupportedOperation", "not writable")),
+        }
+        Ok(text.chars().count())
+    }
+
+    fn load_attr(&mut self, obj: &Value, name: &str) -> PyResult<Value> {
+        let missing = || {
+            exc("AttributeError", format!("'{}' object has no attribute '{name}'", obj.type_name()))
+        };
+        match obj {
+            Value::Exception(e) if name == "args" => Ok(Value::tuple(e.args.clone())),
+            Value::Module("sys") => match name {
+                "argv" => Ok(Value::list(self.argv.iter().map(|a| Value::str(a.clone())).collect())),
+                "stdin" => Ok(Value::Native(self.std_files[0].clone())),
+                "stdout" => Ok(Value::Native(self.std_files[1].clone())),
+                "stderr" => Ok(Value::Native(self.std_files[2].clone())),
+                _ => Err(exc("AttributeError", format!("module 'sys' has no attribute '{name}'"))),
+            },
+            Value::Module("csv") => match name {
+                "reader" => Ok(Value::Builtin("csv.reader")),
+                "writer" => Ok(Value::Builtin("csv.writer")),
+                "Error" => Ok(Value::Builtin("_csv.Error")),
+                "QUOTE_MINIMAL" => Ok(Value::Int(i64::from(csv::QUOTE_MINIMAL))),
+                "QUOTE_ALL" => Ok(Value::Int(i64::from(csv::QUOTE_ALL))),
+                "QUOTE_NONNUMERIC" => Ok(Value::Int(i64::from(csv::QUOTE_NONNUMERIC))),
+                "QUOTE_NONE" => Ok(Value::Int(i64::from(csv::QUOTE_NONE))),
+                "QUOTE_STRINGS" => Ok(Value::Int(i64::from(csv::QUOTE_STRINGS))),
+                "QUOTE_NOTNULL" => Ok(Value::Int(i64::from(csv::QUOTE_NOTNULL))),
+                _ => Err(exc("AttributeError", format!("module 'csv' has no attribute '{name}'"))),
+            },
+            Value::Module("json") => match name {
+                "dumps" => Ok(Value::Builtin("json.dumps")),
+                "loads" => Ok(Value::Builtin("json.loads")),
+                "JSONDecodeError" => Ok(Value::Builtin("json.decoder.JSONDecodeError")),
+                _ => Err(exc("AttributeError", format!("module 'json' has no attribute '{name}'"))),
+            },
+            Value::Native(n) => {
+                let methods: &[&'static str] = match &*n.borrow() {
+                    Native::File(_) => &["write", "read", "readline", "readlines", "close", "flush"],
+                    Native::CsvWriter { .. } => &["writerow", "writerows"],
+                    Native::CsvReader { reader, .. } => {
+                        if name == "line_num" {
+                            return Ok(Value::Int(reader.line_num as i64));
+                        }
+                        &[]
+                    }
+                };
+                match methods.iter().find(|m| **m == name) {
+                    Some(m) => Ok(Value::Bound(Rc::new(BoundMethod { recv: obj.clone(), name: m }))),
+                    None if name == "closed" => match &*n.borrow() {
+                        Native::File(f) => Ok(Value::Bool(f.closed)),
+                        _ => Err(missing()),
+                    },
+                    None if name == "name" => match &*n.borrow() {
+                        Native::File(f) => Ok(Value::str(f.name.clone())),
+                        _ => Err(missing()),
+                    },
+                    None => Err(missing()),
+                }
+            }
+            _ => Err(missing()),
+        }
+    }
+
+    fn call_method(
+        &mut self,
+        recv: &Value,
+        name: &'static str,
+        args: Vec<Value>,
+        kwargs: Vec<(String, Value)>,
+    ) -> PyResult<Value> {
+        if let Some((kw, _)) = kwargs.first() {
+            return Err(type_error(format!("{name}() takes no keyword arguments ('{kw}' given)")));
+        }
+        let Value::Native(n) = recv else { return Err(internal("bound method without native receiver")) };
+        match name {
+            "write" => {
+                let [v] = one_arg(name, args)?;
+                let Value::Str(s) = &v else {
+                    return Err(type_error(format!("write() argument must be str, not {}", v.type_name())));
+                };
+                Ok(Value::Int(self.write_to(recv, s.as_str())? as i64))
+            }
+            "flush" => Ok(Value::None),
+            "close" => {
+                if let Native::File(f) = &mut *n.borrow_mut() {
+                    f.closed = true;
+                }
+                Ok(Value::None)
+            }
+            "read" => {
+                let mut out = String::new();
+                while let Some(l) = file_readline(n)? {
+                    out.push_str(&l);
+                }
+                Ok(Value::str(out))
+            }
+            "readline" => Ok(Value::str(file_readline(n)?.unwrap_or_default())),
+            "readlines" => {
+                let mut out = Vec::new();
+                while let Some(l) = file_readline(n)? {
+                    out.push(Value::str(l));
+                }
+                Ok(Value::list(out))
+            }
+            "writerow" | "writerows" => {
+                let [row] = one_arg(name, args)?;
+                let (dialect, target) = match &*n.borrow() {
+                    Native::CsvWriter { dialect, target } => (dialect.clone(), target.clone()),
+                    _ => return Err(internal("writerow on non-writer")),
+                };
+                let rows = if name == "writerow" { vec![row] } else { collect(&row)? };
+                let mut last = Value::None;
+                for r in rows {
+                    let fields = match &r {
+                        Value::Str(_) | Value::Int(_) | Value::Float(_) | Value::Bool(_) | Value::None => {
+                            return Err(exc("_csv.Error", format!("iterable expected, not {}", r.type_name())))
+                        }
+                        _ => collect(&r)?,
+                    };
+                    let line = csv::writerow(&dialect, &fields).map_err(|e| exc("_csv.Error", e.msg))?;
+                    last = Value::Int(self.write_to(&target, &line)? as i64);
+                }
+                Ok(if name == "writerow" { last } else { Value::None })
+            }
+            _ => Err(internal("unknown method")),
+        }
+    }
+
+    /// `open(path, mode='r', ..., newline=None, encoding=None)`: só leitura de texto UTF-8.
+    fn open(&mut self, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+        let mut newline_keep = false;
+        let mut mode = "r".to_string();
+        for (k, v) in &kwargs {
+            match k.as_str() {
+                "newline" => newline_keep = matches!(v, Value::Str(s) if s.as_str().is_empty()),
+                "encoding" | "errors" => {}
+                "mode" => mode = to_str(v),
+                _ => return Err(type_error(format!("open() got an unexpected keyword argument '{k}'"))),
+            }
+        }
+        if let Some(m) = args.get(1) {
+            mode = to_str(m);
+        }
+        let Some(Value::Str(path)) = args.first() else {
+            return Err(type_error("expected str, bytes or os.PathLike object"));
+        };
+        if mode != "r" && mode != "rt" {
+            return Err(exc("NotImplementedError", format!("open(mode={mode:?}) is not supported yet")));
+        }
+        let path = path.as_str().to_string();
+        let bytes = match sysabi::sys::read_file(path.as_bytes()) {
+            Ok(b) => b,
+            Err(e) => {
+                let kind = if e == sysabi::Errno::ENOENT { "FileNotFoundError" } else { "OSError" };
+                let msg = format!("[Errno {}] {}: '{path}'", e.0, e.message());
+                return Err(exc(kind, msg));
+            }
+        };
+        let text = String::from_utf8(bytes).map_err(|e| {
+            let at = e.utf8_error().valid_up_to();
+            let b = e.as_bytes()[at];
+            exc("UnicodeDecodeError", format!("'utf-8' codec can't decode byte 0x{b:02x} in position {at}: invalid start byte"))
+        })?;
+        Ok(Value::Native(Rc::new(RefCell::new(Native::File(PyFile {
+            kind: FileKind::Read,
+            lines: split_lines(&text, newline_keep),
+            pos: 0,
+            loaded: true,
+            closed: false,
+            name: path,
+        })))))
+    }
+
+    /// `csv.reader(f, **dialeto)` e `csv.writer(f, **dialeto)`.
+    fn csv_open(&mut self, name: &str, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+        let Some(target) = args.first().cloned() else {
+            return Err(type_error(format!("expected at least 1 argument, got 0")));
+        };
+        let mut d = csv::Dialect::default();
+        let one_char = |k: &str, v: &Value| -> PyResult<Option<char>> {
+            match v {
+                Value::None => Ok(None),
+                Value::Str(s) if s.as_str().chars().count() == 1 => Ok(s.as_str().chars().next()),
+                Value::Str(_) => Err(type_error(format!("\"{k}\" must be a unicode character or None, not a string of length {}", match v { Value::Str(s) => s.as_str().chars().count(), _ => 0 }))),
+                _ => Err(type_error(format!("\"{k}\" must be string or None, not {}", v.type_name()))),
+            }
+        };
+        for (k, v) in &kwargs {
+            match k.as_str() {
+                "delimiter" => d.delimiter = one_char(k, v)?.ok_or_else(|| type_error("\"delimiter\" must be a 1-character string"))?,
+                "quotechar" => d.quotechar = one_char(k, v)?,
+                "escapechar" => d.escapechar = one_char(k, v)?,
+                "doublequote" => d.doublequote = v.is_true(),
+                "skipinitialspace" => d.skipinitialspace = v.is_true(),
+                "strict" => d.strict = v.is_true(),
+                "lineterminator" => d.lineterminator = to_str(v),
+                "quoting" => match v {
+                    Value::Int(i) => d.quoting = *i as i32,
+                    _ => return Err(type_error("\"quoting\" must be an integer")),
+                },
+                _ => return Err(type_error(format!("'{k}' is an invalid keyword argument for {name}()"))),
+            }
+        }
+        let native = if name == "csv.reader" {
+            collect_check_iter(&target)?;
+            Native::CsvReader { reader: csv::Reader::new(d), src: target }
+        } else {
+            Native::CsvWriter { dialect: d, target }
+        };
+        Ok(Value::Native(Rc::new(RefCell::new(native))))
+    }
+}
+
+/// O alvo de `csv.reader` precisa ser iterável.
+fn collect_check_iter(v: &Value) -> PyResult<()> {
+    get_iter(v).map(|_| ())
+}
+
+/// Divide o texto em linhas com o terminador. Com `keep` (`newline=''`) o terminador original
+/// fica; sem ele (`newline=None`) `\r\n` e `\r` viram `\n`.
+fn split_lines(text: &str, keep: bool) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    let mut it = text.chars().peekable();
+    while let Some(c) = it.next() {
+        match c {
+            '\n' => {
+                cur.push('\n');
+                out.push(std::mem::take(&mut cur));
+            }
+            '\r' => {
+                let crlf = it.peek() == Some(&'\n');
+                if crlf {
+                    it.next();
+                }
+                if keep {
+                    cur.push('\r');
+                    if crlf {
+                        cur.push('\n');
+                    }
+                } else {
+                    cur.push('\n');
+                }
+                out.push(std::mem::take(&mut cur));
+            }
+            c => cur.push(c),
+        }
+    }
+    if !cur.is_empty() {
+        out.push(cur);
+    }
+    out
+}
+
+/// Próxima linha de um arquivo de texto (o stdin carrega no primeiro uso).
+fn file_readline(n: &Rc<RefCell<Native>>) -> PyResult<Option<String>> {
+    let mut b = n.borrow_mut();
+    let Native::File(f) = &mut *b else { return Err(type_error("not a file")) };
+    if f.closed {
+        return Err(exc("ValueError", "I/O operation on closed file."));
+    }
+    if !f.loaded {
+        f.loaded = true;
+        let bytes = sysabi::sys::read_to_end(sysabi::Fd::STDIN).unwrap_or_default();
+        f.lines = split_lines(&String::from_utf8_lossy(&bytes), false);
+    }
+    if f.kind == FileKind::Stdout || f.kind == FileKind::Stderr {
+        return Err(exc("UnsupportedOperation", "not readable"));
+    }
+    let l = f.lines.get(f.pos).cloned();
+    if l.is_some() {
+        f.pos += 1;
+    }
+    Ok(l)
+}
+
+/// Próximo item de um arquivo (linha) ou de um leitor de `csv` (lista de campos).
+fn native_next(n: &Rc<RefCell<Native>>) -> PyResult<Option<Value>> {
+    let is_reader = matches!(&*n.borrow(), Native::CsvReader { .. });
+    if !is_reader {
+        return Ok(file_readline(n)?.map(Value::str));
+    }
+    let src = match &*n.borrow() {
+        Native::CsvReader { src, .. } => src.clone(),
+        _ => return Ok(None),
+    };
+    let mut it = get_iter(&src)?;
+    // O iterador da fonte é recriado a cada linha: arquivo e leitor guardam a posição neles mesmos,
+    // as demais fontes (listas) são raras e leem pela posição própria do `PyIter::List`.
+    let mut err: Option<PyException> = None;
+    let mut next_line = || match it.next() {
+        Ok(Some(Value::Str(s))) => Some(s.as_str().to_string()),
+        Ok(_) => None,
+        Err(e) => {
+            err = Some(e);
+            None
+        }
+    };
+    let row = {
+        let mut b = n.borrow_mut();
+        let Native::CsvReader { reader, .. } = &mut *b else { return Ok(None) };
+        reader.next_row(&mut next_line)
+    };
+    if let Some(e) = err {
+        return Err(e);
+    }
+    match row.map_err(|e| exc("_csv.Error", e.msg))? {
+        Some(fields) => Ok(Some(Value::list(fields.into_iter().map(Value::str).collect()))),
+        None => Ok(None),
     }
 }
 
