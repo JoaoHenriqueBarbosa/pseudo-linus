@@ -1,7 +1,7 @@
 //! `mkfs` do util-linux 2.41: frontal que despacha para os `mkfs.<tipo>`.
 //!
-//! Os tipos que o pseudo-linus implementa (`minix`, `bfs`, `cramfs`) são chamados direto; os demais
-//! falham como o `execvp` do original quando o construtor não existe no sistema.
+//! O oráculo (Debian 13) não traz nenhum `mkfs.<tipo>`, então o despacho falha como o `execvp` do
+//! original quando o construtor não existe no sistema.
 
 use std::ffi::OsString;
 use std::io::Write;
@@ -84,13 +84,8 @@ pub fn main(ctx: &mut Ctx, args: &[OsString]) -> i32 {
     let prog = format!("mkfs.{fstype}");
     let mut sub: Vec<OsString> = vec![OsString::from(&prog)];
     sub.extend(rest);
-    match fstype.as_str() {
-        "minix" => crate::mkfs_minix::main(ctx, &sub),
-        "bfs" => crate::mkfs_bfs::main(ctx, &sub),
-        "cramfs" => crate::cramfs::mkfs_main(ctx, &sub),
-        _ => {
-            ul::warnx(&short, format!("failed to execute {prog}: No such file or directory"));
-            1
-        }
-    }
+    // O oráculo não tem nenhum `mkfs.<tipo>`: o `execvp` do original falha sempre.
+    let _ = (ctx, sub);
+    ul::warnx(&short, format!("failed to execute {prog}: No such file or directory"));
+    1
 }
