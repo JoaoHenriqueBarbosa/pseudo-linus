@@ -1,0 +1,335 @@
+tool = "gettext"
+source = "manual"
+
+# gettext e ngettext do gettext-base 0.23.1. Sem catálogos de mensagem no oráculo, a tradução devolve
+# o próprio texto (e o plural inglês no ngettext); os casos cobrem opções, escapes do -e, o modo -s
+# (echo), a leitura do COUNT pelo strtoul e as mensagens de erro e de uso.
+
+[[case]]
+id = "gettext-plain"
+argv = ["gettext", "hello world"]
+
+[[case]]
+id = "gettext-no-newline-added"
+argv = ["gettext", "a b"]
+tags = ["output"]
+
+[[case]]
+id = "gettext-no-args"
+argv = ["gettext"]
+
+[[case]]
+id = "gettext-too-many"
+argv = ["gettext", "a", "b", "c"]
+
+[[case]]
+id = "gettext-domain-operand"
+argv = ["gettext", "dom", "msg"]
+
+[[case]]
+id = "gettext-domain-option"
+argv = ["gettext", "-d", "dom", "msg"]
+
+[[case]]
+id = "gettext-domain-long"
+argv = ["gettext", "--domain=dom", "msg"]
+
+[[case]]
+id = "gettext-domain-long-prefix"
+argv = ["gettext", "--dom", "dom", "msg"]
+
+[[case]]
+id = "gettext-domain-attached"
+argv = ["gettext", "-ddom", "msg"]
+
+[[case]]
+id = "gettext-domain-option-and-operand"
+argv = ["gettext", "-d", "one", "two", "msg"]
+
+[[case]]
+id = "gettext-context"
+argv = ["gettext", "-c", "ctx", "-d", "dom", "msg"]
+
+[[case]]
+id = "gettext-context-long"
+argv = ["gettext", "--context=ctx", "msg"]
+
+[[case]]
+id = "gettext-textdomain-env"
+argv = ["gettext", "msg"]
+env = { TEXTDOMAIN = "dom", TEXTDOMAINDIR = "/nonexistent" }
+
+[[case]]
+id = "gettext-ignored-E"
+argv = ["gettext", "-E", "a\\tb"]
+
+[[case]]
+id = "gettext-escapes-basic"
+argv = ["gettext", "-e", "a\\tb\\nc\\\\d"]
+
+[[case]]
+id = "gettext-escapes-all"
+argv = ["gettext", "-e", "\\a\\b\\f\\r\\v|"]
+tags = ["escapes"]
+
+[[case]]
+id = "gettext-escapes-octal"
+argv = ["gettext", "-e", "\\101\\1011\\0101\\7\\18"]
+
+[[case]]
+id = "gettext-escapes-nul-truncates"
+argv = ["gettext", "-e", "abc\\0def"]
+
+[[case]]
+id = "gettext-escapes-unknown"
+argv = ["gettext", "-e", "a\\qb\\xc\\"]
+
+[[case]]
+id = "gettext-escapes-backslash-c"
+argv = ["gettext", "-e", "x\\cy"]
+
+[[case]]
+id = "gettext-escapes-off-by-default"
+argv = ["gettext", "a\\tb"]
+
+[[case]]
+id = "gettext-shell-basic"
+argv = ["gettext", "-s", "a", "b", "c"]
+
+[[case]]
+id = "gettext-shell-no-newline"
+argv = ["gettext", "-s", "-n", "a", "b"]
+
+[[case]]
+id = "gettext-shell-long"
+argv = ["gettext", "--shell-script", "x", "y"]
+
+[[case]]
+id = "gettext-shell-no-args"
+argv = ["gettext", "-s"]
+
+[[case]]
+id = "gettext-shell-no-args-n"
+argv = ["gettext", "-s", "-n"]
+
+[[case]]
+id = "gettext-shell-escape-c"
+argv = ["gettext", "-s", "-e", "x\\cy", "z"]
+
+[[case]]
+id = "gettext-shell-escape-c-last"
+argv = ["gettext", "-s", "-e", "x\\c"]
+
+[[case]]
+id = "gettext-shell-domain"
+argv = ["gettext", "-s", "-d", "dom", "a", "b"]
+
+[[case]]
+id = "gettext-shell-dash-operand"
+argv = ["gettext", "-s", "a", "-n", "c"]
+
+[[case]]
+id = "gettext-n-without-shell"
+argv = ["gettext", "-n", "msg"]
+
+[[case]]
+id = "gettext-double-dash"
+argv = ["gettext", "--", "-n"]
+
+[[case]]
+id = "gettext-operand-then-option"
+argv = ["gettext", "msg", "-n"]
+
+[[case]]
+id = "gettext-help"
+argv = ["gettext", "--help"]
+
+[[case]]
+id = "gettext-help-short"
+argv = ["gettext", "-h"]
+
+[[case]]
+id = "gettext-help-help2man"
+argv = ["gettext", "--help"]
+env = { IN_HELP2MAN = "1" }
+
+[[case]]
+id = "gettext-version"
+argv = ["gettext", "--version"]
+
+[[case]]
+id = "gettext-version-short"
+argv = ["gettext", "-V"]
+
+[[case]]
+id = "gettext-version-beats-help"
+argv = ["gettext", "-h", "-V"]
+
+[[case]]
+id = "gettext-invalid-option"
+argv = ["gettext", "-Z"]
+
+[[case]]
+id = "gettext-invalid-long"
+argv = ["gettext", "--bogus"]
+
+[[case]]
+id = "gettext-missing-arg-d"
+argv = ["gettext", "-d"]
+
+[[case]]
+id = "gettext-missing-arg-c"
+argv = ["gettext", "-c"]
+
+[[case]]
+id = "gettext-long-missing-arg"
+argv = ["gettext", "--domain"]
+
+[[case]]
+id = "gettext-long-unexpected-arg"
+argv = ["gettext", "--help=1"]
+
+[[case]]
+id = "gettext-empty-msgid"
+argv = ["gettext", ""]
+
+[[case]]
+id = "gettext-utf8-msgid"
+argv = ["gettext", "ação é ótima"]
+
+[[case]]
+id = "ngettext-singular"
+argv = ["ngettext", "one file", "many files", "1"]
+
+[[case]]
+id = "ngettext-plural"
+argv = ["ngettext", "one file", "many files", "2"]
+
+[[case]]
+id = "ngettext-zero"
+argv = ["ngettext", "one file", "many files", "0"]
+
+[[case]]
+id = "ngettext-count-empty"
+argv = ["ngettext", "a", "b", ""]
+
+[[case]]
+id = "ngettext-count-text"
+argv = ["ngettext", "a", "b", "x"]
+
+[[case]]
+id = "ngettext-count-trailing"
+argv = ["ngettext", "a", "b", "1x"]
+
+[[case]]
+id = "ngettext-count-leading-space"
+argv = ["ngettext", "a", "b", " 1"]
+
+[[case]]
+id = "ngettext-count-trailing-space"
+argv = ["ngettext", "a", "b", "1 "]
+
+[[case]]
+id = "ngettext-count-plus"
+argv = ["ngettext", "a", "b", "+1"]
+
+[[case]]
+id = "ngettext-count-minus"
+argv = ["ngettext", "a", "b", "-1"]
+
+[[case]]
+id = "ngettext-count-leading-zero"
+argv = ["ngettext", "a", "b", "001"]
+
+[[case]]
+id = "ngettext-count-hex"
+argv = ["ngettext", "a", "b", "0x1"]
+
+[[case]]
+id = "ngettext-count-float"
+argv = ["ngettext", "a", "b", "1.0"]
+
+[[case]]
+id = "ngettext-count-overflow"
+argv = ["ngettext", "a", "b", "18446744073709551617"]
+
+[[case]]
+id = "ngettext-count-wraps-to-one"
+argv = ["ngettext", "a", "b", "-18446744073709551615"]
+
+[[case]]
+id = "ngettext-count-max"
+argv = ["ngettext", "a", "b", "18446744073709551615"]
+
+[[case]]
+id = "ngettext-domain-operand"
+argv = ["ngettext", "dom", "a", "b", "1"]
+
+[[case]]
+id = "ngettext-domain-option"
+argv = ["ngettext", "-d", "dom", "a", "b", "2"]
+
+[[case]]
+id = "ngettext-context"
+argv = ["ngettext", "-c", "ctx", "a", "b", "1"]
+
+[[case]]
+id = "ngettext-textdomain-env"
+argv = ["ngettext", "a", "b", "1"]
+env = { TEXTDOMAIN = "dom" }
+
+[[case]]
+id = "ngettext-escapes"
+argv = ["ngettext", "-e", "a\\tb", "c\\nd", "2"]
+
+[[case]]
+id = "ngettext-escape-backslash-c"
+argv = ["ngettext", "-e", "x\\cy", "p\\cq", "1"]
+
+[[case]]
+id = "ngettext-escape-nul"
+argv = ["ngettext", "-e", "a\\0b", "c\\0d", "5"]
+
+[[case]]
+id = "ngettext-no-args"
+argv = ["ngettext"]
+
+[[case]]
+id = "ngettext-two-args"
+argv = ["ngettext", "a", "b"]
+
+[[case]]
+id = "ngettext-too-many"
+argv = ["ngettext", "d", "a", "b", "1", "extra"]
+
+[[case]]
+id = "ngettext-rejects-shell-option"
+argv = ["ngettext", "-s", "a", "b", "1"]
+
+[[case]]
+id = "ngettext-rejects-n-option"
+argv = ["ngettext", "-n", "a", "b", "1"]
+
+[[case]]
+id = "ngettext-help"
+argv = ["ngettext", "--help"]
+
+[[case]]
+id = "ngettext-help-short"
+argv = ["ngettext", "-h"]
+
+[[case]]
+id = "ngettext-version"
+argv = ["ngettext", "--version"]
+
+[[case]]
+id = "ngettext-invalid-option"
+argv = ["ngettext", "-Z"]
+
+[[case]]
+id = "ngettext-missing-arg"
+argv = ["ngettext", "-d"]
+
+[[case]]
+id = "ngettext-long-prefix"
+argv = ["ngettext", "--c", "x", "a", "b", "1"]

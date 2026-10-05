@@ -1,7 +1,8 @@
 //! Ferramentas diversas do pseudo-linus, fiéis às do Debian 13 byte a byte: `bc` (GNU bc 1.07.1),
 //! `file` (5.46), `column`, `hexdump`/`hd` e `more` (util-linux 2.41), `tree` (2.2.1), `xxd`
-//! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst` (gettext 0.23),
-//! `less` não interativo, `clear`/`tput` (ncurses 6.5), `iconv`, `getconf` e `locale` (glibc 2.41).
+//! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst`, `gettext` e
+//! `ngettext` (gettext 0.23), `less` não interativo, `clear`/`tput` (ncurses 6.5), `iconv`,
+//! `getconf`, `getent` e `locale` (glibc 2.41).
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
@@ -9,6 +10,7 @@ pub mod bc;
 pub mod column;
 pub mod envsubst;
 pub mod file;
+pub mod gettext;
 pub mod hexdump;
 pub mod pager;
 pub mod rev;
@@ -27,6 +29,8 @@ pub fn programs() -> Vec<Program> {
         Program::bin("column", column::main),
         Program::bin("envsubst", envsubst::main),
         Program::bin("file", file::cli::main),
+        Program::bin("gettext", gettext::gettext_main),
+        Program::bin("ngettext", gettext::ngettext_main),
         Program::bin("hexdump", hexdump::main),
         Program::bin("hd", hexdump::main),
         Program::bin("less", pager::less_main),
