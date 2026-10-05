@@ -1,0 +1,35 @@
+tool = "lsipc"
+source = "manual"
+
+# lsipc do util-linux 2.41. Só saídas determinísticas: a ajuda, a versão e erros de uso (as
+# facilidades IPC reais dependem da máquina da bancada).
+
+[[case]]
+id = "lsipc-help"
+argv = ["lsipc", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "lsipc-version"
+argv = ["lsipc", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "lsipc-bad-option"
+argv = ["lsipc", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "lsipc-bad-long-option"
+argv = ["lsipc", "--nope"]
+tags = ["error"]
+
+[[case]]
+id = "lsipc-bad-usage"
+argv = ["lsipc", "extra"]
+tags = ["error"]
+
+[[case]]
+id = "lsipc-unknown-column"
+argv = ["lsipc", "-o", "FOO"]
+tags = ["error"]

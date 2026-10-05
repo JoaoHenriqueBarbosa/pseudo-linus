@@ -1,0 +1,40 @@
+tool = "lslocks"
+source = "manual"
+
+# lslocks do util-linux 2.41. Só saídas determinísticas: a ajuda, a versão, a lista de colunas e
+# erros de uso (os locks reais dependem da máquina da bancada).
+
+[[case]]
+id = "lslocks-help"
+argv = ["lslocks", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "lslocks-version"
+argv = ["lslocks", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "lslocks-list-columns"
+argv = ["lslocks", "-H"]
+tags = ["help"]
+
+[[case]]
+id = "lslocks-bad-option"
+argv = ["lslocks", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "lslocks-bad-long-option"
+argv = ["lslocks", "--nope"]
+tags = ["error"]
+
+[[case]]
+id = "lslocks-bad-usage"
+argv = ["lslocks", "extra"]
+tags = ["error"]
+
+[[case]]
+id = "lslocks-unknown-column"
+argv = ["lslocks", "-o", "FOO"]
+tags = ["error"]

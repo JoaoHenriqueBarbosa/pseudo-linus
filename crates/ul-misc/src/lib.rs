@@ -44,6 +44,8 @@ pub mod locale;
 pub mod logger;
 pub mod look;
 pub mod lscpu;
+pub mod lsipc;
+pub mod lslocks;
 pub mod lsmem;
 pub mod mcookie;
 pub mod mountpoint;
@@ -122,6 +124,8 @@ pub fn programs() -> Vec<Program> {
         Program::bin("logger", logger::main),
         Program::bin("look", look::main),
         Program::bin("lscpu", lscpu::main),
+        Program::bin("lsipc", lsipc::main),
+        Program::bin("lslocks", lslocks::main),
         Program::bin("lsmem", lsmem::main),
         Program::bin("mcookie", mcookie::main),
         Program::bin("mountpoint", mountpoint::main),
