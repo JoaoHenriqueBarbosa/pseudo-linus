@@ -1,5 +1,6 @@
-//! Codecs de compressão, todos em Rust puro (decisão do F08/H31): deflate/gzip pelo `flate2` com o
-//! backend `zlib-rs`, bzip2 pelo `bzip2` (libbz2-rs-sys), xz, lzma e lzip pelo `lzma-rust2`, zstd pelo
+//! Codecs de compressão, todos em Rust puro (decisão do F08/H31): a compressão gzip é o deflate do
+//! gzip 1.13 portado ([`crate::gailly`]) e a descompressão é do `flate2` com o backend `zlib-rs`;
+//! bzip2 pelo `bzip2` (libbz2-rs-sys), xz, lzma e lzip pelo `lzma-rust2`, zstd pelo
 //! `structured-zstd`.
 //!
 //! O enquadramento gzip (cabeçalho, membros concatenados, CRC e ISIZE, sobra no fim) e o laço de
@@ -10,6 +11,9 @@
 //! [`decoder`]).
 
 use std::io::{self, Cursor, Read, Write};
+
+use crate::gailly::BlockSink;
+use crate::gailly::gzip::GzDeflate;
 
 /// Formato de compressão.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -428,34 +432,121 @@ pub struct Encoder<W: Write> {
     kind: EncoderKind<W>,
 }
 
-/// Deflate cru (RFC 1951) em fluxo, com CRC-32 e contagem da entrada, pro gzip e pro zip.
+/// Deflate cru (RFC 1951) em fluxo, com CRC-32 e contagem da entrada, pro gzip.
 ///
-/// A compressão é do `miniz_oxide`: medido contra o gzip 1.13 no corpus do F08, ele fica com saída do
-/// mesmo tamanho (log de texto: 1,02x no nível 1, 0,95x no 6; dados binários: 0,92x a 1,01x) e guarda
-/// em bloco sem compressão o que não comprime, enquanto o `zlib-rs` (estratégias do zlib-ng) sai até
-/// 31% maior nos níveis 1 a 6 e expande dado aleatório em 5% no nível 1. A descompressão continua no
-/// `zlib-rs`, que é mais rápido.
+/// A compressão é o `deflate.c`/`trees.c` do gzip 1.13 portado ([`crate::gailly::gzip`]), então a
+/// saída é idêntica à do gzip do Debian em todos os níveis (e à do `tar -z`, que chama o gzip). A
+/// descompressão continua no `zlib-rs`, que é mais rápido.
 pub struct RawDeflate<W: Write> {
+    sink: DeflateSink<W>,
+    d: Box<GzDeflate>,
+    crc: crc32fast::Hasher,
+    size: u64,
+}
+
+/// O destino dos blocos: o escritor de baixo, a contagem e o primeiro erro (o deflate não tem como
+/// devolver erro no meio de um bloco; o erro sai na próxima escrita ou no fim).
+struct DeflateSink<W: Write> {
+    w: W,
+    written: u64,
+    err: Option<io::Error>,
+}
+
+impl<W: Write> BlockSink for DeflateSink<W> {
+    fn write(&mut self, data: &[u8]) {
+        if self.err.is_some() {
+            return;
+        }
+        match self.w.write_all(data) {
+            Ok(()) => self.written += data.len() as u64,
+            Err(e) => self.err = Some(e),
+        }
+    }
+
+    fn seekable(&mut self) -> bool {
+        false
+    }
+
+    fn use_descriptors(&self) -> bool {
+        false
+    }
+}
+
+impl<W: Write> RawDeflate<W> {
+    /// Níveis 1 a 9, como no gzip.
+    pub fn new(level: u32, w: W) -> RawDeflate<W> {
+        RawDeflate::with_state(level, false, Box::default(), w)
+    }
+
+    /// Com o estado de um arquivo anterior da mesma execução (a janela do C é global) e o
+    /// `--rsyncable`.
+    pub fn with_state(level: u32, rsync: bool, mut d: Box<GzDeflate>, w: W) -> RawDeflate<W> {
+        d.start(level, rsync);
+        RawDeflate { sink: DeflateSink { w, written: 0, err: None }, d, crc: crc32fast::Hasher::new(), size: 0 }
+    }
+
+    /// Bytes comprimidos escritos até agora.
+    pub fn written(&self) -> u64 {
+        self.sink.written
+    }
+
+    fn check(&mut self) -> io::Result<()> {
+        match self.sink.err.take() {
+            Some(e) => Err(e),
+            None => Ok(()),
+        }
+    }
+
+    /// Fecha o fluxo deflate. Devolve o escritor, o CRC-32, o tamanho da entrada e o estado.
+    pub fn finish_with_state(mut self) -> io::Result<(W, u32, u64, Box<GzDeflate>)> {
+        self.d.finish(&mut self.sink);
+        self.check()?;
+        Ok((self.sink.w, self.crc.finalize(), self.size, self.d))
+    }
+
+    /// Fecha o fluxo deflate. Devolve o escritor, o CRC-32 e o tamanho da entrada.
+    pub fn finish(self) -> io::Result<(W, u32, u64)> {
+        let (w, crc, size, _) = self.finish_with_state()?;
+        Ok((w, crc, size))
+    }
+}
+
+impl<W: Write> Write for RawDeflate<W> {
+    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
+        self.crc.update(data);
+        self.size += data.len() as u64;
+        self.d.feed(data, &mut self.sink);
+        self.check()?;
+        Ok(data.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+/// Deflate cru em fluxo no lugar do zlib, pro `zstd --format=gzip` (o zstd do Debian chama o
+/// `deflate` do zlib 1.3, que não é o do gzip). É do `miniz_oxide`, que guarda em bloco sem
+/// compressão o que não comprime e aceita o nível 0 (só blocos armazenados), mas não reproduz o zlib
+/// byte a byte.
+pub struct MinizDeflate<W: Write> {
     w: W,
     c: Box<miniz_oxide::deflate::core::CompressorOxide>,
     buf: Vec<u8>,
     crc: crc32fast::Hasher,
     size: u64,
-    /// Bytes comprimidos escritos até agora.
-    pub written: u64,
 }
 
-impl<W: Write> RawDeflate<W> {
-    /// Nível 0 grava só blocos sem compressão; 1 a 9 como no gzip.
-    pub fn new(level: u32, w: W) -> RawDeflate<W> {
+impl<W: Write> MinizDeflate<W> {
+    /// Nível 0 grava só blocos sem compressão; 1 a 9 como no zlib.
+    pub fn new(level: u32, w: W) -> MinizDeflate<W> {
         let flags = miniz_oxide::deflate::core::create_comp_flags_from_zip_params(level.min(10) as i32, -15, 0);
-        RawDeflate {
+        MinizDeflate {
             w,
             c: Box::new(miniz_oxide::deflate::core::CompressorOxide::new(flags)),
             buf: vec![0u8; 64 * 1024],
             crc: crc32fast::Hasher::new(),
             size: 0,
-            written: 0,
         }
     }
 
@@ -467,7 +558,6 @@ impl<W: Write> RawDeflate<W> {
             let (st, consumed, produced) = compress(&mut self.c, input, &mut self.buf, flush);
             if produced > 0 {
                 self.w.write_all(&self.buf[..produced])?;
-                self.written += produced as u64;
             }
             input = &input[consumed..];
             match st {
@@ -491,7 +581,7 @@ impl<W: Write> RawDeflate<W> {
     }
 }
 
-impl<W: Write> Write for RawDeflate<W> {
+impl<W: Write> Write for MinizDeflate<W> {
     fn write(&mut self, data: &[u8]) -> io::Result<usize> {
         self.crc.update(data);
         self.size += data.len() as u64;
@@ -537,6 +627,26 @@ impl<W: Write> Encoder<W> {
             )),
         };
         Ok(Encoder { kind })
+    }
+
+    /// Compressor gzip que reaproveita o estado do deflate de um arquivo anterior da mesma execução
+    /// (como a janela global do C) e liga o `--rsyncable`.
+    pub fn gzip_with_state(level: u32, rsync: bool, gz: &GzipHeader, state: Box<GzDeflate>, mut w: W) -> io::Result<Encoder<W>> {
+        w.write_all(&gzip_header_bytes(gz, level))?;
+        Ok(Encoder { kind: EncoderKind::Gzip(RawDeflate::with_state(level, rsync, state, w)) })
+    }
+
+    /// Fecha um compressor gzip e devolve também o estado do deflate, pro próximo arquivo.
+    pub fn finish_gzip(self) -> io::Result<(W, Box<GzDeflate>)> {
+        match self.kind {
+            EncoderKind::Gzip(d) => {
+                let (mut w, crc, size, state) = d.finish_with_state()?;
+                w.write_all(&crc.to_le_bytes())?;
+                w.write_all(&(size as u32).to_le_bytes())?;
+                Ok((w, state))
+            }
+            _ => Err(io::Error::other("finish_gzip: o compressor não é gzip")),
+        }
     }
 
     /// Fecha o fluxo e devolve o escritor.

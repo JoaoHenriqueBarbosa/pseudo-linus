@@ -10,6 +10,7 @@ use super::crypt::{crc32_update, crypthead};
 use super::deflate::{Deflate, DeflateIo};
 use super::extra::{copy_nondup_extra_fields, put_lg, put_sh};
 use super::state::{Exit, R, Zip, Zlist};
+use crate::gailly::BlockSink;
 use crate::sysutil;
 
 /// `percent`: a redução percentual de `n` para `m`, só com inteiros.
@@ -174,11 +175,7 @@ struct ZipIo<'a> {
     err: Option<Exit>,
 }
 
-impl DeflateIo for ZipIo<'_> {
-    fn read(&mut self, buf: &mut [u8]) -> usize {
-        self.rd.file_read(buf)
-    }
-
+impl BlockSink for ZipIo<'_> {
     fn write(&mut self, data: &[u8]) {
         if self.err.is_some() {
             return;
@@ -188,12 +185,20 @@ impl DeflateIo for ZipIo<'_> {
         }
     }
 
+    /// `fseekable(y)`: o `fseeko` da glibc despeja o buffer antes de tentar, então isto também
+    /// despeja a saída.
     fn seekable(&mut self) -> bool {
         self.zip.y.as_mut().map(|y| y.fseekable()).unwrap_or(true)
     }
 
     fn use_descriptors(&self) -> bool {
         self.zip.use_descriptors
+    }
+}
+
+impl DeflateIo for ZipIo<'_> {
+    fn read(&mut self, buf: &mut [u8]) -> usize {
+        self.rd.file_read(buf)
     }
 
     fn slide(&mut self) {

@@ -4,7 +4,8 @@
 //! que passa do fim da entrada, então a saída só é idêntica se esse estado também for).
 
 use super::consts::{MAX_DIST, MAX_MATCH, MIN_LOOKAHEAD, MIN_MATCH, WSIZE};
-use super::trees::Trees;
+use crate::gailly::BlockSink;
+use crate::gailly::trees::Trees;
 
 const HASH_BITS: usize = 15;
 const HASH_SIZE: usize = 1 << HASH_BITS;
@@ -20,15 +21,10 @@ const H_SHIFT: u32 = ((HASH_BITS + MIN_MATCH - 1) / MIN_MATCH) as u32;
 const CONFIG: [(u32, u32, i32, u32); 10] =
     [(0, 0, 0, 0), (4, 4, 8, 4), (4, 5, 16, 8), (4, 6, 32, 32), (4, 4, 16, 16), (8, 16, 32, 32), (8, 16, 128, 128), (8, 32, 128, 256), (32, 128, 258, 1024), (32, 258, 258, 4096)];
 
-/// A ligação do deflate com o mundo: leitura da entrada (que atualiza o crc e o tamanho) e escrita da
-/// saída (que cifra e conta os bytes).
-pub trait DeflateIo {
+/// A ligação do deflate com o mundo: leitura da entrada (que atualiza o crc e o tamanho) e, pelo
+/// [`BlockSink`], escrita da saída (que cifra e conta os bytes).
+pub trait DeflateIo: BlockSink {
     fn read(&mut self, buf: &mut [u8]) -> usize;
-    fn write(&mut self, data: &[u8]);
-    /// `fseekable(y)`: o `fseeko` da glibc despeja o buffer antes de tentar, então isto também
-    /// despeja a saída.
-    fn seekable(&mut self) -> bool;
-    fn use_descriptors(&self) -> bool;
     /// Chamado a cada deslize da janela (pontos do `-dd`).
     fn slide(&mut self) {}
 }
@@ -175,7 +171,7 @@ impl Deflate {
         } else {
             None
         };
-        self.ct.flush_block(buf, stored_len, eof, io)
+        self.ct.flush_block(buf, stored_len, false, eof, io)
     }
 
     fn fill_window(&mut self, io: &mut dyn DeflateIo) {

@@ -11,6 +11,7 @@ use sysabi::{Errno, Fd, Stat, TimeSpec};
 
 use super::common::{self, Input, Sink};
 use crate::codec::{self, GzipHeader, GzipHeaderInfo};
+use crate::gailly::gzip::GzDeflate;
 use crate::getopt::{Getopt, HasArg, Item, LongOpt};
 use crate::sysutil::Output;
 
@@ -141,6 +142,10 @@ struct Gzip {
     quiet: bool,
     verbose: i32,
     recursive: bool,
+    rsync: bool,
+    /// O estado do deflate entre os arquivos (a janela do C é global e os bytes velhos influenciam
+    /// as correspondências no fim do arquivo seguinte).
+    deflate: Option<Box<GzDeflate>>,
     suffix: Vec<u8>,
     test: bool,
     presume_tty: bool,
@@ -171,6 +176,8 @@ impl Gzip {
             quiet: false,
             verbose: 0,
             recursive: false,
+            rsync: false,
+            deflate: None,
             suffix: b".gz".to_vec(),
             test: false,
             presume_tty: false,
@@ -288,6 +295,7 @@ impl Gzip {
                     self.verbose = 0;
                 }
                 0x72 => self.recursive = true,
+                RSYNCABLE => self.rsync = true,
                 0x53 => {
                     let s = o.arg.unwrap_or_default();
                     if s.is_empty() || s.len() > 30 {
@@ -389,9 +397,10 @@ impl Gzip {
     }
 
     /// Comprime `input` em `sink` com o cabeçalho dado. Devolve o tamanho de cabeçalho mais rodapé.
-    fn zip(&self, input: &mut Input, sink: &mut Sink, header: &GzipHeader) -> Result<u64, Errno> {
+    fn zip(&mut self, input: &mut Input, sink: &mut Sink, header: &GzipHeader) -> Result<u64, Errno> {
         let hlen = codec::gzip_header_bytes(header, self.level).len() as u64 + 8;
-        let mut enc = codec::Encoder::new(codec::Format::Gzip, self.level, header, &mut *sink)
+        let state = self.deflate.take().unwrap_or_default();
+        let mut enc = codec::Encoder::gzip_with_state(self.level, self.rsync, header, state, &mut *sink)
             .map_err(|e| Errno::from_io(&e))?;
         loop {
             let chunk = input.fill();
@@ -405,7 +414,8 @@ impl Gzip {
         if let Some(e) = input.error {
             return Err(e);
         }
-        enc.finish().map_err(|e| Errno::from_io(&e))?;
+        let (_, state) = enc.finish_gzip().map_err(|e| Errno::from_io(&e))?;
+        self.deflate = Some(state);
         Ok(hlen)
     }
 

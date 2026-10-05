@@ -1,8 +1,7 @@
-//! Árvores de Huffman e saída em bits do deflate do Info-ZIP (trees.c). Porte fiel: a saída precisa
-//! ser idêntica à do zip do Debian, que usa o `deflate.c`/`trees.c` próprios (não o zlib).
+//! Árvores de Huffman e saída em bits do deflate (trees.c), comuns ao zip 3.0 e ao gzip 1.13. Porte
+//! fiel: a saída precisa ser idêntica à desses programas, que usam o `trees.c` próprio (não o zlib).
 
-use super::consts::{ASCII, BINARY, MAX_MATCH, MIN_MATCH, STORE, UNKNOWN};
-use super::deflate::DeflateIo;
+use super::{ASCII, BINARY, BlockSink, MAX_MATCH, MIN_MATCH, STORE, UNKNOWN};
 
 const MAX_BITS: usize = 15;
 const MAX_BL_BITS: i32 = 7;
@@ -688,9 +687,10 @@ impl Trees {
     /// `flush_block`: escolhe a melhor codificação do bloco (armazenado, estático ou dinâmico),
     /// escreve na saída em bits e devolve o tamanho comprimido do arquivo até aqui. `buf` é o bloco
     /// de entrada, ou `None` se já saiu da janela. `io.write` recebe os bytes prontos (e os cifra).
-    /// `io.seekable` só é consultado onde o C chama `seekable()`, porque o `fseeko` dele despeja a
-    /// saída e isso muda a ordem do que aparece num pipe.
-    pub fn flush_block(&mut self, buf: Option<&[u8]>, stored_len: u64, eof: bool, io: &mut dyn DeflateIo) -> u64 {
+    /// `io.seekable` só é consultado onde o C chama `seekable()`, porque o `fseeko` do zip despeja a
+    /// saída e isso muda a ordem do que aparece num pipe. `pad` é o do gzip `--rsyncable`: fora do
+    /// fim, completa o byte com um bloco armazenado vazio.
+    pub fn flush_block<S: BlockSink + ?Sized>(&mut self, buf: Option<&[u8]>, stored_len: u64, pad: bool, eof: bool, io: &mut S) -> u64 {
         self.flag_buf[self.last_flags] = self.flags;
         if self.file_type == UNKNOWN {
             self.set_file_type();
@@ -743,6 +743,11 @@ impl Trees {
         if eof {
             self.bits.windup();
             self.cmpr_len_bits += 7;
+        } else if pad && self.cmpr_len_bits != 0 {
+            self.bits.send_bits(0, 3);
+            self.cmpr_bytelen += ((self.cmpr_len_bits + 3 + 7) >> 3) + 4;
+            self.cmpr_len_bits = 0;
+            self.copy_block(&[], 0, true, &mut |d| io.write(d));
         }
         if !self.bits.out.is_empty() {
             let out = std::mem::take(&mut self.bits.out);

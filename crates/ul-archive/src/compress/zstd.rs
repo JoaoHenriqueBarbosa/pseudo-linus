@@ -1024,7 +1024,7 @@ fn encode_gzip(job: &Job, sink: &mut Sink, rp: &mut ReadPool, read: &mut u64) ->
         0
     };
     sink.put(&[0x1f, 0x8b, 8, 0, 0, 0, 0, 0, xfl, 3]).map_err(|_| EncError::Write)?;
-    let mut d = codec::RawDeflate::new(level as u32, &mut *sink);
+    let mut d = codec::MinizDeflate::new(level as u32, &mut *sink);
     pump(&mut d, rp, read)?;
     let (w, crc, size) = d.finish().map_err(|_| EncError::Write)?;
     w.put(&crc.to_le_bytes()).map_err(|_| EncError::Write)?;

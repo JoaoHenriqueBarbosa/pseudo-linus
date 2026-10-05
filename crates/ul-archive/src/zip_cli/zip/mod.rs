@@ -1,11 +1,11 @@
 //! `zip` do Info-ZIP 3.0 (Debian 3.0-15+deb13u1), portado do C com as opções de compilação do pacote
 //! (`zip -v`): Unix, UTF-8, Zip64, bzip2, links simbólicos, horários UT, UID/GID e a cifra tradicional.
-//! O deflate é o `deflate.c`/`trees.c` do próprio zip, para que o arquivo gerado seja idêntico byte a
-//! byte ao do original.
+//! O deflate é o `deflate.c` do próprio zip, com o `trees.c` comum em `crate::gailly`, para que o
+//! arquivo gerado seja idêntico byte a byte ao do original.
 //!
 //! Um módulo por responsabilidade: `opts` (a tabela de opções e `get_option`), `run` (a leitura da
 //! linha de comando), `exec` (o resto do `main`), `scan` e `names` (escolha dos arquivos), `zipread` e
-//! `zipwrite` (zipfile.c), `zipup` (zipup.c), `deflate` e `trees` (a compressão), `crypt` (a cifra),
+//! `zipwrite` (zipfile.c), `zipup` (zipup.c), `deflate` (a compressão), `crypt` (a cifra),
 //! `matching` (curingas), `msg` (mensagens), `out` (arquivo de saída) e `helpers`.
 
 mod consts;
@@ -25,7 +25,6 @@ mod scan;
 mod state;
 mod text;
 mod times;
-mod trees;
 mod zipread;
 mod zipup;
 mod zipwrite;

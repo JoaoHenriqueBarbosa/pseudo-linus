@@ -7,6 +7,7 @@
 //! `sysabi`.
 
 pub mod codec;
+pub mod gailly;
 pub mod getopt;
 pub mod sysutil;
 pub mod tz;
