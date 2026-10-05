@@ -12,7 +12,7 @@ use std::io::Write;
 use sysabi::{Ctx, Errno, Fd, Whence, sys};
 
 use crate::util::io::{self, File};
-use crate::util::ul::{self, Wide, is_wspace, peek_wide};
+use crate::util::ul::{self, WideReader, is_wspace};
 use crate::util::{Getopt, HasArg, LongOpt};
 
 const OUTPUT_COLS: usize = 132;
@@ -53,32 +53,19 @@ struct Ctl<W: Write> {
 
 /// Uma entrada lida inteira, decodificada como o `fgetwc` da glibc.
 struct Src {
-    data: Vec<u8>,
-    pos: usize,
-    /// Erro de leitura, devolvido na primeira leitura de caractere.
-    read_err: Option<Errno>,
+    r: WideReader,
     /// `ftell`/`fseek` funcionam (arquivo comum); em pipe não.
     seekable: bool,
-    eof: bool,
 }
 
 impl Src {
     /// `fgetwc_or_err`: `Ok(None)` no fim, `Err` com o errno que o `err()` imprimiria.
     fn getwc(&mut self) -> Result<Option<char>, Errno> {
-        if let Some(e) = self.read_err {
-            return Err(e);
-        }
-        match peek_wide(&self.data, self.pos) {
-            Wide::Char(c) => {
-                self.pos += c.len_utf8();
-                Ok(Some(c))
-            }
-            Wide::Eof | Wide::Truncated => {
-                self.eof = true;
-                Ok(None)
-            }
-            Wide::Invalid(_) => Err(Errno::EILSEQ),
-        }
+        self.r.getwc()
+    }
+
+    fn at_eof(&self) -> bool {
+        self.r.at_eof()
     }
 }
 
@@ -174,7 +161,7 @@ impl<W: Write> Ctl<W> {
                     if c == Some('\n') {
                         break;
                     }
-                    if src.eof {
+                    if src.at_eof() {
                         return Ok(());
                     }
                     if !src.seekable {
@@ -312,10 +299,7 @@ fn run(args: &[OsString]) -> i32 {
             match File::open(path) {
                 Ok(mut f) => {
                     let seekable = is_seekable(f.fd());
-                    match f.read_to_end_sys() {
-                        Ok(d) => Src { data: d, pos: 0, read_err: None, seekable, eof: false },
-                        Err(e) => Src { data: Vec::new(), pos: 0, read_err: Some(e), seekable, eof: false },
-                    }
+                    Src { r: WideReader::new(f.read_to_end_sys()), seekable }
                 }
                 Err(e) => {
                     let _ = ctl.out.flush();
@@ -325,10 +309,7 @@ fn run(args: &[OsString]) -> i32 {
             }
         } else {
             let seekable = is_seekable(Fd::STDIN);
-            match io::read_stdin() {
-                Ok(d) => Src { data: d, pos: 0, read_err: None, seekable, eof: false },
-                Err(e) => Src { data: Vec::new(), pos: 0, read_err: Some(e), seekable, eof: false },
-            }
+            Src { r: WideReader::new(io::read_stdin()), seekable }
         };
 
         if let Err(e) = ctl.colcrt(&mut src) {

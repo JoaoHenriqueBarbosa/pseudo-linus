@@ -129,3 +129,49 @@ pub fn peek_wide(data: &[u8], pos: usize) -> Wide {
         }
     }
 }
+
+/// Uma entrada lida inteira e entregue caractere a caractere como o `fgetwc` da glibc em C.UTF-8
+/// (`fgetwc_or_err` do util-linux): UTF-8 inválido é erro (EILSEQ), sequência incompleta no fim da
+/// entrada conta como fim, e uma falha de leitura (diretório, por exemplo) aparece na primeira leitura.
+pub struct WideReader {
+    data: Vec<u8>,
+    pos: usize,
+    read_err: Option<Errno>,
+    eof: bool,
+}
+
+impl WideReader {
+    pub fn new(content: Result<Vec<u8>, Errno>) -> WideReader {
+        match content {
+            Ok(data) => WideReader { data, pos: 0, read_err: None, eof: false },
+            Err(e) => WideReader { data: Vec::new(), pos: 0, read_err: Some(e), eof: false },
+        }
+    }
+
+    /// `true` depois que uma leitura bateu no fim da entrada (o `feof`).
+    pub fn at_eof(&self) -> bool {
+        self.eof
+    }
+
+    /// O próximo caractere sem consumir (o que o `ungetwc` devolveria): `Ok(None)` no fim.
+    pub fn peek(&self) -> Result<Option<char>, Errno> {
+        if let Some(e) = self.read_err {
+            return Err(e);
+        }
+        match peek_wide(&self.data, self.pos) {
+            Wide::Char(c) => Ok(Some(c)),
+            Wide::Eof | Wide::Truncated => Ok(None),
+            Wide::Invalid(_) => Err(Errno::EILSEQ),
+        }
+    }
+
+    /// `fgetwc_or_err`: consome e devolve o próximo caractere, `Ok(None)` no fim.
+    pub fn getwc(&mut self) -> Result<Option<char>, Errno> {
+        let c = self.peek()?;
+        match c {
+            Some(ch) => self.pos += ch.len_utf8(),
+            None => self.eof = true,
+        }
+        Ok(c)
+    }
+}

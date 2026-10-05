@@ -16,7 +16,7 @@ use sysabi::{Ctx, Errno};
 
 use crate::getopt_cmd::engine::{Engine, LongDef};
 use crate::util::io;
-use crate::util::ul::{self, Wide, peek_wide, wcwidth};
+use crate::util::ul::{self, WideReader, wcwidth};
 
 const USAGE: &str = "
 Usage:
@@ -32,30 +32,7 @@ For more details see colrm(1).
 ";
 
 /// A entrada inteira, lida como o `fgetwc` da glibc em C.UTF-8.
-struct Reader {
-    data: Vec<u8>,
-    pos: usize,
-    /// Erro de leitura do stdin, devolvido na primeira leitura.
-    read_err: Option<Errno>,
-}
-
-impl Reader {
-    /// `fgetwc_or_err`: `Ok(None)` no fim, `Err` com o errno que o `err()` imprimiria.
-    fn getwc(&mut self) -> Result<Option<char>, Errno> {
-        if let Some(e) = self.read_err {
-            return Err(e);
-        }
-        match peek_wide(&self.data, self.pos) {
-            Wide::Char(c) => {
-                self.pos += c.len_utf8();
-                Ok(Some(c))
-            }
-            // Sequência incompleta no fim da entrada conta como fim de arquivo, sem erro.
-            Wide::Eof | Wide::Truncated => Ok(None),
-            Wide::Invalid(_) => Err(Errno::EILSEQ),
-        }
-    }
-}
+type Reader = WideReader;
 
 fn putwc(out: &mut impl Write, c: char) {
     let mut b = [0u8; 4];
@@ -190,11 +167,7 @@ fn run(args: &[OsString]) -> i32 {
         }
     }
 
-    let (data, read_err) = match io::read_stdin() {
-        Ok(d) => (d, None),
-        Err(e) => (Vec::new(), Some(e)),
-    };
-    let mut rd = Reader { data, pos: 0, read_err };
+    let mut rd = Reader::new(io::read_stdin());
     let mut out = io::stdout();
     loop {
         match process_input(&mut rd, &mut out, first, last) {
