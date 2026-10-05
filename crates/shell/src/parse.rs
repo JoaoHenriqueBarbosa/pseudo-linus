@@ -21,11 +21,14 @@ pub struct SyntaxError {
     pub message: String,
     /// Segunda linha que o bash imprime em "near unexpected token" (o texto da linha, sem aspas).
     pub context: Option<String>,
+    /// Segundo diagnóstico, impresso depois deste (linha e mensagem próprias, sem contexto): o
+    /// bash emite dois quando o erro nasce no meio de uma leitura aninhada (o regex do `[[`).
+    pub follow: Option<(Line, String)>,
 }
 
 impl SyntaxError {
     pub fn new(line: Line, message: String) -> SyntaxError {
-        SyntaxError { line, message, context: None }
+        SyntaxError { line, message, context: None, follow: None }
     }
 }
 
@@ -95,13 +98,72 @@ fn tokenizer_error(e: &TokenizerError, src: &str, offset: Line) -> SyntaxError {
 fn viable(tokens: &[Token], k: usize, opts: &ParserOptions) -> bool {
     match brush_parser::parse_tokens(&tokens[..k], opts) {
         Ok(_) => true,
+        // Só o fim do texto sem mais nada a consumir quer dizer "falta texto". Falha marcada num
+        // token do prefixo (inclusive no último) é um token que nenhuma continuação conserta: o PEG
+        // registra a falha mais distante, e uma alternativa que tivesse consumido o prefixo inteiro
+        // e esperasse mais empurraria a falha para o fim (`if then`: o erro é o `then`).
         Err(ParseError::ParsingAtEndOfInput) => true,
-        Err(ParseError::ParsingNear(pos)) => {
-            // Falha marcada no último token consumido conta como "precisa de mais texto".
-            tokens[..k].iter().position(|t| t.location().start.index >= pos.index).is_none_or(|i| i + 1 >= k)
-        }
         Err(_) => false,
     }
+}
+
+/// O regex do `[[ x =~ ... ]]` tem `(` sem o `)` correspondente até o fim do texto?
+///
+/// No bash, depois do `=~` o analisador lê a palavra em modo regex: um `(` abre um par casado
+/// (`parse_matched_pair`) que engole espaços e quebras de linha até o `)` e, se o texto acaba antes,
+/// diz "unexpected EOF while looking for matching `)'" na linha do `(`. O token da leitura falha, e
+/// o `cond_term` acrescenta "unexpected argument to conditional binary operator" na linha do fim.
+/// O tokenizador do brush não conhece esse modo (o `(` vira operador comum), então o erro é
+/// reconstruído aqui sobre os tokens: devolve a linha (relativa ao texto) do `(` que ficou aberto.
+fn unclosed_regex_paren(tokens: &[Token]) -> Option<usize> {
+    let mut in_cond = false;
+    let mut i = 0;
+    while i < tokens.len() {
+        match &tokens[i] {
+            Token::Word(w, _) if w == "[[" => in_cond = true,
+            Token::Word(w, _) if w == "]]" => in_cond = false,
+            Token::Word(w, _) if w == "=~" && in_cond => {
+                // Palavra do regex: tokens colados (sem espaço entre eles) a partir do `=~`.
+                let mut depth = 0usize;
+                let mut open_line = 0usize;
+                let mut prev_end: Option<usize> = None;
+                let mut j = i + 1;
+                while j < tokens.len() {
+                    let t = &tokens[j];
+                    let loc = t.location();
+                    if depth == 0 && prev_end.is_some_and(|pe| loc.start.index > pe) {
+                        break;
+                    }
+                    match t {
+                        Token::Operator(op, _) if op == "(" => {
+                            if depth == 0 {
+                                open_line = loc.start.line;
+                            }
+                            depth += 1;
+                        }
+                        Token::Operator(op, _) if op == ")" => {
+                            if depth == 0 {
+                                break;
+                            }
+                            depth -= 1;
+                        }
+                        Token::Operator(op, _) if depth == 0 && op != "|" => break,
+                        _ => {}
+                    }
+                    prev_end = Some(loc.end.index);
+                    j += 1;
+                }
+                if depth > 0 && j >= tokens.len() {
+                    return Some(open_line);
+                }
+                i = j.max(i + 1);
+                continue;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    None
 }
 
 /// Como o bash (um parser LR), o token do erro é o primeiro que não pode continuar o que veio
@@ -109,6 +171,11 @@ fn viable(tokens: &[Token], k: usize, opts: &ParserOptions) -> bool {
 fn parse_error(e: &ParseError, tokens: &[Token], src: &str, offset: Line, opts: &ParserOptions) -> SyntaxError {
     if let ParseError::Tokenizing { inner, .. } = e {
         return tokenizer_error(inner, src, offset);
+    }
+    if let Some(open_line) = unclosed_regex_paren(tokens) {
+        let mut err = SyntaxError::new(offset + open_line as Line, "unexpected EOF while looking for matching `)'".to_string());
+        err.follow = Some((eof_line(src, offset), "unexpected argument to conditional binary operator".to_string()));
+        return err;
     }
     let n = tokens.len();
     if viable(tokens, n, opts) && matches!(e, ParseError::ParsingAtEndOfInput) {
@@ -136,6 +203,7 @@ fn parse_error(e: &ParseError, tokens: &[Token], src: &str, offset: Line, opts: 
                 line: offset + pos.line as Line,
                 message: format!("syntax error near unexpected token `{text}'"),
                 context: Some(line_text(src, pos.line)),
+                follow: None,
             }
         }
         None => SyntaxError::new(eof_line(src, offset), "syntax error: unexpected end of file".to_string()),
@@ -369,6 +437,17 @@ mod tests {
         assert_eq!((e.line, e.message.as_str()), (2, "syntax error: unexpected end of file"));
         let e = parse("echo 'abc").err().expect("erro");
         assert_eq!(e.message, "unexpected EOF while looking for matching `''");
+        let e = parse("if then fi").err().expect("erro");
+        assert_eq!(e.message, "syntax error near unexpected token `then'");
+        assert_eq!(e.context.as_deref(), Some("if then fi"));
+    }
+
+    #[test]
+    fn unclosed_regex_paren_reports_two_diagnostics() {
+        let e = parse("[[ abc =~ ( ]]\necho \"rc=$?\"\n").err().expect("erro");
+        assert_eq!((e.line, e.message.as_str()), (1, "unexpected EOF while looking for matching `)'"));
+        assert_eq!(e.context, None);
+        assert_eq!(e.follow, Some((3, "unexpected argument to conditional binary operator".to_string())));
     }
 
     #[test]
