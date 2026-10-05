@@ -1,0 +1,116 @@
+{
+  "cxxfilt-bad-option": {
+    "stdout": "",
+    "stderr": "c++filt: invalid option -- 'Z'\nUsage: c++filt [options] [mangled names]\nOptions are:\n  [-_|--strip-underscore]     Ignore first leading underscore\n  [-n|--no-strip-underscore]  Do not ignore a leading underscore (default)\n  [-p|--no-params]            Do not display function arguments\n  [-i|--no-verbose]           Do not show implementation details (if any)\n  [-R|--recurse-limit]        Enable a limit on recursion whilst demangling.  [Default]\n  ]-r|--no-recurse-limit]     Disable a limit on recursion whilst demangling\n  [-t|--types]                Also attempt to demangle type encodings\n  [-s|--format {none,auto,gnu-v3,java,gnat,dlang,rust}]\n  [@<file>]                   Read extra options from <file>\n  [-h|--help]                 Display this information\n  [-v|--version]              Show the version information\nDemangled names are displayed to stdout.\nIf a name cannot be demangled it is just echoed to stdout.\nIf no names are provided on the command line, stdin is read.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "cxxfilt-clone-suffix": {
+    "stdout": "foo() [clone .constprop.0]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-ctor-dtor": {
+    "stdout": "Foo::Foo()\nFoo::~Foo()\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-function-pointer": {
+    "stdout": "f(void (*)(int))\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-help": {
+    "stdout": "Usage: c++filt [options] [mangled names]\nOptions are:\n  [-_|--strip-underscore]     Ignore first leading underscore\n  [-n|--no-strip-underscore]  Do not ignore a leading underscore (default)\n  [-p|--no-params]            Do not display function arguments\n  [-i|--no-verbose]           Do not show implementation details (if any)\n  [-R|--recurse-limit]        Enable a limit on recursion whilst demangling.  [Default]\n  ]-r|--no-recurse-limit]     Disable a limit on recursion whilst demangling\n  [-t|--types]                Also attempt to demangle type encodings\n  [-s|--format {none,auto,gnu-v3,java,gnat,dlang,rust}]\n  [@<file>]                   Read extra options from <file>\n  [-h|--help]                 Display this information\n  [-v|--version]              Show the version information\nDemangled names are displayed to stdout.\nIf a name cannot be demangled it is just echoed to stdout.\nIf no names are provided on the command line, stdin is read.\nReport bugs to <https://sourceware.org/bugzilla/>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-method-const": {
+    "stdout": "Foo::bar() const\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-no-params": {
+    "stdout": "foo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-not-mangled": {
+    "stdout": "main\n_Z\n_Zzz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-operator": {
+    "stdout": "Foo::operator+=(Foo const&)\noperator+(Foo const&, Foo const&)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-params": {
+    "stdout": "foo(int, char const*, double&)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-simple-function": {
+    "stdout": "foo()\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-std-vector": {
+    "stdout": "f(std::vector<int, std::allocator<int> >)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-stdin-words": {
+    "stdout": "call foo(), then Foo::bar(); x_y\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-strip-underscore": {
+    "stdout": "foo()\n_Z3foov\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-substitution": {
+    "stdout": "f(Foo<int>::Bar, Foo<int>::Bar)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-template-function": {
+    "stdout": "void f<int>(int)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-types": {
+    "stdout": "int\nchar const*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-version": {
+    "stdout": "GNU c++filt (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "cxxfilt-vtable-typeinfo": {
+    "stdout": "vtable for Foo\ntypeinfo for Foo\ntypeinfo name for Foo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
