@@ -18,10 +18,7 @@ const SCRIPT_CASES: &[&str] = &[
 ];
 
 /// Falhas conhecidas, com o motivo no STATUS.md.
-const KNOWN: &[&str] = &[
-    // generate_series vem do módulo do rusqlite (passo negativo com a semântica antiga do series.c).
-    "sqlite-x-generate-series",
-];
+const KNOWN: &[&str] = &[];
 
 fn check(report: &Report) {
     report.print();

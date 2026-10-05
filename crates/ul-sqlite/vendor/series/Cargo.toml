@@ -1,0 +1,15 @@
+[package]
+name = "pl-series"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+description = "generate_series do SQLite 3.46.1 (ext/misc/series.c) como tabela virtual do rusqlite, vendorizado porque a trait VTab é unsafe"
+
+# Sem `[lints] workspace = true` de propósito: a tabela virtual exige `unsafe impl VTab`, e o
+# `forbid(unsafe_code)` do workspace vale só para o código nosso. Este crate é vendorizado, como os
+# forks de uutils e findutils, e não tem nenhum bloco unsafe além dos `unsafe impl` da trait.
+
+[dependencies]
+# Mesma versão e mesmas features que o ul-sqlite usa (as features se unificam).
+rusqlite = { version = "=0.40.2", default-features = false, features = ["vtab"] }

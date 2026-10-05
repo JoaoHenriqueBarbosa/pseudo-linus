@@ -603,7 +603,8 @@ pub fn register_all(conn: &Connection) {
     });
     date::register(conn);
     ext::register(conn);
-    let _ = rusqlite::vtab::series::load_module(conn);
+    // `generate_series` do 3.46.1 (o módulo do rusqlite segue o series.c antigo).
+    let _ = pl_series::load_module(conn);
     unwind::reraise();
 }
 

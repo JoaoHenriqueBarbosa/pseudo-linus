@@ -43,7 +43,7 @@ Dono: agente net. Programa: `sqlite3` (CLI do SQLite 3.46.1 do Debian 13).
   `strftime`, `timediff`, `current_*` (porte do date.c com o relógio e o fuso do sandbox; `%f` e `%g`
   pelo printf do SQLite), `random()` e `randomblob()` (getrandom do sandbox), `load_extension()`
   (nunca abre biblioteca). Do shell.c: `shell_add_schema`, `shell_putsnl`, `strtod`, `dtostr`,
-  `usleep`, `edit` (falha), colação `uint`. `generate_series` vem do módulo do rusqlite.
+  `usleep`, `edit` (falha), colação `uint`. `generate_series` vem do crate vendorizado `pl-series`.
 
 ## Segurança e isolamento
 
@@ -73,9 +73,10 @@ Dono: agente net. Programa: `sqlite3` (CLI do SQLite 3.46.1 do Debian 13).
   verifica, equivale a unsafe nosso). O CLI liga `locking_mode=EXCLUSIVE` antes de abrir um banco em
   WAL e antes de `PRAGMA journal_mode=WAL` (anotado pelo authorizer), então o WAL funciona, mas com o
   banco preso ao processo enquanto ele estiver aberto, e `PRAGMA locking_mode` responde `exclusive`.
-- `generate_series` com passo negativo segue o módulo do rusqlite (semântica antiga do series.c,
-  `generate_series(10,1,-4)` não devolve linhas; o 3.46.1 devolve 10, 6, 2). Tabela virtual nossa
-  exige `unsafe impl VTab`: bloqueado. Caminho: PR no rusqlite.
+- `generate_series` (passo negativo, LIMIT/OFFSET empurrados, primeiro argumento obrigatório) vem do
+  crate vendorizado `vendor/series` (`pl-series`), porte do series.c do 3.46.1. A tabela virtual exige
+  `unsafe impl VTab`, que não cabe aqui (forbid(unsafe_code)); o crate vendorizado não herda o lint.
+  Outras tabelas virtuais do shell.c podem seguir o mesmo caminho.
 - Outras extensões embutidas no shell.c que dependem de tabela virtual (fsdir, completion, zipfile,
   sqlar, .archive, -A, -zip, -append, .recover, .dbinfo, .expert, .session, .intck): ausentes pelo
   mesmo motivo ou por dependerem de código C do shell.c que não está na libsqlite3.

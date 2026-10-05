@@ -2548,6 +2548,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pl-series"
+version = "0.1.0"
+dependencies = [
+ "rusqlite",
+]
+
+[[package]]
 name = "pl-testing"
 version = "0.1.0"
 dependencies = [
@@ -5262,6 +5269,7 @@ version = "0.1.0"
 dependencies = [
  "bindgen 0.72.1",
  "jiff",
+ "pl-series",
  "pl-testing",
  "rusqlite",
  "sqlite-plugin",
