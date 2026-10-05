@@ -10,6 +10,7 @@ pub mod bc;
 pub mod column;
 pub mod envsubst;
 pub mod file;
+pub mod getent;
 pub mod gettext;
 pub mod hexdump;
 pub mod pager;
@@ -29,6 +30,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("column", column::main),
         Program::bin("envsubst", envsubst::main),
         Program::bin("file", file::cli::main),
+        Program::bin("getent", getent::main),
         Program::bin("gettext", gettext::gettext_main),
         Program::bin("ngettext", gettext::ngettext_main),
         Program::bin("hexdump", hexdump::main),

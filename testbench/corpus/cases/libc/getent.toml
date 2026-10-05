@@ -1,0 +1,839 @@
+tool = "getent"
+source = "manual"
+
+# getent da glibc 2.41. Os bancos lidos de arquivos do sistema (passwd, group, hosts...) são
+# exercitados com entradas que o próprio caso acrescenta em /etc e desfaz no fim (o oráculo roda todos
+# os casos num mesmo contêiner, então cada script restaura o que mexeu). O oráculo roda sem rede
+# (--network none), e o sandbox modela o mesmo: só o loopback, sem DNS.
+
+# ---- opções, ajuda e erros de uso (argp) ----
+
+[[case]]
+id = "getent-help"
+argv = ["getent", "--help"]
+
+[[case]]
+id = "getent-help-short"
+argv = ["getent", "-?"]
+
+[[case]]
+id = "getent-help-prefix"
+argv = ["getent", "--he"]
+
+[[case]]
+id = "getent-help-after-operand"
+argv = ["getent", "passwd", "--help"]
+
+[[case]]
+id = "getent-usage"
+argv = ["getent", "--usage"]
+
+[[case]]
+id = "getent-usage-prefix"
+argv = ["getent", "--u"]
+
+[[case]]
+id = "getent-version"
+argv = ["getent", "--version"]
+
+[[case]]
+id = "getent-version-short"
+argv = ["getent", "-V"]
+
+[[case]]
+id = "getent-version-prefix"
+argv = ["getent", "--ver"]
+
+[[case]]
+id = "getent-no-args"
+argv = ["getent"]
+
+[[case]]
+id = "getent-only-options"
+argv = ["getent", "-i", "-A"]
+
+[[case]]
+id = "getent-unknown-database"
+argv = ["getent", "foo"]
+
+[[case]]
+id = "getent-unknown-database-with-keys"
+argv = ["getent", "passwds", "root"]
+
+[[case]]
+id = "getent-database-case-sensitive"
+argv = ["getent", "PASSWD", "root"]
+
+[[case]]
+id = "getent-invalid-option"
+argv = ["getent", "-Z", "passwd"]
+
+[[case]]
+id = "getent-invalid-long-option"
+argv = ["getent", "--foo", "passwd"]
+
+[[case]]
+id = "getent-ambiguous-long-option"
+argv = ["getent", "--no", "passwd", "root"]
+
+[[case]]
+id = "getent-ambiguous-n"
+argv = ["getent", "--n", "passwd", "root"]
+
+[[case]]
+id = "getent-long-unexpected-arg"
+argv = ["getent", "--no-idn=1", "passwd", "root"]
+
+[[case]]
+id = "getent-missing-service-arg"
+argv = ["getent", "-s"]
+
+[[case]]
+id = "getent-missing-service-arg-long"
+argv = ["getent", "--service"]
+
+[[case]]
+id = "getent-negative-number-is-option"
+argv = ["getent", "passwd", "-1"]
+
+[[case]]
+id = "getent-double-dash"
+argv = ["getent", "--", "passwd", "root"]
+
+[[case]]
+id = "getent-double-dash-negative-key"
+argv = ["getent", "passwd", "--", "-1"]
+
+[[case]]
+id = "getent-options-after-operands"
+argv = ["getent", "passwd", "root", "-i"]
+
+[[case]]
+id = "getent-posixly-correct"
+argv = ["getent", "passwd", "root", "-i"]
+env = { POSIXLY_CORRECT = "1" }
+
+[[case]]
+id = "getent-no-idn-no-addrconfig"
+argv = ["getent", "-i", "-A", "--no-idn", "--no-addrconfig", "passwd", "root"]
+
+# ---- -s: configuração de serviço ----
+
+[[case]]
+id = "getent-service-files"
+argv = ["getent", "-s", "files", "passwd", "root"]
+
+[[case]]
+id = "getent-service-attached"
+argv = ["getent", "-sfiles", "passwd", "root"]
+
+[[case]]
+id = "getent-service-long"
+argv = ["getent", "--service=files", "passwd", "root"]
+
+[[case]]
+id = "getent-service-unknown-module"
+argv = ["getent", "-s", "foo", "passwd", "root"]
+
+[[case]]
+id = "getent-service-unknown-module-enumeration"
+argv = ["getent", "-s", "foo", "passwd"]
+
+[[case]]
+id = "getent-service-other-database"
+argv = ["getent", "-s", "hosts:foo", "passwd", "root"]
+
+[[case]]
+id = "getent-service-this-database"
+argv = ["getent", "-s", "passwd:foo", "passwd", "root"]
+
+[[case]]
+id = "getent-service-database-prefix"
+argv = ["getent", "-s", "pass:foo", "passwd", "root"]
+
+[[case]]
+id = "getent-service-bad-database"
+argv = ["getent", "-s", "bogus:files", "passwd", "root"]
+
+[[case]]
+id = "getent-service-empty-database"
+argv = ["getent", "-s", ":files", "passwd", "root"]
+
+[[case]]
+id = "getent-service-db-then-files"
+argv = ["getent", "-s", "db files", "passwd", "root"]
+
+[[case]]
+id = "getent-service-notfound-return"
+argv = ["getent", "-s", "files [NOTFOUND=return] foo", "passwd", "nobody-here"]
+
+[[case]]
+id = "getent-service-compat"
+argv = ["getent", "-s", "compat", "passwd", "root"]
+
+[[case]]
+id = "getent-service-syntax-error-ignored"
+argv = ["getent", "-s", "files [BOGUS=return]", "passwd", "root"]
+
+# ---- passwd ----
+
+[[case]]
+id = "getent-passwd-root"
+argv = ["getent", "passwd", "root"]
+
+[[case]]
+id = "getent-passwd-uid-zero"
+argv = ["getent", "passwd", "0"]
+
+[[case]]
+id = "getent-passwd-several-one-missing"
+argv = ["getent", "passwd", "root", "0", "no-such-user", "root"]
+
+[[case]]
+id = "getent-passwd-missing"
+argv = ["getent", "passwd", "no-such-user"]
+
+[[case]]
+id = "getent-passwd-empty-key"
+argv = ["getent", "passwd", ""]
+
+[[case]]
+id = "getent-passwd-numeric-forms"
+script = '''
+for k in " 0" "+0" "00" "0x0" "1x" "4294967296" "99999999999999999999" "0 " "000000000000000000000000"; do
+  echo "[$k]"
+  getent passwd "$k"
+  echo "rc=$?"
+done
+'''
+
+[[case]]
+id = "getent-passwd-appended-entries"
+script = '''
+cp /etc/passwd /tmp/passwd.bak
+printf '%s\n' 'alice:x:1001:1001:Alice,,,:/home/alice:/bin/sh' '# comment' '   spaced:x:1002:1002::/h:/s' 'bad:x:notanumber:1:::' 'short:x:1' 'tiny:x:7:8' 'dup:x:1001:1001:second:/d:/s' 'noshell:x:1003:1003:g:/home/x' 'empty::1004:1004::/:' '+nis' '+@group:::::::' >> /etc/passwd
+getent passwd alice 1001 spaced 1002 bad short tiny 7 dup noshell empty '+nis' nis
+echo "rc=$?"
+getent passwd | tail -n 8
+cp /tmp/passwd.bak /etc/passwd
+'''
+
+[[case]]
+id = "getent-passwd-large-uid"
+script = '''
+cp /etc/passwd /tmp/passwd.bak
+printf '%s\n' 'big:x:4294967295:4294967295:::' 'over:x:4294967296:1:::' 'neg:x:-1:1:::' 'plus:x:+5:6:g:/d:/s' 'hexuid:x:0x10:1:::' >> /etc/passwd
+getent passwd big 4294967295 over neg plus 5 hexuid 16
+echo "rc=$?"
+cp /tmp/passwd.bak /etc/passwd
+'''
+
+[[case]]
+id = "getent-passwd-gecos-colon-fields"
+script = '''
+cp /etc/passwd /tmp/passwd.bak
+printf '%s\n' 'g1:x:2001:2001:a:b:c:d:e' 'g2:x:2002:2002:::' 'g3:*:2003:2003:Full Name,Room,Phone:/home/g3:/bin/bash' >> /etc/passwd
+getent passwd g1 g2 g3
+cp /tmp/passwd.bak /etc/passwd
+'''
+
+# ---- group ----
+
+[[case]]
+id = "getent-group-root"
+argv = ["getent", "group", "root"]
+
+[[case]]
+id = "getent-group-gid-zero"
+argv = ["getent", "group", "0"]
+
+[[case]]
+id = "getent-group-missing"
+argv = ["getent", "group", "no-such-group", "root"]
+
+[[case]]
+id = "getent-group-numeric-forms"
+script = '''
+for k in " 1" "+1" "01" "4294967295" "4294967297" "x" ""; do
+  echo "[$k]"
+  getent group "$k"
+  echo "rc=$?"
+done
+'''
+
+[[case]]
+id = "getent-group-appended-entries"
+script = '''
+cp /etc/group /tmp/group.bak
+printf '%s\n' 'grp1:x:2000:a,b,c' 'grp2:x:2001:a, b ,,c' 'grp3:x:2002:' 'grp4:*:2003:solo' 'grp5:x:2004:  lead,trail  ' 'grp6:x:2005:a,b' 'bad:x:nan:a' '+nisgroup' 'grp7:x:2006' 'grp8::2007:z' >> /etc/group
+getent group grp1 2000 grp2 grp3 grp4 grp5 2005 bad nan grp7 grp8 '+nisgroup'
+echo "rc=$?"
+getent group | tail -n 7
+cp /tmp/group.bak /etc/group
+'''
+
+# ---- shadow e gshadow ----
+
+[[case]]
+id = "getent-shadow-appended-entries"
+script = '''
+cp /etc/shadow /tmp/shadow.bak
+printf '%s\n' 's1:$6$salt$hash:19000:0:99999:7:::' 's2:!:19001:1:2:3:4:5:6' 's3:*::::::' 's4:x:1:2:3' 's5:x:1:2:3:4:5' 's6:x:3000000000:-5:abc:7:8:9:10' 's7:x:1:2:3:4:5:6:7' 's8:x' 's9:x:1' '+nis' >> /etc/shadow
+getent shadow s1 s2 s3 s4 s5 s6 s7 s8 s9 '+nis' no-such
+echo "rc=$?"
+getent shadow | tail -n 10
+cp /tmp/shadow.bak /etc/shadow
+'''
+
+[[case]]
+id = "getent-shadow-lookup-by-uid-fails"
+argv = ["getent", "shadow", "0"]
+
+[[case]]
+id = "getent-gshadow-appended-entries"
+script = '''
+cp /etc/gshadow /tmp/gshadow.bak
+printf '%s\n' 'gs1:*:adm1,adm2:mem1,mem2' 'gs2:!::' 'gs3:x:solo:' 'gs4:x::only' 'gs5:x:a, b ,,c:d, e' 'gs6' 'gs7:x' '+nis' >> /etc/gshadow
+getent gshadow gs1 gs2 gs3 gs4 gs5 gs6 gs7 '+nis' no-such
+echo "rc=$?"
+getent gshadow | tail -n 8
+cp /tmp/gshadow.bak /etc/gshadow
+'''
+
+# ---- initgroups ----
+
+[[case]]
+id = "getent-initgroups-enumeration"
+argv = ["getent", "initgroups"]
+
+[[case]]
+id = "getent-initgroups-root"
+argv = ["getent", "initgroups", "root"]
+
+[[case]]
+id = "getent-initgroups-unknown-user"
+argv = ["getent", "initgroups", "no-such-user"]
+
+[[case]]
+id = "getent-initgroups-members"
+script = '''
+cp /etc/group /tmp/group.bak
+printf '%s\n' 'ig1:x:3001:carol,dave' 'ig2:x:3002:dave' 'ig3:x:3001:carol' 'ig4:x:3003:carol,carol' 'ig5:x:3004:carolx' >> /etc/group
+getent initgroups carol dave nobody-there carolx
+echo "rc=$?"
+cp /tmp/group.bak /etc/group
+'''
+
+# ---- hosts ----
+
+[[case]]
+id = "getent-hosts-localhost"
+argv = ["getent", "hosts", "localhost"]
+
+[[case]]
+id = "getent-hosts-alias"
+argv = ["getent", "hosts", "ip6-localhost"]
+
+[[case]]
+id = "getent-hosts-case-insensitive"
+argv = ["getent", "hosts", "LOCALHOST"]
+
+[[case]]
+id = "getent-hosts-by-ipv4"
+argv = ["getent", "hosts", "127.0.0.1"]
+
+[[case]]
+id = "getent-hosts-by-ipv6"
+argv = ["getent", "hosts", "::1"]
+
+[[case]]
+id = "getent-hosts-by-ipv6-uncompressed"
+argv = ["getent", "hosts", "0:0:0:0:0:0:0:1"]
+
+[[case]]
+id = "getent-hosts-by-ipv4-mapped"
+argv = ["getent", "hosts", "::ffff:127.0.0.1"]
+
+[[case]]
+id = "getent-hosts-unspecified-v6"
+argv = ["getent", "hosts", "::"]
+
+[[case]]
+id = "getent-hosts-numeric-name"
+script = '''
+for k in 1234 127.1 10.1 0x7f.1 1.2.3.4.5 08.1 1.2.3.4. 0177.1 1.2.3 4294967295 4294967296 256.1; do
+  echo "[$k]"
+  getent hosts "$k"
+  echo "rc=$?"
+done
+'''
+
+[[case]]
+id = "getent-hosts-missing"
+argv = ["getent", "hosts", "no-such-host.invalid"]
+
+[[case]]
+id = "getent-hosts-v6-names"
+argv = ["getent", "hosts", "ip6-allnodes", "ip6-allrouters", "ip6-localnet", "ip6-mcastprefix"]
+
+[[case]]
+id = "getent-hosts-enumeration"
+argv = ["getent", "hosts"]
+
+[[case]]
+id = "getent-hosts-custom-file"
+script = '''
+cp /etc/hosts /tmp/hosts.bak
+cp /etc/host.conf /tmp/host.conf.bak 2>/dev/null
+printf '%s\n' '10.0.0.1 alpha alpha.example   a1' '10.0.0.2   beta   # trailing comment' '# 10.0.0.3 hidden' '10.0.0.4' '2001:db8::5 gamma gamma6' 'fe80::1 linklocal' '::ffff:10.0.0.6 mapped' '10.0.0.7 Mixed.Case MIXED2' '10.0.0.8 dup-name' '10.0.0.9 dup-name second' 'bad-address host-bad' '999.1.1.1 host-999' '::1 loop6 localhost' > /etc/hosts
+printf 'multi off\n' > /etc/host.conf
+for k in alpha a1 alpha.example BETA hidden gamma gamma6 linklocal mapped mixed.case MIXED2 dup-name second host-bad host-999 loop6 10.0.0.1 10.0.0.4 2001:db8::5 fe80::1 ::ffff:10.0.0.6 10.0.0.6 10.0.0.9; do
+  echo "[$k]"
+  getent hosts "$k"
+  echo "rc=$?"
+done
+echo "[enumeration]"
+getent hosts
+cp /tmp/hosts.bak /etc/hosts
+if [ -e /tmp/host.conf.bak ]; then cp /tmp/host.conf.bak /etc/host.conf; else rm -f /etc/host.conf; fi
+'''
+
+[[case]]
+id = "getent-hosts-multi-on"
+script = '''
+cp /etc/hosts /tmp/hosts.bak
+cp /etc/host.conf /tmp/host.conf.bak 2>/dev/null
+printf '%s\n' '10.0.0.1 srv s1' '10.0.0.2 srv s2 extra' '10.0.0.3 other srv' '2001:db8::1 srv v6a' '2001:db8::2 srv v6b' > /etc/hosts
+printf 'multi on\n' > /etc/host.conf
+getent hosts srv
+echo "rc=$?"
+getent hosts s2
+echo "rc=$?"
+getent hosts v6a
+echo "rc=$?"
+getent hosts other
+echo "rc=$?"
+cp /tmp/hosts.bak /etc/hosts
+if [ -e /tmp/host.conf.bak ]; then cp /tmp/host.conf.bak /etc/host.conf; else rm -f /etc/host.conf; fi
+'''
+
+[[case]]
+id = "getent-hosts-multi-env"
+script = '''
+cp /etc/hosts /tmp/hosts.bak
+printf '%s\n' '10.0.0.1 srv' '10.0.0.2 srv' > /etc/hosts
+getent hosts srv
+RESOLV_MULTI=on getent hosts srv
+RESOLV_MULTI=off getent hosts srv
+cp /tmp/hosts.bak /etc/hosts
+'''
+
+[[case]]
+id = "getent-hosts-nsswitch-files-only"
+script = '''
+cp /etc/nsswitch.conf /tmp/nsswitch.bak
+printf 'hosts: files\n' > /etc/nsswitch.conf
+getent hosts localhost 127.0.0.1
+echo "rc=$?"
+cp /tmp/nsswitch.bak /etc/nsswitch.conf
+'''
+
+[[case]]
+id = "getent-hosts-nsswitch-no-files"
+script = '''
+cp /etc/nsswitch.conf /tmp/nsswitch.bak
+printf 'hosts: dns\n' > /etc/nsswitch.conf
+getent hosts localhost
+echo "rc=$?"
+cp /tmp/nsswitch.bak /etc/nsswitch.conf
+'''
+
+# ---- ahosts (getaddrinfo) ----
+
+[[case]]
+id = "getent-ahosts-localhost"
+argv = ["getent", "ahosts", "localhost"]
+
+[[case]]
+id = "getent-ahostsv4-localhost"
+argv = ["getent", "ahostsv4", "localhost"]
+
+[[case]]
+id = "getent-ahostsv6-localhost"
+argv = ["getent", "ahostsv6", "localhost"]
+
+[[case]]
+id = "getent-ahostsv4-no-addrconfig"
+argv = ["getent", "-A", "ahostsv4", "localhost"]
+
+[[case]]
+id = "getent-ahostsv6-no-addrconfig"
+argv = ["getent", "-A", "ahostsv6", "localhost"]
+
+[[case]]
+id = "getent-ahosts-no-addrconfig"
+argv = ["getent", "-A", "ahosts", "localhost"]
+
+[[case]]
+id = "getent-ahosts-numeric-v4"
+argv = ["getent", "ahosts", "127.0.0.1", "1.2.3.4", "0.0.0.0"]
+
+[[case]]
+id = "getent-ahosts-numeric-v6"
+argv = ["getent", "ahosts", "::1", "::", "::ffff:1.2.3.4", "2001:db8::1"]
+
+[[case]]
+id = "getent-ahosts-numeric-short"
+argv = ["getent", "ahosts", "10.1", "0x7f.1", "1234"]
+
+[[case]]
+id = "getent-ahosts-scope-id"
+argv = ["getent", "ahosts", "ff02::1%lo", "fe80::1%1", "fe80::1%bogus"]
+
+[[case]]
+id = "getent-ahostsv4-numeric"
+argv = ["getent", "ahostsv4", "127.0.0.1"]
+
+[[case]]
+id = "getent-ahostsv4-numeric-no-addrconfig"
+argv = ["getent", "-A", "ahostsv4", "127.0.0.1", "::1"]
+
+[[case]]
+id = "getent-ahostsv6-numeric-no-addrconfig"
+argv = ["getent", "-A", "ahostsv6", "127.0.0.1", "::1", "1.2.3.4"]
+
+[[case]]
+id = "getent-ahosts-alias"
+argv = ["getent", "ahosts", "ip6-localhost"]
+
+[[case]]
+id = "getent-ahosts-v6-only-name"
+argv = ["getent", "ahosts", "ip6-allnodes", "ip6-allrouters"]
+
+[[case]]
+id = "getent-ahostsv4-alias-no-addrconfig"
+argv = ["getent", "-A", "ahostsv4", "ip6-localhost", "ip6-allnodes"]
+
+[[case]]
+id = "getent-ahostsv6-alias-no-addrconfig"
+argv = ["getent", "-A", "ahostsv6", "ip6-localhost", "ip6-allnodes"]
+
+[[case]]
+id = "getent-ahosts-missing"
+argv = ["getent", "ahosts", "no-such-host.invalid"]
+
+[[case]]
+id = "getent-ahosts-several-keys"
+argv = ["getent", "ahosts", "localhost", "no-such-host.invalid", "1.2.3.4"]
+
+[[case]]
+id = "getent-ahosts-trailing-dot"
+argv = ["getent", "ahosts", "localhost."]
+
+[[case]]
+id = "getent-ahosts-bracketed"
+argv = ["getent", "ahosts", "[::1]"]
+
+[[case]]
+id = "getent-ahosts-enumeration"
+argv = ["getent", "ahosts"]
+
+[[case]]
+id = "getent-ahosts-no-idn"
+argv = ["getent", "-i", "ahosts", "localhost"]
+
+[[case]]
+id = "getent-ahosts-custom-file"
+script = '''
+cp /etc/hosts /tmp/hosts.bak
+cp /etc/host.conf /tmp/host.conf.bak 2>/dev/null
+printf '%s\n' '10.0.0.1 srv s1' '10.0.0.2 srv s2' '2001:db8::1 srv v6a' '::1 srv lo6' '127.0.0.5 only4' '2002:a00:1::1 six2four' '::ffff:10.9.9.9 mapped' '10.0.0.3 mapped' > /etc/hosts
+printf 'multi on\n' > /etc/host.conf
+for k in srv s1 v6a only4 six2four mapped lo6; do
+  for db in ahosts ahostsv4 ahostsv6; do
+    echo "[$db $k]"
+    getent -A $db $k
+    echo "rc=$?"
+  done
+done
+printf 'multi off\n' > /etc/host.conf
+for k in srv mapped; do
+  for db in ahosts ahostsv4 ahostsv6; do
+    echo "[$db $k off]"
+    getent -A $db $k
+    echo "rc=$?"
+  done
+done
+cp /tmp/hosts.bak /etc/hosts
+if [ -e /tmp/host.conf.bak ]; then cp /tmp/host.conf.bak /etc/host.conf; else rm -f /etc/host.conf; fi
+'''
+
+# ---- services ----
+
+[[case]]
+id = "getent-services-default-http"
+argv = ["getent", "services", "http", "80", "80/tcp", "ssh"]
+
+[[case]]
+id = "getent-services-custom-file"
+script = '''
+if [ -e /etc/services ]; then cp /etc/services /tmp/services.bak; had=1; else had=0; fi
+printf '%s\n' '# comment' 'http 80/tcp www web' 'http 80/udp' 'echo   7/tcp' 'echo 7/udp' 'hex 0x51/tcp' 'octal 0100/tcp' 'weird 65537/tcp' 'dual 53/tcp  # trailing comment' 'dual 53/udp' 'bad line' 'spaces    8080  /  tcp' 'slashes 9090//tcp' 'noalias 1234/tcp' 'upper 2000/TCP' 'big 70000/tcp' 'negative -5/tcp' '  indented 4000/tcp' > /etc/services
+for k in http 80 80/tcp 80/udp www web/tcp web/udp http/udp http/sctp http/ /tcp 81 0x51 hex octal 64 1 weird 65537 echo 7/udp 7/tcp dual 53 53/udp 53/sctp bad spaces 8080 slashes 9090 noalias 1234/tcp upper 2000/tcp 2000/TCP big 70000 negative indented 4000 +80 ''; do
+  echo "[$k]"
+  getent services -- "$k"
+  echo "rc=$?"
+done
+echo "[enumeration]"
+getent services
+if [ $had = 1 ]; then cp /tmp/services.bak /etc/services; else rm /etc/services; fi
+'''
+
+[[case]]
+id = "getent-services-missing-file"
+script = '''
+if [ -e /etc/services ]; then cp /etc/services /tmp/services.bak; had=1; else had=0; fi
+rm -f /etc/services
+getent services http
+echo "rc=$?"
+getent services
+echo "rc=$?"
+if [ $had = 1 ]; then cp /tmp/services.bak /etc/services; fi
+'''
+
+# ---- protocols ----
+
+[[case]]
+id = "getent-protocols-default-tcp"
+argv = ["getent", "protocols", "tcp", "6", "icmp"]
+
+[[case]]
+id = "getent-protocols-custom-file"
+script = '''
+if [ -e /etc/protocols ]; then cp /etc/protocols /tmp/protocols.bak; had=1; else had=0; fi
+printf '%s\n' '# comment' 'ip 0 IP' 'icmp 1 ICMP' 'tcp 6 TCP' 'udp 17 UDP  # trailing' 'dup 6 TCPDUP' 'bad x' 'lonely' 'big 4294967295 BIGP' 'huge 4294967296' 'neg -1 NEGP' 'spaced     99     SP1   SP2' > /etc/protocols
+for k in tcp TCP 6 6x 0 ip IP icmp ICMP 1 17 udp UDP TCPDUP dup bad x lonely 255 99 SP2 sp2 big 4294967295 -1 huge 4294967296 ''; do
+  echo "[$k]"
+  getent protocols -- "$k"
+  echo "rc=$?"
+done
+echo "[enumeration]"
+getent protocols
+if [ $had = 1 ]; then cp /tmp/protocols.bak /etc/protocols; else rm /etc/protocols; fi
+'''
+
+# ---- rpc ----
+
+[[case]]
+id = "getent-rpc-custom-file"
+script = '''
+if [ -e /etc/rpc ]; then cp /etc/rpc /tmp/rpc.bak; had=1; else had=0; fi
+printf '%s\n' '# comment' 'portmapper 100000 portmap sunrpc rpcbind' 'rstatd 100001 rstat rstat_svc' 'noalias 100002' 'bad name' 'spaced    100003     one   two  # c' 'neg -5 NEGR' > /etc/rpc
+for k in portmapper 100000 portmap sunrpc rstatd rstat noalias 100002 bad spaced 100003 one neg -5 unknown 999 ''; do
+  echo "[$k]"
+  getent rpc -- "$k"
+  echo "rc=$?"
+done
+echo "[enumeration]"
+getent rpc
+if [ $had = 1 ]; then cp /tmp/rpc.bak /etc/rpc; else rm /etc/rpc; fi
+'''
+
+# ---- networks ----
+
+[[case]]
+id = "getent-networks-custom-file"
+script = '''
+cp /etc/networks /tmp/networks.bak
+printf '%s\n' '# comment' 'default 0.0.0.0' 'loopback 127.0.0.0' 'link-local 169.254.0.0 ll LINK' 'short 10' 'two 172.16' 'three 192.168.1' 'four 192.168.2.0' 'hexnet 0x0a.0x01' 'octnet 010.1' 'bad notanumber' 'toobig 300.1.1.1' 'noaddr' 'mixed Mixed.Net 1.2.3' > /etc/networks
+for k in loopback LOOPBACK 127.0.0.0 127.0.0 127 0 default link-local ll LINK 169.254.0.0 short 10 10.0.0.0 two 172.16.0.0 three 192.168.1.0 192.168.1 four 192.168.2.0 hexnet 10.1.0.0 octnet 8.1.0.0 bad toobig noaddr mixed mixed.net 1.2.3.0 1x nope 255.255.255.255 '1.2.3.4 x'; do
+  echo "[$k]"
+  getent networks "$k"
+  echo "rc=$?"
+done
+echo "[enumeration]"
+getent networks
+cp /tmp/networks.bak /etc/networks
+'''
+
+# ---- ethers ----
+
+[[case]]
+id = "getent-ethers-enumeration-unsupported"
+argv = ["getent", "ethers"]
+
+[[case]]
+id = "getent-ethers-missing-file"
+argv = ["getent", "ethers", "00:11:22:33:44:55", "somehost"]
+
+[[case]]
+id = "getent-ethers-custom-file"
+script = '''
+printf '%s\n' '# comment' '00:11:22:33:44:55 host1' '0:a:B:c:D:e  host2   # trailing' 'aa:bb:cc:dd:ee:ff Host3' '1:2:3:4:5:6 host4' '00:11:22:33:44 short' 'zz:11:22:33:44:55 bad' '100:11:22:33:44:55 big' '0x11:22:33:44:55:66 hexname' > /etc/ethers
+for k in 00:11:22:33:44:55 0:11:22:33:44:55 host1 HOST1 0:a:b:c:d:e 00:0a:0b:0c:0d:0e host2 aa:bb:cc:dd:ee:ff AA:BB:CC:DD:EE:FF host3 1:2:3:4:5:6 01:02:03:04:05:06 host4 short bad big hexname 11:22:33:44:55:66 00:11:22:33:44:55zzz 00:11:22:33:44:5 unknown ''; do
+  echo "[$k]"
+  getent ethers "$k"
+  echo "rc=$?"
+done
+getent ethers host1 unknown host3
+echo "rc=$?"
+rm -f /etc/ethers
+'''
+
+# ---- aliases ----
+
+[[case]]
+id = "getent-aliases-missing-file"
+argv = ["getent", "aliases", "root"]
+
+[[case]]
+id = "getent-aliases-enumeration-missing-file"
+argv = ["getent", "aliases"]
+
+[[case]]
+id = "getent-aliases-custom-file"
+script = '''
+printf '%s\n' '# comment' 'root: admin' 'postmaster:    root' 'Mixed: a, b ,c' 'long-alias-name-here: x@y.z, w@v.u' 'continued: one,' '   two,' '   three' 'comment-tail: a, b # ignored' 'empty:' ': noname' 'nocolon' 'last: end' > /etc/aliases
+for k in root postmaster mixed MIXED long-alias-name-here continued comment-tail empty noname nocolon last unknown; do
+  echo "[$k]"
+  getent aliases "$k"
+  echo "rc=$?"
+done
+echo "[enumeration]"
+getent aliases
+rm -f /etc/aliases
+'''
+
+[[case]]
+id = "getent-aliases-include"
+script = '''
+printf '%s\n' 'alice@example.com' 'bob@example.com, carol@example.com # ignored' '' '  dave@example.com' > /tmp/members.list
+printf '%s\n' 'team: :include:/tmp/members.list, extra@example.com' 'solo: :include:/tmp/missing-file.list' 'after: tail@example.com' > /etc/aliases
+getent aliases team solo after
+echo "rc=$?"
+getent aliases
+rm -f /etc/aliases /tmp/members.list
+'''
+
+# ---- netgroup ----
+
+[[case]]
+id = "getent-netgroup-enumeration-unsupported"
+argv = ["getent", "netgroup"]
+
+[[case]]
+id = "getent-netgroup-default-nsswitch"
+script = '''
+printf '%s\n' 'grp (host1,user1,dom1)' > /etc/netgroup
+getent netgroup grp
+echo "rc=$?"
+getent netgroup grp host1 user1 dom1
+echo "rc=$?"
+rm -f /etc/netgroup
+'''
+
+[[case]]
+id = "getent-netgroup-files"
+script = '''
+printf '%s\n' 'simple (host1,user1,dom1) (host2,,) (,user3,) (-,-,-)' 'nested (h4,u4,d4) simple other' 'other (h5,u5,d5) nested' 'wild (*,*,*)' 'spaced ( a b , c , d )' 'broken (a,b' 'multi (m1,u1,d1) \' '   (m2,u2,d2) \' '   (m3,u3,d3)' 'empty' 'only-group simple' > /etc/netgroup
+for g in simple nested other wild spaced broken multi empty only-group missing; do
+  echo "[$g]"
+  getent -s files netgroup "$g"
+  echo "rc=$?"
+done
+rm -f /etc/netgroup
+'''
+
+[[case]]
+id = "getent-netgroup-innetgr"
+script = '''
+printf '%s\n' 'grp (host1,user1,dom1) (host2,,) (,user3,) sub' 'sub (host9,user9,dom9)' > /etc/netgroup
+getent -s files netgroup grp host1 user1 dom1
+getent -s files netgroup grp HOST1 user1 DOM1
+getent -s files netgroup grp host1 USER1 dom1
+getent -s files netgroup grp host1 user1 other
+getent -s files netgroup grp host2 anyone anydomain
+getent -s files netgroup grp anyhost user3 anydomain
+getent -s files netgroup grp '*' '*' '*'
+getent -s files netgroup grp host9 user9 dom9
+getent -s files netgroup missing a b c
+getent -s files netgroup grp a b
+getent -s files netgroup grp a b c d e
+echo "rc=$?"
+rm -f /etc/netgroup
+'''
+
+# ---- nsswitch.conf ----
+
+[[case]]
+id = "getent-nsswitch-db-then-files"
+script = '''
+cp /etc/nsswitch.conf /tmp/nsswitch.bak
+printf 'passwd: db files\ngroup: foo\n' > /etc/nsswitch.conf
+getent passwd root
+echo "rc=$?"
+getent group root
+echo "rc=$?"
+cp /tmp/nsswitch.bak /etc/nsswitch.conf
+'''
+
+[[case]]
+id = "getent-nsswitch-notfound-return"
+script = '''
+cp /etc/nsswitch.conf /tmp/nsswitch.bak
+printf 'passwd: files [NOTFOUND=return] foo\ngroup: foo [UNAVAIL=return] files\n' > /etc/nsswitch.conf
+getent passwd root
+echo "rc=$?"
+getent passwd nobody-here
+echo "rc=$?"
+getent group root
+echo "rc=$?"
+cp /tmp/nsswitch.bak /etc/nsswitch.conf
+'''
+
+[[case]]
+id = "getent-nsswitch-missing-file-defaults"
+script = '''
+cp /etc/nsswitch.conf /tmp/nsswitch.bak
+rm /etc/nsswitch.conf
+getent passwd root
+echo "rc=$?"
+getent group root
+echo "rc=$?"
+getent hosts localhost
+echo "rc=$?"
+cp /tmp/nsswitch.bak /etc/nsswitch.conf
+'''
+
+[[case]]
+id = "getent-nsswitch-comments-and-spacing"
+script = '''
+cp /etc/nsswitch.conf /tmp/nsswitch.bak
+printf '%s\n' '# passwd: foo' '   passwd:   files   ' 'group :files' 'shadow  files' > /etc/nsswitch.conf
+getent passwd root
+echo "rc=$?"
+getent group root
+echo "rc=$?"
+cp /tmp/nsswitch.bak /etc/nsswitch.conf
+'''
+
+[[case]]
+id = "getent-group-invalid-member-chars"
+script = '''
+cp /etc/group /tmp/group.bak
+printf '%s\n' 'badmem:x:2100:a:b' 'goodmem:x:2101:a,b' >> /etc/group
+getent group badmem goodmem 2100 2101
+echo "rc=$?"
+getent group | tail -n 2
+cp /tmp/group.bak /etc/group
+'''
+
+[[case]]
+id = "getent-gshadow-invalid-member-chars"
+script = '''
+cp /etc/gshadow /tmp/gshadow.bak
+printf '%s\n' 'badsg:x:adm:a:b' 'goodsg:x:adm:a,b' >> /etc/gshadow
+getent gshadow badsg goodsg
+echo "rc=$?"
+cp /tmp/gshadow.bak /etc/gshadow
+'''
