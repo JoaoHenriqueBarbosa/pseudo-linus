@@ -17,6 +17,7 @@ pub mod reffmt;
 pub mod rev_parse;
 pub mod rm;
 pub mod status;
+pub mod tag;
 
 use crate::config::Config;
 use crate::error::{Fail, R};
@@ -88,6 +89,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "rm" => (Setup::WorkTree, rm::run),
         "mv" => (Setup::WorkTree, mv::run),
         "for-each-ref" => (Setup::Repo, for_each_ref::run),
+        "tag" => (Setup::Repo, tag::run),
         "log" => (Setup::Repo, log::run_log),
         "show" => (Setup::Repo, log::run_show),
         "whatchanged" => (Setup::Repo, log::run_whatchanged),
