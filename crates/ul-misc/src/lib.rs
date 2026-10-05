@@ -93,6 +93,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("strings", strings::main),
         Program::bin("tabs", term::tabs::main),
         Program::bin("tempfile", tempfile::main),
+        Program::bin("tic", term::tic::main),
         Program::bin("toe", term::toe::main),
         Program::bin("tput", term::tput::main),
         Program::bin("tree", tree::main),

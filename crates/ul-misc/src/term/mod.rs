@@ -19,6 +19,7 @@ pub mod infotocap;
 pub mod reset;
 pub mod tabs;
 pub mod terminfo;
+pub mod tic;
 pub mod toe;
 pub mod tparm;
 pub mod tput;
