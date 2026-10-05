@@ -1,0 +1,36 @@
+tool = "runuser"
+source = "manual"
+
+# runuser do util-linux 2.41 como root, sem PAM nem terminal.
+
+[[case]]
+id = "runuser-help"
+script = "runuser --help; echo \"rc=$?\""
+
+[[case]]
+id = "runuser-version"
+script = "runuser -V; echo \"rc=$?\""
+
+[[case]]
+id = "runuser-unknown-user"
+script = "runuser nosuchuser_x -c true 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "runuser-u-unknown-user"
+script = "runuser -u nosuchuser_x -- true 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "runuser-u-no-command"
+script = "runuser -u root 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "runuser-u-exclusive"
+script = "runuser -u root -c true -- true 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "runuser-invalid-option"
+script = "runuser -Q 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "runuser-u-root-command"
+script = "runuser -u root -- echo hello 2>&1; echo \"rc=$?\""

@@ -1,0 +1,20 @@
+tool = "vigr"
+source = "manual"
+
+# vigr do shadow 4.17 (mesmo binário do vipw, escolhido pelo argv0).
+
+[[case]]
+id = "vigr-help"
+script = "vigr -h; echo \"rc=$?\""
+
+[[case]]
+id = "vigr-modified"
+script = "mkdir etc; printf 'bob:x:1000:\\n' > etc/group; EDITOR='sed -i s/bob/rob/' vigr -R $PWD; echo \"rc=$?\"; cat etc/group"
+
+[[case]]
+id = "vigr-gshadow"
+script = "mkdir etc; printf 'bob:!::\\n' > etc/gshadow; EDITOR='sed -i s/bob/rob/' vigr -s -R $PWD; echo \"rc=$?\"; cat etc/gshadow"
+
+[[case]]
+id = "vigr-passwd-option"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; EDITOR=true vigr -p -R $PWD; echo \"rc=$?\""

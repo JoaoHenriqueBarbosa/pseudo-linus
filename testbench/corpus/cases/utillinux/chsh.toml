@@ -1,0 +1,32 @@
+tool = "chsh"
+source = "manual"
+
+# chsh do shadow 4.17 sobre um prefixo (-R .) montado no caso.
+
+[[case]]
+id = "chsh-help"
+script = "chsh -h; echo \"rc=$?\""
+
+[[case]]
+id = "chsh-set-shell"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; chsh -R $PWD -s /bin/sh bob; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "chsh-missing-user"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; chsh -R $PWD -s /bin/sh nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chsh-relative-shell"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; chsh -R $PWD -s sh bob 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chsh-invalid-entry"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; chsh -R $PWD -s /bin/s:h bob 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chsh-too-many-args"
+script = "chsh a b 2>&1 | head -1; echo \"rc=$?\""
+
+[[case]]
+id = "chsh-invalid-option"
+script = "chsh -Q 2>&1 | head -1"

@@ -1,0 +1,36 @@
+tool = "chfn"
+source = "manual"
+
+# chfn do shadow 4.17 sobre um prefixo (-R .) montado no caso.
+
+[[case]]
+id = "chfn-help"
+script = "chfn -u; echo \"rc=$?\""
+
+[[case]]
+id = "chfn-all-fields"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; chfn -R $PWD -f 'Bob Smith' -r 12 -w 555-1 -h 555-2 bob; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "chfn-keeps-other"
+script = "mkdir etc; printf 'bob:x:1000:1000:Bob,1,2,3,misc:/home/bob:/bin/sh\\n' > etc/passwd; chfn -R $PWD -r 99 bob; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "chfn-set-other"
+script = "mkdir etc; printf 'bob:x:1000:1000:Bob:/home/bob:/bin/sh\\n' > etc/passwd; chfn -R $PWD -o extra bob; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "chfn-invalid-name"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; chfn -R $PWD -f 'a,b' bob 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chfn-invalid-room"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; chfn -R $PWD -r 'a:b' bob 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chfn-missing-user"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; chfn -R $PWD -f x nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chfn-invalid-option"
+script = "chfn -Q 2>&1 | head -1"

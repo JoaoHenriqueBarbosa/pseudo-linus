@@ -1,0 +1,20 @@
+tool = "newgrp"
+source = "manual"
+
+# newgrp do shadow 4.17 como root.
+
+[[case]]
+id = "newgrp-too-many-args"
+script = "newgrp a b 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "newgrp-invalid-option"
+script = "newgrp -x 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "newgrp-unknown-group"
+script = "newgrp nosuchgroup_x 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "newgrp-unknown-group-login"
+script = "newgrp - nosuchgroup_x 2>&1; echo \"rc=$?\""

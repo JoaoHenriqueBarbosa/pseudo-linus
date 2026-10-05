@@ -1,0 +1,32 @@
+tool = "su"
+source = "manual"
+
+# su do util-linux 2.41 como root, sem PAM nem terminal.
+
+[[case]]
+id = "su-help"
+script = "su --help; echo \"rc=$?\""
+
+[[case]]
+id = "su-version"
+script = "su -V; echo \"rc=$?\""
+
+[[case]]
+id = "su-unknown-user"
+script = "su nosuchuser_x 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "su-invalid-option"
+script = "su -Q 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "su-login-unknown-user"
+script = "su - nosuchuser_x -c true 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "su-group-unknown"
+script = "su -g nosuchgroup_x root -c true 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "su-root-command"
+script = "su root -c 'echo hello' 2>&1; echo \"rc=$?\""

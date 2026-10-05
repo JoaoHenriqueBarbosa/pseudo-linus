@@ -13,6 +13,13 @@
 pub mod bc;
 pub mod binutils;
 pub mod blkdiscard;
+pub mod chfn;
+pub mod chsh;
+pub mod newusers;
+pub mod runuser;
+pub mod sg;
+pub mod su;
+pub mod vipw;
 pub mod blkid;
 pub mod blockdev;
 pub mod bzip2recover;
@@ -117,6 +124,15 @@ pub fn programs() -> Vec<Program> {
         Program::bin("size", binutils::size::main),
         Program::bin("bzip2recover", bzip2recover::main),
         Program::bin("chage", shadowmisc::chage_main),
+        Program::bin("chfn", chfn::main),
+        Program::bin("chsh", chsh::main),
+        Program::bin("newgrp", sg::newgrp_main),
+        Program::bin("sg", sg::sg_main),
+        Program::bin("su", su::main),
+        Program::sbin("newusers", newusers::main),
+        Program::sbin("runuser", runuser::main),
+        Program::sbin("vipw", vipw::main),
+        Program::sbin("vigr", vipw::main),
         Program::bin("captoinfo", term::tic::main),
         Program::bin("choom", choom::main),
         Program::bin("chrt", chrt::main),

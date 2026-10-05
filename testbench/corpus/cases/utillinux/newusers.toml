@@ -1,0 +1,40 @@
+tool = "newusers"
+source = "manual"
+
+# newusers do shadow 4.17 sobre um prefixo (-P .) montado no caso; só o método NONE grava a senha.
+
+[[case]]
+id = "newusers-help"
+script = "newusers -h; echo \"rc=$?\""
+
+[[case]]
+id = "newusers-invalid-method"
+script = "newusers -c BOGUS 2>&1 | head -1"
+
+[[case]]
+id = "newusers-create"
+script = "mkdir etc; : > etc/passwd; : > etc/group; printf 'bob:pw:1500:1500:Bob:/home/bob:/bin/sh\\n' > in; newusers -c NONE -P $PWD in; echo \"rc=$?\"; cat etc/passwd etc/group"
+
+[[case]]
+id = "newusers-create-shadow"
+script = "mkdir etc; : > etc/passwd; : > etc/shadow; : > etc/group; : > etc/gshadow; printf 'bob:pw:1500:1500:Bob:/home/bob:/bin/sh\\n' > in; newusers -c NONE -P $PWD in; echo \"rc=$?\"; cat etc/passwd etc/group etc/gshadow; cut -d: -f1,2,4-9 etc/shadow"
+
+[[case]]
+id = "newusers-auto-ids"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; printf 'root:x:0:\\n' > etc/group; printf 'ann:pw:::A:/home/ann:/bin/sh\\n' > in; newusers -c NONE -P $PWD in; echo \"rc=$?\"; cat etc/passwd etc/group"
+
+[[case]]
+id = "newusers-invalid-line"
+script = "mkdir etc; : > etc/passwd; : > etc/group; printf 'bob:pw:1500\\n' > in; newusers -c NONE -P $PWD in 2>&1; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "newusers-invalid-name"
+script = "mkdir etc; : > etc/passwd; : > etc/group; printf 'Bad Name:pw:1500:1500:B:/h:/bin/sh\\n' > in; newusers -c NONE -P $PWD in 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "newusers-existing-group"
+script = "mkdir etc; : > etc/passwd; printf 'staff:x:50:\\n' > etc/group; printf 'bob:pw:1500:staff:Bob:/home/bob:/bin/sh\\n' > in; newusers -c NONE -P $PWD in; echo \"rc=$?\"; cat etc/passwd etc/group"
+
+[[case]]
+id = "newusers-missing-file"
+script = "mkdir etc; : > etc/passwd; : > etc/group; newusers -P $PWD nofile 2>&1; echo \"rc=$?\""

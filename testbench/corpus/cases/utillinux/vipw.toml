@@ -1,0 +1,44 @@
+tool = "vipw"
+source = "manual"
+
+# vipw do shadow 4.17 sobre um prefixo (-R .) montado no caso, com editores não interativos.
+
+[[case]]
+id = "vipw-help"
+script = "vipw -h; echo \"rc=$?\""
+
+[[case]]
+id = "vipw-invalid-option"
+script = "vipw -Q 2>&1 | head -1"
+
+[[case]]
+id = "vipw-extra-arg"
+script = "vipw x 2>&1 | head -1"
+
+[[case]]
+id = "vipw-no-etc"
+script = "vipw -R $PWD 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "vipw-no-changes"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; EDITOR=true vipw -R $PWD; echo \"rc=$?\"; ls etc"
+
+[[case]]
+id = "vipw-modified"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; VISUAL='sed -i s/bob/rob/' vipw -R $PWD; echo \"rc=$?\"; cat etc/passwd; ls etc"
+
+[[case]]
+id = "vipw-modified-quiet"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; VISUAL='sed -i s/bob/rob/' vipw -q -R $PWD; echo \"rc=$?\"; cat etc/passwd"
+
+[[case]]
+id = "vipw-shadow"
+script = "mkdir etc; printf 'bob:!:1:0:99999:7:::\\n' > etc/shadow; EDITOR='sed -i s/bob/rob/' vipw -s -R $PWD; echo \"rc=$?\"; cat etc/shadow"
+
+[[case]]
+id = "vipw-group"
+script = "mkdir etc; printf 'bob:x:1000:\\n' > etc/group; EDITOR='sed -i s/bob/rob/' vipw -g -R $PWD; echo \"rc=$?\"; cat etc/group"
+
+[[case]]
+id = "vipw-missing-file"
+script = "mkdir etc; vipw -R $PWD 2>&1; echo \"rc=$?\"; ls etc"

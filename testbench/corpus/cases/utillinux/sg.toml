@@ -1,0 +1,20 @@
+tool = "sg"
+source = "manual"
+
+# sg do shadow 4.17 como root.
+
+[[case]]
+id = "sg-no-args"
+script = "sg 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "sg-option-as-group"
+script = "sg -x 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "sg-unknown-group"
+script = "sg nosuchgroup_x true 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "sg-root-group-command"
+script = "sg root -c 'echo hello' 2>&1; echo \"rc=$?\""
