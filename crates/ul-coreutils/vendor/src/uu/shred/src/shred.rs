@@ -279,7 +279,11 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
 
     // `-u` e `--remove` valem na ordem em que aparecem: o último ganha.
     let mut remove = RemoveMethod::None;
-    let u_index = matches.indices_of(options::U).and_then(Iterator::last);
+    // O `-u` é contador: o clap lhe dá o valor padrão 0 (com índice), então só vale se veio da
+    // linha de comando, senão todo arquivo seria removido.
+    let u_index = (matches.get_count(options::U) > 0)
+        .then(|| matches.indices_of(options::U).and_then(Iterator::last))
+        .flatten();
     let remove_index = matches.indices_of(options::REMOVE).and_then(Iterator::last);
     if let Some(how) = matches.get_many::<String>(options::REMOVE).and_then(Iterator::last) {
         remove = parse_remove(how)?;

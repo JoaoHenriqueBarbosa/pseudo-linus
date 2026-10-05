@@ -3254,6 +3254,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pl-uu-pinky"
+version = "0.12.0"
+dependencies = [
+ "clap",
+ "fluent",
+ "pl-uucore",
+ "sysabi",
+ "sysio",
+]
+
+[[package]]
 name = "pl-uu-pr"
 version = "0.12.0"
 dependencies = [
@@ -3428,6 +3439,17 @@ dependencies = [
  "clap",
  "fluent",
  "pl-uu-checksum_common",
+ "pl-uucore",
+ "sysabi",
+ "sysio",
+]
+
+[[package]]
+name = "pl-uu-shred"
+version = "0.12.0"
+dependencies = [
+ "clap",
+ "fluent",
  "pl-uucore",
  "sysabi",
  "sysio",
@@ -5118,6 +5140,7 @@ dependencies = [
  "pl-uu-od",
  "pl-uu-paste",
  "pl-uu-pathchk",
+ "pl-uu-pinky",
  "pl-uu-pr",
  "pl-uu-printenv",
  "pl-uu-printf",
@@ -5133,6 +5156,7 @@ dependencies = [
  "pl-uu-sha256sum",
  "pl-uu-sha384sum",
  "pl-uu-sha512sum",
+ "pl-uu-shred",
  "pl-uu-shuf",
  "pl-uu-sleep",
  "pl-uu-sort",

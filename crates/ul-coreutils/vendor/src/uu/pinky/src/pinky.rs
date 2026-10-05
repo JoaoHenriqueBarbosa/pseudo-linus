@@ -59,7 +59,12 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let omit_name_host = flag(options::OMIT_NAME_HOST) || omit_name_host_time;
 
     // `-s` e `-l` valem na ordem em que aparecem: o último ganha.
-    let last = |name: &str| matches.indices_of(name).and_then(Iterator::last);
+    // São contadores: o clap lhes dá o padrão 0 com índice, então só valem se vieram da linha.
+    let last = |name: &str| {
+        (matches.get_count(name) > 0)
+            .then(|| matches.indices_of(name).and_then(Iterator::last))
+            .flatten()
+    };
     let short = match (last(options::SHORT), last(options::LONG)) {
         (_, None) => true,
         (None, Some(_)) => false,
@@ -186,8 +191,9 @@ impl Pinky {
     fn heading(&self, out: &mut Vec<u8>) {
         let mut line = format!("{:<8}", "Login");
         if self.fullname {
-            write!(line, " {:<19}", " Name").unwrap();
+            write!(line, " {:<19}", "Name").unwrap();
         }
+        // printf (" %-9s", _(" TTY")) do pinky.c: o rótulo já começa com espaço.
         write!(line, " {:<9}", " TTY").unwrap();
         if self.idle {
             write!(line, " {:<6}", "Idle").unwrap();
