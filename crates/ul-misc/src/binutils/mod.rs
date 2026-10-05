@@ -15,6 +15,7 @@ pub mod gprofng;
 pub mod ld;
 pub mod nm;
 pub mod objcopy;
+pub mod objdump;
 pub mod readelf;
 pub mod size;
 pub mod strip;

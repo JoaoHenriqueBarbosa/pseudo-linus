@@ -1,0 +1,121 @@
+tool = "objdump"
+source = "manual"
+
+# objdump do binutils 2.44. Nenhum golden foi gerado aqui; os casos com binário usam /bin/true,
+# que existe no oráculo e no bench. Os casos de disassembly ficam de fora enquanto não houver
+# decodificador x86-64.
+
+[[case]]
+id = "objdump-version"
+argv = ["objdump", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "objdump-help"
+argv = ["objdump", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "objdump-no-args"
+script = "objdump 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objdump-bad-option"
+script = "objdump -Z 2>&1 | head -n 3; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objdump-missing-file"
+argv = ["objdump", "-f", "nao-existe"]
+tags = ["error"]
+
+[[case]]
+id = "objdump-not-elf"
+script = "cd $(mktemp -d); printf 'texto\\n' > f.txt; objdump -f f.txt 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objdump-section-not-found"
+script = "objdump -j .nada -s /bin/true 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "objdump-file-headers"
+argv = ["objdump", "-f", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-section-headers"
+argv = ["objdump", "-h", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-section-headers-wide"
+argv = ["objdump", "-h", "-w", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-section-headers-only"
+argv = ["objdump", "-h", "-j", ".text", "-j", ".dynsym", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-private-headers"
+argv = ["objdump", "-p", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-all-headers"
+argv = ["objdump", "-x", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-syms"
+argv = ["objdump", "-t", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-dynamic-syms"
+argv = ["objdump", "-T", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-reloc"
+argv = ["objdump", "-r", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-dynamic-reloc"
+argv = ["objdump", "-R", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-full-contents-interp"
+argv = ["objdump", "-s", "-j", ".interp", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-full-contents-rodata"
+argv = ["objdump", "-s", "-j", ".rodata", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-full-contents-dynstr"
+argv = ["objdump", "-s", "-j", ".dynstr", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-debugging"
+argv = ["objdump", "-g", "/bin/true"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-multiple-files"
+argv = ["objdump", "-f", "/bin/true", "/bin/false"]
+tags = ["elf"]
+
+[[case]]
+id = "objdump-relocatable-syms"
+script = "cd $(mktemp -d); cp /bin/true t; objcopy --strip-all t t2 2>/dev/null; objdump -t t2 2>&1 | head -n 5"
+tags = ["elf"]
