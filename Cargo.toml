@@ -42,6 +42,17 @@ opt-level = 1
 [profile.release]
 debug = "line-tables-only"
 
+# Perfil do ciclo de trabalho (`--profile fast`): o painel de conformidade só compara saída, então
+# opt-level 1, incremental e muitas unidades de código recompilam em segundos em vez de minutos.
+# O `release` fica para medir desempenho e para o binário final.
+[profile.fast]
+inherits = "release"
+opt-level = 1
+debug = 0
+incremental = true
+codegen-units = 256
+lto = false
+
 # rusqlite 0.40.2 vendorizado: o generate_series dele segue a semântica antiga do series.c e o
 # sqlite3 do Debian 13 é o 3.46.1. A tabela virtual exige `unsafe impl`, que os nossos crates
 # proíbem; a correção fica na dependência, que já é unsafe por natureza.

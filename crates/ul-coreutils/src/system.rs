@@ -1,6 +1,6 @@
 //! Grupo "system": processos, ambiente, identidade e sistema (env, printenv, timeout, nice, nohup,
 //! stdbuf, chroot, sleep, true, false, test e `[`, pwd, id, whoami, groups, logname, users, who,
-//! uname, arch, hostname, hostid, nproc, tty, date, pinky, shred).
+//! uname, arch, hostname, hostid, nproc, tty, stty, date, pinky, shred).
 
 use sysabi::Program;
 
@@ -64,6 +64,8 @@ pub(crate) fn programs() -> Vec<Program> {
         Program::bin("hostid", hostid_main),
         Program::bin("nproc", nproc_main),
         Program::bin("tty", tty_main),
+        // O `stty` não existe no uutils 0.12 vendorizado: porte à mão do stty.c do coreutils 9.7.
+        Program::bin("stty", crate::stty::main),
         Program::bin("date", date_main),
     ]
 }

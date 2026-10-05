@@ -103,6 +103,9 @@ const S_FILE_MAX: u32 = 25;
 const S_OVERCOMMIT: u32 = 26;
 const S_SWAPPINESS: u32 = 27;
 const S_SOMAXCONN: u32 = 28;
+const S_VMSTAT: u32 = 29;
+const S_DISKSTATS: u32 = 30;
+const S_SLABINFO: u32 = 31;
 
 const STATICS: &[Static] = &[
     Static { n: S_SELF, name: "self", parent: 1, shape: Shape::Link, mode: 0o777 },
@@ -132,6 +135,9 @@ const STATICS: &[Static] = &[
     Static { n: S_OVERCOMMIT, name: "overcommit_memory", parent: S_SYS_VM, shape: Shape::File, mode: 0o644 },
     Static { n: S_SWAPPINESS, name: "swappiness", parent: S_SYS_VM, shape: Shape::File, mode: 0o644 },
     Static { n: S_SOMAXCONN, name: "somaxconn", parent: S_SYS_NET_CORE, shape: Shape::File, mode: 0o644 },
+    Static { n: S_VMSTAT, name: "vmstat", parent: 1, shape: Shape::File, mode: 0o444 },
+    Static { n: S_DISKSTATS, name: "diskstats", parent: 1, shape: Shape::File, mode: 0o444 },
+    Static { n: S_SLABINFO, name: "slabinfo", parent: 1, shape: Shape::File, mode: 0o400 },
 ];
 
 fn static_ent(n: u32) -> Option<&'static Static> {
@@ -433,6 +439,9 @@ impl Procfs {
             S_LOADAVG => Ok(render::loadavg(&self.provider.system())),
             S_VERSION => Ok(self.provider.version()),
             S_FILESYSTEMS => Ok(render::FILESYSTEMS.as_bytes().to_vec()),
+            S_VMSTAT => Ok(render::vmstat(&self.provider.mem())),
+            S_DISKSTATS => Ok(Vec::new()),
+            S_SLABINFO => Ok(render::SLABINFO.as_bytes().to_vec()),
             S_OSTYPE => Ok(b"Linux\n".to_vec()),
             S_OSRELEASE => line(self.provider.os_release()),
             S_KVERSION => line(self.provider.kernel_version()),

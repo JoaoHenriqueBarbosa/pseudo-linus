@@ -137,7 +137,7 @@ tags = ["pstree", "error"]
 
 [[case]]
 id = "pstree-two-operands"
-script = "pstree 1 2 2>&1 | head -3; echo \"exit=${PIPESTATUS[0]}\""
+script = "pstree 1 2 2>&1 | sed -n 1,3p; echo \"exit=${PIPESTATUS[0]}\""
 tags = ["pstree", "usage", "error"]
 
 [[case]]

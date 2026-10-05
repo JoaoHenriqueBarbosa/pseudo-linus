@@ -1,0 +1,217 @@
+tool = "stty"
+source = "manual"
+
+# stty fora de um terminal: o stdin dos casos nunca é tty, então o tcgetattr falha com ENOTTY antes
+# de qualquer configuração ser interpretada. Os casos cobrem esse caminho, a análise de opções da
+# primeira passada (que morre antes do tcgetattr) e o -F com dispositivos que não são terminal.
+
+[[case]]
+id = "stty-noargs"
+argv = ["stty"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-a"
+argv = ["stty", "-a"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-all-long"
+argv = ["stty", "--all"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-all-abbrev"
+argv = ["stty", "--al"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-g"
+argv = ["stty", "-g"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-save-long"
+argv = ["stty", "--save"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-size"
+argv = ["stty", "size"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-speed"
+argv = ["stty", "speed"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-rows-set"
+argv = ["stty", "rows", "30"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-cols-set"
+argv = ["stty", "cols", "100"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-sane"
+argv = ["stty", "sane"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-raw"
+argv = ["stty", "raw"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-cooked"
+argv = ["stty", "-raw"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-cbreak"
+argv = ["stty", "cbreak"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-ek"
+argv = ["stty", "ek"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-modes-many"
+argv = ["stty", "-parenb", "-echo", "cs8", "icanon", "-ixon"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-control-char"
+argv = ["stty", "intr", "^Z", "erase", "^?", "min", "5", "time", "2"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-baud"
+argv = ["stty", "9600"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-ispeed-ospeed"
+argv = ["stty", "ispeed", "9600", "ospeed", "19200"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-restore-g-format"
+argv = ["stty", "500:5:4bf:8a3b:3:1c:7f:15:4:0:1:0:11:13:1a:0:12:f:17:16:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0"]
+tags = ["stty", "enotty", "save-format"]
+
+[[case]]
+id = "stty-invalid-argument-no-tty"
+argv = ["stty", "bogus"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-missing-argument-no-tty"
+argv = ["stty", "rows"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-invalid-integer-no-tty"
+argv = ["stty", "rows", "abc"]
+tags = ["stty", "enotty"]
+
+[[case]]
+id = "stty-drain"
+argv = ["stty", "-drain", "-echo"]
+tags = ["stty", "enotty"]
+
+# Primeira passada: erros que não precisam de terminal.
+
+[[case]]
+id = "stty-a-and-g"
+argv = ["stty", "-a", "-g"]
+tags = ["stty", "options"]
+
+[[case]]
+id = "stty-ag-cluster"
+argv = ["stty", "-ag"]
+tags = ["stty", "options"]
+
+[[case]]
+id = "stty-a-with-setting"
+argv = ["stty", "-a", "rows", "5"]
+tags = ["stty", "options"]
+
+[[case]]
+id = "stty-g-with-setting"
+argv = ["stty", "-g", "sane"]
+tags = ["stty", "options"]
+
+[[case]]
+id = "stty-two-devices"
+argv = ["stty", "-F", "/dev/null", "-F", "/dev/zero"]
+tags = ["stty", "options"]
+
+[[case]]
+id = "stty-two-devices-long"
+argv = ["stty", "--file=/dev/null", "-F/dev/zero"]
+tags = ["stty", "options"]
+
+[[case]]
+id = "stty-help"
+argv = ["stty", "--help"]
+tags = ["stty", "help"]
+
+[[case]]
+id = "stty-version"
+argv = ["stty", "--version"]
+tags = ["stty", "help"]
+
+[[case]]
+id = "stty-help-abbrev"
+argv = ["stty", "--he"]
+tags = ["stty", "help"]
+
+# -F com dispositivos que não são terminal.
+
+[[case]]
+id = "stty-file-null"
+argv = ["stty", "-F", "/dev/null"]
+tags = ["stty", "device"]
+
+[[case]]
+id = "stty-file-null-a"
+argv = ["stty", "-a", "-F", "/dev/null"]
+tags = ["stty", "device"]
+
+[[case]]
+id = "stty-file-null-g"
+argv = ["stty", "-F", "/dev/null", "-g"]
+tags = ["stty", "device"]
+
+[[case]]
+id = "stty-file-null-setting"
+argv = ["stty", "--file", "/dev/null", "sane"]
+tags = ["stty", "device"]
+
+[[case]]
+id = "stty-file-missing"
+argv = ["stty", "-F", "/dev/nao-existe"]
+tags = ["stty", "device"]
+
+[[case]]
+id = "stty-file-missing-spaces"
+argv = ["stty", "-F", "/dev/nao existe"]
+tags = ["stty", "device"]
+
+[[case]]
+id = "stty-file-regular"
+argv = ["stty", "-F", "a.txt"]
+tags = ["stty", "device"]
+[case.files]
+"a.txt" = "texto\n"
+
+[[case]]
+id = "stty-file-dir"
+argv = ["stty", "-F", "."]
+tags = ["stty", "device"]

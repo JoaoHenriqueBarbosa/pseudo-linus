@@ -10,6 +10,7 @@ mod data;
 mod files;
 mod hostname;
 mod run;
+mod stty;
 mod system;
 mod text;
 

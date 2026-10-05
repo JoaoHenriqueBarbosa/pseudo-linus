@@ -1,4 +1,5 @@
-//! procps do pseudo-linus, fiel ao Debian 13: `ps`, `top -b`, `free`, `uptime`, `w`, `pgrep`, `pkill`,
+//! procps do pseudo-linus, fiel ao Debian 13: `ps`, `top -b`, `free`, `uptime`, `w`, `vmstat`,
+//! `slabtop`, `pgrep`, `pkill`,
 //! `kill`, `watch`, `pwdx`, `pmap` e `sysctl` (procps-ng 4.0.4), `pidof` (sysvinit-utils 3.14),
 //! `killall` e `pstree` (psmisc 23.7).
 //!
@@ -17,9 +18,11 @@ pub mod procfs;
 pub mod ps;
 pub mod pstree;
 pub mod pwdx;
+pub mod slabtop;
 pub mod sysctl;
 pub mod top;
 pub mod uptime;
+pub mod vmstat;
 pub mod w;
 pub mod watch;
 
@@ -39,9 +42,11 @@ pub fn programs() -> Vec<Program> {
         Program::bin("ps", ps::main),
         Program::bin("pstree", pstree::main),
         Program::bin("pwdx", pwdx::main),
+        Program::bin("slabtop", slabtop::main),
         Program::bin("sysctl", sysctl::main),
         Program::bin("top", top::main),
         Program::bin("uptime", uptime::main),
+        Program::bin("vmstat", vmstat::main),
         Program::bin("w", w::main),
         Program::bin("watch", watch::main),
     ]

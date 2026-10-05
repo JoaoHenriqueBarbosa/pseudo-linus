@@ -1,0 +1,194 @@
+{
+  "slabtop-delay-zero": {
+    "stdout": "slabtop: delay must be positive integer\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "slabtop-help": {
+    "stdout": "\nUsage:\n slabtop [options]\n\nOptions:\n -d, --delay <secs>  delay updates\n -o, --once          only display once, then exit\n -s, --sort <char>   specify sort criteria by character (see below)\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nThe following are valid sort criteria:\n a: sort by number of active objects\n b: sort by objects per slab\n c: sort by cache size\n l: sort by number of slabs\n v: sort by (non display) number of active slabs\n n: sort by name\n o: sort by number of objects (the default)\n p: sort by (non display) pages per slab\n s: sort by object size\n u: sort by cache utilization\n\nFor more details see slabtop(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "slabtop-unknown-option": {
+    "stdout": "slabtop: invalid option -- 'x'\n\nUsage:\n slabtop [options]\n\nOptions:\n -d, --delay <secs>  delay updates\n -o, --once          only display once, then exit\n -s, --sort <char>   specify sort criteria by character (see below)\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nThe following are valid sort criteria:\n a: sort by number of active objects\n b: sort by objects per slab\n c: sort by cache size\n l: sort by number of slabs\n v: sort by (non display) number of active slabs\n n: sort by name\n o: sort by number of objects (the default)\n p: sort by (non display) pages per slab\n s: sort by object size\n u: sort by cache utilization\n\nFor more details see slabtop(1).\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "slabtop-version": {
+    "stdout": "slabtop from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-active-header": {
+    "stdout": "procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------\n r  b   swpd   free  inact active   si   so    bi    bo   in   cs us sy id wa st gu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-active-wide-header": {
+    "stdout": "--procs-- -----------------------memory---------------------- ---swap-- -----io---- -system-- ----------cpu----------\n   r    b         swpd         free        inact       active   si   so    bi    bo   in   cs  us  sy  id  wa  st  gu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-column-count": {
+    "stdout": "18\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-count-not-a-number": {
+    "stdout": "vmstat: failed to parse argument: 'xyz'\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-delay-and-count-lines": {
+    "stdout": "4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-delay-negative": {
+    "stdout": "vmstat: delay must be positive integer\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-delay-not-a-number": {
+    "stdout": "vmstat: failed to parse argument: 'abc'\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-delay-zero": {
+    "stdout": "vmstat: delay must be positive integer\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-disk-header": {
+    "stdout": "disk- ------------reads------------ ------------writes----------- -----IO------\n       total merged sectors      ms  total merged sectors      ms    cur    sec\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-disk-sum-labels": {
+    "stdout": "disks\npartitions\ntotal reads\nmerged reads\nread sectors\nmilli reading\nwrites\nmerged writes\nwritten sectors\nmilli writing\ninprogress IO\nmilli spent IO\nmilli weighted IO\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-forks": {
+    "stdout": "2 forks\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-header": {
+    "stdout": "procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------\n r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st gu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-help": {
+    "stdout": "\nUsage:\n vmstat [options] [delay [count]]\n\nOptions:\n -a, --active           active/inactive memory\n -f, --forks            number of forks since boot\n -m, --slabs            slabinfo\n -n, --one-header       do not redisplay header\n -s, --stats            event counter statistics\n -d, --disk             disk statistics\n -D, --disk-sum         summarize disk statistics\n -p, --partition <dev>  partition specific statistics\n -S, --unit <char>      define display unit\n -w, --wide             wide output\n -t, --timestamp        show timestamp\n -y, --no-first         skips first line of output\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see vmstat(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-line-count": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-one-header-with-count": {
+    "stdout": "3 18\n1 6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-stats-labels": {
+    "stdout": "K total memory\nK used memory\nK active memory\nK inactive memory\nK free memory\nK buffer memory\nK swap cache\nK total swap\nK used swap\nK free swap\nnon-nice user cpu ticks\nnice user cpu ticks\nsystem cpu ticks\nidle cpu ticks\nIO-wait cpu ticks\nIRQ cpu ticks\nsoftirq cpu ticks\nstolen cpu ticks\nnon-nice guest cpu ticks\nnice guest cpu ticks\nK paged in\nK paged out\npages swapped in\npages swapped out\ninterrupts\nCPU context switches\nboot time\nforks\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-stats-megabytes-labels": {
+    "stdout": "M total memory\nM used memory\nM active memory\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-timestamp-column-count": {
+    "stdout": "20\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-timestamp-header": {
+    "stdout": "procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu------- -----timestamp-----\n r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st gu                 UTC\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-too-many-operands": {
+    "stdout": "\nUsage:\n vmstat [options] [delay [count]]\n\nOptions:\n -a, --active           active/inactive memory\n -f, --forks            number of forks since boot\n -m, --slabs            slabinfo\n -n, --one-header       do not redisplay header\n -s, --stats            event counter statistics\n -d, --disk             disk statistics\n -D, --disk-sum         summarize disk statistics\n -p, --partition <dev>  partition specific statistics\n -S, --unit <char>      define display unit\n -w, --wide             wide output\n -t, --timestamp        show timestamp\n -y, --no-first         skips first line of output\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see vmstat(8).\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-two-modes-fall-to-usage": {
+    "stdout": "N forks\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-unit-invalid": {
+    "stdout": "vmstat: -S requires k, K, m or M (default is KiB)\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-unit-megabytes-header": {
+    "stdout": "procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------\n r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st gu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-unit-too-long": {
+    "stdout": "procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-unknown-option": {
+    "stdout": "vmstat: invalid option -- 'x'\n\nUsage:\n vmstat [options] [delay [count]]\n\nOptions:\n -a, --active           active/inactive memory\n -f, --forks            number of forks since boot\n -m, --slabs            slabinfo\n -n, --one-header       do not redisplay header\n -s, --stats            event counter statistics\n -d, --disk             disk statistics\n -D, --disk-sum         summarize disk statistics\n -p, --partition <dev>  partition specific statistics\n -S, --unit <char>      define display unit\n -w, --wide             wide output\n -t, --timestamp        show timestamp\n -y, --no-first         skips first line of output\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see vmstat(8).\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-version": {
+    "stdout": "vmstat from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-wide-column-count": {
+    "stdout": "18\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vmstat-wide-header": {
+    "stdout": "--procs-- -----------------------memory---------------------- ---swap-- -----io---- -system-- ----------cpu----------\n   r    b         swpd         free         buff        cache   si   so    bi    bo   in   cs  us  sy  id  wa  st  gu\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

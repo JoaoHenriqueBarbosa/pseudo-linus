@@ -1,0 +1,167 @@
+tool = "procps"
+source = "manual"
+
+# vmstat e slabtop do procps-ng 4.0.4: versão, uso, erros de argumento, cabeçalhos de cada modo,
+# número de colunas e de linhas das tabelas e rótulos dos contadores. Os valores dos contadores
+# variam entre o oráculo (um contêiner docker) e o sandbox, então os casos comparam só formato,
+# cabeçalhos e erros, filtrando números com sed e awk.
+
+[[case]]
+id = "vmstat-version"
+argv = ["vmstat", "-V"]
+tags = ["vmstat", "version"]
+
+[[case]]
+id = "vmstat-help"
+script = "vmstat -h"
+tags = ["vmstat", "usage"]
+
+[[case]]
+id = "vmstat-unknown-option"
+script = "vmstat -x 2>&1; echo \"exit=$?\""
+tags = ["vmstat", "error", "usage"]
+
+[[case]]
+id = "vmstat-header"
+script = "vmstat | head -2"
+tags = ["vmstat", "header"]
+
+[[case]]
+id = "vmstat-line-count"
+script = "vmstat | wc -l"
+tags = ["vmstat", "format"]
+
+[[case]]
+id = "vmstat-column-count"
+script = "vmstat | awk 'NR == 3 {print NF}'"
+tags = ["vmstat", "format"]
+
+[[case]]
+id = "vmstat-active-header"
+script = "vmstat -a | head -2"
+tags = ["vmstat", "header"]
+
+[[case]]
+id = "vmstat-wide-header"
+script = "vmstat -w | head -2"
+tags = ["vmstat", "header", "alignment"]
+
+[[case]]
+id = "vmstat-wide-column-count"
+script = "vmstat -w | awk 'NR == 3 {print NF}'"
+tags = ["vmstat", "format"]
+
+[[case]]
+id = "vmstat-active-wide-header"
+script = "vmstat -aw | head -2"
+tags = ["vmstat", "header"]
+
+[[case]]
+id = "vmstat-timestamp-header"
+script = "vmstat -t | head -2"
+tags = ["vmstat", "header"]
+
+[[case]]
+id = "vmstat-timestamp-column-count"
+script = "vmstat -t | awk 'NR == 3 {print NF}'"
+tags = ["vmstat", "format"]
+
+[[case]]
+id = "vmstat-unit-megabytes-header"
+script = "vmstat -S M | head -2"
+tags = ["vmstat", "header"]
+
+[[case]]
+id = "vmstat-unit-invalid"
+script = "vmstat -S x 2>&1; echo \"exit=$?\""
+tags = ["vmstat", "error"]
+
+[[case]]
+id = "vmstat-unit-too-long"
+script = "vmstat -S MB 2>&1 | head -1; echo \"exit=$?\""
+tags = ["vmstat", "error"]
+
+[[case]]
+id = "vmstat-delay-zero"
+script = "vmstat 0 2>&1; echo \"exit=$?\""
+tags = ["vmstat", "error"]
+
+[[case]]
+id = "vmstat-delay-not-a-number"
+script = "vmstat abc 2>&1; echo \"exit=$?\""
+tags = ["vmstat", "error"]
+
+[[case]]
+id = "vmstat-delay-negative"
+script = "vmstat -- -1 2>&1; echo \"exit=$?\""
+tags = ["vmstat", "error"]
+
+[[case]]
+id = "vmstat-count-not-a-number"
+script = "vmstat 1 xyz 2>&1; echo \"exit=$?\""
+tags = ["vmstat", "error"]
+
+[[case]]
+id = "vmstat-too-many-operands"
+script = "vmstat 1 2 3 2>&1; echo \"exit=$?\""
+tags = ["vmstat", "error", "usage"]
+
+[[case]]
+id = "vmstat-two-modes-fall-to-usage"
+script = "vmstat -s -f 2>&1 | sed 's/^ *[0-9]*/N/'; echo \"exit=$?\""
+tags = ["vmstat", "error", "usage"]
+
+[[case]]
+id = "vmstat-delay-and-count-lines"
+script = "vmstat 1 2 | wc -l"
+tags = ["vmstat", "format"]
+
+[[case]]
+id = "vmstat-one-header-with-count"
+script = "vmstat -n 1 2 | awk '{print NF}' | sort | uniq -c | sed 's/^ *//'"
+tags = ["vmstat", "format"]
+
+[[case]]
+id = "vmstat-forks"
+script = "vmstat -f | awk '{print NF, $2}'"
+tags = ["vmstat", "format"]
+
+[[case]]
+id = "vmstat-stats-labels"
+script = "vmstat -s | sed 's/^ *[0-9]* *//'"
+tags = ["vmstat", "format"]
+
+[[case]]
+id = "vmstat-stats-megabytes-labels"
+script = "vmstat -s -S M | sed -n '1,3p' | sed 's/^ *[0-9]* *//'"
+tags = ["vmstat", "format"]
+
+[[case]]
+id = "vmstat-disk-header"
+script = "vmstat -d | head -2"
+tags = ["vmstat", "header", "disk"]
+
+[[case]]
+id = "vmstat-disk-sum-labels"
+script = "vmstat -D | sed 's/^ *[0-9]* *//'"
+tags = ["vmstat", "format", "disk"]
+
+[[case]]
+id = "slabtop-version"
+argv = ["slabtop", "-V"]
+tags = ["slabtop", "version"]
+
+[[case]]
+id = "slabtop-help"
+script = "slabtop -h"
+tags = ["slabtop", "usage"]
+
+[[case]]
+id = "slabtop-unknown-option"
+script = "slabtop -x 2>&1; echo \"exit=$?\""
+tags = ["slabtop", "error", "usage"]
+
+[[case]]
+id = "slabtop-delay-zero"
+script = "slabtop -d 0 2>&1; echo \"exit=$?\""
+tags = ["slabtop", "error"]

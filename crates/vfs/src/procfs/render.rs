@@ -471,6 +471,99 @@ nodev\thugetlbfs\nnodev\tdevpts\n\tfuseblk\nnodev\tfuse\nnodev\tfusectl\nnodev\t
 nodev\tresctrl\nnodev\tpstore\nnodev\tefivarfs\n\tbtrfs\n\text3\n\text2\n\text4\nnodev\tautofs\nnodev\tconfigfs\n\
 \tvfat\nnodev\tbinfmt_misc\nnodev\toverlay\n";
 
+/// `/proc/slabinfo` (versão 2.1): o kernel do sandbox não acompanha caches de slab (o `Slab` do
+/// `meminfo` é 0), então só o cabeçalho.
+pub(super) const SLABINFO: &str = "slabinfo - version: 2.1\n# name            <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> : tunables <limit> <batchcount> <sharedfactor> : slabdata <active_slabs> <num_slabs> <sharedavail>\n";
+
+/// `/proc/vmstat`: um contador por linha, `nome valor`, na ordem do 6.12. Só as grandezas de memória
+/// que o sandbox acompanha têm valor (em páginas de 4 KiB); eventos que ele não conta (faltas de
+/// página, I/O de bloco, swap) ficam em 0.
+pub(super) fn vmstat(m: &MemSystem) -> Vec<u8> {
+    let cached = m.mapped + m.shmem;
+    let used = m.anon + cached + m.kernel_stack + m.page_tables;
+    let free = m.total.saturating_sub(used);
+    let active_anon = (m.anon + m.shmem) / 4;
+    let active_file = m.mapped / 4;
+    let threshold = m.total / 4 / 10;
+    let entries: &[(&str, u64)] = &[
+        ("nr_free_pages", free / 4),
+        ("nr_zone_inactive_anon", 0),
+        ("nr_zone_active_anon", active_anon),
+        ("nr_zone_inactive_file", 0),
+        ("nr_zone_active_file", active_file),
+        ("nr_zone_unevictable", 0),
+        ("nr_zone_write_pending", 0),
+        ("nr_mlock", 0),
+        ("nr_bounce", 0),
+        ("nr_zspages", 0),
+        ("nr_free_cma", 0),
+        ("nr_unaccepted", 0),
+        ("numa_hit", 0),
+        ("numa_miss", 0),
+        ("numa_foreign", 0),
+        ("numa_interleave", 0),
+        ("numa_local", 0),
+        ("numa_other", 0),
+        ("nr_inactive_anon", 0),
+        ("nr_active_anon", active_anon),
+        ("nr_inactive_file", 0),
+        ("nr_active_file", active_file),
+        ("nr_unevictable", 0),
+        ("nr_slab_reclaimable", 0),
+        ("nr_slab_unreclaimable", 0),
+        ("nr_isolated_anon", 0),
+        ("nr_isolated_file", 0),
+        ("workingset_nodes", 0),
+        ("workingset_refault_anon", 0),
+        ("workingset_refault_file", 0),
+        ("workingset_activate_anon", 0),
+        ("workingset_activate_file", 0),
+        ("workingset_restore_anon", 0),
+        ("workingset_restore_file", 0),
+        ("workingset_nodereclaim", 0),
+        ("nr_anon_pages", m.anon / 4),
+        ("nr_mapped", m.mapped / 4),
+        ("nr_file_pages", cached / 4),
+        ("nr_dirty", 0),
+        ("nr_writeback", 0),
+        ("nr_writeback_temp", 0),
+        ("nr_shmem", m.shmem / 4),
+        ("nr_shmem_hugepages", 0),
+        ("nr_shmem_pmdmapped", 0),
+        ("nr_file_hugepages", 0),
+        ("nr_file_pmdmapped", 0),
+        ("nr_anon_transparent_hugepages", 0),
+        ("nr_vmscan_write", 0),
+        ("nr_vmscan_immediate_reclaim", 0),
+        ("nr_dirtied", 0),
+        ("nr_written", 0),
+        ("nr_throttled_written", 0),
+        ("nr_kernel_misc_reclaimable", 0),
+        ("nr_foll_pin_acquired", 0),
+        ("nr_foll_pin_released", 0),
+        ("nr_kernel_stack", m.kernel_stack),
+        ("nr_page_table_pages", m.page_tables / 4),
+        ("nr_sec_page_table_pages", 0),
+        ("nr_swapcached", 0),
+        ("nr_dirty_threshold", threshold),
+        ("nr_dirty_background_threshold", threshold / 2),
+        ("pgpgin", 0),
+        ("pgpgout", 0),
+        ("pswpin", 0),
+        ("pswpout", 0),
+        ("pgfree", 0),
+        ("pgactivate", 0),
+        ("pgdeactivate", 0),
+        ("pgfault", 0),
+        ("pgmajfault", 0),
+    ];
+    let mut o = Vec::with_capacity(2048);
+    for (name, value) in entries {
+        let _ = writeln!(o, "{name} {value}");
+    }
+    o
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

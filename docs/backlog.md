@@ -37,8 +37,10 @@ xzfgrep, e os do binutils (ar, as, ld, nm, objdump, readelf, size, strip, c++fil
   setterm, swapon, swapoff, swaplabel, taskset, uclampset, umount, unshare, wall, wdctl,
   wipefs, zramctl, agetty, login, nologin, runuser, su, sulogin, switch_root, pivot_root,
   ldattach, blkdiscard, blkzone, fsfreeze, chfn, chsh, newgrp, vipw.
-- **procps:** pmap, pwdx, skill, slabtop, sysctl, tload, vmstat, w, pstree, peekfd, prtstat,
-  pslog, fuser, killall5.
+- **procps:** pmap, pwdx, skill, sysctl, tload, w, pstree, peekfd, prtstat, pslog, fuser,
+  killall5. (slabtop e vmstat já portados em `crates/ul-procps`; tload pulado: precisa de terminal
+  e de curses; skill e snice dependem do seletor de processos do `ps`/`pgrep` e ficam pra outra
+  rodada.)
 - **shadow:** chage, chgpasswd, chpasswd, expiry, gpasswd, groupadd, groupdel, groupmod, grpck,
   grpconv, grpunconv, newusers, passwd, pwck, pwconv, pwunconv, useradd, userdel, usermod.
 - **outros:** dash, dc, mawk, iconv, iconvconfig, localedef, ldconfig, pldd, tic, zdump, zic,
