@@ -144,6 +144,12 @@ pub fn usage_error(usage: &str, msg: &str) -> Fail {
     Fail::Exit(129)
 }
 
+/// Erro de opção sem o texto de uso (`requires a value`): só `error: <msg>`, exit 129.
+pub fn error_only(msg: &str) -> Fail {
+    os::err_line("error: ", msg);
+    Fail::Exit(129)
+}
+
 /// Erro sem a palavra `error:` (o `usage_msg_opt`): `fatal: <msg>` e o uso.
 pub fn usage_fatal(usage: &str, msg: &str) -> Fail {
     os::err_line("fatal: ", msg);
@@ -286,7 +292,7 @@ pub fn parse(specs: &[Spec], args: &[Vec<u8>], flags: u32, usage: &str) -> R<Par
                         Some(v) => v,
                         None => {
                             if i >= args.len() {
-                                return Err(usage_error(usage, &format!("option `{lname}' requires a value")));
+                                return Err(error_only(&format!("option `{lname}' requires a value")));
                             }
                             i += 1;
                             args[i - 1].clone()
@@ -333,7 +339,7 @@ pub fn parse(specs: &[Spec], args: &[Vec<u8>], flags: u32, usage: &str) -> R<Par
                         a[k..].to_vec()
                     } else {
                         if i >= args.len() {
-                            return Err(usage_error(usage, &format!("switch `{}' requires a value", c as char)));
+                            return Err(error_only(&format!("switch `{}' requires a value", c as char)));
                         }
                         i += 1;
                         args[i - 1].clone()
