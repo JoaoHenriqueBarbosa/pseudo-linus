@@ -18,7 +18,7 @@ use crate::groupmgmt::{
 use crate::usermgmt::{parse_date, today, under_prefix, valid_field, write_with_backup};
 use crate::util::io::{self, File};
 
-const USAGE: &str = "Usage: useradd [options] LOGIN\n       useradd -D\n       useradd -D [options]\n\nOptions:\n      --badname                 do not check for bad names\n  -b, --base-dir BASE_DIR       base directory for the home directory of the\n                                new account\n      --btrfs-subvolume-home    use BTRFS subvolume for home directory\n  -c, --comment COMMENT         GECOS field of the new account\n  -d, --home-dir HOME_DIR       home directory of the new account\n  -D, --defaults                print or change default useradd configuration\n  -e, --expiredate EXPIRE_DATE  expiration date of the new account\n  -f, --inactive INACTIVE       password inactivity period of the new account\n  -F, --add-subids-for-system   add entries to sub[ug]id even when adding a system user\n  -g, --gid GROUP               name or ID of the primary group of the new\n                                account\n  -G, --groups GROUPS           list of supplementary groups of the new\n                                account\n  -h, --help                    display this help message and exit\n  -k, --skel SKEL_DIR           use this alternative skeleton directory\n  -K, --key KEY=VALUE           override /etc/login.defs defaults\n  -l, --no-log-init             do not add the user to the lastlog and\n                                faillog databases\n  -m, --create-home             create the user's home directory\n  -M, --no-create-home          do not create the user's home directory\n  -N, --no-user-group           do not create a group with the same name as\n                                the user\n  -o, --non-unique              allow to create users with duplicate\n                                (non-unique) UID\n  -p, --password PASSWORD       encrypted password of the new account\n  -r, --system                  create a system account\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -s, --shell SHELL             login shell of the new account\n  -u, --uid UID                 user ID of the new account\n  -U, --user-group              create a group with the same name as the user\n  -Z, --selinux-user SEUSER     use a specific SEUSER for the SELinux user mapping\n      --selinux-range SERANGE   use a specific MLS range for the SELinux user mapping\n\n";
+const USAGE: &str = "Usage: useradd [options] LOGIN\n       useradd -D\n       useradd -D [options]\n\nOptions:\n      --badname                 do not check for bad names (DEPRECATED)\n  -b, --base-dir BASE_DIR       base directory for the home directory of the\n                                new account\n      --btrfs-subvolume-home    use BTRFS subvolume for home directory\n  -c, --comment COMMENT         GECOS field of the new account\n  -d, --home-dir HOME_DIR       home directory of the new account\n  -D, --defaults                print or change default useradd configuration\n  -e, --expiredate EXPIRE_DATE  expiration date of the new account\n  -f, --inactive INACTIVE       password inactivity period of the new account\n  -F, --add-subids-for-system   add entries to sub[ud]id even when adding a system user\n  -g, --gid GROUP               name or ID of the primary group of the new\n                                account\n  -G, --groups GROUPS           list of supplementary groups of the new\n                                account\n  -h, --help                    display this help message and exit\n  -k, --skel SKEL_DIR           use this alternative skeleton directory\n  -K, --key KEY=VALUE           override /etc/login.defs defaults\n  -m, --create-home             create the user's home directory\n  -M, --no-create-home          do not create the user's home directory\n  -N, --no-user-group           do not create a group with the same name as\n                                the user\n  -o, --non-unique              allow to create users with duplicate\n                                (non-unique) UID\n  -p, --password PASSWORD       encrypted password of the new account\n  -r, --system                  create a system account\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -s, --shell SHELL             login shell of the new account\n  -u, --uid UID                 user ID of the new account\n  -U, --user-group              create a group with the same name as the user\n  -Z, --selinux-user SEUSER     use a specific SEUSER for the SELinux user mapping\n      --selinux-range SERANGE   use a specific MLS range for the SELinux user mapping\n\n";
 
 const BADNAME: u8 = 1;
 const BTRFS: u8 = 2;
@@ -67,7 +67,7 @@ impl Defaults {
             base: "/home".into(),
             inactive: "-1".into(),
             expire: String::new(),
-            shell: "/bin/sh".into(),
+            shell: "/bin/bash".into(),
             skel: "/etc/skel".into(),
             mail: "no".into(),
         };
@@ -467,6 +467,10 @@ fn useradd(args: &[OsString]) -> i32 {
             }
             return 0;
         }
+        // Sem o arquivo de padrões no prefixo, o original não consegue ler os padrões e mostra o uso.
+        if read_lines(&dpath).is_err() {
+            return usage(USAGE, 2);
+        }
         let mut out = String::new();
         out.push_str(&format!("GROUP={}\n", def.group));
         out.push_str(&format!("HOME={}\n", def.base));
@@ -492,7 +496,7 @@ fn useradd(args: &[OsString]) -> i32 {
     let shown = io::lossy(&name);
     if (!valid_name(&name) || name.len() > 32) && !o.has(BADNAME) {
         io::eprint(format!("{P}: invalid user name '{shown}': use --badname to ignore\n"));
-        return 3;
+        return 19;
     }
     if o.has(BADNAME) && (name.is_empty() || !valid_field(&name)) {
         io::eprint(format!("{P}: invalid user name '{shown}'\n"));
@@ -540,7 +544,7 @@ fn useradd(args: &[OsString]) -> i32 {
     let uid = match uid_opt {
         Some(u) => {
             if !o.has(b'o') && used_uids.contains(&u) {
-                io::eprint(format!("{P}: UID '{u}' already exists\n"));
+                io::eprint(format!("{P}: UID {u} is not unique\n"));
                 return 4;
             }
             u
@@ -672,7 +676,8 @@ fn useradd(args: &[OsString]) -> i32 {
             let _ = sys::current().fchmodat(Fd::CWD, &hpath, mode, AtFlags::empty());
             chown(&hpath, uid, gid);
             let skel_dir = skel.unwrap_or_else(|| def.skel.clone().into_bytes());
-            let skel_path = under_prefix(&prefix, &skel_dir);
+            // O original lê o skel do sistema real, sem o prefixo.
+            let skel_path = skel_dir;
             if sys::lstat(&skel_path).is_ok() {
                 let _ = copy_tree(&skel_path, &hpath, uid, gid);
             }
