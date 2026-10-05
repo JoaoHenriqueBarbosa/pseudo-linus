@@ -1,0 +1,170 @@
+{
+  "mountpoint-devno-nofollow-exclusive": {
+    "stdout": "",
+    "stderr": "mountpoint: --devno and --nofollow are mutually exclusive\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mountpoint-devno-not-block": {
+    "stdout": "rc=32\nrc=32\n",
+    "stderr": "mountpoint: /dev/null: not a block device\n",
+    "exit": 0,
+    "files": {}
+  },
+  "mountpoint-dotdot-to-root": {
+    "stdout": "../.. is a mountpoint\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mountpoint-fs-devno-not-mountpoint": {
+    "stdout": "/etc is not a mountpoint\nrc=32\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mountpoint-help": {
+    "stdout": "\nUsage:\n mountpoint [-qd] /path/to/directory\n mountpoint -x /dev/device\n\nCheck whether a directory or file is a mountpoint.\n\nOptions:\n -q, --quiet        quiet mode - don't print anything\n     --nofollow     do not follow symlink\n -d, --fs-devno     print maj:min device number of the filesystem\n -x, --devno        print maj:min device number of the block device\n\n -h, --help         display this help\n -V, --version      display version\n\nFor more details see mountpoint(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mountpoint-invalid-option": {
+    "stdout": "",
+    "stderr": "mountpoint: invalid option -- 'z'\nTry 'mountpoint --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mountpoint-missing": {
+    "stdout": "",
+    "stderr": "mountpoint: nope: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mountpoint-missing-quiet": {
+    "stdout": "rc=1\nrc=0\nrc=32\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mountpoint-no-args": {
+    "stdout": "",
+    "stderr": "mountpoint: bad usage\nTry 'mountpoint --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mountpoint-not-mountpoint": {
+    "stdout": "/usr is not a mountpoint\n",
+    "stderr": "",
+    "exit": 32,
+    "files": {}
+  },
+  "mountpoint-proc-trailing-slash": {
+    "stdout": "/proc/ is a mountpoint\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mountpoint-relative-dir": {
+    "stdout": "d is not a mountpoint\n",
+    "stderr": "",
+    "exit": 32,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "mountpoint-root": {
+    "stdout": "/ is a mountpoint\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mountpoint-symlink-follow-and-nofollow": {
+    "stdout": "l is a mountpoint\nrc=0\nl is not a mountpoint\nrc=32\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "l": {
+        "kind": "symlink",
+        "target": "/proc"
+      }
+    }
+  },
+  "mountpoint-two-args": {
+    "stdout": "",
+    "stderr": "mountpoint: bad usage\nTry 'mountpoint --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mountpoint-version": {
+    "stdout": "mountpoint from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setsid-ctty-without-tty": {
+    "stdout": "rc=1\n",
+    "stderr": "setsid: failed to set the controlling terminal: Inappropriate ioctl for device\n",
+    "exit": 0,
+    "files": {}
+  },
+  "setsid-help": {
+    "stdout": "\nUsage:\n setsid [options] <program> [<argument>...]\n\nRun a program in a new session.\n\nOptions:\n -c, --ctty     set the controlling terminal to the current one\n -f, --fork     always fork\n -w, --wait     wait program to exit, and use the same return\n -h, --help     display this help\n -V, --version  display version\n\nFor more details see setsid(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setsid-invalid-option": {
+    "stdout": "",
+    "stderr": "setsid: invalid option -- 'x'\nTry 'setsid --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setsid-no-command": {
+    "stdout": "",
+    "stderr": "setsid: no command specified\nTry 'setsid --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setsid-not-executable": {
+    "stdout": "rc=126\n",
+    "stderr": "setsid: failed to execute ./f: Permission denied\n",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "setsid-not-found": {
+    "stdout": "rc=127\n",
+    "stderr": "setsid: failed to execute no-such-program-xyz: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "setsid-runs-program": {
+    "stdout": "hello -w\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setsid-version": {
+    "stdout": "setsid from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setsid-wait-exit-code": {
+    "stdout": "rc=7\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

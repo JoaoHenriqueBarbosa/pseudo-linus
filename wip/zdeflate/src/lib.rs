@@ -14,6 +14,8 @@
 mod deflate;
 mod trees;
 
+pub use deflate::compress;
+
 pub const MIN_MATCH: usize = 3;
 pub const MAX_MATCH: usize = 258;
 const MIN_LOOKAHEAD: usize = MAX_MATCH + MIN_MATCH + 1;

@@ -1,0 +1,107 @@
+tool = "mountpoint"
+source = "manual"
+
+# mountpoint e setsid do util-linux 2.41. No oráculo /, /proc, /dev e /work são pontos de montagem.
+# O fallocate ainda não tem casos: o sysabi não tem a syscall fallocate.
+
+[[case]]
+id = "mountpoint-help"
+argv = ["mountpoint", "--help"]
+
+[[case]]
+id = "mountpoint-version"
+argv = ["mountpoint", "-V"]
+
+[[case]]
+id = "mountpoint-no-args"
+argv = ["mountpoint"]
+
+[[case]]
+id = "mountpoint-two-args"
+argv = ["mountpoint", "/", "/proc"]
+
+[[case]]
+id = "mountpoint-invalid-option"
+argv = ["mountpoint", "-z", "/"]
+
+[[case]]
+id = "mountpoint-root"
+argv = ["mountpoint", "/"]
+
+[[case]]
+id = "mountpoint-proc-trailing-slash"
+argv = ["mountpoint", "/proc/"]
+
+[[case]]
+id = "mountpoint-not-mountpoint"
+argv = ["mountpoint", "/usr"]
+
+[[case]]
+id = "mountpoint-relative-dir"
+argv = ["mountpoint", "d"]
+[case.files]
+"d" = { dir = true }
+
+[[case]]
+id = "mountpoint-missing"
+argv = ["mountpoint", "nope"]
+
+[[case]]
+id = "mountpoint-missing-quiet"
+script = "mountpoint -q nope; echo rc=$?; mountpoint -q /dev; echo rc=$?; mountpoint -q /etc; echo rc=$?"
+
+[[case]]
+id = "mountpoint-dotdot-to-root"
+script = "mountpoint ../..; echo rc=$?"
+
+[[case]]
+id = "mountpoint-symlink-follow-and-nofollow"
+script = "ln -s /proc l; mountpoint l; echo rc=$?; mountpoint --nofollow l; echo rc=$?"
+
+[[case]]
+id = "mountpoint-devno-nofollow-exclusive"
+argv = ["mountpoint", "-x", "--nofollow", "/"]
+
+[[case]]
+id = "mountpoint-devno-not-block"
+script = "mountpoint -x /dev/null; echo rc=$?; mountpoint -qx /dev/null; echo rc=$?"
+
+[[case]]
+id = "mountpoint-fs-devno-not-mountpoint"
+script = "mountpoint -d /etc; echo rc=$?"
+
+[[case]]
+id = "setsid-help"
+argv = ["setsid", "--help"]
+
+[[case]]
+id = "setsid-version"
+argv = ["setsid", "--version"]
+
+[[case]]
+id = "setsid-no-command"
+argv = ["setsid"]
+
+[[case]]
+id = "setsid-invalid-option"
+argv = ["setsid", "-x", "true"]
+
+[[case]]
+id = "setsid-runs-program"
+argv = ["setsid", "echo", "hello", "-w"]
+
+[[case]]
+id = "setsid-wait-exit-code"
+script = "setsid -w sh -c 'exit 7'; echo rc=$?; setsid -fw sh -c 'exit 3'; echo rc=$?"
+
+[[case]]
+id = "setsid-not-found"
+script = "setsid no-such-program-xyz; echo rc=$?"
+
+[[case]]
+id = "setsid-not-executable"
+script = "touch f; chmod 644 f; setsid ./f; echo rc=$?"
+
+[[case]]
+id = "setsid-ctty-without-tty"
+script = "setsid -c true </dev/null; echo rc=$?"

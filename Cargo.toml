@@ -5,7 +5,7 @@
 resolver = "3"
 members = ["crates/*"]
 # A bancada é outro workspace (testbench/Cargo.toml); o harness entra aqui só como dependência.
-exclude = ["testbench"]
+exclude = ["testbench", "wip"]
 
 [workspace.package]
 edition = "2024"

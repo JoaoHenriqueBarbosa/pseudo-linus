@@ -48,10 +48,12 @@ fn usage(progname: &str) -> String {
   -h, --help               display this help and exit
   -V, --version            output version information and exit
 
-Email bug reports to:  bug-dc@gnu.org .
 "
     )
 }
+
+/// O `usage` do original manda as opções pro stream pedido, mas a linha de bugs sempre pro stdout.
+const BUG_LINE: &str = "Email bug reports to:  bug-dc@gnu.org .\n";
 
 /// Maior `ibase` aceito pelo `i`.
 const IBASE_MAX: i64 = 16;
@@ -130,6 +132,7 @@ fn run(args: &[OsString]) -> i32 {
                 }
                 Some('h') => {
                     let _ = io::stdout().write_all(usage(&progname).as_bytes());
+                    let _ = io::stdout().write_all(BUG_LINE.as_bytes());
                     return 0;
                 }
                 Some('V') => {
@@ -141,6 +144,7 @@ fn run(args: &[OsString]) -> i32 {
             Err(e) => {
                 io::eprint(format!("{}\n", e.message(&argv0)));
                 io::eprint(usage(&progname));
+                let _ = io::stdout().write_all(BUG_LINE.as_bytes());
                 return 1;
             }
         }
@@ -171,6 +175,10 @@ fn show_id(c: u8) -> String {
 /// (`n_len + n_scale - (primeiro dígito == 0)`).
 fn num_len(n: &Num) -> u64 {
     let int = n.int_mag();
+    if int.is_zero() && n.scale() == 0 {
+        // O zero inteiro conta um dígito.
+        return 1;
+    }
     let int_digits = if int.is_zero() { 0 } else { int.to_str_radix(10).len() as u64 };
     int_digits + u64::from(n.scale())
 }
@@ -223,8 +231,9 @@ impl Dc {
         let mut file = match io::File::open(path) {
             Ok(f) => f,
             Err(_) => {
+                // O original avisa e segue: o código de saída não muda.
                 self.err(format!("Could not open file {name}"));
-                return Some(1);
+                return None;
             }
         };
         let data = match file.read_to_end_sys() {
@@ -385,7 +394,8 @@ impl Dc {
         let ll = self.line_len;
         n.write(self.obase, &mut |ch| {
             col += 1;
-            if ll != 0 && col == ll - 1 {
+            // 69 dígitos e a `\` somam os 70 do DC_LINE_LENGTH.
+            if ll != 0 && col == ll {
                 buf.extend_from_slice(b"\\\n");
                 col = 1;
             }
@@ -429,7 +439,8 @@ impl Dc {
         match (&self.stack[n - 2], &self.stack[n - 1]) {
             (Value::Num(a), Value::Num(b)) => Some((a.clone(), b.clone())),
             _ => {
-                self.err("non-numeric value");
+                // O dc_binop do original repete o nome do programa nessa mensagem.
+                self.err(format!("{}: non-numeric value", self.progname));
                 None
             }
         }
@@ -565,7 +576,11 @@ impl Dc {
                 self.stack.pop();
                 self.push_num(r);
             }
-            None => self.err("square root of negative number"),
+            None => {
+                // O original já tirou o valor da pilha e não o devolve.
+                self.stack.pop();
+                self.err("square root of negative number");
+            }
         }
     }
 
@@ -803,7 +818,8 @@ impl Dc {
                     let Some(r) = self.reg_name(src) else { return Flow::Next };
                     match self.regs[r].last().and_then(|e| e.value.clone()) {
                         Some(v) => self.push(v),
-                        None => self.err(format!("register {} is empty", show_id(r as u8))),
+                        // Registrador vazio vale zero, sem mensagem.
+                        None => self.push_num(Num::zero()),
                     }
                 }
                 b'S' => {
@@ -922,7 +938,10 @@ impl Dc {
                         self.err("Q command requires a number >= 1");
                     }
                 }
-                _ => self.err(format!("{} unimplemented", show_id(c))),
+                // O original manda essa pro stdout, sem o nome do programa.
+                _ => {
+                    let _ = io::stdout().write_all(format!("{} unimplemented\n", show_id(c)).as_bytes());
+                }
             }
         }
         Flow::Next
