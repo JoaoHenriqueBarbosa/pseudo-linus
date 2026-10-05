@@ -1,0 +1,407 @@
+tool = "run-parts"
+source = "manual"
+
+# run-parts do debianutils 5.23: filtro de nomes (padrão, --lsbsysinit, --regex), ordem, --test, --list,
+# --report, --verbose, --reverse, --exit-on-error, -a, -u, --stdin, --new-session, vários diretórios e
+# as mensagens de erro. Os diretórios com --debug têm uma entrada só: a ordem das mensagens de
+# validação é a do readdir.
+
+[[case]]
+id = "run-parts-help"
+argv = ["run-parts", "--help"]
+
+[[case]]
+id = "run-parts-help-short"
+argv = ["run-parts", "-h"]
+
+[[case]]
+id = "run-parts-version"
+argv = ["run-parts", "--version"]
+
+[[case]]
+id = "run-parts-version-short"
+argv = ["run-parts", "-V"]
+
+[[case]]
+id = "run-parts-no-args"
+argv = ["run-parts"]
+
+[[case]]
+id = "run-parts-invalid-option"
+argv = ["run-parts", "-x", "d"]
+
+[[case]]
+id = "run-parts-short-debug-is-invalid"
+argv = ["run-parts", "-d", "d"]
+
+[[case]]
+id = "run-parts-short-t-is-invalid"
+argv = ["run-parts", "-t", "d"]
+
+[[case]]
+id = "run-parts-unrecognized-option"
+argv = ["run-parts", "--bogus", "d"]
+
+[[case]]
+id = "run-parts-ambiguous-option"
+argv = ["run-parts", "--re", "d"]
+
+[[case]]
+id = "run-parts-ambiguous-option-l"
+argv = ["run-parts", "--l", "d"]
+
+[[case]]
+id = "run-parts-long-prefix"
+script = "mkdir d; printf '#!/bin/sh\\necho hi\\n' > d/a; chmod +x d/a; run-parts --tes d; run-parts --verb d; run-parts --rev --tes d"
+
+[[case]]
+id = "run-parts-missing-argument"
+argv = ["run-parts", "--umask"]
+
+[[case]]
+id = "run-parts-arg-missing-argument"
+argv = ["run-parts", "-a"]
+
+[[case]]
+id = "run-parts-list-and-test"
+argv = ["run-parts", "--list", "--test", "d"]
+
+[[case]]
+id = "run-parts-bad-umask"
+argv = ["run-parts", "--umask=8", "d"]
+
+[[case]]
+id = "run-parts-bad-umask-empty"
+argv = ["run-parts", "--umask=", "d"]
+
+[[case]]
+id = "run-parts-bad-umask-negative"
+argv = ["run-parts", "--umask=-1", "d"]
+
+[[case]]
+id = "run-parts-bad-umask-too-big"
+argv = ["run-parts", "--umask=10000", "d"]
+
+[[case]]
+id = "run-parts-umask-hex-prefix-ok"
+argv = ["run-parts", "--umask=0x7", "d"]
+
+[[case]]
+id = "run-parts-umask-trailing-junk-ok"
+argv = ["run-parts", "--umask=12z", "d"]
+
+[[case]]
+id = "run-parts-bad-regex"
+argv = ["run-parts", "--regex=(", "d"]
+
+[[case]]
+id = "run-parts-bad-regex-bracket"
+argv = ["run-parts", "--regex=[a", "d"]
+
+[[case]]
+id = "run-parts-bad-regex-brace"
+argv = ["run-parts", "--regex=a{1", "d"]
+
+[[case]]
+id = "run-parts-missing-directory"
+argv = ["run-parts", "nonexistent"]
+
+[[case]]
+id = "run-parts-empty-directory"
+script = "mkdir d; run-parts d; echo \"rc=$?\"; run-parts --test d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-directory-is-a-file"
+script = "touch f; run-parts f; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-runs-in-order"
+script = "mkdir d; for n in 30-c 10-a 20-b; do printf '#!/bin/sh\\necho %s\\n' $n > d/$n; chmod +x d/$n; done; run-parts d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-test-lists-executables"
+script = "mkdir d; for n in 30-c 10-a 20-b; do printf '#!/bin/sh\\n' > d/$n; chmod +x d/$n; done; run-parts --test d"
+
+[[case]]
+id = "run-parts-test-skips-non-executable"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-x; chmod +x d/10-x; printf 'data\\n' > d/20-n; run-parts --test d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-list-includes-readable-non-executable"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-x; chmod +x d/10-x; printf 'data\\n' > d/20-n; run-parts --list d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-non-executable-silently-skipped"
+script = "mkdir d; printf '#!/bin/sh\\necho no\\n' > d/10-n; run-parts d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-name-filter-default"
+script = "mkdir d; for n in a1 A_B-c 1.2 foo.sh foo~ foo.dpkg-old _x -y 'sp ace' ok; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --test d"
+
+[[case]]
+id = "run-parts-name-filter-lsbsysinit"
+script = "mkdir d; for n in foo-bar foo.sh plain _x-y foo-bar.dpkg-old a-b-c 1foo foo_bar-baz.dpkg-dist bad-.x; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --lsbsysinit --test d"
+
+[[case]]
+id = "run-parts-name-filter-lsbsysinit-traditional"
+script = "mkdir d; for n in S01-foo 99-last Aa abc-def_ghi 0; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --lsbsysinit --test d"
+
+[[case]]
+id = "run-parts-name-filter-regex"
+script = "mkdir d; for n in a.sh b.sh c.txt d; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --regex='\\.sh$' --test d"
+
+[[case]]
+id = "run-parts-name-filter-regex-ere-features"
+script = "mkdir d; for n in aa ab abab b; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --regex='^(ab)+$' --test d"
+
+[[case]]
+id = "run-parts-name-filter-regex-alternation"
+script = "mkdir d; for n in one two three; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --regex='^(one|three)$' --test d"
+
+[[case]]
+id = "run-parts-regex-then-lsbsysinit-last-wins"
+script = "mkdir d; for n in foo-bar plain; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --regex='^zzz$' --lsbsysinit --test d"
+
+[[case]]
+id = "run-parts-lsbsysinit-then-regex-last-wins"
+script = "mkdir d; for n in foo-bar plain; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --lsbsysinit --regex='^plain$' --test d"
+
+[[case]]
+id = "run-parts-regex-is-search-not-full-match"
+script = "mkdir d; for n in xfoox foo bar; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --regex=foo --test d"
+
+[[case]]
+id = "run-parts-sorting-bytes"
+script = "mkdir d; for n in b a B A _x 1 10 2 a-b a_b ab; do printf '#!/bin/sh\\n' > \"d/$n\"; chmod +x \"d/$n\"; done; run-parts --test d"
+
+[[case]]
+id = "run-parts-reverse"
+script = "mkdir d; for n in 10-a 20-b 30-c; do printf '#!/bin/sh\\necho %s\\n' $n > d/$n; chmod +x d/$n; done; run-parts --reverse d; run-parts --reverse --test d"
+
+[[case]]
+id = "run-parts-multiple-directories-merged"
+script = "mkdir d1 d2; for n in 10-a 30-c; do printf '#!/bin/sh\\n' > d1/$n; chmod +x d1/$n; done; printf '#!/bin/sh\\n' > d2/20-b; chmod +x d2/20-b; run-parts --test d1 d2"
+
+[[case]]
+id = "run-parts-multiple-directories-first-wins"
+script = "mkdir d1 d2; printf '#!/bin/sh\\necho first\\n' > d1/10-a; chmod +x d1/10-a; printf '#!/bin/sh\\necho second\\n' > d2/10-a; chmod +x d2/10-a; run-parts d1 d2; run-parts d2 d1; run-parts --test d2 d1"
+
+[[case]]
+id = "run-parts-multiple-directories-one-missing"
+script = "mkdir d1; printf '#!/bin/sh\\n' > d1/10-a; chmod +x d1/10-a; run-parts --test nope d1; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-directory-trailing-slash-in-path"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-a; chmod +x d/10-a; run-parts --test d/; run-parts --test ./d"
+
+[[case]]
+id = "run-parts-same-directory-twice"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-a; chmod +x d/10-a; run-parts --test d d"
+
+[[case]]
+id = "run-parts-absolute-directory"
+script = "mkdir d; printf '#!/bin/sh\\necho abs\\n' > d/10-a; chmod +x d/10-a; run-parts \"$PWD/d\" | sed \"s|$PWD|PWD|\""
+
+[[case]]
+id = "run-parts-subdirectories-ignored"
+script = "mkdir -p d/sub; printf '#!/bin/sh\\n' > d/10-a; chmod +x d/10-a; run-parts --test d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-arguments"
+script = "mkdir d; printf '#!/bin/sh\\necho \"[$#] $*\"\\nfor a; do echo \"<$a>\"; done\\n' > d/10-a; chmod +x d/10-a; run-parts -a one --arg 'two three' -a '' d"
+
+[[case]]
+id = "run-parts-argument-zero-is-the-path"
+script = "mkdir d; printf '#!/bin/sh\\necho \"$0\"\\n' > d/10-a; chmod +x d/10-a; run-parts d"
+
+[[case]]
+id = "run-parts-exit-code-propagates"
+script = "mkdir d; printf '#!/bin/sh\\nexit 3\\n' > d/10-a; chmod +x d/10-a; run-parts d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-exit-code-last-failure-wins"
+script = "mkdir d; printf '#!/bin/sh\\nexit 3\\n' > d/10-a; printf '#!/bin/sh\\nexit 0\\n' > d/20-b; printf '#!/bin/sh\\nexit 5\\n' > d/30-c; printf '#!/bin/sh\\nexit 0\\n' > d/40-d; chmod +x d/*; run-parts d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-continues-after-failure"
+script = "mkdir d; printf '#!/bin/sh\\necho one\\nexit 2\\n' > d/10-a; printf '#!/bin/sh\\necho two\\n' > d/20-b; chmod +x d/*; run-parts d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-exit-on-error"
+script = "mkdir d; printf '#!/bin/sh\\necho one\\nexit 2\\n' > d/10-a; printf '#!/bin/sh\\necho two\\n' > d/20-b; chmod +x d/*; run-parts --exit-on-error d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-exit-on-error-success-continues"
+script = "mkdir d; printf '#!/bin/sh\\necho one\\n' > d/10-a; printf '#!/bin/sh\\necho two\\n' > d/20-b; chmod +x d/*; run-parts --exit-on-error d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-signal-death"
+script = "mkdir d; printf '#!/bin/sh\\nkill -9 $$\\n' > d/10-a; chmod +x d/*; run-parts d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-verbose"
+script = "mkdir d; printf '#!/bin/sh\\necho out\\n' > d/10-a; printf '#!/bin/sh\\necho out2\\n' > d/20-b; chmod +x d/*; run-parts -v d 2>&1; run-parts --verbose d 2>&1 >/dev/null"
+
+[[case]]
+id = "run-parts-verbose-with-arguments"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-a; chmod +x d/*; run-parts -v -a x -a 'y z' d 2>&1"
+
+[[case]]
+id = "run-parts-verbose-test-mode-prints-nothing-extra"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-a; chmod +x d/*; run-parts -v --test d 2>&1"
+
+[[case]]
+id = "run-parts-report-stdout"
+script = "mkdir d; printf '#!/bin/sh\\necho hello\\n' > d/10-a; printf '#!/bin/sh\\ntrue\\n' > d/20-quiet; printf '#!/bin/sh\\necho world\\n' > d/30-c; chmod +x d/*; run-parts --report d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-report-stderr"
+script = "mkdir d; printf '#!/bin/sh\\necho oops >&2\\n' > d/10-a; chmod +x d/*; run-parts --report d 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-report-multiline"
+script = "mkdir d; printf '#!/bin/sh\\necho one\\necho two\\n' > d/10-a; chmod +x d/*; run-parts --report d"
+
+[[case]]
+id = "run-parts-report-failing-script"
+script = "mkdir d; printf '#!/bin/sh\\necho before\\nexit 4\\n' > d/10-a; chmod +x d/*; run-parts --report d 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-report-no-output-nothing-printed"
+script = "mkdir d; printf '#!/bin/sh\\ntrue\\n' > d/10-a; chmod +x d/*; run-parts --report d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-report-large-output"
+script = "mkdir d; printf '#!/bin/sh\\nhead -c 20000 /dev/zero | tr \"\\\\0\" x\\n' > d/10-a; chmod +x d/*; run-parts --report d | wc -c"
+
+[[case]]
+id = "run-parts-umask-default-022"
+script = "mkdir d; printf '#!/bin/sh\\numask\\n' > d/10-a; chmod +x d/*; run-parts d; umask 077; run-parts d"
+
+[[case]]
+id = "run-parts-umask-option"
+script = "mkdir d; printf '#!/bin/sh\\numask\\ntouch f\\nstat -c %%a f\\n' > d/10-a; chmod +x d/*; run-parts -u 077 d; run-parts --umask=0 d; run-parts --umask 027 d"
+
+[[case]]
+id = "run-parts-stdin-mode"
+script = "mkdir d; printf '#!/bin/sh\\ncat\\necho --\\n' > d/10-a; cp d/10-a d/20-b; chmod +x d/*; printf 'input\\n' | run-parts --stdin d"
+
+[[case]]
+id = "run-parts-stdin-mode-large"
+script = "mkdir d; printf '#!/bin/sh\\nwc -c\\n' > d/10-a; cp d/10-a d/20-b; chmod +x d/*; head -c 100000 /dev/zero | run-parts --stdin d"
+
+[[case]]
+id = "run-parts-no-stdin-mode-passes-parent-stdin"
+script = "mkdir d; printf '#!/bin/sh\\ncat\\n' > d/10-a; chmod +x d/*; printf 'input\\n' | run-parts d"
+
+[[case]]
+id = "run-parts-stdin-mode-nothing-to-run"
+script = "mkdir d; printf 'input\\n' | run-parts --stdin d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-new-session"
+script = "mkdir d; printf '#!/bin/sh\\nps -o pid=,sid= -p $$ | awk \"{ print (\\\\$1 == \\\\$2) }\"\\n' > d/10-a; chmod +x d/*; run-parts --new-session d"
+
+[[case]]
+id = "run-parts-no-exec-format-script"
+script = "mkdir d; printf 'echo no shebang\\n' > d/10-a; chmod +x d/10-a; run-parts d 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-missing-interpreter"
+script = "mkdir d; printf '#!/nonexistent/interp\\n' > d/10-a; chmod +x d/10-a; run-parts d 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-binary-program"
+script = "mkdir d; ln -s /usr/bin/true d/10-true; ln -s /usr/bin/false d/20-false; run-parts d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-symlinks-followed"
+script = "mkdir d; printf '#!/bin/sh\\necho target\\n' > real; chmod +x real; ln -s ../real d/10-link; run-parts d; run-parts --test d"
+
+[[case]]
+id = "run-parts-broken-symlink-ignored"
+script = "mkdir d; ln -s nowhere d/10-broken; printf '#!/bin/sh\\n' > d/20-ok; chmod +x d/20-ok; run-parts --test d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-fifo-is-an-error"
+script = "mkdir d; mkfifo d/10-fifo; printf '#!/bin/sh\\n' > d/20-ok; chmod +x d/20-ok; run-parts --test d 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-fifo-ignored-with-list"
+script = "mkdir d; mkfifo d/10-fifo; printf '#!/bin/sh\\n' > d/20-ok; chmod +x d/20-ok; run-parts --list d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-directory-with-valid-name-skipped"
+script = "mkdir -p d/10-subdir; printf '#!/bin/sh\\n' > d/20-ok; chmod +x d/20-ok; run-parts --test d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-debug-single-entry"
+script = "mkdir d; printf '#!/bin/sh\\necho hi\\n' > d/10-a; chmod +x d/10-a; run-parts --debug d 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-debug-rejected-name"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/bad.name; chmod +x d/bad.name; run-parts --debug d 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-debug-lsbsysinit"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/foo-bar; chmod +x d/foo-bar; run-parts --debug --lsbsysinit --test d 2>&1"
+
+[[case]]
+id = "run-parts-debug-lsbsysinit-excluded"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/foo-bar.dpkg-old; chmod +x d/foo-bar.dpkg-old; run-parts --debug --lsbsysinit --test d 2>&1"
+
+[[case]]
+id = "run-parts-debug-lsbsysinit-traditional"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/plain; chmod +x d/plain; run-parts --debug --lsbsysinit --test d 2>&1"
+
+[[case]]
+id = "run-parts-debug-regex"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/abc; chmod +x d/abc; run-parts --debug --regex=b --test d 2>&1"
+
+[[case]]
+id = "run-parts-debug-two-directories-single-entries"
+script = "mkdir d1 d2; printf '#!/bin/sh\\n' > d1/10-a; chmod +x d1/10-a; printf '#!/bin/sh\\n' > d2/10-a; chmod +x d2/10-a; run-parts --debug --test d1 d2 2>&1"
+
+[[case]]
+id = "run-parts-debug-not-found-in-first-directory"
+script = "mkdir d1 d2; printf '#!/bin/sh\\n' > d2/10-a; chmod +x d2/10-a; run-parts --debug --test d1 d2 2>&1"
+
+[[case]]
+id = "run-parts-debug-non-executable"
+script = "mkdir d; printf 'x\\n' > d/10-a; run-parts --debug --list d 2>&1"
+
+[[case]]
+id = "run-parts-debug-reverse-single-entry"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-a; chmod +x d/10-a; run-parts --debug --reverse --test d 2>&1"
+
+[[case]]
+id = "run-parts-options-after-directory"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-a; chmod +x d/10-a; run-parts d --test; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-double-dash"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-a; chmod +x d/10-a; run-parts --test -- d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-posixly-correct-stops-at-first-operand"
+script = "mkdir d; printf '#!/bin/sh\\n' > d/10-a; chmod +x d/10-a; POSIXLY_CORRECT=1 run-parts d --test; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-environment-inherited"
+script = "mkdir d; printf '#!/bin/sh\\necho \"$FOO\"\\n' > d/10-a; chmod +x d/*; FOO=bar run-parts d"
+
+[[case]]
+id = "run-parts-cwd-inherited"
+script = "mkdir d; printf '#!/bin/sh\\npwd\\n' > d/10-a; chmod +x d/*; run-parts d | sed \"s|$PWD|PWD|\""
+
+[[case]]
+id = "run-parts-output-ordering-stdout-then-stderr"
+script = "mkdir d; printf '#!/bin/sh\\necho out\\n' > d/10-a; printf '#!/bin/sh\\necho err >&2\\n' > d/20-b; chmod +x d/*; run-parts d 2>&1"
+
+[[case]]
+id = "run-parts-exit-status-without-scripts-zero"
+script = "mkdir d; run-parts d; echo \"rc=$?\""
+
+[[case]]
+id = "run-parts-long-run-many-scripts"
+script = "mkdir d; i=0; while [ $i -lt 30 ]; do n=$(printf '%02d-s' $i); printf '#!/bin/sh\\necho %s\\n' $n > d/$n; chmod +x d/$n; i=$((i+1)); done; run-parts d | tail -3; run-parts --test d | wc -l"
