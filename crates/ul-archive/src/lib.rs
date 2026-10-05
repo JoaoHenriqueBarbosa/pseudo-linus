@@ -39,6 +39,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("unzstd", compress::unzstd_main),
         Program::bin("zstdcat", compress::zstdcat_main),
         Program::bin("zstdmt", compress::zstd_main),
+        Program::bin("pzstd", compress::pzstd_main),
         Program::bin("lzip", compress::lzip_main),
         Program::bin("zip", zip_cli::zip_main),
         Program::bin("unzip", zip_cli::unzip_main),

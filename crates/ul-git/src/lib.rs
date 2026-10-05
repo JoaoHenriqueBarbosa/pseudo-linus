@@ -29,6 +29,7 @@ pub mod re;
 pub mod refs;
 pub mod repo;
 pub mod rev;
+pub mod shell;
 pub mod store;
 pub mod usage;
 pub mod wildmatch;
@@ -41,7 +42,7 @@ use sysabi::{Ctx, Program};
 
 /// Os programas deste crate.
 pub fn programs() -> Vec<Program> {
-    vec![Program::bin("git", git_main)]
+    vec![Program::bin("git", git_main), Program::bin("git-shell", shell::main)]
 }
 
 fn git_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

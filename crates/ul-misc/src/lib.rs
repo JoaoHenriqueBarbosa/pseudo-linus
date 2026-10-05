@@ -34,6 +34,7 @@ pub mod column;
 pub mod dc;
 pub mod debscripts;
 pub mod envsubst;
+pub mod faketime;
 pub mod dmesg;
 pub mod fallocate;
 pub mod file;
@@ -166,6 +167,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("wall", wall::main),
         Program::bin("envsubst", envsubst::main),
         Program::bin("expiry", shadowconv::expiry_main),
+        Program::bin("faketime", faketime::main),
         Program::bin("fallocate", fallocate::main),
         Program::bin("file", file::cli::main),
         Program::bin("findfs", findfs::main),

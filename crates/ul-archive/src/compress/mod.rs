@@ -16,6 +16,7 @@ pub mod bzip2;
 pub mod common;
 pub mod gzip;
 pub mod lzip;
+pub mod pzstd;
 pub mod xz;
 pub mod xzenc;
 pub mod xzlist;
@@ -173,6 +174,11 @@ pub fn unzstd_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 
 pub fn zstdcat_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     zstd::main(&sysutil::args_bytes(args))
+}
+
+/// `pzstd`: interpreta as opções do pzstd e delega ao `zstd`.
+pub fn pzstd_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
+    pzstd::main(&sysutil::args_bytes(args))
 }
 
 pub fn lzip_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

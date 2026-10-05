@@ -1,0 +1,40 @@
+tool = "git-shell"
+source = "agent-style"
+
+[[case]]
+id = "git-shell-interactive-disabled"
+argv = ["git-shell"]
+tags = ["interactive"]
+
+[[case]]
+id = "git-shell-bad-mode"
+argv = ["git-shell", "-x"]
+tags = ["errors"]
+
+[[case]]
+id = "git-shell-unrecognized"
+argv = ["git-shell", "-c", "frobnicate"]
+tags = ["errors"]
+
+[[case]]
+id = "git-shell-bad-argument"
+argv = ["git-shell", "-c", "git-upload-pack"]
+tags = ["errors"]
+
+[[case]]
+id = "git-shell-bad-argument-dash"
+argv = ["git-shell", "-c", "git-upload-pack '-x'"]
+tags = ["errors"]
+
+[[case]]
+id = "git-shell-command-dir"
+argv = ["git-shell", "-c", "hello 'a b' c"]
+tags = ["commands"]
+[case.files]
+"git-shell-commands" = { dir = true, mode = 0o755 }
+"git-shell-commands/hello" = { content = "#!/bin/sh\necho \"hello: $# [$1] [$2]\"\n", mode = 0o755 }
+
+[[case]]
+id = "git-shell-invalid-format"
+argv = ["git-shell", "-c", "hello 'unclosed"]
+tags = ["errors"]

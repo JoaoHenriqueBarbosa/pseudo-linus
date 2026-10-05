@@ -1,0 +1,43 @@
+tool = "pzstd"
+source = "agent-style"
+
+[[case]]
+id = "pzstd-help"
+argv = ["pzstd", "-h"]
+tags = ["help"]
+
+[[case]]
+id = "pzstd-version"
+argv = ["pzstd", "-V"]
+tags = ["version"]
+
+[[case]]
+id = "pzstd-invalid-option"
+argv = ["pzstd", "--bogus"]
+tags = ["errors"]
+
+[[case]]
+id = "pzstd-roundtrip-stdout"
+script = "pzstd -19 -c in.txt | pzstd -dc"
+tags = ["roundtrip"]
+[case.files]
+"in.txt" = "hello hello hello hello\nworld world world\n"
+
+[[case]]
+id = "pzstd-compress-file"
+script = "pzstd -q in.txt && ls && pzstd -dc in.txt.zst"
+tags = ["files"]
+[case.files]
+"in.txt" = "abc\nabc\nabc\n"
+
+[[case]]
+id = "pzstd-decompress-output"
+script = "pzstd -q -f -o out.zst in.txt && pzstd -d -f -o back.txt out.zst && cat back.txt"
+tags = ["files", "output"]
+[case.files]
+"in.txt" = "one\ntwo\nthree\n"
+
+[[case]]
+id = "pzstd-missing-file"
+argv = ["pzstd", "-c", "nope.txt"]
+tags = ["errors"]

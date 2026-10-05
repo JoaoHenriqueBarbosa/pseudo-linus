@@ -1,0 +1,42 @@
+tool = "faketime"
+source = "agent-style"
+
+[[case]]
+id = "faketime-help"
+argv = ["faketime", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "faketime-version"
+argv = ["faketime", "--version"]
+tags = ["version"]
+
+[[case]]
+id = "faketime-no-args"
+argv = ["faketime"]
+tags = ["errors"]
+
+[[case]]
+id = "faketime-missing-command"
+argv = ["faketime", "2020-01-01 00:00:00"]
+tags = ["errors"]
+
+[[case]]
+id = "faketime-bad-timestamp"
+argv = ["faketime", "not a date at all", "true"]
+tags = ["errors"]
+
+[[case]]
+id = "faketime-env"
+argv = ["faketime", "2020-01-01 00:00:00", "sh", "-c", "echo $FAKETIME"]
+tags = ["env"]
+
+[[case]]
+id = "faketime-advanced-env"
+argv = ["faketime", "-f", "+2,5y x10,0", "sh", "-c", "echo $FAKETIME"]
+tags = ["env"]
+
+[[case]]
+id = "faketime-command-not-found"
+argv = ["faketime", "-", "no-such-command-xyz"]
+tags = ["errors"]
