@@ -128,15 +128,23 @@ fn usage() -> i32 {
 
 fn special_key(c: u8) -> Option<u8> {
     Some(match c {
-        b'r' => 1,
-        b'l' => 2,
-        b'u' => 3,
-        b'd' => 4,
-        b'P' => 5,
-        b'N' => 6,
-        b'h' => 7,
-        b'e' => 8,
-        b'x' => 9,
+        b'r' => 0x01,
+        b'l' => 0x02,
+        b'u' => 0x03,
+        b'd' => 0x04,
+        b'U' => 0x05,
+        b'D' => 0x06,
+        b'h' => 0x07,
+        b'e' => 0x08,
+        b'x' => 0x09,
+        b'i' => 0x0a,
+        b'L' => 0x0b,
+        b'R' => 0x0c,
+        b'X' => 0x0d,
+        b'1' => 0x0e,
+        b't' => 0x0f,
+        b'B' => 0x10,
+        b'b' => 0x11,
         _ => return None,
     })
 }
@@ -172,8 +180,11 @@ fn parse_chars(s: &[u8], mut i: usize, stop_at_space: bool) -> Result<(Vec<u8>, 
                             Some(code) => {
                                 out.push(SK_SPECIAL_KEY);
                                 out.push(code);
+                                out.extend_from_slice(&[6, 1, 1, 1]);
                             }
-                            None => return Err("illegal char after \\k".to_string()),
+                            None => {
+                                return Err(format!("invalid escape sequence \"\\k{}\"", char::from(k)));
+                            }
                         }
                     }
                     b'0'..=b'7' => {
@@ -214,7 +225,7 @@ fn parse_command_line(line: &[u8], table: &mut Vec<u8>, actions: &[(&str, u8)]) 
     let (keys, i) = parse_chars(line, 0, true)?;
     let j = skip_ws(line, i);
     if j == i {
-        return Err("missing whitespace".to_string());
+        return Err("missing action".to_string());
     }
     let mut k = j;
     while k < line.len() && !matches!(line[k], b' ' | b'\t') {
@@ -247,7 +258,7 @@ fn parse_command_line(line: &[u8], table: &mut Vec<u8>, actions: &[(&str, u8)]) 
 /// Uma linha de `#env`: `NOME = valor`.
 fn parse_env_line(line: &[u8], table: &mut Vec<u8>) -> Result<(), String> {
     let Some(eq) = line.iter().position(|&b| b == b'=') else {
-        return Err("missing =".to_string());
+        return Err("missing = in variable definition".to_string());
     };
     let mut ne = eq;
     while ne > 0 && matches!(line[ne - 1], b' ' | b'\t') {

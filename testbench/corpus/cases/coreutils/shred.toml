@@ -1,0 +1,196 @@
+tool = "shred"
+source = "agent-style"
+
+# shred: os bytes são aleatórios, então os casos só observam tamanhos, zeros finais, remoção e as
+# mensagens do -v.
+
+[[case]]
+id = "shred-size-kept"
+script = """
+shred f.txt
+wc -c < f.txt
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "conteúdo secreto\n"
+
+[[case]]
+id = "shred-n1-size"
+script = """
+shred -n 1 f.txt
+wc -c < f.txt
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "0123456789"
+
+[[case]]
+id = "shred-z-zeros"
+script = """
+shred -n 1 -z f.txt
+wc -c < f.txt
+tr -d '\\000' < f.txt | wc -c
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "abcdefghij"
+
+[[case]]
+id = "shred-s-size"
+script = """
+shred -n 1 -s 100 f.txt
+wc -c < f.txt
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "abc"
+
+[[case]]
+id = "shred-x-size"
+script = """
+shred -n 1 -x -s 700 f.txt
+wc -c < f.txt
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "abc"
+
+[[case]]
+id = "shred-u-removes"
+script = """
+shred -u -n 1 f.txt
+ls
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "apagar\n"
+
+[[case]]
+id = "shred-remove-wipe"
+script = """
+shred --remove=wipe -n 1 f.txt
+ls
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "apagar\n"
+
+[[case]]
+id = "shred-remove-unlink"
+script = """
+shred --remove=unlink -n 1 f.txt
+ls
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "apagar\n"
+
+[[case]]
+id = "shred-v-passes"
+argv = ["shred", "-v", "f.txt"]
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "dados\n"
+
+[[case]]
+id = "shred-v-n5"
+argv = ["shred", "-v", "-n", "5", "f.txt"]
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "dados\n"
+
+[[case]]
+id = "shred-v-z"
+argv = ["shred", "-v", "-n", "2", "-z", "f.txt"]
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "dados\n"
+
+[[case]]
+id = "shred-v-u"
+argv = ["shred", "-v", "-u", "-n", "1", "f.txt"]
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "dados\n"
+
+[[case]]
+id = "shred-f-readonly"
+script = """
+chmod 444 f.txt
+shred -f -n 1 f.txt
+wc -c < f.txt
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "somente leitura\n"
+
+[[case]]
+id = "shred-readonly-no-f"
+script = """
+chmod 444 f.txt
+shred -n 1 f.txt
+echo "status $?"
+"""
+tags = ["shred", "ported", "errno"]
+[case.files]
+"f.txt" = "somente leitura\n"
+
+[[case]]
+id = "shred-random-source"
+script = """
+head -c 4096 a.bin > src.bin
+shred -n 1 --random-source=src.bin f.txt
+wc -c < f.txt
+"""
+tags = ["shred", "ported"]
+[case.files]
+"f.txt" = "0123456789"
+"a.bin" = { content_b64 = "AAECAwQFBgcICQoLDA0ODw==" }
+
+[[case]]
+id = "shred-missing"
+argv = ["shred", "nope.txt"]
+tags = ["shred", "ported", "errno"]
+
+[[case]]
+id = "shred-dir"
+argv = ["shred", "sub"]
+tags = ["shred", "ported", "errno"]
+[case.files]
+"sub" = { dir = true }
+
+[[case]]
+id = "shred-no-operand"
+argv = ["shred"]
+tags = ["shred", "ported", "usage"]
+
+[[case]]
+id = "shred-bad-n"
+argv = ["shred", "-n", "abc", "f.txt"]
+tags = ["shred", "ported", "usage"]
+[case.files]
+"f.txt" = "x\n"
+
+[[case]]
+id = "shred-bad-remove"
+argv = ["shred", "--remove=xyz", "f.txt"]
+tags = ["shred", "ported", "usage"]
+[case.files]
+"f.txt" = "x\n"
+
+[[case]]
+id = "shred-unknown-flag"
+argv = ["shred", "-Q", "f.txt"]
+tags = ["shred", "ported", "usage"]
+[case.files]
+"f.txt" = "x\n"
+
+[[case]]
+id = "shred-empty-file"
+script = """
+shred -n 1 e.txt
+wc -c < e.txt
+"""
+tags = ["shred", "ported"]
+[case.files]
+"e.txt" = ""

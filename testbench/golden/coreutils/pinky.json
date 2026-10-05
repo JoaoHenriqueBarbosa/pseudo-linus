@@ -1,0 +1,92 @@
+{
+  "pinky-b": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-default": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-f": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-h": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-i": {
+    "stdout": "Login     TTY      Idle   When            \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-long-missing-user": {
+    "stdout": "Login name: nosuchuser                  In real life:  ???\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-long-no-user": {
+    "stdout": "",
+    "stderr": "pinky: no username specified; at least one must be specified when using -l\nTry 'pinky --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pinky-long-root": {
+    "stdout": "Login name: root                        In real life:  root\nDirectory: /root                        Shell:  /bin/bash\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-lookup": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-p": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-q": {
+    "stdout": "Login     TTY      When            \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-s": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-unknown-flag": {
+    "stdout": "",
+    "stderr": "pinky: invalid option -- 'Z'\nTry 'pinky --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pinky-version": {
+    "stdout": "pinky (GNU coreutils) 9.7\nPackaged by Debian (9.7-3)\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Joseph Arceneaux, David MacKenzie, and Kaveh Ghazi.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-w": {
+    "stdout": "Login     TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

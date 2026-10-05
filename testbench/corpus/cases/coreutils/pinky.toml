@@ -1,0 +1,79 @@
+tool = "pinky"
+source = "agent-style"
+
+# pinky: sem utmp no oráculo, a saída padrão é só o cabeçalho. Mensagens de uso e erro idênticas.
+
+[[case]]
+id = "pinky-default"
+argv = ["pinky"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-s"
+argv = ["pinky", "-s"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-f"
+argv = ["pinky", "-f"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-w"
+argv = ["pinky", "-w"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-i"
+argv = ["pinky", "-i"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-q"
+argv = ["pinky", "-q"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-b"
+argv = ["pinky", "-b"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-h"
+argv = ["pinky", "-h"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-p"
+argv = ["pinky", "-p"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-lookup"
+argv = ["pinky", "--lookup"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-long-root"
+argv = ["pinky", "-l", "root"]
+tags = ["pinky", "ported"]
+
+[[case]]
+id = "pinky-long-missing-user"
+argv = ["pinky", "-l", "nosuchuser"]
+tags = ["pinky", "ported", "errno"]
+
+[[case]]
+id = "pinky-long-no-user"
+argv = ["pinky", "-l"]
+tags = ["pinky", "ported", "usage"]
+
+[[case]]
+id = "pinky-unknown-flag"
+argv = ["pinky", "-Z"]
+tags = ["pinky", "ported", "usage"]
+
+[[case]]
+id = "pinky-version"
+argv = ["pinky", "--version"]
+tags = ["pinky", "ported"]
