@@ -358,10 +358,129 @@ fn parse_military_timezone_with_offset(s: &str) -> Option<(i32, DayDelta)> {
     Some((hours_from_midnight, day_delta))
 }
 
+/// Opções longas do `date` (com os apelidos), para resolver uma abreviação como o `getopt_long`.
+const LONG_OPTIONS: [&str; 16] = [
+    OPT_DATE,
+    OPT_FILE,
+    OPT_ISO_8601,
+    OPT_RESOLUTION,
+    OPT_RFC_EMAIL,
+    OPT_RFC_2822,
+    OPT_RFC_822,
+    OPT_RFC_3339,
+    OPT_DEBUG,
+    OPT_REFERENCE,
+    OPT_SET,
+    OPT_UNIVERSAL,
+    OPT_UNIVERSAL_2,
+    "uct",
+    "help",
+    "version",
+];
+
+/// Opções longas cujo argumento é obrigatório (e pode vir no argumento seguinte).
+const LONG_OPTIONS_WITH_VALUE: [&str; 5] = [OPT_DATE, OPT_FILE, OPT_REFERENCE, OPT_SET, OPT_RFC_3339];
+
+/// Nome completo da opção longa que `name` (inteiro ou abreviado) designa, se for inequívoco.
+fn resolve_long_option(name: &str) -> Option<&'static str> {
+    if name.is_empty() {
+        return None;
+    }
+    if let Some(exact) = LONG_OPTIONS.iter().copied().find(|option| *option == name) {
+        return Some(exact);
+    }
+    let mut candidates = LONG_OPTIONS
+        .iter()
+        .copied()
+        .filter(|option| option.starts_with(name));
+    match (candidates.next(), candidates.next()) {
+        (Some(only), None) => Some(only),
+        _ => None,
+    }
+}
+
+/// Reescreve um argumento da linha de comando que carrega o `-I`; devolve `None` quando ele fica
+/// como está. Atualiza `only_operands` (depois de `--`) e `expects_value` (a opção anterior ainda
+/// espera o argumento seguinte como valor).
+fn rewrite_iso_8601_option(
+    text: &str,
+    only_operands: &mut bool,
+    expects_value: &mut bool,
+) -> Option<Vec<std::ffi::OsString>> {
+    if text == "--" {
+        *only_operands = true;
+        return None;
+    }
+    if let Some(long) = text.strip_prefix("--") {
+        if long.contains('=') {
+            return None;
+        }
+        return match resolve_long_option(long) {
+            Some(OPT_ISO_8601) => Some(vec![format!("--{OPT_ISO_8601}={DATE}").into()]),
+            Some(name) => {
+                *expects_value = LONG_OPTIONS_WITH_VALUE.contains(&name);
+                None
+            }
+            None => None,
+        };
+    }
+    let cluster = text.strip_prefix('-').filter(|rest| !rest.is_empty())?;
+    let mut flags = String::new();
+    for (index, flag) in cluster.char_indices() {
+        let rest = &cluster[index + flag.len_utf8()..];
+        match flag {
+            'I' => {
+                let mut rewritten: Vec<std::ffi::OsString> = Vec::new();
+                if !flags.is_empty() {
+                    rewritten.push(format!("-{flags}").into());
+                }
+                let value = if rest.is_empty() { DATE } else { rest };
+                rewritten.push(format!("--{OPT_ISO_8601}={value}").into());
+                return Some(rewritten);
+            }
+            'd' | 'f' | 'r' | 's' => {
+                *expects_value = rest.is_empty();
+                return None;
+            }
+            _ => flags.push(flag),
+        }
+    }
+    None
+}
+
+/// Porte pseudo-linus: o argumento do `-I` do GNU é opcional, então só vale colado (`-Ihours`,
+/// `--iso-8601=hours`); `-I +%F` é o `-I` sem argumento e o formato `+%F`. O clap, sem isso, usaria
+/// o argumento seguinte como valor do `-I`. Cada `-I` e `--iso-8601` vira a forma longa com `=`, com
+/// `date` quando não tem argumento, e as demais opções ficam como vieram.
+fn detach_iso_8601_argument(args: impl uucore::Args) -> Vec<std::ffi::OsString> {
+    let mut args = args;
+    let mut detached: Vec<std::ffi::OsString> = args.next().into_iter().collect();
+    let mut only_operands = false;
+    let mut expects_value = false;
+    for arg in args {
+        if only_operands || expects_value {
+            expects_value = false;
+            detached.push(arg);
+            continue;
+        }
+        let rewritten = arg
+            .to_str()
+            .and_then(|text| rewrite_iso_8601_option(text, &mut only_operands, &mut expects_value));
+        match rewritten {
+            Some(replacement) => detached.extend(replacement),
+            None => detached.push(arg),
+        }
+    }
+    detached
+}
+
 #[uucore::main]
 #[allow(clippy::cognitive_complexity)]
 pub fn uumain(args: impl uucore::Args) -> UResult<()> {
-    let matches = uucore::clap_localization::handle_clap_result(uu_app(), args)?;
+    let matches = uucore::clap_localization::handle_clap_result(
+        uu_app(),
+        detach_iso_8601_argument(args),
+    )?;
 
     // Porte pseudo-linus: o date.c do GNU recusa as opções que escolhem a data a imprimir (-d, -f,
     // -r, --resolution) juntas, e as que imprimem junto com -s, com mensagem própria e a dica de
@@ -408,11 +527,17 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         }
     }
 
-    // Porte pseudo-linus: -I, -R, --rfc-3339 e +FORMAT são formatos de saída que se excluem.
+    // Porte pseudo-linus: -I, -R, --rfc-3339 e +FORMAT são formatos de saída que se excluem. Um
+    // operando sem `+` não é formato (o GNU o recusa mais abaixo, "lacks a leading '+'"), então não
+    // conta aqui.
     let format_options = usize::from(matches.contains_id(OPT_ISO_8601))
         + usize::from(matches.get_flag(OPT_RFC_EMAIL))
         + usize::from(matches.contains_id(OPT_RFC_3339))
-        + usize::from(matches.contains_id(OPT_FORMAT));
+        + usize::from(
+            matches
+                .get_one::<String>(OPT_FORMAT)
+                .is_some_and(|fmt| fmt.starts_with('+')),
+        );
     if format_options > 1 {
         return Err(Box::new(DateError::MultipleFormats));
     }
