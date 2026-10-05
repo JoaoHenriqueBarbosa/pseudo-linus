@@ -3,7 +3,7 @@
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst` (gettext 0.23),
 //! `less` não interativo, `clear`/`tput` (ncurses 6.5), `iconv`, `getconf` e `locale` (glibc 2.41).
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`.
+//! `whereis`, `mcookie`. Do debianutils 5.23 também: `tempfile`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
@@ -23,6 +23,7 @@ pub mod pager;
 pub mod rename_ul;
 pub mod rev;
 pub mod strings;
+pub mod tempfile;
 pub mod tree;
 pub mod underline;
 pub mod util;
@@ -53,6 +54,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("rename.ul", rename_ul::main),
         Program::bin("rev", rev::main),
         Program::bin("strings", strings::main),
+        Program::bin("tempfile", tempfile::main),
         Program::bin("tree", tree::main),
         Program::bin("ul", underline::main),
         Program::bin("whereis", whereis::main),

@@ -1,0 +1,253 @@
+tool = "tempfile"
+source = "manual"
+
+# tempfile do debianutils 5.23: nome aleatório, então os casos conferem o formato do nome, o modo, o
+# conteúdo do diretório e as mensagens. O aviso de obsolescência sai no stderr em todo uso.
+
+[[case]]
+id = "tempfile-help"
+argv = ["tempfile", "--help"]
+
+[[case]]
+id = "tempfile-help-by-path"
+argv = ["/usr/bin/tempfile", "--help"]
+
+[[case]]
+id = "tempfile-version"
+argv = ["tempfile", "--version"]
+
+[[case]]
+id = "tempfile-short-h-is-invalid"
+argv = ["tempfile", "-h"]
+
+[[case]]
+id = "tempfile-invalid-option"
+argv = ["tempfile", "-x"]
+
+[[case]]
+id = "tempfile-invalid-option-by-path"
+argv = ["/usr/bin/tempfile", "-x"]
+
+[[case]]
+id = "tempfile-unrecognized-option"
+argv = ["tempfile", "--bogus"]
+
+[[case]]
+id = "tempfile-missing-argument"
+argv = ["tempfile", "-p"]
+
+[[case]]
+id = "tempfile-missing-argument-long"
+argv = ["tempfile", "--directory"]
+
+[[case]]
+id = "tempfile-ambiguous-long-option"
+argv = ["tempfile", "--p"]
+
+[[case]]
+id = "tempfile-long-prefix-options"
+script = "f=$(tempfile --pre=ab --suf=.z --dir=. 2>/dev/null); case \"$f\" in ./ab??????.z) echo ok;; *) echo \"bad:$f\";; esac; ls"
+
+[[case]]
+id = "tempfile-default-name-format"
+script = "f=$(tempfile 2>/dev/null); case \"$f\" in /tmp/file[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]) echo ok;; *) echo \"bad:$f\";; esac; test -f \"$f\" && echo exists; rm -f \"$f\""
+
+[[case]]
+id = "tempfile-default-mode-0600"
+script = "f=$(tempfile 2>/dev/null); stat -c '%a %s' \"$f\"; rm -f \"$f\""
+
+[[case]]
+id = "tempfile-stderr-only-warning"
+script = "tempfile 2>&1 >/dev/null | head -1; rm -f /tmp/file??????"
+
+[[case]]
+id = "tempfile-stdout-single-line"
+script = "tempfile 2>/dev/null | wc -l; rm -f /tmp/file??????"
+
+[[case]]
+id = "tempfile-directory"
+script = "mkdir d; f=$(tempfile -d d 2>/dev/null); case \"$f\" in d/file??????) echo ok;; *) echo \"bad:$f\";; esac; ls d | wc -l"
+
+[[case]]
+id = "tempfile-directory-trailing-slash"
+script = "mkdir d; f=$(tempfile -d d/ 2>/dev/null); case \"$f\" in d//file??????) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-prefix"
+script = "f=$(tempfile -d . -p pre- 2>/dev/null); case \"$f\" in ./pre-??????) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-prefix-empty"
+script = "f=$(tempfile -d . -p '' 2>/dev/null); case \"$f\" in ./??????) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-suffix"
+script = "f=$(tempfile -d . -s .txt 2>/dev/null); case \"$f\" in ./file??????.txt) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-prefix-and-suffix"
+script = "f=$(tempfile -d . -p a -s b 2>/dev/null); case \"$f\" in ./a??????b) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-prefix-with-subdir"
+script = "mkdir sub; f=$(tempfile -d . -p sub/x- 2>/dev/null); case \"$f\" in ./sub/x-??????) echo ok;; *) echo \"bad:$f\";; esac; ls sub | wc -l"
+
+[[case]]
+id = "tempfile-prefix-with-missing-subdir"
+script = "tempfile -d . -p nodir/x- ; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-mode"
+script = "f=$(tempfile -d . -m 0644 2>/dev/null); stat -c '%a' \"$f\""
+
+[[case]]
+id = "tempfile-mode-long"
+script = "f=$(tempfile -d . --mode=0755 2>/dev/null); stat -c '%a' \"$f\""
+
+[[case]]
+id = "tempfile-mode-ignores-umask"
+script = "umask 077; f=$(tempfile -d . -m 0666 2>/dev/null); stat -c '%a' \"$f\""
+
+[[case]]
+id = "tempfile-mode-special-bits"
+script = "f=$(tempfile -d . -m 4755 2>/dev/null); stat -c '%a' \"$f\"; g=$(tempfile -d . -m 1777 2>/dev/null); stat -c '%a' \"$g\""
+
+[[case]]
+id = "tempfile-mode-zero"
+script = "f=$(tempfile -d . -m 0 2>/dev/null); stat -c '%a' \"$f\""
+
+[[case]]
+id = "tempfile-mode-without-leading-zero"
+script = "f=$(tempfile -d . -m 644 2>/dev/null); stat -c '%a' \"$f\""
+
+[[case]]
+id = "tempfile-mode-plus-sign"
+script = "f=$(tempfile -d . -m +644 2>/dev/null); stat -c '%a' \"$f\""
+
+[[case]]
+id = "tempfile-mode-empty-is-zero"
+script = "f=$(tempfile -d . -m '' 2>/dev/null); stat -c '%a' \"$f\""
+
+[[case]]
+id = "tempfile-mode-negative-zero"
+script = "f=$(tempfile -d . -m -0 2>/dev/null); stat -c '%a' \"$f\""
+
+[[case]]
+id = "tempfile-mode-invalid-digit"
+script = "tempfile -m 999; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-mode-invalid-text"
+script = "tempfile -m abc; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-mode-too-big"
+script = "tempfile -m 10000; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-mode-negative"
+script = "tempfile -m -1; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-mode-hex"
+script = "tempfile -m 0x1; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-mode-trailing-space"
+script = "tempfile -m '7 '; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-mode-spaces-only"
+script = "tempfile -m ' '; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-name"
+script = "tempfile -n named 2>/dev/null; ls; stat -c '%a' named"
+
+[[case]]
+id = "tempfile-name-long"
+script = "tempfile --name=named2 2>/dev/null; ls"
+
+[[case]]
+id = "tempfile-name-mode-with-umask"
+script = "tempfile -n named -m 0777 2>/dev/null; stat -c '%a' named"
+
+[[case]]
+id = "tempfile-name-existing"
+script = "touch named; tempfile -n named; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-name-existing-keeps-content"
+script = "echo keep > named; tempfile -n named 2>/dev/null; cat named"
+
+[[case]]
+id = "tempfile-name-missing-dir"
+script = "tempfile -n nodir/x; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-name-ignores-prefix-and-dir"
+script = "tempfile -n named -p zz -d /nonexistent -s .s 2>/dev/null; ls"
+
+[[case]]
+id = "tempfile-name-last-wins"
+script = "tempfile -n first -n second 2>/dev/null; ls"
+
+[[case]]
+id = "tempfile-name-empty"
+script = "tempfile -n ''; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-name-is-dangling-symlink"
+script = "ln -s target link; tempfile -n link; echo \"rc=$?\"; ls"
+
+[[case]]
+id = "tempfile-tmpdir-env-wins-over-directory"
+script = "mkdir env other; f=$(TMPDIR=env tempfile -d other 2>/dev/null); case \"$f\" in env/file??????) echo ok;; *) echo \"bad:$f\";; esac; ls env | wc -l; ls other | wc -l"
+
+[[case]]
+id = "tempfile-tmpdir-env-only"
+script = "mkdir env; f=$(TMPDIR=env tempfile 2>/dev/null); case \"$f\" in env/file??????) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-tmpdir-env-missing-is-fatal"
+script = "mkdir other; TMPDIR=/nonexistent tempfile -d other; echo \"rc=$?\"; ls other | wc -l"
+
+[[case]]
+id = "tempfile-directory-missing-is-fatal"
+script = "tempfile -d /nonexistent; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-directory-is-a-file"
+script = "touch afile; tempfile -d afile; echo \"rc=$?\""
+
+[[case]]
+id = "tempfile-directory-last-wins"
+script = "mkdir a b; f=$(tempfile -d a -d b 2>/dev/null); case \"$f\" in b/file??????) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-unique-names"
+script = "for i in 1 2 3 4 5 6 7 8; do tempfile -d . 2>/dev/null; done | sort -u | wc -l; ls | wc -l"
+
+[[case]]
+id = "tempfile-random-chars-alphabet"
+script = "for i in $(seq 1 20); do tempfile -d . -p x 2>/dev/null; done | grep -vcE '^\\./x[A-Za-z0-9]{6}$'"
+
+[[case]]
+id = "tempfile-creates-empty-file"
+script = "f=$(tempfile -d . 2>/dev/null); stat -c '%s %F' \"$f\""
+
+[[case]]
+id = "tempfile-operands-ignored"
+script = "f=$(tempfile -d . extra operands 2>/dev/null); case \"$f\" in ./file??????) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-options-after-operands"
+script = "f=$(tempfile extra -d . 2>/dev/null); case \"$f\" in ./file??????) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-double-dash"
+script = "f=$(tempfile -d . -- 2>/dev/null); case \"$f\" in ./file??????) echo ok;; *) echo \"bad:$f\";; esac"
+
+[[case]]
+id = "tempfile-exit-status"
+script = "tempfile -d . >/dev/null 2>&1; echo \"rc=$?\"; tempfile -d /nonexistent >/dev/null 2>&1; echo \"rc=$?\""
