@@ -1,0 +1,113 @@
+{
+  "groupdel-basic": {
+    "stdout": "rc=3\nroot:x:0:\ndev:x:50:\nroot:*::\ndev:!::\n",
+    "stderr": "groupdel: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "0695b5a0f06374bed7fb46734dd43b21241cc98e463dc95d0cc2bedfa5156041",
+        "data": "root:x:0:\ndev:x:50:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "abd8a351f7fd8a1c6ed260e9ef17d6915380b58e223cabc5d5d8ce32e626c5f2",
+        "data": "root:*::\ndev:!::\n"
+      }
+    }
+  },
+  "groupdel-help": {
+    "stdout": "Usage: groupdel [options] GROUP\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -f, --force                   delete group even if it is the primary group of a user\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groupdel-invalid-option": {
+    "stdout": "groupdel: invalid option -- 'Z'\nUsage: groupdel [options] GROUP\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -f, --force                   delete group even if it is the primary group of a user\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groupdel-missing": {
+    "stdout": "groupdel: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "groupdel-no-args": {
+    "stdout": "Usage: groupdel [options] GROUP\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -f, --force                   delete group even if it is the primary group of a user\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groupdel-primary-group": {
+    "stdout": "groupdel: prefix must be an absolute path\nrc=3\nroot:x:0:\ndev:x:50:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "0695b5a0f06374bed7fb46734dd43b21241cc98e463dc95d0cc2bedfa5156041",
+        "data": "root:x:0:\ndev:x:50:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 26,
+        "sha256": "c8b7617384bd783d11683b6a1a69722ea68f6bca998c7f0520d24a4aec3d54b9",
+        "data": "bob:x:1000:50:b:/:/bin/sh\n"
+      }
+    }
+  },
+  "groupdel-primary-group-force": {
+    "stdout": "groupdel: prefix must be an absolute path\nrc=3\nroot:x:0:\ndev:x:50:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "0695b5a0f06374bed7fb46734dd43b21241cc98e463dc95d0cc2bedfa5156041",
+        "data": "root:x:0:\ndev:x:50:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 26,
+        "sha256": "c8b7617384bd783d11683b6a1a69722ea68f6bca998c7f0520d24a4aec3d54b9",
+        "data": "bob:x:1000:50:b:/:/bin/sh\n"
+      }
+    }
+  }
+}

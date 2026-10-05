@@ -1,0 +1,80 @@
+{
+  "flock-bad-conflict-code": {
+    "stdout": "",
+    "stderr": "flock: exit code out of range (expected 0 to 255)\n",
+    "exit": 64,
+    "files": {}
+  },
+  "flock-bad-option": {
+    "stdout": "",
+    "stderr": "flock: invalid option -- 'Z'\nTry 'flock --help' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "flock-bad-timeout": {
+    "stdout": "",
+    "stderr": "flock: invalid timeout value: 'abc'\n",
+    "exit": 64,
+    "files": {}
+  },
+  "flock-command-not-found": {
+    "stdout": "",
+    "stderr": "flock: failed to execute no-such-command-xyz: No such file or directory\n",
+    "exit": 69,
+    "files": {}
+  },
+  "flock-command-string": {
+    "stdout": "via shell\n",
+    "stderr": "",
+    "exit": 3,
+    "files": {}
+  },
+  "flock-directory": {
+    "stdout": "dir\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-file-only": {
+    "stdout": "",
+    "stderr": "flock: bad file descriptor: '/tmp/lock'\n",
+    "exit": 64,
+    "files": {}
+  },
+  "flock-help": {
+    "stdout": "\nUsage:\n flock [options] <file>|<directory> <command> [<argument>...]\n flock [options] <file>|<directory> -c <command>\n flock [options] <file descriptor number>\n\nManage file locks from shell scripts.\n\nOptions:\n -s, --shared             get a shared lock\n -x, --exclusive          get an exclusive lock (default)\n -u, --unlock             remove a lock\n -n, --nonblock           fail rather than wait\n -w, --timeout <secs>     wait for a limited amount of time\n -E, --conflict-exit-code <number>  exit code after conflict or timeout\n -o, --close              close file descriptor before running command\n -c, --command <command>  run a single command string through the shell\n -F, --no-fork            execute command without forking\n     --fcntl              use fcntl(F_OFD_SETLK) rather than flock()\n     --verbose            increase verbosity\n\n -h, --help               display this help\n -V, --version            display version\n\nFor more details see flock(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-missing-dir": {
+    "stdout": "",
+    "stderr": "flock: cannot open lock file /nonexistent/dir/lock: No such file or directory\n",
+    "exit": 66,
+    "files": {}
+  },
+  "flock-no-args": {
+    "stdout": "",
+    "stderr": "flock: not enough arguments\nTry 'flock --help' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "flock-nonblock-ok": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-run-command": {
+    "stdout": "ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-version": {
+    "stdout": "flock from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

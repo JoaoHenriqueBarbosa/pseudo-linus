@@ -1,0 +1,104 @@
+{
+  "grpck-help": {
+    "stdout": "Usage: grpck [options] [group [gshadow]]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -r, --read-only               display errors and warnings\n                                but do not change files\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --sort                    sort entries by UID\n  -S, --silence-warnings        silence controversial/paranoid warnings\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "grpck-invalid-option": {
+    "stdout": "grpck: invalid option -- 'Z'\nUsage: grpck [options] [group [gshadow]]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -r, --read-only               display errors and warnings\n                                but do not change files\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --sort                    sort entries by UID\n  -S, --silence-warnings        silence controversial/paranoid warnings\n\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "grpck-missing-file": {
+    "stdout": "grpck: cannot open nope\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "grpck-read-only-bad-field-count": {
+    "stdout": "invalid group file entry\ndelete line 'dev:x:50'? No\ngrpck: no changes\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "gr": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "6cc972c07ff8512c62b67bb6408c9360b856df5fc81fd5e0b7653b39ba021d2c",
+        "data": "dev:x:50\n"
+      }
+    }
+  },
+  "grpck-read-only-clean": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "gr": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "grpck-read-only-duplicate": {
+    "stdout": "duplicate group entry\ndelete line 'dev:x:50:'? No\nduplicate group entry\ndelete line 'dev:x:51:'? No\ngrpck: no changes\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "gr": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "f6a9969992b71441a8eea9a84b1238dc8af7b3077a315acbadb6bbcaabad84cb",
+        "data": "dev:x:50:\ndev:x:51:\n"
+      }
+    }
+  },
+  "grpck-read-only-gshadow-orphan": {
+    "stdout": "no matching group file entry in gr\ndelete line 'ghost:!::'? No\ngrpck: no changes\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "gr": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      },
+      "sh": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "91308d29fa314970d493326bdd2ab1c5f158d2cc5522dacf3e173c27b4be3ca9",
+        "data": "root:*::\nghost:!::\n"
+      }
+    }
+  },
+  "grpck-read-only-unknown-member": {
+    "stdout": "group dev: no user ghost\ndelete member 'ghost'? No\ngrpck: no changes\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "gr": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "c67fef08b439e5bfe136802753d1212905bcde0cc5f93a9fafc630b2d9981574",
+        "data": "dev:x:50:ghost\n"
+      },
+      "pw": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "8d8a554e21be05f990d1e9ee9a68cd17e95dbdc19157d36deb81e9e31d7e4f58",
+        "data": "root:x:0:0:r:/:/bin/sh\n"
+      }
+    }
+  }
+}

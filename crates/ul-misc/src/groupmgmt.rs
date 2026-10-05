@@ -10,18 +10,18 @@ use sysabi::{Errno, OFlags};
 
 use crate::util::io::{self, File};
 
-type Spec = &'static [(u8, &'static str, bool)];
+pub(crate) type Spec = &'static [(u8, &'static str, bool)];
 
-struct Opts {
-    vals: Vec<(u8, Option<Vec<u8>>)>,
-    rest: Vec<Vec<u8>>,
+pub(crate) struct Opts {
+    pub(crate) vals: Vec<(u8, Option<Vec<u8>>)>,
+    pub(crate) rest: Vec<Vec<u8>>,
 }
 
 impl Opts {
-    fn has(&self, c: u8) -> bool {
+    pub(crate) fn has(&self, c: u8) -> bool {
         self.vals.iter().any(|(k, _)| *k == c)
     }
-    fn get(&self, c: u8) -> Option<Vec<u8>> {
+    pub(crate) fn get(&self, c: u8) -> Option<Vec<u8>> {
         self.vals
             .iter()
             .rev()
@@ -31,7 +31,7 @@ impl Opts {
 }
 
 /// getopt_long com permutação, abreviação única de opção longa e as mensagens da glibc.
-fn parse(prog: &str, argv: &[Vec<u8>], spec: Spec) -> Option<Opts> {
+pub(crate) fn parse(prog: &str, argv: &[Vec<u8>], spec: Spec) -> Option<Opts> {
     let mut vals = Vec::new();
     let mut rest = Vec::new();
     let mut i = 1;
@@ -129,7 +129,7 @@ fn parse(prog: &str, argv: &[Vec<u8>], spec: Spec) -> Option<Opts> {
     Some(Opts { vals, rest })
 }
 
-fn usage(text: &str, code: i32) -> i32 {
+pub(crate) fn usage(text: &str, code: i32) -> i32 {
     if code == 0 {
         let _ = io::stdout().write_all(text.as_bytes());
     } else {
@@ -138,7 +138,7 @@ fn usage(text: &str, code: i32) -> i32 {
     code
 }
 
-fn join(prefix: &[u8], p: &str) -> Vec<u8> {
+pub(crate) fn join(prefix: &[u8], p: &str) -> Vec<u8> {
     let mut v = prefix.to_vec();
     while v.last() == Some(&b'/') {
         v.pop();
@@ -147,7 +147,7 @@ fn join(prefix: &[u8], p: &str) -> Vec<u8> {
     v
 }
 
-fn read_lines(path: &[u8]) -> Result<Vec<Vec<u8>>, Errno> {
+pub(crate) fn read_lines(path: &[u8]) -> Result<Vec<Vec<u8>>, Errno> {
     let d = io::read_path(path)?;
     let mut v: Vec<Vec<u8>> = d.split(|b| *b == b'\n').map(|l| l.to_vec()).collect();
     if v.last().is_some_and(|l| l.is_empty()) {
@@ -156,7 +156,7 @@ fn read_lines(path: &[u8]) -> Result<Vec<Vec<u8>>, Errno> {
     Ok(v)
 }
 
-fn write_lines(path: &[u8], lines: &[Vec<u8>]) -> bool {
+pub(crate) fn write_lines(path: &[u8], lines: &[Vec<u8>]) -> bool {
     let mut data = Vec::new();
     for l in lines {
         data.extend_from_slice(l);
@@ -168,11 +168,11 @@ fn write_lines(path: &[u8], lines: &[Vec<u8>]) -> bool {
     }
 }
 
-fn fields(line: &[u8]) -> Vec<&[u8]> {
+pub(crate) fn fields(line: &[u8]) -> Vec<&[u8]> {
     line.split(|b| *b == b':').collect()
 }
 
-fn parse_id(s: &[u8]) -> Option<u64> {
+pub(crate) fn parse_id(s: &[u8]) -> Option<u64> {
     let t = std::str::from_utf8(s).ok()?;
     if t.is_empty() || !t.bytes().all(|b| b.is_ascii_digit()) {
         return None;
@@ -182,7 +182,7 @@ fn parse_id(s: &[u8]) -> Option<u64> {
 }
 
 /// `is_valid_name` do shadow (modo estrito) mais o limite de 32 bytes dos grupos.
-fn valid_name(n: &[u8]) -> bool {
+pub(crate) fn valid_name(n: &[u8]) -> bool {
     if n.is_empty() || n.len() > 32 {
         return false;
     }
@@ -202,15 +202,15 @@ fn valid_name(n: &[u8]) -> bool {
     true
 }
 
-fn gid_of(line: &[u8]) -> Option<u64> {
+pub(crate) fn gid_of(line: &[u8]) -> Option<u64> {
     fields(line).get(2).and_then(|f| parse_id(f))
 }
 
-fn name_eq(line: &[u8], name: &[u8]) -> bool {
+pub(crate) fn name_eq(line: &[u8], name: &[u8]) -> bool {
     fields(line).first().is_some_and(|f| *f == name)
 }
 
-fn is_data(line: &[u8]) -> bool {
+pub(crate) fn is_data(line: &[u8]) -> bool {
     !line.is_empty() && line[0] != b'#'
 }
 

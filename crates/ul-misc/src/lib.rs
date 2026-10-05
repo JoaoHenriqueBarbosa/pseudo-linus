@@ -3,7 +3,7 @@
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst`, `gettext` e
 //! `ngettext` (gettext 0.23), `less` não interativo, `lessecho` (less 668), `tput`, `clear`, `tset`/`reset`, `tabs`,
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
-//! `getent`, `locale` e `iconv` (glibc 2.41).
+//! `getent`, `locale` e `iconv` (glibc 2.41). Do dpkg 1.22 também o `update-alternatives`.
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
 //! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`, `setarch` (e links), `chrt` e `choom`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
 //! e, como os scripts originais rodando no `sh`, `savelog`, `add-shell` e `remove-shell`.
@@ -24,6 +24,7 @@ pub mod envsubst;
 pub mod fallocate;
 pub mod file;
 pub mod findfs;
+pub mod flock;
 pub mod fstab_decode;
 pub mod getconf;
 pub mod getent;
@@ -37,9 +38,11 @@ pub mod ionice;
 pub mod ischroot;
 pub mod isosize;
 pub mod lessecho;
+pub mod lesskey;
 pub mod locale;
 pub mod look;
 pub mod mcookie;
+pub mod uuidgen;
 pub mod mountpoint;
 pub mod namei;
 pub mod nologin;
@@ -60,6 +63,7 @@ pub mod tempfile;
 pub mod term;
 pub mod tree;
 pub mod underline;
+pub mod update_alternatives;
 pub mod util;
 pub mod whereis;
 pub mod which;
@@ -86,6 +90,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("fallocate", fallocate::main),
         Program::bin("file", file::cli::main),
         Program::bin("findfs", findfs::main),
+        Program::bin("flock", flock::main),
         Program::bin("fstab-decode", fstab_decode::main),
         Program::bin("getconf", getconf::main),
         Program::bin("getent", getent::main),
@@ -102,9 +107,11 @@ pub fn programs() -> Vec<Program> {
         Program::bin("isosize", isosize::main),
         Program::bin("less", pager::less_main),
         Program::bin("lessecho", lessecho::main),
+        Program::bin("lesskey", lesskey::main),
         Program::bin("locale", locale::main),
         Program::bin("look", look::main),
         Program::bin("mcookie", mcookie::main),
+        Program::bin("uuidgen", uuidgen::main),
         Program::bin("mountpoint", mountpoint::main),
         Program::bin("namei", namei::main),
         Program::bin("ngettext", gettext::ngettext_main),
@@ -134,6 +141,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("tree", tree::main),
         Program::bin("tset", term::tset::main),
         Program::bin("ul", underline::main),
+        Program::bin("update-alternatives", update_alternatives::main),
         Program::bin("whereis", whereis::main),
         Program::bin("which", which::main),
         Program::bin("xxd", xxd::main),

@@ -235,8 +235,47 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         let rest: Vec<Vec<u8>> = args[getopt.optind.min(args.len())..].to_vec();
         return run_command(&command, &rest);
     }
-    // `-m`, arquivo e stdin: fatias 13 e 18 (ver o doc do módulo).
-    usage_error(&program)
+    // `-m` ainda não existe; arquivo e stdin seguem o `pymain_run_python` do CPython.
+    if args.iter().take(getopt.optind).any(|a| a == b"-m") {
+        return usage_error(&program);
+    }
+    let rest: Vec<Vec<u8>> = args[getopt.optind.min(args.len())..].to_vec();
+    run_script(&rest, &program)
+}
+
+/// `python3 arquivo.py args...`, `python3 - args...` ou o programa lido do stdin.
+fn run_script(rest: &[Vec<u8>], program: &str) -> i32 {
+    let to_s = |b: &[u8]| String::from_utf8_lossy(b).into_owned();
+    let (src, name, argv, file_mode) = match rest.first() {
+        Some(path) if path.as_slice() != b"-" => {
+            let text = match sys::read_file(path) {
+                Ok(b) => b,
+                Err(e) => {
+                    let abs = if path.starts_with(b"/") {
+                        to_s(path)
+                    } else {
+                        let cwd = sys::current().getcwd().unwrap_or_default();
+                        format!("{}/{}", to_s(&cwd).trim_end_matches('/'), to_s(path))
+                    };
+                    write_stderr(&format!("{program}: can't open file '{abs}': [Errno {}] {}\n", e.0, e.message()));
+                    return 2;
+                }
+            };
+            (String::from_utf8_lossy(&text).into_owned(), to_s(path), rest.iter().map(|a| to_s(a)).collect(), true)
+        }
+        other => {
+            let text = sys::read_to_end(Fd::STDIN).unwrap_or_default();
+            let first = other.map_or_else(String::new, |_| "-".to_string());
+            let argv = std::iter::once(first).chain(rest.iter().skip(1).map(|a| to_s(a))).collect();
+            (String::from_utf8_lossy(&text).into_owned(), "<stdin>".to_string(), argv, true)
+        }
+    };
+    let outcome = run_with(&src, argv, &name, file_mode);
+    let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
+    if !outcome.stderr.is_empty() {
+        write_stderr(&outcome.stderr);
+    }
+    outcome.status
 }
 
 /// Saída de `python3 -c` já pronta: stdout, stderr e código de saída.
@@ -255,14 +294,20 @@ pub fn run_source(src: &str) -> Outcome {
 
 /// Como `run_source`, com `sys.argv` explícito.
 pub fn run_source_args(src: &str, argv: Vec<String>) -> Outcome {
+    run_with(src, argv, "<string>", false)
+}
+
+/// Executa o texto com o nome de arquivo mostrado nos tracebacks (`file_mode` mostra a linha fonte).
+pub fn run_with(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -> Outcome {
     let owned = src.to_string();
+    let name = name.to_string();
     // A thread nova não herda o pseudo-processo: instala o do chamador para `open`, stdin e stderr.
     let current = sys::try_current();
     let spawned = std::thread::Builder::new().stack_size(1 << 30).spawn(move || {
         if let Some(c) = current {
             sys::install(c);
         }
-        run_source_inner(&owned, argv)
+        run_source_inner(&owned, argv, &name, file_mode)
     });
     match spawned.map(|h| h.join()) {
         Ok(Ok(outcome)) => outcome,
@@ -274,7 +319,7 @@ pub fn run_source_args(src: &str, argv: Vec<String>) -> Outcome {
     }
 }
 
-fn run_source_inner(src: &str, argv: Vec<String>) -> Outcome {
+fn run_source_inner(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -> Outcome {
     // O `-c` do CPython compila o texto como um arquivo que termina em nova linha.
     let mut src = src.to_string();
     if !src.ends_with('\n') {
@@ -288,19 +333,23 @@ fn run_source_inner(src: &str, argv: Vec<String>) -> Outcome {
                 parser::ErrorKind::Indentation => "IndentationError",
                 parser::ErrorKind::Tab => "TabError",
             };
-            return Outcome { stdout: Vec::new(), stderr: syntax_error(&src, kind, &e), status: 1 };
+            return Outcome { stdout: Vec::new(), stderr: syntax_error(&src, kind, &e, name), status: 1 };
         }
     };
     let code = match compile::compile_module(&module) {
         Ok(code) => code,
         Err(e) => {
             let stderr = if e.kind == "SyntaxError" {
-                format!("  File \"<string>\", line {}\n{}: {}\n", e.lineno, e.kind, e.msg)
+                format!("  File \"{name}\", line {}\n{}: {}\n", e.lineno, e.kind, e.msg)
             } else {
-                vm::format_traceback(&vm::RuntimeError {
-                    exc: vm::PyException { kind: e.kind, msg: e.msg, value: None, tb: Vec::new() },
-                    lineno: e.lineno,
-                })
+                vm::format_traceback_in(
+                    &vm::RuntimeError {
+                        exc: vm::PyException { kind: e.kind, msg: e.msg, value: None, tb: Vec::new() },
+                        lineno: e.lineno,
+                    },
+                    name,
+                    file_mode.then_some(src.as_str()),
+                )
             };
             return Outcome { stdout: Vec::new(), stderr, status: 1 };
         }
@@ -310,14 +359,16 @@ fn run_source_inner(src: &str, argv: Vec<String>) -> Outcome {
     let stdout = std::mem::take(&mut machine.stdout);
     match result {
         Ok(()) => Outcome { stdout, stderr: String::new(), status: 0 },
-        Err(e) => Outcome { stdout, stderr: vm::format_traceback(&e), status: 1 },
+        Err(e) => {
+            Outcome { stdout, stderr: vm::format_traceback_in(&e, name, file_mode.then_some(src.as_str())), status: 1 }
+        }
     }
 }
 
 /// `SyntaxError` como o `print_exception` do CPython o mostra para `-c`: arquivo e linha, a linha
 /// fonte sem a indentação, os `^` sob o trecho e a mensagem.
-fn syntax_error(src: &str, kind: &str, e: &parser::ParseError) -> String {
-    let mut out = format!("  File \"<string>\", line {}\n", e.lineno);
+fn syntax_error(src: &str, kind: &str, e: &parser::ParseError, name: &str) -> String {
+    let mut out = format!("  File \"{name}\", line {}\n", e.lineno);
     if let Some(line) = src.lines().nth(e.lineno.saturating_sub(1)) {
         let trimmed = line.trim_start();
         let indent = line.chars().count() - trimmed.chars().count();
@@ -365,6 +416,15 @@ mod tests {
         assert_eq!(syn.status, 1);
         assert!(syn.stderr.starts_with("  File \"<string>\", line 1\n    1 +\n"), "{}", syn.stderr);
         assert!(syn.stderr.ends_with("SyntaxError: invalid syntax\n"), "{}", syn.stderr);
+    }
+
+    #[test]
+    fn file_mode_traceback_shows_source() {
+        let out = run_with("x = 1\nprint(1/0)\n", vec!["t.py".into()], "t.py", true);
+        assert_eq!(
+            out.stderr,
+            "Traceback (most recent call last):\n  File \"t.py\", line 2, in <module>\n    print(1/0)\nZeroDivisionError: division by zero\n"
+        );
     }
 
     #[test]

@@ -1,0 +1,423 @@
+{
+  "funzip-gzip-file": {
+    "stdout": "plain text\nplain text\nplain text\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 40,
+        "sha256": "f9a779a0e0bc7e1fdbf936d4094bb68c48cfbefd242d77d67ad2f9f723633403",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0ACvISczMUyhJrSjhKsDKBACD/bdRIQAAAA=="
+        }
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 33,
+        "sha256": "18cd93350f1f71c261fe09767fdf67abceaf81b766c5def4a0891e4625e1dd35",
+        "data": "plain text\nplain text\nplain text\n"
+      }
+    }
+  },
+  "funzip-gzip-stdin": {
+    "stdout": "hello world\nhello world\nhello world\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.gz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 41,
+        "sha256": "387fea5d08ff82eab05aa264ac9e2e43d080aece711245ac0457e310c3a1a51c",
+        "data": {
+          "b64": "H4sICMDWaGkAA2EudHh0AMtIzcnJVyjPL8pJ4crAwQYAjPgJ6yQAAAA="
+        }
+      },
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "37fdbe74a4e56943cc901b449e6ba55a0543d3bfb13f10a7174541cb16e7169c",
+        "data": "hello world\nhello world\nhello world\n"
+      }
+    }
+  },
+  "funzip-missing-file": {
+    "stdout": "exit=2\n",
+    "stderr": "funzip error: cannot find input file\n",
+    "exit": 0,
+    "files": {}
+  },
+  "funzip-not-zip": {
+    "stdout": "exit=3\n",
+    "stderr": "funzip error: input not a zip or gzip file\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "09160873ba9091f89b10b20bc7044c617a26f716fd6b6dcb191590871527948b",
+        "data": "not an archive at all\n"
+      }
+    }
+  },
+  "funzip-password": {
+    "stdout": "conteudo secreto\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "adda494f1bf7919268c0120be1c6e6ebf5dd92145d5bfbe320ec3948871c2d4b",
+        "data": "conteudo secreto\n"
+      },
+      "t.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 205,
+        "sha256": "33ec9e161bf5a6bebe046464bd69288ff723c844b98a1e53833ce5996e88cc67",
+        "data": {
+          "b64": "UEsDBAoACQAAAABgL1yuswNEHQAAABEAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAf77d5U4tgvdQC7ZAyJdSBrhFeVA5RKgLX+gEB/JQSwcIrrMDRB0AAAARAAAAUEsBAh4DCgAJAAAAAGAvXK6zA0QdAAAAEQAAAAUAGAAAAAAAAQAAAKSBAAAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAABAAEASwAAAGwAAAAAAA=="
+        }
+      }
+    }
+  },
+  "funzip-wrong-password": {
+    "stdout": "exit=3\n",
+    "stderr": "funzip error: incorrect password for first entry\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "adda494f1bf7919268c0120be1c6e6ebf5dd92145d5bfbe320ec3948871c2d4b",
+        "data": "conteudo secreto\n"
+      },
+      "t.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 205,
+        "sha256": "6c67fab20232f06dbcb9bcf51e5f54bf05c02bdc69046a81ffb5e8c6a8849896",
+        "data": {
+          "b64": "UEsDBAoACQAAAABgL1yuswNEHQAAABEAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAA20DVinhykKOK9dHbObAS3bagycl1k7U6tOgL4AVQSwcIrrMDRB0AAAARAAAAUEsBAh4DCgAJAAAAAGAvXK6zA0QdAAAAEQAAAAUAGAAAAAAAAQAAAKSBAAAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAABAAEASwAAAGwAAAAAAA=="
+        }
+      }
+    }
+  },
+  "funzip-zip-file-stored": {
+    "stdout": "second file\nexit=0\n",
+    "stderr": "funzip warning: zipfile has more than one entry--rest ignored\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "f957b19529906961933c5c30f8713c500a9bb5d9d0695c40d48c97a26a3594ec",
+        "data": "second file\n"
+      },
+      "t.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 322,
+        "sha256": "1d9ecd884c5f2f675ed35dede566ebc39805b5f83e26af64c6a58207b9e5f557",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1yC/3LkDAAAAAwAAAAFABwAYi50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAc2Vjb25kIGZpbGUKUEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAaGVsbG8gd29ybGQKUEsBAh4DCgAAAAAAAGAvXIL/cuQMAAAADAAAAAUAGAAAAAAAAAAAAKSBAAAAAGIudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAGAAAAAAAAAAAAKSBSwAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAACAAIAlgAAAJYAAAAAAA=="
+        }
+      }
+    }
+  },
+  "funzip-zip-stdin": {
+    "stdout": "hello world\nexit=0\n",
+    "stderr": "funzip warning: zipfile has more than one entry--rest ignored\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "f957b19529906961933c5c30f8713c500a9bb5d9d0695c40d48c97a26a3594ec",
+        "data": "second file\n"
+      },
+      "t.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 322,
+        "sha256": "51e0cc91c71d3ade0ff4809e7dc190965c9cd8d461afb477917bcdb3ab8d8b54",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAaGVsbG8gd29ybGQKUEsDBAoAAAAAAABgL1yC/3LkDAAAAAwAAAAFABwAYi50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAc2Vjb25kIGZpbGUKUEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAGAAAAAAAAQAAAKSBAAAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsBAh4DCgAAAAAAAGAvXIL/cuQMAAAADAAAAAUAGAAAAAAAAQAAAKSBSwAAAGIudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAACAAIAlgAAAJYAAAAAAA=="
+        }
+      }
+    }
+  },
+  "zipnote-bad-option": {
+    "stdout": "exit=16\n",
+    "stderr": "zipnote error: Invalid command arguments (unknown option)\n",
+    "exit": 0,
+    "files": {}
+  },
+  "zipnote-help": {
+    "stdout": "Copyright (c) 1990-2008 Info-ZIP - Type 'zipnote \"-L\"' for software license.\n\nZipNote 3.0 (July 5th 2008)\nUsage:  zipnote [-w] [-q] [-b path] zipfile\n  the default action is to write the comments in zipfile to stdout\n  -w   write the zipfile comments from stdin\n  -b   use \"path\" for the temporary zip file\n  -q   quieter operation, suppress some informational messages\n  -h   show this help    -v   show version info    -L   show software license\n\nExample:\n     zipnote foo.zip > foo.tmp\n     ed foo.tmp\n     ... then you edit the comments, save, and exit ...\n     zipnote -w foo.zip < foo.tmp\n\n  \"@ name\" can be followed by an \"@=newname\" line to change the name\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zipnote-list": {
+    "stdout": "@ a.txt\n@ (comment above this line)\n@ b.txt\n@ (comment above this line)\n@ (zip file comment below this line)\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "f957b19529906961933c5c30f8713c500a9bb5d9d0695c40d48c97a26a3594ec",
+        "data": "second file\n"
+      },
+      "t.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 322,
+        "sha256": "51e0cc91c71d3ade0ff4809e7dc190965c9cd8d461afb477917bcdb3ab8d8b54",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAaGVsbG8gd29ybGQKUEsDBAoAAAAAAABgL1yC/3LkDAAAAAwAAAAFABwAYi50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAc2Vjb25kIGZpbGUKUEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAGAAAAAAAAQAAAKSBAAAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsBAh4DCgAAAAAAAGAvXIL/cuQMAAAADAAAAAUAGAAAAAAAAQAAAKSBSwAAAGIudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAACAAIAlgAAAJYAAAAAAA=="
+        }
+      }
+    }
+  },
+  "zipnote-missing-file": {
+    "stdout": "exit=9\n",
+    "stderr": "\nzipnote error: Interrupted (aborting)\n",
+    "exit": 0,
+    "files": {}
+  },
+  "zipnote-noargs": {
+    "stdout": "Copyright (c) 1990-2008 Info-ZIP - Type 'zipnote \"-L\"' for software license.\n\nZipNote 3.0 (July 5th 2008)\nUsage:  zipnote [-w] [-q] [-b path] zipfile\n  the default action is to write the comments in zipfile to stdout\n  -w   write the zipfile comments from stdin\n  -b   use \"path\" for the temporary zip file\n  -q   quieter operation, suppress some informational messages\n  -h   show this help    -v   show version info    -L   show software license\n\nExample:\n     zipnote foo.zip > foo.tmp\n     ed foo.tmp\n     ... then you edit the comments, save, and exit ...\n     zipnote -w foo.zip < foo.tmp\n\n  \"@ name\" can be followed by an \"@=newname\" line to change the name\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zipnote-version": {
+    "stdout": "Copyright (c) 1990-2008 Info-ZIP - Type 'zipnote \"-L\"' for software license.\nThis is ZipNote 3.0 (July 5th 2008), by Info-ZIP.\nCurrently maintained by E. Gordon.  Please send bug reports to\nthe authors using the web page at www.info-zip.org; see README for details.\n\nLatest sources and executables are at ftp://ftp.info-zip.org/pub/infozip,\nas of above date; see http://www.info-zip.org/ for other sites.\n\nCompiled with gcc 14.2.0 for Unix (Linux ELF).\n\nZipNote special compilation options:\n\t[none]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zipnote-write-comments": {
+    "stdout": "exit=0\n@ a.txt\nnota do a\nsegunda linha\n@ (comment above this line)\n@ b.txt\n@ (comment above this line)\n@ (zip file comment below this line)\ncomentario do zip\nhello world\nsecond file\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "f957b19529906961933c5c30f8713c500a9bb5d9d0695c40d48c97a26a3594ec",
+        "data": "second file\n"
+      },
+      "t.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 363,
+        "sha256": "79f8055605862a623b7f03d6e2859bb2aa85e6ae30ff6ae6aa8b93efbb076f07",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAaGVsbG8gd29ybGQKUEsDBAoAAAAAAABgL1yC/3LkDAAAAAwAAAAFABwAYi50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAc2Vjb25kIGZpbGUKUEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAGAAYAAAAAQAAAKSBAAAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAbm90YSBkbyBhDQpzZWd1bmRhIGxpbmhhUEsBAh4DCgAAAAAAAGAvXIL/cuQMAAAADAAAAAUAGAAAAAAAAQAAAKSBSwAAAGIudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAACAAIArgAAAJYAAAARAGNvbWVudGFyaW8gZG8gemlw"
+        }
+      }
+    }
+  },
+  "zipnote-write-rename": {
+    "stdout": "exit=0\nz.txt\nb.txt\nhello world\nNo errors detected in compressed data of t.zip.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "f957b19529906961933c5c30f8713c500a9bb5d9d0695c40d48c97a26a3594ec",
+        "data": "second file\n"
+      },
+      "t.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 322,
+        "sha256": "e37db2e9dc0bc53432c43b536491f9ad57a8ba363ea6c2b4f6bfb10786d29f66",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFABwAei50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAaGVsbG8gd29ybGQKUEsDBAoAAAAAAABgL1yC/3LkDAAAAAwAAAAFABwAYi50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAc2Vjb25kIGZpbGUKUEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAGAAAAAAAAQAAAKSBAAAAAHoudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsBAh4DCgAAAAAAAGAvXIL/cuQMAAAADAAAAAUAGAAAAAAAAQAAAKSBSwAAAGIudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAACAAIAlgAAAJYAAAAAAA=="
+        }
+      }
+    }
+  },
+  "zipsplit-bad-option": {
+    "stdout": "zipsplit error: Invalid command arguments (Use option -h for help.)\nexit=16\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zipsplit-entry-too-large": {
+    "stdout": "zipsplit warning: Entry is larger than max split size of: 78\nzipsplit warning: use -n to set split size\nzipsplit error: Entry too big to split, read, or write (big.bin)\nexit=6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "big.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 131,
+        "sha256": "7f4a058f56b988827d757c7f7ec0678bfb3aba37ac8f0ae0d36695349482b8bf",
+        "data": "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+      },
+      "t.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 295,
+        "sha256": "b564cde9f9a9ae4bcaaefaa6120de5d3b5541ff3c2b6a8b88ee0cff8bfd1d306",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wJsQ7egwAAAIMAAAAHABwAYmlnLmJpblVUCQADwNZoacDWaGl1eAsAAQQAAAAABAAAAAAwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5ClBLAQIeAwoAAAAAAABgL1wJsQ7egwAAAIMAAAAHABgAAAAAAAAAAACkgQAAAABiaWcuYmluVVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAABAAEATQAAAMQAAAAAAA=="
+        }
+      }
+    }
+  },
+  "zipsplit-help": {
+    "stdout": "Copyright (c) 1990-2008 Info-ZIP - Type 'zipsplit \"-L\"' for software license.\n\nZipSplit 3.0 (July 5th 2008)\nUsage:  zipsplit [-tipqs] [-n size] [-r room] [-b path] zipfile\n  -t   report how many files it will take, but don't make them\n  -i   make index (zipsplit.idx) and count its size against first zip file\n  -n   make zip files no larger than \"size\" (default = 36000)\n  -r   leave room for \"room\" bytes on the first disk (default = 0)\n  -b   use \"path\" for the output zip files\n  -q   quieter operation, suppress some informational messages\n  -p   pause between output zip files\n  -s   do a sequential split even if it takes more zip files\n  -h   show this help    -v   show version info    -L   show software license\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zipsplit-missing-file": {
+    "stdout": "\nzipsplit error: Interrupted (aborting)\nexit=9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zipsplit-noargs": {
+    "stdout": "Copyright (c) 1990-2008 Info-ZIP - Type 'zipsplit \"-L\"' for software license.\n\nZipSplit 3.0 (July 5th 2008)\nUsage:  zipsplit [-tipqs] [-n size] [-r room] [-b path] zipfile\n  -t   report how many files it will take, but don't make them\n  -i   make index (zipsplit.idx) and count its size against first zip file\n  -n   make zip files no larger than \"size\" (default = 36000)\n  -r   leave room for \"room\" bytes on the first disk (default = 0)\n  -b   use \"path\" for the output zip files\n  -q   quieter operation, suppress some informational messages\n  -p   pause between output zip files\n  -s   do a sequential split even if it takes more zip files\n  -h   show this help    -v   show version info    -L   show software license\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zipsplit-split-single": {
+    "stdout": "1 zip files will be made (100% efficiency)\ncreating: t1.zip\nexit=0\na.txt\nb.txt\nt.zip\nt1.zip\na.txt\nb.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447",
+        "data": "hello world\n"
+      },
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "f957b19529906961933c5c30f8713c500a9bb5d9d0695c40d48c97a26a3594ec",
+        "data": "second file\n"
+      },
+      "t.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 322,
+        "sha256": "51e0cc91c71d3ade0ff4809e7dc190965c9cd8d461afb477917bcdb3ab8d8b54",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAaGVsbG8gd29ybGQKUEsDBAoAAAAAAABgL1yC/3LkDAAAAAwAAAAFABwAYi50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAc2Vjb25kIGZpbGUKUEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAGAAAAAAAAQAAAKSBAAAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsBAh4DCgAAAAAAAGAvXIL/cuQMAAAADAAAAAUAGAAAAAAAAQAAAKSBSwAAAGIudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAACAAIAlgAAAJYAAAAAAA=="
+        }
+      },
+      "t1.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 322,
+        "sha256": "51e0cc91c71d3ade0ff4809e7dc190965c9cd8d461afb477917bcdb3ab8d8b54",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1wtOwivDAAAAAwAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAaGVsbG8gd29ybGQKUEsDBAoAAAAAAABgL1yC/3LkDAAAAAwAAAAFABwAYi50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAc2Vjb25kIGZpbGUKUEsBAh4DCgAAAAAAAGAvXC07CK8MAAAADAAAAAUAGAAAAAAAAQAAAKSBAAAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsBAh4DCgAAAAAAAGAvXIL/cuQMAAAADAAAAAUAGAAAAAAAAQAAAKSBSwAAAGIudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAACAAIAlgAAAJYAAAAAAA=="
+        }
+      }
+    }
+  },
+  "zipsplit-test-only": {
+    "stdout": "1 zip files would be made (100% efficiency)\nexit=0\nbig.zip\nf1.bin\nf2.bin\nf3.bin\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "big.zip": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1378,
+        "sha256": "a6b9f3b48408a67fac025245810a357ad88d5ff01123c020796f6801b47d217f",
+        "data": {
+          "b64": "UEsDBAoAAAAAAABgL1xOfH6+PQEAAD0BAAAGABwAZjEuYmluVVQJAAPA1mhpwNZoaXV4CwABBAAAAAAEAAAAADExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEKUEsDBAoAAAAAAABgL1xjmYfSNwEAADcBAAAGABwAZjIuYmluVVQJAAPA1mhpwNZoaXV4CwABBAAAAAAEAAAAADIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIKUEsDBAoAAAAAAABgL1z8dUZ2NAEAADQBAAAGABwAZjMuYmluVVQJAAPA1mhpwNZoaXV4CwABBAAAAAAEAAAAADMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMKUEsBAh4DCgAAAAAAAGAvXE58fr49AQAAPQEAAAYAGAAAAAAAAAAAAKSBAAAAAGYxLmJpblVUBQADwNZoaXV4CwABBAAAAAAEAAAAAFBLAQIeAwoAAAAAAABgL1xjmYfSNwEAADcBAAAGABgAAAAAAAAAAACkgX0BAABmMi5iaW5VVAUAA8DWaGl1eAsAAQQAAAAABAAAAABQSwECHgMKAAAAAAAAYC9c/HVGdjQBAAA0AQAABgAYAAAAAAAAAAAApIH0AgAAZjMuYmluVVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAADAAMA5AAAAGgEAAAAAA=="
+        }
+      },
+      "f1.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 317,
+        "sha256": "b758a1af22c8a917bf77019c3712b893c9dc94432520497c7c889e24a8afc9a7",
+        "data": "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\n"
+      },
+      "f2.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 311,
+        "sha256": "6fa84df0859f34508263cf38db8a8747a959bcebee628506ddcca18336c5dd20",
+        "data": "2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222\n"
+      },
+      "f3.bin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 308,
+        "sha256": "338d74a9c412311fa75bc2f3a862e08a9a941e323ed4b5fd7da9f23ea73de6c0",
+        "data": "3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333\n"
+      }
+    }
+  },
+  "zipsplit-version": {
+    "stdout": "This is ZipSplit 3.0 (July 5th 2008), by Info-ZIP.\nCurrently maintained by E. Gordon.  Please send bug reports to\nthe authors using the web page at www.info-zip.org; see README for details.\n\nLatest sources and executables are at ftp://ftp.info-zip.org/pub/infozip,\nas of above date; see http://www.info-zip.org/ for other sites.\n\nCompiled with gcc 14.2.0 for Unix (Linux ELF).\n\nZipSplit special compilation options:\n\t[none]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

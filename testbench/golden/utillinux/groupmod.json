@@ -1,0 +1,272 @@
+{
+  "groupmod-append-without-users": {
+    "stdout": "groupmod: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      }
+    }
+  },
+  "groupmod-bad-gid": {
+    "stdout": "groupmod: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      }
+    }
+  },
+  "groupmod-gid": {
+    "stdout": "rc=3\nroot:x:0:\ndev:x:50:\n",
+    "stderr": "groupmod: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "0695b5a0f06374bed7fb46734dd43b21241cc98e463dc95d0cc2bedfa5156041",
+        "data": "root:x:0:\ndev:x:50:\n"
+      }
+    }
+  },
+  "groupmod-gid-in-use": {
+    "stdout": "groupmod: prefix must be an absolute path\nrc=3\nroot:x:0:\ndev:x:50:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "0695b5a0f06374bed7fb46734dd43b21241cc98e463dc95d0cc2bedfa5156041",
+        "data": "root:x:0:\ndev:x:50:\n"
+      }
+    }
+  },
+  "groupmod-gid-non-unique": {
+    "stdout": "groupmod: prefix must be an absolute path\nrc=3\nroot:x:0:\ndev:x:50:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "0695b5a0f06374bed7fb46734dd43b21241cc98e463dc95d0cc2bedfa5156041",
+        "data": "root:x:0:\ndev:x:50:\n"
+      }
+    }
+  },
+  "groupmod-help": {
+    "stdout": "Usage: groupmod [options] GROUP\n\nOptions:\n  -a, --append                  append the users mentioned by -U option to the group \n                                without removing existing user members\n  -g, --gid GID                 change the group ID to GID\n  -h, --help                    display this help message and exit\n  -n, --new-name NEW_GROUP      change the name to NEW_GROUP\n  -o, --non-unique              allow to use a duplicate (non-unique) GID\n  -p, --password PASSWORD       change the password to this (encrypted)\n                                PASSWORD\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -U, --users USERS             list of user members of this group\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groupmod-missing": {
+    "stdout": "groupmod: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "groupmod-name-in-use": {
+    "stdout": "groupmod: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "0695b5a0f06374bed7fb46734dd43b21241cc98e463dc95d0cc2bedfa5156041",
+        "data": "root:x:0:\ndev:x:50:\n"
+      }
+    }
+  },
+  "groupmod-no-args": {
+    "stdout": "Usage: groupmod [options] GROUP\n\nOptions:\n  -a, --append                  append the users mentioned by -U option to the group \n                                without removing existing user members\n  -g, --gid GID                 change the group ID to GID\n  -h, --help                    display this help message and exit\n  -n, --new-name NEW_GROUP      change the name to NEW_GROUP\n  -o, --non-unique              allow to use a duplicate (non-unique) GID\n  -p, --password PASSWORD       change the password to this (encrypted)\n                                PASSWORD\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -U, --users USERS             list of user members of this group\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groupmod-password": {
+    "stdout": "rc=3\ndev:x:50:\ndev:!::\n",
+    "stderr": "groupmod: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "a72dc6b2b10980bc1e42ce99be8599ea01b4dd86ac0838560ba9829fbef06f9d",
+        "data": "dev:!::\n"
+      }
+    }
+  },
+  "groupmod-rename": {
+    "stdout": "rc=3\nroot:x:0:\ndev:x:50:\nroot:*::\ndev:!::\n",
+    "stderr": "groupmod: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 20,
+        "sha256": "0695b5a0f06374bed7fb46734dd43b21241cc98e463dc95d0cc2bedfa5156041",
+        "data": "root:x:0:\ndev:x:50:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "abd8a351f7fd8a1c6ed260e9ef17d6915380b58e223cabc5d5d8ce32e626c5f2",
+        "data": "root:*::\ndev:!::\n"
+      }
+    }
+  },
+  "groupmod-users": {
+    "stdout": "rc=3\ndev:x:50:\ndev:!::\n",
+    "stderr": "groupmod: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "a72dc6b2b10980bc1e42ce99be8599ea01b4dd86ac0838560ba9829fbef06f9d",
+        "data": "dev:!::\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 56,
+        "sha256": "97083c739b6be6e74ec0596faba92062a871d8677611e76a0841973b6aafa731",
+        "data": "bob:x:1000:1000:b:/:/bin/sh\nann:x:1001:1001:a:/:/bin/sh\n"
+      }
+    }
+  },
+  "groupmod-users-append": {
+    "stdout": "rc=3\ndev:x:50:bob\n",
+    "stderr": "groupmod: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "d6346ed68dc762091f62d6f1f0e76531e1118264722bbda83ed71787e7784df9",
+        "data": "dev:x:50:bob\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 56,
+        "sha256": "97083c739b6be6e74ec0596faba92062a871d8677611e76a0841973b6aafa731",
+        "data": "bob:x:1000:1000:b:/:/bin/sh\nann:x:1001:1001:a:/:/bin/sh\n"
+      }
+    }
+  },
+  "groupmod-users-unknown": {
+    "stdout": "groupmod: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "787ae8a32304e15d6ac4927b0fa40f32ce4edb677a76bf275d03f788bb97ac0b",
+        "data": "bob:x:1000:1000:b:/:/bin/sh\n"
+      }
+    }
+  }
+}

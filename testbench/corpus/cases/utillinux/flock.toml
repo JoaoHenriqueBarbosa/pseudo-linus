@@ -1,0 +1,70 @@
+tool = "flock"
+source = "manual"
+
+# flock do util-linux 2.41. Sem conflito de trava possível na bancada: os casos cobrem uso, erros de
+# argumento, abertura do arquivo e execução do comando.
+
+[[case]]
+id = "flock-help"
+argv = ["flock", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "flock-version"
+argv = ["flock", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "flock-no-args"
+argv = ["flock"]
+tags = ["error"]
+
+[[case]]
+id = "flock-bad-option"
+argv = ["flock", "-Z", "/tmp/lock", "true"]
+tags = ["error"]
+
+[[case]]
+id = "flock-bad-timeout"
+argv = ["flock", "-w", "abc", "/tmp/lock", "true"]
+tags = ["error"]
+
+[[case]]
+id = "flock-bad-conflict-code"
+argv = ["flock", "-E", "300", "/tmp/lock", "true"]
+tags = ["error"]
+
+[[case]]
+id = "flock-file-only"
+argv = ["flock", "/tmp/lock"]
+tags = ["error"]
+
+[[case]]
+id = "flock-missing-dir"
+argv = ["flock", "/nonexistent/dir/lock", "true"]
+tags = ["error"]
+
+[[case]]
+id = "flock-run-command"
+argv = ["flock", "/tmp/lockfile", "echo", "ok"]
+tags = ["basic"]
+
+[[case]]
+id = "flock-command-string"
+argv = ["flock", "-x", "/tmp/lockfile", "-c", "echo via shell; exit 3"]
+tags = ["basic"]
+
+[[case]]
+id = "flock-nonblock-ok"
+argv = ["flock", "-n", "/tmp/lockfile", "true"]
+tags = ["basic"]
+
+[[case]]
+id = "flock-directory"
+argv = ["flock", "-s", "/tmp", "echo", "dir"]
+tags = ["basic"]
+
+[[case]]
+id = "flock-command-not-found"
+argv = ["flock", "/tmp/lockfile", "no-such-command-xyz"]
+tags = ["error"]

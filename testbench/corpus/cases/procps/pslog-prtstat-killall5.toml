@@ -1,0 +1,40 @@
+tool = "procps"
+source = "manual"
+
+# pslog, prtstat (psmisc 23.7) e killall5 (sysvinit-utils): uso, versão e erros. Nenhuma saída leva
+# pid. Os casos de saída com dados do processo ficaram de fora (dependem de pid e de caminhos).
+
+[[case]]
+id = "pslog-no-args-usage"
+script = "pslog; echo \"exit=$?\""
+tags = ["pslog", "usage", "error"]
+
+[[case]]
+id = "pslog-version"
+script = "pslog -V; echo \"exit=$?\""
+tags = ["pslog", "version"]
+
+[[case]]
+id = "prtstat-no-args-usage"
+script = "prtstat; echo \"exit=$?\""
+tags = ["prtstat", "usage", "error"]
+
+[[case]]
+id = "prtstat-version"
+script = "prtstat -V; echo \"exit=$?\""
+tags = ["prtstat", "version"]
+
+[[case]]
+id = "prtstat-invalid-pid"
+script = "prtstat abc; echo \"exit=$?\""
+tags = ["prtstat", "error"]
+
+[[case]]
+id = "killall5-no-args-usage"
+script = "killall5 2>&1; echo \"exit=$?\""
+tags = ["killall5", "usage", "error"]
+
+[[case]]
+id = "killall5-bad-signal-usage"
+script = "killall5 -NOSUCH 2>&1; echo \"exit=$?\""
+tags = ["killall5", "usage", "error"]

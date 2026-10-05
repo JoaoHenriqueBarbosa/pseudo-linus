@@ -1,0 +1,100 @@
+{
+  "ssd-bad-option": {
+    "stdout": "",
+    "stderr": "start-stop-daemon: unrecognized option '--bogus'\nTry 'start-stop-daemon --help' for more information.\n",
+    "exit": 3,
+    "files": {}
+  },
+  "ssd-bad-signal": {
+    "stdout": "",
+    "stderr": "start-stop-daemon: signal value must be numeric or name of signal (KILL, INT, ...)\nTry 'start-stop-daemon --help' for more information.\n",
+    "exit": 3,
+    "files": {}
+  },
+  "ssd-help": {
+    "stdout": "Usage: start-stop-daemon [<option>...] <command>\n\nCommands:\n  -S, --start -- <argument>...  start a program and pass <arguments> to it\n  -K, --stop                    stop a program\n  -T, --status                  get the program status\n  -H, --help                    print help information\n  -V, --version                 print version\n\nMatching options (at least one is required):\n      --pid <pid>               pid to check\n      --ppid <ppid>             parent pid to check\n  -p, --pidfile <pid-file>      pid file to check\n  -x, --exec <executable>       program to start/check if it is running\n  -n, --name <process-name>     process name to check\n  -u, --user <username|uid>     process owner to check\n\nOptions:\n  -g, --group <group|gid>       run process as this group\n  -c, --chuid <name|uid[:group|gid]>\n                                change to this user/group before starting\n                                  process\n  -s, --signal <signal>         signal to send (default TERM)\n  -a, --startas <pathname>      program to start (default is <executable>)\n  -r, --chroot <directory>      chroot to <directory> before starting\n  -d, --chdir <directory>       change to <directory> (default is /)\n  -N, --nicelevel <incr>        add incr to the process' nice level\n  -P, --procsched <policy[:prio]>\n                                use <policy> with <prio> for the kernel\n                                  process scheduler (default prio is 0)\n  -I, --iosched <class[:prio]>  use <class> with <prio> to set the IO\n                                  scheduler (default prio is 4)\n  -k, --umask <mask>            change the umask to <mask> before starting\n  -b, --background              force the process to detach\n      --notify-await            wait for a readiness notification\n      --notify-timeout <int>    timeout after <int> seconds of notify wait\n  -C, --no-close                do not close any file descriptor\n  -O, --output <filename>       send stdout and stderr to <filename>\n  -m, --make-pidfile            create the pidfile before starting\n      --remove-pidfile          delete the pidfile after stopping\n  -R, --retry <schedule>        check whether processes die, and retry\n  -t, --test                    test mode, don't do anything\n  -o, --oknodo                  exit status 0 (not 1) if nothing done\n  -q, --quiet                   be more quiet\n  -v, --verbose                 be more verbose\n\nRetry <schedule> is <item>|/<item>/... where <item> is one of\n -<signal-num>|[-]<signal-name>  send that signal\n <timeout>                       wait that many seconds\n forever                         repeat remainder forever\nor <schedule> may be just <timeout>, meaning <signal>/<timeout>/KILL/<timeout>\n\nThe process scheduler <policy> can be one of:\n  other, fifo or rr\n\nThe IO scheduler <class> can be one of:\n  real-time, best-effort or idle\n\nExit status:\n  0 = done\n  1 = nothing done (=> 0 if --oknodo)\n  2 = with --retry, processes would not die\n  3 = trouble\nExit status with --status:\n  0 = program is running\n  1 = program is not running and the pid file exists\n  3 = program is not running\n  4 = unable to determine status\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ssd-no-command": {
+    "stdout": "",
+    "stderr": "start-stop-daemon: need one of --start or --stop or --status\nTry 'start-stop-daemon --help' for more information.\n",
+    "exit": 3,
+    "files": {}
+  },
+  "ssd-no-match-option": {
+    "stdout": "",
+    "stderr": "start-stop-daemon: need at least one of --exec, --pid, --ppid, --pidfile, --user or --name\nTry 'start-stop-daemon --help' for more information.\n",
+    "exit": 3,
+    "files": {}
+  },
+  "ssd-start-foreground": {
+    "stdout": "ola mundo\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ssd-start-needs-exec": {
+    "stdout": "",
+    "stderr": "start-stop-daemon: --start needs --exec or --startas\nTry 'start-stop-daemon --help' for more information.\n",
+    "exit": 3,
+    "files": {}
+  },
+  "ssd-start-test": {
+    "stdout": "Would start /bin/true a b .\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ssd-start-test-startas": {
+    "stdout": "Would start /bin/echo oi .\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ssd-status-stale-pidfile": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "p": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "14d01c6abd3f99f28e729fc9d1b8a0e5a76d4db6e708c591ff534f605e8d2d92",
+        "data": "999999\n"
+      }
+    }
+  },
+  "ssd-status-stopped": {
+    "stdout": "3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ssd-stop-none": {
+    "stdout": "No inexistente-zz found running; none killed.\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ssd-stop-none-oknodo": {
+    "stdout": "No inexistente-zz found running; none killed.\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ssd-stop-none-quiet": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ssd-version": {
+    "stdout": "start-stop-daemon 1.22.22 for Debian\n\nWritten by Marek Michalkiewicz, public domain.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

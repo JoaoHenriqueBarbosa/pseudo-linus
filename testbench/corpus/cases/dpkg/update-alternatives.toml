@@ -1,0 +1,146 @@
+tool = "update-alternatives"
+source = "manual"
+
+# update-alternatives do dpkg 1.22 (Debian 13): --install (com --slave), --display, --query, --list,
+# --get-selections, --set, --auto, --remove, --remove-all, --config e as mensagens de erro. Cada caso usa
+# --altdir e --admindir num diretório local e confere os links resultantes com readlink e o banco com cat.
+
+[[case]]
+id = "ua-help"
+script = "update-alternatives --help; echo \"rc=$?\""
+
+[[case]]
+id = "ua-version"
+script = "update-alternatives --version; echo \"rc=$?\""
+
+[[case]]
+id = "ua-no-action"
+script = "update-alternatives 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-unknown-argument"
+script = "update-alternatives --bogus 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-install-missing-args"
+script = "update-alternatives --install /usr/bin/x x 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-two-commands"
+script = "update-alternatives --display a --list b 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-display-missing-group"
+script = "mkdir alt adm; update-alternatives --altdir alt --admindir adm --display nothing 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-list-missing-group"
+script = "mkdir alt adm; update-alternatives --altdir alt --admindir adm --list nothing 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-install-basic"
+script = "mkdir alt adm bin; touch bin/a bin/b; update-alternatives --altdir $PWD/alt --admindir $PWD/adm --install $PWD/bin/tool tool $PWD/bin/a 10; echo \"rc=$?\"; ls -l alt bin | sed 's#'$PWD'#PWD#g' | awk '{print $1, $(NF-2), $(NF-1), $NF}'; cat adm/tool | sed 's#'$PWD'#PWD#g'"
+
+[[case]]
+id = "ua-install-priority-wins"
+script = "mkdir alt adm bin; touch bin/a bin/b; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --install $PWD/bin/tool tool $PWD/bin/a 10; $U --install $PWD/bin/tool tool $PWD/bin/b 20; readlink alt/tool | sed 's#'$PWD'#PWD#g'; $U --list tool | sed 's#'$PWD'#PWD#g'"
+
+[[case]]
+id = "ua-install-lower-priority-silent"
+script = "mkdir alt adm bin; touch bin/a bin/b; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --install $PWD/bin/tool tool $PWD/bin/a 20; $U --install $PWD/bin/tool tool $PWD/bin/b 10; echo \"rc=$?\"; readlink alt/tool | sed 's#'$PWD'#PWD#g'"
+
+[[case]]
+id = "ua-install-quiet"
+script = "mkdir alt adm bin; touch bin/a; update-alternatives --quiet --altdir $PWD/alt --admindir $PWD/adm --install $PWD/bin/tool tool $PWD/bin/a 10; echo \"rc=$?\""
+
+[[case]]
+id = "ua-install-missing-path"
+script = "mkdir alt adm; update-alternatives --altdir $PWD/alt --admindir $PWD/adm --install $PWD/tool tool $PWD/nope 10 2>&1 | sed 's#'$PWD'#PWD#g'; echo \"rc=$?\""
+
+[[case]]
+id = "ua-install-bad-priority"
+script = "mkdir alt adm bin; touch bin/a; update-alternatives --altdir $PWD/alt --admindir $PWD/adm --install $PWD/bin/tool tool $PWD/bin/a x >/dev/null 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-install-name-with-slash"
+script = "mkdir alt adm bin; touch bin/a; update-alternatives --altdir $PWD/alt --admindir $PWD/adm --install $PWD/bin/tool a/b $PWD/bin/a 10 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-install-link-not-absolute"
+script = "mkdir alt adm bin; touch bin/a; update-alternatives --altdir $PWD/alt --admindir $PWD/adm --install tool tool $PWD/bin/a 10 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-install-link-managed-by-other"
+script = "mkdir alt adm bin; touch bin/a; U='update-alternatives --quiet --altdir '$PWD/alt' --admindir '$PWD/adm; $U --install $PWD/bin/tool one $PWD/bin/a 10; $U --install $PWD/bin/tool two $PWD/bin/a 10 2>&1 | sed 's#'$PWD'#PWD#g'; echo \"rc=$?\""
+
+[[case]]
+id = "ua-install-slave"
+script = "mkdir alt adm bin; touch bin/a bin/a.1; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --install $PWD/bin/tool tool $PWD/bin/a 10 --slave $PWD/bin/tool.1 tool.1 $PWD/bin/a.1 >/dev/null; ls alt; readlink alt/tool.1 bin/tool.1 | sed 's#'$PWD'#PWD#g'; cat adm/tool | sed 's#'$PWD'#PWD#g'"
+
+[[case]]
+id = "ua-slave-missing-file-warning"
+script = "mkdir alt adm bin; touch bin/a; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --install $PWD/bin/tool tool $PWD/bin/a 10 --slave $PWD/bin/tool.1 tool.1 $PWD/bin/none.1 2>&1 | sed 's#'$PWD'#PWD#g'; ls alt"
+
+[[case]]
+id = "ua-slave-without-install"
+script = "update-alternatives --slave /a b /c 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-display-auto"
+script = "mkdir alt adm bin; touch bin/a bin/b bin/a.1; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10 --slave $PWD/bin/tool.1 tool.1 $PWD/bin/a.1; $U --quiet --install $PWD/bin/tool tool $PWD/bin/b 5; $U --display tool | sed 's#'$PWD'#PWD#g'"
+
+[[case]]
+id = "ua-query"
+script = "mkdir alt adm bin; touch bin/a bin/b bin/a.1; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10 --slave $PWD/bin/tool.1 tool.1 $PWD/bin/a.1; $U --quiet --install $PWD/bin/tool tool $PWD/bin/b 5; $U --query tool | sed 's#'$PWD'#PWD#g'"
+
+[[case]]
+id = "ua-set-manual"
+script = "mkdir alt adm bin; touch bin/a bin/b; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --quiet --install $PWD/bin/tool tool $PWD/bin/b 5; $U --set tool $PWD/bin/b | sed 's#'$PWD'#PWD#g'; $U --display tool | sed 's#'$PWD'#PWD#g' | head -3"
+
+[[case]]
+id = "ua-set-unregistered"
+script = "mkdir alt adm bin; touch bin/a; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --set tool /nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "ua-auto-after-manual"
+script = "mkdir alt adm bin; touch bin/a bin/b; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --quiet --install $PWD/bin/tool tool $PWD/bin/b 5; $U --quiet --set tool $PWD/bin/b; $U --auto tool | sed 's#'$PWD'#PWD#g'; head -1 adm/tool"
+
+[[case]]
+id = "ua-get-selections"
+script = "mkdir alt adm bin; touch bin/a bin/b; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --quiet --install $PWD/bin/other other $PWD/bin/b 10; $U --quiet --set other $PWD/bin/b; $U --get-selections | sed 's#'$PWD'#PWD#g'"
+
+[[case]]
+id = "ua-remove-current"
+script = "mkdir alt adm bin; touch bin/a bin/b; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --quiet --install $PWD/bin/tool tool $PWD/bin/b 20; $U --remove tool $PWD/bin/b | sed 's#'$PWD'#PWD#g'; readlink alt/tool | sed 's#'$PWD'#PWD#g'"
+
+[[case]]
+id = "ua-remove-last"
+script = "mkdir alt adm bin; touch bin/a; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --remove tool $PWD/bin/a; echo \"rc=$?\"; ls alt adm bin"
+
+[[case]]
+id = "ua-remove-missing-silent"
+script = "mkdir alt adm; update-alternatives --altdir $PWD/alt --admindir $PWD/adm --remove tool /x; echo \"rc=$?\""
+
+[[case]]
+id = "ua-remove-all"
+script = "mkdir alt adm bin; touch bin/a bin/b; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --quiet --install $PWD/bin/tool tool $PWD/bin/b 20; $U --remove-all tool; echo \"rc=$?\"; ls alt adm bin"
+
+[[case]]
+id = "ua-config-single"
+script = "mkdir alt adm bin; touch bin/a; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --config tool | sed 's#'$PWD'#PWD#g'"
+
+[[case]]
+id = "ua-config-select"
+script = "mkdir alt adm bin; touch bin/a bin/b; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --quiet --install $PWD/bin/tool tool $PWD/bin/b 5; echo 2 | $U --config tool | sed 's#'$PWD'#PWD#g'; head -1 adm/tool"
+
+[[case]]
+id = "ua-config-keep"
+script = "mkdir alt adm bin; touch bin/a bin/b; U='update-alternatives --altdir '$PWD/alt' --admindir '$PWD/adm; $U --quiet --install $PWD/bin/tool tool $PWD/bin/a 10; $U --quiet --install $PWD/bin/tool tool $PWD/bin/b 5; echo | $U --config tool | sed 's#'$PWD'#PWD#g'; head -1 adm/tool"
+
+[[case]]
+id = "ua-not-replacing-file"
+script = "mkdir alt adm bin; touch bin/a bin/tool; update-alternatives --altdir $PWD/alt --admindir $PWD/adm --install $PWD/bin/tool tool $PWD/bin/a 10 2>&1 | sed 's#'$PWD'#PWD#g'; ls -l bin/tool | cut -c1"
+
+[[case]]
+id = "ua-force-replaces-file"
+script = "mkdir alt adm bin; touch bin/a bin/tool; update-alternatives --force --altdir $PWD/alt --admindir $PWD/adm --install $PWD/bin/tool tool $PWD/bin/a 10 >/dev/null; ls -l bin/tool | cut -c1"

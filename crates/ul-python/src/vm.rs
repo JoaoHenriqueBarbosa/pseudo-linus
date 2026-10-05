@@ -89,12 +89,27 @@ impl From<ObjError> for PyException {
 
 /// Traceback do CPython para exceção de um `-c`, sem a linha fonte.
 pub fn format_traceback(err: &RuntimeError) -> String {
+    format_traceback_in(err, "<string>", None)
+}
+
+/// Traceback com o nome do arquivo; com `src` (execução de arquivo) cada quadro mostra a linha fonte
+/// sem a indentação, como o CPython faz fora do `-c`.
+pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) -> String {
     let mut out = String::from("Traceback (most recent call last):\n");
+    let frame = |out: &mut String, line: usize, name: &str| {
+        out.push_str(&format!("  File \"{file}\", line {line}, in {name}\n"));
+        if let Some(text) = src.and_then(|s| s.lines().nth(line.saturating_sub(1))) {
+            let t = text.trim();
+            if !t.is_empty() {
+                out.push_str(&format!("    {t}\n"));
+            }
+        }
+    };
     if err.exc.tb.is_empty() {
-        out.push_str(&format!("  File \"<string>\", line {}, in <module>\n", err.lineno));
+        frame(&mut out, err.lineno, "<module>");
     }
     for (line, name) in err.exc.tb.iter().rev() {
-        out.push_str(&format!("  File \"<string>\", line {line}, in {name}\n"));
+        frame(&mut out, *line, name);
     }
     if err.exc.msg.is_empty() {
         out.push_str(err.exc.kind);
@@ -220,6 +235,12 @@ struct Block {
 
 fn internal(msg: &str) -> PyException {
     exc("SystemError", msg.to_string())
+}
+
+impl Default for Vm {
+    fn default() -> Vm {
+        Vm::new()
+    }
 }
 
 impl Vm {
@@ -960,7 +981,7 @@ impl Vm {
     /// `csv.reader(f, **dialeto)` e `csv.writer(f, **dialeto)`.
     fn csv_open(&mut self, name: &str, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
         let Some(target) = args.first().cloned() else {
-            return Err(type_error(format!("expected at least 1 argument, got 0")));
+            return Err(type_error("expected at least 1 argument, got 0"));
         };
         let mut d = csv::Dialect::default();
         let one_char = |k: &str, v: &Value| -> PyResult<Option<char>> {

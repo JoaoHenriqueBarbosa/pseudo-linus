@@ -1,0 +1,161 @@
+tool = "archive"
+source = "agent-style"
+
+# zipnote 3.0, zipsplit 3.0 e funzip 6.0 (Debian 13). Os zips saem do próprio zip do oráculo; só se
+# comparam saídas que não dependem de horário (listas de nomes, comentários, conteúdo, códigos).
+# Os textos de ajuda e de versão foram conferidos contra os binários do Debian; os casos de
+# comentário de entrada e de divisão dependem de comportamento reproduzido de memória do código C.
+
+[[case]]
+id = "zipnote-help"
+argv = ["zipnote", "-h"]
+tags = ["zipnote", "help"]
+
+[[case]]
+id = "zipnote-noargs"
+argv = ["zipnote"]
+tags = ["zipnote", "help"]
+
+[[case]]
+id = "zipnote-version"
+argv = ["zipnote", "-v"]
+tags = ["zipnote", "version"]
+
+[[case]]
+id = "zipnote-bad-option"
+script = "zipnote -x t.zip; echo \"exit=$?\""
+tags = ["zipnote", "error"]
+
+[[case]]
+id = "zipnote-missing-file"
+script = "zipnote nothere.zip; echo \"exit=$?\""
+tags = ["zipnote", "error"]
+
+[[case]]
+id = "zipnote-list"
+script = "zip -q t.zip a.txt b.txt; zipnote t.zip; echo \"exit=$?\""
+tags = ["zipnote", "list"]
+[case.files]
+"a.txt" = "hello world\n"
+"b.txt" = "second file\n"
+
+[[case]]
+id = "zipnote-write-comments"
+script = "zip -q t.zip a.txt b.txt; printf '@ a.txt\\nnota do a\\nsegunda linha\\n@ (comment above this line)\\n@ (zip file comment below this line)\\ncomentario do zip\\n' | zipnote -w t.zip; echo \"exit=$?\"; zipnote t.zip; unzip -q -c t.zip a.txt b.txt"
+tags = ["zipnote", "write"]
+[case.files]
+"a.txt" = "hello world\n"
+"b.txt" = "second file\n"
+
+[[case]]
+id = "zipnote-write-rename"
+script = "zip -q t.zip a.txt b.txt; printf '@ a.txt\\n@=z.txt\\n@ (comment above this line)\\n' | zipnote -w t.zip; echo \"exit=$?\"; unzip -Z1 t.zip; unzip -q -c t.zip z.txt; unzip -tq t.zip"
+tags = ["zipnote", "write", "rename"]
+[case.files]
+"a.txt" = "hello world\n"
+"b.txt" = "second file\n"
+
+[[case]]
+id = "zipsplit-help"
+argv = ["zipsplit", "-h"]
+tags = ["zipsplit", "help"]
+
+[[case]]
+id = "zipsplit-noargs"
+argv = ["zipsplit"]
+tags = ["zipsplit", "help"]
+
+[[case]]
+id = "zipsplit-version"
+argv = ["zipsplit", "-v"]
+tags = ["zipsplit", "version"]
+
+[[case]]
+id = "zipsplit-bad-option"
+script = "zipsplit -x t.zip; echo \"exit=$?\""
+tags = ["zipsplit", "error"]
+
+[[case]]
+id = "zipsplit-missing-file"
+script = "zipsplit nothere.zip; echo \"exit=$?\""
+tags = ["zipsplit", "error"]
+
+[[case]]
+id = "zipsplit-test-only"
+script = "zip -q -0 big.zip f1.bin f2.bin f3.bin; zipsplit -t -n 3000 big.zip; echo \"exit=$?\"; ls"
+tags = ["zipsplit", "test"]
+[case.files]
+"f1.bin" = "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\n"
+"f2.bin" = "2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222\n"
+"f3.bin" = "3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333\n"
+
+[[case]]
+id = "zipsplit-split-single"
+script = "zip -q t.zip a.txt b.txt; zipsplit t.zip; echo \"exit=$?\"; ls; unzip -Z1 t1.zip"
+tags = ["zipsplit", "split"]
+[case.files]
+"a.txt" = "hello world\n"
+"b.txt" = "second file\n"
+
+[[case]]
+id = "zipsplit-entry-too-large"
+script = "zip -q -0 t.zip big.bin; zipsplit -n 100 t.zip; echo \"exit=$?\""
+tags = ["zipsplit", "error"]
+[case.files]
+"big.bin" = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n"
+
+[[case]]
+id = "funzip-zip-stdin"
+script = "zip -q t.zip a.txt b.txt; funzip < t.zip; echo \"exit=$?\""
+tags = ["funzip", "zip"]
+[case.files]
+"a.txt" = "hello world\n"
+"b.txt" = "second file\n"
+
+[[case]]
+id = "funzip-zip-file-stored"
+script = "zip -q -0 t.zip b.txt a.txt; funzip t.zip; echo \"exit=$?\""
+tags = ["funzip", "zip", "stored"]
+[case.files]
+"a.txt" = "hello world\n"
+"b.txt" = "second file\n"
+
+[[case]]
+id = "funzip-gzip-stdin"
+script = "gzip -c a.txt > a.gz; funzip < a.gz; echo \"exit=$?\""
+tags = ["funzip", "gzip"]
+[case.files]
+"a.txt" = "hello world\nhello world\nhello world\n"
+
+[[case]]
+id = "funzip-gzip-file"
+script = "gzip -c a.txt > a.gz; funzip a.gz; echo \"exit=$?\""
+tags = ["funzip", "gzip"]
+[case.files]
+"a.txt" = "plain text\nplain text\nplain text\n"
+
+[[case]]
+id = "funzip-not-zip"
+script = "funzip a.txt; echo \"exit=$?\""
+tags = ["funzip", "error"]
+[case.files]
+"a.txt" = "not an archive at all\n"
+
+[[case]]
+id = "funzip-missing-file"
+script = "funzip nothere.zip; echo \"exit=$?\""
+tags = ["funzip", "error"]
+
+[[case]]
+id = "funzip-password"
+script = "zip -q -P segredo t.zip a.txt; funzip -segredo t.zip; echo \"exit=$?\""
+tags = ["funzip", "crypt"]
+[case.files]
+"a.txt" = "conteudo secreto\n"
+
+[[case]]
+id = "funzip-wrong-password"
+script = "zip -q -P segredo t.zip a.txt; funzip -errada t.zip; echo \"exit=$?\""
+tags = ["funzip", "crypt", "error"]
+[case.files]
+"a.txt" = "conteudo secreto\n"

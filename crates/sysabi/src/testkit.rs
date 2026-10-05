@@ -2915,7 +2915,7 @@ mod tests {
         // BE nível 4 (nice 0) e 6 (nice 10); IDLE é classe 3 (3 << 13 = 24576).
         assert_eq!(
             r.stdout_str(),
-            "Ok(24576)\nOk(16388)\nOk(16390)\nErr(EPERM)\nErr(EINVAL)\nErr(EINVAL)\nOk(()) Ok(16385)\nErr(EINVAL) Err(ESRCH)\nOk(())\nOk(24576) Ok(24576)\n"
+            "Ok(24576)\nOk(16388)\nOk(16390)\nErr(EPERM)\nOk(())\nErr(EINVAL)\nOk(()) Ok(16385)\nErr(EINVAL) Err(ESRCH)\nOk(())\nOk(24576) Ok(24576)\n"
         );
     }
 }

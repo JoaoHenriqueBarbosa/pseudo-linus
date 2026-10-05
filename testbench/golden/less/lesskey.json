@@ -1,0 +1,38 @@
+{
+  "lesskey-bad-option": {
+    "stdout": "",
+    "stderr": "usage: lesskey [-o output] [input]\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lesskey-help": {
+    "stdout": "",
+    "stderr": "usage: lesskey [-o output] [input]\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lesskey-missing-input": {
+    "stdout": "",
+    "stderr": "-1 errors; no output produced\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lesskey-too-many-args": {
+    "stdout": "",
+    "stderr": "usage: lesskey [-o output] [input]\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lesskey-version": {
+    "stdout": "lesskey  version 668\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lesskey-version-short": {
+    "stdout": "lesskey  version 668\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

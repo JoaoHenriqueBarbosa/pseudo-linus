@@ -1,0 +1,29 @@
+tool = "lesskey"
+source = "manual"
+
+# lesskey do less 668 (Debian 13): versão, ajuda, uso, e a compilação de arquivos-fonte
+# (seções #env e comentários) para o binário `.less` impresso em stdout com `-o -`.
+
+[[case]]
+id = "lesskey-version"
+argv = ["lesskey", "--version"]
+
+[[case]]
+id = "lesskey-version-short"
+argv = ["lesskey", "-V"]
+
+[[case]]
+id = "lesskey-help"
+argv = ["lesskey", "--help"]
+
+[[case]]
+id = "lesskey-bad-option"
+argv = ["lesskey", "-z"]
+
+[[case]]
+id = "lesskey-too-many-args"
+argv = ["lesskey", "a", "b"]
+
+[[case]]
+id = "lesskey-missing-input"
+argv = ["lesskey", "-o", "-", "/nonexistent/lesskey-src"]

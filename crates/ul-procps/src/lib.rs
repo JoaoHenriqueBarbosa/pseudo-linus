@@ -10,12 +10,15 @@ pub mod common;
 pub mod free;
 pub mod kill;
 pub mod killall;
+pub mod killall5;
 pub mod matcher;
 pub mod pgrep;
 pub mod pidof;
 pub mod pmap;
 pub mod procfs;
+pub mod prtstat;
 pub mod ps;
+pub mod pslog;
 pub mod pstree;
 pub mod pwdx;
 pub mod skill;
@@ -35,12 +38,15 @@ pub fn programs() -> Vec<Program> {
         Program::bin("free", free::main),
         Program::bin("kill", kill::main),
         Program::bin("killall", killall::main),
+        Program::bin("killall5", killall5::main),
         Program::bin("pgrep", pgrep::pgrep_main),
         Program::bin("pidof", pidof::main),
         Program::bin("pidwait", pgrep::pidwait_main),
         Program::bin("pkill", pgrep::pkill_main),
         Program::bin("pmap", pmap::main),
+        Program::bin("prtstat", prtstat::main),
         Program::bin("ps", ps::main),
+        Program::bin("pslog", pslog::main),
         Program::bin("pstree", pstree::main),
         Program::bin("pwdx", pwdx::main),
         Program::bin("skill", skill::main),

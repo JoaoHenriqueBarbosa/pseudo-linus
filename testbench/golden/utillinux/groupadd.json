@@ -1,0 +1,250 @@
+{
+  "groupadd-bad-gid": {
+    "stdout": "groupadd: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "groupadd-bad-name": {
+    "stdout": "groupadd: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "groupadd-basic": {
+    "stdout": "rc=3\nroot:x:0:\nroot:*::\n",
+    "stderr": "groupadd: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "9a88132bee751d3afab1256ee560fbf9cc881d31a0d5c51b6dbac0269a6afa33",
+        "data": "root:*::\n"
+      }
+    }
+  },
+  "groupadd-exists": {
+    "stdout": "groupadd: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      }
+    }
+  },
+  "groupadd-exists-force": {
+    "stdout": "groupadd: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      }
+    }
+  },
+  "groupadd-gid": {
+    "stdout": "rc=3\nroot:x:0:\n",
+    "stderr": "groupadd: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "groupadd-gid-dup": {
+    "stdout": "groupadd: prefix must be an absolute path\nrc=3\nroot:x:0:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "groupadd-gid-dup-force": {
+    "stdout": "groupadd: prefix must be an absolute path\nrc=3\nroot:x:0:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "groupadd-gid-dup-non-unique": {
+    "stdout": "groupadd: prefix must be an absolute path\nrc=3\nroot:x:0:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "groupadd-help": {
+    "stdout": "Usage: groupadd [options] GROUP\n\nOptions:\n  -f, --force                   exit successfully if the group already exists,\n                                and cancel -g if the GID is already used\n  -g, --gid GID                 use GID for the new group\n  -h, --help                    display this help message and exit\n  -K, --key KEY=VALUE           override /etc/login.defs defaults\n  -o, --non-unique              allow to create groups with duplicate\n                                (non-unique) GID\n  -p, --password PASSWORD       use this encrypted password for the new group\n  -r, --system                  create a system account\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -U, --users USERS             list of user members of this group\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groupadd-invalid-option": {
+    "stdout": "groupadd: invalid option -- 'Z'\nUsage: groupadd [options] GROUP\n\nOptions:\n  -f, --force                   exit successfully if the group already exists,\n                                and cancel -g if the GID is already used\n  -g, --gid GID                 use GID for the new group\n  -h, --help                    display this help message and exit\n  -K, --key KEY=VALUE           override /etc/login.defs defaults\n  -o, --non-unique              allow to create groups with duplicate\n                                (non-unique) GID\n  -p, --password PASSWORD       use this encrypted password for the new group\n  -r, --system                  create a system account\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -U, --users USERS             list of user members of this group\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groupadd-no-args": {
+    "stdout": "Usage: groupadd [options] GROUP\n\nOptions:\n  -f, --force                   exit successfully if the group already exists,\n                                and cancel -g if the GID is already used\n  -g, --gid GID                 use GID for the new group\n  -h, --help                    display this help message and exit\n  -K, --key KEY=VALUE           override /etc/login.defs defaults\n  -o, --non-unique              allow to create groups with duplicate\n                                (non-unique) GID\n  -p, --password PASSWORD       use this encrypted password for the new group\n  -r, --system                  create a system account\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -U, --users USERS             list of user members of this group\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "groupadd-no-gshadow": {
+    "stdout": "rc=3\nroot:x:0:\n",
+    "stderr": "groupadd: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  },
+  "groupadd-password": {
+    "stdout": "rc=3\nroot:x:0:\nroot:*::\n",
+    "stderr": "groupadd: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "9a88132bee751d3afab1256ee560fbf9cc881d31a0d5c51b6dbac0269a6afa33",
+        "data": "root:*::\n"
+      }
+    }
+  },
+  "groupadd-system": {
+    "stdout": "rc=3\nroot:x:0:\n",
+    "stderr": "groupadd: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      }
+    }
+  }
+}

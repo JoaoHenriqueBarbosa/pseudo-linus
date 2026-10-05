@@ -1,0 +1,1160 @@
+{
+  "ua-auto-after-manual": {
+    "stdout": "update-alternatives: using PWD/bin/a to provide PWD/bin/tool (tool) in auto mode\nauto\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 66,
+        "sha256": "9fe46a0195d96ab48ac71c665643f9822e9c1dc01033fbe2d42641d98bcbcd4a",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n/work/case/bin/b\n5\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-config-keep": {
+    "stdout": "There are 2 choices for the alternative tool (providing PWD/bin/tool).\n\n  Selection    Path              Priority   Status\n------------------------------------------------------------\n* 0            PWD/bin/a   10        auto mode\n  1            PWD/bin/a   10        manual mode\n  2            PWD/bin/b   5         manual mode\n\nPress <enter> to keep the current choice[*], or type selection number: auto\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 66,
+        "sha256": "9fe46a0195d96ab48ac71c665643f9822e9c1dc01033fbe2d42641d98bcbcd4a",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n/work/case/bin/b\n5\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-config-select": {
+    "stdout": "There are 2 choices for the alternative tool (providing PWD/bin/tool).\n\n  Selection    Path              Priority   Status\n------------------------------------------------------------\n* 0            PWD/bin/a   10        auto mode\n  1            PWD/bin/a   10        manual mode\n  2            PWD/bin/b   5         manual mode\n\nPress <enter> to keep the current choice[*], or type selection number: update-alternatives: using PWD/bin/b to provide PWD/bin/tool (tool) in manual mode\nmanual\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 68,
+        "sha256": "3cd01cbb541144181b0fc6cfb58fea32d3a878bea09a5e2d44ee665ec2ddb4fe",
+        "data": "manual\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n/work/case/bin/b\n5\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/b"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-config-single": {
+    "stdout": "There is 1 choice for the alternative tool (providing PWD/bin/tool).\n\n  Selection    Path              Priority   Status\n------------------------------------------------------------\n* 0            PWD/bin/a   10        auto mode\n  1            PWD/bin/a   10        manual mode\n\nPress <enter> to keep the current choice[*], or type selection number: ",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "5340abce02df8e773f1bbabbb29b9e313a75d61bc27d387e6688593be68c8186",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-display-auto": {
+    "stdout": "tool - auto mode\n  link best version is PWD/bin/a\n  link currently points to PWD/bin/a\n  link tool is PWD/bin/tool\n  slave tool.1 is PWD/bin/tool.1\nPWD/bin/a - priority 10\n  slave tool.1: PWD/bin/a.1\nPWD/bin/b - priority 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 115,
+        "sha256": "712217152f53550f320a210369c9705e2dc9cc72c9821234920f0dc5c7013540",
+        "data": "auto\n/work/case/bin/tool\ntool.1\n/work/case/bin/tool.1\n\n/work/case/bin/a\n10\n/work/case/bin/a.1\n/work/case/bin/b\n5\n\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "alt/tool.1": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a.1"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/a.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      },
+      "bin/tool.1": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool.1"
+      }
+    }
+  },
+  "ua-display-missing-group": {
+    "stdout": "update-alternatives: error: no alternatives for nothing\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ua-force-replaces-file": {
+    "stdout": "l\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "5340abce02df8e773f1bbabbb29b9e313a75d61bc27d387e6688593be68c8186",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-get-selections": {
+    "stdout": "other                          manual   PWD/bin/b\ntool                           auto     PWD/bin/a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/other": {
+        "kind": "file",
+        "mode": 420,
+        "size": 50,
+        "sha256": "8f59401b436c554c91f5d67e1f476ed2b8fe4007ad199fee66a3cb47607df523",
+        "data": "manual\n/work/case/bin/other\n\n/work/case/bin/b\n10\n\n"
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "5340abce02df8e773f1bbabbb29b9e313a75d61bc27d387e6688593be68c8186",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/other": {
+        "kind": "symlink",
+        "target": "/work/case/bin/b"
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/other": {
+        "kind": "symlink",
+        "target": "/work/case/alt/other"
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-help": {
+    "stdout": "Usage: update-alternatives [<option> ...] <command>\n\nCommands:\n  --install <link> <name> <path> <priority>\n    [--slave <link> <name> <path>] ...\n                           add a group of alternatives to the system.\n  --remove <name> <path>   remove <path> from the <name> group alternative.\n  --remove-all <name>      remove <name> group from the alternatives system.\n  --auto <name>            switch the master link <name> to automatic mode.\n  --display <name>         display information about the <name> group.\n  --query <name>           machine parseable version of --display <name>.\n  --list <name>            display all targets of the <name> group.\n  --get-selections         list master alternative names and their status.\n  --set-selections         read alternative status from standard input.\n  --config <name>          show alternatives for the <name> group and ask the\n                           user to select which one to use.\n  --set <name> <path>      set <path> as alternative for <name>.\n  --all                    call --config on all alternatives.\n\n<link> is the symlink pointing to /etc/alternatives/<name>.\n  (e.g. /usr/bin/pager)\n<name> is the master name for this link group.\n  (e.g. pager)\n<path> is the location of one of the alternative target files.\n  (e.g. /usr/bin/less)\n<priority> is an integer; options with higher numbers have higher priority in\n  automatic mode.\n\nOptions:\n  --altdir <directory>     change the alternatives directory\n                             (default is /etc/alternatives).\n  --admindir <directory>   change the administrative directory\n                             (default is /var/lib/dpkg/alternatives).\n  --instdir <directory>    change the installation directory.\n  --root <directory>       change the filesystem root directory.\n  --log <file>             change the log file.\n  --force                  allow replacing files with alternative links.\n  --skip-auto              skip prompt for alternatives correctly configured\n                           in automatic mode (relevant for --config only)\n  --quiet                  quiet operation, minimal output.\n  --verbose                verbose operation, more output.\n  --debug                  debug output, way more output.\n  --help                   show this help message.\n  --version                show the version.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ua-install-bad-priority": {
+    "stdout": "rc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ua-install-basic": {
+    "stdout": "update-alternatives: using /work/case/bin/a to provide /work/case/bin/tool (tool) in auto mode\nrc=0\nauto\nPWD/bin/tool\n\nPWD/bin/a\n10\n\n",
+    "stderr": "awk: cmd. line:1: (FILENAME=- FNR=1) fatal: attempt to access field -1\n",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "5340abce02df8e773f1bbabbb29b9e313a75d61bc27d387e6688593be68c8186",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-install-link-managed-by-other": {
+    "stdout": "update-alternatives: error: alternative link PWD/bin/tool is already managed by one\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/one": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "5340abce02df8e773f1bbabbb29b9e313a75d61bc27d387e6688593be68c8186",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/one": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/one"
+      }
+    }
+  },
+  "ua-install-link-not-absolute": {
+    "stdout": "update-alternatives: error: alternative link is not absolute as it should be: tool\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ua-install-lower-priority-silent": {
+    "stdout": "update-alternatives: using /work/case/bin/a to provide /work/case/bin/tool (tool) in auto mode\nrc=0\nPWD/bin/a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 67,
+        "sha256": "df50a3daaeda0d20c00d90d289cb3ea536902555b3d8be927d218f82b63d0ebd",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n20\n/work/case/bin/b\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-install-missing-args": {
+    "stdout": "update-alternatives: --install needs <link> <name> <path> <priority>\n\nUse 'update-alternatives --help' for program usage information.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ua-install-missing-path": {
+    "stdout": "update-alternatives: error: alternative path PWD/nope doesn't exist\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ua-install-name-with-slash": {
+    "stdout": "update-alternatives: error: alternative name (a/b) must not contain '/' and spaces\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ua-install-priority-wins": {
+    "stdout": "update-alternatives: using /work/case/bin/a to provide /work/case/bin/tool (tool) in auto mode\nupdate-alternatives: using /work/case/bin/b to provide /work/case/bin/tool (tool) in auto mode\nPWD/bin/b\nPWD/bin/a\nPWD/bin/b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 67,
+        "sha256": "62a05cad28016798a63497b094ac8be8edc2b9b32c44c36323912b53d23717c5",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n/work/case/bin/b\n20\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/b"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-install-quiet": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "5340abce02df8e773f1bbabbb29b9e313a75d61bc27d387e6688593be68c8186",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-install-slave": {
+    "stdout": "tool\ntool.1\nPWD/bin/a.1\nPWD/alt/tool.1\nauto\nPWD/bin/tool\ntool.1\nPWD/bin/tool.1\n\nPWD/bin/a\n10\nPWD/bin/a.1\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 95,
+        "sha256": "2ed746525be44827d892bde781567cfe3909b538974914fa0a2a4451055b7da9",
+        "data": "auto\n/work/case/bin/tool\ntool.1\n/work/case/bin/tool.1\n\n/work/case/bin/a\n10\n/work/case/bin/a.1\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "alt/tool.1": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a.1"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/a.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      },
+      "bin/tool.1": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool.1"
+      }
+    }
+  },
+  "ua-list-missing-group": {
+    "stdout": "update-alternatives: error: no alternatives for nothing\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ua-no-action": {
+    "stdout": "update-alternatives: need --display, --query, --list, --get-selections, --config, --set, --set-selections, --install, --remove, --all, --remove-all or --auto\n\nUse 'update-alternatives --help' for program usage information.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ua-not-replacing-file": {
+    "stdout": "update-alternatives: using PWD/bin/a to provide PWD/bin/tool (tool) in auto mode\nupdate-alternatives: warning: not replacing PWD/bin/tool with a link\n-\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "5340abce02df8e773f1bbabbb29b9e313a75d61bc27d387e6688593be68c8186",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ua-query": {
+    "stdout": "Name: tool\nLink: PWD/bin/tool\nSlaves:\n tool.1 PWD/bin/tool.1\nStatus: auto\nBest: PWD/bin/a\nValue: PWD/bin/a\n\nAlternative: PWD/bin/a\nPriority: 10\nSlaves:\n tool.1 PWD/bin/a.1\n\nAlternative: PWD/bin/b\nPriority: 5\nSlaves:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 115,
+        "sha256": "712217152f53550f320a210369c9705e2dc9cc72c9821234920f0dc5c7013540",
+        "data": "auto\n/work/case/bin/tool\ntool.1\n/work/case/bin/tool.1\n\n/work/case/bin/a\n10\n/work/case/bin/a.1\n/work/case/bin/b\n5\n\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "alt/tool.1": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a.1"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/a.1": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      },
+      "bin/tool.1": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool.1"
+      }
+    }
+  },
+  "ua-remove-all": {
+    "stdout": "rc=0\nadm:\n\nalt:\n\nbin:\na\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ua-remove-current": {
+    "stdout": "update-alternatives: using PWD/bin/a to provide PWD/bin/tool (tool) in auto mode\nPWD/bin/a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "5340abce02df8e773f1bbabbb29b9e313a75d61bc27d387e6688593be68c8186",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-remove-last": {
+    "stdout": "rc=0\nadm:\n\nalt:\n\nbin:\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "ua-remove-missing-silent": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "ua-set-manual": {
+    "stdout": "update-alternatives: using PWD/bin/b to provide PWD/bin/tool (tool) in manual mode\ntool - manual mode\n  link best version is PWD/bin/a\n  link currently points to PWD/bin/b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 68,
+        "sha256": "3cd01cbb541144181b0fc6cfb58fea32d3a878bea09a5e2d44ee665ec2ddb4fe",
+        "data": "manual\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n/work/case/bin/b\n5\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/b"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/b": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-set-unregistered": {
+    "stdout": "update-alternatives: error: alternative /nope for tool not registered; not setting\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "5340abce02df8e773f1bbabbb29b9e313a75d61bc27d387e6688593be68c8186",
+        "data": "auto\n/work/case/bin/tool\n\n/work/case/bin/a\n10\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-slave-missing-file-warning": {
+    "stdout": "update-alternatives: using PWD/bin/a to provide PWD/bin/tool (tool) in auto mode\nupdate-alternatives: warning: skip creation of PWD/bin/tool.1 because associated file PWD/bin/none.1 (of link group tool) doesn't exist\ntool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/tool": {
+        "kind": "file",
+        "mode": 420,
+        "size": 98,
+        "sha256": "b098ad28a3fc142e6a99db708bec72e0d430b702417c4c8f6d071e5b94646f3f",
+        "data": "auto\n/work/case/bin/tool\ntool.1\n/work/case/bin/tool.1\n\n/work/case/bin/a\n10\n/work/case/bin/none.1\n\n"
+      },
+      "alt": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "alt/tool": {
+        "kind": "symlink",
+        "target": "/work/case/bin/a"
+      },
+      "bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "bin/a": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "bin/tool": {
+        "kind": "symlink",
+        "target": "/work/case/alt/tool"
+      }
+    }
+  },
+  "ua-slave-without-install": {
+    "stdout": "update-alternatives: --slave only allowed with --install\n\nUse 'update-alternatives --help' for program usage information.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ua-two-commands": {
+    "stdout": "update-alternatives: two commands specified: --display and --list\n\nUse 'update-alternatives --help' for program usage information.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ua-unknown-argument": {
+    "stdout": "update-alternatives: unknown option '--bogus'\n\nUse 'update-alternatives --help' for program usage information.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ua-version": {
+    "stdout": "update-alternatives version 1.22.22.\n\nThis is free software; see the GNU General Public License version 2 or\nlater for copying conditions. There is NO warranty.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

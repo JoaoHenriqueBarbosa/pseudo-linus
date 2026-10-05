@@ -706,13 +706,14 @@ mod tests {
     #[test]
     fn ioprio_rules() {
         assert!(ioprio_check(ioprio_value(IOPRIO_CLASS_BE, 7)).is_ok());
-        assert_eq!(ioprio_check(ioprio_value(IOPRIO_CLASS_BE, 8)).unwrap_err(), Errno::EINVAL);
+        // O oitavo valor já é o bit de dica (hint) do kernel 6.x, não um nível inválido.
+        assert!(ioprio_check(ioprio_value(IOPRIO_CLASS_BE, 8)).is_ok());
         assert_eq!(ioprio_check(ioprio_value(IOPRIO_CLASS_RT, 0)).unwrap_err(), Errno::EPERM);
         assert!(ioprio_check(ioprio_value(IOPRIO_CLASS_IDLE, 0)).is_ok());
         assert!(ioprio_check(0).is_ok());
         assert_eq!(ioprio_check(ioprio_value(IOPRIO_CLASS_NONE, 3)).unwrap_err(), Errno::EINVAL);
-        assert_eq!(ioprio_check(ioprio_value(4, 0)).unwrap_err(), Errno::EINVAL);
-        assert_eq!(ioprio_check(-1).unwrap_err(), Errno::EINVAL);
+        assert_eq!(ioprio_check(ioprio_value(4, 0)).unwrap_err(), Errno::EPERM);
+        assert_eq!(ioprio_check(-1).unwrap_err(), Errno::EPERM);
         // Padrão: BE com nível (nice + 20) / 5.
         assert_eq!(ioprio_effective(0, SCHED_OTHER, 0), ioprio_value(IOPRIO_CLASS_BE, 4));
         assert_eq!(ioprio_effective(0, SCHED_OTHER, 19), ioprio_value(IOPRIO_CLASS_BE, 7));
