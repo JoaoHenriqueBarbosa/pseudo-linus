@@ -10,9 +10,19 @@
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
+pub mod agetty;
 pub mod bc;
 pub mod binutils;
 pub mod blkdiscard;
+pub mod blkzone;
+pub mod cramfs;
+pub mod fsck;
+pub mod fsck_minix;
+pub mod ldattach;
+pub mod mkfs;
+pub mod mkfs_bfs;
+pub mod mkfs_minix;
+pub mod sulogin;
 pub mod chfn;
 pub mod chsh;
 pub mod newusers;
@@ -252,6 +262,17 @@ pub fn programs() -> Vec<Program> {
         Program::bin("xxd", xxd::main),
         Program::bin("zdump", zdump::main),
         Program::sbin("add-shell", debscripts::add_shell_main),
+        Program::sbin("agetty", agetty::main),
+        Program::sbin("blkzone", blkzone::main),
+        Program::sbin("fsck", fsck::main),
+        Program::sbin("fsck.cramfs", cramfs::fsck_main),
+        Program::sbin("fsck.minix", fsck_minix::main),
+        Program::sbin("ldattach", ldattach::main),
+        Program::sbin("mkfs", mkfs::main),
+        Program::sbin("mkfs.bfs", mkfs_bfs::main),
+        Program::sbin("mkfs.cramfs", cramfs::mkfs_main),
+        Program::sbin("mkfs.minix", mkfs_minix::main),
+        Program::sbin("sulogin", sulogin::main),
         Program::sbin("blkdiscard", blkdiscard::main),
         Program::sbin("fsfreeze", fsfreeze::main),
         Program::sbin("iconvconfig", iconvconfig::main),

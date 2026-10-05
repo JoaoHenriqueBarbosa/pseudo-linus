@@ -1,0 +1,129 @@
+tool = "utillinux"
+source = "manual"
+
+# mkfs.minix, mkfs.bfs, mkfs.cramfs, fsck.minix, fsck.cramfs, mkfs e fsck do util-linux 2.41.
+
+[[case]]
+id = "mkfs-minix-help"
+argv = ["mkfs.minix", "--help"]
+tags = ["mkfs.minix", "usage"]
+
+[[case]]
+id = "mkfs-minix-version"
+argv = ["mkfs.minix", "-V"]
+tags = ["mkfs.minix", "version"]
+
+[[case]]
+id = "mkfs-minix-bad-option"
+argv = ["mkfs.minix", "-Z"]
+tags = ["mkfs.minix", "usage", "error"]
+
+[[case]]
+id = "mkfs-minix-no-device"
+argv = ["mkfs.minix"]
+tags = ["mkfs.minix", "usage", "error"]
+
+[[case]]
+id = "mkfs-minix-missing-device"
+argv = ["mkfs.minix", "/nonexistent/device"]
+tags = ["mkfs.minix", "error"]
+
+[[case]]
+id = "mkfs-minix-bad-blocks"
+argv = ["mkfs.minix", "/nonexistent/device", "abc"]
+tags = ["mkfs.minix", "error"]
+
+[[case]]
+id = "mkfs-bfs-help"
+argv = ["mkfs.bfs", "--help"]
+tags = ["mkfs.bfs", "usage"]
+
+[[case]]
+id = "mkfs-bfs-version"
+argv = ["mkfs.bfs", "--version"]
+tags = ["mkfs.bfs", "version"]
+
+[[case]]
+id = "mkfs-bfs-bad-option"
+argv = ["mkfs.bfs", "-Z"]
+tags = ["mkfs.bfs", "usage", "error"]
+
+[[case]]
+id = "mkfs-bfs-missing-device"
+argv = ["mkfs.bfs", "/nonexistent/device"]
+tags = ["mkfs.bfs", "error"]
+
+[[case]]
+id = "mkfs-bfs-long-volume-name"
+argv = ["mkfs.bfs", "-V", "toolongname", "/nonexistent/device"]
+tags = ["mkfs.bfs", "error"]
+
+[[case]]
+id = "mkfs-cramfs-help"
+argv = ["mkfs.cramfs", "-h"]
+tags = ["mkfs.cramfs", "usage"]
+
+[[case]]
+id = "mkfs-cramfs-no-args"
+argv = ["mkfs.cramfs"]
+tags = ["mkfs.cramfs", "usage", "error"]
+
+[[case]]
+id = "mkfs-cramfs-missing-dir"
+argv = ["mkfs.cramfs", "/nonexistent/dir", "/tmp/out.cramfs"]
+tags = ["mkfs.cramfs", "error"]
+
+[[case]]
+id = "fsck-cramfs-help"
+argv = ["fsck.cramfs", "--help"]
+tags = ["fsck.cramfs", "usage"]
+
+[[case]]
+id = "fsck-cramfs-version"
+argv = ["fsck.cramfs", "-V"]
+tags = ["fsck.cramfs", "version"]
+
+[[case]]
+id = "fsck-cramfs-missing-file"
+argv = ["fsck.cramfs", "/nonexistent/file"]
+tags = ["fsck.cramfs", "error"]
+
+[[case]]
+id = "fsck-minix-help"
+argv = ["fsck.minix", "--help"]
+tags = ["fsck.minix", "usage"]
+
+[[case]]
+id = "fsck-minix-version"
+argv = ["fsck.minix", "-V"]
+tags = ["fsck.minix", "version"]
+
+[[case]]
+id = "fsck-minix-bad-option"
+argv = ["fsck.minix", "-Z"]
+tags = ["fsck.minix", "usage", "error"]
+
+[[case]]
+id = "fsck-minix-missing-device"
+argv = ["fsck.minix", "/nonexistent/device"]
+tags = ["fsck.minix", "error"]
+
+[[case]]
+id = "mkfs-help"
+argv = ["mkfs", "--help"]
+tags = ["mkfs", "usage"]
+
+[[case]]
+id = "mkfs-version"
+argv = ["mkfs", "--version"]
+tags = ["mkfs", "version"]
+
+[[case]]
+id = "fsck-help"
+argv = ["fsck", "--help"]
+tags = ["fsck", "usage"]
+
+[[case]]
+id = "fsck-version"
+argv = ["fsck", "--version"]
+tags = ["fsck", "version"]

@@ -1,0 +1,104 @@
+tool = "utillinux"
+source = "manual"
+
+# agetty, sulogin, ldattach e blkzone do util-linux 2.41: ajuda, versão e erros de argumento.
+
+[[case]]
+id = "agetty-help"
+argv = ["agetty", "--help"]
+tags = ["agetty", "usage"]
+
+[[case]]
+id = "agetty-version"
+argv = ["agetty", "-V"]
+tags = ["agetty", "version"]
+
+[[case]]
+id = "agetty-bad-option"
+argv = ["agetty", "--bogus"]
+tags = ["agetty", "usage", "error"]
+
+[[case]]
+id = "agetty-no-args"
+argv = ["agetty"]
+tags = ["agetty", "error"]
+
+[[case]]
+id = "agetty-missing-line"
+argv = ["agetty", "nonexistent0"]
+tags = ["agetty", "error"]
+
+[[case]]
+id = "sulogin-help"
+argv = ["sulogin", "--help"]
+tags = ["sulogin", "usage"]
+
+[[case]]
+id = "sulogin-version"
+argv = ["sulogin", "-V"]
+tags = ["sulogin", "version"]
+
+[[case]]
+id = "sulogin-bad-option"
+argv = ["sulogin", "-Z"]
+tags = ["sulogin", "usage", "error"]
+
+[[case]]
+id = "ldattach-help"
+argv = ["ldattach", "--help"]
+tags = ["ldattach", "usage"]
+
+[[case]]
+id = "ldattach-version"
+argv = ["ldattach", "-V"]
+tags = ["ldattach", "version"]
+
+[[case]]
+id = "ldattach-no-args"
+argv = ["ldattach"]
+tags = ["ldattach", "usage", "error"]
+
+[[case]]
+id = "ldattach-bad-ldisc"
+argv = ["ldattach", "BOGUS", "/dev/null"]
+tags = ["ldattach", "error"]
+
+[[case]]
+id = "ldattach-bad-speed"
+argv = ["ldattach", "-s", "abc", "TTY", "/dev/null"]
+tags = ["ldattach", "error"]
+
+[[case]]
+id = "ldattach-missing-device"
+argv = ["ldattach", "TTY", "/nonexistent/device"]
+tags = ["ldattach", "error"]
+
+[[case]]
+id = "blkzone-help"
+argv = ["blkzone", "--help"]
+tags = ["blkzone", "usage"]
+
+[[case]]
+id = "blkzone-version"
+argv = ["blkzone", "-V"]
+tags = ["blkzone", "version"]
+
+[[case]]
+id = "blkzone-no-args"
+argv = ["blkzone"]
+tags = ["blkzone", "usage", "error"]
+
+[[case]]
+id = "blkzone-unknown-command"
+argv = ["blkzone", "bogus", "/dev/null"]
+tags = ["blkzone", "error"]
+
+[[case]]
+id = "blkzone-no-device"
+argv = ["blkzone", "report"]
+tags = ["blkzone", "usage", "error"]
+
+[[case]]
+id = "blkzone-missing-device"
+argv = ["blkzone", "report", "/nonexistent/device"]
+tags = ["blkzone", "error"]
