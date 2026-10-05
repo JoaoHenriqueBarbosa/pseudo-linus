@@ -1,0 +1,26 @@
+{
+  "partx-bad-option": {
+    "stdout": "",
+    "stderr": "partx: invalid option -- 'Z'\nTry 'partx --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "partx-help": {
+    "stdout": "\nUsage:\n partx [-a|-d|-s|-u] [--nr <n:m> | <partition>] <disk>\n\nTell the kernel about the presence and numbering of partitions.\n\nOptions:\n -a, --add            add specified partitions or all of them\n -d, --delete         delete specified partitions or all of them\n -u, --update         update specified partitions or all of them\n -s, --show           list partitions\n\n -b, --bytes          print SIZE in bytes rather than in human readable format\n -g, --noheadings     don't print headings for --show\n -n, --nr <n:m>       specify the range of partitions (e.g. --nr 2:4)\n -o, --output <list>  define which output columns to use\n     --output-all     output all columns\n -P, --pairs          use key=\"value\" output format\n -r, --raw            use raw output format\n -S, --sector-size <num>  overwrite sector size\n -t, --type <type>    specify the partition type\n     --list-types     list supported partition types and exit\n -v, --verbose        verbose mode\n\n -h, --help           display this help\n -V, --version        display version\n\nAvailable output columns:\n         NR  partition number\n      START  start of the partition in sectors\n        END  end of the partition in sectors\n    SECTORS  number of sectors\n       SIZE  human readable size\n       NAME  partition name\n       UUID  partition UUID\n       TYPE  partition type (a string, a UUID, or hex)\n      FLAGS  partition flags\n     SCHEME  partition table type (dos, gpt, ...)\n\nFor more details see partx(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "partx-missing-device": {
+    "stdout": "",
+    "stderr": "partx: stat of /nonexistent/device failed: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "partx-version": {
+    "stdout": "partx from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

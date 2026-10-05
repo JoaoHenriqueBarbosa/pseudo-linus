@@ -1,0 +1,44 @@
+{
+  "w-cmd-bad-option": {
+    "stdout": "w: unrecognized option '--bogus'\n\nUsage:\n w [options] [user]\n\nOptions:\n -h, --no-header     do not print header\n -u, --no-current    ignore current process username\n -s, --short         short format\n -t, --terminal      show terminals\n -f, --from          show remote hostname field\n -o, --old-style     old style output\n -i, --ip-addr       display IP address instead of hostname (if possible)\n -p, --pids          show the PID(s) of processes in WHAT\n\n     --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see w(1).\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-cmd-columns-header": {
+    "stdout": "USER TTY FROM LOGIN@ IDLE JCPU PCPU WHAT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-cmd-help": {
+    "stdout": "\nUsage:\n w [options] [user]\n\nOptions:\n -h, --no-header     do not print header\n -u, --no-current    ignore current process username\n -s, --short         short format\n -t, --terminal      show terminals\n -f, --from          show remote hostname field\n -o, --old-style     old style output\n -i, --ip-addr       display IP address instead of hostname (if possible)\n -p, --pids          show the PID(s) of processes in WHAT\n\n     --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see w(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-cmd-no-from-header": {
+    "stdout": "USER TTY LOGIN@ IDLE JCPU PCPU WHAT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-cmd-no-header": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-cmd-short-header": {
+    "stdout": "USER TTY FROM IDLE WHAT\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "w-cmd-version": {
+    "stdout": "w from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

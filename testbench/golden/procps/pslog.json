@@ -1,0 +1,26 @@
+{
+  "pslog-cmd-missing-pid": {
+    "stdout": "opendir: No such file or directory\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pslog-cmd-no-operand": {
+    "stdout": "Usage: pslog PID...\n       pslog -V, --version\n\n  -V,--version display version information\n\nexit=255\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pslog-cmd-two-operands": {
+    "stdout": "Pid no 1:\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pslog-cmd-version": {
+    "stdout": "",
+    "stderr": "pslog (PSmisc) 23.7\nCopyright (C) 2015-2017 Vito Mule'.\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n",
+    "exit": 0,
+    "files": {}
+  }
+}

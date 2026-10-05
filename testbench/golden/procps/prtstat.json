@@ -1,0 +1,38 @@
+{
+  "prtstat-cmd-bad-option": {
+    "stdout": "prtstat: unrecognized option '--bogus'\nInvalid option\nUsage: prtstat [options] PID ...\n       prtstat -V\nPrint information about a process\n    -r,--raw       Raw display of information\n    -V,--version   Display version information and exit\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "prtstat-cmd-missing-pid": {
+    "stdout": "Process with pid 999999 does not exist.\nexit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "prtstat-cmd-name-of-child": {
+    "stdout": "Process: sleep         \t\tState: R (running)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "prtstat-cmd-no-operand": {
+    "stdout": "You must provide at least one PID.\nUsage: prtstat [options] PID ...\n       prtstat -V\nPrint information about a process\n    -r,--raw       Raw display of information\n    -V,--version   Display version information and exit\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "prtstat-cmd-raw-fields": {
+    "stdout": "38\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "prtstat-cmd-version": {
+    "stdout": "",
+    "stderr": "prtstat (PSmisc) 23.7\nCopyright (C) 2009-2024 Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n",
+    "exit": 0,
+    "files": {}
+  }
+}

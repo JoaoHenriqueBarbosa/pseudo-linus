@@ -1,0 +1,26 @@
+{
+  "losetup-bad-option": {
+    "stdout": "",
+    "stderr": "losetup: invalid option -- 'Z'\nTry 'losetup --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "losetup-help": {
+    "stdout": "\nUsage:\n losetup [options] [<loopdev>]\n losetup [options] -f | <loopdev> <file>\n\nSet up and control loop devices.\n\nOptions:\n -a, --all                     list all used devices\n -d, --detach <loopdev>...     detach one or more devices\n -D, --detach-all              detach all used devices\n -f, --find                    find first unused device\n -c, --set-capacity <loopdev>  resize the device\n -j, --associated <file>       list all devices associated with <file>\n -L, --nooverlap               avoid possible conflict between devices\n\n -o, --offset <num>            start at offset <num> into file\n     --sizelimit <num>         device is limited to <num> bytes of the file\n -b, --sector-size <num>       set the logical sector size to <num>\n -P, --partscan                create a partitioned loop device\n -r, --read-only               set up a read-only loop device\n     --direct-io[=<on|off>]    open backing file with O_DIRECT\n     --loop-ref <string>       loop device reference\n     --show                    print device name after setup (with -f)\n -v, --verbose                 verbose mode\n\n -J, --json                    use JSON --list output format\n -l, --list                    list info about all or specified (default)\n -n, --noheadings              don't print headings for --list output\n -O, --output <cols>           specify columns to output for --list\n     --output-all              output all columns\n     --raw                     use raw --list output format\n\n -h, --help                    display this help\n -V, --version                 display version\n\nAvailable output columns:\n         NAME  loop device name\n    AUTOCLEAR  autoclear flag set\n    BACK-FILE  device backing file\n     BACK-INO  backing file inode number\n BACK-MAJ:MIN  backing file major:minor device number\n     BACK-MAJ  backing file major device number\n     BACK-MIN  backing file minor device number\n      MAJ:MIN  loop device major:minor number\n          MAJ  loop device major number\n          MIN  loop device minor number\n       OFFSET  offset from the beginning\n     PARTSCAN  partscan flag set\n          REF  loop device reference string\n           RO  read-only device\n    SIZELIMIT  size limit of the file in bytes\n          DIO  access backing file with direct-io\n      LOG-SEC  logical sector size in bytes\n\nFor more details see losetup(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "losetup-missing-device": {
+    "stdout": "",
+    "stderr": "losetup: /nonexistent/device: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "losetup-version": {
+    "stdout": "losetup from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

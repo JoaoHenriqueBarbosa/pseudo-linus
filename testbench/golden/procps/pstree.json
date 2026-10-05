@@ -1,0 +1,44 @@
+{
+  "pstree-cmd-arguments-of-child": {
+    "stdout": "sleep 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-cmd-bad-option": {
+    "stdout": "pstree: unrecognized option '--bogus'\nUsage: pstree [-acglpsStTuZ] [ -h | -H PID ] [ -n | -N type ]\n              [ -A | -G | -U ] [ PID | USER ]\n   or: pstree -V\n\nDisplay a tree of processes.\n\n  -a, --arguments     show command line arguments\n  -A, --ascii         use ASCII line drawing characters\n  -c, --compact-not   don't compact identical subtrees\n  -C, --color=TYPE    color process by attribute\n                      (age)\n  -g, --show-pgids    show process group ids; implies -c\n  -G, --vt100         use VT100 line drawing characters\n  -h, --highlight-all highlight current process and its ancestors\n  -H PID, --highlight-pid=PID\n                      highlight this process and its ancestors\n  -l, --long          don't truncate long lines\n  -n, --numeric-sort  sort output by PID\n  -N TYPE, --ns-sort=TYPE\n                      sort output by this namespace type\n                              (cgroup, ipc, mnt, net, pid, time, user, uts)\n  -p, --show-pids     show PIDs; implies -c\n  -s, --show-parents  show parents of the selected process\n  -S, --ns-changes    show namespace transitions\n  -t, --thread-names  show full thread names\n  -T, --hide-threads  hide threads, show only processes\n  -u, --uid-changes   show uid transitions\n  -U, --unicode       use UTF-8 (Unicode) line drawing characters\n  -V, --version       display version information\n  -Z, --security-context\n                      show security attributes\n\n  PID    start at this PID; default is 1 (init)\n  USER   show only trees rooted at processes of this user\n\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-cmd-missing-pid": {
+    "stdout": "exit=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-cmd-missing-user": {
+    "stdout": "No such user name: nosuchuser9\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-cmd-own-shell-ascii": {
+    "stdout": "bas\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-cmd-pids-of-child": {
+    "stdout": "sleep(PID)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pstree-cmd-version": {
+    "stdout": "",
+    "stderr": "pstree (PSmisc) 23.7\nCopyright (C) 1993-2024 Werner Almesberger and Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n",
+    "exit": 0,
+    "files": {}
+  }
+}

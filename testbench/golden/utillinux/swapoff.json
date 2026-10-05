@@ -1,0 +1,26 @@
+{
+  "swapoff-bad-option": {
+    "stdout": "",
+    "stderr": "swapoff: invalid option -- 'Z'\nTry 'swapoff --help' for more information.\n",
+    "exit": 16,
+    "files": {}
+  },
+  "swapoff-help": {
+    "stdout": "\nUsage:\n swapoff [options] [<spec>]\n\nDisable devices and files for paging and swapping.\n\nOptions:\n -a, --all              disable all swaps from /proc/swaps\n -v, --verbose          verbose mode\n\n -h, --help             display this help\n -V, --version          display version\n\nThe <spec> parameter:\n -L <label>             LABEL of device to be used\n -U <uuid>              UUID of device to be used\n LABEL=<label>          LABEL of device to be used\n UUID=<uuid>            UUID of device to be used\n <device>               name of device to be used\n <file>                 name of file to be used\n\nFor more details see swapoff(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "swapoff-missing-device": {
+    "stdout": "",
+    "stderr": "swapoff: Not superuser.\n",
+    "exit": 16,
+    "files": {}
+  },
+  "swapoff-version": {
+    "stdout": "swapoff from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

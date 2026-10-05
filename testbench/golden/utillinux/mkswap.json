@@ -1,0 +1,26 @@
+{
+  "mkswap-bad-option": {
+    "stdout": "",
+    "stderr": "mkswap: invalid option -- 'Z'\nTry 'mkswap --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mkswap-help": {
+    "stdout": "\nUsage:\n mkswap [options] device [size]\n\nSet up a Linux swap area.\n\nOptions:\n -c, --check               check bad blocks before creating the swap area\n -f, --force               allow swap size area be larger than device\n -q, --quiet               suppress output and warning messages\n -p, --pagesize SIZE       specify page size in bytes\n -L, --label LABEL         specify label\n -v, --swapversion NUM     specify swap-space version number\n -U, --uuid UUID           specify the uuid to use\n -e, --endianness=<value>  specify the endianness to use (native, little or big)\n -o, --offset OFFSET       specify the offset in the device\n -s, --size SIZE           specify the size of a swap file in bytes\n -F, --file                create a swap file\n     --verbose             verbose output\n     --lock[=<mode>]       use exclusive device lock (yes, no or nonblock)\n -h, --help                display this help\n -V, --version             display version\n\nFor more details see mkswap(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mkswap-missing-device": {
+    "stdout": "",
+    "stderr": "mkswap: cannot open /nonexistent/device: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "mkswap-version": {
+    "stdout": "mkswap from util-linux 2.41.5 (features: extends-check, nocow, fallocate, blkid-check, uuid, selinux)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

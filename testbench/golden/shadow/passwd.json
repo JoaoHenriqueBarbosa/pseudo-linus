@@ -1,0 +1,80 @@
+{
+  "passwd-aging": {
+    "stdout": "passwd: prefix must be an absolute path\n3\nalice:$6$abc$def:19100:0:99999:7:::\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-all-without-status": {
+    "stdout": "",
+    "stderr": "Usage: passwd [options] [LOGIN]\n\nOptions:\n  -a, --all                     report password status on all accounts\n  -d, --delete                  delete the password for the named account\n  -e, --expire                  force expire the password for the named account\n  -h, --help                    display this help message and exit\n  -k, --keep-tokens             change password only if expired\n  -i, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --lock                    lock the password of the named account\n  -n, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -q, --quiet                   quiet mode\n  -r, --repository REPOSITORY   change password in REPOSITORY repository\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -S, --status                  report password status on the named account\n  -u, --unlock                  unlock the password of the named account\n  -w, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n  -x, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -s, --stdin                   read new token from stdin\n\n",
+    "exit": 2,
+    "files": {}
+  },
+  "passwd-bad-number": {
+    "stdout": "passwd: prefix must be an absolute path\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-bad-option": {
+    "stdout": "",
+    "stderr": "passwd: invalid option -- 'Z'\nUsage: passwd [options] [LOGIN]\n\nOptions:\n  -a, --all                     report password status on all accounts\n  -d, --delete                  delete the password for the named account\n  -e, --expire                  force expire the password for the named account\n  -h, --help                    display this help message and exit\n  -k, --keep-tokens             change password only if expired\n  -i, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --lock                    lock the password of the named account\n  -n, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -q, --quiet                   quiet mode\n  -r, --repository REPOSITORY   change password in REPOSITORY repository\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -S, --status                  report password status on the named account\n  -u, --unlock                  unlock the password of the named account\n  -w, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n  -x, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -s, --stdin                   read new token from stdin\n\n",
+    "exit": 6,
+    "files": {}
+  },
+  "passwd-delete": {
+    "stdout": "passwd: prefix must be an absolute path\n3\nalice:$6$abc$def:0:99999:7:::\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-expire": {
+    "stdout": "passwd: prefix must be an absolute path\n3\nalice:$6$abc$def:19100:0:99999:7:::\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-help": {
+    "stdout": "Usage: passwd [options] [LOGIN]\n\nOptions:\n  -a, --all                     report password status on all accounts\n  -d, --delete                  delete the password for the named account\n  -e, --expire                  force expire the password for the named account\n  -h, --help                    display this help message and exit\n  -k, --keep-tokens             change password only if expired\n  -i, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --lock                    lock the password of the named account\n  -n, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -q, --quiet                   quiet mode\n  -r, --repository REPOSITORY   change password in REPOSITORY repository\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -S, --status                  report password status on the named account\n  -u, --unlock                  unlock the password of the named account\n  -w, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n  -x, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -s, --stdin                   read new token from stdin\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-lock": {
+    "stdout": "passwd: prefix must be an absolute path\n3\nalice:$6$abc$def:19100:0:99999:7:::\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-status-all": {
+    "stdout": "passwd: prefix must be an absolute path\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-status-missing-user": {
+    "stdout": "passwd: prefix must be an absolute path\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-status-user": {
+    "stdout": "passwd: prefix must be an absolute path\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-unlock": {
+    "stdout": "passwd: prefix must be an absolute path\n3\nalice:!$6$abc$def:19100:0:99999:7:::\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "passwd-unlock-passwordless": {
+    "stdout": "passwd: prefix must be an absolute path\n3\nalice:!:19100:0:99999:7:::\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

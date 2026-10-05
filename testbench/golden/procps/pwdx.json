@@ -1,0 +1,44 @@
+{
+  "pwdx-cmd-bad-pid": {
+    "stdout": "pwdx: invalid process id: abc\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-cmd-help": {
+    "stdout": "\nUsage:\n pwdx [options] pid...\n\nOptions:\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see pwdx(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-cmd-missing-pid": {
+    "stdout": "999999: No such process\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-cmd-no-operand": {
+    "stdout": "\nUsage:\n pwdx [options] pid...\n\nOptions:\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see pwdx(1).\nexit=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-cmd-own-shell": {
+    "stdout": "PID: /tmp\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-cmd-proc-path": {
+    "stdout": "/proc/36: /tmp\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pwdx-cmd-version": {
+    "stdout": "pwdx from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

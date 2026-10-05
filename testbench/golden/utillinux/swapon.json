@@ -1,0 +1,26 @@
+{
+  "swapon-bad-option": {
+    "stdout": "",
+    "stderr": "swapon: invalid option -- 'Z'\nTry 'swapon --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "swapon-help": {
+    "stdout": "\nUsage:\n swapon [options] [<spec>]\n\nEnable devices and files for paging and swapping.\n\nOptions:\n -a, --all                enable all swaps from /etc/fstab\n -d, --discard[=<policy>] enable swap discards, if supported by device\n -e, --ifexists           silently skip devices that do not exist\n -f, --fixpgsz            reinitialize the swap space if necessary\n -o, --options <list>     comma-separated list of swap options\n -p, --priority <prio>    specify the priority of the swap device\n -s, --summary            display summary about used swap devices (DEPRECATED)\n -T, --fstab <path>       alternative file to /etc/fstab\n     --show[=<columns>]   display summary in definable table\n     --noheadings         don't print table heading (with --show)\n     --raw                use the raw output format (with --show)\n     --bytes              display swap size in bytes in --show output\n -v, --verbose            verbose mode\n\n -h, --help               display this help\n -V, --version            display version\n\nThe <spec> parameter:\n -L <label>             synonym for LABEL=<label>\n -U <uuid>              synonym for UUID=<uuid>\n LABEL=<label>          specifies device by swap area label\n UUID=<uuid>            specifies device by swap area UUID\n PARTLABEL=<label>      specifies device by partition label\n PARTUUID=<uuid>        specifies device by partition UUID\n <device>               name of device to be used\n <file>                 name of file to be used\n\nAvailable discard policy types (for --discard):\n once    : only single-time area discards are issued\n pages   : freed pages are discarded before they are reused\nIf no policy is selected, both discard types are enabled (default).\n\nAvailable output columns:\n NAME   device file or partition path\n TYPE   type of the device\n SIZE   size of the swap area\n USED   bytes in use\n PRIO   swap priority\n UUID   swap uuid\n LABEL  swap label\n\nFor more details see swapon(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "swapon-missing-device": {
+    "stdout": "",
+    "stderr": "swapon: cannot open /nonexistent/device: No such file or directory\n",
+    "exit": 255,
+    "files": {}
+  },
+  "swapon-version": {
+    "stdout": "swapon from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

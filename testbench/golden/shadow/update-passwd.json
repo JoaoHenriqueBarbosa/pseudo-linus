@@ -1,0 +1,50 @@
+{
+  "update-passwd-adds-missing": {
+    "stdout": "2 changes have been made, rewriting files\n0\nroot:x:0:0:root:/root:/bin/bash\nroot:x:0:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "update-passwd-bad-option": {
+    "stdout": "",
+    "stderr": "update-passwd: invalid option -- 'Z'\nInternal error: getopt_long returned unexpected value '?'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "update-passwd-dry-run": {
+    "stdout": "Removing group \"daemon\" (1)\nRemoving user \"daemon\" (1)\nWould commit 2 changes\n2\nroot:x:0:0:root:/root:/bin/bash\nroot:x:0:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "update-passwd-help": {
+    "stdout": "Usage: update-passwd [OPTION]...\n\n  -p, --passwd-master=file  Use file as the master account list\n  -g, --group-master=file   Use file as the master group list\n  -P, --passwd=file         Use file as the system passwd file\n  -S, --shadow=file         Use file as the system shadow file\n  -G, --group=file          Use file as the system group file\n  -s, --sanity-check        Only perform sanity-checks\n  -v, --verbose             Show details about what we are doing (recommended)\n  -n, --dry-run             Just say what we would do but do nothing\n  -L, --no-locking          Don't try to lock files\n  -h, --help                Display this information and exit\n  -V, --version             Show version number and exit\n\n File locations used:\n   master passwd: /usr/share/base-passwd/passwd.master\n   master group : /usr/share/base-passwd/group.master\n   system passwd: /etc/passwd\n   system shadow: /etc/shadow\n   system group : /etc/group\n\nReport bugs to the Debian bug tracking system, package \"base-passwd\".\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "update-passwd-in-sync": {
+    "stdout": "0\nroot:x:0:0:root:/root:/bin/bash\nroot:x:0:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "update-passwd-missing-master": {
+    "stdout": "Error opening passwd file p: No such file or directory\n2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "update-passwd-uid-mismatch": {
+    "stdout": "1 changes have been made, rewriting files\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "update-passwd-version": {
+    "stdout": "update-passwd 3.6.7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
