@@ -1,0 +1,34 @@
+tool = "utillinux"
+source = "manual"
+
+# wipefs do util-linux 2.41: ajuda, versão, erros de argumento e alvos sem assinatura.
+
+[[case]]
+id = "wipefs-help"
+argv = ["wipefs", "--help"]
+tags = ["wipefs", "usage"]
+
+[[case]]
+id = "wipefs-version"
+argv = ["wipefs", "-V"]
+tags = ["wipefs", "version"]
+
+[[case]]
+id = "wipefs-bad-option"
+argv = ["wipefs", "--bogus"]
+tags = ["wipefs", "usage", "error"]
+
+[[case]]
+id = "wipefs-no-args"
+argv = ["wipefs"]
+tags = ["wipefs", "usage", "error"]
+
+[[case]]
+id = "wipefs-missing-file"
+argv = ["wipefs", "/nonexistent/device"]
+tags = ["wipefs", "error"]
+
+[[case]]
+id = "wipefs-empty-file"
+argv = ["wipefs", "/dev/null"]
+tags = ["wipefs", "error"]

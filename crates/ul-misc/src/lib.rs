@@ -11,6 +11,7 @@
 //! Tudo passa por `sysabi`; nada toca o host.
 
 pub mod bc;
+pub mod blkid;
 pub mod bzip2recover;
 pub mod choom;
 pub mod chrt;
@@ -80,6 +81,7 @@ pub mod usermgmt;
 pub mod util;
 pub mod whereis;
 pub mod which;
+pub mod wipefs;
 pub mod xxd;
 pub mod zdump;
 
@@ -173,6 +175,8 @@ pub fn programs() -> Vec<Program> {
         Program::bin("xxd", xxd::main),
         Program::bin("zdump", zdump::main),
         Program::sbin("add-shell", debscripts::add_shell_main),
+        Program::sbin("blkid", blkid::main),
+        Program::sbin("wipefs", wipefs::main),
         Program::sbin("chgpasswd", shadowconv::chgpasswd_main),
         Program::sbin("chpasswd", shadowconv::chpasswd_main),
         Program::sbin("grpconv", shadowconv::grpconv_main),

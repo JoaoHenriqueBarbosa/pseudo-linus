@@ -1,0 +1,74 @@
+{
+  "setpriv-bad-capability": {
+    "stdout": "",
+    "stderr": "setpriv: unknown capability \"bogus_cap\"\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-bad-long-option": {
+    "stdout": "",
+    "stderr": "setpriv: unrecognized option '--bogus'\nTry 'setpriv --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-bad-option": {
+    "stdout": "",
+    "stderr": "setpriv: invalid option -- 'x'\nTry 'setpriv --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-bad-pdeathsig": {
+    "stdout": "",
+    "stderr": "setpriv: unknown signal: NOTASIGNAL\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-bad-ruid": {
+    "stdout": "",
+    "stderr": "setpriv: failed to parse ruid: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-bad-securebits": {
+    "stdout": "",
+    "stderr": "setpriv: bad securebits string\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-groups-exclusive": {
+    "stdout": "",
+    "stderr": "setpriv: mutually exclusive arguments: --clear-groups --keep-groups --init-groups --groups\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-help": {
+    "stdout": "\nUsage:\n setpriv [options] <program> [<argument>...]\n\nRun a program with different privilege settings.\n\nOptions:\n -d, --dump                  show current state (and do not exec)\n --nnp, --no-new-privs       disallow granting new privileges\n --ambient-caps <caps>       set ambient capabilities\n --inh-caps <caps>           set inheritable capabilities\n --bounding-set <caps>       set capability bounding set\n --ruid <uid|user>           set real uid\n --euid <uid|user>           set effective uid\n --rgid <gid|group>          set real gid\n --egid <gid|group>          set effective gid\n --reuid <uid|user>          set real and effective uid\n --regid <gid|group>         set real and effective gid\n --clear-groups              clear supplementary groups\n --keep-groups               keep supplementary groups\n --init-groups               initialize supplementary groups\n --groups <group>[,...]      set supplementary group(s) by GID or name\n --securebits <bits>         set securebits\n --pdeathsig keep|clear|<signame>\n                             set or clear parent death signal\n --ptracer <pid>|any|none    allow ptracing from the given process\n --selinux-label <label>     set SELinux label\n --apparmor-profile <pr>     set AppArmor profile\n --landlock-access <access>  add Landlock access\n --landlock-rule <rule>      add Landlock rule\n --seccomp-filter <file>     load seccomp filter from file\n --reset-env                 clear all environment and initialize\n                               HOME, SHELL, USER, LOGNAME and PATH\n\n -h, --help                  display this help\n -V, --version               display version\n\n This tool can be dangerous.  Read the manpage, and be careful.\n\nFor more details see setpriv(1).\n\nLandlock accesses:\n Access: fs\n Rule types: path-beneath\n Rules: execute,write-file,read-file,read-dir,remove-dir,remove-file,make-char,make-dir,make-reg,make-sock,make-fifo,make-block,make-sym,refer,truncate\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setpriv-init-groups-without-ruid": {
+    "stdout": "",
+    "stderr": "setpriv: --init-groups requires --ruid or --reuid\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-missing-argument": {
+    "stdout": "",
+    "stderr": "setpriv: option '--ruid' requires an argument\nTry 'setpriv --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-no-args": {
+    "stdout": "",
+    "stderr": "setpriv: No program specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setpriv-version": {
+    "stdout": "setpriv from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

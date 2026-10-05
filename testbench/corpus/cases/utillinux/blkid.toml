@@ -1,0 +1,34 @@
+tool = "utillinux"
+source = "manual"
+
+# blkid do util-linux 2.41: ajuda, versão, opção inválida e alvos sem superbloco.
+
+[[case]]
+id = "blkid-help"
+argv = ["blkid", "--help"]
+tags = ["blkid", "usage"]
+
+[[case]]
+id = "blkid-version"
+argv = ["blkid", "-V"]
+tags = ["blkid", "version"]
+
+[[case]]
+id = "blkid-bad-option"
+argv = ["blkid", "--bogus"]
+tags = ["blkid", "usage", "error"]
+
+[[case]]
+id = "blkid-missing-file"
+argv = ["blkid", "/nonexistent/device"]
+tags = ["blkid", "error"]
+
+[[case]]
+id = "blkid-empty-file"
+argv = ["blkid", "/dev/null"]
+tags = ["blkid", "error"]
+
+[[case]]
+id = "blkid-probe-empty-file"
+argv = ["blkid", "-p", "/dev/null"]
+tags = ["blkid", "error"]
