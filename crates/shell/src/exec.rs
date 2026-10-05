@@ -834,7 +834,12 @@ impl Shell {
                     argv.extend(args.into_iter().map(Arg::into_bytes));
                     self.call_function(handler, argv)
                 } else {
-                    self.error(format!("{name_str}: command not found"));
+                    // O dash diz só "not found", sem o "command" do bash.
+                    if self.dash_style() {
+                        self.error(format!("{name_str}: not found"));
+                    } else {
+                        self.error(format!("{name_str}: command not found"));
+                    }
                     Ok(127)
                 }
             }
@@ -974,7 +979,10 @@ impl Shell {
             return self.run_as_script(path, argv, env);
         }
         if e == Errno::ENOENT {
-            if path.contains(&b'/') && argv.first().is_some_and(|a| a.contains(&b'/')) {
+            if self.dash_style() {
+                // O dash não distingue: caminho com barra que não existe também é "not found".
+                self.error(format!("{shown}: not found"));
+            } else if path.contains(&b'/') && argv.first().is_some_and(|a| a.contains(&b'/')) {
                 self.error(format!("{shown}: No such file or directory"));
             } else {
                 // Achado no hash mas sumiu, ou caminho relativo: o bash diz "No such file".
