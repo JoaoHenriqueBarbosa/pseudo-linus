@@ -50,12 +50,6 @@ pub struct Member {
     pub magic: super::header::Magic,
 }
 
-impl Default for super::header::Magic {
-    fn default() -> Self {
-        super::header::Magic::None
-    }
-}
-
 /// Tipo lógico do membro.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {

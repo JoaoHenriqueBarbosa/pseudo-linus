@@ -596,8 +596,6 @@ impl Xz {
             }
             if let Some(e) = input.error {
                 self.error(format!("{shown}: {}", e.message()));
-            } else if input.ensure(1).is_empty() && self.format == Format::Auto {
-                self.error(format!("{shown}: File format not recognized"));
             } else {
                 self.error(format!("{shown}: File format not recognized"));
             }

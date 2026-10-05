@@ -12,7 +12,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 
 use parking_lot::Mutex;
-use sysabi::{Errno, FileType, Gid, PollEvents, Stat, TimeSpec, Uid};
+use sysabi::{Errno, Gid, PollEvents, Stat, TimeSpec, Uid};
 use vfs::MagicObject;
 
 use crate::park::{Parker, Wake, WaitList};
@@ -104,10 +104,6 @@ impl Pipe {
             ctime: self.ctime,
             btime: None,
         }
-    }
-
-    pub(crate) fn available(&self) -> usize {
-        self.st.lock().buf.len()
     }
 
     /// Leitura: dados, EOF (0) sem escritores, EAGAIN não bloqueante, ou espera.
@@ -300,8 +296,4 @@ impl MagicObject for PipeObject {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
-}
-
-pub(crate) fn pipe_file_type() -> FileType {
-    FileType::Fifo
 }

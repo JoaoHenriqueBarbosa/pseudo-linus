@@ -98,7 +98,7 @@ impl Uz {
                 match self.get_unicode_data(&ef) {
                     Ok(Some(u)) if u.is_empty() => Some(full),
                     Ok(u) => u,
-                    Err(()) => None,
+                    Err(super::process::BadUnicodePath) => None,
                 }
             };
             if let Some(u) = unipath {

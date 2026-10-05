@@ -387,6 +387,9 @@ impl Parser {
     }
 
     /// `jv_parser_next`.
+    // O nome espelha o `jv_parser_next` do jq; o retorno é `Next`, não `Option`, então não cabe em
+    // `Iterator`.
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Next {
         if self.eof || !self.has_buf {
             return Next::None;

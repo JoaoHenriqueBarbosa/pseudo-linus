@@ -214,13 +214,14 @@ pub fn checksum_ok(b: &Block) -> bool {
 }
 
 /// Tipo de cabeçalho pela magia.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Magic {
     /// `ustar\0` + `00`.
     Ustar,
     /// `ustar  \0` (gnu e oldgnu).
     Gnu,
     /// Sem magia (v7).
+    #[default]
     None,
 }
 

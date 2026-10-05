@@ -23,7 +23,7 @@ pub(crate) enum FileObj {
     /// Arquivo regular ou diretório do VFS.
     Vfs { loc: Loc, handle: Box<dyn FileHandle>, kind: FileType },
     /// `O_PATH`: só serve de dirfd, pra `fstat` e `fchdir`.
-    Path { loc: Loc, kind: FileType },
+    Path { loc: Loc },
     /// Pipe anônimo ou FIFO (com o lugar da FIFO no VFS).
     Pipe { end: PipeEnd, fifo: Option<Loc> },
     Dev { dev: Device, loc: Option<Loc> },
@@ -204,10 +204,6 @@ impl FdTable {
         self.fds.keys().map(|&f| Fd(f)).collect()
     }
 
-    pub(crate) fn len(&self) -> usize {
-        self.fds.len()
-    }
-
     /// `max_fds` da tabela do Linux (`FDSize`): 64 no começo, e ao passar disso o menor múltiplo de 128
     /// que é potência de 2 vezes 128 e cobre o maior fd (`expand_fdtable`).
     pub(crate) fn fdsize(&self) -> u32 {
@@ -227,10 +223,6 @@ impl FdTable {
 
     pub(crate) fn take_all(&mut self) -> Vec<Slot> {
         std::mem::take(&mut self.fds).into_values().collect()
-    }
-
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (Fd, &Slot)> {
-        self.fds.iter().map(|(&f, s)| (Fd(f), s))
     }
 }
 

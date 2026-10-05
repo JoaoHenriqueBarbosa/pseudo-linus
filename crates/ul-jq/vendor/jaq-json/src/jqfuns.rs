@@ -498,7 +498,7 @@ fn format(input: Val, fmt: &Val) -> ValR {
                 let mut code: u32 = 0;
                 for j in 0..3 {
                     code <<= 8;
-                    code |= if j < n { chunk[j] as u32 } else { 0 };
+                    code |= chunk.get(j).map_or(0, |&b| b as u32);
                 }
                 let mut buf = [0u8; 4];
                 for (j, b) in buf.iter_mut().enumerate() {
@@ -628,9 +628,7 @@ macro_rules! ddd {
 
 /// `ilogb` do C.
 fn ilogb(x: f64) -> i32 {
-    if x == 0.0 {
-        i32::MIN
-    } else if x.is_nan() {
+    if x == 0.0 || x.is_nan() {
         i32::MIN
     } else if x.is_infinite() {
         i32::MAX

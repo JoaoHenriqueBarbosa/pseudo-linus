@@ -1,7 +1,7 @@
 //! Filter execution.
 
 use crate::box_iter::{self, box_once, flat_map_then, flat_map_then_with, flat_map_with, map_with};
-use crate::compile::{Bind, CallType, Fold, Pattern, Term as Ast, TermId as Id};
+use crate::compile::{AltPattern, Bind, CallType, Fold, Pattern, Term as Ast, TermId as Id};
 use crate::data::{DataT, HasLut};
 use crate::path::Tracked;
 use crate::val::{ValR, ValT, ValX, ValXs};
@@ -271,7 +271,7 @@ fn bind_pat<'a, D: DataT>(
 
 /// Porte pseudo-linus: liga a primeira alternativa que não der erro (padrões de `reduce`/`foreach`).
 fn bind_alts<'a, D: DataT>(
-    alts: &'a [(Pattern<Id>, Box<[Option<usize>]>)],
+    alts: &'a [AltPattern<Id>],
     i: usize,
     ctx: Ctx<'a, D>,
     y: D::V<'a>,
@@ -483,7 +483,7 @@ where
 /// tem ficam `null`) e roda `r`; um erro ao ligar ou no corpo passa para a próxima alternativa, e o
 /// erro da última sobe. Saídas já emitidas ficam.
 fn alt_run<'a, D: DataT, T: Clone + 'a>(
-    alts: &'a [(Pattern<Id>, Box<[Option<usize>]>)],
+    alts: &'a [AltPattern<Id>],
     i: usize,
     r: &'a Id,
     cv: Cv<'a, D, T>,
@@ -536,6 +536,10 @@ fn pattern_vars(pat: &Pattern<Id>) -> usize {
     }
 }
 
+/// Porte pseudo-linus: função que aplica uma parte de caminho já avaliada.
+type ApplyPartFn<'a, D, T> =
+    fn(crate::path::Part<<D as DataT>::V<'a>>, crate::path::Opt, T) -> crate::val::ValRs<'a, T, <D as DataT>::V<'a>>;
+
 /// Porte pseudo-linus: `t[k1]...[kn]` na ordem do jq. O jq avalia a subexpressão da chave antes do
 /// termo indexado, então a chave da última parte varia mais devagar (`[[1,2],[3,4]] | .[0,1][0,1]`
 /// dá `1,3,2,4`), e o termo roda de novo para cada combinação de chaves. As chaves são avaliadas
@@ -546,7 +550,7 @@ fn path_term<'a, D: DataT, T: Clone + 'a>(
     cv: Cv<'a, D, T>,
     keyin: D::V<'a>,
     run: IdRunFn<'a, D, T>,
-    apply: fn(crate::path::Part<D::V<'a>>, crate::path::Opt, T) -> crate::val::ValRs<'a, T, D::V<'a>>,
+    apply: ApplyPartFn<'a, D, T>,
 ) -> ValXs<'a, T, D::V<'a>> {
     use crate::path::Part;
     let Some(((part, opt), init)) = parts.split_last() else {

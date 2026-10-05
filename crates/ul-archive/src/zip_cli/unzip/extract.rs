@@ -89,7 +89,8 @@ pub enum Overwrite {
 enum Newer {
     DoesNotExist,
     ExistsAndOlder,
-    ExistsAndNewer,
+    /// O `EXISTS_AND_NEWER` do C (o existente é igual ou mais novo).
+    ExistsNotOlder,
 }
 
 /// O estado da extração que o C guarda nos globais.
@@ -771,7 +772,7 @@ impl Uz {
                         self.x.overwrite_mode != Overwrite::Always
                     }
                 }
-                Newer::ExistsAndNewer => {
+                Newer::ExistsNotOlder => {
                     if (!self.o.b_flag && self.x.overwrite_mode == Overwrite::Never) || (self.o.uflag && !renamed) {
                         return false;
                     }
@@ -886,7 +887,7 @@ impl Uz {
             Some((flags, t, _)) if flags & EB_UT_FL_MTIME != 0 => (mtime, t.mtime),
             _ => (if mtime & 1 != 0 { mtime.saturating_add(1) } else { mtime }, self.dos_to_unix_time(dos)),
         };
-        if existing >= archive { Newer::ExistsAndNewer } else { Newer::ExistsAndOlder }
+        if existing >= archive { Newer::ExistsNotOlder } else { Newer::ExistsAndOlder }
     }
 
     /// `"error [ZIP]:  attempt to seek before beginning of zipfile\n"` e o pedido de conferir a

@@ -906,7 +906,7 @@ impl Uz {
     /// O nome em UTF-8 do bloco "Unicode Path" (`getUnicodeData`): `Ok(None)` sem o bloco,
     /// `Ok(Some(vazio))` quando o nome comum já é UTF-8, e `Err` com versão desconhecida ou CRC do
     /// nome comum diferente (o nome foi mudado depois).
-    pub fn get_unicode_data(&mut self, ef: &[u8]) -> Result<Option<Vec<u8>>, ()> {
+    pub fn get_unicode_data(&mut self, ef: &[u8]) -> Result<Option<Vec<u8>>, BadUnicodePath> {
         let mut found = None;
         let mut rest = ef;
         while rest.len() >= EB_HEADSIZE {
@@ -917,14 +917,14 @@ impl Uz {
             if id == EF_UNIPATH {
                 if rest.get(EB_HEADSIZE).copied().unwrap_or(0) > 1 {
                     self.info(MSG_STDERR, "\nwarning:  Unicode Path version > 1\n");
-                    return Err(());
+                    return Err(BadUnicodePath);
                 }
                 let sum = rest.get(EB_HEADSIZE + 1..EB_HEADSIZE + 5).map_or(0, |b| u32::from_le_bytes(b.try_into().unwrap()));
                 let full = &self.filename_full;
                 let full = &full[..full.iter().position(|&c| c == 0).unwrap_or(full.len())];
                 if crc32fast::hash(full) != sum {
                     self.info(MSG_STDERR, "\nwarning:  Unicode Path checksum invalid\n");
-                    return Err(());
+                    return Err(BadUnicodePath);
                 }
                 let ulen = (len as u16).wrapping_sub(5) as usize;
                 let data = rest.get(EB_HEADSIZE + 5..).unwrap_or_default();
@@ -937,6 +937,11 @@ impl Uz {
         Ok(found)
     }
 }
+
+/// Bloco "Unicode Path" rejeitado (versão desconhecida ou CRC do nome comum diferente); o aviso já
+/// foi escrito.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BadUnicodePath;
 
 /// Cabeçalho de um bloco do campo extra: id e tamanho.
 pub const EB_HEADSIZE: usize = 4;

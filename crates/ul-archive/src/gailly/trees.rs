@@ -215,14 +215,14 @@ fn build_tree(hs: &mut HeapState, tree: &mut [Ct], stree: Option<&[Ct]>, elems: 
     let mut node = elems;
     hs.heap_len = 0;
     hs.heap_max = HEAP_SIZE;
-    for n in 0..elems {
-        if tree[n].fc != 0 {
+    for (n, t) in tree.iter_mut().enumerate().take(elems) {
+        if t.fc != 0 {
             hs.heap_len += 1;
             hs.heap[hs.heap_len] = n as i32;
             max_code = n as i32;
             hs.depth[n] = 0;
         } else {
-            tree[n].dl = 0;
+            t.dl = 0;
         }
     }
     while hs.heap_len < 2 {
@@ -484,8 +484,8 @@ impl Trees {
         if level > 2 && (self.last_lit & 0xfff) == 0 {
             let mut out_length = (self.last_lit as u64) * 8;
             let in_length = (strstart as i64 - block_start) as u64;
-            for dcode in 0..D_CODES {
-                out_length = out_length.wrapping_add((self.dyn_dtree[dcode].fc as u64) * (5 + EXTRA_DBITS[dcode] as u64));
+            for (d, &bits) in self.dyn_dtree.iter().zip(EXTRA_DBITS.iter()).take(D_CODES) {
+                out_length = out_length.wrapping_add((d.fc as u64) * (5 + bits as u64));
             }
             out_length >>= 3;
             if self.last_dist < self.last_lit / 2 && out_length < in_length / 2 {

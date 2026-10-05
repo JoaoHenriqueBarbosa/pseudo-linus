@@ -326,7 +326,7 @@ fn host_apply(sb: &Arc<SbInner>, spec: &mut ChildSpec, attrs: &ProcAttrs) -> Res
                 let locks = Arc::downgrade(&sb.locks);
                 let ofd = match sb.ns.open(&cx, &Start::Cwd, path, *flags, *mode)? {
                     Opened::File { loc, stat, handle } => Ofd::new(FileObj::Vfs { loc, handle, kind: stat.file_type() }, *flags, locks),
-                    Opened::Path { loc, stat } => Ofd::new(FileObj::Path { loc, kind: stat.file_type() }, *flags, locks),
+                    Opened::Path { loc, .. } => Ofd::new(FileObj::Path { loc }, *flags, locks),
                     Opened::CharDev { loc, stat } => Ofd::new(FileObj::Dev { dev: Device::open(stat.rdev)?, loc: Some(loc) }, *flags, locks),
                     Opened::Fifo { .. } | Opened::Object(_) => return Err(Errno::ENXIO),
                 };

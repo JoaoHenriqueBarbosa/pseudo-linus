@@ -8,6 +8,9 @@ use super::header::{self, Block, Format, kind};
 use super::member::{Member, Time};
 
 /// Destino dos blocos.
+// Existe um só `Sink` por execução, então o tamanho do codificador inline não pesa; encaixotá-lo
+// mudaria todos os construtores sem ganho.
+#[allow(clippy::large_enum_variant)]
 pub enum Sink {
     Fd(sysabi::Fd),
     Encoder(crate::codec::Encoder<sysabi::FdWriter>),

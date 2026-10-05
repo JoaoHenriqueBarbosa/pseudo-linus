@@ -94,9 +94,7 @@ impl Lister {
         out.push(b'/');
         out.extend_from_slice(&group);
         out.push(b' ');
-        for _ in 0..(self.ugswidth - pad) {
-            out.push(b' ');
-        }
+        out.resize(out.len() + (self.ugswidth - pad), b' ');
         out.extend_from_slice(size.as_bytes());
         out.push(b' ');
         out.extend_from_slice(self.time(m.mtime).as_bytes());

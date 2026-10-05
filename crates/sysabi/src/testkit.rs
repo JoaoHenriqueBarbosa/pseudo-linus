@@ -181,13 +181,16 @@ struct World {
     net: Option<NetHandler>,
     /// Travas OFD por inode; o dono é a open file description (fraca: some sozinha quando o último fd
     /// que a referencia fecha).
-    locks: BTreeMap<Ino, Vec<(std::sync::Weak<Mutex<OpenFile>>, FileLock)>>,
+    locks: BTreeMap<Ino, Vec<OfdLock>>,
     ncpus: usize,
     next_tid: Tid,
     /// Threads terminadas ainda não juntadas (síncrono: toda thread termina antes de `spawn_thread`
     /// voltar).
     finished_threads: std::collections::BTreeSet<Tid>,
 }
+
+/// Trava OFD: a open file description dona (fraca) e a trava em si.
+type OfdLock = (std::sync::Weak<Mutex<OpenFile>>, FileLock);
 
 const ROOT: Ino = 1;
 
@@ -1409,7 +1412,7 @@ impl Syscalls for ProcHandle {
         if let Kind::Dir(m) = &w.node(*ino).kind {
             // Ordem do tmpfs: mais novo primeiro.
             let mut items: Vec<(&Vec<u8>, &(Ino, u64))> = m.iter().collect();
-            items.sort_by(|a, b| b.1.1.cmp(&a.1.1));
+            items.sort_by_key(|item| std::cmp::Reverse(item.1.1));
             for (name, (child, _)) in items {
                 out.push(DirEntry { ino: *child, kind: w.node(*child).file_type(), name: name.clone() });
             }

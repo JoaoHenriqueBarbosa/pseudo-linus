@@ -164,7 +164,7 @@ impl InputState {
                     }
                     self.buf = buf;
                 }
-                let Some(parser) = self.parser.as_mut() else { return None };
+                let parser = self.parser.as_mut()?;
                 let next = parser.next();
                 let remaining = parser.remaining();
                 match (&mut self.slurped, next) {

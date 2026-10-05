@@ -11,13 +11,13 @@ use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use sysabi::*;
-use vfs::{Caller, Loc, MagicObject, Opened, PinnedLoc, Start, WritePos};
+use vfs::{Caller, Loc, Opened, PinnedLoc, Start, WritePos};
 
 use crate::dev::Device;
 use crate::exec;
 use crate::fd::{FileObj, Ofd};
 use crate::park::Parker;
-use crate::pipe::{Pipe, PipeObject, Try, WriteError, PIPEFS_DEV};
+use crate::pipe::{Pipe, PipeObject, Try, WriteError};
 use crate::proc::{INIT_PID, Proc, Task, may_signal};
 use crate::sandbox::SbInner;
 use crate::signal::{Action, Generated};
@@ -28,12 +28,6 @@ pub(crate) const UNAME_RELEASE: &[u8] = b"6.12.101+deb13-amd64";
 pub(crate) const UNAME_VERSION: &[u8] = b"#1 SMP PREEMPT_DYNAMIC Debian 6.12.101-1 (2026-08-05)";
 /// `f_type` do pipefs.
 const PIPEFS_MAGIC: u64 = 0x5049_5045;
-
-/// CPU da thread do SO corrente, em ns.
-pub(crate) fn thread_cpu_ns() -> u64 {
-    let t = rustix::time::clock_gettime(rustix::time::ClockId::ThreadCPUTime);
-    (t.tv_sec as u64).saturating_mul(1_000_000_000).saturating_add(t.tv_nsec as u64)
-}
 
 /// Gera um sinal num processo (sem checar permissão). SIGCONT retoma um processo parado.
 pub(crate) fn generate_signal(target: &Arc<Proc>, sig: Signal) {
@@ -311,7 +305,7 @@ impl Task {
                 let kind = stat.file_type();
                 Ok(Ofd::new(FileObj::Vfs { loc, handle, kind }, flags, locks))
             }
-            Opened::Path { loc, stat } => Ok(Ofd::new(FileObj::Path { loc, kind: stat.file_type() }, flags | OFlags::PATH, locks)),
+            Opened::Path { loc, .. } => Ok(Ofd::new(FileObj::Path { loc }, flags | OFlags::PATH, locks)),
             Opened::CharDev { loc, stat } => {
                 let dev = Device::open(stat.rdev)?;
                 Ok(Ofd::new(FileObj::Dev { dev, loc: Some(loc) }, flags, locks))
@@ -1595,10 +1589,3 @@ impl Syscalls for Task {
         Err(Errno::EACCES)
     }
 }
-
-/// Processo dono de um pipe como objeto magic link, usado pelo procfs.
-pub(crate) fn pipe_object(end_pipe: &Arc<Pipe>) -> Arc<dyn MagicObject> {
-    Arc::new(PipeObject { pipe: end_pipe.clone(), fifo_stat: None })
-}
-
-pub(crate) const PIPEFS_DEV_ID: u64 = PIPEFS_DEV;

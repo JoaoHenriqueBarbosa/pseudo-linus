@@ -119,7 +119,7 @@ pub(crate) enum Term<T = TermId> {
     /// Porte pseudo-linus: desestruturação alternativa (`f as p1 ?// p2 | g`). Cada alternativa traz
     /// o padrão e, para cada variável da união (na ordem em que `g` as vê), a posição dela entre as
     /// variáveis do padrão (`None` = fica `null`).
-    PipeAlt(T, Box<[(Pattern<T>, Box<[Option<usize>]>)]>, T),
+    PipeAlt(T, Box<[AltPattern<T>]>, T),
     /// Porte pseudo-linus: união de objetos na construção `{a: f, b: g}`, com o lado esquerdo por
     /// fora (ao contrário de `+`).
     ObjMerge(T, T),
@@ -182,8 +182,12 @@ pub(crate) enum Pattern<F> {
     Idx(Vec<(F, Self)>),
     /// Porte pseudo-linus: `p1 ?// p2 ...` como padrão de `reduce`/`foreach`: tenta ligar cada
     /// alternativa até uma dar certo (as variáveis da união que ela não tem ficam `null`).
-    Alt(Box<[(Self, Box<[Option<usize>]>)]>),
+    Alt(Box<[AltPattern<F>]>),
 }
+
+/// Porte pseudo-linus: uma alternativa de `?//`, com o padrão e a posição de cada variável da
+/// união entre as variáveis dele (`None` = fica `null`).
+pub(crate) type AltPattern<F> = (Pattern<F>, Box<[Option<usize>]>);
 
 /// Porte pseudo-linus: união das variáveis das alternativas, na ordem da primeira aparição.
 fn alt_vars<'s>(alts: &[parse::Pattern<&'s str>]) -> Vec<&'s str> {

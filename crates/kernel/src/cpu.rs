@@ -364,12 +364,6 @@ impl Cpus {
         ct.id().filter(|id| g.s.contains(*id)).map(|id| g.s.task_runtime_now(id)).unwrap_or(0)
     }
 
-    /// CPU em que a tarefa está (ou esteve por último).
-    pub(crate) fn task_cpu(&self, ct: &CpuTask) -> usize {
-        let g = self.inner.lock();
-        ct.id().filter(|id| g.s.contains(*id)).map(|id| g.s.task(id).cpu).unwrap_or(0)
-    }
-
     /// Tempo de CPU em ns, trocas de contexto que puseram a tarefa numa CPU e última CPU, numa só
     /// consulta (o `schedstat` e o `stat`). Tudo 0 pra uma tarefa que já saiu do escalonador.
     pub(crate) fn task_stats(&self, ct: &CpuTask) -> (u64, u64, usize) {
@@ -378,12 +372,6 @@ impl Cpus {
             Some(id) => (g.s.task_runtime_now(id), g.s.task(id).nr_switches_in, g.s.task(id).cpu),
             None => (0, 0, 0),
         }
-    }
-
-    /// Tarefas prontas ou rodando, por CPU (pro loadavg e o `/proc/stat`).
-    pub(crate) fn nr_running(&self) -> u32 {
-        let g = self.inner.lock();
-        (0..self.ncpus).map(|c| g.s.rq_nr_running(c)).max().unwrap_or(0)
     }
 
     /// Estado legível das CPUs e tarefas (diagnóstico).

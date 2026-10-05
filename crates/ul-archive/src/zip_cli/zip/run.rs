@@ -692,16 +692,11 @@ impl Zip {
             this.stderr_raw(prompt.as_bytes());
             let mut line = Vec::new();
             let mut c = [0u8; 1];
-            loop {
-                match sys::read(tty, &mut c) {
-                    Ok(1) => {
-                        if c[0] == b'\n' {
-                            break;
-                        }
-                        line.push(c[0]);
-                    }
-                    _ => break,
+            while let Ok(1) = sys::read(tty, &mut c) {
+                if c[0] == b'\n' {
+                    break;
                 }
+                line.push(c[0]);
             }
             this.stderr_raw(b"\n");
             line.truncate(IZ_PWLEN);

@@ -74,7 +74,6 @@ impl WaitList {
     }
 
     /// Tira todos pra acordar fora da trava.
-    #[must_use]
     pub(crate) fn take(&mut self) -> Wake {
         Wake(std::mem::take(&mut self.waiters))
     }

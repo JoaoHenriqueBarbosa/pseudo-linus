@@ -78,8 +78,8 @@ pub fn crypthead(passwd: &[u8], crc: u32, random: &[u8; RAND_HEAD_LEN - 2]) -> (
         header[n] = keys.encode(c);
     }
     let mut keys = Keys::new(passwd);
-    for n in 0..RAND_HEAD_LEN - 2 {
-        header[n] = keys.encode(header[n]);
+    for h in header.iter_mut().take(RAND_HEAD_LEN - 2) {
+        *h = keys.encode(*h);
     }
     header[RAND_HEAD_LEN - 2] = keys.encode(((crc >> 16) & 0xff) as u8);
     header[RAND_HEAD_LEN - 1] = keys.encode(((crc >> 24) & 0xff) as u8);
