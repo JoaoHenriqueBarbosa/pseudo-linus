@@ -1,0 +1,176 @@
+{
+  "lessecho-double-dash": {
+    "stdout": "-a -x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-empty-argument": {
+    "stdout": " a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-empty-argument-quote-all": {
+    "stdout": "\"\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-help": {
+    "stdout": "",
+    "stderr": "usage: lessecho [-ox] [-cx] [-pn] [-dn] [-mx] [-nn] [-ex] [-fn] [-a] file ...\n",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-invalid-dash": {
+    "stdout": "",
+    "stderr": "Invalid option letter\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lessecho-invalid-letter": {
+    "stdout": "",
+    "stderr": "Invalid option letter\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lessecho-invalid-long": {
+    "stdout": "",
+    "stderr": "Invalid option after --\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lessecho-meta-empty-arg-escape": {
+    "stdout": "\"a!b\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-meta-empty-escape-quotes": {
+    "stdout": "\"a b\" c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-meta-empty-escape-quotes-chars": {
+    "stdout": "<a;b> plain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-meta-escape-custom": {
+    "stdout": "a^$b ^$c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-meta-escape-default": {
+    "stdout": "a\\ b c\\ d\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-meta-escape-number": {
+    "stdout": "a\\*b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-meta-number": {
+    "stdout": "a\\*b c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-missing-number-d": {
+    "stdout": "",
+    "stderr": "Missing number after -d\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lessecho-missing-number-f": {
+    "stdout": "",
+    "stderr": "Missing number after -f\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lessecho-missing-number-n": {
+    "stdout": "",
+    "stderr": "Missing number after -n\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lessecho-missing-number-p": {
+    "stdout": "",
+    "stderr": "Missing number after -p\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lessecho-multiple-meta": {
+    "stdout": "f\\(1\\)\\&g\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-no-args": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-open-close-chars": {
+    "stdout": "[x] [y]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-open-close-hex-octal": {
+    "stdout": "(x)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-open-close-numbers": {
+    "stdout": "'x y'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-options-stop-at-first-file": {
+    "stdout": "x -a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-plain": {
+    "stdout": "a b c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-question": {
+    "stdout": "",
+    "stderr": "usage: lessecho [-ox] [-cx] [-pn] [-dn] [-mx] [-nn] [-ex] [-fn] [-a] file ...\n",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-quote-all": {
+    "stdout": "\"a\" \"b c\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-space-no-meta": {
+    "stdout": "a b c\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lessecho-version": {
+    "stdout": "1.15\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

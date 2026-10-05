@@ -1,0 +1,50 @@
+{
+  "isosize-bad-divisor": {
+    "stdout": "",
+    "stderr": "isosize: invalid divisor argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "isosize-bad-option": {
+    "stdout": "",
+    "stderr": "isosize: invalid option -- 'Z'\nTry 'isosize --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "isosize-h": {
+    "stdout": "\nUsage:\n isosize [options] <iso9660_image_file> ...\n\nShow the length of an ISO-9660 filesystem.\n\nOptions:\n -d, --divisor=<number>  divide the amount of bytes by <number>\n -x, --sectors           show sector count and size\n -h, --help              display this help\n -V, --version           display version\n\nFor more details see isosize(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "isosize-help": {
+    "stdout": "\nUsage:\n isosize [options] <iso9660_image_file> ...\n\nShow the length of an ISO-9660 filesystem.\n\nOptions:\n -d, --divisor=<number>  divide the amount of bytes by <number>\n -x, --sectors           show sector count and size\n -h, --help              display this help\n -V, --version           display version\n\nFor more details see isosize(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "isosize-missing-file": {
+    "stdout": "",
+    "stderr": "isosize: cannot open /nonexistent/image.iso: No such file or directory\n",
+    "exit": 32,
+    "files": {}
+  },
+  "isosize-missing-file-sectors": {
+    "stdout": "",
+    "stderr": "isosize: cannot open /nonexistent/image.iso: No such file or directory\n",
+    "exit": 32,
+    "files": {}
+  },
+  "isosize-no-args": {
+    "stdout": "",
+    "stderr": "isosize: no device specified\nTry 'isosize --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "isosize-version": {
+    "stdout": "isosize from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

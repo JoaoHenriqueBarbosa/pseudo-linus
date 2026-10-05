@@ -1,0 +1,116 @@
+{
+  "skill-h": {
+    "stdout": "\nUsage:\n skill [signal] [options] <expression>\n\nOptions:\n -f, --fast         fast mode (not implemented)\n -i, --interactive  interactive\n -l, --list         list all signal names\n -L, --table        list all signal names in a nice table\n -n, --no-action    do not actually kill processes; just print what would happen\n -v, --verbose      explain what is being done\n -w, --warnings     enable warnings (not implemented)\n\nExpression can be: terminal, user, pid, command.\nThe options below may be used to ensure correct interpretation.\n -c, --command <command>  expression is a command name\n -p, --pid <pid>          expression is a process id number\n -t, --tty <tty>          expression is a terminal\n -u, --user <username>    expression is a username\n\nAlternatively, expression can be:\n --ns <pid>               match the processes that belong to the same\n                          namespace as <pid>\n --nslist <ns,...>        list which namespaces will be considered for\n                          the --ns option; available namespaces are:\n                          ipc, mnt, net, pid, user, uts\n\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nThe default signal is TERM. Use -l or -L to list available signals.\nParticularly useful signals include HUP, INT, KILL, STOP, CONT, and 0.\nAlternate signals may be specified in three ways: -SIGKILL -KILL -9\n\nFor more details see skill(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "skill-help": {
+    "stdout": "\nUsage:\n skill [signal] [options] <expression>\n\nOptions:\n -f, --fast         fast mode (not implemented)\n -i, --interactive  interactive\n -l, --list         list all signal names\n -L, --table        list all signal names in a nice table\n -n, --no-action    do not actually kill processes; just print what would happen\n -v, --verbose      explain what is being done\n -w, --warnings     enable warnings (not implemented)\n\nExpression can be: terminal, user, pid, command.\nThe options below may be used to ensure correct interpretation.\n -c, --command <command>  expression is a command name\n -p, --pid <pid>          expression is a process id number\n -t, --tty <tty>          expression is a terminal\n -u, --user <username>    expression is a username\n\nAlternatively, expression can be:\n --ns <pid>               match the processes that belong to the same\n                          namespace as <pid>\n --nslist <ns,...>        list which namespaces will be considered for\n                          the --ns option; available namespaces are:\n                          ipc, mnt, net, pid, user, uts\n\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nThe default signal is TERM. Use -l or -L to list available signals.\nParticularly useful signals include HUP, INT, KILL, STOP, CONT, and 0.\nAlternate signals may be specified in three ways: -SIGKILL -KILL -9\n\nFor more details see skill(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "skill-invalid-option": {
+    "stdout": "",
+    "stderr": "skill: invalid option -- 'Z'\n\nUsage:\n skill [signal] [options] <expression>\n\nOptions:\n -f, --fast         fast mode (not implemented)\n -i, --interactive  interactive\n -l, --list         list all signal names\n -L, --table        list all signal names in a nice table\n -n, --no-action    do not actually kill processes; just print what would happen\n -v, --verbose      explain what is being done\n -w, --warnings     enable warnings (not implemented)\n\nExpression can be: terminal, user, pid, command.\nThe options below may be used to ensure correct interpretation.\n -c, --command <command>  expression is a command name\n -p, --pid <pid>          expression is a process id number\n -t, --tty <tty>          expression is a terminal\n -u, --user <username>    expression is a username\n\nAlternatively, expression can be:\n --ns <pid>               match the processes that belong to the same\n                          namespace as <pid>\n --nslist <ns,...>        list which namespaces will be considered for\n                          the --ns option; available namespaces are:\n                          ipc, mnt, net, pid, user, uts\n\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nThe default signal is TERM. Use -l or -L to list available signals.\nParticularly useful signals include HUP, INT, KILL, STOP, CONT, and 0.\nAlternate signals may be specified in three ways: -SIGKILL -KILL -9\n\nFor more details see skill(1).\n",
+    "exit": 1,
+    "files": {}
+  },
+  "skill-invalid-pid": {
+    "stdout": "",
+    "stderr": "skill: failed to parse argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "skill-kill-missing-pid": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "skill-list": {
+    "stdout": "HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "skill-no-action-missing-pid": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "skill-no-args": {
+    "stdout": "",
+    "stderr": "\nUsage:\n skill [signal] [options] <expression>\n\nOptions:\n -f, --fast         fast mode (not implemented)\n -i, --interactive  interactive\n -l, --list         list all signal names\n -L, --table        list all signal names in a nice table\n -n, --no-action    do not actually kill processes; just print what would happen\n -v, --verbose      explain what is being done\n -w, --warnings     enable warnings (not implemented)\n\nExpression can be: terminal, user, pid, command.\nThe options below may be used to ensure correct interpretation.\n -c, --command <command>  expression is a command name\n -p, --pid <pid>          expression is a process id number\n -t, --tty <tty>          expression is a terminal\n -u, --user <username>    expression is a username\n\nAlternatively, expression can be:\n --ns <pid>               match the processes that belong to the same\n                          namespace as <pid>\n --nslist <ns,...>        list which namespaces will be considered for\n                          the --ns option; available namespaces are:\n                          ipc, mnt, net, pid, user, uts\n\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nThe default signal is TERM. Use -l or -L to list available signals.\nParticularly useful signals include HUP, INT, KILL, STOP, CONT, and 0.\nAlternate signals may be specified in three ways: -SIGKILL -KILL -9\n\nFor more details see skill(1).\n",
+    "exit": 1,
+    "files": {}
+  },
+  "skill-signal-without-expression": {
+    "stdout": "",
+    "stderr": "skill: no process selection criteria\n",
+    "exit": 1,
+    "files": {}
+  },
+  "skill-table": {
+    "stdout": " 1 HUP      2 INT      3 QUIT     4 ILL      5 TRAP     6 ABRT     7 BUS\n 8 FPE      9 KILL    10 USR1    11 SEGV    12 USR2    13 PIPE    14 ALRM\n15 TERM    16 STKFLT  17 CHLD    18 CONT    19 STOP    20 TSTP    21 TTIN\n22 TTOU    23 URG     24 XCPU    25 XFSZ    26 VTALRM  27 PROF    28 WINCH\n29 POLL    30 PWR     31 SYS     \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "skill-unknown-user": {
+    "stdout": "",
+    "stderr": "skill: no process selection criteria\n",
+    "exit": 1,
+    "files": {}
+  },
+  "skill-verbose-missing-command": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "skill-version": {
+    "stdout": "skill from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "snice-help": {
+    "stdout": "\nUsage:\n snice [new priority] [options] <expression>\n\nOptions:\n -f, --fast         fast mode (not implemented)\n -i, --interactive  interactive\n -l, --list         list all signal names\n -L, --table        list all signal names in a nice table\n -n, --no-action    do not actually kill processes; just print what would happen\n -v, --verbose      explain what is being done\n -w, --warnings     enable warnings (not implemented)\n\nExpression can be: terminal, user, pid, command.\nThe options below may be used to ensure correct interpretation.\n -c, --command <command>  expression is a command name\n -p, --pid <pid>          expression is a process id number\n -t, --tty <tty>          expression is a terminal\n -u, --user <username>    expression is a username\n\nAlternatively, expression can be:\n --ns <pid>               match the processes that belong to the same\n                          namespace as <pid>\n --nslist <ns,...>        list which namespaces will be considered for\n                          the --ns option; available namespaces are:\n                          ipc, mnt, net, pid, user, uts\n\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nThe default priority is +4. (snice +4 ...)\nPriority numbers range from +20 (slowest) to -20 (fastest).\nNegative priority numbers are restricted to administrative users.\n\nFor more details see snice(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "snice-missing-pid": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "snice-no-action-missing-pid": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "snice-no-args": {
+    "stdout": "",
+    "stderr": "\nUsage:\n snice [new priority] [options] <expression>\n\nOptions:\n -f, --fast         fast mode (not implemented)\n -i, --interactive  interactive\n -l, --list         list all signal names\n -L, --table        list all signal names in a nice table\n -n, --no-action    do not actually kill processes; just print what would happen\n -v, --verbose      explain what is being done\n -w, --warnings     enable warnings (not implemented)\n\nExpression can be: terminal, user, pid, command.\nThe options below may be used to ensure correct interpretation.\n -c, --command <command>  expression is a command name\n -p, --pid <pid>          expression is a process id number\n -t, --tty <tty>          expression is a terminal\n -u, --user <username>    expression is a username\n\nAlternatively, expression can be:\n --ns <pid>               match the processes that belong to the same\n                          namespace as <pid>\n --nslist <ns,...>        list which namespaces will be considered for\n                          the --ns option; available namespaces are:\n                          ipc, mnt, net, pid, user, uts\n\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nThe default priority is +4. (snice +4 ...)\nPriority numbers range from +20 (slowest) to -20 (fastest).\nNegative priority numbers are restricted to administrative users.\n\nFor more details see snice(1).\n",
+    "exit": 1,
+    "files": {}
+  },
+  "snice-no-expression": {
+    "stdout": "",
+    "stderr": "snice: no process selection criteria\n",
+    "exit": 1,
+    "files": {}
+  },
+  "snice-version": {
+    "stdout": "snice from procps-ng 4.0.4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

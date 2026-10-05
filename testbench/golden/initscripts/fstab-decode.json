@@ -1,0 +1,56 @@
+{
+  "fstab-decode-backslash": {
+    "stdout": "a\\b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fstab-decode-command-not-found": {
+    "stdout": "fstab-decode: nao-existe-xyz: No such file or directory\nrc=127\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fstab-decode-exit-status": {
+    "stdout": "rc=7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fstab-decode-multiple-args": {
+    "stdout": "/mnt/my disk /mnt/other\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fstab-decode-no-args": {
+    "stdout": "rc=1\n",
+    "stderr": "Usage: fstab-decode command [arguments]\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fstab-decode-plain-backslash": {
+    "stdout": "a\\xb c\\\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fstab-decode-short-octal": {
+    "stdout": "a\\04 b 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fstab-decode-space": {
+    "stdout": "a b\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fstab-decode-tab-newline": {
+    "stdout": "0000000   a  \\t   b   |   c  \\n   d   |\n0000010\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

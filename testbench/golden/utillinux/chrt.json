@@ -1,0 +1,158 @@
+{
+  "chrt-batch": {
+    "stdout": "pid 56's current scheduling policy: SCHED_BATCH\npid 56's current scheduling priority: 0\npid 56's current runtime parameter: 2800000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-batch-bad-priority": {
+    "stdout": "",
+    "stderr": "chrt: unsupported priority value for the policy: 5: see --max for valid range\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-batch-pid-verbose": {
+    "stdout": "pid 71's current scheduling policy: SCHED_OTHER\npid 71's current scheduling priority: 0\npid 71's current runtime parameter: 2800000\npid 71's new scheduling policy: SCHED_BATCH\npid 71's new scheduling priority: 0\npid 71's new runtime parameter: 2800000\npid 71's current scheduling policy: SCHED_BATCH\npid 71's current scheduling priority: 0\npid 71's current runtime parameter: 2800000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-batch-reset-on-fork": {
+    "stdout": "pid 76's current scheduling policy: SCHED_BATCH|SCHED_RESET_ON_FORK\npid 76's current scheduling priority: 0\npid 76's current runtime parameter: 2800000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-deadline-eperm": {
+    "stdout": "",
+    "stderr": "chrt: bad usage\nTry 'chrt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-default-rr-eperm": {
+    "stdout": "",
+    "stderr": "chrt: failed to set pid 0's policy: Operation not permitted\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-exit-status": {
+    "stdout": "exit 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-fifo-eperm": {
+    "stdout": "",
+    "stderr": "chrt: failed to set pid 0's policy: Operation not permitted\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-fifo-pid-eperm": {
+    "stdout": "exit 1\n",
+    "stderr": "chrt: failed to set pid 43's policy: Operation not permitted\n",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-fifo-verbose-eperm": {
+    "stdout": "",
+    "stderr": "chrt: failed to set pid 0's policy: Operation not permitted\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-help": {
+    "stdout": "Show or change the real-time scheduling attributes of a process.\n\nSet policy:\n chrt [options] <priority> <command> [<arg>...]\n chrt [options] --pid <priority> <pid>\n\nGet policy:\n chrt [options] -p <pid>\n\nPolicy options:\n -b, --batch          set policy to SCHED_BATCH\n -d, --deadline       set policy to SCHED_DEADLINE\n -f, --fifo           set policy to SCHED_FIFO\n -i, --idle           set policy to SCHED_IDLE\n -o, --other          set policy to SCHED_OTHER\n -r, --rr             set policy to SCHED_RR (default)\n\nScheduling options:\n -R, --reset-on-fork       set reset-on-fork flag\n -T, --sched-runtime <ns>  runtime parameter for DEADLINE\n -P, --sched-period <ns>   period parameter for DEADLINE\n -D, --sched-deadline <ns> deadline parameter for DEADLINE\n\nOther options:\n -a, --all-tasks      operate on all the tasks (threads) for a given pid\n -m, --max            show min and max valid priorities\n -p, --pid            operate on existing given pid\n -v, --verbose        display status information\n\n -h, --help           display this help\n -V, --version        display version\n\nFor more details see chrt(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-idle": {
+    "stdout": "pid 61's current scheduling policy: SCHED_IDLE\npid 61's current scheduling priority: 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-invalid-option": {
+    "stdout": "",
+    "stderr": "chrt: invalid option -- 'q'\nTry 'chrt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-invalid-pid": {
+    "stdout": "",
+    "stderr": "chrt: invalid PID argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-invalid-priority": {
+    "stdout": "",
+    "stderr": "chrt: invalid priority argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-max": {
+    "stdout": "SCHED_OTHER min/max priority\t: 0/0\nSCHED_FIFO min/max priority\t: 1/99\nSCHED_RR min/max priority\t: 1/99\nSCHED_BATCH min/max priority\t: 0/0\nSCHED_IDLE min/max priority\t: 0/0\nSCHED_DEADLINE min/max priority\t: 0/0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-missing-command": {
+    "stdout": "",
+    "stderr": "chrt: failed to execute nao-existe-programa: No such file or directory\n",
+    "exit": 127,
+    "files": {}
+  },
+  "chrt-missing-option-arg": {
+    "stdout": "",
+    "stderr": "chrt: option requires an argument -- 'T'\nTry 'chrt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-no-args": {
+    "stdout": "",
+    "stderr": "chrt: bad usage\nTry 'chrt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-other": {
+    "stdout": "pid 66's current scheduling policy: SCHED_OTHER\npid 66's current scheduling priority: 0\npid 66's current runtime parameter: 2800000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-priority-only": {
+    "stdout": "",
+    "stderr": "chrt: bad usage\nTry 'chrt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-rr-eperm": {
+    "stdout": "",
+    "stderr": "chrt: failed to set pid 0's policy: Operation not permitted\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-show-init": {
+    "stdout": "pid 1's current scheduling policy: SCHED_OTHER\npid 1's current scheduling priority: 0\npid 1's current runtime parameter: 2800000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-show-missing-pid": {
+    "stdout": "",
+    "stderr": "chrt: failed to get pid 999999's policy: No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "chrt-show-self": {
+    "stdout": "pid 19's current scheduling policy: SCHED_OTHER\npid 19's current scheduling priority: 0\npid 19's current runtime parameter: 2800000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chrt-version": {
+    "stdout": "chrt from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

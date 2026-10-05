@@ -1,0 +1,128 @@
+{
+  "setarch-3gb-eperm": {
+    "stdout": "",
+    "stderr": "setarch: failed to set personality to i686: Operation not permitted\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setarch-addr-no-randomize-eperm": {
+    "stdout": "",
+    "stderr": "setarch: failed to set personality to x86_64: Operation not permitted\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setarch-exit-status": {
+    "stdout": "exit 7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-help": {
+    "stdout": "\nUsage:\n setarch [<arch>] [options] [<program> [<argument>...]]\n\nChange the reported architecture and set personality flags.\n\nOptions:\n -B, --32bit              turns on ADDR_LIMIT_32BIT\n -F, --fdpic-funcptrs     makes function pointers point to descriptors\n -I, --short-inode        turns on SHORT_INODE\n -L, --addr-compat-layout changes the way virtual memory is allocated\n -R, --addr-no-randomize  disables randomization of the virtual address space\n -S, --whole-seconds      turns on WHOLE_SECONDS\n -T, --sticky-timeouts    turns on STICKY_TIMEOUTS\n -X, --read-implies-exec  turns on READ_IMPLIES_EXEC\n -Z, --mmap-page-zero     turns on MMAP_PAGE_ZERO\n -3, --3gb                limits the used address space to a maximum of 3 GB\n     --4gb                ignored (for backward compatibility only)\n     --uname-2.6          turns on UNAME26\n -v, --verbose            say what options are being switched on\n     --list               list settable architectures, and exit\n     --show[=personality] show current or specific personality and exit\n\n -h, --help               display this help\n -V, --version            display version\n\nFor more details see setarch(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-i386-link": {
+    "stdout": "i686\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-invalid-option": {
+    "stdout": "",
+    "stderr": "setarch: invalid option -- 'q'\nTry 'setarch --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setarch-linux32-link": {
+    "stdout": "i686\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-linux64-link": {
+    "stdout": "x86_64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-list": {
+    "stdout": "uname26\nlinux32\nlinux64\ni386\ni486\ni586\ni686\nathlon\nx86_64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-missing-program": {
+    "stdout": "",
+    "stderr": "setarch: failed to execute nao-existe-programa: No such file or directory\n",
+    "exit": 127,
+    "files": {}
+  },
+  "setarch-no-arch": {
+    "stdout": "",
+    "stderr": "setarch: no architecture argument or personality flags specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setarch-uname-2-6": {
+    "stdout": "Linux 2.6.72+deb13-amd64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-uname-i686": {
+    "stdout": "i686\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-uname-linux32": {
+    "stdout": "i686\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-uname-x86-64": {
+    "stdout": "x86_64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-uname26-link": {
+    "stdout": "",
+    "stderr": "uname26: No such file or directory (os error 2)\n",
+    "exit": 127,
+    "files": {}
+  },
+  "setarch-unknown-arch": {
+    "stdout": "",
+    "stderr": "setarch: sparc9: Unrecognized architecture\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setarch-unknown-long": {
+    "stdout": "",
+    "stderr": "setarch: unrecognized option '--nada'\nTry 'setarch --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setarch-verbose": {
+    "stdout": "",
+    "stderr": "setarch: no architecture argument or personality flags specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setarch-version": {
+    "stdout": "setarch from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setarch-x86-64-link": {
+    "stdout": "x86_64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

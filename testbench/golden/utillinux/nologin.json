@@ -1,0 +1,68 @@
+{
+  "nologin-custom-text": {
+    "stdout": "Closed for maintenance.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nologin-default-message": {
+    "stdout": "This account is currently not available.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nologin-double-dash": {
+    "stdout": "This account is currently not available.\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "nologin-empty-text": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nologin-help": {
+    "stdout": "\nUsage:\n nologin [options]\n\nPolitely refuse a login.\n\nOptions:\n -c, --command <command>  does nothing (for compatibility with su -c)\n -h, --help               display this help\n -V, --version            display version\n\nFor more details see nologin(8).\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "nologin-help-short": {
+    "stdout": "\nUsage:\n nologin [options]\n\nPolitely refuse a login.\n\nOptions:\n -c, --command <command>  does nothing (for compatibility with su -c)\n -h, --help               display this help\n -V, --version            display version\n\nFor more details see nologin(8).\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "nologin-invalid-option": {
+    "stdout": "",
+    "stderr": "nologin: invalid option -- 'x'\nTry 'nologin --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nologin-operands-ignored": {
+    "stdout": "This account is currently not available.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nologin-unrecognized-option": {
+    "stdout": "",
+    "stderr": "nologin: unrecognized option '--bogus'\nTry 'nologin --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nologin-version": {
+    "stdout": "nologin from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "nologin-version-short": {
+    "stdout": "nologin from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "ionice-bad-class": {
+    "stdout": "",
+    "stderr": "ionice: unknown prio class 9\nionice: ioprio_set failed: Operation not permitted\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ionice-bad-data": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-bad-pid": {
+    "stdout": "",
+    "stderr": "ionice: invalid PID argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ionice-class-by-name": {
+    "stdout": "best-effort: prio 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-help": {
+    "stdout": "\nUsage:\n ionice [options] -p <pid>...\n ionice [options] -P <pgid>...\n ionice [options] -u <uid>...\n ionice [options] <command>\n\nShow or change the I/O-scheduling class and priority of a process.\n\nOptions:\n -c, --class <class>    name or number of scheduling class,\n                          0: none, 1: realtime, 2: best-effort, 3: idle\n -n, --classdata <num>  priority (0..7) in the specified scheduling class,\n                          only for the realtime and best-effort classes\n -p, --pid <pid>...     act on these already running processes\n -P, --pgid <pgrp>...   act on already running processes in these groups\n -t, --ignore           ignore failures\n -u, --uid <uid>...     act on already running processes owned by these users\n\n -h, --help             display this help\n -V, --version          display version\n\nFor more details see ionice(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-invalid-option": {
+    "stdout": "",
+    "stderr": "ionice: invalid option -- 'q'\nTry 'ionice --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ionice-no-such-pid": {
+    "stdout": "",
+    "stderr": "ionice: ioprio_get failed: No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ionice-none-ignores-data": {
+    "stdout": "exit 0\n",
+    "stderr": "ionice: ignoring given class data for none class\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-only-data": {
+    "stdout": "best-effort: prio 2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-pgid": {
+    "stdout": "exit 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-query-pid": {
+    "stdout": "none: prio 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-query-self": {
+    "stdout": "none: prio 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-realtime-eperm": {
+    "stdout": "exit 1\n",
+    "stderr": "ionice: ioprio_set failed: Operation not permitted\n",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-realtime-ignore": {
+    "stdout": "exit 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-set-best-effort": {
+    "stdout": "best-effort: prio 7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-set-idle": {
+    "stdout": "idle\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ionice-unknown-class-name": {
+    "stdout": "",
+    "stderr": "ionice: unknown scheduling class: 'turbo'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ionice-version": {
+    "stdout": "ionice from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
