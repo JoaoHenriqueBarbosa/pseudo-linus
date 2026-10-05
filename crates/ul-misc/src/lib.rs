@@ -14,6 +14,7 @@ pub mod getconf;
 pub mod getent;
 pub mod gettext;
 pub mod hexdump;
+pub mod locale;
 pub mod pager;
 pub mod rev;
 pub mod strings;
@@ -38,6 +39,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("hexdump", hexdump::main),
         Program::bin("hd", hexdump::main),
         Program::bin("less", pager::less_main),
+        Program::bin("locale", locale::main),
         Program::bin("more", pager::more_main),
         Program::bin("rev", rev::main),
         Program::bin("strings", strings::main),

@@ -1,0 +1,420 @@
+tool = "locale"
+source = "manual"
+
+# locale da glibc 2.41. O oráculo roda com LC_ALL=C.UTF-8; os casos que precisam de outro ambiente
+# trocam as variáveis com env (LC_ALL vazio vale como não definido). O sandbox só tem os locales
+# embutidos C, POSIX e C.UTF-8, então os outros nomes são exercitados pelas mensagens de falha. Fora
+# de comparação: -m (a saída do original inclui lixo de memória) e a lista completa do -a (depende
+# de quantos locales a imagem instala).
+
+[[case]]
+id = "locale-version"
+argv = ["locale", "--version"]
+
+[[case]]
+id = "locale-version-short"
+argv = ["locale", "-V"]
+
+[[case]]
+id = "locale-version-prefix"
+argv = ["locale", "--vers"]
+
+[[case]]
+id = "locale-help"
+argv = ["locale", "--help"]
+
+[[case]]
+id = "locale-help-short"
+argv = ["locale", "-?"]
+
+[[case]]
+id = "locale-help-prefix"
+argv = ["locale", "--he"]
+
+[[case]]
+id = "locale-usage"
+argv = ["locale", "--usage"]
+
+[[case]]
+id = "locale-invalid-option"
+argv = ["locale", "-Z"]
+
+[[case]]
+id = "locale-invalid-long-option"
+argv = ["locale", "--foo"]
+
+[[case]]
+id = "locale-ambiguous-v"
+argv = ["locale", "--v"]
+
+[[case]]
+id = "locale-ambiguous-ver"
+argv = ["locale", "--ver"]
+
+[[case]]
+id = "locale-ambiguous-c"
+argv = ["locale", "--c", "decimal_point"]
+
+[[case]]
+id = "locale-long-unexpected-arg"
+argv = ["locale", "--verbose=1"]
+
+[[case]]
+id = "locale-options-after-names"
+argv = ["locale", "charmap", "-k"]
+
+[[case]]
+id = "locale-double-dash"
+argv = ["locale", "--", "charmap"]
+
+# ---- sem argumentos: as variáveis ----
+
+[[case]]
+id = "locale-vars-default"
+argv = ["locale"]
+
+[[case]]
+id = "locale-vars-lang-only"
+argv = ["locale"]
+env = { LC_ALL = "", LANG = "C.UTF-8" }
+
+[[case]]
+id = "locale-vars-lang-posix"
+argv = ["locale"]
+env = { LC_ALL = "", LANG = "POSIX" }
+
+[[case]]
+id = "locale-vars-nothing-set"
+argv = ["locale"]
+env = { LC_ALL = "", LANG = "" }
+
+[[case]]
+id = "locale-vars-lc-all-c"
+argv = ["locale"]
+env = { LC_ALL = "C", LANG = "C.UTF-8" }
+
+[[case]]
+id = "locale-vars-individual"
+argv = ["locale"]
+env = { LC_ALL = "", LANG = "C", LC_TIME = "C.UTF-8", LC_COLLATE = "POSIX", LC_MESSAGES = "C.utf8" }
+
+[[case]]
+id = "locale-vars-language"
+argv = ["locale"]
+env = { LC_ALL = "", LANG = "C", LANGUAGE = "pt_BR:en" }
+
+[[case]]
+id = "locale-vars-posixly-correct"
+argv = ["locale"]
+env = { POSIXLY_CORRECT = "1", LANGUAGE = "en" }
+
+[[case]]
+id = "locale-vars-special-characters"
+argv = ["locale"]
+env = { LC_ALL = "", LANG = "a b$c`d\"e\\f'g~h|i&j;k<l>m(n)o" }
+
+[[case]]
+id = "locale-vars-individual-special-characters"
+argv = ["locale"]
+env = { LC_ALL = "", LANG = "C", LC_TIME = "x y$z" }
+
+[[case]]
+id = "locale-vars-codeset-spellings"
+script = '''
+for l in C.UTF-8 C.utf8 C.UTF8 C.utf-8 C.UTF-8@x C.utf8@ C_US.UTF-8 "C.UTF-8 " C.utf-8@euro C.utf8@a@b c.utf-8 C.ISO-8859-1 POSIX.UTF-8 POSIX@x C@x C. C.UTF-8. C.utf8.x C.UTF-8x C.UTF_8 C.U-T-F-8 C.8 "C.UTF-8,x" "../C.utf8" "C.utf8/" "" ; do
+  echo "[$l]"
+  LC_ALL="$l" LANG=C locale charmap 2>&1
+  echo "rc=$?"
+done
+'''
+
+# ---- locale inválido ----
+
+[[case]]
+id = "locale-invalid-lang"
+argv = ["locale"]
+env = { LC_ALL = "", LANG = "bogus" }
+
+[[case]]
+id = "locale-invalid-lc-all"
+argv = ["locale"]
+env = { LC_ALL = "bogus" }
+
+[[case]]
+id = "locale-invalid-lc-all-keyword"
+argv = ["locale", "charmap", "decimal_point"]
+env = { LC_ALL = "bogus" }
+
+[[case]]
+id = "locale-invalid-ctype-only"
+argv = ["locale", "charmap", "decimal_point"]
+env = { LC_ALL = "", LANG = "C", LC_CTYPE = "bogus" }
+
+[[case]]
+id = "locale-invalid-messages-only"
+argv = ["locale", "yesexpr"]
+env = { LC_ALL = "", LANG = "C", LC_MESSAGES = "bogus" }
+
+[[case]]
+id = "locale-invalid-numeric-only"
+argv = ["locale", "charmap", "decimal_point", "numeric-codeset"]
+env = { LC_ALL = "", LANG = "C", LC_CTYPE = "C.UTF-8", LC_NUMERIC = "bogus" }
+
+[[case]]
+id = "locale-invalid-vars-mixed"
+argv = ["locale"]
+env = { LC_ALL = "", LC_CTYPE = "C.UTF-8", LC_NUMERIC = "bogus", LANG = "C" }
+
+[[case]]
+id = "locale-invalid-locpath-warning"
+argv = ["locale", "charmap"]
+env = { LC_ALL = "bogus", LOCPATH = "/nonexistent" }
+
+[[case]]
+id = "locale-invalid-locpath-quoting"
+argv = ["locale", "charmap"]
+env = { LC_ALL = "bogus", LOCPATH = "a\"b\\c'd\te" }
+
+[[case]]
+id = "locale-locpath-without-failure"
+argv = ["locale", "charmap"]
+env = { LOCPATH = "/nonexistent" }
+
+# ---- nomes de categoria e de palavra-chave ----
+
+[[case]]
+id = "locale-charmap"
+argv = ["locale", "charmap"]
+
+[[case]]
+id = "locale-charmap-in-c"
+argv = ["locale", "charmap"]
+env = { LC_ALL = "C" }
+
+[[case]]
+id = "locale-charmap-in-posix"
+argv = ["locale", "charmap"]
+env = { LC_ALL = "POSIX" }
+
+[[case]]
+id = "locale-keyword-name-charmap"
+argv = ["locale", "-k", "charmap"]
+
+[[case]]
+id = "locale-category-name-charmap"
+argv = ["locale", "-c", "charmap"]
+
+[[case]]
+id = "locale-category-keyword-charmap"
+argv = ["locale", "-ck", "charmap"]
+
+[[case]]
+id = "locale-several-names"
+argv = ["locale", "decimal_point", "thousands_sep", "charmap", "yesexpr", "abday"]
+
+[[case]]
+id = "locale-several-names-keyword"
+argv = ["locale", "-k", "decimal_point", "thousands_sep", "charmap", "yesexpr", "abday"]
+
+[[case]]
+id = "locale-several-names-category"
+argv = ["locale", "-c", "decimal_point", "charmap", "yesexpr", "abday", "title"]
+
+[[case]]
+id = "locale-unknown-name"
+argv = ["locale", "foo"]
+
+[[case]]
+id = "locale-unknown-name-after-output"
+argv = ["locale", "charmap", "foo", "decimal_point"]
+
+[[case]]
+id = "locale-unknown-name-keyword"
+argv = ["locale", "-k", "foo"]
+
+[[case]]
+id = "locale-lc-all-is-unknown"
+argv = ["locale", "LC_ALL"]
+
+[[case]]
+id = "locale-name-case-sensitive"
+argv = ["locale", "LC_numeric"]
+
+[[case]]
+id = "locale-category-flag-alone"
+argv = ["locale", "-c"]
+
+[[case]]
+id = "locale-keyword-flag-alone"
+argv = ["locale", "-k"]
+
+[[case]]
+id = "locale-both-flags-alone"
+argv = ["locale", "-ck"]
+
+[[case]]
+id = "locale-verbose-alone"
+argv = ["locale", "-v"]
+
+[[case]]
+id = "locale-verbose-name"
+argv = ["locale", "-v", "charmap"]
+
+[[case]]
+id = "locale-category-ctype"
+argv = ["locale", "LC_CTYPE"]
+
+[[case]]
+id = "locale-category-ctype-keywords"
+argv = ["locale", "-k", "LC_CTYPE"]
+
+[[case]]
+id = "locale-category-numeric"
+argv = ["locale", "LC_NUMERIC"]
+
+[[case]]
+id = "locale-category-numeric-keywords"
+argv = ["locale", "-ck", "LC_NUMERIC"]
+
+[[case]]
+id = "locale-category-time"
+argv = ["locale", "LC_TIME"]
+
+[[case]]
+id = "locale-category-time-keywords"
+argv = ["locale", "-ck", "LC_TIME"]
+
+[[case]]
+id = "locale-category-collate-keywords"
+argv = ["locale", "-ck", "LC_COLLATE"]
+
+[[case]]
+id = "locale-category-monetary"
+argv = ["locale", "LC_MONETARY"]
+
+[[case]]
+id = "locale-category-monetary-keywords"
+argv = ["locale", "-ck", "LC_MONETARY"]
+
+[[case]]
+id = "locale-category-messages-keywords"
+argv = ["locale", "-ck", "LC_MESSAGES"]
+
+[[case]]
+id = "locale-category-paper-keywords"
+argv = ["locale", "-ck", "LC_PAPER"]
+
+[[case]]
+id = "locale-category-name-keywords"
+argv = ["locale", "-ck", "LC_NAME"]
+
+[[case]]
+id = "locale-category-address-keywords"
+argv = ["locale", "-ck", "LC_ADDRESS"]
+
+[[case]]
+id = "locale-category-telephone-keywords"
+argv = ["locale", "-ck", "LC_TELEPHONE"]
+
+[[case]]
+id = "locale-category-measurement-keywords"
+argv = ["locale", "-ck", "LC_MEASUREMENT"]
+
+[[case]]
+id = "locale-category-identification-keywords"
+argv = ["locale", "-ck", "LC_IDENTIFICATION"]
+
+[[case]]
+id = "locale-all-categories-c"
+argv = ["locale", "-ck", "LC_CTYPE", "LC_NUMERIC", "LC_TIME", "LC_COLLATE", "LC_MONETARY", "LC_MESSAGES", "LC_PAPER", "LC_NAME", "LC_ADDRESS", "LC_TELEPHONE", "LC_MEASUREMENT", "LC_IDENTIFICATION"]
+env = { LC_ALL = "C" }
+
+[[case]]
+id = "locale-all-categories-utf8"
+argv = ["locale", "-ck", "LC_CTYPE", "LC_NUMERIC", "LC_TIME", "LC_COLLATE", "LC_MONETARY", "LC_MESSAGES", "LC_PAPER", "LC_NAME", "LC_ADDRESS", "LC_TELEPHONE", "LC_MEASUREMENT", "LC_IDENTIFICATION"]
+env = { LC_ALL = "C.UTF-8" }
+
+[[case]]
+id = "locale-all-categories-posix-plain"
+argv = ["locale", "LC_CTYPE", "LC_NUMERIC", "LC_TIME", "LC_COLLATE", "LC_MONETARY", "LC_MESSAGES", "LC_PAPER", "LC_NAME", "LC_ADDRESS", "LC_TELEPHONE", "LC_MEASUREMENT", "LC_IDENTIFICATION"]
+env = { LC_ALL = "POSIX" }
+
+[[case]]
+id = "locale-all-categories-utf8-plain"
+argv = ["locale", "LC_CTYPE", "LC_NUMERIC", "LC_TIME", "LC_COLLATE", "LC_MONETARY", "LC_MESSAGES", "LC_PAPER", "LC_NAME", "LC_ADDRESS", "LC_TELEPHONE", "LC_MEASUREMENT", "LC_IDENTIFICATION"]
+env = { LC_ALL = "C.utf8" }
+
+[[case]]
+id = "locale-mixed-categories"
+argv = ["locale", "-k", "charmap", "numeric-codeset", "time-codeset", "title", "identification-codeset", "messages-codeset", "ctype-width"]
+env = { LC_ALL = "", LANG = "C", LC_CTYPE = "C.UTF-8", LC_IDENTIFICATION = "C.UTF-8", LC_TIME = "C.UTF-8" }
+
+[[case]]
+id = "locale-keywords-list-types"
+argv = ["locale", "-k", "ctype-class-names", "ctype-map-names", "abmon", "am_pm", "era", "alt_digits", "grouping", "mon_grouping", "conversion_rate", "week-1stday", "country_num", "measurement", "height", "width", "int_curr_symbol", "crncystr"]
+
+[[case]]
+id = "locale-keywords-list-types-plain"
+argv = ["locale", "ctype-class-names", "ctype-map-names", "abmon", "am_pm", "era", "alt_digits", "grouping", "mon_grouping", "conversion_rate", "week-1stday", "country_num", "measurement", "height", "width", "int_curr_symbol", "crncystr"]
+
+[[case]]
+id = "locale-keywords-formats"
+argv = ["locale", "-c", "d_t_fmt", "d_fmt", "t_fmt", "t_fmt_ampm", "date_fmt", "name_fmt", "postal_fmt", "tel_int_fmt", "yesexpr", "noexpr"]
+
+# ---- -a ----
+
+[[case]]
+id = "locale-all-first-names"
+script = '''
+locale -a | head -n 3
+'''
+
+[[case]]
+id = "locale-all-builtin-present"
+script = '''
+locale -a | grep -x -E 'C|POSIX|C.utf8' | sort
+'''
+
+[[case]]
+id = "locale-all-sorted-unique"
+script = '''
+locale -a | sort -c && echo sorted
+'''
+
+[[case]]
+id = "locale-all-long-option"
+script = '''
+locale --all-locales | head -n 3
+locale --all | head -n 3
+'''
+
+[[case]]
+id = "locale-all-ignores-names"
+script = '''
+locale -a charmap | head -n 3
+'''
+
+[[case]]
+id = "locale-all-invalid-collate"
+script = '''
+LC_ALL= LC_COLLATE=bogus LANG=C locale -a 2>&1 | head -n 4
+'''
+
+[[case]]
+id = "locale-all-invalid-ctype-locpath"
+script = '''
+LC_ALL= LC_CTYPE=bogus LOCPATH=/nonexistent locale -a 2>&1 | head -n 5
+'''
+
+[[case]]
+id = "locale-all-verbose-head"
+script = '''
+locale -av | head -n 8
+'''
+
+[[case]]
+id = "locale-all-verbose-skips-builtin-names"
+script = '''
+locale -a -v | grep -c '^locale: C ' || true
+locale -a -v | grep -c '^locale: POSIX' || true
+'''
