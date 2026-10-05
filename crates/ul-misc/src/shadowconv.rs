@@ -197,7 +197,15 @@ fn convert(p: &str, kind: Kind, prefix: &[u8]) -> i32 {
             e.push(b':');
             e.extend_from_slice(&pw);
             match kind {
-                Kind::Passwd => e.extend_from_slice(b"::0:99999:7:::"),
+                Kind::Passwd => {
+                    let days = sys::current()
+                        .clock_gettime(sysabi::Clock::Realtime)
+                        .map(|t| t.sec / 86400)
+                        .unwrap_or(0);
+                    e.push(b':');
+                    e.extend_from_slice(days.to_string().as_bytes());
+                    e.extend_from_slice(b"::::::");
+                }
                 Kind::Group => {
                     e.extend_from_slice(b"::");
                     e.extend_from_slice(&field_of(l, 3));
@@ -305,7 +313,7 @@ fn chpasswd(p: &str, kind: Kind, args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
     let spec = if kind == Kind::Group { SPEC_CHGPASSWD } else { SPEC_CHPASSWD };
     let Some(o) = parse(p, &argv, spec) else {
-        return usage(&chpasswd_usage(p), 1);
+        return usage(&chpasswd_usage(p), 2);
     };
     if o.has(b'h') {
         return usage(&chpasswd_usage(p), 0);

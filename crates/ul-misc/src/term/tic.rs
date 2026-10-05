@@ -830,50 +830,28 @@ fn table_offset(table: &mut Vec<u8>, s: &Str) -> i32 {
 /// `write_object`: o arquivo compilado (formato legado, ou estendido de 32 bits quando algum número
 /// não cabe em 16 bits) com a parte das capacidades estendidas quando existem.
 fn compile(entry: &Entry) -> Vec<u8> {
-    // As predefinidas que o formato legado não grava (`OTbs`, `OTug`, `OTi2`...) viajam como
-    // estendidas, com o nome terminfo delas.
-    let mut full = entry.clone();
-    if entry.keep_obsolete {
-        for i in BOOLWRITE..BOOLCOUNT.min(entry.bools.len()) {
-            if entry.bools[i] == 1 {
-                full.ext.push(ExtCap {
-                    name: BOOLS[i].info.as_bytes().to_vec(),
-                    val: ExtVal::Bool(1),
-                });
-            }
-        }
-        for i in NUMWRITE..NUMCOUNT.min(entry.nums.len()) {
-            if entry.nums[i] >= 0 {
-                full.ext.push(ExtCap {
-                    name: NUMS[i].info.as_bytes().to_vec(),
-                    val: ExtVal::Num(entry.nums[i]),
-                });
-            }
-        }
-        for i in STRWRITE..STRCOUNT.min(entry.strs.len()) {
-            if entry.strs[i].valid() {
-                full.ext.push(ExtCap {
-                    name: STRS[i].info.as_bytes().to_vec(),
-                    val: ExtVal::Str(entry.strs[i].clone()),
-                });
-            }
-        }
-    }
-    let e = &full;
+    // Com `-x` as predefinidas obsoletas (`OTbs`, `OTug`, `OTi2`...) entram nas seções legadas,
+    // como no `write_object` do ncurses (o limite deixa de ser `BOOLWRITE`/`NUMWRITE`/`STRWRITE`).
+    let (bool_limit, num_limit, str_limit) = if entry.keep_obsolete {
+        (BOOLCOUNT, NUMCOUNT, STRCOUNT)
+    } else {
+        (BOOLWRITE, NUMWRITE, STRWRITE)
+    };
+    let e = entry;
     let [ext_b, ext_n, ext_s] = e.sorted_ext();
     // Só os números predefinidos decidem o formato; os estendidos seguem o formato escolhido.
     let wide = e.nums.iter().any(|n| *n > 0x7fff);
 
     // Só o booleano verdadeiro conta e é gravado como 1 (um cancelado vira 0).
-    let bool_count = (0..BOOLWRITE.min(e.bools.len()))
+    let bool_count = (0..bool_limit.min(e.bools.len()))
         .rev()
         .find(|i| e.bools[*i] == 1)
         .map_or(0, |i| i + 1);
-    let num_count = (0..NUMWRITE.min(e.nums.len()))
+    let num_count = (0..num_limit.min(e.nums.len()))
         .rev()
         .find(|i| e.nums[*i] != -1)
         .map_or(0, |i| i + 1);
-    let str_count = (0..STRWRITE.min(e.strs.len()))
+    let str_count = (0..str_limit.min(e.strs.len()))
         .rev()
         .find(|i| e.strs[*i] != Str::Absent)
         .map_or(0, |i| i + 1);
@@ -1560,7 +1538,8 @@ fn run(args: &[OsString]) -> i32 {
                 let mut probe = tt.clone();
                 dump.dump_entry(&mut probe, suppress_untranslatable, limited, numbers, pred);
             }
-            let len = dump.fmt_entry(&mut tt, pred, true, true, infodump, numbers);
+            // O oráculo mede com o cabeçalho (nomes, separador e quebra), 18 bytes aqui.
+            let len = dump.fmt_entry(&mut tt, pred, false, true, infodump, numbers);
             if len > limit {
                 let _ = io::flush_stdout();
                 io::eprint(format!(
