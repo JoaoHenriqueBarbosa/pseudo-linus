@@ -150,8 +150,11 @@ pub fn uu_app() -> Command {
                 .action(ArgAction::SetTrue),
         )
         .arg(
+            // Porte pseudo-linus: sem limite aqui; o operando a mais é recusado à mão, com a
+            // mensagem do GNU (`extra operand ‘c’`).
             Arg::new(options::FILE)
-                .num_args(1..=2)
+                .num_args(0..)
+                .action(ArgAction::Append)
                 .value_hint(clap::ValueHint::FilePath),
         )
 }

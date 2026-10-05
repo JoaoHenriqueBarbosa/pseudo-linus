@@ -82,6 +82,156 @@ fn chown<P: AsRef<Path>>(path: P, uid: uid_t, gid: gid_t, follow: bool) -> IORes
     }
 }
 
+/// Porte pseudo-linus: o dono pedido como o `describe_change` do GNU o descreve nas mensagens de
+/// `-v` e `-c`. O usuário é `Some("")` quando só o grupo foi pedido (`chown :grp`), que o GNU ainda
+/// trata como mudança de "ownership"; ambos são `None` quando nada foi pedido (`chown : f`).
+/// Os nomes pedidos saem como foram digitados (`65534:65534` fica numérico mesmo que o id tenha
+/// nome), e os nomes atuais do arquivo saem resolvidos pelo `/etc/passwd` e `/etc/group`.
+struct OwnerDescription {
+    user: Option<String>,
+    group: Option<String>,
+    groups_only: bool,
+}
+
+/// O `user_group_str` do GNU: `user:group`, só `user`, ou `:group`.
+fn user_group_str(user: Option<&str>, group: Option<&str>) -> Option<String> {
+    match (user, group) {
+        (Some(u), Some(g)) => Some(format!("{u}:{g}")),
+        (Some(u), None) => Some(u.to_string()),
+        (None, Some(g)) => Some(format!(":{g}")),
+        (None, None) => None,
+    }
+}
+
+fn user_name_of(uid: u32) -> String {
+    entries::uid2usr(uid).unwrap_or_else(|_| uid.to_string())
+}
+
+fn group_name_of(gid: u32) -> String {
+    entries::gid2grp(gid).unwrap_or_else(|_| gid.to_string())
+}
+
+impl OwnerDescription {
+    /// `typed` é o que o usuário digitou (`daemon`, `:grp`, `u:g`, ou o grupo do chgrp); sem ele os
+    /// nomes saem dos ids.
+    fn new(
+        dest_uid: Option<u32>,
+        dest_gid: Option<u32>,
+        typed: Option<&str>,
+        groups_only: bool,
+    ) -> Self {
+        if groups_only {
+            let group = dest_gid
+                .map(|gid| typed.map_or_else(|| group_name_of(gid), str::to_string));
+            return Self {
+                user: None,
+                group,
+                groups_only,
+            };
+        }
+        let (typed_user, typed_group) = match typed {
+            Some(spec) => match spec.split_once(':').or_else(|| {
+                // Separador antigo `usuário.grupo`, que o chown ainda aceita.
+                if dest_gid.is_some() { spec.split_once('.') } else { None }
+            }) {
+                Some((u, g)) => (u.to_string(), g.to_string()),
+                None => (spec.to_string(), String::new()),
+            },
+            None => (
+                dest_uid.map(user_name_of).unwrap_or_default(),
+                dest_gid.map(group_name_of).unwrap_or_default(),
+            ),
+        };
+        let group = dest_gid.map(|gid| {
+            if typed_group.is_empty() {
+                group_name_of(gid)
+            } else {
+                typed_group.clone()
+            }
+        });
+        let user = if dest_uid.is_some() {
+            Some(typed_user)
+        } else if dest_gid.is_some() {
+            Some(String::new())
+        } else {
+            None
+        };
+        Self {
+            user,
+            group,
+            groups_only,
+        }
+    }
+
+    /// "ownership" ou "group", a palavra que as mensagens do GNU usam.
+    fn what(&self) -> &'static str {
+        if self.groups_only { "group" } else { "ownership" }
+    }
+
+    /// O dono atual do arquivo, no mesmo formato do pedido (só o usuário quando o grupo não foi
+    /// pedido).
+    fn old_spec(&self, uid: u32, gid: u32) -> String {
+        if self.groups_only {
+            return group_name_of(gid);
+        }
+        let old_user = user_name_of(uid);
+        let old_group = group_name_of(gid);
+        user_group_str(
+            Some(old_user.as_str()),
+            self.group.as_ref().map(|_| old_group.as_str()),
+        )
+        .unwrap_or_default()
+    }
+
+    /// O dono pedido.
+    fn new_spec(&self) -> String {
+        if self.groups_only {
+            return self.group.clone().unwrap_or_default();
+        }
+        user_group_str(self.user.as_deref(), self.group.as_deref()).unwrap_or_default()
+    }
+
+    /// Se nada foi pedido (`chown : f`): o GNU usa as frases sem "from ... to".
+    fn nothing_requested(&self) -> bool {
+        self.user.is_none() && self.group.is_none()
+    }
+
+    fn changed(&self, path: &Path, uid: u32, gid: u32) -> String {
+        format!(
+            "changed {} of {} from {} to {}",
+            self.what(),
+            path.quote(),
+            self.old_spec(uid, gid),
+            self.new_spec()
+        )
+    }
+
+    fn failed(&self, path: &Path, uid: u32, gid: u32) -> String {
+        if self.nothing_requested() {
+            return format!("failed to change {} of {}", self.what(), path.quote());
+        }
+        format!(
+            "failed to change {} of {} from {} to {}",
+            self.what(),
+            path.quote(),
+            self.old_spec(uid, gid),
+            self.new_spec()
+        )
+    }
+
+    fn retained(&self, path: &Path, uid: u32, gid: u32) -> String {
+        if self.nothing_requested() {
+            return format!("{} of {} retained", self.what(), path.quote());
+        }
+        format!(
+            "{} of {} retained as {}",
+            self.what(),
+            path.quote(),
+            self.old_spec(uid, gid)
+        )
+    }
+}
+
 /// Perform the change of owner on a path
 /// with the various options
 /// and error messages management
@@ -93,6 +243,21 @@ pub fn wrap_chown<P: AsRef<Path>>(
     follow: bool,
     verbosity: Verbosity,
 ) -> Result<String, String> {
+    wrap_chown_spec(path, meta, dest_uid, dest_gid, follow, verbosity, None)
+}
+
+/// Como [`wrap_chown`], com o dono pedido como foi digitado (`typed`) pras mensagens de `-v` e
+/// `-c`, que o GNU escreve com o texto do usuário.
+pub fn wrap_chown_spec<P: AsRef<Path>>(
+    path: P,
+    meta: &Metadata,
+    dest_uid: Option<u32>,
+    dest_gid: Option<u32>,
+    follow: bool,
+    verbosity: Verbosity,
+    typed: Option<&str>,
+) -> Result<String, String> {
+    let description = OwnerDescription::new(dest_uid, dest_gid, typed, verbosity.groups_only);
     let dest_uid = dest_uid.unwrap_or_else(|| meta.uid());
     let dest_gid = dest_gid.unwrap_or_else(|| meta.gid());
     let path = path.as_ref();
@@ -113,26 +278,10 @@ pub fn wrap_chown<P: AsRef<Path>>(
                     strip_errno(&e),
                 );
                 if level == VerbosityLevel::Verbose {
-                    out = if verbosity.groups_only {
-                        let gid = meta.gid();
-                        format!(
-                            "{out}\nfailed to change group of {} from {} to {}",
-                            path.quote(),
-                            entries::gid2grp(gid).unwrap_or_else(|_| gid.to_string()),
-                            entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-                        )
-                    } else {
-                        let uid = meta.uid();
-                        let gid = meta.gid();
-                        format!(
-                            "{out}\nfailed to change ownership of {} from {}:{} to {}:{}",
-                            path.quote(),
-                            entries::uid2usr(uid).unwrap_or_else(|_| uid.to_string()),
-                            entries::gid2grp(gid).unwrap_or_else(|_| gid.to_string()),
-                            entries::uid2usr(dest_uid).unwrap_or_else(|_| dest_uid.to_string()),
-                            entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-                        )
-                    };
+                    out = format!(
+                        "{out}\n{}",
+                        description.failed(path, meta.uid(), meta.gid())
+                    );
                 }
             }
         }
@@ -143,44 +292,12 @@ pub fn wrap_chown<P: AsRef<Path>>(
     if changed {
         match verbosity.level {
             VerbosityLevel::Changes | VerbosityLevel::Verbose => {
-                let gid = meta.gid();
-                out = if verbosity.groups_only {
-                    format!(
-                        "changed group of {} from {} to {}",
-                        path.quote(),
-                        entries::gid2grp(gid).unwrap_or_else(|_| gid.to_string()),
-                        entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-                    )
-                } else {
-                    let gid = meta.gid();
-                    let uid = meta.uid();
-                    format!(
-                        "changed ownership of {} from {}:{} to {}:{}",
-                        path.quote(),
-                        entries::uid2usr(uid).unwrap_or_else(|_| uid.to_string()),
-                        entries::gid2grp(gid).unwrap_or_else(|_| gid.to_string()),
-                        entries::uid2usr(dest_uid).unwrap_or_else(|_| dest_uid.to_string()),
-                        entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-                    )
-                };
+                out = description.changed(path, meta.uid(), meta.gid());
             }
             _ => (),
         }
     } else if verbosity.level == VerbosityLevel::Verbose {
-        out = if verbosity.groups_only {
-            format!(
-                "group of {} retained as {}",
-                path.quote(),
-                entries::gid2grp(dest_gid).unwrap_or_default()
-            )
-        } else {
-            format!(
-                "ownership of {} retained as {}:{}",
-                path.quote(),
-                entries::uid2usr(dest_uid).unwrap_or_else(|_| dest_uid.to_string()),
-                entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-            )
-        };
+        out = description.retained(path, meta.uid(), meta.gid());
     }
 
     Ok(out)
@@ -320,24 +437,26 @@ impl ChownExecutor {
                 }
             } else {
                 // For non-directories (files, symlinks), use the regular wrap_chown method
-                wrap_chown(
+                wrap_chown_spec(
                     path,
                     &meta,
                     self.dest_uid,
                     self.dest_gid,
                     self.dereference,
                     self.verbosity.clone(),
+                    Some(self.raw_owner.as_str()),
                 )
             };
 
             #[cfg(not(target_os = "linux"))]
-            let chown_result = wrap_chown(
+            let chown_result = wrap_chown_spec(
                 path,
                 &meta,
                 self.dest_uid,
                 self.dest_gid,
                 self.dereference,
                 self.verbosity.clone(),
+                Some(self.raw_owner.as_str()),
             );
 
             match chown_result {
@@ -358,11 +477,7 @@ impl ChownExecutor {
                 }
             }
         } else {
-            self.print_verbose_ownership_retained_as(
-                path,
-                meta.uid(),
-                self.dest_gid.map(|_| meta.gid()),
-            )
+            self.print_verbose_ownership_retained_as(path, meta.uid(), meta.gid())
         };
 
         if self.recursive {
@@ -381,9 +496,6 @@ impl ChownExecutor {
 
     #[cfg(target_os = "linux")]
     fn safe_chown_dir(&self, dir_fd: &DirFd, path: &Path, meta: &Metadata) -> Result<(), String> {
-        let dest_uid = self.dest_uid.unwrap_or_else(|| meta.uid());
-        let dest_gid = self.dest_gid.unwrap_or_else(|| meta.gid());
-
         // Use fchown (safe) to change the directory's ownership
         if let Err(e) = dir_fd.fchown(self.dest_uid, self.dest_gid) {
             let mut error_msg = format!(
@@ -398,26 +510,10 @@ impl ChownExecutor {
             );
 
             if self.verbosity.level == VerbosityLevel::Verbose {
-                error_msg = if self.verbosity.groups_only {
-                    let gid = meta.gid();
-                    format!(
-                        "{error_msg}\nfailed to change group of {} from {} to {}",
-                        path.quote(),
-                        entries::gid2grp(gid).unwrap_or_else(|_| gid.to_string()),
-                        entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-                    )
-                } else {
-                    let uid = meta.uid();
-                    let gid = meta.gid();
-                    format!(
-                        "{error_msg}\nfailed to change ownership of {} from {}:{} to {}:{}",
-                        path.quote(),
-                        entries::uid2usr(uid).unwrap_or_else(|_| uid.to_string()),
-                        entries::gid2grp(gid).unwrap_or_else(|_| gid.to_string()),
-                        entries::uid2usr(dest_uid).unwrap_or_else(|_| dest_uid.to_string()),
-                        entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-                    )
-                };
+                error_msg = format!(
+                    "{error_msg}\n{}",
+                    self.description().failed(path, meta.uid(), meta.gid())
+                );
             }
 
             return Err(error_msg);
@@ -546,11 +642,8 @@ impl ChownExecutor {
                     // Report the successful ownership change using the shared helper
                     self.report_ownership_change_success(&entry_path, meta.uid(), meta.gid());
                 }
-            } else if self.print_verbose_ownership_retained_as(
-                &entry_path,
-                meta.uid(),
-                self.dest_gid.map(|_| meta.gid()),
-            ) != 0
+            } else if self.print_verbose_ownership_retained_as(&entry_path, meta.uid(), meta.gid())
+                != 0
             {
                 *ret = 1;
             }
@@ -642,23 +735,19 @@ impl ChownExecutor {
             }
 
             if !self.matched(meta.uid(), meta.gid()) {
-                if self.print_verbose_ownership_retained_as(
-                    path,
-                    meta.uid(),
-                    self.dest_gid.map(|_| meta.gid()),
-                ) != 0
-                {
+                if self.print_verbose_ownership_retained_as(path, meta.uid(), meta.gid()) != 0 {
                     ret = 1;
                 }
                 continue;
             }
-            ret = match wrap_chown(
+            ret = match wrap_chown_spec(
                 path,
                 &meta,
                 self.dest_uid,
                 self.dest_gid,
                 self.dereference,
                 self.verbosity.clone(),
+                Some(self.raw_owner.as_str()),
             ) {
                 Ok(n) => {
                     if !n.is_empty() {
@@ -684,9 +773,13 @@ impl ChownExecutor {
         get_metadata(path, follow)
             .inspect_err(|e| {
                 if self.verbosity.level != VerbosityLevel::Silent {
+                    // Porte pseudo-linus: o GNU só diz "cannot dereference" pra um link simbólico
+                    // pendente; um caminho que não existe é "cannot access".
+                    let dangling_link = follow
+                        && get_metadata(path, false).is_ok_and(|m| m.file_type().is_symlink());
                     show_error!(
                         "cannot {} {}: {}",
-                        if follow { "dereference" } else { "access" },
+                        if dangling_link { "dereference" } else { "access" },
                         path.quote(),
                         strip_errno(e)
                     );
@@ -712,24 +805,19 @@ impl ChownExecutor {
         i32::from(writeln!(sysio::io::stdout(), "{line}").is_err())
     }
 
-    fn print_verbose_ownership_retained_as(&self, path: &Path, uid: u32, gid: Option<u32>) -> i32 {
+    /// Porte pseudo-linus: o dono pedido como o GNU o descreve em `-v` e `-c`.
+    fn description(&self) -> OwnerDescription {
+        OwnerDescription::new(
+            self.dest_uid,
+            self.dest_gid,
+            Some(self.raw_owner.as_str()),
+            self.verbosity.groups_only,
+        )
+    }
+
+    fn print_verbose_ownership_retained_as(&self, path: &Path, uid: u32, gid: u32) -> i32 {
         if self.verbosity.level == VerbosityLevel::Verbose {
-            let ownership = match (self.dest_uid, self.dest_gid, gid) {
-                (Some(_), Some(_), Some(gid)) => format!(
-                    "{}:{}",
-                    entries::uid2usr(uid).unwrap_or_else(|_| uid.to_string()),
-                    entries::gid2grp(gid).unwrap_or_else(|_| gid.to_string())
-                ),
-                (None, Some(_), Some(gid)) => {
-                    entries::gid2grp(gid).unwrap_or_else(|_| gid.to_string())
-                }
-                _ => entries::uid2usr(uid).unwrap_or_else(|_| uid.to_string()),
-            };
-            let line = if self.verbosity.groups_only {
-                format!("group of {} retained as {ownership}", path.quote())
-            } else {
-                format!("ownership of {} retained as {ownership}", path.quote())
-            };
+            let line = self.description().retained(path, uid, gid);
             return self.write_verbose_line(&line);
         }
         0
@@ -763,46 +851,14 @@ impl ChownExecutor {
         if changed {
             match self.verbosity.level {
                 VerbosityLevel::Changes | VerbosityLevel::Verbose => {
-                    let output = if self.verbosity.groups_only {
-                        format!(
-                            "changed group of {} from {} to {}",
-                            path.quote(),
-                            entries::gid2grp(original_gid)
-                                .unwrap_or_else(|_| original_gid.to_string()),
-                            entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-                        )
-                    } else {
-                        format!(
-                            "changed ownership of {} from {}:{} to {}:{}",
-                            path.quote(),
-                            entries::uid2usr(original_uid)
-                                .unwrap_or_else(|_| original_uid.to_string()),
-                            entries::gid2grp(original_gid)
-                                .unwrap_or_else(|_| original_gid.to_string()),
-                            entries::uid2usr(dest_uid).unwrap_or_else(|_| dest_uid.to_string()),
-                            entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-                        )
-                    };
+                    let output = self.description().changed(path, original_uid, original_gid);
                     // GNU: informational verbose/changes output goes to stdout.
                     return self.write_verbose_line(&output);
                 }
                 _ => (),
             }
         } else if self.verbosity.level == VerbosityLevel::Verbose {
-            let output = if self.verbosity.groups_only {
-                format!(
-                    "group of {} retained as {}",
-                    path.quote(),
-                    entries::gid2grp(dest_gid).unwrap_or_default()
-                )
-            } else {
-                format!(
-                    "ownership of {} retained as {}:{}",
-                    path.quote(),
-                    entries::uid2usr(dest_uid).unwrap_or_else(|_| dest_uid.to_string()),
-                    entries::gid2grp(dest_gid).unwrap_or_else(|_| dest_gid.to_string())
-                )
-            };
+            let output = self.description().retained(path, original_uid, original_gid);
             // GNU: informational verbose output goes to stdout.
             return self.write_verbose_line(&output);
         }

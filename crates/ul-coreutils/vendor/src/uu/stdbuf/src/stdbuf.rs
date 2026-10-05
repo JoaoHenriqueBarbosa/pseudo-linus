@@ -136,9 +136,17 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
 
     let options = ProgramOptions::try_from(&matches).map_err(|e| {
         let message = e.to_string();
+        // Porte pseudo-linus: só `line buffering stdin is meaningless` leva a dica do `--help`; um
+        // modo inválido, no GNU, é uma linha só.
+        let error = match &e {
+            ProgramOptionsError::LineBufferingStdinMeaningless => {
+                UUsageError::new(125, message.clone())
+            }
+            _ => USimpleError::new(125, message.clone()),
+        };
         uucore::diagnostics::error_after_report(
             diag_args.as_deref(),
-            UUsageError::new(125, message.clone()),
+            error,
             |args, _| match &e {
                 ProgramOptionsError::InvalidMode(mode) => {
                     mode.error

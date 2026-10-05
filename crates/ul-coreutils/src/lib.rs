@@ -8,6 +8,7 @@ use sysabi::Program;
 mod core;
 mod data;
 mod files;
+mod hostname;
 mod run;
 mod system;
 mod text;

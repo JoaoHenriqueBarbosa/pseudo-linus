@@ -166,7 +166,7 @@ fn parse_uid(user: &str, spec: &str) -> UResult<Option<u32>> {
     user.parse().map(Some).map_err(|_| {
         USimpleError::new(
             1,
-            translate!("chown-error-invalid-user", "user" => spec.quote()),
+            translate!("chown-error-invalid-user", "user" => uucore::display::locale_quote(spec)),
         )
     })
 }
@@ -182,7 +182,7 @@ fn parse_gid(group: &str, spec: &str) -> UResult<Option<u32>> {
             Ok(gid) => Ok(Some(gid)),
             Err(_) => Err(USimpleError::new(
                 1,
-                translate!("chown-error-invalid-group", "group" => spec.quote()),
+                translate!("chown-error-invalid-group", "group" => uucore::display::locale_quote(spec)),
             )),
         },
     }
@@ -220,15 +220,26 @@ fn parse_spec(spec: &str, sep: char) -> UResult<(Option<u32>, Option<u32>)> {
     }
 
     let uid = parse_uid(user, spec)?;
-    let gid = parse_gid(group, spec)?;
+    let mut gid = parse_gid(group, spec)?;
 
     if user.chars().next().is_some_and(char::is_numeric) && group.is_empty() && spec != user {
         // if the arg starts with an id numeric value, the group isn't set but the separator is provided,
         // we should fail with an error
         return Err(USimpleError::new(
             1,
-            translate!("chown-error-invalid-spec", "spec" => spec.quote()),
+            translate!("chown-error-invalid-spec", "spec" => uucore::display::locale_quote(spec)),
         ));
+    }
+
+    // Porte pseudo-linus: `usuário:` (com o separador e sem grupo) muda o grupo pro grupo de login
+    // do usuário, como o GNU.
+    if gid.is_none()
+        && group.is_empty()
+        && spec.contains(sep)
+        && !user.is_empty()
+        && let Ok(passwd) = Passwd::locate(user)
+    {
+        gid = Some(passwd.gid);
     }
 
     Ok((uid, gid))

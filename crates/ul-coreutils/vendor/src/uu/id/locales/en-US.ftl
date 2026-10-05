@@ -15,6 +15,7 @@ id-context-help-enabled = print only the security context of the process
 
 # Error messages
 id-error-names-real-ids-require-flags = printing only names or real IDs requires -u, -g, or -G
+id-error-cannot-print-only-one-choice = cannot print "only" of more than one choice
 id-error-zero-not-permitted-default = option --zero not permitted in default format
 id-error-cannot-print-context-with-user = cannot print security context when user specified
 id-error-cannot-get-context = can't get process context

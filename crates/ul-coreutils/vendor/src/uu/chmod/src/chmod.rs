@@ -184,11 +184,39 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         Some(cmode)
     };
 
+    // Porte pseudo-linus: com o MODE e sem arquivos o GNU cita o último argumento
+    // (`missing operand after ‘755’`); sem operando nenhum, só `missing operand`.
     if files.is_empty() {
-        return Err(UUsageError::new(
-            1,
-            translate!("chmod-error-missing-operand"),
-        ));
+        let message = match (&cmode, uucore::args_os().last()) {
+            (Some(_), Some(last)) => translate!(
+                "chmod-error-missing-operand-after",
+                "operand" => uucore::display::locale_quote(&last)
+            ),
+            _ => translate!("chmod-error-missing-operand"),
+        };
+        return Err(UUsageError::new(1, message));
+    }
+
+    // Porte pseudo-linus: o GNU compila o modo uma vez, antes de tocar nos arquivos, e recusa o
+    // modo inteiro como foi digitado (`invalid mode: ‘u+x,g+q’`) com a dica do `--help`, mesmo
+    // com -f.
+    if let Some(cmode_str) = &cmode {
+        let valid = cmode_str.split(',').all(|clause| {
+            if clause.chars().any(|c| c.is_ascii_digit()) {
+                mode::parse_numeric(0, clause, false).is_ok()
+            } else {
+                mode::parse_symbolic(0, clause, 0, false).is_ok()
+            }
+        });
+        if !valid {
+            return Err(UUsageError::new(
+                1,
+                translate!(
+                    "chmod-error-invalid-mode",
+                    "mode" => uucore::display::locale_quote(cmode_str)
+                ),
+            ));
+        }
     }
 
     let (recursive, dereference, traverse_symlinks) =

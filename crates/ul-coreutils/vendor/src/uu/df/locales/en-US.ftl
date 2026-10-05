@@ -28,10 +28,12 @@ df-help-print-type = print file system type
 df-help-exclude-type = limit listing to file systems not of type TYPE
 
 # Error messages
-df-error-block-size-too-large = --block-size argument '{ $size }' too large
-df-error-invalid-block-size = invalid --block-size argument { $size }
-df-error-invalid-suffix = invalid suffix in --block-size argument { $size }
+# Porte pseudo-linus: as mensagens do GNU, com a opção como foi pedida (`-B` ou `--block-size`).
+df-error-block-size-too-large = { $option } argument '{ $size }' too large
+df-error-invalid-block-size = invalid { $option } argument { $size }
+df-error-invalid-suffix = invalid suffix in { $option } argument { $size }
 df-error-field-used-more-than-once = option --output: field { $field } used more than once
+df-error-field-unknown = option --output: field { $field } unknown
 df-error-filesystem-type-both-selected-and-excluded = file system type { $type } both selected and excluded
 df-error-no-such-file-or-directory = { $path }: No such file or directory
 df-error-no-file-systems-processed = no file systems processed

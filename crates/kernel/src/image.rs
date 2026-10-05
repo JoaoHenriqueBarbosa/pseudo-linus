@@ -154,9 +154,9 @@ pub(crate) fn build_root(ns: &Namespace, cx: &Caller, programs: &[Program], host
     ns.chown(cx, &Start::Cwd, b"/etc/gshadow", None, Some(GID_SHADOW), AtFlags::empty())?;
     ns.chown(cx, &Start::Cwd, b"/var/mail", None, Some(GID_MAIL), AtFlags::empty())?;
     put_file(ns, cx, b"/etc/hostname", format!("{hostname}\n").as_bytes(), 0o644)?;
-    let hosts = format!(
-        "127.0.0.1\tlocalhost\n::1\tlocalhost ip6-localhost ip6-loopback\nfe00::0\tip6-localnet\nff00::0\tip6-mcastprefix\nff02::1\tip6-allnodes\nff02::2\tip6-allrouters\n127.0.1.1\t{hostname}\n"
-    );
+    // O /etc/hosts do contêiner do oráculo (`--network none`): sem linha pro nome da máquina, então
+    // `hostid` dá 00000000 e `hostname -f`/`-i` falham com "Temporary failure in name resolution".
+    let hosts = "127.0.0.1\tlocalhost\n::1\tlocalhost ip6-localhost ip6-loopback\nfe00::0\tip6-localnet\nff00::0\tip6-mcastprefix\nff02::1\tip6-allnodes\nff02::2\tip6-allrouters\n";
     put_file(ns, cx, b"/etc/hosts", hosts.as_bytes(), 0o644)?;
     stamped.push(b"/etc/hostname".to_vec());
     stamped.push(b"/etc/hosts".to_vec());

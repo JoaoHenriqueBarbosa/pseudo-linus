@@ -8,7 +8,7 @@
 use crate::{OPT_INODES, OPT_OUTPUT, OPT_PRINT_TYPE};
 use clap::{ArgMatches, parser::ValueSource};
 use thiserror::Error;
-use uucore::display::Quotable;
+use uucore::translate;
 
 /// The columns in the output table produced by `df`.
 ///
@@ -60,11 +60,16 @@ pub(crate) enum Column {
 }
 
 /// An error while defining which columns to display in the output table.
+// Porte pseudo-linus: a mensagem inteira é da variante (o GNU cita o campo com o `quote()`, ‘x’).
 #[derive(Debug, Error)]
 pub(crate) enum ColumnError {
     /// If a column appears more than once in the `--output` argument.
-    #[error("{}", .0.quote())]
+    #[error("{}", translate!("df-error-field-used-more-than-once", "field" => uucore::display::locale_quote(_0)))]
     MultipleColumns(String),
+
+    /// If a name in the `--output` argument is not a column.
+    #[error("{}", translate!("df-error-field-unknown", "field" => uucore::display::locale_quote(_0)))]
+    UnknownColumn(String),
 }
 
 impl Column {
@@ -105,15 +110,16 @@ impl Column {
                 let mut seen: Vec<&str> = vec![];
                 let mut columns = vec![];
                 for name in names {
+                    // Porte pseudo-linus: o nome é validado aqui (o clap não conhece a lista, e a
+                    // mensagem dele não é a do GNU); um repetido é recusado antes do desconhecido,
+                    // na ordem em que aparecem.
+                    let Ok(column) = Self::parse(name) else {
+                        return Err(ColumnError::UnknownColumn(name.to_string()));
+                    };
                     if seen.contains(&name) {
                         return Err(ColumnError::MultipleColumns(name.to_string()));
                     }
                     seen.push(name);
-                    // Unwrapping here should not panic because the
-                    // command-line argument parsing library should be
-                    // responsible for ensuring each comma-separated
-                    // string is a valid column label.
-                    let column = Self::parse(name).unwrap();
                     columns.push(column);
                 }
                 Ok(columns)

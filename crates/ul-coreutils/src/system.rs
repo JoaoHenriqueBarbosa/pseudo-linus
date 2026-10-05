@@ -27,7 +27,6 @@ uu_main!(users_main, "users", uu_users);
 uu_main!(who_main, "who", uu_who);
 uu_main!(uname_main, "uname", uu_uname);
 uu_main!(arch_main, "arch", uu_arch);
-uu_main!(hostname_main, "hostname", uu_hostname);
 uu_main!(hostid_main, "hostid", uu_hostid);
 uu_main!(nproc_main, "nproc", uu_nproc);
 uu_main!(tty_main, "tty", uu_tty);
@@ -56,7 +55,8 @@ pub(crate) fn programs() -> Vec<Program> {
         Program::bin("who", who_main),
         Program::bin("uname", uname_main),
         Program::bin("arch", arch_main),
-        Program::bin("hostname", hostname_main),
+        // O `hostname` do Debian vem do pacote hostname 3.25, não do coreutils (nem do uutils).
+        Program::bin("hostname", crate::hostname::main),
         Program::bin("hostid", hostid_main),
         Program::bin("nproc", nproc_main),
         Program::bin("tty", tty_main),

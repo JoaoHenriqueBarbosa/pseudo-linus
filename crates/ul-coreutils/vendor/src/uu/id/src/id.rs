@@ -180,6 +180,20 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         ids: None,
     };
 
+    // Porte pseudo-linus: -u, -g e -G não se combinam, e a recusa é da mensagem do GNU (o clap
+    // diria outra coisa).
+    if [state.uflag, state.gflag, state.gsflag]
+        .iter()
+        .filter(|&&flag| flag)
+        .count()
+        > 1
+    {
+        return Err(USimpleError::new(
+            1,
+            translate!("id-error-cannot-print-only-one-choice"),
+        ));
+    }
+
     let default_format = {
         // "default format" is when none of '-ugG' was used
         !(state.uflag || state.gflag || state.gsflag)
@@ -428,7 +442,6 @@ pub fn uu_app() -> Command {
             Arg::new(options::OPT_EFFECTIVE_USER)
                 .short('u')
                 .long(options::OPT_EFFECTIVE_USER)
-                .conflicts_with(options::OPT_GROUP)
                 .help(translate!("id-help-user"))
                 .action(ArgAction::SetTrue),
         )
@@ -436,7 +449,6 @@ pub fn uu_app() -> Command {
             Arg::new(options::OPT_GROUP)
                 .short('g')
                 .long(options::OPT_GROUP)
-                .conflicts_with(options::OPT_EFFECTIVE_USER)
                 .help(translate!("id-help-group"))
                 .action(ArgAction::SetTrue),
         )
@@ -445,8 +457,6 @@ pub fn uu_app() -> Command {
                 .short('G')
                 .long(options::OPT_GROUPS)
                 .conflicts_with_all([
-                    options::OPT_GROUP,
-                    options::OPT_EFFECTIVE_USER,
                     options::OPT_CONTEXT,
                     options::OPT_HUMAN_READABLE,
                     options::OPT_PASSWORD,

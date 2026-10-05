@@ -9,7 +9,6 @@
 use sysio::io::{Write, stdout};
 use thiserror::Error;
 use uucore::{
-    display::Quotable,
     entries::{Locate, Passwd, get_groups_gnu, gid2grp},
     error::{UError, UResult},
     format_usage, show,
@@ -30,7 +29,8 @@ enum GroupsError {
     #[error("{message} {gid}", message = translate!("groups-error-notfound"), gid = .0)]
     GroupNotFound(u32),
 
-    #[error("{user}: {message}", user = .0.quote(), message = translate!("groups-error-user"))]
+    // Porte pseudo-linus: o GNU cita o usuário com o `quote()` (‘x’).
+    #[error("{user}: {message}", user = uucore::display::locale_quote(_0), message = translate!("groups-error-user"))]
     UserNotFound(String),
 }
 

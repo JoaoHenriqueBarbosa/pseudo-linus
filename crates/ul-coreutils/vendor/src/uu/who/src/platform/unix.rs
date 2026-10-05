@@ -10,7 +10,7 @@ use crate::options;
 use crate::uu_app;
 
 use uucore::display::Quotable;
-use uucore::error::{FromIo, UResult};
+use uucore::error::{FromIo, UResult, UUsageError};
 use uucore::translate;
 
 use uucore::utmpx::{self, UtmpxRecord};
@@ -125,6 +125,16 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         .map(|v| v.map(ToString::to_string).collect())
         .unwrap_or_default();
 
+    if files.len() > 2 {
+        return Err(UUsageError::new(
+            1,
+            translate!(
+                "who-error-extra-operand",
+                "operand" => uucore::display::locale_quote(&files[2])
+            ),
+        ));
+    }
+
     let all = matches.get_flag(options::ALL);
     let flag = |name: &str| all || matches.get_flag(name);
 
@@ -199,10 +209,10 @@ fn format_idle<'a>(when: i64, since_boot: i64) -> Cow<'a, str> {
     }
 }
 
-fn format_timestamp(ut: &UtmpxRecord) -> String {
-    // Porte pseudo-linus: `login_time` é um `jiff::Zoned` no fuso do pseudo-processo; os mesmos
-    // dois formatos do original, por strftime.
-    let pattern = if ["LC_ALL", "LC_TIME", "LANG"]
+/// Porte pseudo-linus: o formato da hora é o de `LC_ALL=C` (`Oct  5 16:47`) só quando o locale é
+/// exatamente `C`; em qualquer outro (C.UTF-8, en_US) é o ISO sem segundos.
+fn time_pattern() -> &'static str {
+    if ["LC_ALL", "LC_TIME", "LANG"]
         .into_iter()
         .find_map(sysio::env::var_os)
         .as_deref()
@@ -211,8 +221,18 @@ fn format_timestamp(ut: &UtmpxRecord) -> String {
         "%b %e %H:%M"
     } else {
         "%Y-%m-%d %H:%M"
-    };
-    ut.login_time().strftime(pattern).to_string()
+    }
+}
+
+/// A largura da coluna de hora (do `%b %e %H:%M` ou do `%Y-%m-%d %H:%M`).
+fn time_width() -> usize {
+    if time_pattern() == "%b %e %H:%M" { 12 } else { 16 }
+}
+
+fn format_timestamp(ut: &UtmpxRecord) -> String {
+    // Porte pseudo-linus: `login_time` é um `jiff::Zoned` no fuso do pseudo-processo; os mesmos
+    // dois formatos do original, por strftime.
+    ut.login_time().strftime(time_pattern()).to_string()
 }
 
 fn current_tty() -> String {
@@ -424,8 +444,8 @@ impl Who {
     }
 
     fn emit_row(&self, row: &Row) -> UResult<()> {
-        // Width of "%b %e %H:%M" under LC_ALL=C.
-        const TIME_WIDTH: usize = 3 + 2 + 2 + 1 + 2;
+        // Largura da coluna de hora (muda com o locale, ver `time_width`).
+        let time_width = time_width();
 
         let mut buf = String::with_capacity(64);
         write!(buf, "{:<8}", row.user).unwrap();
@@ -434,7 +454,7 @@ impl Who {
             buf.push(row.write_state);
         }
         write!(buf, " {:<12}", row.line).unwrap();
-        write!(buf, " {:<TIME_WIDTH$}", row.time).unwrap();
+        write!(buf, " {:<time_width$}", row.time).unwrap();
 
         if !self.layout.terse {
             if self.layout.idle {

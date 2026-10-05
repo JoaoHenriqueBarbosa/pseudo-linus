@@ -135,21 +135,17 @@ impl Options {
 
 #[derive(Debug, Error)]
 enum OptionsError {
-    // TODO This needs to vary based on whether `--block-size`
-    // or `-B` were provided.
-    #[error("{}", translate!("df-error-block-size-too-large", "size" => .0))]
-    BlockSizeTooLarge(String),
-    // TODO This needs to vary based on whether `--block-size`
-    // or `-B` were provided.,
-    #[error("{}", translate!("df-error-invalid-block-size", "size" => .0))]
-    InvalidBlockSize(String),
-    // TODO This needs to vary based on whether `--block-size`
-    // or `-B` were provided.
-    #[error("{}", translate!("df-error-invalid-suffix", "size" => .0))]
-    InvalidSuffix(String),
+    // Porte pseudo-linus: as mensagens do GNU dizem como o tamanho foi pedido, `-B` ou
+    // `--block-size` (o primeiro campo).
+    #[error("{}", translate!("df-error-block-size-too-large", "option" => .0, "size" => .1))]
+    BlockSizeTooLarge(String, String),
+    #[error("{}", translate!("df-error-invalid-block-size", "option" => .0, "size" => .1))]
+    InvalidBlockSize(String, String),
+    #[error("{}", translate!("df-error-invalid-suffix", "option" => .0, "size" => .1))]
+    InvalidSuffix(String, String),
 
     /// An error getting the columns to display in the output table.
-    #[error("{}", translate!("df-error-field-used-more-than-once", "field" => format!("{}", .0)))]
+    #[error("{}", .0)]
     ColumnError(ColumnError),
 
     #[error(
@@ -160,6 +156,36 @@ enum OptionsError {
             .join("\ndf: ")
     )]
     FilesystemTypeBothSelectedAndExcluded(Vec<String>),
+}
+
+/// Porte pseudo-linus: como o tamanho de bloco foi pedido na última vez, `-B` ou `--block-size`
+/// (abreviado ou não), que o GNU repete na mensagem de erro.
+fn block_size_option() -> String {
+    let mut option = "-B";
+    for arg in uucore::args_os().skip(1) {
+        let bytes = arg.as_encoded_bytes();
+        if bytes == b"--" {
+            break;
+        }
+        if let Some(long) = bytes.strip_prefix(b"--") {
+            let name = long.split(|&b| b == b'=').next().unwrap_or(long);
+            if !name.is_empty() && b"block-size".starts_with(name) {
+                option = "--block-size";
+            }
+        } else if bytes.len() > 1 && bytes[0] == b'-' {
+            // Aglomerado de curtas: o B conta até uma opção que leva valor (-t, -x) comê-lo.
+            for &c in &bytes[1..] {
+                if c == b'B' {
+                    option = "-B";
+                    break;
+                }
+                if c == b't' || c == b'x' {
+                    break;
+                }
+            }
+        }
+    }
+    option.to_string()
 }
 
 /// The error for a `--block-size` that could not be parsed, with a caret under
@@ -182,11 +208,13 @@ fn block_size_error(
     let size = matches
         .get_one::<String>(OPT_BLOCKSIZE)
         .expect("a block size error can only come from --block-size");
+    let option = block_size_option();
+    let quoted = size.quote().to_string();
     let options_error = match error {
-        ParseSizeError::InvalidSuffix(s) => OptionsError::InvalidSuffix(s.clone()),
-        ParseSizeError::SizeTooBig(_) => OptionsError::BlockSizeTooLarge(size.clone()),
-        ParseSizeError::ParseFailure(s) | ParseSizeError::PhysicalMem(s) => {
-            OptionsError::InvalidBlockSize(s.clone())
+        ParseSizeError::InvalidSuffix(_) => OptionsError::InvalidSuffix(option, quoted),
+        ParseSizeError::SizeTooBig(_) => OptionsError::BlockSizeTooLarge(option, size.clone()),
+        ParseSizeError::ParseFailure(_) | ParseSizeError::PhysicalMem(_) => {
+            OptionsError::InvalidBlockSize(option, quoted)
         }
     };
     let message = options_error.to_string();
@@ -627,7 +655,7 @@ pub fn uu_app() -> Command {
                 .num_args(0..)
                 .require_equals(true)
                 .use_value_delimiter(true)
-                .value_parser(OUTPUT_FIELD_LIST)
+                .value_parser(clap::value_parser!(String))
                 .default_missing_values(OUTPUT_FIELD_LIST)
                 .default_values(["source", "size", "used", "avail", "pcent", "target"])
                 .conflicts_with_all([OPT_INODES, OPT_PORTABILITY, OPT_PRINT_TYPE])

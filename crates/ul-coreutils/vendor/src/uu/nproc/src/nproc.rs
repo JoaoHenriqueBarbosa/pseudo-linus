@@ -20,8 +20,23 @@ static OPT_IGNORE: &str = "ignore";
 #[uucore::main(no_signals)]
 pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let matches = uucore::clap_localization::handle_clap_result(uu_app(), args)?;
+    // Porte pseudo-linus: o N é validado aqui, com a mensagem do GNU (`invalid number: ‘abc’`);
+    // um valor que não cabe satura, como o `xstrtoul` do GNU faz.
     #[allow(clippy::unwrap_used, reason = "clap provides 0 by default")]
-    let ignore = *matches.get_one::<usize>(OPT_IGNORE).unwrap();
+    let ignore_text = matches.get_one::<String>(OPT_IGNORE).unwrap();
+    let ignore = match ignore_text.trim_start().parse::<usize>() {
+        Ok(n) => n,
+        Err(e) if *e.kind() == std::num::IntErrorKind::PosOverflow => usize::MAX,
+        Err(_) => {
+            return Err(USimpleError::new(
+                1,
+                translate!(
+                    "nproc-error-invalid-number",
+                    "value" => uucore::display::locale_quote(ignore_text)
+                ),
+            ));
+        }
+    };
     // Uses the OpenMP variable to limit the number of threads
     // Non OMP_THREAD_LIMIT>0 cases are rejected
     let limit = env::var("OMP_THREAD_LIMIT")
@@ -77,15 +92,7 @@ pub fn uu_app() -> Command {
                 .long(OPT_IGNORE)
                 .value_name("N")
                 .default_value("0")
-                .value_parser(|s: &str| -> Result<usize, String> {
-                    match s.trim().parse::<usize>() {
-                        Ok(n) => Ok(n),
-                        Err(e) if *e.kind() == std::num::IntErrorKind::PosOverflow => {
-                            Ok(usize::MAX)
-                        }
-                        Err(e) => Err(e.to_string()),
-                    }
-                })
+                .value_parser(clap::value_parser!(String))
                 .help(translate!("nproc-help-ignore")),
         )
 }
