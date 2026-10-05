@@ -108,7 +108,7 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
                         push_line(&mut out, &r.git_dir);
                     } else {
                         let d = &r.git_dir_display;
-                        let shown = if d.starts_with(b"/") || d == b"." || d == b".git" { d.clone() } else { d.clone() };
+                        let shown = d.clone();
                         push_line(&mut out, &shown);
                     }
                 }

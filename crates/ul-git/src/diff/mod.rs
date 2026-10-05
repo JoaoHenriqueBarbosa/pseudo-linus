@@ -179,8 +179,11 @@ pub fn diff_trees(repo: &Repo, a: Option<&Oid>, b: Option<&Oid>, ps: &Pathspec) 
     Ok(pairs_between(&fa, &fb))
 }
 
+/// Mapa de caminho para (modo, oid).
+type ModeOidMap = BTreeMap<Vec<u8>, (u32, Oid)>;
+
 /// Entradas de estágio 0 do índice (e caminhos em conflito à parte).
-fn index_files(idx: &Index, ps: &Pathspec) -> (BTreeMap<Vec<u8>, (u32, Oid)>, Vec<Vec<u8>>) {
+fn index_files(idx: &Index, ps: &Pathspec) -> (ModeOidMap, Vec<Vec<u8>>) {
     let mut files = BTreeMap::new();
     let mut unmerged = Vec::new();
     for e in &idx.entries {

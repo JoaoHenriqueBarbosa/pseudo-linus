@@ -400,7 +400,7 @@ fn dest_suppressed(repo: &Repo, dest: &str) -> bool {
     let mut active: Vec<Vec<u8>> = Vec::new();
     for p in pats {
         match p {
-            Some(v) if v.is_empty() => active.clear(),
+            Some([]) => active.clear(),
             Some(v) => active.push(v.to_vec()),
             None => {}
         }

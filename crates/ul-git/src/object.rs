@@ -350,9 +350,12 @@ pub fn parse_commit(data: &[u8]) -> Result<Commit, String> {
     Ok(c)
 }
 
+/// Pares (nome, valor) de cabeçalho.
+pub type Headers = Vec<(Vec<u8>, Vec<u8>)>;
+
 /// Separa os cabeçalhos (com continuação por linhas que começam com espaço) da mensagem.
-pub fn split_headers(data: &[u8]) -> (Vec<(Vec<u8>, Vec<u8>)>, &[u8]) {
-    let mut headers: Vec<(Vec<u8>, Vec<u8>)> = Vec::new();
+pub fn split_headers(data: &[u8]) -> (Headers, &[u8]) {
+    let mut headers: Headers = Vec::new();
     let mut i = 0;
     while i < data.len() {
         let end = data[i..].iter().position(|b| *b == b'\n').map(|p| p + i).unwrap_or(data.len());

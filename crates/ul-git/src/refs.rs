@@ -345,7 +345,7 @@ impl Repo {
         {
             return Err(Fail::Fatal(match (expect, current) {
                 (None, Some(_)) => format!("cannot lock ref '{name}': reference already exists"),
-                (Some(e), None) => format!("cannot lock ref '{name}': unable to resolve reference '{target}'{}", if e.is_zero() { "" } else { "" }),
+                (Some(_), None) => format!("cannot lock ref '{name}': unable to resolve reference '{target}'"),
                 (Some(e), Some(c)) => format!("cannot lock ref '{name}': is at {c} but expected {e}"),
                 (None, None) => unreachable!(),
             }));

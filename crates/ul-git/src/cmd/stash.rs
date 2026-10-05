@@ -445,7 +445,7 @@ struct PushArgs {
 fn do_push_stash(git: &Git, ps: &Pathspec, a: &PushArgs) -> R<i32> {
     let repo = git.repo()?;
     let mut keep_index = a.keep_index;
-    let mut only_staged = a.only_staged;
+    let only_staged = a.only_staged;
     if a.patch && keep_index == -1 {
         keep_index = 1;
     }
@@ -454,7 +454,6 @@ fn do_push_stash(git: &Git, ps: &Pathspec, a: &PushArgs) -> R<i32> {
         return Ok(1);
     }
     if a.patch {
-        only_staged = false;
         return Err(Fail::Fatal("interactive stash needs a terminal; this sandbox has none".into()));
     }
     if only_staged && a.include_untracked > 0 {

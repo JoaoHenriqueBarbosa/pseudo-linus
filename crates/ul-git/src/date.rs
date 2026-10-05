@@ -603,7 +603,7 @@ pub fn approxidate_at(input: &str, now: i64) -> Option<i64> {
                     matched = true;
                 }
                 _ => {
-                    let Some(wd) = weekday_from_word(w) else { return None };
+                    let wd = weekday_from_word(w)?;
                     let cur = tm_of(t, zone.offset_at(t));
                     let mut back = (cur.wday as i64 - wd as i64).rem_euclid(7);
                     if back == 0 {

@@ -668,15 +668,17 @@ fn subject_of(ctx: &mut Ctx, oid: &Oid) -> R<Vec<u8>> {
 fn list_branches(repo: &Repo, p: &opts::Parsed, usage: &str, colopts: u32) -> R<i32> {
     let all = p.has("all");
     let remotes = p.has("remotes");
-    let mut filter = Filter::default();
-    filter.kinds = if all {
-        vec!["refs/heads/".to_string(), "refs/remotes/".to_string()]
-    } else if remotes {
-        vec!["refs/remotes/".to_string()]
-    } else {
-        vec!["refs/heads/".to_string()]
+    let mut filter = Filter {
+        kinds: if all {
+            vec!["refs/heads/".to_string(), "refs/remotes/".to_string()]
+        } else if remotes {
+            vec!["refs/remotes/".to_string()]
+        } else {
+            vec!["refs/heads/".to_string()]
+        },
+        patterns: p.args.iter().map(|a| os::lossy(a)).collect(),
+        ..Default::default()
     };
-    filter.patterns = p.args.iter().map(|a| os::lossy(a)).collect();
     reffmt::apply_filter_opts(repo, p, &mut filter)?;
     let mut keys = Vec::new();
     let sorts = p.values("sort");

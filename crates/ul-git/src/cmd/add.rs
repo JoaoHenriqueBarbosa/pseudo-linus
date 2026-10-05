@@ -277,14 +277,14 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     }
     os::outs(&out);
     // Pathspec que não casou com nada.
-    if !p.has("ignore-missing") {
-        if let Some(it) = ps.unmatched(&seen).into_iter().next() {
-            // Caminho que existe só como diretório vazio também não casa.
-            if changed && !dry {
-                idx.write(&ipath)?;
-            }
-            return Err(Fail::Fatal(format!("pathspec '{}' did not match any files", os::lossy(&it.orig))));
+    if !p.has("ignore-missing")
+        && let Some(it) = ps.unmatched(&seen).into_iter().next()
+    {
+        // Caminho que existe só como diretório vazio também não casa.
+        if changed && !dry {
+            idx.write(&ipath)?;
         }
+        return Err(Fail::Fatal(format!("pathspec '{}' did not match any files", os::lossy(&it.orig))));
     }
     if changed && !dry {
         idx.write(&ipath)?;

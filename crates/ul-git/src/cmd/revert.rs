@@ -1061,14 +1061,16 @@ fn verify_opt_compatible(me: &str, base_opt: &str, list: &[(&str, bool)]) -> R<(
 /// As opções e o modo (`--continue` e companhia).
 fn parse_ro(action: Action, p: &opts::Parsed) -> R<(Ro, Mode)> {
     let me = action.name();
-    let mut o = Ro::default();
-    o.no_commit = p.has("no-commit");
-    o.edit = match p.flag("edit") {
-        Some(true) => 1,
-        Some(false) => 0,
-        None => -1,
+    let mut o = Ro {
+        no_commit: p.has("no-commit"),
+        edit: match p.flag("edit") {
+            Some(true) => 1,
+            Some(false) => 0,
+            None => -1,
+        },
+        signoff: p.has("signoff"),
+        ..Default::default()
     };
-    o.signoff = p.has("signoff");
     if let Some(v) = p.value("mainline") {
         match std::str::from_utf8(v).ok().and_then(|s| s.parse::<i64>().ok()) {
             Some(n) if n > 0 => o.mainline = n as usize,

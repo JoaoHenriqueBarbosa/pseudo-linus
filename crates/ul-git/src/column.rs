@@ -33,8 +33,12 @@ const WORDS: [(&str, u32, u32); 7] = [
     ("dense", DENSE, 0),
 ];
 
+/// Opção de coluna inválida; a mensagem já saiu no stderr.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InvalidOption;
+
 /// Uma palavra (`parse_option`). `rest` é o texto dali até o fim, que é o que o C mostra no erro.
-fn parse_word(word: &[u8], rest: &[u8], colopts: &mut u32, group_set: &mut u32) -> Result<(), ()> {
+fn parse_word(word: &[u8], rest: &[u8], colopts: &mut u32, group_set: &mut u32) -> Result<(), InvalidOption> {
     for (name, value, mask) in WORDS {
         let (w, set) = match word.strip_prefix(b"no") {
             Some(w) if mask == 0 && !w.is_empty() => (w, false),
@@ -58,12 +62,12 @@ fn parse_word(word: &[u8], rest: &[u8], colopts: &mut u32, group_set: &mut u32) 
         return Ok(());
     }
     error(&format!("unsupported option '{}'", os::lossy(rest)));
-    Err(())
+    Err(InvalidOption)
 }
 
 /// Uma lista de palavras separadas por espaço ou vírgula (`parse_config`). Escolher só o
 /// layout liga a saída em colunas.
-pub fn parse_config(colopts: &mut u32, value: &[u8]) -> Result<(), ()> {
+pub fn parse_config(colopts: &mut u32, value: &[u8]) -> Result<(), InvalidOption> {
     let is_sep = |c: &u8| *c == b' ' || *c == b',';
     let mut group_set = 0;
     let mut i = 0;

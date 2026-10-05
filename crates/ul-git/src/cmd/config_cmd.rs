@@ -294,7 +294,7 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
                 return Err(opts::usage_error(usage, "wrong number of arguments, should be from 1 to 2"));
             }
             let key_arg = os::lossy(&a[0]);
-            let value_re = match a.get(1).or(p.value("value").map(|v| v).map(|_| &a[0]).filter(|_| false)) {
+            let value_re = match a.get(1).or(p.value("value").map(|_| &a[0]).filter(|_| false)) {
                 Some(v) => Some(regex::bytes::Regex::new(&os::lossy(v)).map_err(|_| Fail::Exit(6))?),
                 None => p.value("value").map(|v| regex::bytes::Regex::new(&os::lossy(v))).transpose().map_err(|_| Fail::Exit(6))?,
             };
@@ -318,7 +318,7 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
                     Ok(k) => k,
                     Err(e) => {
                         error(&e);
-                        return Ok(if e.contains("section") || e.contains("variable name") { 1 } else { 1 });
+                        return Ok(1);
                     }
                 };
                 let canon = parts.canonical();

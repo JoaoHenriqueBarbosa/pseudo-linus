@@ -268,7 +268,7 @@ fn update_ref_stdin(repo: &Repo, msg: &str, z: bool) -> R<i32> {
         let get = |i: usize| -> R<Option<Oid>> {
             match words.get(i) {
                 None => Ok(None),
-                Some(w) if w.is_empty() => Ok(None),
+                Some([]) => Ok(None),
                 Some(w) => Ok(Some(repo.rev_parse(w)?.ok_or_else(|| Fail::Fatal(format!("invalid new value for ref {}: {}", os::lossy(words[1]), os::lossy(w))))?)),
             }
         };
@@ -450,7 +450,7 @@ pub fn show_ref(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         return Ok(if repo.read_ref(&name)?.is_some() {
             0
         } else {
-            error(&"reference does not exist".to_string());
+            error("reference does not exist");
             2
         });
     }
