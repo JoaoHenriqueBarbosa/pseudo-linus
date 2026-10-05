@@ -486,7 +486,10 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         return set_system_datetime(convert_for_set(date, settings.utc));
     }
 
-    let allow_extended = matches!(settings.format, Format::Default);
+    // Porte pseudo-linus: o GNU aceita uma data além do alcance do jiff (ano de mais de quatro
+    // dígitos, ou 9999-12-31 depois do último instante que o jiff representa) com qualquer formato
+    // de saída, e `format_extended_default` formata qualquer um deles.
+    let allow_extended = true;
     let output_time_zone = now.time_zone().clone();
 
     // Iterate over all dates - whether it's a single date or a file.
@@ -894,19 +897,22 @@ fn format_date_with_locale_aware_months(
 
 /// Return the appropriate format string for the given settings.
 fn make_format_string(settings: &Settings) -> &str {
+    // Porte pseudo-linus: o date.c do GNU monta os formatos ISO 8601 e RFC 3339 com `%Y-%m-%d` e não
+    // com `%F`, porque o `%F` da glibc põe um `+` antes de um ano de mais de quatro dígitos
+    // (`+10000-01-01`) e o `-I` não.
     match settings.format {
         Format::Iso8601(ref fmt) => match *fmt {
-            Iso8601Format::Date => "%F",
-            Iso8601Format::Hours => "%FT%H%:z",
-            Iso8601Format::Minutes => "%FT%H:%M%:z",
-            Iso8601Format::Seconds => "%FT%T%:z",
-            Iso8601Format::Ns => "%FT%T,%N%:z",
+            Iso8601Format::Date => "%Y-%m-%d",
+            Iso8601Format::Hours => "%Y-%m-%dT%H%:z",
+            Iso8601Format::Minutes => "%Y-%m-%dT%H:%M%:z",
+            Iso8601Format::Seconds => "%Y-%m-%dT%H:%M:%S%:z",
+            Iso8601Format::Ns => "%Y-%m-%dT%H:%M:%S,%N%:z",
         },
         Format::Rfc5322 => "%a, %d %h %Y %T %z",
         Format::Rfc3339(ref fmt) => match *fmt {
-            Rfc3339Format::Date => "%F",
-            Rfc3339Format::Seconds => "%F %T%:z",
-            Rfc3339Format::Ns => "%F %T.%N%:z",
+            Rfc3339Format::Date => "%Y-%m-%d",
+            Rfc3339Format::Seconds => "%Y-%m-%d %H:%M:%S%:z",
+            Rfc3339Format::Ns => "%Y-%m-%d %H:%M:%S.%N%:z",
         },
         Format::Resolution => "%s.%N",
         Format::Custom(ref fmt) => fmt,
