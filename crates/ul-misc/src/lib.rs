@@ -5,7 +5,7 @@
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
 //! `getent` e `locale` (glibc 2.41).
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
+//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`, `renice`. Da glibc 2.41 também o `zdump` (tzcode). Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
 //! e, como os scripts originais rodando no `sh`, `savelog`, `add-shell` e `remove-shell`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
@@ -34,6 +34,7 @@ pub mod mountpoint;
 pub mod namei;
 pub mod pager;
 pub mod rename_ul;
+pub mod renice;
 pub mod rev;
 pub mod run_parts;
 pub mod setsid;
@@ -81,6 +82,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("ngettext", gettext::ngettext_main),
         Program::bin("more", pager::more_main),
         Program::bin("rename.ul", rename_ul::main),
+        Program::bin("renice", renice::main),
         Program::bin("reset", term::tset::main),
         Program::bin("rev", rev::main),
         Program::bin("run-parts", run_parts::main),

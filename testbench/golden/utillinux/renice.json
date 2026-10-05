@@ -1,0 +1,86 @@
+{
+  "renice-bad-pgrp": {
+    "stdout": "",
+    "stderr": "renice: bad process group ID value: -3\n",
+    "exit": 1,
+    "files": {}
+  },
+  "renice-bad-pid": {
+    "stdout": "",
+    "stderr": "renice: bad process ID value: xyz\n",
+    "exit": 1,
+    "files": {}
+  },
+  "renice-bad-prio": {
+    "stdout": "",
+    "stderr": "renice: invalid priority 'abc'\nTry 'renice --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "renice-clamp": {
+    "stdout": "PID (process ID) old priority 0, new priority 19\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "renice-help": {
+    "stdout": "\nUsage:\n renice [-n|--priority|--relative] <priority> [-p|--pid] <pid>...\n renice [-n|--priority|--relative] <priority>  -g|--pgrp <pgid>...\n renice [-n|--priority|--relative] <priority>  -u|--user <user>...\n\nAlter the priority of running processes.\n\nOptions:\n -n <num>               specify the nice value;\n                          if POSIXLY_CORRECT flag is set in environment,\n                          then the priority is 'relative' to current\n                          process priority; otherwise it is 'absolute'\n --priority <num>       specify the 'absolute' nice value\n --relative <num>       specify the 'relative' nice value\n -p, --pid              interpret arguments as process ID (default)\n -g, --pgrp             interpret arguments as process group ID\n -u, --user             interpret arguments as username or user ID\n\n -h, --help             display this help\n -V, --version          display version\n\nFor more details see renice(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "renice-lower-denied": {
+    "stdout": "renice: failed to set priority for PID (process ID): Permission denied\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "renice-missing-pid": {
+    "stdout": "",
+    "stderr": "renice: failed to get priority for 999999 (process ID): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "renice-no-args": {
+    "stdout": "",
+    "stderr": "renice: not enough arguments\nTry 'renice --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "renice-only-prio": {
+    "stdout": "",
+    "stderr": "renice: not enough arguments\nTry 'renice --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "renice-pgrp-missing": {
+    "stdout": "",
+    "stderr": "renice: failed to get priority for 999999 (process group ID): No such process\n",
+    "exit": 1,
+    "files": {}
+  },
+  "renice-relative": {
+    "stdout": "PID (process ID) old priority 2, new priority 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "renice-self": {
+    "stdout": "PID (process ID) old priority 0, new priority 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "renice-unknown-user": {
+    "stdout": "",
+    "stderr": "renice: unknown user nobody-here\n",
+    "exit": 1,
+    "files": {}
+  },
+  "renice-version": {
+    "stdout": "renice from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

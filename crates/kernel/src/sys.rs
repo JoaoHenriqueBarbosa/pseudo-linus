@@ -1340,11 +1340,14 @@ impl Syscalls for Task {
         let p = self.proc_attr_caller_check(pid)?;
         let nice = nice.clamp(-20, 19);
         let cred = self.proc.st.lock().cred.clone();
+        let nice_rlim = self.proc.st.lock().rlimits[Resource::Nice as usize].cur;
         let mut st = p.st.lock();
-        if !cred.is_root() && st.cred.uid != cred.uid {
+        // `set_one_prio` do Linux. O oráculo é um contêiner docker com as capabilities padrão, em que
+        // nem o root tem CAP_SYS_NICE: outro dono dá EPERM e baixar a nice só passa pelo RLIMIT_NICE.
+        if st.cred.uid != cred.uid {
             return Err(Errno::EPERM);
         }
-        if nice < st.nice && !cred.is_root() {
+        if nice < st.nice && (20 - nice) as u64 > nice_rlim {
             return Err(Errno::EACCES);
         }
         st.nice = nice;

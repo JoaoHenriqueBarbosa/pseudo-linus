@@ -1,0 +1,75 @@
+tool = "renice"
+source = "manual"
+
+# renice do util-linux 2.41. Os alvos são o próprio shell ($$) ou processos que não existem, pra
+# não depender dos pids do sandbox na saída; os casos com $$ mostram só a forma da linha.
+
+[[case]]
+id = "renice-help"
+argv = ["renice", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "renice-version"
+argv = ["renice", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "renice-no-args"
+argv = ["renice"]
+tags = ["error"]
+
+[[case]]
+id = "renice-only-prio"
+argv = ["renice", "5"]
+tags = ["error"]
+
+[[case]]
+id = "renice-bad-prio"
+argv = ["renice", "abc", "1"]
+tags = ["error"]
+
+[[case]]
+id = "renice-bad-pid"
+argv = ["renice", "5", "-p", "xyz"]
+tags = ["error"]
+
+[[case]]
+id = "renice-bad-pgrp"
+argv = ["renice", "5", "-g", "-3"]
+tags = ["error"]
+
+[[case]]
+id = "renice-unknown-user"
+argv = ["renice", "5", "-u", "nobody-here"]
+tags = ["error"]
+
+[[case]]
+id = "renice-missing-pid"
+argv = ["renice", "5", "-p", "999999"]
+tags = ["error"]
+
+[[case]]
+id = "renice-self"
+script = "renice -n 3 -p $$ | sed 's/^[0-9]*/PID/'"
+tags = ["process"]
+
+[[case]]
+id = "renice-relative"
+script = "renice --priority 2 $$ >/dev/null; renice --relative 3 $$ | sed 's/^[0-9]*/PID/'"
+tags = ["process"]
+
+[[case]]
+id = "renice-clamp"
+script = "renice 40 $$ | sed 's/^[0-9]*/PID/'"
+tags = ["process"]
+
+[[case]]
+id = "renice-lower-denied"
+script = "renice 5 $$ >/dev/null; renice 1 $$ 2>&1 | sed 's/[0-9][0-9]* (process/PID (process/'; echo $?"
+tags = ["process", "error"]
+
+[[case]]
+id = "renice-pgrp-missing"
+argv = ["renice", "5", "-g", "999999"]
+tags = ["pgrp", "error"]
