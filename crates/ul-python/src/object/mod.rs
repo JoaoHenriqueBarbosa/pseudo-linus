@@ -43,6 +43,49 @@ pub enum Value {
     Tuple(Rc<[Value]>),
     Dict(Rc<RefCell<Dict>>),
     Set(Rc<RefCell<Set>>),
+    /// `range(start, stop, step)`, imutável e sem identidade observável nesta fase.
+    Range(Range),
+    /// Função embutida, pelo nome (`print`, `len`...); o interpretador resolve a chamada.
+    Builtin(&'static str),
+}
+
+/// Valor de um `range` (`Objects/rangeobject.c`), com `step != 0`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Range {
+    pub start: i64,
+    pub stop: i64,
+    pub step: i64,
+}
+
+impl Range {
+    /// `len(range)` (`compute_range_length`).
+    pub fn len(&self) -> i64 {
+        let (lo, hi, step) = if self.step > 0 {
+            (i128::from(self.start), i128::from(self.stop), i128::from(self.step))
+        } else {
+            (i128::from(self.stop), i128::from(self.start), -i128::from(self.step))
+        };
+        if lo >= hi {
+            0
+        } else {
+            ((hi - lo - 1) / step + 1) as i64
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Elemento `i` (já normalizado, `0 <= i < len`).
+    pub fn item(&self, i: i64) -> i64 {
+        self.start + i * self.step
+    }
+
+    /// `x in range` para inteiros.
+    pub fn contains_int(&self, x: i64) -> bool {
+        let in_bounds = if self.step > 0 { self.start <= x && x < self.stop } else { self.stop < x && x <= self.start };
+        in_bounds && (i128::from(x) - i128::from(self.start)) % i128::from(self.step) == 0
+    }
 }
 
 /// Erros do modelo de objetos. O interpretador (fatia 11) converte em exceções Python.
@@ -92,6 +135,9 @@ impl Value {
             Value::Tuple(_) => "tuple",
             Value::Dict(_) => "dict",
             Value::Set(_) => "set",
+            Value::Range(_) => "range",
+            Value::Builtin(name) if is_builtin_type(name) => "type",
+            Value::Builtin(_) => "builtin_function_or_method",
         }
     }
 
@@ -108,6 +154,8 @@ impl Value {
             Value::Tuple(t) => !t.is_empty(),
             Value::Dict(d) => !d.borrow().is_empty(),
             Value::Set(s) => !s.borrow().is_empty(),
+            Value::Range(r) => !r.is_empty(),
+            Value::Builtin(_) => true,
         }
     }
 }
@@ -116,6 +164,12 @@ impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&repr(self))
     }
+}
+
+/// Embutidos que no CPython são classes (`str`, `int`, `range`...), não funções: o `repr` deles é
+/// `<class 'str'>` e o tipo é `type`.
+pub fn is_builtin_type(name: &str) -> bool {
+    matches!(name, "bool" | "int" | "float" | "str" | "list" | "tuple" | "dict" | "set" | "range")
 }
 
 /// Endereço de um objeto compartilhado, para identidade e para a pilha do `repr`.
@@ -174,6 +228,10 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Tuple(t) => list::tuple_repr(t, addr(t), out, stack),
         Value::Dict(d) => dict::dict_repr(&d.borrow(), addr(d), out, stack),
         Value::Set(s) => set::set_repr(&s.borrow(), addr(s), out, stack),
+        Value::Range(r) if r.step == 1 => out.push_str(&format!("range({}, {})", r.start, r.stop)),
+        Value::Range(r) => out.push_str(&format!("range({}, {}, {})", r.start, r.stop, r.step)),
+        Value::Builtin(name) if is_builtin_type(name) => out.push_str(&format!("<class '{name}'>")),
+        Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
     }
 }
 
@@ -189,8 +247,24 @@ pub fn is(a: &Value, b: &Value) -> bool {
         (Value::Tuple(x), Value::Tuple(y)) => Rc::ptr_eq(x, y),
         (Value::Dict(x), Value::Dict(y)) => Rc::ptr_eq(x, y),
         (Value::Set(x), Value::Set(y)) => Rc::ptr_eq(x, y),
+        (Value::Builtin(x), Value::Builtin(y)) => x == y,
         _ => false,
     }
+}
+
+/// `range_equals`: mesma sequência de valores, não os mesmos argumentos.
+fn range_eq(a: &Range, b: &Range) -> bool {
+    let len = a.len();
+    if len != b.len() {
+        return false;
+    }
+    if len == 0 {
+        return true;
+    }
+    if a.start != b.start {
+        return false;
+    }
+    len == 1 || a.step == b.step
 }
 
 /// Visão numérica de `bool`, `int` e `float` para comparação entre tipos.
@@ -232,6 +306,8 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
         (Value::Tuple(x), Value::Tuple(y)) => Rc::ptr_eq(x, y) || list::seq_eq(x, y),
         (Value::Dict(x), Value::Dict(y)) => Rc::ptr_eq(x, y) || dict::dict_eq(&x.borrow(), &y.borrow()),
         (Value::Set(x), Value::Set(y)) => Rc::ptr_eq(x, y) || set::set_eq(&x.borrow(), &y.borrow()),
+        (Value::Range(x), Value::Range(y)) => range_eq(x, y),
+        (Value::Builtin(x), Value::Builtin(y)) => x == y,
         _ => false,
     }
 }
@@ -249,6 +325,15 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Str(s) => Ok(s.hash()),
         Value::Bytes(b) => Ok(bytes_hash(b)),
         Value::Tuple(t) => tuple_hash(t),
+        // `range_hash`: hash de `(len, start, step)`, com `None` no que não distingue a sequência.
+        Value::Range(r) => {
+            let len = r.len();
+            let start = if len == 0 { Value::None } else { Value::Int(r.start) };
+            let step = if len <= 1 { Value::None } else { Value::Int(r.step) };
+            tuple_hash(&[Value::Int(len), start, step])
+        }
+        // O CPython usa o endereço; aqui basta um valor estável por função.
+        Value::Builtin(name) => Ok(PyStr::new(*name).hash()),
         Value::List(_) | Value::Dict(_) | Value::Set(_) => {
             Err(ObjError::TypeError(format!("unhashable type: '{}'", v.type_name())))
         }
