@@ -744,8 +744,10 @@ pub fn uu_app() -> Command {
                 .short('I')
                 .long(OPT_ISO_8601)
                 .value_name("FMT")
+                // Porte pseudo-linus: a ordem do `time_spec_string` do date.c do GNU, que é a da lista
+                // "Valid arguments are:" do erro (não a alfabética).
                 .value_parser(ShortcutValueParser::new([
-                    DATE, HOURS, MINUTES, SECONDS, NS,
+                    HOURS, MINUTES, DATE, SECONDS, NS,
                 ]))
                 .num_args(0..=1)
                 .default_missing_value(OPT_DATE)
