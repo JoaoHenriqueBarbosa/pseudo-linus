@@ -11,8 +11,6 @@
 //! Tudo passa por `sysabi`; nada toca o host.
 
 pub mod agetty;
-pub mod apt;
-pub mod dpkg;
 pub mod bc;
 pub mod binutils;
 pub mod blkdiscard;
@@ -158,15 +156,6 @@ pub fn programs() -> Vec<Program> {
         Program::bin("addr2line", binutils::addr2line::main),
         Program::bin("elfedit", binutils::elfedit::main),
         Program::bin("objcopy", binutils::objcopy::main),
-        Program::bin("apt", apt::apt_main),
-        Program::bin("apt-cache", apt::apt_cache_main),
-        Program::bin("apt-cdrom", apt::apt_cdrom_main),
-        Program::bin("apt-config", apt::apt_config_main),
-        Program::bin("apt-get", apt::apt_get_main),
-        Program::bin("apt-mark", apt::apt_mark_main),
-        Program::bin("dpkg", dpkg::dpkg_main),
-        Program::bin("dpkg-query", dpkg::query_main),
-        Program::bin("dpkg-trigger", dpkg::trigger_main),
         Program::bin("ar", binutils::ar::main),
         Program::bin("bc", bc::main),
         Program::bin("nm", binutils::nm::main),
