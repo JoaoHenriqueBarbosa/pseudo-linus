@@ -7,6 +7,7 @@
 pub mod common;
 pub mod free;
 pub mod kill;
+pub mod killall;
 pub mod matcher;
 pub mod pgrep;
 pub mod pidof;
@@ -21,6 +22,7 @@ pub fn programs() -> Vec<Program> {
     vec![
         Program::bin("free", free::main),
         Program::bin("kill", kill::main),
+        Program::bin("killall", killall::main),
         Program::bin("pgrep", pgrep::pgrep_main),
         Program::bin("pidof", pidof::main),
         Program::bin("pidwait", pgrep::pidwait_main),
