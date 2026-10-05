@@ -190,7 +190,11 @@ struct Opts {
 /// Uma linha lida de arquivo/stdin ou a mensagem da linha de comando: só o eco de `-s`, pois não há
 /// socket pra onde entregar.
 fn emit(o: &Opts, msg: &[u8]) {
-    if o.stderr_echo {
+    // O eco só sai depois de entregar ao socket, que o sandbox não tem (ver o fim de `run`).
+    if !o.stderr_echo || o.prio_prefix && msg.is_empty() {
+        return;
+    }
+    if o.max_size == usize::MAX {
         let mut line = o.tag.as_bytes().to_vec();
         if let Some(p) = &o.pid {
             line.push(b'[');
@@ -361,6 +365,11 @@ fn run(args: &[OsString]) -> i32 {
             Ok(d) => process_lines(&o, &d),
             Err(_) => return 1,
         }
+    }
+    // Sem socket no sandbox: com `-s` o original (socket-errors auto) avisa e falha.
+    if o.stderr_echo {
+        io::eprint("logger: socket /dev/log: No such file or directory\n".to_string());
+        return 1;
     }
     0
 }

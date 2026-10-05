@@ -192,6 +192,7 @@ enum Ent {
     Smaps = 22,
     OomScore = 23,
     OomScoreAdj = 24,
+    Mountinfo = 25,
 }
 
 impl Ent {
@@ -222,6 +223,7 @@ impl Ent {
             22 => Ent::Smaps,
             23 => Ent::OomScore,
             24 => Ent::OomScoreAdj,
+            25 => Ent::Mountinfo,
             _ => return None,
         })
     }
@@ -244,6 +246,7 @@ const PID_ENTRIES: &[(&str, Ent)] = &[
     ("root", Ent::Root),
     ("exe", Ent::Exe),
     ("mounts", Ent::Mounts),
+    ("mountinfo", Ent::Mountinfo),
     ("smaps", Ent::Smaps),
     ("wchan", Ent::Wchan),
     ("schedstat", Ent::Schedstat),
@@ -271,6 +274,7 @@ const TASK_ENTRIES: &[(&str, Ent)] = &[
     ("root", Ent::Root),
     ("exe", Ent::Exe),
     ("mounts", Ent::Mounts),
+    ("mountinfo", Ent::Mountinfo),
     ("smaps", Ent::Smaps),
     ("wchan", Ent::Wchan),
     ("schedstat", Ent::Schedstat),
@@ -435,6 +439,49 @@ impl Procfs {
         out
     }
 
+    /// `/proc/<pid>/mountinfo`: id, id do pai, `maj:min`, raiz dentro do sistema de arquivos, ponto de
+    /// montagem, opções genéricas, `-`, tipo, origem e opções do sistema de arquivos. Sem campos
+    /// opcionais (nenhuma montagem do sandbox tem propagação compartilhada).
+    fn mountinfo_text(&self, cx: &Caller) -> Vec<u8> {
+        fn mangle(p: &[u8], out: &mut Vec<u8>) {
+            for &b in p {
+                if matches!(b, b' ' | b'\t' | b'\n' | b'\\') {
+                    out.extend_from_slice(format!("\\{b:03o}").as_bytes());
+                } else {
+                    out.push(b);
+                }
+            }
+        }
+        let mut out = Vec::new();
+        let Some(ns) = self.ns() else { return out };
+        for m in ns.mounts() {
+            let (parent_id, point) = match &m.parent {
+                None => (m.id, b"/".to_vec()),
+                Some((pm, mp)) => (
+                    pm.id,
+                    namei::d_path(&Loc { mnt: pm.clone(), ino: *mp }, &cx.root).unwrap_or_else(|_| b"/".to_vec()),
+                ),
+            };
+            let dev = m.fs.dev();
+            out.extend_from_slice(format!("{} {} {}:{} / ", m.id, parent_id, dev_major(dev), dev_minor(dev)).as_bytes());
+            mangle(&point, &mut out);
+            out.push(b' ');
+            out.extend_from_slice(m.flags.describe().as_bytes());
+            out.extend_from_slice(b" - ");
+            out.extend_from_slice(m.fs.fs_type().as_bytes());
+            out.push(b' ');
+            mangle(m.source.as_bytes(), &mut out);
+            out.push(b' ');
+            out.extend_from_slice(if m.read_only() { b"ro" } else { b"rw" });
+            if !m.fs_options.is_empty() {
+                out.push(b',');
+                out.extend_from_slice(m.fs_options.as_bytes());
+            }
+            out.push(b'\n');
+        }
+        out
+    }
+
     fn tunables(&self) -> std::sync::MutexGuard<'_, sysctl::Tunables> {
         self.tunables.lock().unwrap_or_else(|e| e.into_inner())
     }
@@ -552,6 +599,7 @@ impl Procfs {
                 Ok(c)
             }
             Some(Ent::Mounts) => Ok(self.mounts_text(cx)),
+            Some(Ent::Mountinfo) => Ok(self.mountinfo_text(cx)),
             Some(Ent::Stat) => {
                 let addrs = if may_read_mm(cx, p.uid) { self.layout(cx, &p).map(|l| l.addrs) } else { None };
                 Ok(render::stat(&p, addrs.as_ref()))
@@ -1110,9 +1158,10 @@ mod tests {
     fn maps_and_smaps_sit_where_the_kernel_tables_put_them() {
         let pos = |t: &[(&str, Ent)], nm: &str| t.iter().position(|(n, _)| *n == nm).unwrap();
         assert_eq!(pos(PID_ENTRIES, "maps"), pos(PID_ENTRIES, "statm") + 1);
-        assert_eq!(pos(PID_ENTRIES, "smaps"), pos(PID_ENTRIES, "mounts") + 1);
+        assert_eq!(pos(PID_ENTRIES, "mountinfo"), pos(PID_ENTRIES, "mounts") + 1);
+        assert_eq!(pos(PID_ENTRIES, "smaps"), pos(PID_ENTRIES, "mountinfo") + 1);
         assert_eq!(pos(TASK_ENTRIES, "maps") + 1, pos(TASK_ENTRIES, "children"));
-        assert_eq!(pos(TASK_ENTRIES, "smaps"), pos(TASK_ENTRIES, "mounts") + 1);
+        assert_eq!(pos(TASK_ENTRIES, "smaps"), pos(TASK_ENTRIES, "mountinfo") + 1);
         assert_eq!(ent_shape(Ent::Maps), (Shape::File, 0o444));
         assert_eq!(ent_shape(Ent::Smaps), (Shape::File, 0o444));
         assert_eq!(Ent::from_u32(Ent::Smaps as u32), Some(Ent::Smaps));

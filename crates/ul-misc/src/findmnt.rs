@@ -24,6 +24,9 @@ const OPT_REAL: i32 = 258;
 const OPT_TREE: i32 = 259;
 const OPT_VERBOSE: i32 = 260;
 const OPT_SHADOWED: i32 = 261;
+const OPT_ID: i32 = 262;
+const OPT_UNIQ_ID: i32 = 263;
+const OPT_VFS_ALL: i32 = 264;
 
 const LONGS: &[LongOpt] = &[
     LongOpt::new("all", HasArg::No, b'A' as i32),
@@ -32,15 +35,22 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("canonicalize", HasArg::No, b'c' as i32),
     LongOpt::new("nocanonicalize", HasArg::No, b'C' as i32),
     LongOpt::new("df", HasArg::No, b'D' as i32),
+    LongOpt::new("dfi", HasArg::No, b'I' as i32),
     LongOpt::new("direction", HasArg::Required, b'd' as i32),
     LongOpt::new("evaluate", HasArg::No, b'e' as i32),
+    LongOpt::new("filter", HasArg::Required, b'Q' as i32),
     LongOpt::new("tab-file", HasArg::Required, b'F' as i32),
     LongOpt::new("first-only", HasArg::No, b'f' as i32),
     LongOpt::new("help", HasArg::No, b'h' as i32),
+    LongOpt::new("id", HasArg::Required, OPT_ID),
     LongOpt::new("invert", HasArg::No, b'i' as i32),
     LongOpt::new("json", HasArg::No, b'J' as i32),
-    LongOpt::new("kernel", HasArg::No, b'k' as i32),
+    LongOpt::new("kernel", HasArg::Optional, b'k' as i32),
     LongOpt::new("list", HasArg::No, b'l' as i32),
+    LongOpt::new("list-columns", HasArg::No, b'H' as i32),
+    LongOpt::new("shell", HasArg::No, b'y' as i32),
+    LongOpt::new("uniq-id", HasArg::Required, OPT_UNIQ_ID),
+    LongOpt::new("vfs-all", HasArg::No, OPT_VFS_ALL),
     LongOpt::new("mountpoint", HasArg::Required, b'M' as i32),
     LongOpt::new("mtab", HasArg::No, b'm' as i32),
     LongOpt::new("task", HasArg::Required, b'N' as i32),
@@ -139,70 +149,91 @@ const PSEUDOFS: &[&str] = &[
     "tracefs",
 ];
 
+/// Texto do `--help` do util-linux 2.41 (as linhas com espaço no fim são do original).
 fn usage(short: &str) -> String {
-    let mut s = format!(
-        "
-Usage:
- {short} [options]
- {short} [options] <device> | <mountpoint>
- {short} [options] <device> <mountpoint>
- {short} [options] [--source <device>] [--target <path> | --mountpoint <dir>]
+    let lines: &[&str] = &[
+        "",
+        "Usage:",
+        " {short} [options]",
+        " {short} [options] <device> | <mountpoint>",
+        " {short} [options] <device> <mountpoint>",
+        " {short} [options] [--source <device>] [--target <path> | --mountpoint <dir>]",
+        "",
+        "Find a (mounted) filesystem.",
+        "",
+        "Data sources:",
+        " -F, --tab-file <path>  alternative file for -s, -m or -k options",
+        " -m, --mtab             search in table of mounted filesystems",
+        "                          (includes user space mount options)",
+        " -k                     an alias for '--kernel=mountinfo'",
+        " --kernel[=<method>]    search in kernel mount table (default behavior);",
+        "                          <method> is mountinfo or listmount",
+        " -N, --task <tid>       use alternative namespace (/proc/<tid>/mountinfo file)",
+        " -p, --poll[=<list>]    monitor changes in table of mounted filesystems",
+        " -s, --fstab            search in static table of filesystems",
+        "",
+        "Data filters:",
+        " -A, --all              disable all built-in filters, print all filesystems",
+        " -d, --direction <word> direction of search, 'forward' or 'backward'",
+        " -f, --first-only       print the first found filesystem only",
+        " -i, --invert           invert the sense of matching",
+        "     --id <num>         filter by mount node ID",
+        "     --uniq-id <num>    filter by mount node 64-bit ID (requires --kernel=listmount)",
+        "     --pseudo           print only pseudo-filesystems",
+        " -Q, --filter <expr>    apply display filter",
+        " -M, --mountpoint <dir> the mountpoint directory",
+        "     --shadowed         print only filesystems over-mounted by another filesystem",
+        " -R, --submounts        print all submounts for the matching filesystems",
+        "     --real             print only real filesystems",
+        " -S, --source <string>  the device to mount (by name, maj:min, ",
+        "                          LABEL=, UUID=, PARTUUID=, PARTLABEL=)",
+        " -T, --target <path>    the path to the filesystem to use",
+        " -t, --types <list>     limit the set of filesystems by FS types",
+        " -U, --uniq             ignore filesystems with duplicate target",
+        "",
+        "Options:",
+        " -a, --ascii            use ASCII chars for tree formatting",
+        " -b, --bytes            print sizes in bytes rather than in human readable format",
+        " -C, --nocanonicalize   don't canonicalize when comparing paths",
+        " -c, --canonicalize     canonicalize printed paths",
+        " -D, --df               imitate the output of df(1)",
+        " -e, --evaluate         convert tags (LABEL,UUID,PARTUUID,PARTLABEL) ",
+        "                          to device names",
+        " -I, --dfi              imitate the output of df(1) with -i option",
+        " -J, --json             use JSON output format",
+        " -l, --list             use list format output",
+        " -n, --noheadings       don't print column headings",
+        " -O, --options <list>   limit the set of filesystems by mount options",
+        " -o, --output <list>    output columns (see --list-columns)",
+        "     --output-all       output all available columns",
+        " -P, --pairs            use key=\"value\" output format",
+        " -r, --raw              use raw output format",
+        "     --tree             enable tree format output if possible",
+        " -u, --notruncate       don't truncate text in columns",
+        " -v, --nofsroot         don't print [/dir] for bind or btrfs mounts",
+        " -w, --timeout <num>    upper limit in milliseconds that --poll will block",
+        " -y, --shell            use column names to be usable as shell variable identifiers",
+        "",
+        " -x, --verify           verify mount table content (default is fstab)",
+        "     --verbose          print more details",
+        "     --vfs-all          print all VFS options",
+        "",
+        " -H, --list-columns     list the available columns",
+        " -h, --help             display this help",
+        " -V, --version          display version",
+        "",
+        "For more details see findmnt(8).",
+        "",
+    ];
+    lines.join("\n").replace("{short}", short)
+}
 
-Find a (mounted) filesystem.
-
-Options:
- -s, --fstab            search in static table of filesystems
- -m, --mtab             search in table of mounted filesystems (includes user space mount options)
- -k, --kernel           search in kernel table of mounted filesystems (default)
-
- -p, --poll[=<list>]    monitor changes in table of mounted filesystems
- -w, --timeout <num>    upper limit in milliseconds that --poll will block
-
- -A, --all              disable all built-in filters, print all filesystems
- -a, --ascii            use ASCII chars for tree formatting
- -b, --bytes            print sizes in bytes rather than in human readable format
- -C, --nocanonicalize   don't canonicalize when comparing paths
- -c, --canonicalize     canonicalize printed paths
- -D, --df               imitate the output of df(1)
- -d, --direction <word> direction of search, 'forward' or 'backward'
- -e, --evaluate         convert tags (LABEL,UUID,PARTUUID,PARTLABEL) to device names
- -F, --tab-file <path>  alternative file for -s, -m or -k options
- -f, --first-only       print the first found filesystem only
- -i, --invert           invert the sense of matching
- -J, --json             use JSON output format
- -l, --list             use list format output
- -N, --task <tid>       use alternative namespace (/proc/<tid>/mountinfo file)
- -n, --noheadings       don't print column headings
- -O, --options <list>   limit the set of filesystems by mount options
- -o, --output <list>    the output columns to be shown
-     --output-all       output all available columns
- -P, --pairs            use key=\"value\" output format
-     --pseudo           print only pseudo-filesystems
- -R, --submounts        print all submounts for the selected filesystems
-     --real             print only real filesystems
- -r, --raw              use raw output format
- -S, --source <string>  the device to mount (by name, maj:min, LABEL=, UUID=, PARTUUID=, PARTLABEL=)
-     --shadowed         print only filesystems over-mounted by another filesystem
- -t, --types <list>     limit the set of filesystems by FS types
- -T, --target <path>    the path to the filesystem to use
-     --tree             enable tree format output is possible
- -M, --mountpoint <dir> the mountpoint directory
- -U, --uniq             ignore filesystems with duplicate target
- -u, --notruncate       don't truncate text in columns
- -v, --nofsroot         don't print [/dir] for bind or btrfs mounts
- -x, --verify           verify mount table content (default is fstab)
-     --verbose          print more details
-
- -h, --help             display this help
- -V, --version          display version
-
-Available output columns:
-"
-    );
+/// `--list-columns`: tabela de colunas disponíveis (nome e descrição).
+fn list_columns_text() -> String {
+    let mut s = String::from("Available output columns:\n");
     for (name, help, _) in COLUMNS {
         s.push_str(&format!(" {name:>11}  {help}\n"));
     }
-    s.push_str("\nFor more details see findmnt(8).\n");
     s
 }
 
@@ -579,7 +610,7 @@ fn run(args: &[OsString]) -> i32 {
 
     let mut g = Getopt::from_env(
         &argv[1..],
-        "AabCcDd:ehiJkF:fN:nO:o:pPRrsS:T:M:t:UuvVw:x",
+        "AabCcDd:ehiIJkF:fHlN:nO:o:pPQ:RrsS:T:M:t:UuvVw:xy",
         LONGS,
     );
     while let Some(r) = g.next_opt() {
@@ -598,7 +629,12 @@ fn run(args: &[OsString]) -> i32 {
             OPT_REAL => real = true,
             OPT_SHADOWED => shadowed = true,
             OPT_TREE => tree_flag = true,
-            OPT_VERBOSE => {}
+            OPT_VERBOSE | OPT_VFS_ALL | OPT_ID | OPT_UNIQ_ID => {}
+            id if id == b'y' as i32 || id == b'I' as i32 || id == b'Q' as i32 => {}
+            id if id == b'H' as i32 => {
+                let _ = io::stdout().write_all(list_columns_text().as_bytes());
+                return 0;
+            }
             id if id == b'A' as i32 || id == b'a' as i32 || id == b'b' as i32 => {}
             id if id == b'c' as i32 || id == b'C' as i32 || id == b'e' as i32 => {}
             id if id == b'u' as i32 => {}

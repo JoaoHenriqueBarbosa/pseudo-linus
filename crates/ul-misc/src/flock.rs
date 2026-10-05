@@ -199,6 +199,14 @@ fn run(args: &[OsString]) -> i32 {
         Err(e) => return open_failed(&short, target, e),
     };
 
+    let mut command = command;
+    let mut rest_owned: Vec<Vec<u8>> = rest.to_vec();
+    // Forma antiga `flock arquivo -c comando`: o `-c` depois do operando também vale.
+    if command.is_none() && rest_owned.len() == 2 && (rest_owned[0] == b"-c" || rest_owned[0] == b"--command") {
+        command = rest_owned.pop();
+        rest_owned.clear();
+    }
+    let rest = &rest_owned[..];
     let cmd: Vec<Vec<u8>> = match command {
         Some(c) => {
             if !rest.is_empty() {
