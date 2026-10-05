@@ -1,0 +1,206 @@
+tool = "shred"
+source = "agent-style"
+
+# shred e pinky. O shred só aparece em casos determinísticos: passes sem aleatoriedade (-n 0 -z),
+# remoção, e o -v com -n 1 e --random-source=/dev/zero (um passe aleatório não sorteia nada). O
+# pinky roda sem sessão no utmp, então o formato curto é só o cabeçalho.
+
+[[case]]
+id = "shred-zero-only"
+script = "shred -n 0 -z -x a.txt; od -An -tx1 a.txt"
+tags = ["shred"]
+[case.files]
+"a.txt" = "segredo\n"
+
+[[case]]
+id = "shred-zero-verbose"
+script = "shred -v -n 0 -z -x a.txt; od -An -c a.txt"
+tags = ["shred", "verbose"]
+[case.files]
+"a.txt" = "abc"
+
+[[case]]
+id = "shred-u-removes"
+script = "shred -u a.txt; ls"
+tags = ["shred", "remove"]
+[case.files]
+"a.txt" = "some secret\n"
+"b.txt" = "fica\n"
+
+[[case]]
+id = "shred-verbose-random-source"
+argv = ["shred", "-v", "-n", "1", "--random-source=/dev/zero", "-x", "a.txt"]
+tags = ["shred", "verbose"]
+[case.files]
+"a.txt" = "dados\n"
+
+[[case]]
+id = "shred-verbose-random-source-content"
+script = "shred -n 1 --random-source=/dev/zero -x a.txt; od -An -tx1 a.txt"
+tags = ["shred"]
+[case.files]
+"a.txt" = "dados\n"
+
+[[case]]
+id = "shred-verbose-default-three-random"
+argv = ["shred", "-v", "--random-source=/dev/zero", "-x", "a.txt"]
+tags = ["shred", "verbose"]
+[case.files]
+"a.txt" = "x\n"
+
+[[case]]
+id = "shred-verbose-remove-wipe"
+script = "shred -v -n 0 -z -x --remove=wipe abcd; ls"
+tags = ["shred", "verbose", "remove"]
+[case.files]
+"abcd" = "1234\n"
+
+[[case]]
+id = "shred-verbose-u-name-taken"
+script = "shred -v -n 0 -u ab; ls"
+tags = ["shred", "verbose", "remove"]
+[case.files]
+"ab" = "x"
+"00" = "ocupado\n"
+
+[[case]]
+id = "shred-verbose-remove-unlink"
+script = "shred -v -n 0 --remove=unlink f.txt; ls"
+tags = ["shred", "verbose", "remove"]
+[case.files]
+"f.txt" = "x\n"
+"g.txt" = "y\n"
+
+[[case]]
+id = "shred-size-exact"
+script = "shred -n 0 -z -s 3 a.txt; od -An -c a.txt"
+tags = ["shred"]
+[case.files]
+"a.txt" = "abcdef\n"
+
+[[case]]
+id = "shred-missing-operand"
+argv = ["shred"]
+tags = ["shred", "usage"]
+
+[[case]]
+id = "shred-nonexistent"
+argv = ["shred", "-n", "0", "nope.txt", "a.txt"]
+tags = ["shred", "errno"]
+[case.files]
+"a.txt" = "x\n"
+
+[[case]]
+id = "shred-directory"
+argv = ["shred", "-n", "0", "sub"]
+tags = ["shred", "errno"]
+[case.files]
+"sub" = { dir = true }
+
+[[case]]
+id = "shred-bad-iterations"
+argv = ["shred", "-n", "abc", "a.txt"]
+tags = ["shred", "usage"]
+[case.files]
+"a.txt" = "x\n"
+
+[[case]]
+id = "shred-bad-size"
+argv = ["shred", "-s", "xyz", "a.txt"]
+tags = ["shred", "usage"]
+[case.files]
+"a.txt" = "x\n"
+
+[[case]]
+id = "shred-bad-remove-how"
+argv = ["shred", "--remove=foo", "a.txt"]
+tags = ["shred", "usage"]
+[case.files]
+"a.txt" = "x\n"
+
+[[case]]
+id = "shred-ambiguous-remove-how"
+argv = ["shred", "--remove=w", "a.txt"]
+tags = ["shred", "usage"]
+[case.files]
+"a.txt" = "x\n"
+
+[[case]]
+id = "shred-missing-random-source"
+argv = ["shred", "--random-source=nope", "a.txt"]
+tags = ["shred", "errno"]
+[case.files]
+"a.txt" = "x\n"
+
+[[case]]
+id = "shred-random-source-eof"
+argv = ["shred", "-n", "1", "-x", "--random-source=empty", "a.txt"]
+tags = ["shred", "errno"]
+[case.files]
+"a.txt" = "x\n"
+"empty" = ""
+
+[[case]]
+id = "pinky-heading"
+argv = ["pinky"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-s"
+argv = ["pinky", "-s"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-f"
+argv = ["pinky", "-f"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-w"
+argv = ["pinky", "-w"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-i"
+argv = ["pinky", "-i"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-q"
+argv = ["pinky", "-q"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-user-filter"
+argv = ["pinky", "root", "nobody"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-l-no-user"
+argv = ["pinky", "-l"]
+tags = ["pinky", "usage"]
+
+[[case]]
+id = "pinky-l-root"
+argv = ["pinky", "-l", "root"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-lb-root"
+argv = ["pinky", "-lb", "root"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-lhp-unknown"
+argv = ["pinky", "-lhp", "ninguem-aqui", "root"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-l-then-s"
+argv = ["pinky", "-l", "-s", "root"]
+tags = ["pinky"]
+
+[[case]]
+id = "pinky-bad-option"
+argv = ["pinky", "-Z"]
+tags = ["pinky", "usage"]

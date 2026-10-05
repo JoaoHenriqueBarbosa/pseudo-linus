@@ -234,8 +234,11 @@ fn which(sb: &SbInner, cx: &Caller, name: &[u8], env: &[Vec<u8>]) -> Result<Vec<
     Err(if eacces { Errno::EACCES } else { Errno::ENOENT })
 }
 
-/// Cria um processo a partir do host: filho do init, numa sessão nova, com o stdio pedido.
-pub(crate) fn host_spawn(sb: &Arc<SbInner>, spec: SpawnSpec, stdio: HostStdio) -> Result<Spawned, Errno> {
+/// Cria um processo a partir do host: filho do init, com o stdio pedido. Com `leader`, numa sessão nova
+/// (líder de sessão e de grupo); sem, herda o grupo e a sessão do init, como o processo de um
+/// `docker exec` sem terminal, que herda os do `runc init` e não é líder de grupo (o `setsid` do
+/// util-linux, por exemplo, só faz fork quando é líder).
+pub(crate) fn host_spawn(sb: &Arc<SbInner>, spec: SpawnSpec, stdio: HostStdio, leader: bool) -> Result<Spawned, Errno> {
     let cfg = &sb.cfg;
     let cred = Arc::new(Cred { uid: cfg.uid, gid: cfg.gid, groups: vec![cfg.gid] });
     let mut cx = sb.root_caller();
@@ -287,8 +290,8 @@ pub(crate) fn host_spawn(sb: &Arc<SbInner>, spec: SpawnSpec, stdio: HostStdio) -
         nice: 0,
         sig: SigState::new(),
         fds,
-        group: spec.attrs.group,
-        new_session: true,
+        group: if leader { spec.attrs.group } else { sysabi::ProcessGroup::Inherit },
+        new_session: leader,
         ppid: INIT_PID,
         host_tracked: true,
     };
@@ -388,7 +391,7 @@ fn exited(sb: &SbInner, pid: Pid) -> bool {
 impl Sandbox {
     /// Cria um processo a partir do host (filho do init, sessão e grupo novos) com o stdio pedido.
     pub fn spawn(&self, spec: SpawnSpec, stdio: HostStdio) -> Result<Spawned, Errno> {
-        host_spawn(&self.inner, spec, stdio)
+        host_spawn(&self.inner, spec, stdio, true)
     }
 
     /// Roda até o fim: escreve o stdin, junta stdout e stderr, espera o processo. No timeout manda SIGKILL
@@ -407,7 +410,8 @@ impl Sandbox {
             argv: req.argv.clone(),
             attrs: ProcAttrs { env: Some(env), cwd: Some(cwd_path), ..ProcAttrs::default() },
         };
-        let mut sp = host_spawn(sb, spec, HostStdio::default())?;
+        // Igual ao oráculo (`docker exec`): o processo do caso não é líder de grupo nem de sessão.
+        let mut sp = host_spawn(sb, spec, HostStdio::default(), false)?;
         let pid = sp.pid;
         let deadline = Instant::now() + req.timeout.unwrap_or(DEFAULT_RUN_TIMEOUT);
         let parker = Parker::new();
@@ -464,8 +468,25 @@ impl Sandbox {
             }
             if !parker.park_until(deadline) && !timed_out && Instant::now() >= deadline {
                 timed_out = true;
-                let sid = sb.table.lock().rel(pid).map(|r| r.sid).unwrap_or(pid);
-                let session: Vec<Pid> = sb.table.lock().map.iter().filter(|(_, e)| e.rel.sid == sid).map(|(p, _)| *p).collect();
+                let session: Vec<Pid> = {
+                    let t = sb.table.lock();
+                    let sid = t.rel(pid).map(|r| r.sid).unwrap_or(pid);
+                    if sid != INIT_PID {
+                        t.map.iter().filter(|(_, e)| e.rel.sid == sid).map(|(p, _)| *p).collect()
+                    } else {
+                        // Sessão do init (processo de `run`, que não é líder): só o processo e os
+                        // descendentes, nunca o init nem o que mais rodar no sandbox.
+                        let mut out = vec![pid];
+                        let mut i = 0;
+                        while i < out.len() {
+                            if let Some(r) = t.rel(out[i]) {
+                                out.extend(r.children.iter().copied());
+                            }
+                            i += 1;
+                        }
+                        out
+                    }
+                };
                 for p in session {
                     let _ = crate::sys::host_kill(sb, KillTarget::Pid(p), Signal::SIGKILL);
                 }

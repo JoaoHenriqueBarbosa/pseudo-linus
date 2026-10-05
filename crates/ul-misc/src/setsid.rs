@@ -42,7 +42,6 @@ Options:
  -c, --ctty     set the controlling terminal to the current one
  -f, --fork     always fork
  -w, --wait     wait program to exit, and use the same return
-
  -h, --help     display this help
  -V, --version  display version
 

@@ -1,0 +1,73 @@
+# Porte pseudo-linus: utilitário escrito para o pseudo-linus no molde dos forks do uutils 0.12
+# (mesmo layout de pacote, mesmas lints), seguindo o pinky.c do GNU coreutils 9.7.
+
+[package]
+edition = "2024"
+rust-version = "1.88.0"
+name = "pl-uu-pinky"
+version = "0.12.0"
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "pinky ~ lightweight finger"
+license = "MIT"
+
+[lib]
+name = "uu_pinky"
+path = "src/pinky.rs"
+test = false
+doctest = false
+
+[dependencies.clap]
+version = "4.5"
+features = [
+    "cargo",
+    "color",
+]
+
+[dependencies.fluent]
+version = "0.17.0"
+
+[dependencies.uucore]
+path = "../../uucore"
+package = "pl-uucore"
+version = "0.12.0"
+features = ["utmpx", "entries"]
+
+[dependencies.sysio]
+path = "../../../../../sysio"
+
+[dependencies.sysabi]
+path = "../../../../../sysabi"
+
+[lints.clippy]
+cargo_common_metadata = "allow"
+cast_lossless = "allow"
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+doc_markdown = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+needless_pass_by_value = "allow"
+too_many_lines = "allow"
+fn_params_excessive_bools = "allow"
+struct_excessive_bools = "allow"
+use_self = "warn"
+
+[lints.clippy.all]
+level = "warn"
+priority = -1
+
+[lints.clippy.pedantic]
+level = "warn"
+priority = -1
+
+[lints.rust]
+unsafe_code = "forbid"
+unused_qualifications = "warn"

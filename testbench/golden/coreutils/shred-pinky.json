@@ -1,0 +1,334 @@
+{
+  "pinky-bad-option": {
+    "stdout": "",
+    "stderr": "pinky: invalid option -- 'Z'\nTry 'pinky --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pinky-f": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-heading": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-i": {
+    "stdout": "Login     TTY      Idle   When            \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-l-no-user": {
+    "stdout": "",
+    "stderr": "pinky: no username specified; at least one must be specified when using -l\nTry 'pinky --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pinky-l-root": {
+    "stdout": "Login name: root                        In real life:  root\nDirectory: /root                        Shell:  /bin/bash\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-l-then-s": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-lb-root": {
+    "stdout": "Login name: root                        In real life:  root\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-lhp-unknown": {
+    "stdout": "Login name: ninguem-aqui                In real life:  ???\nLogin name: root                        In real life:  root\nDirectory: /root                        Shell:  /bin/bash\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-q": {
+    "stdout": "Login     TTY      When            \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-s": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-user-filter": {
+    "stdout": "Login    Name                 TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pinky-w": {
+    "stdout": "Login     TTY      Idle   When             Where\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "shred-ambiguous-remove-how": {
+    "stdout": "",
+    "stderr": "shred: ambiguous argument ‘w’ for ‘--remove’\nValid arguments are:\n  - ‘unlink’\n  - ‘wipe’\n  - ‘wipesync’\nTry 'shred --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "shred-bad-iterations": {
+    "stdout": "",
+    "stderr": "shred: invalid number of passes: ‘abc’\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "shred-bad-remove-how": {
+    "stdout": "",
+    "stderr": "shred: invalid argument ‘foo’ for ‘--remove’\nValid arguments are:\n  - ‘unlink’\n  - ‘wipe’\n  - ‘wipesync’\nTry 'shred --help' for more information.\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "shred-bad-size": {
+    "stdout": "",
+    "stderr": "shred: invalid file size: ‘xyz’\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "shred-directory": {
+    "stdout": "",
+    "stderr": "shred: sub: failed to open for writing: Is a directory\n",
+    "exit": 1,
+    "files": {
+      "sub": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "shred-missing-operand": {
+    "stdout": "",
+    "stderr": "shred: missing file operand\nTry 'shred --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "shred-missing-random-source": {
+    "stdout": "",
+    "stderr": "shred: nope: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "shred-nonexistent": {
+    "stdout": "",
+    "stderr": "shred: nope.txt: failed to open for writing: No such file or directory\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "shred-random-source-eof": {
+    "stdout": "",
+    "stderr": "shred: ‘empty’: end of file\n",
+    "exit": 1,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      },
+      "empty": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "shred-size-exact": {
+    "stdout": "  \\0  \\0  \\0   d   e   f  \\n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 7,
+        "sha256": "3634422db40109bcffe04ea4da7786328ec97c8950e64f988b726f2ae82db85c",
+        "data": "\u0000\u0000\u0000def\n"
+      }
+    }
+  },
+  "shred-u-removes": {
+    "stdout": "b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "b.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "33e0729fd30ab776e877ad3655ab051b38a8e4eefe9b4b346ee8d1a4d70124d7",
+        "data": "fica\n"
+      }
+    }
+  },
+  "shred-verbose-default-three-random": {
+    "stdout": "",
+    "stderr": "shred: a.txt: pass 1/3 (random)...\nshred: a.txt: pass 2/3 (random)...\nshred: a.txt: pass 3/3 (random)...\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+        "data": "\u0000\u0000"
+      }
+    }
+  },
+  "shred-verbose-random-source": {
+    "stdout": "",
+    "stderr": "shred: a.txt: pass 1/1 (random)...\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "shred-verbose-random-source-content": {
+    "stdout": " 00 00 00 00 00 00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "shred-verbose-remove-unlink": {
+    "stdout": "g.txt\n",
+    "stderr": "shred: f.txt: removing\nshred: f.txt: removed\n",
+    "exit": 0,
+    "files": {
+      "g.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "3bb2abb69ebb27fbfe63c7639624c6ec5e331b841a5bc8c3ebc10b9285e90877",
+        "data": "y\n"
+      }
+    }
+  },
+  "shred-verbose-remove-wipe": {
+    "stdout": "",
+    "stderr": "shred: abcd: pass 1/1 (000000)...\nshred: abcd: removing\nshred: abcd: renamed to 0000\nshred: 0000: renamed to 000\nshred: 000: renamed to 00\nshred: 00: renamed to 0\nshred: abcd: removed\n",
+    "exit": 0,
+    "files": {}
+  },
+  "shred-verbose-u-name-taken": {
+    "stdout": "00\n",
+    "stderr": "shred: ab: removing\nshred: ab: renamed to 01\nshred: 01: renamed to 0\nshred: ab: removed\n",
+    "exit": 0,
+    "files": {
+      "00": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "a36302298fd8d7b228075aa14d03e7828a9d5e482449d456ab86a9cb1c1814b8",
+        "data": "ocupado\n"
+      }
+    }
+  },
+  "shred-zero-only": {
+    "stdout": " 00 00 00 00 00 00 00 00\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+        "data": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }
+    }
+  },
+  "shred-zero-verbose": {
+    "stdout": "  \\0  \\0  \\0\n",
+    "stderr": "shred: a.txt: pass 1/1 (000000)...\n",
+    "exit": 0,
+    "files": {
+      "a.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 3,
+        "sha256": "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c",
+        "data": "\u0000\u0000\u0000"
+      }
+    }
+  }
+}

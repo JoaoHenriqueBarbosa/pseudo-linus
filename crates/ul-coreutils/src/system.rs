@@ -1,6 +1,6 @@
 //! Grupo "system": processos, ambiente, identidade e sistema (env, printenv, timeout, nice, nohup,
 //! stdbuf, chroot, sleep, true, false, test e `[`, pwd, id, whoami, groups, logname, users, who,
-//! uname, arch, hostname, hostid, nproc, tty, date).
+//! uname, arch, hostname, hostid, nproc, tty, date, pinky, shred).
 
 use sysabi::Program;
 
@@ -25,6 +25,8 @@ uu_main!(groups_main, "groups", uu_groups);
 uu_main!(logname_main, "logname", uu_logname);
 uu_main!(users_main, "users", uu_users);
 uu_main!(who_main, "who", uu_who);
+uu_main!(pinky_main, "pinky", uu_pinky);
+uu_main!(shred_main, "shred", uu_shred);
 uu_main!(uname_main, "uname", uu_uname);
 uu_main!(arch_main, "arch", uu_arch);
 uu_main!(hostid_main, "hostid", uu_hostid);
@@ -53,6 +55,8 @@ pub(crate) fn programs() -> Vec<Program> {
         Program::bin("logname", logname_main),
         Program::bin("users", users_main),
         Program::bin("who", who_main),
+        Program::bin("pinky", pinky_main),
+        Program::bin("shred", shred_main),
         Program::bin("uname", uname_main),
         Program::bin("arch", arch_main),
         // O `hostname` do Debian vem do pacote hostname 3.25, não do coreutils (nem do uutils).

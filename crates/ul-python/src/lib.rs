@@ -11,6 +11,7 @@
 //! erro de uso do CPython.
 
 pub mod ast;
+pub mod object;
 pub mod token;
 pub mod tokenizer;
 

@@ -123,6 +123,8 @@ uu_yes = { path = "vendor/src/uu/yes", package = "pl-uu-yes" }
 uu_cp = { path = "vendor/src/uu/cp", package = "pl-uu-cp" }
 uu_mv = { path = "vendor/src/uu/mv", package = "pl-uu-mv" }
 uu_dd = { path = "vendor/src/uu/dd", package = "pl-uu-dd" }
+uu_shred = { path = "vendor/src/uu/shred", package = "pl-uu-shred" }
+uu_pinky = { path = "vendor/src/uu/pinky", package = "pl-uu-pinky" }
 # --- fim dos demais grupos ---
 
 # Conformidade no kernel real: `cargo test -p ul-coreutils --features kernel-tests` com
