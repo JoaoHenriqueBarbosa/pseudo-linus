@@ -1,0 +1,193 @@
+{
+  "realpath-help": {
+    "stdout": "Usage: dpkg-realpath [<option>...] <pathname>\n\nOptions:\n  -z, --zero                   end output line with NUL, not newline.\n      --instdir <directory>    set the root directory.\n      --root <directory>       set the root directory.\n      --version                show the version.\n      --help                   show this help message.\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "realpath-loop": {
+    "stdout": "rc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "symlink",
+        "target": "b"
+      },
+      "b": {
+        "kind": "symlink",
+        "target": "a"
+      }
+    }
+  },
+  "realpath-missing": {
+    "stdout": "PWD/nope\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "realpath-no-argument": {
+    "stdout": "dpkg-realpath: error: need a pathname argument\n\nUse --help for help about this utility.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "realpath-plain-file": {
+    "stdout": "PWD/a/b/f\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "realpath-relative": {
+    "stdout": "PWD/a/b/f\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "a/l": {
+        "kind": "symlink",
+        "target": "b"
+      }
+    }
+  },
+  "realpath-root-env": {
+    "stdout": "/usr/bin/real\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "r": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/bin/link": {
+        "kind": "symlink",
+        "target": "../usr/bin/real"
+      },
+      "r/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/usr/bin/real": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "realpath-root-option": {
+    "stdout": "/usr/bin/real\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "r": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/bin/link": {
+        "kind": "symlink",
+        "target": "/usr/bin/real"
+      },
+      "r/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/usr/bin/real": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "realpath-symlink-chain": {
+    "stdout": "PWD/a/b/f\nPWD/a/b/f\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "a": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "a/b/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "a/l": {
+        "kind": "symlink",
+        "target": "b"
+      },
+      "a/m": {
+        "kind": "symlink",
+        "target": "l/f"
+      }
+    }
+  },
+  "realpath-unknown-option": {
+    "stdout": "dpkg-realpath: error: unknown option --bogus\n\nUse --help for help about this utility.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "realpath-version": {
+    "stdout": "Debian dpkg-realpath version 1.22.22 (amd64).\nThis is free software; see the GNU General Public License version 2 or\nlater for copying conditions. There is NO warranty.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

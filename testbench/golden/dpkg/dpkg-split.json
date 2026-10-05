@@ -1,0 +1,349 @@
+{
+  "split-auto-accumulate": {
+    "stdout": "Part 2 of package hello filed (still want 1 and 3).\nrc=0\nPart 1 of package hello filed (still want 3).\nrc=0\nPutting package hello together from 3 parts: 1 2 3 done\nrc=0\nidentical\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "depot": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "split-auto-not-a-part": {
+    "stdout": "File 'a.deb' is not part of a multipart archive.\nrc=1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "depot": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "split-auto-requires-output": {
+    "stdout": "dpkg-split: error: --auto requires the use of the --output option\n\nType dpkg-split --help for help.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "split-bad-part-size": {
+    "stdout": "dpkg-split: error: part size is far too large or is not positive\n\nType dpkg-split --help for help.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "split-basic": {
+    "stdout": "Splitting package hello into 3 parts: 1 2 3 done\nrc=0\nout.1of3.deb\nout.2of3.deb\nout.3of3.deb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "split-default-prefix": {
+    "stdout": "Splitting package hello into 3 parts: 1 2 3 done\nhello_1.0-1_all.1of3.deb\nhello_1.0-1_all.2of3.deb\nhello_1.0-1_all.3of3.deb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "split-discard-empty": {
+    "stdout": "rc=0\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "depot": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "split-help": {
+    "stdout": "Usage: dpkg-split [<option> ...] <command>\n\nCommands:\n  -s|--split <file> [<prefix>]     Split an archive.\n  -j|--join <part> <part> ...      Join parts together.\n  -I|--info <part> ...             Display info about a part.\n  -a|--auto -o <complete> <part>   Auto-accumulate parts.\n  -l|--listq                       List unmatched pieces.\n  -d|--discard [<filename> ...]    Discard unmatched pieces.\n\n  -?, --help                       Show this help message.\n      --version                    Show the version.\n\nOptions:\n      --depotdir <directory>       Use <directory> instead of /var/lib/dpkg/parts.\n      --admindir <directory>       Use <directory> instead of /var/lib/dpkg.\n      --root <directory>           Use <directory> instead of /.\n  -S, --partsize <size>            In KiB, for -s (default is 450).\n  -o, --output <file>              Filename, for -j (default is\n                                     <package>_<version>_<arch>.deb).\n  -Q, --npquiet                    Be quiet when -a is not a part.\n      --msdos                      Generate 8.3 filenames.\n\nExit status:\n  0 = ok\n  1 = with --auto, file is not a part\n  2 = trouble\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "split-info": {
+    "stdout": "out.2of3.deb:\n    Part format version:            2.1\n    Part of package:                hello\n        ... version:                1.0-1\n        ... architecture:           all\n        ... length:                 20672 bytes\n        ... split every:            7168 bytes\n    Part number:                    2/3\n    Part length:                    7168 bytes\n    Part offset:                    7168 bytes\n    Part file size (used portion):  7364 bytes\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "split-info-not-a-part": {
+    "stdout": "file 'a.deb' is not an archive part\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "split-join": {
+    "stdout": "Putting package hello together from 3 parts: 1 2 3 done\nrc=0\nidentical\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "split-join-default-name": {
+    "stdout": "Putting package hello together from 3 parts: 1 2 3 done\nrc=0\nhello_1:1.0-1_all.deb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 107,
+        "sha256": "718a2d19350a6e19050c887f9f878987586471d0b929297ba668bab656a2e1f8",
+        "data": "Package: hello\nVersion: 1:1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "split-join-missing-part": {
+    "stdout": "dpkg-split: error: part 2 is missing\nrc=2\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "split-join-not-a-part": {
+    "stdout": "dpkg-split: error: file 'a.deb' is not an archive part: Inappropriate ioctl for device\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "split-no-action": {
+    "stdout": "dpkg-split: error: need an action option\n\nType dpkg-split --help for help.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "split-not-a-deb": {
+    "stdout": "dpkg-deb: error: 'f.deb' is not a Debian format archive\ndpkg-split: error: no package information in '<dpkg-deb --info pipe>'\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.deb": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "split-single-part": {
+    "stdout": "Splitting package hello into 1 part: 1 done\nrc=0\nout.1of1.deb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "split-split-no-argument": {
+    "stdout": "dpkg-split: error: --split needs a source filename argument\n\nType dpkg-split --help for help.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "split-unknown-option": {
+    "stdout": "dpkg-split: error: unknown option --bogus\n\nType dpkg-split --help for help.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "split-version": {
+    "stdout": "Debian 'dpkg-split' package split/join tool; version 1.22.22 (amd64).\nThis is free software; see the GNU General Public License version 2 or\nlater for copying conditions. There is NO warranty.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

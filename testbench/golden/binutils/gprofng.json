@@ -1,0 +1,50 @@
+{
+  "gp-archive-version": {
+    "stdout": "GNU gprofng-archive binutils version 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gp-display-text-version": {
+    "stdout": "GNU gprofng-display-text binutils version 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprofng-archive-version": {
+    "stdout": "GNU gprofng-archive binutils version 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprofng-collect-app-version": {
+    "stdout": "GNU gprofng-collect-app binutils version 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprofng-display-html-version": {
+    "stdout": "gprofng-display-html GNU binutils version 2.43.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprofng-display-src-version": {
+    "stdout": "GNU gprofng-display-src binutils version 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprofng-display-text-version": {
+    "stdout": "GNU gprofng-display-text binutils version 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprofng-version": {
+    "stdout": "GNU gprofng binutils version 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

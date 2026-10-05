@@ -1,0 +1,116 @@
+{
+  "ag-check-simulate": {
+    "stdout": "Reading package lists...\nBuilding dependency tree...\nReading state information...\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-clean": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-download-no-args": {
+    "stdout": "E: Handler silently failed\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-help": {
+    "stdout": "apt 3.0.3 (amd64)\nUsage: apt-get [options] command\n       apt-get [options] install|remove pkg1 [pkg2 ...]\n       apt-get [options] source pkg1 [pkg2 ...]\n\napt-get is a command line interface for retrieval of packages\nand information about them from authenticated sources and\nfor installation, upgrade and removal of packages together\nwith their dependencies.\n\nMost used commands:\n  update - Retrieve new lists of packages\n  upgrade - Perform an upgrade\n  install - Install new packages (pkg is libc6 not libc6.deb)\n  reinstall - Reinstall packages (pkg is libc6 not libc6.deb)\n  remove - Remove packages\n  purge - Remove packages and config files\n  autoremove - Remove automatically all unused packages\n  dist-upgrade - Distribution upgrade, see apt-get(8)\n  dselect-upgrade - Follow dselect selections\n  build-dep - Configure build-dependencies for source packages\n  satisfy - Satisfy dependency strings\n  clean - Erase downloaded archive files\n  autoclean - Erase old downloaded archive files\n  check - Verify that there are no broken dependencies\n  source - Download source archives\n  download - Download the binary package into the current directory\n  changelog - Download and display the changelog for the given package\n\nSee apt-get(8) for more information about the available commands.\nConfiguration options and syntax is detailed in apt.conf(5).\nInformation about how to configure sources can be found in sources.list(5).\nPackage and version choices can be expressed via apt_preferences(5).\nSecurity details are available in apt-secure(8).\n                                        This APT has Super Cow Powers.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-help-command": {
+    "stdout": "apt 3.0.3 (amd64)\nUsage: apt-get [options] command\n       apt-get [options] install|remove pkg1 [pkg2 ...]\n       apt-get [options] source pkg1 [pkg2 ...]\n\napt-get is a command line interface for retrieval of packages\nand information about them from authenticated sources and\nfor installation, upgrade and removal of packages together\nwith their dependencies.\n\nMost used commands:\n  update - Retrieve new lists of packages\n  upgrade - Perform an upgrade\n  install - Install new packages (pkg is libc6 not libc6.deb)\n  reinstall - Reinstall packages (pkg is libc6 not libc6.deb)\n  remove - Remove packages\n  purge - Remove packages and config files\n  autoremove - Remove automatically all unused packages\n  dist-upgrade - Distribution upgrade, see apt-get(8)\n  dselect-upgrade - Follow dselect selections\n  build-dep - Configure build-dependencies for source packages\n  satisfy - Satisfy dependency strings\n  clean - Erase downloaded archive files\n  autoclean - Erase old downloaded archive files\n  check - Verify that there are no broken dependencies\n  source - Download source archives\n  download - Download the binary package into the current directory\n  changelog - Download and display the changelog for the given package\n\nSee apt-get(8) for more information about the available commands.\nConfiguration options and syntax is detailed in apt.conf(5).\nInformation about how to configure sources can be found in sources.list(5).\nPackage and version choices can be expressed via apt_preferences(5).\nSecurity details are available in apt-secure(8).\n                                        This APT has Super Cow Powers.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-install-simulate-quiet": {
+    "stdout": "E: Unable to locate package nonexistent-pkg-xyz\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-install-simulate-unknown": {
+    "stdout": "Reading package lists...\nBuilding dependency tree...\nReading state information...\nE: Unable to locate package nonexistent-pkg-xyz\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-install-unknown": {
+    "stdout": "Reading package lists...\nBuilding dependency tree...\nReading state information...\nE: Unable to locate package nonexistent-pkg-xyz\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-invalid-operation": {
+    "stdout": "E: Invalid operation frobnicate\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-moo": {
+    "stdout": "                 (__) \n                 (oo) \n           /------\\/ \n          / |    ||   \n         *  /\\---/\\ \n            ~~   ~~   \n...\"Have you mooed today?\"...\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-no-command": {
+    "stdout": "apt 3.0.3 (amd64)\nUsage: apt-get [options] command\n       apt-get [options] install|remove pkg1 [pkg2 ...]\n       apt-get [options] source pkg1 [pkg2 ...]\n\napt-get is a command line interface for retrieval of packages\nand information about them from authenticated sources and\nfor installation, upgrade and removal of packages together\nwith their dependencies.\n\nMost used commands:\n  update - Retrieve new lists of packages\n  upgrade - Perform an upgrade\n  install - Install new packages (pkg is libc6 not libc6.deb)\n  reinstall - Reinstall packages (pkg is libc6 not libc6.deb)\n  remove - Remove packages\n  purge - Remove packages and config files\n  autoremove - Remove automatically all unused packages\n  dist-upgrade - Distribution upgrade, see apt-get(8)\n  dselect-upgrade - Follow dselect selections\n  build-dep - Configure build-dependencies for source packages\n  satisfy - Satisfy dependency strings\n  clean - Erase downloaded archive files\n  autoclean - Erase old downloaded archive files\n  check - Verify that there are no broken dependencies\n  source - Download source archives\n  download - Download the binary package into the current directory\n  changelog - Download and display the changelog for the given package\n\nSee apt-get(8) for more information about the available commands.\nConfiguration options and syntax is detailed in apt.conf(5).\nInformation about how to configure sources can be found in sources.list(5).\nPackage and version choices can be expressed via apt_preferences(5).\nSecurity details are available in apt-secure(8).\n                                        This APT has Super Cow Powers.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-option-set": {
+    "stdout": "apt 3.0.3 (amd64)\nSupported modules:\n*Ver: Standard .deb\n*Pkg:  Debian dpkg interface (Priority 30)\n Pkg:  Debian APT solver interface (Priority -1000)\n Pkg:  Debian APT planner interface (Priority -1000)\n S.L: 'deb' Debian binary tree\n S.L: 'deb-src' Debian source tree\n Idx: Debian Source Index\n Idx: Debian Package Index\n Idx: Debian Translation Index\n Idx: Debian dpkg status file\n Idx: Debian deb file\n Idx: Debian dsc file\n Idx: Debian control file\n Idx: EDSP scenario file\n Idx: EIPP scenario file\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-source-no-args": {
+    "stdout": "E: Must specify at least one package to fetch source for\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-source-unknown": {
+    "stdout": "Reading package lists...\nE: You must put some 'deb-src' URIs in your sources.list\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-unknown-long-option": {
+    "stdout": "E: Command line option --bogus is not understood in combination with the other options\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-unknown-short-option": {
+    "stdout": "E: Command line option 'z' [from -z] is not understood in combination with the other options.\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-update-no-lists-dir": {
+    "stdout": "Ign:1 http://deb.debian.org/debian trixie InRelease\nIgn:2 http://deb.debian.org/debian trixie-updates InRelease\nIgn:3 http://deb.debian.org/debian-security trixie-security InRelease\nIgn:3 http://deb.debian.org/debian-security trixie-security InRelease\nIgn:2 http://deb.debian.org/debian trixie-updates InRelease\nIgn:1 http://deb.debian.org/debian trixie InRelease\nIgn:1 http://deb.debian.org/debian trixie InRelease\nIgn:2 http://deb.debian.org/debian trixie-updates InRelease\nIgn:3 http://deb.debian.org/debian-security trixie-security InRelease\nErr:3 http://deb.debian.org/debian-security trixie-security InRelease\n  Temporary failure resolving 'deb.debian.org'\nErr:2 http://deb.debian.org/debian trixie-updates InRelease\n  Temporary failure resolving 'deb.debian.org'\nErr:1 http://deb.debian.org/debian trixie InRelease\n  Temporary failure resolving 'deb.debian.org'\nReading package lists...\nW: Failed to fetch http://deb.debian.org/debian/dists/trixie/InRelease  Temporary failure resolving 'deb.debian.org'\nW: Failed to fetch http://deb.debian.org/debian/dists/trixie-updates/InRelease  Temporary failure resolving 'deb.debian.org'\nW: Failed to fetch http://deb.debian.org/debian-security/dists/trixie-security/InRelease  Temporary failure resolving 'deb.debian.org'\nW: Some index files failed to download. They have been ignored, or old ones used instead.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-upgrade": {
+    "stdout": "Reading package lists...\nBuilding dependency tree...\nReading state information...\nCalculating upgrade...\n0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ag-version": {
+    "stdout": "apt 3.0.3 (amd64)\nSupported modules:\n*Ver: Standard .deb\n*Pkg:  Debian dpkg interface (Priority 30)\n Pkg:  Debian APT solver interface (Priority -1000)\n Pkg:  Debian APT planner interface (Priority -1000)\n S.L: 'deb' Debian binary tree\n S.L: 'deb-src' Debian source tree\n Idx: Debian Source Index\n Idx: Debian Package Index\n Idx: Debian Translation Index\n Idx: Debian dpkg status file\n Idx: Debian deb file\n Idx: Debian dsc file\n Idx: Debian control file\n Idx: EDSP scenario file\n Idx: EIPP scenario file\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

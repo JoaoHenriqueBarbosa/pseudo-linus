@@ -1,0 +1,1195 @@
+{
+  "deb-ar-members": {
+    "stdout": "debian-binary\ncontrol.tar.xz\ndata.tar.xz\n2.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-build-bad-compression-type": {
+    "stdout": "dpkg-deb: error: unknown compression type 'bogus'!\n\nType dpkg-deb --help for help about manipulating *.deb files;\nType dpkg --help for help about installing and deinstalling packages.\nrc=2\npkg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 89,
+        "sha256": "5337a337deacec46d0ae2d6e028fca434425b0073a9b09cd6d8bb2668b819c2d",
+        "data": "Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n"
+      }
+    }
+  },
+  "deb-build-bad-control-dir-perms": {
+    "stdout": "dpkg-deb: error: control directory has bad permissions 700 (must be >=0755 and <=0775)\nrc=2\npkg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 448
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 89,
+        "sha256": "5337a337deacec46d0ae2d6e028fca434425b0073a9b09cd6d8bb2668b819c2d",
+        "data": "Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n"
+      }
+    }
+  },
+  "deb-build-bad-package-name": {
+    "stdout": "dpkg-deb: error: package name has characters that aren't lowercase alphanums or '-+.'\nrc=2\npkg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 95,
+        "sha256": "2037ad7883793ad62f67d35dc29192c9a621f27ceb87cb798f4fab6eb35718ae",
+        "data": "Package: Hello_World\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n"
+      }
+    }
+  },
+  "deb-build-bad-script-perms": {
+    "stdout": "dpkg-deb: error: maintainer script 'postinst' has bad permissions 644 (must be >=0555 and <=0775)\nrc=2\npkg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 89,
+        "sha256": "5337a337deacec46d0ae2d6e028fca434425b0073a9b09cd6d8bb2668b819c2d",
+        "data": "Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n"
+      },
+      "pkg/DEBIAN/postinst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "306c6ca7407560340797866e077e053627ad409277d1b9da58106fce4cf717cb",
+        "data": "#!/bin/sh\nexit 0\n"
+      }
+    }
+  },
+  "deb-build-basic": {
+    "stdout": "dpkg-deb: building package 'hello' in 'out.deb'.\nrc=0\nout.deb\npkg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 120,
+        "sha256": "1bfdd4d2a5a64dcfb78b4d3bffadb8e123f19213a49fa3cbf3b1a614464c9230",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n a longer line\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "deb-build-conffile-missing": {
+    "stdout": "dpkg-deb: error: conffile '/etc/hello.conf' does not appear in package\nrc=2\npkg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/conffiles": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "ea729d7f4b2dc9ccf4ccfcb11d24d1e9b3bcd8eaad24009ab076d79d5f19a352",
+        "data": "/etc/hello.conf\n"
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 89,
+        "sha256": "5337a337deacec46d0ae2d6e028fca434425b0073a9b09cd6d8bb2668b819c2d",
+        "data": "Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n"
+      }
+    }
+  },
+  "deb-build-conffile-ok": {
+    "stdout": "dpkg-deb: building package 'hello' in 'out.deb'.\nrc=0\n./\n./conffiles\n./control\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/conffiles": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "ea729d7f4b2dc9ccf4ccfcb11d24d1e9b3bcd8eaad24009ab076d79d5f19a352",
+        "data": "/etc/hello.conf\n"
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 89,
+        "sha256": "5337a337deacec46d0ae2d6e028fca434425b0073a9b09cd6d8bb2668b819c2d",
+        "data": "Package: hello\nVersion: 1\nArchitecture: all\nMaintainer: T <t@example.com>\nDescription: x\n"
+      },
+      "pkg/etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/etc/hello.conf": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "a3a5e715f0cc574a73c3f9bebb6bc24f32ffd5b67b387244c2c909da779a1478",
+        "data": "c\n"
+      }
+    }
+  },
+  "deb-build-default-name": {
+    "stdout": "dpkg-deb: building package 'hello' in 'pkg.deb'.\nrc=0\npkg\npkg.deb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-build-into-directory": {
+    "stdout": "dpkg-deb: building package 'hello' in 'out/hello_1.0-1_all.deb'.\nrc=0\nhello_1.0-1_all.deb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 107,
+        "sha256": "d500f9bbef6482ef9b014bad43df8d3012314c0c3f94f415e3de8b4cfd14dc60",
+        "data": "Package: hello\nVersion: 2:1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-build-missing-maintainer-warning": {
+    "stdout": "dpkg-deb: warning: parsing file 'pkg/DEBIAN/control' near line 5 package 'hello':\n missing 'Maintainer' field\ndpkg-deb: warning: ignoring 1 warning about the control file(s)\ndpkg-deb: building package 'hello' in 'out.deb'.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 68,
+        "sha256": "67b7b45341e378b3982604c4b0b400a9eaa6fc0ceab6a22099df6a4faea77707",
+        "data": "Package: hello\nVersion: 1\nArchitecture: all\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-build-missing-version": {
+    "stdout": "dpkg-deb: error: parsing file 'pkg/DEBIAN/control' near line 5 package 'hello':\n missing 'Version' field\nrc=2\npkg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 90,
+        "sha256": "87d60e818bdfedbfe27ece2f45920b063a3f444e86c6710898f8936f9fc4e24f",
+        "data": "Package: hello\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-build-no-argument": {
+    "stdout": "dpkg-deb: error: --build needs a <directory> argument\n\nType dpkg-deb --help for help about manipulating *.deb files;\nType dpkg --help for help about installing and deinstalling packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-build-no-control": {
+    "stdout": "dpkg-deb: error: failed to open package info file 'pkg/DEBIAN/control' for reading: No such file or directory\nrc=2\npkg\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "deb-build-nocheck": {
+    "stdout": "dpkg-deb: warning: not checking contents of control area\ndpkg-deb: building an unknown package in 'out.deb'.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "6d2b3e183df3344d931094104e89b0b8a14883f50e010386c65d239c02abc6c4",
+        "data": "Package: hello\nDescription: x\n"
+      }
+    }
+  },
+  "deb-conflicting-actions": {
+    "stdout": "dpkg-deb: error: conflicting actions -c (--contents) and -b (--build)\n\nType dpkg-deb --help for help about manipulating *.deb files;\nType dpkg --help for help about installing and deinstalling packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-contents": {
+    "stdout": "drwxr-xr-x root/root         0 1970-01-02 00:00 ./\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/bin/\n-rwxr-xr-x root/root         8 1970-01-02 00:00 ./usr/bin/hello\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/share/\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/share/doc/\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/share/doc/hello/\n-rw-r--r-- root/root         4 1970-01-02 00:00 ./usr/share/doc/hello/README\nlrwxrwxrwx root/root         0 1970-01-02 00:00 ./usr/bin/hi -> hello\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      },
+      "pkg/usr/bin/hi": {
+        "kind": "symlink",
+        "target": "hello"
+      },
+      "pkg/usr/share": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/share/doc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/share/doc/hello": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/share/doc/hello/README": {
+        "kind": "file",
+        "mode": 420,
+        "size": 4,
+        "sha256": "30a4ab973ef8fd561d930d55502df855108ca0b081454b0e761d5141f3778780",
+        "data": "doc\n"
+      }
+    }
+  },
+  "deb-contents-gzip": {
+    "stdout": "drwxr-xr-x root/root         0 1970-01-02 00:00 ./\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/bin/\n-rwxr-xr-x root/root         8 1970-01-02 00:00 ./usr/bin/hello\ndebian-binary\ncontrol.tar.gz\ndata.tar.gz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "deb-contents-missing-file": {
+    "stdout": "dpkg-deb: error: failed to read archive 'nope.deb': No such file or directory\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-contents-no-argument": {
+    "stdout": "dpkg-deb: error: --contents takes exactly one argument\n\nType dpkg-deb --help for help about manipulating *.deb files;\nType dpkg --help for help about installing and deinstalling packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-contents-none": {
+    "stdout": "drwxr-xr-x root/root         0 1970-01-02 00:00 ./\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/bin/\n-rwxr-xr-x root/root         8 1970-01-02 00:00 ./usr/bin/hello\ndebian-binary\ncontrol.tar\ndata.tar\n20672\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "deb-contents-zstd": {
+    "stdout": "drwxr-xr-x root/root         0 1970-01-02 00:00 ./\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/\ndrwxr-xr-x root/root         0 1970-01-02 00:00 ./usr/bin/\n-rwxr-xr-x root/root         8 1970-01-02 00:00 ./usr/bin/hello\ndebian-binary\ncontrol.tar.zst\ndata.tar.zst\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "deb-control-extract": {
+    "stdout": "rc=0\ncontrol\npostinst\ncontrol\npostinst\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "DEBIAN/postinst": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "306c6ca7407560340797866e077e053627ad409277d1b9da58106fce4cf717cb",
+        "data": "#!/bin/sh\nexit 0\n"
+      },
+      "ctl": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "ctl/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "ctl/postinst": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "306c6ca7407560340797866e077e053627ad409277d1b9da58106fce4cf717cb",
+        "data": "#!/bin/sh\nexit 0\n"
+      },
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/DEBIAN/postinst": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "306c6ca7407560340797866e077e053627ad409277d1b9da58106fce4cf717cb",
+        "data": "#!/bin/sh\nexit 0\n"
+      }
+    }
+  },
+  "deb-ctrl-tarfile": {
+    "stdout": "./\n./control\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-extract": {
+    "stdout": "rc=0\nx\nx/usr\nx/usr/bin\nx/usr/bin/hello\nx/usr/bin/hi\necho hi\nhello\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      },
+      "pkg/usr/bin/hi": {
+        "kind": "symlink",
+        "target": "hello"
+      },
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      },
+      "x/usr/bin/hi": {
+        "kind": "symlink",
+        "target": "hello"
+      }
+    }
+  },
+  "deb-extract-no-directory": {
+    "stdout": "dpkg-deb: error: --extract needs a target directory.\nPerhaps you should be using dpkg --install ?\n\nType dpkg-deb --help for help about manipulating *.deb files;\nType dpkg --help for help about installing and deinstalling packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-field-all": {
+    "stdout": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n a longer line\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 120,
+        "sha256": "1bfdd4d2a5a64dcfb78b4d3bffadb8e123f19213a49fa3cbf3b1a614464c9230",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n a longer line\n"
+      }
+    }
+  },
+  "deb-field-missing": {
+    "stdout": "\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-field-one": {
+    "stdout": "hello\nhello tool\n a longer line\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 120,
+        "sha256": "1bfdd4d2a5a64dcfb78b4d3bffadb8e123f19213a49fa3cbf3b1a614464c9230",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n a longer line\n"
+      }
+    }
+  },
+  "deb-field-two": {
+    "stdout": "Package: hello\nVersion: 1.0-1\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-fsys-tarfile": {
+    "stdout": "./\n./usr/\n./usr/bin/\n./usr/bin/hello\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "deb-help": {
+    "stdout": "Usage: dpkg-deb [<option>...] <command>\n\nCommands:\n  -b|--build <directory> [<deb>]   Build an archive.\n  -c|--contents <deb>              List contents.\n  -I|--info <deb> [<cfile>...]     Show info to stdout.\n  -W|--show <deb>                  Show information on package(s)\n  -f|--field <deb> [<cfield>...]   Show field(s) to stdout.\n  -e|--control <deb> [<directory>] Extract control info.\n  -x|--extract <deb> <directory>   Extract files.\n  -X|--vextract <deb> <directory>  Extract & list files.\n  -R|--raw-extract <deb> <directory>\n                                   Extract control info and files.\n  --ctrl-tarfile <deb>             Output control tarfile.\n  --fsys-tarfile <deb>             Output filesystem tarfile.\n\n  -?, --help                       Show this help message.\n      --version                    Show the version.\n\n<deb> is the filename of a Debian format archive.\n<cfile> is the name of an administrative file component.\n<cfield> is the name of a field in the main 'control' file.\n\nOptions:\n  -v, --verbose                    Enable verbose output.\n  -D, --debug                      Enable debugging output.\n      --showformat=<format>        Use alternative format for --show.\n      --deb-format=<format>        Select archive format.\n                                     Allowed values: 0.939000, 2.0 (default).\n      --no-check                   Suppress all checks (build bad packages).\n      --nocheck                    Alias for --no-check.\n      --root-owner-group           Forces the owner and groups to root.\n      --threads-max=<threads>      Use at most <threads> with compressor.\n      --[no-]uniform-compression   Use the compression params on all members.\n  -Z, --compression=<compressor>   Set build compression type.\n                                     Allowed types: gzip, xz, zstd, none.\n  -z, --compression-level=<level>  Set build compression level.\n  -S, --compression-strategy=<name>\n                                   Set build compression strategy.\n                                     Allowed values: none; extreme (xz);\n                                     filtered, huffman, rle, fixed (gzip).\n\nFormat syntax:\n  A format is a string that will be output for each package. The format\n  can include the standard escape sequences \\n (newline), \\r (carriage\n  return) or \\\\ (plain backslash). Package information can be included\n  by inserting variable references to package fields using the ${var[;width]}\n  syntax. Fields will be right-aligned unless the width is negative in which\n  case left alignment will be used.\n\nUse 'dpkg' to install and remove packages from your system, or\n'apt' or 'aptitude' for user-friendly package management. Packages\nunpacked using 'dpkg-deb --extract' will be incorrectly installed !\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-help-short": {
+    "stdout": "Usage: dpkg-deb [<option>...] <command>\n\nCommands:\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-info": {
+    "stdout": " new Debian package, version 2.0.\n     120 bytes,     6 lines      control\n      17 bytes,     2 lines   *  postinst             #!/bin/sh\n Package: hello\n Version: 1.0-1\n Architecture: all\n Maintainer: Test <t@example.com>\n Description: hello tool\n  a longer line\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 120,
+        "sha256": "1bfdd4d2a5a64dcfb78b4d3bffadb8e123f19213a49fa3cbf3b1a614464c9230",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n a longer line\n"
+      },
+      "pkg/DEBIAN/postinst": {
+        "kind": "file",
+        "mode": 493,
+        "size": 17,
+        "sha256": "306c6ca7407560340797866e077e053627ad409277d1b9da58106fce4cf717cb",
+        "data": "#!/bin/sh\nexit 0\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "deb-info-component": {
+    "stdout": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-info-missing-component": {
+    "stdout": "dpkg-deb: 'out.deb' contains no control component 'postinst'\ndpkg-deb: error: 1 requested control component is missing\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-no-action": {
+    "stdout": "dpkg-deb: error: need an action option\n\nType dpkg-deb --help for help about manipulating *.deb files;\nType dpkg --help for help about installing and deinstalling packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-not-a-deb": {
+    "stdout": "dpkg-deb: error: 'f.deb' is not a Debian format archive\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "f.deb": {
+        "kind": "file",
+        "mode": 420,
+        "size": 6,
+        "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+        "data": "hello\n"
+      }
+    }
+  },
+  "deb-raw-extract": {
+    "stdout": "rc=0\nr\nr/DEBIAN\nr/DEBIAN/control\nr/usr\nr/usr/bin\nr/usr/bin/hello\nPackage: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      },
+      "r": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "r/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/usr/bin/hello": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "deb-roundtrip-extract-rebuild": {
+    "stdout": "dpkg-deb: building package 'hello' in 'b.deb'.\nsame\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      },
+      "r": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "r/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "r/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "deb-show-default": {
+    "stdout": "hello\t1.0-1\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-show-format": {
+    "stdout": "hello_1.0-1_all\n     hello|1.0-1     |\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      }
+    }
+  },
+  "deb-unknown-long-option": {
+    "stdout": "dpkg-deb: error: unknown option --bogus\n\nType dpkg-deb --help for help about manipulating *.deb files;\nType dpkg --help for help about installing and deinstalling packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-unknown-short-option": {
+    "stdout": "dpkg-deb: error: unknown option -k\n\nType dpkg-deb --help for help about manipulating *.deb files;\nType dpkg --help for help about installing and deinstalling packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-version": {
+    "stdout": "Debian 'dpkg-deb' package archive backend version 1.22.22 (amd64).\nThis is free software; see the GNU General Public License version 2 or\nlater for copying conditions. There is NO warranty.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "deb-vextract": {
+    "stdout": "./\n./usr/\n./usr/bin/\n./usr/bin/hello\nrc=0\ntotal\n-rwxr-xr-x\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "pkg": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/DEBIAN/control": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "d0aa6b0aef75106a588d0a5feb5edb4a207927c204ddc9221807b7f698e08bc3",
+        "data": "Package: hello\nVersion: 1.0-1\nArchitecture: all\nMaintainer: Test <t@example.com>\nDescription: hello tool\n"
+      },
+      "pkg/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "pkg/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      },
+      "x": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/usr": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/usr/bin": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "x/usr/bin/hello": {
+        "kind": "file",
+        "mode": 493,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "ld-bad-option": {
+    "stdout": "ld: unrecognized option '--opcao-inexistente'\nld: use the --help option for usage information\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-bfd-version": {
+    "stdout": "GNU ld (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) a later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-missing-file": {
+    "stdout": "ld: cannot find nao-existe.o: No such file or directory\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-missing-library": {
+    "stdout": "ld: cannot find -lnao-existe-mesmo: No such file or directory\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-missing-library-dir": {
+    "stdout": "ld: cannot find -lnao-existe-mesmo: No such file or directory\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-no-input": {
+    "stdout": "ld: no input files\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-no-input-with-output": {
+    "stdout": "ld: no input files\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-o-without-arg": {
+    "stdout": "ld: unrecognized option '-o'\nld: use the --help option for usage information\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-short-v": {
+    "stdout": "GNU ld (GNU Binutils for Debian) 2.44\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-triplet-version": {
+    "stdout": "GNU ld (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) a later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ld-version": {
+    "stdout": "GNU ld (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) a later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

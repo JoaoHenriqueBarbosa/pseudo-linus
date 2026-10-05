@@ -1,0 +1,86 @@
+{
+  "am-help": {
+    "stdout": "apt 3.0.3 (amd64)\nUsage: apt-mark [options] {auto|manual} pkg1 [pkg2 ...]\n\napt-mark is a simple command line interface for marking packages\nas manually or automatically installed. It can also be used to\nmanipulate the dpkg(1) selection states of packages, and to list\nall packages with or without a certain marking.\n\nMost used commands:\n  auto - Mark the given packages as automatically installed\n  manual - Mark the given packages as manually installed\n  minimize-manual - Mark all dependencies of meta packages as automatically installed.\n  hold - Mark a package as held back\n  unhold - Unset a package set as held back\n  showauto - Print the list of automatically installed packages\n  showmanual - Print the list of manually installed packages\n  showhold - Print the list of packages on hold\n\nSee apt-mark(8) for more information about the available commands.\nConfiguration options and syntax is detailed in apt.conf(5).\nInformation about how to configure sources can be found in sources.list(5).\nPackage and version choices can be expressed via apt_preferences(5).\nSecurity details are available in apt-secure(8).\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "am-invalid-operation": {
+    "stdout": "E: Invalid operation frobnicate\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "am-manual-no-packages": {
+    "stdout": "E: No packages found\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "am-manual-unknown": {
+    "stdout": "E: Unable to locate package nonexistent-pkg-xyz\nE: No packages found\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "am-no-command": {
+    "stdout": "apt 3.0.3 (amd64)\nUsage: apt-mark [options] {auto|manual} pkg1 [pkg2 ...]\n\napt-mark is a simple command line interface for marking packages\nas manually or automatically installed. It can also be used to\nmanipulate the dpkg(1) selection states of packages, and to list\nall packages with or without a certain marking.\n\nMost used commands:\n  auto - Mark the given packages as automatically installed\n  manual - Mark the given packages as manually installed\n  minimize-manual - Mark all dependencies of meta packages as automatically installed.\n  hold - Mark a package as held back\n  unhold - Unset a package set as held back\n  showauto - Print the list of automatically installed packages\n  showmanual - Print the list of manually installed packages\n  showhold - Print the list of packages on hold\n\nSee apt-mark(8) for more information about the available commands.\nConfiguration options and syntax is detailed in apt.conf(5).\nInformation about how to configure sources can be found in sources.list(5).\nPackage and version choices can be expressed via apt_preferences(5).\nSecurity details are available in apt-secure(8).\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "am-showauto-no-states": {
+    "stdout": "rc=0\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "am-showhold": {
+    "stdout": "rc=0\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "am-showmanual-no-states": {
+    "stdout": "rc=0\n1921\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out.txt": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1921,
+        "sha256": "3f51e3a5482ce31091782065f43d8e89465fe45a9cc5b4e3d04e64c38bc1c0ec",
+        "data": "apt\nbase-files\nbase-passwd\nbash\nbc\nbinutils\nbinutils-common\nbinutils-x86-64-linux-gnu\nbsdextrautils\nbsdutils\nbusybox\nbzip2\nca-certificates\ncoreutils\ncurl\ndash\ndc\ndebconf\ndebian-archive-keyring\ndebianutils\ndiffutils\ndpkg\nfaketime\nfile\nfindutils\ngawk\ngcc-14-base\ngettext-base\ngit\ngit-man\ngrep\ngzip\nhostname\ninit-system-helpers\njq\nless\nlibacl1\nlibapt-pkg7.0\nlibattr1\nlibaudit-common\nlibaudit1\nlibbinutils\nlibblkid1\nlibbrotli1\nlibbsd0\nlibbz2-1.0\nlibc-bin\nlibc-l10n\nlibc6\nlibcap-ng0\nlibcap2\nlibcom-err2\nlibcrypt1\nlibctf-nobfd0\nlibctf0\nlibcurl3t64-gnutls\nlibcurl4t64\nlibdb5.3t64\nlibdebconfclient0\nliberror-perl\nlibexpat1\nlibfaketime\nlibffi8\nlibgcc-s1\nlibgdbm-compat4t64\nlibgdbm6t64\nlibgmp10\nlibgnutls30t64\nlibgprofng0\nlibgssapi-krb5-2\nlibhogweed6t64\nlibidn2-0\nlibjansson4\nlibjq1\nlibk5crypto3\nlibkeyutils1\nlibkrb5-3\nlibkrb5support0\nliblastlog2-2\nlibldap2\nliblz4-1\nliblzma5\nlibmagic-mgc\nlibmagic1t64\nlibmd0\nlibmount1\nlibmpfr6\nlibncursesw6\nlibnettle8t64\nlibnghttp2-14\nlibnghttp3-9\nlibngtcp2-16\nlibngtcp2-crypto-gnutls8\nlibonig5\nlibp11-kit0\nlibpam-modules\nlibpam-modules-bin\nlibpam-runtime\nlibpam0g\nlibpcre2-8-0\nlibperl5.40\nlibproc2-0\nlibpsl5t64\nlibpython3-stdlib\nlibpython3.13-minimal\nlibpython3.13-stdlib\nlibreadline8t64\nlibrtmp1\nlibsasl2-2\nlibsasl2-modules-db\nlibseccomp2\nlibselinux1\nlibsemanage-common\nlibsemanage2\nlibsepol2\nlibsframe1\nlibsigsegv2\nlibsmartcols1\nlibsqlite3-0\nlibssh2-1t64\nlibssl3t64\nlibstdc++6\nlibsystemd0\nlibtasn1-6\nlibtinfo6\nlibudev1\nlibunistring5\nlibuuid1\nlibxxhash0\nlibyaml-0-2\nlibzstd1\nlocales-all\nlogin\nlogin.defs\nlzip\nmawk\nmedia-types\nmount\nncurses-base\nncurses-bin\nnetbase\nopenssl\nopenssl-provider-legacy\npasswd\npatch\nperl\nperl-base\nperl-modules-5.40\nprocps\npsmisc\npython3\npython3-argcomplete\npython3-minimal\npython3-tomlkit\npython3-xmltodict\npython3-yaml\npython3.13\npython3.13-minimal\nreadline-common\nsed\nsqlite3\nsqv\nsysvinit-utils\ntar\ntree\ntzdata\nunzip\nutil-linux\nwget\nxxd\nxz-utils\nyq\nzip\nzlib1g\nzstd\n"
+      }
+    }
+  },
+  "am-unknown-option": {
+    "stdout": "E: Command line option --bogus is not understood in combination with the other options\nrc=100\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "am-version": {
+    "stdout": "apt 3.0.3 (amd64)\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

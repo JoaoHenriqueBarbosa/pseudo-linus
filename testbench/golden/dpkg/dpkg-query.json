@@ -1,0 +1,221 @@
+{
+  "dq-help": {
+    "stdout": "Usage: dpkg-query [<option>...] <command>\n\nCommands:\n  -s, --status [<package>...]      Display package status details.\n  -p, --print-avail [<package>...] Display available version details.\n  -L, --listfiles <package>...     List files 'owned' by package(s).\n  -l, --list [<pattern>...]        List packages concisely.\n  -W, --show [<pattern>...]        Show information on package(s).\n  -S, --search <pattern>...        Find package(s) owning file(s).\n      --control-list <package>     Print the package control file list.\n      --control-show <package> <file>\n                                   Show the package control file.\n  -c, --control-path <package> [<file>]\n                                   Print path for package control file.\n\n  -?, --help                       Show this help message.\n      --version                    Show the version.\n\nOptions:\n  --admindir=<directory>           Use <directory> instead of /var/lib/dpkg.\n  --root=<directory>               Use <directory> instead of /.\n  --load-avail                     Use available file on --show and --list.\n  --no-pager                       Disables the use of any pager.\n  -f|--showformat=<format>         Use alternative format for --show.\n\nFormat syntax:\n  A format is a string that will be output for each package. The format\n  can include the standard escape sequences \\n (newline), \\r (carriage\n  return) or \\\\ (plain backslash). Package information can be included\n  by inserting variable references to package fields using the ${var[;width]}\n  syntax. Fields will be right-aligned unless the width is negative in which\n  case left alignment will be used.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dq-list-columns": {
+    "stdout": "Desired=Unknown/Install/Remove/Purge/Hold\n| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend\n|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)\n||/ Name                       Version      Architecture Description\n+++-==========================-============-============-=================================\nii  a                          1            amd64        short\nii  a-much-longer-package-name 1:2.3-4      all          long\n",
+    "stderr": "dpkg-query: warning: parsing file '/work/case/adm/status' near line 6 package 'a':\n missing 'Maintainer' field\ndpkg-query: warning: parsing file '/work/case/adm/status' near line 12 package 'a-much-longer-package-name':\n missing 'Maintainer' field\n",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/status": {
+        "kind": "file",
+        "mode": 420,
+        "size": 209,
+        "sha256": "67a6ffeeeea0aac1ea4326cebeb85657bdd129b483fe296230662a9187215324",
+        "data": "Package: a\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1\nDescription: short\n\nPackage: a-much-longer-package-name\nStatus: install ok installed\nArchitecture: all\nVersion: 1:2.3-4\nDescription: long\n"
+      }
+    }
+  },
+  "dq-list-no-status": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "dq-listfiles-no-args": {
+    "stdout": "dpkg-query: error: --listfiles needs at least one package name argument\n\nUse --help for help about querying packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/status": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "dq-no-action": {
+    "stdout": "dpkg-query: error: need an action option\n\nUse --help for help about querying packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dq-search-no-args": {
+    "stdout": "dpkg-query: error: --search needs at least one file name pattern argument\n\nUse --help for help about querying packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/status": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "dq-search-substring": {
+    "stdout": "foo: /usr/bin/foo\n",
+    "stderr": "dpkg-query: warning: parsing file '/work/case/adm/status' near line 6 package 'foo':\n missing 'Maintainer' field\n",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/info": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/info/foo.list": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "878703ed1cd464d41ce78652fa818a419d0e1eb25cb1d71942b9ebec25afb8d5",
+        "data": "/.\n/usr/bin/foo\n"
+      },
+      "adm/status": {
+        "kind": "file",
+        "mode": 420,
+        "size": 94,
+        "sha256": "e5fdf7331af68bb51010073d25750ed2f5e911115dabc82c428855a2c74ea0c2",
+        "data": "Package: foo\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1.0\nDescription: a foo\n"
+      }
+    }
+  },
+  "dq-show-default-format": {
+    "stdout": "a\t1\nb\t2\n",
+    "stderr": "dpkg-query: warning: parsing file '/work/case/adm/status' near line 6 package 'b':\n missing 'Maintainer' field\ndpkg-query: warning: parsing file '/work/case/adm/status' near line 12 package 'a':\n missing 'Maintainer' field\n",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/status": {
+        "kind": "file",
+        "mode": 420,
+        "size": 173,
+        "sha256": "fb0824c5020112c4e2a0f07c0ba3728906e0bb29c6c7687b46071a429a4fa4d3",
+        "data": "Package: b\nStatus: install ok installed\nArchitecture: amd64\nVersion: 2\nDescription: b\n\nPackage: a\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1\nDescription: a\n"
+      }
+    }
+  },
+  "dq-show-format": {
+    "stdout": "a 1 install ok installed 42 [ii ]\n",
+    "stderr": "dpkg-query: warning: parsing file '/work/case/adm/status' near line 7 package 'a':\n missing 'Maintainer' field\n",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/status": {
+        "kind": "file",
+        "mode": 420,
+        "size": 105,
+        "sha256": "51f1a1dc399868614179b0754f71b457e1399e98342dff9cdf521a231b0c6772",
+        "data": "Package: a\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1\nInstalled-Size: 42\nDescription: a\n"
+      }
+    }
+  },
+  "dq-show-no-match": {
+    "stdout": "dpkg-query: warning: parsing file '/work/case/adm/status' near line 6 package 'a':\n missing 'Maintainer' field\ndpkg-query: no packages found matching nope\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/status": {
+        "kind": "file",
+        "mode": 420,
+        "size": 86,
+        "sha256": "446a1dea9090f5eb6b960349fde01d9d3f34dbcbbd7ad177595d0195bf2b5f95",
+        "data": "Package: a\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1\nDescription: a\n"
+      }
+    }
+  },
+  "dq-show-no-status": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "dq-show-width": {
+    "stdout": "[a     ][     1]\n",
+    "stderr": "dpkg-query: warning: parsing file '/work/case/adm/status' near line 6 package 'a':\n missing 'Maintainer' field\n",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/status": {
+        "kind": "file",
+        "mode": 420,
+        "size": 86,
+        "sha256": "446a1dea9090f5eb6b960349fde01d9d3f34dbcbbd7ad177595d0195bf2b5f95",
+        "data": "Package: a\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1\nDescription: a\n"
+      }
+    }
+  },
+  "dq-status-not-installed": {
+    "stdout": "dpkg-query: package 'nope' is not installed and no information is available\nUse dpkg --info (= dpkg-deb --info) to examine archive files.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "adm": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "adm/status": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "dq-unknown-option": {
+    "stdout": "dpkg-query: error: unknown option --bogus\n\nUse --help for help about querying packages.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dq-version": {
+    "stdout": "Debian dpkg-query package management program query tool version 1.22.22 (amd64).\nThis is free software; see the GNU General Public License version 2 or\nlater for copying conditions. There is NO warranty.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

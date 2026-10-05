@@ -1,0 +1,68 @@
+{
+  "gprof-bad-gmon": {
+    "stdout": "gprof: file `t' has no symbols\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-bad-option": {
+    "stdout": "gprof: unrecognized option '--opcao-inexistente'\nUsage: gprof [-[abcDhilLrsTvwxyz]] [-[ABCeEfFJnNOpPqQRStZ][name]] [-I dirs]\n\t[-d[num]] [-k from/to] [-m min-count] [-t table-length]\n\t[--[no-]annotated-source[=name]] [--[no-]exec-counts[=name]]\n\t[--[no-]flat-profile[=name]] [--[no-]graph[=name]]\n\t[--[no-]time=name] [--all-lines] [--brief] [--debug[=level]]\n\t[--function-ordering] [--file-ordering] [--inline-file-names]\n\t[--directory-path=dirs] [--display-unused-functions]\n\t[--file-format=name] [--file-info] [--help] [--line] [--min-count=n]\n\t[--no-static] [--print-path] [--separate-files]\n\t[--static-call-graph] [--sum] [--table-length=len] [--traditional]\n\t[--version] [--width=n] [--ignore-non-functions]\n\t[--demangle[=STYLE]] [--no-demangle] [--external-symbol-table=name] [@FILE]\n\t[image-file] [profile-file...]\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-bad-short-option": {
+    "stdout": "gprof: invalid option -- 'j'\nUsage: gprof [-[abcDhilLrsTvwxyz]] [-[ABCeEfFJnNOpPqQRStZ][name]] [-I dirs]\n\t[-d[num]] [-k from/to] [-m min-count] [-t table-length]\n\t[--[no-]annotated-source[=name]] [--[no-]exec-counts[=name]]\n\t[--[no-]flat-profile[=name]] [--[no-]graph[=name]]\n\t[--[no-]time=name] [--all-lines] [--brief] [--debug[=level]]\n\t[--function-ordering] [--file-ordering] [--inline-file-names]\n\t[--directory-path=dirs] [--display-unused-functions]\n\t[--file-format=name] [--file-info] [--help] [--line] [--min-count=n]\n\t[--no-static] [--print-path] [--separate-files]\n\t[--static-call-graph] [--sum] [--table-length=len] [--traditional]\n\t[--version] [--width=n] [--ignore-non-functions]\n\t[--demangle[=STYLE]] [--no-demangle] [--external-symbol-table=name] [@FILE]\n\t[image-file] [profile-file...]\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-help": {
+    "stdout": "Usage: gprof [-[abcDhilLrsTvwxyz]] [-[ABCeEfFJnNOpPqQRStZ][name]] [-I dirs]\n\t[-d[num]] [-k from/to] [-m min-count] [-t table-length]\n\t[--[no-]annotated-source[=name]] [--[no-]exec-counts[=name]]\n\t[--[no-]flat-profile[=name]] [--[no-]graph[=name]]\n\t[--[no-]time=name] [--all-lines] [--brief] [--debug[=level]]\n\t[--function-ordering] [--file-ordering] [--inline-file-names]\n\t[--directory-path=dirs] [--display-unused-functions]\n\t[--file-format=name] [--file-info] [--help] [--line] [--min-count=n]\n\t[--no-static] [--print-path] [--separate-files]\n\t[--static-call-graph] [--sum] [--table-length=len] [--traditional]\n\t[--version] [--width=n] [--ignore-non-functions]\n\t[--demangle[=STYLE]] [--no-demangle] [--external-symbol-table=name] [@FILE]\n\t[image-file] [profile-file...]\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-missing-gmon": {
+    "stdout": "gprof: file `t' has no symbols\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-missing-image": {
+    "stdout": "nao-existe: No such file or directory\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-no-args": {
+    "stdout": "a.out: No such file or directory\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-not-elf-image": {
+    "stdout": "gprof: t: not in executable format\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-short-gmon": {
+    "stdout": "gprof: file `t' has no symbols\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-short-help": {
+    "stdout": "Usage: gprof [-[abcDhilLrsTvwxyz]] [-[ABCeEfFJnNOpPqQRStZ][name]] [-I dirs]\n\t[-d[num]] [-k from/to] [-m min-count] [-t table-length]\n\t[--[no-]annotated-source[=name]] [--[no-]exec-counts[=name]]\n\t[--[no-]flat-profile[=name]] [--[no-]graph[=name]]\n\t[--[no-]time=name] [--all-lines] [--brief] [--debug[=level]]\n\t[--function-ordering] [--file-ordering] [--inline-file-names]\n\t[--directory-path=dirs] [--display-unused-functions]\n\t[--file-format=name] [--file-info] [--help] [--line] [--min-count=n]\n\t[--no-static] [--print-path] [--separate-files]\n\t[--static-call-graph] [--sum] [--table-length=len] [--traditional]\n\t[--version] [--width=n] [--ignore-non-functions]\n\t[--demangle[=STYLE]] [--no-demangle] [--external-symbol-table=name] [@FILE]\n\t[image-file] [profile-file...]\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gprof-version": {
+    "stdout": "GNU gprof (GNU Binutils for Debian) 2.44\nBased on BSD gprof, copyright 1983 Regents of the University of California.\nThis program is free software.  This program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

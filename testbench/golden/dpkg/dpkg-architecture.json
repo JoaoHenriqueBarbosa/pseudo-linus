@@ -1,0 +1,146 @@
+{
+  "arch-command": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 127,
+    "files": {}
+  },
+  "arch-default-list": {
+    "stdout": "rc=127\n",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-env-host": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\n",
+    "exit": 127,
+    "files": {}
+  },
+  "arch-equal": {
+    "stdout": "rc=127\nrc=127\nrc=127\n",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-help": {
+    "stdout": "rc=127\n",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-host-arm64": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "arch-host-armhf": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "arch-host-hurd": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "arch-host-i386": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "arch-host-kfreebsd": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "arch-host-mips64el": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "arch-host-riscv64": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "arch-host-type": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "arch-is-wildcard": {
+    "stdout": "any rc=127\nlinux-any rc=127\nany-amd64 rc=127\nany-i386 rc=127\nkfreebsd-any rc=127\ngnu-linux-any rc=127\nmusl-linux-any rc=127\n",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-list-explicit": {
+    "stdout": "rc=0\n",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-print-set": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 127,
+    "files": {}
+  },
+  "arch-print-unset": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 127,
+    "files": {}
+  },
+  "arch-query": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\nbash: line 1: dpkg-architecture: command not found\n",
+    "exit": 127,
+    "files": {}
+  },
+  "arch-query-unknown": {
+    "stdout": "bash: line 1: dpkg-architecture: command not found\nrc=127\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-target-arch": {
+    "stdout": "",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "arch-unknown-arch": {
+    "stdout": "bash: line 1: dpkg-architecture: command not found\nrc=127\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-unknown-gnu-type": {
+    "stdout": "bash: line 1: dpkg-architecture: command not found\nrc=127\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-unknown-option": {
+    "stdout": "bash: line 1: dpkg-architecture: command not found\nrc=127\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "arch-version": {
+    "stdout": "rc=127\n",
+    "stderr": "bash: line 1: dpkg-architecture: command not found\n",
+    "exit": 0,
+    "files": {}
+  }
+}

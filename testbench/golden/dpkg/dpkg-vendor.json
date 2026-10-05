@@ -1,0 +1,74 @@
+{
+  "vendor-derives-from": {
+    "stdout": "rc=127\nrc=127\n",
+    "stderr": "bash: line 1: dpkg-vendor: command not found\nbash: line 1: dpkg-vendor: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-env": {
+    "stdout": "rc=127\nrc=127\n",
+    "stderr": "bash: line 1: dpkg-vendor: command not found\nbash: line 1: dpkg-vendor: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-help": {
+    "stdout": "rc=127\n",
+    "stderr": "bash: line 1: dpkg-vendor: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-is-debian": {
+    "stdout": "rc=127\nrc=127\nrc=127\n",
+    "stderr": "bash: line 1: dpkg-vendor: command not found\nbash: line 1: dpkg-vendor: command not found\nbash: line 1: dpkg-vendor: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-no-action": {
+    "stdout": "bash: line 1: dpkg-vendor: command not found\nrc=127\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-query": {
+    "stdout": "rc=127\n",
+    "stderr": "bash: line 1: dpkg-vendor: command not found\nbash: line 1: dpkg-vendor: command not found\nbash: line 1: dpkg-vendor: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-query-missing-field": {
+    "stdout": "rc=127\n",
+    "stderr": "bash: line 1: dpkg-vendor: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-two-actions": {
+    "stdout": "bash: line 1: dpkg-vendor: command not found\nrc=127\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-unknown-option": {
+    "stdout": "bash: line 1: dpkg-vendor: command not found\nrc=127\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-vendor-info": {
+    "stdout": "rc=127\n",
+    "stderr": "bash: line 1: dpkg-vendor: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-vendor-option": {
+    "stdout": "rc=127\nrc=127\n",
+    "stderr": "bash: line 1: dpkg-vendor: command not found\nbash: line 1: dpkg-vendor: command not found\n",
+    "exit": 0,
+    "files": {}
+  },
+  "vendor-version": {
+    "stdout": "rc=127\n",
+    "stderr": "bash: line 1: dpkg-vendor: command not found\n",
+    "exit": 0,
+    "files": {}
+  }
+}
