@@ -24,11 +24,12 @@ pub enum ChrootError {
     CannotEnter(PathBuf, #[source] Error),
 
     /// Failed to execute the specified command.
-    #[error("{}", translate!("chroot-error-command-failed", "cmd" => _0.quote(), "err" => _1))]
+    // Porte pseudo-linus: o GNU cita o comando com o `quote()` (‘x’) e escreve só o strerror.
+    #[error("{}", translate!("chroot-error-command-failed", "cmd" => uucore::display::locale_quote(_0), "err" => strip_errno(_1)))]
     CommandFailed(OsString, #[source] Error),
 
     /// Failed to find the specified command.
-    #[error("{}", translate!("chroot-error-command-not-found", "cmd" => _0.quote(), "err" => _1))]
+    #[error("{}", translate!("chroot-error-command-not-found", "cmd" => uucore::display::locale_quote(_0), "err" => strip_errno(_1)))]
     CommandNotFound(OsString, #[source] Error),
 
     #[error("{}", translate!("chroot-error-groups-parsing-failed"))]

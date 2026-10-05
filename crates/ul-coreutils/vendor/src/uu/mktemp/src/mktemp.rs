@@ -8,7 +8,7 @@
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::builder::{TypedValueParser, ValueParserFactory};
 use clap::{Arg, ArgAction, ArgMatches, Command};
-use uucore::display::{Quotable, println_verbatim};
+use uucore::display::println_verbatim;
 use uucore::error::{FromIo, UError, UResult, UUsageError};
 use uucore::format_usage;
 use uucore::translate;
@@ -45,26 +45,29 @@ const FALLBACK_TMPDIR: &str = "/tmp";
 enum MkTempError {
     // Porte pseudo-linus: sem `PersistError` (não há arquivo temporário a persistir: a criação é
     // direta e exclusiva).
-    #[error("{}", translate!("mktemp-error-must-end-in-x", "template" => .0.quote()))]
+    // Porte pseudo-linus: o GNU cita o gabarito com o `quote()` do gnulib (‘x’ em C.UTF-8).
+    #[error("{}", translate!("mktemp-error-must-end-in-x", "template" => uucore::display::locale_quote(_0)))]
     MustEndInX(String),
 
-    #[error("{}", translate!("mktemp-error-too-few-xs", "template" => .0.quote()))]
+    #[error("{}", translate!("mktemp-error-too-few-xs", "template" => uucore::display::locale_quote(_0)))]
     TooFewXs(String),
 
-    #[error("{}", translate!("mktemp-error-prefix-contains-separator", "template" => .0.quote()))]
+    #[error("{}", translate!("mktemp-error-prefix-contains-separator", "template" => uucore::display::locale_quote(_0)))]
     PrefixContainsDirSeparator(String),
 
-    #[error("{}", translate!("mktemp-error-suffix-contains-separator", "suffix" => .0.quote()))]
+    #[error("{}", translate!("mktemp-error-suffix-contains-separator", "suffix" => uucore::display::locale_quote(_0)))]
     SuffixContainsDirSeparator(String),
 
-    #[error("{}", translate!("mktemp-error-invalid-template", "template" => .0.quote()))]
+    #[error("{}", translate!("mktemp-error-invalid-template", "template" => uucore::display::locale_quote(_0)))]
     InvalidTemplate(OsString),
 
     #[error("{}", translate!("mktemp-error-too-many-templates"))]
     TooManyTemplates,
 
-    #[error("{}", translate!("mktemp-error-not-found", "template_type" => .0, "template" => .1.quote()))]
-    NotFound(String, PathBuf),
+    /// Falha ao criar o arquivo ou diretório: tipo, gabarito e strerror (o GNU usa a mesma
+    /// mensagem pra qualquer errno, não só ENOENT).
+    #[error("{}", translate!("mktemp-error-not-found", "template_type" => _0, "template" => uucore::display::locale_quote(_1), "err" => _2))]
+    NotFound(String, PathBuf, String),
 }
 
 impl UError for MkTempError {
@@ -559,12 +562,16 @@ fn make_temp_dir(dir: &Path, prefix: &str, rand: usize, suffix: &str) -> UResult
         sysio::os::unix::fs::DirBuilderExt::mode(&mut fs::DirBuilder::new(), 0o700).create(p)
     }) {
         Ok(path) => Ok(path),
-        Err(e) if e.kind() == ErrorKind::NotFound => {
+        Err(e) => {
             let filename = format!("{prefix}{}{suffix}", "X".repeat(rand));
             let path = Path::new(dir).join(filename);
-            Err(MkTempError::NotFound(translate!("mktemp-template-type-directory"), path).into())
+            Err(MkTempError::NotFound(
+                translate!("mktemp-template-type-directory"),
+                path,
+                uucore::error::strip_errno(&e),
+            )
+            .into())
         }
-        Err(e) => Err(e.into()),
     }
 }
 
@@ -588,12 +595,16 @@ fn make_temp_file(dir: &Path, prefix: &str, rand: usize, suffix: &str) -> UResul
         opts.open(p).map(|_| ())
     }) {
         Ok(path) => Ok(path),
-        Err(e) if e.kind() == ErrorKind::NotFound => {
+        Err(e) => {
             let filename = format!("{prefix}{}{suffix}", "X".repeat(rand));
             let path = Path::new(dir).join(filename);
-            Err(MkTempError::NotFound(translate!("mktemp-template-type-file"), path).into())
+            Err(MkTempError::NotFound(
+                translate!("mktemp-template-type-file"),
+                path,
+                uucore::error::strip_errno(&e),
+            )
+            .into())
         }
-        Err(e) => Err(e.into()),
     }
 }
 

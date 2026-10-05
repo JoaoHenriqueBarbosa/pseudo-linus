@@ -43,7 +43,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         .map(Path::new)
     {
         if let Err(error) = remove(path, opts) {
-            let Error { error, path } = error;
+            let Error { error, path, ancestor } = error;
 
             if opts.ignore && dir_not_empty(&error, path) {
                 continue;
@@ -85,9 +85,14 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
                 }
             }
 
+            let failed_key = if ancestor {
+                "rmdir-error-failed-to-remove-directory"
+            } else {
+                "rmdir-error-failed-to-remove"
+            };
             show_error!(
                 "{}",
-                translate!("rmdir-error-failed-to-remove", "path" => path.quote(), "err" => strip_errno(&error))
+                translate!(failed_key, "path" => path.quote(), "err" => strip_errno(&error))
             );
         }
     }
@@ -98,6 +103,9 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
 struct Error<'a> {
     error: io::Error,
     path: &'a Path,
+    /// Porte pseudo-linus: falha ao remover um ancestral (`-p`), que o GNU diz como
+    /// `failed to remove directory 'x'`, e não `failed to remove 'x'`.
+    ancestor: bool,
 }
 
 fn remove(mut path: &Path, opts: Opts) -> Result<(), Error<'_>> {
@@ -108,7 +116,10 @@ fn remove(mut path: &Path, opts: Opts) -> Result<(), Error<'_>> {
             if path.as_os_str().is_empty() {
                 break;
             }
-            remove_single(path, opts)?;
+            remove_single(path, opts).map_err(|mut e| {
+                e.ancestor = true;
+                e
+            })?;
         }
     }
     Ok(())
@@ -121,7 +132,7 @@ fn remove_single(path: &Path, opts: Opts) -> Result<(), Error<'_>> {
             translate!("rmdir-verbose-removing-directory", "util_name" => "rmdir", "path" => path.quote())
         );
     }
-    remove_dir(path).map_err(|error| Error { error, path })
+    remove_dir(path).map_err(|error| Error { error, path, ancestor: false })
 }
 
 #[cfg(unix)]

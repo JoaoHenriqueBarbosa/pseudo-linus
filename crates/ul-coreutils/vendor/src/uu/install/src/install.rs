@@ -377,7 +377,8 @@ fn behavior(matches: &ArgMatches, diag_args: Option<&[OsString]>) -> UResult<Beh
     let specified_mode: Option<u32> = if matches.contains_id(OPT_MODE) {
         let x = matches.get_one::<String>(OPT_MODE).ok_or(1)?;
         Some(uucore::mode::parse(x, considering_dir, 0).map_err(|err| {
-            let message = translate!("install-error-invalid-mode", "error" => err.to_string());
+            // Porte pseudo-linus: o GNU diz `invalid mode ‘x’` (o `quote()` do gnulib).
+            let message = translate!("install-error-invalid-mode", "mode" => uucore::display::locale_quote(x));
             // When the diagnostic is rendered it is already on stderr; exit quietly.
             if !diag_args.is_some_and(|args| err.render_mode_value(args, x, 0, &message)) {
                 show_error!("{message}");
@@ -1013,13 +1014,16 @@ fn copy_file(from: &Path, to: &Path) -> UResult<()> {
         }
     }
 
-    let mut handle = File::open(from)?;
+    // Porte pseudo-linus: as mensagens do GNU pra falha ao abrir a origem e ao criar o destino.
+    let mut handle = File::open(from)
+        .map_err_context(|| format!("cannot open {} for reading", from.quote()))?;
     // create_new provides TOCTOU protection
     let mut dest = OpenOptions::new()
         .write(true)
         .create_new(true)
         .mode(0o600)
-        .open(to)?;
+        .open(to)
+        .map_err_context(|| format!("cannot create regular file {}", to.quote()))?;
 
     // Porte pseudo-linus: sem FICLONE (reflink do FS do host); cópia por leitura e escrita.
     copy_fast(&mut handle, &mut dest).map_err(|err| {

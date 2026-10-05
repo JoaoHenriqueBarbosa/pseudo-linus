@@ -9,6 +9,8 @@ rmdir-help-verbose = output a diagnostic for every directory processed
 # Error messages
 rmdir-error-symbolic-link-not-followed = failed to remove { $path }: Symbolic link not followed
 rmdir-error-failed-to-remove = failed to remove { $path }: { $err }
+# Porte pseudo-linus: o GNU diz "directory" ao falhar num ancestral de `rmdir -p`.
+rmdir-error-failed-to-remove-directory = failed to remove directory { $path }: { $err }
 
 # Verbose output
 rmdir-verbose-removing-directory = { $util_name }: removing directory, { $path }

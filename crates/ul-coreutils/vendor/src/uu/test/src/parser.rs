@@ -10,7 +10,7 @@ use std::iter::Peekable;
 
 use super::error::{ParseError, ParseErrorKind, ParseResult};
 
-use uucore::display::Quotable;
+use uucore::display::locale_quote;
 
 /// Represents one of the binary comparison operators for strings, integers, or files
 #[derive(Debug, PartialEq, Eq)]
@@ -102,7 +102,8 @@ impl std::fmt::Display for Symbol {
             }
             Self::None => OsStr::new("None"),
         };
-        write!(f, "{}", s.quote())
+        // Porte pseudo-linus: o GNU cita com o `quote()` do gnulib (‘x’ em C.UTF-8).
+        write!(f, "{}", locale_quote(s))
     }
 }
 
@@ -172,7 +173,7 @@ impl Parser {
         match self.next_token() {
             Symbol::Literal(s) if s == value => Ok(()),
             _ => Err(ParseError::at_token(
-                ParseErrorKind::Expected(value.quote().to_string()),
+                ParseErrorKind::Expected(locale_quote(value)),
                 self.last_pos(),
             )),
         }
@@ -467,7 +468,7 @@ impl Parser {
 
         match self.next_raw() {
             Some(token) => Err(ParseError::at_token(
-                ParseErrorKind::ExtraArgument(token.quote().to_string()),
+                ParseErrorKind::ExtraArgument(locale_quote(&token)),
                 self.last_pos(),
             )),
             None => Ok(()),
@@ -475,9 +476,94 @@ impl Parser {
     }
 }
 
+/// Porte pseudo-linus: se o token é um operador binário do `test` do GNU.
+fn is_binary_operator(token: &OsStr) -> bool {
+    matches!(
+        token.to_str(),
+        Some(
+            "=" | "==" | "!=" | "<" | ">" | "-eq" | "-ge" | "-gt" | "-le" | "-lt" | "-ne" | "-ef"
+                | "-nt" | "-ot"
+        )
+    )
+}
+
+/// Porte pseudo-linus: se o token é um operador unário do `test` do GNU.
+fn is_unary_operator(token: &OsStr) -> bool {
+    matches!(
+        token.to_str(),
+        Some(
+            "-b" | "-c" | "-d" | "-e" | "-f" | "-g" | "-G" | "-h" | "-k" | "-L" | "-n" | "-N"
+                | "-O" | "-p" | "-r" | "-s" | "-S" | "-t" | "-u" | "-w" | "-x" | "-z"
+        )
+    )
+}
+
+/// Porte pseudo-linus: `two_arguments` do GNU. `last` é o último argumento do comando inteiro, que
+/// a mensagem de operando faltando cita (`missing argument after ‘x’`).
+fn check_two_arguments(first: &OsStr, last: &OsStr) -> ParseResult<()> {
+    if first == "!" {
+        return Ok(());
+    }
+    let bytes = first.as_encoded_bytes();
+    if bytes.len() == 2 && bytes[0] == b'-' {
+        if is_unary_operator(first) {
+            Ok(())
+        } else {
+            Err(ParseError::at_value(
+                ParseErrorKind::UnaryOperatorExpected(locale_quote(first)),
+                first,
+            ))
+        }
+    } else {
+        Err(ParseError::at_value(
+            ParseErrorKind::MissingArgument(locale_quote(last)),
+            last,
+        ))
+    }
+}
+
+/// Porte pseudo-linus: `three_arguments` do GNU.
+fn check_three_arguments(first: &OsStr, second: &OsStr, third: &OsStr, last: &OsStr) -> ParseResult<()> {
+    if is_binary_operator(second) {
+        Ok(())
+    } else if first == "!" {
+        check_two_arguments(second, third, last)
+    } else if (first == "(" && third == ")") || second == "-a" || second == "-o" {
+        Ok(())
+    } else {
+        Err(ParseError::at_value(
+            ParseErrorKind::UnknownOperator(locale_quote(second)),
+            second,
+        ))
+    }
+}
+
+/// Porte pseudo-linus: o despacho do GNU pelo número de argumentos (`posixtest`): com 2, 3 ou 4
+/// argumentos ele tem as próprias regras e mensagens de erro (`binary operator expected`,
+/// `unary operator expected`, `missing argument after`), que o analisador abaixo não produz. O
+/// que passa daqui segue pro analisador normal; com mais de 4 argumentos o GNU também cai no
+/// analisador geral.
+fn check_gnu_arity(args: &[OsString]) -> ParseResult<()> {
+    match args {
+        [a, b] => check_two_arguments(a, b),
+        [a, b, c] => check_three_arguments(a, b, c, c),
+        [a, b, c, d] => {
+            if a == "!" {
+                check_three_arguments(b, c, d, d)
+            } else if a == "(" && d == ")" {
+                check_two_arguments(b, c, d)
+            } else {
+                Ok(())
+            }
+        }
+        _ => Ok(()),
+    }
+}
+
 /// Parse the token stream `args`, returning a `Symbol` stack representing the
 /// operations to perform in postfix order.
 pub fn parse(args: Vec<OsString>) -> ParseResult<Vec<Symbol>> {
+    check_gnu_arity(&args)?;
     let mut p = Parser::new(args);
     p.parse()?;
     Ok(p.stack)

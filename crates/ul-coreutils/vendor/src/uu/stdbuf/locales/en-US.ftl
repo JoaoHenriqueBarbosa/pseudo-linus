@@ -22,8 +22,10 @@ stdbuf-help-error = adjust standard error stream buffering
 stdbuf-value-mode = MODE
 
 stdbuf-error-line-buffering-stdin-meaningless = line buffering stdin is meaningless
-stdbuf-error-invalid-mode = invalid mode {$error}
-stdbuf-error-value-too-large = invalid mode '{$value}': Value too large for defined data type
+# Porte pseudo-linus: as mensagens do GNU (o valor já vem citado com o `quote()` do gnulib).
+stdbuf-error-invalid-mode = invalid mode {$value}
+stdbuf-error-value-too-large = invalid mode {$value}: Value too large for defined data type
+stdbuf-error-no-mode = you must specify a buffering mode option
 stdbuf-error-external-libstdbuf-not-found = External libstdbuf not found at configured path: {$path}
 stdbuf-error-preload-path-separator = libstdbuf path {$path} contains ':', which cannot be represented in {$var}
   stdbuf: set TMPDIR to a directory whose path has no ':'

@@ -114,6 +114,24 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let current_niceness = sysio::unistd::getpriority(0)
         .map_err(|e| uucore::error::USimpleError::new(125, format!("getpriority: {}", uucore::error::strip_errno(&e))))?;
 
+    // Porte pseudo-linus: o GNU valida o ajuste ao ler a opção, antes de olhar se há comando
+    // (`nice -n abc` diz "invalid adjustment ‘abc’", não "a command must be given").
+    #[cfg(any(unix, windows))]
+    let adjustment = match matches.get_one::<String>(options::ADJUSTMENT) {
+        None => 10,
+        Some(nstr) => match nstr.parse::<i32>() {
+            Ok(num) => num,
+            Err(e) if *e.kind() == std::num::IntErrorKind::PosOverflow => i32::MAX,
+            Err(e) if *e.kind() == std::num::IntErrorKind::NegOverflow => i32::MIN,
+            Err(_) => {
+                return Err(uucore::error::USimpleError::new(
+                    125,
+                    translate!("nice-error-invalid-number", "value" => uucore::display::locale_quote(nstr)),
+                ));
+            }
+        },
+    };
+
     let Some(mut cmd_iter) = matches.get_many::<String>(options::COMMAND) else {
         if matches.contains_id(options::ADJUSTMENT) {
             return Err(UUsageError::new(
@@ -124,22 +142,6 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
 
         writeln!(stdout(), "{current_niceness}")?;
         return Ok(());
-    };
-
-    #[cfg(any(unix, windows))]
-    let adjustment = match matches.get_one::<String>(options::ADJUSTMENT) {
-        None => 10,
-        Some(nstr) => match nstr.parse::<i32>() {
-            Ok(num) => num,
-            Err(e) if *e.kind() == std::num::IntErrorKind::PosOverflow => i32::MAX,
-            Err(e) if *e.kind() == std::num::IntErrorKind::NegOverflow => i32::MIN,
-            Err(e) => {
-                return Err(uucore::error::USimpleError::new(
-                    125,
-                    translate!("nice-error-invalid-number", "value" => nstr, "error" => e),
-                ));
-            }
-        },
     };
 
     #[cfg(any(unix, windows))]
@@ -184,7 +186,8 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         return Ok(());
     };
 
-    show_error!("{cmd}: {err}");
+    // Porte pseudo-linus: o GNU cita o comando com o `quote()` (‘x’) e escreve só o strerror.
+    show_error!("{}: {}", uucore::display::locale_quote(cmd), uucore::error::strip_errno(&err));
 
     let exit_code = if err.kind() == ErrorKind::NotFound {
         127

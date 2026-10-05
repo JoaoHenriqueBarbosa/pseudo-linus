@@ -8,7 +8,8 @@ chroot-help-skip-chdir = Use this option to not change the working directory to 
 
 # Error messages
 chroot-error-skip-chdir-only-permitted = option --skip-chdir only permitted if NEWROOT is old '/'
-chroot-error-cannot-enter = cannot chroot to { $dir }: { $err }
+# Porte pseudo-linus: o texto do GNU ("cannot change root directory to 'x': ...").
+chroot-error-cannot-enter = cannot change root directory to { $dir }: { $err }
 chroot-error-command-failed = failed to run command { $cmd }: { $err }
 chroot-error-command-not-found = failed to run command { $cmd }: { $err }
 chroot-error-groups-parsing-failed = --groups parsing failed

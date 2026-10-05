@@ -40,7 +40,8 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let matches = uucore::clap_localization::handle_clap_result(uu_app(), args)?;
 
     let mode = calculate_mode(matches.get_one::<String>(options::MODE)).map_err(|err| {
-        let message = translate!("mkfifo-error-invalid-mode", "error" => err.to_string());
+        // Porte pseudo-linus: o GNU diz só `invalid mode`.
+        let message = translate!("mkfifo-error-invalid-mode");
         if let Some(args) = &diag_args
             && let Some(mode) = matches.get_one::<String>(options::MODE)
             && err.render_mode_value(args, mode, 0, &message)

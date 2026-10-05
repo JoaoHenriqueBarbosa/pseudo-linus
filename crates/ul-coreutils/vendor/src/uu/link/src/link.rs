@@ -10,7 +10,7 @@ use std::ffi::OsString;
 use sysio::fs::hard_link;
 use std::path::Path;
 use uucore::display::Quotable;
-use uucore::error::{FromIo, UResult};
+use uucore::error::{FromIo, UResult, UUsageError};
 use uucore::format_usage;
 use uucore::translate;
 
@@ -25,6 +25,27 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         .get_many::<OsString>(options::FILES)
         .unwrap_or_default()
         .collect();
+
+    // Porte pseudo-linus: a contagem de operandos é checada à mão, com as mensagens do GNU
+    // (o clap diria outra coisa pra operando a menos).
+    match files.len() {
+        0 => {
+            return Err(UUsageError::new(1, translate!("link-error-missing-operand")));
+        }
+        1 => {
+            return Err(UUsageError::new(
+                1,
+                translate!("link-error-missing-operand-after", "operand" => uucore::display::locale_quote(files[0])),
+            ));
+        }
+        2 => {}
+        _ => {
+            return Err(UUsageError::new(
+                1,
+                translate!("link-error-extra-operand", "operand" => uucore::display::locale_quote(files[2])),
+            ));
+        }
+    }
 
     let old = Path::new(files[0]);
     let new = Path::new(files[1]);
@@ -44,8 +65,7 @@ pub fn uu_app() -> Command {
         .arg(
             Arg::new(options::FILES)
                 .hide(true)
-                .required(true)
-                .num_args(2)
+                .num_args(0..)
                 .value_hint(clap::ValueHint::AnyPath)
                 .value_parser(ValueParser::os_string()),
         )

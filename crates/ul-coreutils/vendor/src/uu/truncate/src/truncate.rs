@@ -15,7 +15,7 @@ use sysio::os::unix::fs::FileTypeExt;
 use std::path::Path;
 use uucore::diagnostics::OptionValue;
 use uucore::display::Quotable;
-use uucore::error::{FromIo, UResult, USimpleError};
+use uucore::error::{FromIo, UResult, USimpleError, UUsageError};
 use uucore::format_usage;
 use uucore::show_if_err;
 use uucore::translate;
@@ -157,10 +157,26 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let diag_args = uucore::diagnostics::capture(&args);
     let matches = uucore::clap_localization::handle_clap_result(uu_app(), args)?;
 
-    let files: Vec<OsString> = matches
-        .get_many::<OsString>(options::ARG_FILES)
-        .map(|v| v.cloned().collect())
-        .expect("ARG_FILES should be required by clap");
+    // Porte pseudo-linus: as exigências são checadas à mão, na ordem do GNU (o clap diria
+    // `missing operand after ‘x’`): primeiro o tamanho ou a referência, depois o operando.
+    if !matches.contains_id(options::SIZE) && !matches.contains_id(options::REFERENCE) {
+        return Err(UUsageError::new(1, translate!("truncate-error-no-size")));
+    }
+    if matches.get_flag(options::IO_BLOCKS) && !matches.contains_id(options::SIZE) {
+        return Err(UUsageError::new(
+            1,
+            translate!("truncate-error-io-blocks-without-size"),
+        ));
+    }
+    let files: Vec<OsString> = match matches.get_many::<OsString>(options::ARG_FILES) {
+        Some(v) => v.cloned().collect(),
+        None => {
+            return Err(UUsageError::new(
+                1,
+                translate!("truncate-error-missing-file-operand"),
+            ));
+        }
+    };
 
     let io_blocks = matches.get_flag(options::IO_BLOCKS);
     let no_create = matches.get_flag(options::NO_CREATE);
@@ -193,7 +209,6 @@ pub fn uu_app() -> Command {
             Arg::new(options::IO_BLOCKS)
                 .short('o')
                 .long(options::IO_BLOCKS)
-                .requires(options::SIZE)
                 .help(translate!("truncate-help-io-blocks"))
                 .action(ArgAction::SetTrue),
         )
@@ -208,7 +223,6 @@ pub fn uu_app() -> Command {
             Arg::new(options::REFERENCE)
                 .short('r')
                 .long(options::REFERENCE)
-                .required_unless_present(options::SIZE)
                 .help(translate!("truncate-help-reference"))
                 .value_name("RFILE")
                 .value_hint(clap::ValueHint::FilePath)
@@ -218,7 +232,6 @@ pub fn uu_app() -> Command {
             Arg::new(options::SIZE)
                 .short('s')
                 .long(options::SIZE)
-                .required_unless_present(options::REFERENCE)
                 .help(translate!("truncate-help-size"))
                 .allow_hyphen_values(true)
                 .value_name("SIZE"),
@@ -227,7 +240,6 @@ pub fn uu_app() -> Command {
             Arg::new(options::ARG_FILES)
                 .value_name("FILE")
                 .action(ArgAction::Append)
-                .required(true)
                 .value_hint(clap::ValueHint::FilePath)
                 .value_parser(clap::value_parser!(OsString)),
         )
@@ -331,7 +343,7 @@ fn file_truncate(
                 let error = match size_argument {
                     None => translate!("truncate-error-value-too-large"),
                     Some(arg) => {
-                        translate!("truncate-error-value-too-large-arg", "arg" => arg.quote())
+                        translate!("truncate-error-value-too-large-arg", "arg" => uucore::display::locale_quote(arg))
                     }
                 };
                 USimpleError::new(
@@ -346,7 +358,7 @@ fn file_truncate(
         let error = match size_argument {
             None => translate!("truncate-error-value-too-large"),
             Some(arg) => {
-                translate!("truncate-error-value-too-large-arg", "arg" => arg.quote())
+                translate!("truncate-error-value-too-large-arg", "arg" => uucore::display::locale_quote(arg))
             }
         };
         return Err(USimpleError::new(
@@ -387,7 +399,10 @@ fn truncate(
     let mode = match size_string {
         Some(string) => match parse_mode_and_size(string) {
             Err(error) => {
-                let message = translate!("truncate-error-invalid-number", "error" => &error);
+                let message = translate!(
+                    "truncate-error-invalid-number",
+                    "error" => invalid_number_detail(&error, string)
+                );
                 return Err(error.size_value_error(
                     diag_args,
                     &OptionValue::new(string, 's', "size"),
@@ -430,6 +445,18 @@ fn truncate(
 /// Decide whether a character is one of the size modifiers, like '+' or '<'.
 fn is_modifier(c: char) -> bool {
     "+-<>/%".contains(c)
+}
+
+/// Porte pseudo-linus: o texto depois de `Invalid number: ` como o GNU escreve: o SIZE como foi
+/// digitado, com o `quote()` do gnulib (‘x’), e o strerror de ERANGE quando não cabe.
+fn invalid_number_detail(error: &ParseSizeError, size: &str) -> String {
+    let quoted = uucore::display::locale_quote(size);
+    match error {
+        ParseSizeError::SizeTooBig(_) => {
+            translate!("truncate-error-value-too-large-arg", "arg" => quoted)
+        }
+        _ => quoted,
+    }
 }
 
 /// Parse a size string with optional modifier symbol as its first character.

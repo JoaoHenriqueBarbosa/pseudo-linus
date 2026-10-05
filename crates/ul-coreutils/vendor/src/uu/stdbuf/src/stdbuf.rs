@@ -66,10 +66,20 @@ struct ModeError {
 enum ProgramOptionsError {
     #[error("{}", translate!("stdbuf-error-line-buffering-stdin-meaningless"))]
     LineBufferingStdinMeaningless,
-    #[error("{}", translate!("stdbuf-error-invalid-mode", "error" => _0.error.to_string()))]
+    #[error("{}", invalid_mode_message(_0))]
     InvalidMode(Box<ModeError>),
-    #[error("{}", translate!("stdbuf-error-value-too-large", "value" => _0))]
+    #[error("{}", translate!("stdbuf-error-value-too-large", "value" => uucore::display::locale_quote(_0)))]
     ValueTooLarge(String),
+}
+
+/// Porte pseudo-linus: a mensagem do GNU, `invalid mode ‘x’` (com o `quote()` do gnulib), seguida
+/// do strerror de ERANGE quando o valor não cabe.
+fn invalid_mode_message(mode: &ModeError) -> String {
+    let key = match mode.error {
+        ParseSizeError::SizeTooBig(_) => "stdbuf-error-value-too-large",
+        _ => "stdbuf-error-invalid-mode",
+    };
+    translate!(key, "value" => uucore::display::locale_quote(&mode.option.value))
 }
 
 fn check_option(
@@ -141,11 +151,20 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         )
     })?;
 
-    let mut command_values = matches
-        .get_many::<OsString>(options::COMMAND)
-        .ok_or_else(|| UUsageError::new(125, "no command specified"))?;
+    // Porte pseudo-linus: a ordem do GNU, depois de validar os modos: falta de comando
+    // (`missing operand`), falta de modo (`you must specify a buffering mode option`). O clap não
+    // pode exigir isso (ele diria `missing operand after ‘x’`).
+    let Some(mut command_values) = matches.get_many::<OsString>(options::COMMAND) else {
+        return Err(UUsageError::new(125, "missing operand"));
+    };
+    if [options::INPUT, options::OUTPUT, options::ERROR]
+        .iter()
+        .all(|name| !matches.contains_id(name))
+    {
+        return Err(UUsageError::new(125, translate!("stdbuf-error-no-mode")));
+    }
     let Some(first_command) = command_values.next() else {
-        return Err(UUsageError::new(125, "no command specified"));
+        return Err(UUsageError::new(125, "missing operand"));
     };
     let mut command = process::Command::new(first_command);
     let command_params: Vec<&OsString> = command_values.collect();
@@ -192,30 +211,26 @@ pub fn uu_app() -> Command {
                 .long(options::INPUT)
                 .short(options::INPUT_SHORT)
                 .help(translate!("stdbuf-help-input"))
-                .value_name("MODE")
-                .required_unless_present_any([options::OUTPUT, options::ERROR]),
+                .value_name("MODE"),
         )
         .arg(
             Arg::new(options::OUTPUT)
                 .long(options::OUTPUT)
                 .short(options::OUTPUT_SHORT)
                 .help(translate!("stdbuf-help-output"))
-                .value_name("MODE")
-                .required_unless_present_any([options::INPUT, options::ERROR]),
+                .value_name("MODE"),
         )
         .arg(
             Arg::new(options::ERROR)
                 .long(options::ERROR)
                 .short(options::ERROR_SHORT)
                 .help(translate!("stdbuf-help-error"))
-                .value_name("MODE")
-                .required_unless_present_any([options::INPUT, options::OUTPUT]),
+                .value_name("MODE"),
         )
         .arg(
             Arg::new(options::COMMAND)
                 .action(ArgAction::Append)
                 .hide(true)
-                .required(true)
                 .value_hint(clap::ValueHint::CommandName)
                 .value_parser(clap::value_parser!(OsString)),
         )

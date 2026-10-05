@@ -27,7 +27,7 @@ use std::ffi::{OsStr, OsString};
 use sysio::fs;
 #[cfg(unix)]
 use sysio::os::unix::fs::MetadataExt;
-use uucore::display::Quotable;
+use uucore::display::locale_quote;
 use uucore::error::{UResult, USimpleError};
 use uucore::format_usage;
 use uucore::translate;
@@ -141,7 +141,7 @@ fn eval(stack: &mut Vec<Symbol>) -> ParseResult<bool> {
                 None => return Ok(true),
                 _ => {
                     return Err(ParseError::at_value(
-                        ParseErrorKind::MissingArgument(op.quote().to_string()),
+                        ParseErrorKind::MissingArgument(locale_quote(&op)),
                         &op,
                     ));
                 }
@@ -182,7 +182,7 @@ fn eval(stack: &mut Vec<Symbol>) -> ParseResult<bool> {
         Some(Symbol::BoolOp(op)) => {
             if (op == "-a" || op == "-o") && stack.len() < 2 {
                 return Err(ParseError::at_value(
-                    ParseErrorKind::UnaryOperatorExpected(op.quote().to_string()),
+                    ParseErrorKind::UnaryOperatorExpected(locale_quote(&op)),
                     &op,
                 ));
             }
@@ -272,10 +272,10 @@ impl PartialOrd for Integer<'_> {
 fn integers(a: &OsStr, b: &OsStr, op: &OsStr) -> ParseResult<bool> {
     // Parse the two inputs
     let left = Integer::parse(a).ok_or_else(|| {
-        ParseError::at_value(ParseErrorKind::InvalidInteger(a.quote().to_string()), a)
+        ParseError::at_value(ParseErrorKind::InvalidInteger(locale_quote(a)), a)
     })?;
     let right = Integer::parse(b).ok_or_else(|| {
-        ParseError::at_value(ParseErrorKind::InvalidInteger(b.quote().to_string()), b)
+        ParseError::at_value(ParseErrorKind::InvalidInteger(locale_quote(b)), b)
     })?;
 
     // Do the maths
@@ -290,7 +290,7 @@ fn integers(a: &OsStr, b: &OsStr, op: &OsStr) -> ParseResult<bool> {
         Some("-le") => order.is_le(),
         _ => {
             return Err(ParseError::at_value(
-                ParseErrorKind::UnknownOperator(op.quote().to_string()),
+                ParseErrorKind::UnknownOperator(locale_quote(op)),
                 op,
             ));
         }
@@ -317,7 +317,7 @@ fn files(a: &OsStr, b: &OsStr, op: &OsStr) -> ParseResult<bool> {
         (Some("-ef" | "-nt" | "-ot"), _, _) => false,
         (_, _, _) => {
             return Err(ParseError::at_value(
-                ParseErrorKind::UnknownOperator(op.quote().to_string()),
+                ParseErrorKind::UnknownOperator(locale_quote(op)),
                 op,
             ));
         }
@@ -332,7 +332,7 @@ fn isatty(fd: &OsStr) -> ParseResult<bool> {
         .and_then(|s| s.parse::<i32>().ok())
         .ok_or_else(|| {
             ParseError::at_value(
-                ParseErrorKind::InvalidFileDescriptor(fd.quote().to_string()),
+                ParseErrorKind::InvalidFileDescriptor(locale_quote(fd)),
                 fd,
             )
         })
@@ -378,28 +378,16 @@ pub(crate) fn modified_since_read(metadata: &fs::Metadata) -> bool {
 
 #[cfg(not(any(windows, target_os = "wasi")))]
 fn path(path: &OsStr, condition: &PathCondition) -> bool {
-    use sysio::fs::Metadata;
     use sysio::os::unix::fs::FileTypeExt;
 
     const S_ISUID: u32 = 0o4000;
     const S_ISGID: u32 = 0o2000;
     const S_ISVTX: u32 = 0o1000;
 
-    enum Permission {
-        Read = 0o4,
-        Write = 0o2,
-        Execute = 0o1,
-    }
-
-    let perm = |metadata: Metadata, p: Permission| {
-        if geteuid() == metadata.uid() {
-            metadata.mode() & ((p as u32) << 6) != 0
-        } else if getegid() == metadata.gid() {
-            metadata.mode() & ((p as u32) << 3) != 0
-        } else {
-            metadata.mode() & (p as u32) != 0
-        }
-    };
+    // Porte pseudo-linus: -r, -w e -x pelo `euidaccess` do GNU (o `faccessat` com o uid efetivo
+    // do pseudo-kernel), que sabe que o root lê e escreve em qualquer arquivo e só executa o que
+    // tem algum bit de execução. A conta pelos bits do modo dava falso pro root em modo 000.
+    let accessible = |mode: sysio::fs::Access| sysio::fs::eaccess(path, mode).is_ok();
 
     let metadata = if condition == &PathCondition::SymLink {
         fs::symlink_metadata(path)
@@ -426,12 +414,12 @@ fn path(path: &OsStr, condition: &PathCondition) -> bool {
         PathCondition::Sticky => metadata.mode() & S_ISVTX != 0,
         PathCondition::UserOwns => metadata.uid() == geteuid(),
         PathCondition::Fifo => file_type.is_fifo(),
-        PathCondition::Readable => perm(metadata, Permission::Read),
+        PathCondition::Readable => accessible(sysio::fs::Access::R_OK),
         PathCondition::Socket => file_type.is_socket(),
         PathCondition::NonEmpty => metadata.size() > 0,
         PathCondition::UserIdFlag => metadata.mode() & S_ISUID != 0,
-        PathCondition::Writable => perm(metadata, Permission::Write),
-        PathCondition::Executable => perm(metadata, Permission::Execute),
+        PathCondition::Writable => accessible(sysio::fs::Access::W_OK),
+        PathCondition::Executable => accessible(sysio::fs::Access::X_OK),
     }
 }
 

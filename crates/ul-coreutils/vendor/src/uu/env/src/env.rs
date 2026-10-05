@@ -591,11 +591,13 @@ struct ParsedArguments {
 
 impl EnvAppData {
     fn make_error_no_such_file_or_dir(&self, prog: &OsStr) -> Box<dyn UError> {
+        // Porte pseudo-linus: o GNU cita o programa com o `quote()` (‘x’) e só sugere o -S quando o
+        // nome tem espaço (sinal de um shebang com opções).
         uucore::show_error!(
             "{}",
-            translate!("env-error-no-such-file", "program" => prog.quote())
+            translate!("env-error-no-such-file", "program" => uucore::display::locale_quote(prog))
         );
-        if !self.had_string_argument {
+        if !self.had_string_argument && prog.as_encoded_bytes().contains(&b' ') {
             uucore::show_error!("{}", translate!("env-error-use-s-shebang"));
         }
         ExitCode::new(127)
@@ -927,7 +929,7 @@ impl EnvAppData {
             match e.raw_os_error() {
                 Some(sysio::errno::ENOENT) => Err(self.make_error_no_such_file_or_dir(&prog)),
                 _ => {
-                    uucore::show_error!("{}: {}", prog.quote(), strip_errno(&e));
+                    uucore::show_error!("{}: {}", uucore::display::locale_quote(&*prog), strip_errno(&e));
                     Err(126.into())
                 }
             }

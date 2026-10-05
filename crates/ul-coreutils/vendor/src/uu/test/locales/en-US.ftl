@@ -154,12 +154,13 @@ test-after-help = Exit with the status determined by EXPRESSION.
   stderr gets the usual single-line message.
 
 # Error messages
-test-error-missing-closing-bracket = missing '{"]"}'
-test-error-expected = expected { $value }
+# Porte pseudo-linus: as mensagens do GNU (o valor já vem citado com o `quote()` do gnulib, ‘x’).
+test-error-missing-closing-bracket = missing ‘{"]"}’
+test-error-expected = { $value } expected
 test-error-expected-value = expected value
 test-error-missing-argument = missing argument after { $argument }
 test-error-extra-argument = extra argument { $argument }
-test-error-unknown-operator = unknown operator { $operator }
+test-error-unknown-operator = { $operator }: binary operator expected
 test-error-invalid-integer = invalid integer { $value }
 test-error-unary-operator-expected = { $operator }: unary operator expected
 

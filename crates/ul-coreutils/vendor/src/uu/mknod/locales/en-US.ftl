@@ -26,9 +26,14 @@ mknod-help-selinux = set SELinux security context of each created directory to t
 mknod-help-context = like -Z, or if CTX is specified then set the SELinux or SMACK security context to CTX
 
 # Error messages
+# Porte pseudo-linus: as mensagens do GNU (o operando já vem citado com o `quote()` do gnulib).
 mknod-error-fifo-no-major-minor = Fifos do not have major and minor device numbers.
 mknod-error-special-require-major-minor = Special files require major and minor device numbers.
-mknod-error-invalid-mode = invalid mode ({ $error })
+mknod-error-missing-operand-after = missing operand after { $operand }
+mknod-error-extra-operand = extra operand { $operand }
+mknod-error-invalid-major = invalid major device number { $number }
+mknod-error-invalid-minor = invalid minor device number { $number }
+mknod-error-invalid-mode = invalid mode
 mknod-error-mode-permission-bits-only = mode must specify only file permission bits
 mknod-error-missing-device-type = missing device type
 mknod-error-invalid-device-type = invalid device type { $type }

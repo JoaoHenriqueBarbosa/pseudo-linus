@@ -222,6 +222,15 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         .map(|v| v.map(ToString::to_string).collect())
         .unwrap_or_default();
 
+    // Porte pseudo-linus: o conflito é checado à mão, como o GNU (uma linha, sem a dica do
+    // `--help`); o clap diria outra coisa.
+    if matches.get_flag(options::DATA) && matches.get_flag(options::FILE_SYSTEM) {
+        return Err(USimpleError::new(
+            1,
+            translate!("sync-error-data-and-file-system"),
+        ));
+    }
+
     if matches.get_flag(options::DATA) && files.is_empty() {
         return Err(USimpleError::new(
             1,
@@ -291,7 +300,6 @@ pub fn uu_app() -> Command {
             Arg::new(options::FILE_SYSTEM)
                 .short('f')
                 .long(options::FILE_SYSTEM)
-                .conflicts_with(options::DATA)
                 .help(translate!("sync-help-file-system"))
                 .action(ArgAction::SetTrue),
         )
@@ -299,7 +307,6 @@ pub fn uu_app() -> Command {
             Arg::new(options::DATA)
                 .short('d')
                 .long(options::DATA)
-                .conflicts_with(options::FILE_SYSTEM)
                 .help(translate!("sync-help-data"))
                 .action(ArgAction::SetTrue),
         )

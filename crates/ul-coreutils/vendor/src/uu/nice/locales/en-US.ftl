@@ -4,8 +4,9 @@ nice-about = Run COMMAND with an adjusted niceness, which affects process schedu
 nice-usage = nice [OPTION] [COMMAND [ARG]...]
 
 # Error messages
-nice-error-command-required-with-adjustment = A command must be given with an adjustment.
-nice-error-invalid-number = "{ $value }" is not a valid number: { $error }
+# Porte pseudo-linus: as mensagens do GNU (o valor já vem citado com o `quote()` do gnulib).
+nice-error-command-required-with-adjustment = a command must be given with an adjustment
+nice-error-invalid-number = invalid adjustment { $value }
 nice-warning-setpriority = { $util_name }: warning: setpriority: { $error }
 
 # Help text for command-line arguments

@@ -578,14 +578,63 @@ fn display_grid(
         };
 
         let grid = Grid::new(
-            names,
+            names.iter().map(String::as_str).collect::<Vec<&str>>(),
             GridOptions {
                 filling,
                 direction,
                 width: width as usize,
             },
         );
-        write!(out, "{grid}")?;
+        if tab_size == 0 {
+            write!(out, "{grid}")?;
+        } else {
+            write_tab_grid(out, &names, &grid, direction, tab_size)?;
+        }
+    }
+    Ok(())
+}
+
+/// Porte pseudo-linus: o preenchimento com tabs do GNU (`indent` do ls.c) sobre as dimensões que o
+/// `term_grid` calculou. O `Display` do `term_grid` põe um tab mesmo quando ele avança só uma
+/// coluna (cursor em 7 módulo o tamanho do tab); o GNU nesse caso usa um espaço, e o resultado
+/// difere byte a byte.
+fn write_tab_grid(
+    out: &mut BufWriter<Stdout>,
+    cells: &[String],
+    grid: &Grid<&str>,
+    direction: Direction,
+    tab_size: usize,
+) -> UResult<()> {
+    let widths = grid.column_widths();
+    let rows = grid.row_count();
+    for y in 0..rows {
+        let mut pos = 0usize;
+        for (x, col_width) in widths.iter().copied().enumerate() {
+            let (current, offset) = match direction {
+                Direction::LeftToRight => (y * widths.len() + x, 1),
+                Direction::TopToBottom => (y + rows * x, rows),
+            };
+            if current >= cells.len() {
+                break;
+            }
+            out.write_all(cells[current].as_bytes())?;
+            // Na última coluna, ou sem mais células nesta linha, não há separador nem preenchimento.
+            if x + 1 == widths.len() || current + offset >= cells.len() {
+                break;
+            }
+            let mut from = pos + ansi_width(&cells[current]);
+            pos += col_width + DEFAULT_SEPARATOR_SIZE;
+            while from < pos {
+                if pos / tab_size > (from + 1) / tab_size {
+                    out.write_all(b"\t")?;
+                    from += tab_size - from % tab_size;
+                } else {
+                    out.write_all(b" ")?;
+                    from += 1;
+                }
+            }
+        }
+        out.write_all(b"\n")?;
     }
     Ok(())
 }

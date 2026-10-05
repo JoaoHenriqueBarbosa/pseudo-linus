@@ -57,7 +57,6 @@ fn nix_umask(mask: Mode) -> Mode {
 use std::ffi::OsString;
 use sysio::io::{self, Write as _};
 
-use uucore::display::Quotable;
 use uucore::error::{ExitCode, UResult, USimpleError, UUsageError, set_exit_code};
 use uucore::format_usage;
 use uucore::fs::makedev;
@@ -71,6 +70,7 @@ mod options {
     pub const TYPE: &str = "type";
     pub const MAJOR: &str = "major";
     pub const MINOR: &str = "minor";
+    pub const EXTRA: &str = "extra";
     pub const SECURITY_CONTEXT: &str = "z";
     pub const CONTEXT: &str = "context";
 }
@@ -153,7 +153,8 @@ fn mknod(file_name: &str, config: Config) -> i32 {
         config.dev,
     )
     .err();
-    let errno = if mknod_err.is_some() { -1 } else { 0 };
+    // Porte pseudo-linus: o GNU sai com 1 (o -1 do uutils virava 255).
+    let errno = if mknod_err.is_some() { 1 } else { 0 };
 
     // set umask back to original value
     if let Some(prev_umask) = have_prev_umask {
@@ -193,8 +194,6 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let diag_args = uucore::diagnostics::operands(&args);
     let matches = uucore::clap_localization::handle_clap_result(uu_app(), args)?;
 
-    let file_type = matches.get_one::<FileType>("type").unwrap();
-
     let mut use_umask = true;
     let mode_permissions = match matches.get_one::<String>("mode") {
         None => MODE_RW_UGO,
@@ -203,8 +202,8 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             let mode =
                 uucore::mode::parse_chmod(MODE_RW_UGO, str_mode, true, uucore::mode::get_umask())
                     .map_err(|err| {
-                    let message =
-                        translate!("mknod-error-invalid-mode", "error" => err.to_string());
+                    // Porte pseudo-linus: o GNU diz só `invalid mode`.
+                    let message = translate!("mknod-error-invalid-mode");
                     if let Some(args) = &diag_args
                         && err.render_mode_value(args, str_mode, 0, &message)
                     {
@@ -227,6 +226,56 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let file_name = matches
         .get_one::<String>("name")
         .expect("Missing argument 'NAME'");
+    let type_name = matches
+        .get_one::<String>(options::TYPE)
+        .expect("Missing argument 'TYPE'");
+
+    // Porte pseudo-linus: os operandos depois de NOME e TIPO são contados à mão, como o GNU:
+    // falta de MAJOR e MINOR, operando a mais e tipo inválido, cada um com a sua mensagem.
+    let major = matches.get_one::<String>(options::MAJOR);
+    let minor = matches.get_one::<String>(options::MINOR);
+    let mut operands: Vec<&String> = vec![file_name, type_name];
+    operands.extend(major);
+    operands.extend(minor);
+    if let Some(extra) = matches.get_many::<String>(options::EXTRA) {
+        operands.extend(extra);
+    }
+    let nargs = operands.len();
+    let first_char = type_name.chars().next();
+    if nargs == 2 && first_char != Some('p') {
+        return Err(UUsageError::new(
+            1,
+            format!(
+                "{}\n{}",
+                translate!("mknod-error-missing-operand-after", "operand" => uucore::display::locale_quote(operands[1])),
+                translate!("mknod-error-special-require-major-minor")
+            ),
+        ));
+    }
+    let file_type = parse_type(type_name).map_err(|message| UUsageError::new(1, message))?;
+    match file_type {
+        FileType::Fifo if nargs != 2 => {
+            let mut message = translate!("mknod-error-extra-operand", "operand" => uucore::display::locale_quote(operands[2]));
+            if nargs == 4 {
+                message.push('\n');
+                message.push_str(&translate!("mknod-error-fifo-no-major-minor"));
+            }
+            return Err(UUsageError::new(1, message));
+        }
+        FileType::Block | FileType::Character if nargs < 4 => {
+            return Err(UUsageError::new(
+                1,
+                translate!("mknod-error-missing-operand-after", "operand" => uucore::display::locale_quote(operands[nargs - 1])),
+            ));
+        }
+        FileType::Block | FileType::Character if nargs > 4 => {
+            return Err(UUsageError::new(
+                1,
+                translate!("mknod-error-extra-operand", "operand" => uucore::display::locale_quote(operands[4])),
+            ));
+        }
+        _ => {}
+    }
 
     // Extract the security context related flags and options
     #[cfg(any(
@@ -240,30 +289,28 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     ))]
     let context = matches.get_one::<String>(options::CONTEXT).cloned();
 
-    let dev = match (
-        file_type,
-        matches.get_one::<u32>(options::MAJOR),
-        matches.get_one::<u32>(options::MINOR),
-    ) {
-        (FileType::Fifo, None, None) => 0,
-        (FileType::Fifo, _, _) => {
-            return Err(UUsageError::new(
-                1,
-                translate!("mknod-error-fifo-no-major-minor"),
-            ));
+    let dev = match (major, minor) {
+        (Some(major), Some(minor)) => {
+            let major = parse_device_number(major).ok_or_else(|| {
+                USimpleError::new(
+                    1,
+                    translate!("mknod-error-invalid-major", "number" => uucore::display::locale_quote(major)),
+                )
+            })?;
+            let minor = parse_device_number(minor).ok_or_else(|| {
+                USimpleError::new(
+                    1,
+                    translate!("mknod-error-invalid-minor", "number" => uucore::display::locale_quote(minor)),
+                )
+            })?;
+            makedev(major, minor)
         }
-        (_, Some(&major), Some(&minor)) => makedev(major as _, minor as _),
-        _ => {
-            return Err(UUsageError::new(
-                1,
-                translate!("mknod-error-special-require-major-minor"),
-            ));
-        }
+        _ => 0,
     };
 
     let config = Config {
         mode,
-        file_type: file_type.clone(),
+        file_type,
         use_umask,
         dev,
         #[cfg(any(
@@ -310,19 +357,27 @@ pub fn uu_app() -> Command {
                 .value_name("TYPE")
                 .help(translate!("mknod-help-type"))
                 .required(true)
-                .value_parser(parse_type),
+                .value_parser(value_parser!(String)),
         )
         .arg(
             Arg::new(options::MAJOR)
                 .value_name(options::MAJOR)
                 .help(translate!("mknod-help-major"))
-                .value_parser(value_parser!(u32)),
+                .value_parser(value_parser!(String)),
         )
         .arg(
             Arg::new(options::MINOR)
                 .value_name(options::MINOR)
                 .help(translate!("mknod-help-minor"))
-                .value_parser(value_parser!(u32)),
+                .value_parser(value_parser!(String)),
+        )
+        // Porte pseudo-linus: recolhe os operandos a mais pra dizer `extra operand` como o GNU.
+        .arg(
+            Arg::new(options::EXTRA)
+                .hide(true)
+                .num_args(0..)
+                .action(ArgAction::Append)
+                .value_parser(value_parser!(String)),
         )
         .arg(
             Arg::new(options::SECURITY_CONTEXT)
@@ -347,11 +402,32 @@ fn parse_type(tpe: &str) -> Result<FileType, String> {
     // `mknod /dev/ttyS0 character 4 64`.
     tpe.chars()
         .next()
-        .ok_or_else(|| translate!("mknod-error-missing-device-type"))
+        .ok_or_else(|| translate!("mknod-error-invalid-device-type", "type" => uucore::display::locale_quote(tpe)))
         .and_then(|first_char| match first_char {
             'b' => Ok(FileType::Block),
             'c' | 'u' => Ok(FileType::Character),
             'p' => Ok(FileType::Fifo),
-            _ => Err(translate!("mknod-error-invalid-device-type", "type" => tpe.quote())),
+            _ => Err(translate!("mknod-error-invalid-device-type", "type" => uucore::display::locale_quote(tpe))),
         })
+}
+
+/// Porte pseudo-linus: o número de dispositivo como o `xstrtoumax` (base 0) do GNU: espaço no
+/// começo, `+` opcional, `0x` hexadecimal, `0` octal, senão decimal, e a cadeia toda consumida.
+/// `None` quando é inválido ou não cabe em 32 bits.
+fn parse_device_number(text: &str) -> Option<u32> {
+    let text = text.trim_start();
+    let text = text.strip_prefix('+').unwrap_or(text);
+    let (digits, radix) = if let Some(hex) = text.strip_prefix("0x").or_else(|| text.strip_prefix("0X")) {
+        (hex, 16)
+    } else if text.len() > 1 && text.starts_with('0') {
+        (&text[1..], 8)
+    } else {
+        (text, 10)
+    };
+    if digits.is_empty() || !digits.chars().all(|c| c.is_digit(radix)) {
+        return None;
+    }
+    u64::from_str_radix(digits, radix)
+        .ok()
+        .and_then(|value| u32::try_from(value).ok())
 }

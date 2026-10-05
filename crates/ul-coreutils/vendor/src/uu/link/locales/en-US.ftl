@@ -2,3 +2,7 @@ link-about = Call the link function to create a link named FILE2 to an existing 
 link-usage = link FILE1 FILE2
 
 link-error-cannot-create-link = cannot create link { $new } to { $old }
+# Porte pseudo-linus: as mensagens de operando do GNU (o operando já vem citado, ‘x’).
+link-error-missing-operand = missing operand
+link-error-missing-operand-after = missing operand after { $operand }
+link-error-extra-operand = extra operand { $operand }
