@@ -213,7 +213,11 @@ impl Worker {
             }
             Call::SessionOpen { sandbox_id, session_id, cwd, env, workdir } => {
                 let rt = self.sandbox(&sandbox_id)?;
-                let state = ShellState { cwd: cwd.into_bytes(), env: env.into_iter().map(String::into_bytes).collect() };
+                let state = ShellState {
+                    cwd: cwd.into_bytes(),
+                    env: env.into_iter().map(String::into_bytes).collect(),
+                    dump: Vec::new(),
+                };
                 let session = Session::open(rt.sb.clone(), &session_id, state, workdir.as_bytes())?;
                 rt.sessions.lock().insert(session_id.clone());
                 self.sessions.write().insert(session_id, Arc::new(SessionRt { sandbox_id, session }));

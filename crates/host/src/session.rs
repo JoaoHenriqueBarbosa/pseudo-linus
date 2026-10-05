@@ -60,12 +60,19 @@ pub enum SessionError {
     Backend(#[from] BackendError),
 }
 
-/// Estado que sobrevive à troca de shell: cwd e ambiente exportado.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Estado que sobrevive à troca de shell: cwd, ambiente exportado e o restante do estado do bash.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct ShellState {
     pub cwd: Vec<u8>,
     pub env: Vec<Vec<u8>>,
+    /// Script que recria variáveis não exportadas, arrays, funções, aliases, `shopt` e `set -o`
+    /// (a saída de `declare -p`, `declare -f`, `alias`, `shopt -p` e `set +o`). Vazio quando ainda
+    /// não houve comando. Reaplicado com `source`, com erros ignorados (variáveis somente leitura).
+    pub dump: Vec<u8>,
 }
+
+/// Teto do dump do shell: acima disso ele é descartado em vez de truncado (truncar corromperia o script).
+const DUMP_LIMIT: usize = 4 << 20;
 
 struct Shell {
     pid: Pid,
@@ -79,12 +86,19 @@ impl Shell {
     fn start(sb: &dyn Sandbox, dir: &str, state: &ShellState, fallback_cwd: &[u8]) -> BResult<Shell> {
         let path_var = state.env.iter().find_map(|e| e.strip_prefix(b"PATH=")).map(<[u8]>::to_vec);
         let bash = resolve_program(sb, b"bash", path_var.as_deref(), b"/")?;
+        // O dump do shell anterior vai pra um arquivo que o shell novo lê antes do laço.
+        let restore = format!("{dir}/restore.sh");
+        let w = WriteOpts { append: false, exclusive: false, mode: 0o600 };
+        sb.write_file(restore.as_bytes(), &state.dump, w)?;
         let script = format!(
             "__osh_dir='{dir}'\n\
+             . \"$__osh_dir/restore.sh\" </dev/null 2>/dev/null\n\
+             __osh_dir='{dir}'\n\
              while IFS= read -r __osh_id; do\n\
              . \"$__osh_dir/$__osh_id.sh\" < \"$__osh_dir/$__osh_id.in\"\n\
              __osh_rc=$?\n\
              {{ printf '%s\\0' \"$PWD\"; env -0; }} > \"$__osh_dir/$__osh_id.state\" 2>/dev/null\n\
+             {{ declare -p; declare -f; alias; shopt -p; set +o; }} > \"$__osh_dir/$__osh_id.dump\" 2>/dev/null\n\
              printf '\\036OSH-END %s %d\\036\\n' \"$__osh_id\" \"$__osh_rc\"\n\
              printf '\\036OSH-END %s\\036\\n' \"$__osh_id\" >&2\n\
              done\n"
@@ -327,7 +341,7 @@ impl Session {
         self.sb.write_file(format!("{base}.sh").as_bytes(), &script, w)?;
         self.sb.write_file(format!("{base}.in").as_bytes(), stdin, w)?;
         let cleanup = |sb: &dyn Sandbox| {
-            for ext in ["sh", "in", "state"] {
+            for ext in ["sh", "in", "state", "dump"] {
                 let _ = sb.unlink(format!("{base}.{ext}").as_bytes());
             }
         };
@@ -480,6 +494,12 @@ impl Session {
             && let Some(s) = parse_state(&state)
         {
             inner.state = s;
+            // Sem dump novo (ou grande demais) o estado fica com o dump do comando anterior.
+            if let Ok(dump) = self.sb.read_file(format!("{base}.dump").as_bytes(), 0, DUMP_LIMIT + 1)
+                && dump.len() <= DUMP_LIMIT
+            {
+                inner.state.dump = dump;
+            }
         }
         cleanup(&*self.sb);
         Ok(SessionOutcome {
@@ -535,7 +555,7 @@ fn parse_state(raw: &[u8]) -> Option<ShellState> {
         return None;
     }
     let env = parts.filter(|e| !e.is_empty() && e.contains(&b'=') && !e.starts_with(b"_=")).map(<[u8]>::to_vec).collect();
-    Some(ShellState { cwd, env })
+    Some(ShellState { cwd, env, dump: Vec::new() })
 }
 
 #[cfg(test)]
@@ -553,7 +573,7 @@ mod tests {
     }
 
     fn state() -> ShellState {
-        ShellState { cwd: b"/root".to_vec(), env: vec![b"PATH=/bin".to_vec(), b"HOME=/root".to_vec()] }
+        ShellState { cwd: b"/root".to_vec(), env: vec![b"PATH=/bin".to_vec(), b"HOME=/root".to_vec()], dump: Vec::new() }
     }
 
     #[test]

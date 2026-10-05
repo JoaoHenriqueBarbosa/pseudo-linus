@@ -195,6 +195,7 @@ impl Target for Local {
             let state = ShellState {
                 cwd: self.workdir.clone().into_bytes(),
                 env: self.env.iter().map(|e| e.clone().into_bytes()).collect(),
+                dump: Vec::new(),
             };
             let id = host::ids::random_id("ss");
             self.session = Some(Session::open(self.sb.clone(), &id, state, self.workdir.as_bytes()).map_err(|e| e.to_string())?);

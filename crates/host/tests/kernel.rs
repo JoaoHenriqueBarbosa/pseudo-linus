@@ -198,6 +198,34 @@ fn persisted_snapshot_restores_the_whole_tree_after_a_crash() {
 }
 
 #[test]
+fn session_restores_the_whole_shell_state_after_a_reset() {
+    let d = Daemon::kernel("");
+    let t = d.user("elis", json!({}));
+    let c = d.client(&t);
+    let sb = sandbox(&c);
+    let s = c.call("session.open", json!({ "sandbox_id": sb })).unwrap()["session_id"].as_str().unwrap().to_string();
+    let exec = |cmd: &str, extra: Value| {
+        let mut p = json!({ "session_id": s, "command": cmd });
+        p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        c.call("session.exec", p).unwrap()
+    };
+    // Variável não exportada, array, função, alias, shopt e set -o: nada disso está no ambiente.
+    exec(
+        "plain=local; arr=(a b c); greet() { echo \"oi $1\"; }; alias ll='ls -l'; shopt -s expand_aliases; set -o noclobber",
+        json!({}),
+    );
+    // Um timeout mata o shell e sobe outro só com o que foi guardado.
+    let r = exec("sleep 30", json!({ "timeout_ms": 500 }));
+    assert_eq!(r["session_reset"], true, "{r}");
+    let r = exec(
+        "echo \"$plain ${arr[1]}\"; greet mundo; alias ll; shopt -q expand_aliases && echo shopt; set +o | grep noclobber",
+        json!({}),
+    );
+    assert_eq!(r["stdout"], "local b\noi mundo\nalias ll='ls -l'\nshopt\nset -o noclobber\n", "{r}");
+    c.call("session.close", json!({ "session_id": s })).unwrap();
+}
+
+#[test]
 fn worker_crash_with_real_kernel() {
     let d = Daemon::kernel("");
     let t = d.user("davi", json!({}));
