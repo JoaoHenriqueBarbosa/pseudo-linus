@@ -480,12 +480,12 @@ pub fn typesize(t: u8) -> u64 {
     }
 }
 
-/// `file_signextend()`; `Err` é o `FILE_BADSIZE` com o aviso "cannot happen".
-pub fn signextend(m: &Magic, v: u64) -> Result<u64, ()> {
+/// `file_signextend()`; `None` é o `FILE_BADSIZE` com o aviso "cannot happen".
+pub fn signextend(m: &Magic, v: u64) -> Option<u64> {
     if m.flag & UNSIGNED != 0 {
-        return Ok(v);
+        return Some(v);
     }
-    Ok(match m.typ {
+    Some(match m.typ {
         FILE_BYTE => v as i8 as i64 as u64,
         FILE_SHORT | FILE_BESHORT | FILE_LESHORT => v as i16 as i64 as u64,
         FILE_DATE | FILE_BEDATE | FILE_LEDATE | FILE_MEDATE | FILE_LDATE | FILE_BELDATE | FILE_LELDATE | FILE_MELDATE | FILE_LONG
@@ -496,7 +496,7 @@ pub fn signextend(m: &Magic, v: u64) -> Result<u64, ()> {
         | FILE_LEVARINT => v,
         FILE_STRING | FILE_PSTRING | FILE_BESTRING16 | FILE_LESTRING16 | FILE_REGEX | FILE_SEARCH | FILE_DEFAULT | FILE_INDIRECT
         | FILE_NAME | FILE_USE | FILE_CLEAR | FILE_DER | FILE_GUID | FILE_OCTAL => v,
-        _ => return Err(()),
+        _ => return None,
     })
 }
 
@@ -583,11 +583,7 @@ pub fn magic_strength(m: &Magic) -> usize {
         b'+' => val += f,
         b'-' => val -= f,
         b'*' => val *= f,
-        b'/' => {
-            if f != 0 {
-                val /= f;
-            }
-        }
+        b'/' if f != 0 => val /= f,
         _ => {}
     }
     if val <= 0 {
@@ -860,7 +856,7 @@ impl Loader {
                 })
                 .collect();
             let mut keyed = keyed;
-            keyed.sort_by(|a, b| apprentice_sort(a, b));
+            keyed.sort_by(apprentice_sort);
             for (_, _, e) in keyed {
                 map.sets[j].extend(e.mp);
             }
@@ -881,8 +877,7 @@ impl Loader {
             self.check_mem(cont_level as usize);
         }
         self.last_cont_level = cont_level;
-        let idx;
-        if cont_level != 0 {
+        let idx = if cont_level != 0 {
             let Some(entry) = me.as_mut() else {
                 self.magerror("No current entry for continuation".into());
                 return ParseResult::Err;
@@ -897,15 +892,15 @@ impl Loader {
             let mut m = Magic::zeroed();
             m.cont_level = cont_level as u8;
             entry.mp.push(m);
-            idx = entry.mp.len() - 1;
+            entry.mp.len() - 1
         } else {
             if me.is_some() {
                 return ParseResult::NewEntry;
             }
             let m = Magic::zeroed();
             *me = Some(Entry { mp: vec![m] });
-            idx = 0;
-        }
+            0
+        };
         let entry = me.as_mut().map(|e| &mut e.mp).expect("entrada");
         let mut m = entry[idx].clone();
         m.lineno = lineno as u32;
@@ -1265,8 +1260,8 @@ impl Loader {
         let c = strtoull(tail(s, *l), 0);
         *l += c.used;
         m.u = match signextend(m, c.value) {
-            Ok(v) => v,
-            Err(()) => {
+            Some(v) => v,
+            None => {
                 if self.check {
                     self.magwarn(format!("cannot happen: m->type={}\n", m.typ));
                 }
@@ -1469,8 +1464,8 @@ impl Loader {
                 let c = strtoull(tail(s, *l), 0);
                 let mut ull = c.value;
                 m.set_value_q(match signextend(m, ull) {
-                    Ok(v) => v,
-                    Err(()) => {
+                    Some(v) => v,
+                    None => {
                         if self.check {
                             self.magwarn(format!("cannot happen: m->type={}\n", m.typ));
                         }

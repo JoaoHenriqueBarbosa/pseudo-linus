@@ -147,11 +147,11 @@ fn run(args: &[OsString]) -> i32 {
             let unit = if count == 1 { "byte" } else { "bytes" };
             io::eprint(format!("Got {count} {unit} from {}\n", io::lossy(fname)));
         }
-        if owned {
-            if let Err(e) = sys::close(fd) {
-                ul::warn(&short, format!("closing {} failed", io::lossy(fname)), e);
-                return 1;
-            }
+        if owned
+            && let Err(e) = sys::close(fd)
+        {
+            ul::warn(&short, format!("closing {} failed", io::lossy(fname)), e);
+            return 1;
         }
     }
 

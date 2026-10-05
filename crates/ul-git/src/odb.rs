@@ -19,7 +19,7 @@ use crate::os;
 pub type Object = (Kind, Rc<Vec<u8>>);
 
 /// Busca de base de delta fora do pack (REF_DELTA cuja base mora em outro lugar).
-type ExternalLookup = dyn Fn(&Oid) -> Option<(Kind, Vec<u8>)>;
+type ExternalLookup<'a> = dyn Fn(&Oid) -> Option<(Kind, Vec<u8>)> + 'a;
 
 pub struct Odb {
     pub objects_dir: Vec<u8>,
@@ -607,7 +607,7 @@ impl Pack {
     }
 
     /// Objeto completo na posição `off`, resolvendo a cadeia de deltas.
-    fn read_at(&self, off: u64, external: &ExternalLookup) -> Result<(Kind, Vec<u8>), String> {
+    fn read_at(&self, off: u64, external: &ExternalLookup<'_>) -> Result<(Kind, Vec<u8>), String> {
         let mut deltas: Vec<(u64, Vec<u8>)> = Vec::new();
         let mut cur = off;
         let (kind, mut data): (Kind, Vec<u8>) = loop {

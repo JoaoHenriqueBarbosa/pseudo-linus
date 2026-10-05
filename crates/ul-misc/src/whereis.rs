@@ -174,13 +174,9 @@ fn filename_equal(cp: &[u8], dp: &[u8], typ: u32, use_glob: bool) -> bool {
     if typ & MAN_DIR != 0 {
         if i > 1 && dp.ends_with(b".Z") {
             i -= 2;
-        } else if i > 2 && dp.ends_with(b".gz") {
+        } else if i > 2 && (dp.ends_with(b".gz") || dp.ends_with(b".xz")) {
             i -= 3;
-        } else if i > 2 && dp.ends_with(b".xz") {
-            i -= 3;
-        } else if i > 3 && dp.ends_with(b".bz2") {
-            i -= 4;
-        } else if i > 3 && dp.ends_with(b".zst") {
+        } else if i > 3 && (dp.ends_with(b".bz2") || dp.ends_with(b".zst")) {
             i -= 4;
         }
     }

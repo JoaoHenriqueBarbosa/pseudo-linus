@@ -524,8 +524,11 @@ fn get_next_alias(r: &mut Reader<'_>, matching: Option<&[u8]>) -> NextAlias {
         let name = line[..colon].to_vec();
         let mut rest: &[u8] = &line[colon + 1..];
         ignore = matching.is_some_and(|m| !name_eq_ci(&name, m));
+        if ignore {
+            continue;
+        }
         let mut members: Vec<Vec<u8>> = Vec::new();
-        while !ignore {
+        loop {
             let mut j = 0;
             while j < rest.len() && is_space(rest[j]) {
                 j += 1;

@@ -224,12 +224,12 @@ fn run_part(st: &Settings, progname: &[u8], stdin_fd: Option<Fd>) -> Option<i32>
             }
         }
     }
-    if st.stdin_mode {
-        if let Some(fd) = stdin_fd {
-            // O filho compartilha o deslocamento do arquivo: rebobina antes de cada programa.
-            let _ = s.lseek(fd, 0, Whence::Set);
-            actions.push(FdAction::Dup2 { from: fd, to: Fd::STDIN });
-        }
+    if st.stdin_mode
+        && let Some(fd) = stdin_fd
+    {
+        // O filho compartilha o deslocamento do arquivo: rebobina antes de cada programa.
+        let _ = s.lseek(fd, 0, Whence::Set);
+        actions.push(FdAction::Dup2 { from: fd, to: Fd::STDIN });
     }
     if let Some(((po_r, po_w), (pe_r, pe_w))) = pipes {
         actions.push(FdAction::Dup2 { from: po_w, to: Fd::STDOUT });

@@ -176,10 +176,11 @@ pub fn strtod(s: &[u8]) -> Conv<f64> {
         let v = if neg { -f64::NAN } else { f64::NAN };
         return Conv { value: v, used, overflow: false };
     }
-    if at(s, i) == b'0' && lower(i + 1) == b'x' {
-        if let Some((v, used)) = scan_hex_float(s, i + 2) {
-            return Conv { value: if neg { -v } else { v }, used, overflow: v.is_infinite() };
-        }
+    if at(s, i) == b'0'
+        && lower(i + 1) == b'x'
+        && let Some((v, used)) = scan_hex_float(s, i + 2)
+    {
+        return Conv { value: if neg { -v } else { v }, used, overflow: v.is_infinite() };
     }
     let digits_start = i;
     let mut saw_digit = false;

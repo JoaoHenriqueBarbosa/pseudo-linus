@@ -553,7 +553,7 @@ fn run(args: &[OsString]) -> i32 {
                 }
             }
         }
-        if input.pos % 4096 == 0 {
+        if input.pos.is_multiple_of(4096) {
             sys::checkpoint();
         }
     }

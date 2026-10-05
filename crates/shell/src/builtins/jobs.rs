@@ -154,7 +154,7 @@ pub fn trap(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
         };
         let cmd = action.as_ref().map(|a| String::from_utf8_lossy(a).into_owned());
         match spec {
-            TrapSpec::Debug => sh.traps.debug = cmd.filter(|c| !c.is_empty()).or(if action.as_deref() == Some(b"") { None } else { None }),
+            TrapSpec::Debug => sh.traps.debug = cmd.filter(|c| !c.is_empty()),
             TrapSpec::Err => sh.traps.err = cmd.filter(|c| !c.is_empty()),
             TrapSpec::Return => sh.traps.ret = cmd.filter(|c| !c.is_empty()),
             TrapSpec::Signal(n) => {

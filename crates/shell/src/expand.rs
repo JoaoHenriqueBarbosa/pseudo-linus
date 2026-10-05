@@ -898,8 +898,6 @@ impl Shell {
                     }
                     PVal::List(items, star) => {
                         let items = if is_positional_list { self.positional_list(true) } else { items };
-                        let base = if is_positional_list { 0 } else { 0 };
-                        let _ = base;
                         match slice_list(&items, off, len, is_positional_list) {
                             Some(x) => PVal::List(x, star),
                             None => {
@@ -1220,7 +1218,7 @@ impl Shell {
                     out.extend_from_slice(&buf[..n]);
                 }
                 Err(Errno::EINTR) => {
-                    self.run_pending_traps();
+                    let _ = self.run_pending_traps();
                 }
                 Err(_) => break,
             }

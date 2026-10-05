@@ -279,12 +279,12 @@ impl Hl {
         list.iter().any(|r| r.is_match(what))
     }
 
-    fn filename<'a>(f: &'a FileEnt) -> &'a [u8] {
+    fn filename(f: &FileEnt) -> &[u8] {
         let l = &f.links[0];
         &l.path[l.basename..]
     }
 
-    fn dirname<'a>(f: &'a FileEnt) -> (usize, &'a [u8]) {
+    fn dirname(f: &FileEnt) -> (usize, &[u8]) {
         let l = &f.links[0];
         let sz = l.basename.saturating_sub(l.dirname);
         (sz, &l.path[l.dirname.min(l.path.len())..(l.dirname + sz).min(l.path.len())])
@@ -635,7 +635,6 @@ fn run(args: &[OsString]) -> i32 {
         quiet: false,
         reflinks_skip: false,
     };
-    let mut reflink_mode = 0; // 0 never, 1 auto, 2 always
     let mut content_only = false;
     // err_exclusive_options: {q, v}
     let mut excl_qv: Option<char> = None;
@@ -681,7 +680,8 @@ fn run(args: &[OsString]) -> i32 {
         };
         match opt.id {
             OPT_REFLINK => {
-                reflink_mode = 1;
+                // 0 never, 1 auto, 2 always
+                let mut reflink_mode = 1;
                 if let Some(a) = &arg {
                     match a.as_slice() {
                         b"auto" => reflink_mode = 1,

@@ -28,6 +28,9 @@ pub enum TextKind {
 /// Limite de profundidade de chamadas de função (proteção da pilha).
 const MAX_FUNC_DEPTH: u32 = 4000;
 
+/// Elemento expandido de `nome=(...)`: chave opcional, se é `+=`, valor.
+pub type ArrayItem = (Option<Vec<u8>>, bool, Vec<u8>);
+
 /// Builtins especiais do POSIX (atribuições na frente persistem em modo POSIX; erros fatais).
 pub fn is_special_builtin(name: &[u8]) -> bool {
     matches!(
@@ -553,7 +556,7 @@ impl Shell {
         Ok(AssignArg { name: a.name.clone(), index, append: a.append, value, raw: a.raw.to_string() })
     }
 
-    pub fn expand_array_elems(&mut self, elems: &[ArrayElem]) -> Result<Vec<(Option<Vec<u8>>, bool, Vec<u8>)>, Flow> {
+    pub fn expand_array_elems(&mut self, elems: &[ArrayElem]) -> Result<Vec<ArrayItem>, Flow> {
         let mut out = Vec::new();
         for e in elems {
             match &e.key {
@@ -610,7 +613,7 @@ impl Shell {
     }
 
     /// `nome=(...)`.
-    pub fn assign_array(&mut self, name: &str, items: &[(Option<Vec<u8>>, bool, Vec<u8>)], append: bool) -> Result<bool, Flow> {
+    pub fn assign_array(&mut self, name: &str, items: &[ArrayItem], append: bool) -> Result<bool, Flow> {
         let name = self.resolve_nameref(name);
         if !self.check_writable(&name) {
             return Ok(false);
@@ -748,7 +751,6 @@ impl Shell {
                 CmdKind::External(_) | CmdKind::NotFound => {
                     // As atribuições valem também pras expansões seguintes (`a=1 b=$a cmd`).
                     self.push_temp_scope();
-                    pushed_temp = true;
                     for a in &s.assigns {
                         if !self.do_assign(a, true)? {
                             self.vars.pop();
@@ -766,7 +768,6 @@ impl Shell {
                         }
                     }
                     self.vars.pop();
-                    pushed_temp = false;
                 }
                 _ => {
                     if persist {
@@ -1266,7 +1267,7 @@ impl Shell {
             Ok(t) => t,
             Err(f) => return Err(Err(f)),
         };
-        self.arith_eval_prefixed(&text, prefix).map_err(|r| r)
+        self.arith_eval_prefixed(&text, prefix)
     }
 
     /// Avalia com o prefixo de builtin nas mensagens (`((: `, `let: `).

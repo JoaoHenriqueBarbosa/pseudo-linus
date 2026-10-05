@@ -610,10 +610,13 @@ fn aliases_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
 
 // ---- netgroup ----
 
+/// Uma tripla de netgroup: (host, usuário, domínio), cada campo podendo faltar.
+type NetgroupTriple = (Option<Vec<u8>>, Option<Vec<u8>>, Option<Vec<u8>>);
+
 /// Expande um netgroup como `getnetgrent`: as triplas do grupo na ordem e, depois, as dos grupos
 /// citados (uma pilha: o último citado vem primeiro), cada um uma vez só. `None` se o grupo inicial
 /// não existe em nenhuma fonte.
-fn netgroup_triples(env: &Env, group: &[u8]) -> Option<Vec<(Option<Vec<u8>>, Option<Vec<u8>>, Option<Vec<u8>>)>> {
+fn netgroup_triples(env: &Env, group: &[u8]) -> Option<Vec<NetgroupTriple>> {
     let load = |g: &[u8]| env.conf.lookup("netgroup", |_| load_netgroup(g));
     let mut current = load(group)?;
     let mut known: Vec<Vec<u8>> = vec![group.to_vec()];
@@ -815,11 +818,7 @@ fn precedence(a: &[u8; 16]) -> u32 {
         5
     } else if a[0] & 0xfe == 0xfc {
         3
-    } else if zeros(12) {
-        1
-    } else if a[0] == 0xfe && a[1] & 0xc0 == 0xc0 {
-        1
-    } else if a[0] == 0x3f && a[1] == 0xfe {
+    } else if zeros(12) || (a[0] == 0xfe && a[1] & 0xc0 == 0xc0) || (a[0] == 0x3f && a[1] == 0xfe) {
         1
     } else {
         40
@@ -1009,16 +1008,14 @@ fn ahosts_keys(env: &Env, out: &mut dyn Write, af: Af, keys: &[Vec<u8>]) -> i32 
                         let pad = 15usize.saturating_sub(buf.len() + scope.len());
                         let mut line = buf.into_bytes();
                         line.extend_from_slice(scope.as_bytes());
-                        for _ in scope.len()..pad {
-                            line.push(b' ');
-                        }
+                        line.extend(std::iter::repeat_n(b' ', pad.saturating_sub(scope.len())));
                         line.push(b' ');
                         line.extend_from_slice(format!("{sock:<6}").as_bytes());
                         line.push(b' ');
-                        if i == 0 {
-                            if let Some(c) = &ai.canon {
-                                line.extend_from_slice(c);
-                            }
+                        if i == 0
+                            && let Some(c) = &ai.canon
+                        {
+                            line.extend_from_slice(c);
                         }
                         line.push(b'\n');
                         write_bytes(out, &line);

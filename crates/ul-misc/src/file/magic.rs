@@ -302,7 +302,7 @@ impl MagicSet {
     pub fn trim_separator(&mut self) {
         if let Some(b) = self.o.as_mut() {
             const SEP: &[u8] = b"\n- ";
-            if b.len() >= SEP.len() + 1 && b.ends_with(SEP) {
+            if b.len() > SEP.len() && b.ends_with(SEP) {
                 let n = b.len() - SEP.len();
                 b.truncate(n);
             }
@@ -345,8 +345,7 @@ impl MagicSet {
             return Err(Fail);
         };
         let mut nm = 0;
-        loop {
-            let Some(buf) = self.o.as_ref() else { break };
+        while let Some(buf) = self.o.as_ref() {
             let hay = super::cutil::cstr(buf);
             let Some((so, eo)) = rx.find(hay) else { break };
             let mut nb = hay[..so].to_vec();

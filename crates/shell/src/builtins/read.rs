@@ -464,21 +464,16 @@ pub fn mapfile(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
         let mut line = Vec::new();
         let mut got = false;
         let mut ended = false;
-        loop {
-            match src.next(sh) {
-                Ok(Some(b)) => {
-                    got = true;
-                    if b == delim {
-                        if !strip {
-                            line.push(b);
-                        }
-                        ended = true;
-                        break;
-                    }
+        while let Ok(Some(b)) = src.next(sh) {
+            got = true;
+            if b == delim {
+                if !strip {
                     line.push(b);
                 }
-                _ => break,
+                ended = true;
+                break;
             }
+            line.push(b);
         }
         if !got {
             break;

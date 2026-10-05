@@ -270,7 +270,7 @@ impl Opts {
 
 /// Resultado do parser: rodar, ou sair já com um código (help, versão, erro).
 enum Parsed {
-    Run(Opts, Vec<Vec<u8>>),
+    Run(Box<Opts>, Vec<Vec<u8>>),
     Exit(i32),
 }
 
@@ -503,7 +503,7 @@ fn parse_args(argv: &[Vec<u8>]) -> Parsed {
             }
         }
     }
-    Parsed::Run(o, dirs)
+    Parsed::Run(Box::new(o), dirs)
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -1741,7 +1741,7 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
     let (o, mut dirs) = match parse_args(&argv) {
-        Parsed::Run(o, d) => (o, d),
+        Parsed::Run(o, d) => (*o, d),
         Parsed::Exit(code) => return code,
     };
     if dirs.is_empty() {

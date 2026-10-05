@@ -403,7 +403,7 @@ fn parse_word_assignment(w: &[u8]) -> Option<AssignArg> {
             .map(|it| {
                 if it.starts_with('[')
                     && let Some(close) = it.find("]=") {
-                        return (Some(it[1..close].as_bytes().to_vec()), false, it[close + 2..].as_bytes().to_vec());
+                        return (Some(it.as_bytes()[1..close].to_vec()), false, it.as_bytes()[close + 2..].to_vec());
                     }
                 (None, false, it.as_bytes().to_vec())
             })

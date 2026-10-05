@@ -105,13 +105,14 @@ pub fn pton6(src: &[u8]) -> Option<[u8; 16]> {
             val = 0;
             continue;
         }
-        if ch == b'.' && tp + 4 <= 16 {
-            if let Some(v4) = pton4(&src[curtok..]) {
-                tmp[tp..tp + 4].copy_from_slice(&v4);
-                tp += 4;
-                xdigits_seen = 0;
-                break;
-            }
+        if ch == b'.'
+            && tp + 4 <= 16
+            && let Some(v4) = pton4(&src[curtok..])
+        {
+            tmp[tp..tp + 4].copy_from_slice(&v4);
+            tp += 4;
+            xdigits_seen = 0;
+            break;
         }
         return None;
     }
@@ -350,7 +351,7 @@ pub fn ether_aton(asc: &[u8]) -> Option<[u8; 6]> {
     let get = |i: usize| -> u8 { asc.get(i).copied().unwrap_or(0) };
     let mut out = [0u8; 6];
     let mut i = 0usize;
-    for cnt in 0..6 {
+    for (cnt, slot) in out.iter_mut().enumerate() {
         let mut ch = get(i).to_ascii_lowercase();
         i += 1;
         let digit = |c: u8| -> Option<u32> {
@@ -371,7 +372,7 @@ pub fn ether_aton(asc: &[u8]) -> Option<[u8; 6]> {
                 return None;
             }
         }
-        out[cnt] = number as u8;
+        *slot = number as u8;
         i += 1;
     }
     Some(out)

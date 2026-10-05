@@ -43,14 +43,15 @@ fn bracket(p: &[char], start: usize, c: char) -> Option<(bool, usize)> {
             break;
         }
         first = false;
-        if ch == '[' && p.get(i + 1) == Some(&':') {
-            if let Some(end) = (i + 2..p.len().saturating_sub(1)).find(|&k| p[k] == ':' && p[k + 1] == ']') {
-                let name: String = p[i + 2..end].iter().collect();
-                if let Some(m) = class_matches(&name, c) {
-                    matched |= m;
-                    i = end + 2;
-                    continue;
-                }
+        if ch == '['
+            && p.get(i + 1) == Some(&':')
+            && let Some(end) = (i + 2..p.len().saturating_sub(1)).find(|&k| p[k] == ':' && p[k + 1] == ']')
+        {
+            let name: String = p[i + 2..end].iter().collect();
+            if let Some(m) = class_matches(&name, c) {
+                matched |= m;
+                i = end + 2;
+                continue;
             }
         }
         let lo = if ch == '\\' {

@@ -322,10 +322,10 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 
 /// O texto de um item no locale `loc`.
 fn item_text(item: &Item, loc: Loc) -> &'static str {
-    if loc == Loc::Utf8 {
-        if let Some((_, v)) = UTF8_OVERRIDES.iter().find(|(n, _)| *n == item.1) {
-            return v;
-        }
+    if loc == Loc::Utf8
+        && let Some((_, v)) = UTF8_OVERRIDES.iter().find(|(n, _)| *n == item.1)
+    {
+        return v;
     }
     item.3
 }
@@ -389,10 +389,10 @@ fn env(name: &str) -> Option<Vec<u8>> {
 /// O nome de locale que o `setlocale (cat, "")` usa: `LC_ALL`, a variável da categoria, `LANG` ou `C`.
 fn env_locale_name(category: &str) -> Vec<u8> {
     for var in ["LC_ALL", category, "LANG"] {
-        if let Some(v) = env(var) {
-            if !v.is_empty() {
-                return v;
-            }
+        if let Some(v) = env(var)
+            && !v.is_empty()
+        {
+            return v;
         }
     }
     b"C".to_vec()
@@ -613,46 +613,44 @@ fn print_locale_details(out: &mut dyn Write, dir: &str) {
         let end = rest.iter().position(|b| *b == 0)?;
         Some(String::from_utf8_lossy(&rest[..end]).into_owned())
     };
-    if let Ok(d) = sys::read_file(format!("{dir}/LC_IDENTIFICATION").as_bytes()) {
-        if let (Some(magic), Some(n)) = (word(&d, 0), word(&d, 4)) {
-            if magic == 0x2003_1119 && 8 + n as usize * 4 <= d.len() {
-                const NAMES: [&str; 14] = [
-                    "title",
-                    "source",
-                    "address",
-                    "contact",
-                    "email",
-                    "telephone",
-                    "fax",
-                    "language",
-                    "territory",
-                    "audience",
-                    "application",
-                    "abbreviation",
-                    "revision",
-                    "date",
-                ];
-                for (i, name) in NAMES.iter().enumerate() {
-                    if let Some(s) = string_at(&d, i) {
-                        if !s.is_empty() {
-                            let _ = writeln!(out, "{name:>9} | {s}");
-                        }
-                    }
-                }
+    if let Ok(d) = sys::read_file(format!("{dir}/LC_IDENTIFICATION").as_bytes())
+        && let (Some(magic), Some(n)) = (word(&d, 0), word(&d, 4))
+        && magic == 0x2003_1119
+        && 8 + n as usize * 4 <= d.len()
+    {
+        const NAMES: [&str; 14] = [
+            "title",
+            "source",
+            "address",
+            "contact",
+            "email",
+            "telephone",
+            "fax",
+            "language",
+            "territory",
+            "audience",
+            "application",
+            "abbreviation",
+            "revision",
+            "date",
+        ];
+        for (i, name) in NAMES.iter().enumerate() {
+            if let Some(s) = string_at(&d, i)
+                && !s.is_empty()
+            {
+                let _ = writeln!(out, "{name:>9} | {s}");
             }
         }
     }
-    if let Ok(d) = sys::read_file(format!("{dir}/LC_CTYPE").as_bytes()) {
-        if let (Some(magic), Some(n)) = (word(&d, 0), word(&d, 4)) {
-            if magic == 0x2009_0720 && 8 + n as usize * 4 <= d.len() {
-                // _NL_CTYPE_CODESET_NAME é o item 14 do arquivo.
-                if let Some(s) = string_at(&d, 14) {
-                    if !s.is_empty() {
-                        let _ = writeln!(out, "  codeset | {s}");
-                    }
-                }
-            }
-        }
+    if let Ok(d) = sys::read_file(format!("{dir}/LC_CTYPE").as_bytes())
+        && let (Some(magic), Some(n)) = (word(&d, 0), word(&d, 4))
+        && magic == 0x2009_0720
+        && 8 + n as usize * 4 <= d.len()
+        // _NL_CTYPE_CODESET_NAME é o item 14 do arquivo.
+        && let Some(s) = string_at(&d, 14)
+        && !s.is_empty()
+    {
+        let _ = writeln!(out, "  codeset | {s}");
     }
 }
 

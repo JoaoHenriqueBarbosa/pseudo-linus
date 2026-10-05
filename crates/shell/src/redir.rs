@@ -347,7 +347,7 @@ impl Shell {
         let value = newfd.0.to_string().into_bytes();
         let ok = match name.find('[') {
             Some(b) if name.ends_with(']') => {
-                let key = name[b + 1..name.len() - 1].as_bytes().to_vec();
+                let key = name.as_bytes()[b + 1..name.len() - 1].to_vec();
                 self.assign_element(&name[..b], &key, value, false)?
             }
             _ => self.assign_scalar(name, value, false)?,

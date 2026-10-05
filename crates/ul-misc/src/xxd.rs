@@ -674,7 +674,7 @@ fn dump(o: &Opts, pname: &str, group: i32, infile: Option<&[u8]>, input: &mut In
             let mut item: Vec<u8> = Vec::with_capacity(16);
             if n == 0 {
                 item.extend_from_slice(b"  ");
-            } else if n % cols as u64 == 0 {
+            } else if n.is_multiple_of(cols as u64) {
                 item.extend_from_slice(b",\n  ");
             } else {
                 item.extend_from_slice(b", ");
@@ -814,10 +814,9 @@ fn fill_missing(line: &mut LineBuf, layout: &Layout, addrlen: usize, p: usize) {
     if layout.little {
         let fill = (g - p % g) % g;
         if fill > 0 {
-            let mut c = addrlen + 1 + (grplen * (x - (g - fill))) / g;
-            for _ in 0..fill {
+            let start = addrlen + 1 + (grplen * (x - (g - fill))) / g;
+            for c in (start..).take(fill) {
                 line.put(c, b' ', COLOR_RED, true);
-                c += 1;
                 x += 1;
                 p += 1;
             }
@@ -825,10 +824,9 @@ fn fill_missing(line: &mut LineBuf, layout: &Layout, addrlen: usize, p: usize) {
     }
     if !layout.bits {
         let rem = layout.cols.saturating_sub(p);
-        let mut c = addrlen + 1 + (grplen * x) / g + rem + rem / g;
-        for _ in 0..rem {
+        let start = addrlen + 1 + (grplen * x) / g + rem + rem / g;
+        for c in (start..).take(rem) {
             line.put(c, b' ', COLOR_RED, true);
-            c += 1;
         }
     }
 }
@@ -1070,7 +1068,7 @@ fn revert(o: &Opts, pname: &str, input: &mut Input, out: &mut Output) -> Result<
     let mut count = 0u32;
     loop {
         count = count.wrapping_add(1);
-        if count % 4096 == 0 {
+        if count.is_multiple_of(4096) {
             sys::checkpoint();
         }
         // Erro de leitura no -r é fim de arquivo, como no original.

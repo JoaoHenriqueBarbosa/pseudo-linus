@@ -181,9 +181,7 @@ fn shell_main(args: &[OsString], posix: bool) -> i32 {
     }
     if let Some(script) = inv.script {
         let shown = String::from_utf8_lossy(&script).into_owned();
-        let path = if script.contains(&b'/') {
-            script.clone()
-        } else if sys().fstatat(Fd::CWD, &script, sysabi::AtFlags::empty()).is_ok() {
+        let path = if script.contains(&b'/') || sys().fstatat(Fd::CWD, &script, sysabi::AtFlags::empty()).is_ok() {
             script.clone()
         } else {
             sh.search_path(&script).unwrap_or(script.clone())

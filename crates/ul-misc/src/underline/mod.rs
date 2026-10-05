@@ -332,10 +332,10 @@ impl<W: Write> Ul<W> {
         }
         self.init_buffer();
         // O manipulador de SIGINT/SIGTERM faz _exit(0).
-        if let Some(s) = sys::try_current() {
-            if !s.take_caught_signals().is_empty() {
-                sys::exit(0);
-            }
+        if let Some(s) = sys::try_current()
+            && !s.take_caught_signals().is_empty()
+        {
+            sys::exit(0);
         }
     }
 

@@ -163,10 +163,10 @@ fn generate_output(ctl: &Control, av: Vec<Vec<u8>>, long_only: bool, posix_env: 
                 _ => {
                     let byte = opt as u8;
                     let _ = out.write_all(&[b' ', b'-', byte]);
-                    if let Some(p) = optstr.iter().position(|&b| b == byte) {
-                        if optstr.get(p + 1) == Some(&b':') {
-                            print_normalized(ctl, &mut out, &optarg);
-                        }
+                    if let Some(p) = optstr.iter().position(|&b| b == byte)
+                        && optstr.get(p + 1) == Some(&b':')
+                    {
+                        print_normalized(ctl, &mut out, &optarg);
                     }
                 }
             }

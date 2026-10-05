@@ -153,16 +153,16 @@ impl Namei {
             Ok(_) => return Err(format!("failed to read symlink: {}: {}", io::lossy(path), Errno::EINVAL.message())),
             Err(e) => return Err(format!("failed to read symlink: {}: {}", io::lossy(path), e.message())),
         };
-        if sym.first() != Some(&b'/') {
-            if let Some(p) = path.iter().rposition(|&b| b == b'/') {
-                // alvo relativo: vira absoluto a partir do diretório do link
-                let mut abs = path[..p].to_vec();
-                abs.push(b'/');
-                abs.extend_from_slice(&sym);
-                item.relstart = p + 1;
-                item.abslink = Some(abs);
-                return Ok(());
-            }
+        if sym.first() != Some(&b'/')
+            && let Some(p) = path.iter().rposition(|&b| b == b'/')
+        {
+            // alvo relativo: vira absoluto a partir do diretório do link
+            let mut abs = path[..p].to_vec();
+            abs.push(b'/');
+            abs.extend_from_slice(&sym);
+            item.relstart = p + 1;
+            item.abslink = Some(abs);
+            return Ok(());
         }
         item.abslink = Some(sym);
         item.relstart = 0;
@@ -217,11 +217,11 @@ impl Namei {
                 }
                 Some(_) => None,
             };
-            if let Some((dev, ino)) = sb {
-                if dev != item.st.dev || ino == item.st.ino {
-                    // diretório em outro dispositivo, ou a raiz
-                    item.mountpoint = true;
-                }
+            if let Some((dev, ino)) = sb
+                && (dev != item.st.dev || ino == item.st.ino)
+            {
+                // diretório em outro dispositivo, ou a raiz
+                item.mountpoint = true;
             }
         }
         Ok(item)

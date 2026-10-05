@@ -91,8 +91,7 @@ fn process_input(rd: &mut Reader, out: &mut impl Write, first: u64, last: u64) -
     let mut padding = false;
 
     // Output last of the line
-    loop {
-        let Some(c) = rd.getwc()? else { break };
+    while let Some(c) = rd.getwc()? {
         if c == '\n' {
             putwc(out, c);
             return Ok(true);
@@ -122,11 +121,9 @@ fn run(args: &[OsString]) -> i32 {
     ];
     let posix = sysabi::sys::getenv("POSIXLY_CORRECT").is_some();
     let mut eng = Engine::new(argv.clone(), 1, posix);
-    loop {
-        let opt = eng.getopt(b"Vh", &longs, false);
-        if opt == -1 {
-            break;
-        }
+    // Toda opção reconhecida encerra o programa, então basta olhar a primeira.
+    let opt = eng.getopt(b"Vh", &longs, false);
+    if opt != -1 {
         match u8::try_from(opt).unwrap_or(b'?') {
             b'V' => {
                 ul::print_version(&short);

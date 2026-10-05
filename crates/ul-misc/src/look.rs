@@ -216,10 +216,10 @@ fn run(args: &[OsString]) -> i32 {
         }
     };
 
-    if termchar != 0 {
-        if let Some(p) = string.iter().position(|&b| b == termchar) {
-            string.truncate(p + 1);
-        }
+    if termchar != 0
+        && let Some(p) = string.iter().position(|&b| b == termchar)
+    {
+        string.truncate(p + 1);
     }
 
     let data = match load(&file) {

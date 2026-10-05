@@ -12,7 +12,6 @@ const BINARY: &[&str] = &["=", "==", "!=", "<", ">", "-eq", "-ne", "-lt", "-le",
 
 struct Test<'a> {
     sh: &'a mut Shell,
-    args: &'a [Vec<u8>],
     pos: usize,
 }
 
@@ -198,7 +197,7 @@ pub fn run(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
             }
         }
     }
-    let mut t = Test { sh, args, pos: 0 };
+    let mut t = Test { sh, pos: 0 };
     let r = t.by_count(args);
     match r {
         Ok(true) => Ok(0),

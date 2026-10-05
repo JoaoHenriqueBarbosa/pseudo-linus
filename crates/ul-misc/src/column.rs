@@ -141,8 +141,8 @@ fn parse_u32(arg: &str, what: &str) -> Result<usize, Fatal> {
     let range = || Fatal(format!("{what}: '{arg}': {}", Errno::ERANGE.message()));
     let invalid = || Fatal(format!("{what}: '{arg}'"));
     let body = digits.strip_prefix('+').unwrap_or(digits);
-    if body.starts_with('-') {
-        if body.len() > 1 && body[1..].bytes().all(|b| b.is_ascii_digit()) {
+    if let Some(rest) = body.strip_prefix('-') {
+        if !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit()) {
             return Err(range());
         }
         return Err(invalid());
@@ -307,7 +307,7 @@ fn run(args: &[OsString]) -> i32 {
             if table.rows.is_empty() {
                 return i32::from(eval != 0);
             }
-            let text = if o.json { table.to_json() } else { table.to_text(termwidth) };
+            let text = if o.json { table.to_json() } else { table.render_text(termwidth) };
             let _ = out.write_all(text.as_bytes());
             0
         }
@@ -614,6 +614,9 @@ fn apply_column_spec(col: &mut Column, spec: &str) {
     }
 }
 
+/// Lista de colunas de uma opção (`-R`, `-T`...) e o atributo que ela liga em cada coluna.
+type FlagList<'a> = (&'a Option<String>, fn(&mut Column));
+
 fn build_table(o: &Options, lines: &[String]) -> Result<Table, Fatal> {
     let mut columns: Vec<Column> = Vec::new();
     if let Some(names) = &o.names {
@@ -659,7 +662,7 @@ fn build_table(o: &Options, lines: &[String]) -> Result<Table, Fatal> {
             }
         }
     }
-    let flag_lists: [(&Option<String>, fn(&mut Column)); 4] = [
+    let flag_lists: [FlagList; 4] = [
         (&o.right, |c| c.right = true),
         (&o.trunc, |c| c.trunc = true),
         (&o.wrap, |c| c.wrap = true),
@@ -764,7 +767,7 @@ impl Table {
         if self.tree.as_ref().is_some_and(|t| t.column == col) { format!("{prefix}{data}") } else { data.to_string() }
     }
 
-    fn to_text(&mut self, termwidth: usize) -> String {
+    fn render_text(&mut self, termwidth: usize) -> String {
         let visible: Vec<usize> = self.order.iter().copied().filter(|&i| !self.columns[i].hidden).collect();
         let rows = self.ordered_rows();
         let cells: Vec<Vec<String>> =

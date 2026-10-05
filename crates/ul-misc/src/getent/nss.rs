@@ -215,10 +215,10 @@ impl NssConf {
     /// `-s CONFIG`: troca a lista de um banco (`__nss_configure_lookup`, que ignora nomes que o NSS
     /// não conhece).
     pub fn configure(&mut self, db: &str, service_line: &[u8]) {
-        if is_nss_database(db) {
-            if let Some(list) = parse_actions(service_line) {
-                self.overrides.insert(db.to_string(), list);
-            }
+        if is_nss_database(db)
+            && let Some(list) = parse_actions(service_line)
+        {
+            self.overrides.insert(db.to_string(), list);
         }
     }
 
@@ -247,10 +247,10 @@ impl NssConf {
             "gshadow" => Some("group"),
             _ => None,
         };
-        if let Some(parent) = follow {
-            if let Some(l) = self.overrides.get(parent).or_else(|| self.explicit.get(parent)) {
-                return l.clone();
-            }
+        if let Some(parent) = follow
+            && let Some(l) = self.overrides.get(parent).or_else(|| self.explicit.get(parent))
+        {
+            return l.clone();
         }
         NssConf::default_for(db)
     }
@@ -260,10 +260,10 @@ impl NssConf {
     pub fn lookup<T>(&self, db: &str, mut f: impl FnMut(&Source) -> (Status, Option<T>)) -> Option<T> {
         for src in self.sources(db) {
             let (st, val) = if src.is_files() { f(&src) } else { (Status::Unavail, None) };
-            if st == Status::Success {
-                if let Some(v) = val {
-                    return Some(v);
-                }
+            if st == Status::Success
+                && let Some(v) = val
+            {
+                return Some(v);
             }
             if src.action(st) == Action::Return {
                 return None;

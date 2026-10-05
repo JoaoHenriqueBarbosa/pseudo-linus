@@ -719,16 +719,16 @@ fn run(args: &[OsString]) -> i32 {
         return 0;
     }
     // `-v SPEC` ou `-vSPEC`: a especificação é aceita e ignorada (todos os ambientes são conhecidos).
-    if let Some(first) = rest.first() {
-        if first.starts_with(b"-v") {
-            if first.len() == 2 {
-                if rest.len() < 2 {
-                    return usage(&argv0);
-                }
-                rest = &rest[2..];
-            } else {
-                rest = &rest[1..];
+    if let Some(first) = rest.first()
+        && first.starts_with(b"-v")
+    {
+        if first.len() == 2 {
+            if rest.len() < 2 {
+                return usage(&argv0);
             }
+            rest = &rest[2..];
+        } else {
+            rest = &rest[1..];
         }
     }
     // Daqui em diante `rest` começa onde o C usa `argv[1]`.
@@ -744,7 +744,7 @@ fn run(args: &[OsString]) -> i32 {
         ai = 1;
     }
     let remaining = rest.len() - ai;
-    if remaining < 1 || remaining > 2 {
+    if !(1..=2).contains(&remaining) {
         return usage(&argv0);
     }
     let var = &rest[ai];

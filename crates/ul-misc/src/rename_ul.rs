@@ -217,13 +217,13 @@ fn do_symlink(o: &Opts, short: &str, from: &[u8], to: &[u8], s: &[u8]) -> i32 {
     let newname = string_replace(o, from, to, &mut target);
     let mut ret = if newname.is_some() { 1 } else { 0 };
 
-    if ret == 1 && (nooverwrite || interactive) {
-        if let Some(n) = &newname {
-            if sys::lstat(n).is_err() {
-                nooverwrite = false;
-                interactive = false;
-            }
-        }
+    if ret == 1
+        && (nooverwrite || interactive)
+        && let Some(n) = &newname
+        && sys::lstat(n).is_err()
+    {
+        nooverwrite = false;
+        interactive = false;
     }
 
     if ret == 1 && (nooverwrite || (interactive && (o.noact || !ask(short, newname.as_deref().unwrap_or(b""))))) {
@@ -276,11 +276,11 @@ fn do_file(o: &Opts, short: &str, from: &[u8], to: &[u8], s_in: &[u8]) -> i32 {
             let _ = out.write_all(format!("Skipping existing file: `{}'\n", io::lossy(&newname)).as_bytes());
         }
         ret = 0;
-    } else if !o.noact {
-        if let Err(e) = sys::current().renameat2(Fd::CWD, &s, Fd::CWD, &newname, RenameFlags::empty()) {
-            ul::warn(short, format!("{}: rename to {} failed", io::lossy(&s), io::lossy(&newname)), e);
-            ret = 2;
-        }
+    } else if !o.noact
+        && let Err(e) = sys::current().renameat2(Fd::CWD, &s, Fd::CWD, &newname, RenameFlags::empty())
+    {
+        ul::warn(short, format!("{}: rename to {} failed", io::lossy(&s), io::lossy(&newname)), e);
+        ret = 2;
     }
     if o.verbose && (o.noact || ret == 1) {
         let mut out = io::stdout();

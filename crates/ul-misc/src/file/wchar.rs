@@ -31,10 +31,14 @@ pub fn width_at_least_one(c: u32) -> usize {
     if c >= 0x80 && in_ranges(c, WIDE) { 2 } else { 1 }
 }
 
-/// Um passo do `mbrtowc`: `Ok((ponto de código, bytes))` ou `Err(())` pra sequência inválida ou
-/// incompleta (o `(size_t)-1` e o `(size_t)-2`).
-pub fn mbrtowc(s: &[u8]) -> Result<(u32, usize), ()> {
-    let b0 = *s.first().ok_or(())?;
+/// Sequência multibyte inválida ou incompleta (o `(size_t)-1` e o `(size_t)-2` do `mbrtowc`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BadSequence;
+
+/// Um passo do `mbrtowc`: `Ok((ponto de código, bytes))` ou `Err(BadSequence)` pra sequência
+/// inválida ou incompleta.
+pub fn mbrtowc(s: &[u8]) -> Result<(u32, usize), BadSequence> {
+    let b0 = *s.first().ok_or(BadSequence)?;
     if b0 < 0x80 {
         return Ok((u32::from(b0), 1));
     }
@@ -42,14 +46,14 @@ pub fn mbrtowc(s: &[u8]) -> Result<(u32, usize), ()> {
         0xc2..=0xdf => 2,
         0xe0..=0xef => 3,
         0xf0..=0xf4 => 4,
-        _ => return Err(()),
+        _ => return Err(BadSequence),
     };
     if s.len() < n {
-        return Err(());
+        return Err(BadSequence);
     }
     match std::str::from_utf8(&s[..n]) {
         Ok(t) => Ok((t.chars().next().map(u32::from).unwrap_or(0), n)),
-        Err(_) => Err(()),
+        Err(_) => Err(BadSequence),
     }
 }
 
@@ -68,7 +72,7 @@ pub fn fname_print(name: &[u8]) -> Vec<u8> {
     let mut i = 0;
     while i < name.len() {
         match mbrtowc(&name[i..]) {
-            Err(()) => {
+            Err(BadSequence) => {
                 push_octal(&mut out, name[i]);
                 i += 1;
             }
@@ -91,7 +95,7 @@ pub fn mbswidth(name: &[u8], raw: bool) -> usize {
     let mut i = 0;
     while i < name.len() {
         match mbrtowc(&name[i..]) {
-            Err(()) => {
+            Err(BadSequence) => {
                 w += 4;
                 i += 1;
             }
@@ -114,7 +118,7 @@ pub fn escape_output(buf: &[u8]) -> Vec<u8> {
     let mut ok = true;
     while i < buf.len() {
         match mbrtowc(&buf[i..]) {
-            Err(()) => {
+            Err(BadSequence) => {
                 ok = false;
                 break;
             }

@@ -170,7 +170,6 @@ impl WordParser<'_> {
     fn parse_normal(&mut self, in_brace: bool, mut tilde_ok: bool, _alt_start: bool) -> Result<Vec<Part>, SyntaxError> {
         let mut parts: Vec<Part> = Vec::new();
         let mode = self.opts.mode;
-        let patternish = mode == Mode::PatternInDouble;
         while let Some(c) = self.peek() {
             if in_brace && (c == b',' || c == b'}') {
                 break;
@@ -224,11 +223,7 @@ impl WordParser<'_> {
                     match part {
                         DollarResult::Part(p) => parts.push(p),
                         DollarResult::Text(t) => {
-                            if patternish {
-                                push_lit(&mut parts, &t);
-                            } else {
-                                push_lit(&mut parts, &t);
-                            }
+                            push_lit(&mut parts, &t);
                         }
                     }
                 }

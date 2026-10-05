@@ -872,7 +872,7 @@ pub fn caller(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
     }
     let idx = sh.frames.len() - 1 - k;
     let line = sh.frames[idx].call_line;
-    let caller_name = if idx == 0 { if sh.script_file { "main".to_string() } else { "main".to_string() } } else { sh.frames[idx - 1].name.clone() };
+    let caller_name = if idx == 0 { "main".to_string() } else { sh.frames[idx - 1].name.clone() };
     let file = if idx == 0 {
         sh.source_stack.last().map(|s| s.to_string()).unwrap_or_else(|| "NULL".to_string())
     } else {
