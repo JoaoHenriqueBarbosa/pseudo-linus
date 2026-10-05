@@ -198,11 +198,14 @@ impl Creator {
         let tz = crate::tz::local();
         let mtime = match t.o.mtime.clone() {
             None => None,
-            Some(spec) => Some(date_or_file(t, &spec, &tz)?),
+            Some(spec) => Some(date_or_file(t, "--mtime", &spec, &tz)?),
         };
         let newer = match t.o.newer.clone() {
             None => None,
-            Some(spec) => Some(date_or_file(t, &spec, &tz)?),
+            Some(spec) => {
+                let option = if t.o.newer_mtime_only { "--newer-mtime" } else { "--after-date" };
+                Some(date_or_file(t, option, &spec, &tz)?)
+            }
         };
         let owner = t.o.owner.clone().map(|s| parse_id_override(t, &s, true));
         let group = t.o.group.clone().map(|s| parse_id_override(t, &s, false));
@@ -351,14 +354,17 @@ impl Creator {
         }
     }
 
-    fn verbose(&mut self, t: &mut Tar, shown: &[u8], m: &Member) {
+    /// Linha do `-v`/`-vv`. O GNU lista a data do disco (`st->mtime`), não a do `--mtime`, que só vai
+    /// pro cabeçalho.
+    fn verbose(&mut self, t: &mut Tar, shown: &[u8], m: &Member, st: &Stat) {
         if t.o.verbose == 0 {
             return;
         }
         let mut line = t.block_prefix(self.w.blocks);
         if t.o.verbose > 1 {
             let q = t.o.quoting.clone();
-            line.extend_from_slice(&t.lister.line(m, shown, &q));
+            let listed = Member { mtime: st_time(st), ..m.clone() };
+            line.extend_from_slice(&t.lister.line(&listed, shown, &q));
         } else {
             line.extend_from_slice(&quote::quote_with(shown, &t.o.quoting, false));
         }
@@ -441,7 +447,7 @@ impl Creator {
             let mut m = self.base_member(t, stored, &st, kind::LNK);
             m.linkname = first;
             if self.write_headers(t, &m) {
-                self.verbose(t, &shown, &m);
+                self.verbose(t, &shown, &m, &st);
                 if t.o.remove_files {
                     self.to_remove.push((path.to_vec(), false));
                 }
@@ -460,7 +466,7 @@ impl Creator {
                 if !self.write_headers(t, &m) {
                     return Ok(());
                 }
-                self.verbose(t, &shown, &m);
+                self.verbose(t, &shown, &m, &st);
                 if !recursion {
                     return Ok(());
                 }
@@ -529,7 +535,7 @@ impl Creator {
                     let _ = s.close(fd);
                     return Ok(());
                 }
-                self.verbose(t, &shown, &m);
+                self.verbose(t, &shown, &m, &st);
                 self.copy_file(t, fd, path, st.size);
                 let _ = s.close(fd);
                 self.count_links(t, path, &st, stored);
@@ -549,7 +555,7 @@ impl Creator {
                 let mut m = self.base_member(t, stored.clone(), &st, kind::SYM);
                 m.linkname = transform::apply_all(t, &target, Target::Symlink);
                 if self.write_headers(t, &m) {
-                    self.verbose(t, &shown, &m);
+                    self.verbose(t, &shown, &m, &st);
                     if t.o.remove_files {
                         self.to_remove.push((path.to_vec(), false));
                     }
@@ -569,7 +575,7 @@ impl Creator {
                     m.devminor = dev_minor(st.rdev);
                 }
                 if self.write_headers(t, &m) {
-                    self.verbose(t, &shown, &m);
+                    self.verbose(t, &shown, &m, &st);
                 }
                 Ok(())
             }
@@ -644,7 +650,7 @@ fn join_path(dir: &[u8], name: &[u8]) -> Vec<u8> {
 }
 
 /// `--mtime`/`--newer`: data, ou nome de arquivo (começando com `/` ou `.`) cuja data vale.
-fn date_or_file(t: &mut Tar, spec: &[u8], tz: &jiff::tz::TimeZone) -> R<Time> {
+fn date_or_file(t: &mut Tar, option: &str, spec: &[u8], tz: &jiff::tz::TimeZone) -> R<Time> {
     if spec.first().is_some_and(|&c| c == b'/' || c == b'.') {
         return match sysabi::sys::stat(spec) {
             Ok(st) => Ok(st_time(&st)),
@@ -656,7 +662,20 @@ fn date_or_file(t: &mut Tar, spec: &[u8], tz: &jiff::tz::TimeZone) -> R<Time> {
         };
     }
     match date::parse(spec, tz) {
-        Some(tm) => Ok(tm),
+        Some(tm) => {
+            // `report_textual_dates`: com `-v`, diz como a data foi entendida se o texto não for o
+            // próprio resultado.
+            if t.o.verbose > 0 {
+                let treated = super::list::Lister::new(true, t.o.utc, false).time(tm);
+                if treated.as_bytes() != spec {
+                    let mut m = format!("Option {option}: Treating date '").into_bytes();
+                    m.extend_from_slice(spec);
+                    m.extend_from_slice(format!("' as {treated}").as_bytes());
+                    t.msg(m);
+                }
+            }
+            Ok(tm)
+        }
         None => {
             let mut m = b"Substituting -9223372036854775807 for unknown date format ".to_vec();
             m.extend_from_slice(&quote::locale(spec));

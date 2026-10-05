@@ -1766,7 +1766,7 @@
     }
   },
   "tar-create-symlink-mtime": {
-    "stdout": "drwxr-xr-x root/root         0 2026-01-15 12:00 dir/\n-rw-r--r-- root/root        12 2026-01-15 12:00 dir/a.txt\n-rw-r----- root/root         4 2026-01-15 12:00 dir/b.txt\nlrwxrwxrwx root/root         0 2026-10-03 03:49 dir/dangling -> nowhere\ndrwx------ root/root         0 2026-01-15 12:00 dir/empty/\nlrwxrwxrwx root/root         0 2026-10-03 03:49 dir/link -> a.txt\n-rwxr-xr-x root/root        18 2026-01-15 12:00 dir/run.sh\n-rw-r--r-- root/root         6 2026-01-15 12:00 dir/sp ace.txt\ndrwxr-x--- root/root         0 2026-01-15 12:00 dir/sub/\n-rw------- root/root         4 2026-01-15 12:00 dir/sub/c.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 dir/sub/deep/\n-rw-r--r-- root/root         5 2026-01-15 12:00 dir/sub/deep/d.txt\n",
+    "stdout": "drwxr-xr-x root/root         0 2026-01-15 12:00 dir/\n-rw-r--r-- root/root        12 2026-01-15 12:00 dir/a.txt\n-rw-r----- root/root         4 2026-01-15 12:00 dir/b.txt\nlrwxrwxrwx root/root         0 2026-01-15 12:00 dir/dangling -> nowhere\ndrwx------ root/root         0 2026-01-15 12:00 dir/empty/\nlrwxrwxrwx root/root         0 2026-01-15 12:00 dir/link -> a.txt\n-rwxr-xr-x root/root        18 2026-01-15 12:00 dir/run.sh\n-rw-r--r-- root/root         6 2026-01-15 12:00 dir/sp ace.txt\ndrwxr-x--- root/root         0 2026-01-15 12:00 dir/sub/\n-rw------- root/root         4 2026-01-15 12:00 dir/sub/c.txt\ndrwxr-xr-x root/root         0 2026-01-15 12:00 dir/sub/deep/\n-rw-r--r-- root/root         5 2026-01-15 12:00 dir/sub/deep/d.txt\n",
     "stderr": "tar: Option --mtime: Treating date '@1700000000' as 2023-11-14 22:13:20\n",
     "exit": 0,
     "files": {

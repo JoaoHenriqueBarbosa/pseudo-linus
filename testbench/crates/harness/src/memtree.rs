@@ -168,7 +168,10 @@ impl MemTree {
                     f.set_times(times)?;
                     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(*mode))?;
                 }
-                Entry::Symlink { .. } => {}
+                Entry::Symlink { .. } => {
+                    let ft = filetime::FileTime::from_system_time(mtime);
+                    filetime::set_symlink_file_times(&path, ft, ft)?;
+                }
             }
         }
         Ok(())
