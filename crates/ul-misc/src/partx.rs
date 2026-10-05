@@ -30,46 +30,47 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
-const USAGE: &str = "
+const USAGE: &str = r#"
 Usage:
- partx <partition> [<disk>]
- partx <command> [options] <disk> | <partition>
+ partx [-a|-d|-s|-u] [--nr <n:m> | <partition>] <disk>
 
-Tell the kernel about the presence and numbering of on-disk partitions.
+Tell the kernel about the presence and numbering of partitions.
 
-Commands:
+Options:
  -a, --add            add specified partitions or all of them
  -d, --delete         delete specified partitions or all of them
  -u, --update         update specified partitions or all of them
  -s, --show           list partitions
 
-Options:
  -b, --bytes          print SIZE in bytes rather than in human readable format
  -g, --noheadings     don't print headings for --show
  -n, --nr <n:m>       specify the range of partitions (e.g. --nr 2:4)
- -o, --output <type>  define which output columns to use
+ -o, --output <list>  define which output columns to use
      --output-all     output all columns
+ -P, --pairs          use key="value" output format
  -r, --raw            use raw output format
- -t, --type <type>    specify the partition table type
+ -S, --sector-size <num>  overwrite sector size
+ -t, --type <type>    specify the partition type
+     --list-types     list supported partition types and exit
  -v, --verbose        verbose mode
 
  -h, --help           display this help
  -V, --version        display version
 
 Available output columns:
-    NR  partition number
- START  start of the partition in sectors
-   END  end of the partition in sectors
-SECTORS  number of sectors
-  SIZE  human readable size
-  NAME  partition name
-  UUID  partition UUID
-  TYPE  partition table type (a string, a UUID, or hex)
- FLAGS  partition flags
-SCHEME  partition table type (dos, gpt, ...)
+         NR  partition number
+      START  start of the partition in sectors
+        END  end of the partition in sectors
+    SECTORS  number of sectors
+       SIZE  human readable size
+       NAME  partition name
+       UUID  partition UUID
+       TYPE  partition type (a string, a UUID, or hex)
+      FLAGS  partition flags
+     SCHEME  partition table type (dos, gpt, ...)
 
 For more details see partx(8).
-";
+"#;
 
 const COLUMNS: &[&str] = &[
     "NR", "START", "END", "SECTORS", "SIZE", "NAME", "UUID", "TYPE", "FLAGS", "SCHEME",
@@ -150,7 +151,7 @@ fn run(args: &[OsString]) -> i32 {
     let st = match sys::stat(dev) {
         Ok(s) => s,
         Err(e) => {
-            ul::warn(&short, format!("{name}: failed to stat"), e);
+            ul::warn(&short, format!("stat of {name} failed"), e);
             return 1;
         }
     };

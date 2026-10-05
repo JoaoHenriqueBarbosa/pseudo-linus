@@ -40,7 +40,7 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("loop-ref", HasArg::Required, 261),
 ];
 
-const USAGE: &str = "
+const USAGE: &str = r#"
 Usage:
  losetup [options] [<loopdev>]
  losetup [options] -f | <loopdev> <file>
@@ -54,22 +54,23 @@ Options:
  -f, --find                    find first unused device
  -c, --set-capacity <loopdev>  resize the device
  -j, --associated <file>       list all devices associated with <file>
- -L, --nooverlap               avoid possible conflicts between devices
-     --direct-io[=<on|off>]    open backing file with O_DIRECT
-     --loop-ref <string>       specify device reference (kernel 6.x)
+ -L, --nooverlap               avoid possible conflict between devices
+
  -o, --offset <num>            start at offset <num> into file
-     --sizelimit <num>         device limited to <num> bytes of the file
-     --sector-size <num>       set the logical sector size to <num>
+     --sizelimit <num>         device is limited to <num> bytes of the file
+ -b, --sector-size <num>       set the logical sector size to <num>
  -P, --partscan                create a partitioned loop device
  -r, --read-only               set up a read-only loop device
+     --direct-io[=<on|off>]    open backing file with O_DIRECT
+     --loop-ref <string>       loop device reference
      --show                    print device name after setup (with -f)
  -v, --verbose                 verbose mode
 
- -l, --list                    list all devices (default)
+ -J, --json                    use JSON --list output format
+ -l, --list                    list info about all or specified (default)
+ -n, --noheadings              don't print headings for --list output
  -O, --output <cols>           specify columns to output for --list
      --output-all              output all columns
- -n, --noheadings              don't print headings for --list output
- -J, --json                    use JSON --list output format
      --raw                     use raw --list output format
 
  -h, --help                    display this help
@@ -81,16 +82,21 @@ Available output columns:
     BACK-FILE  device backing file
      BACK-INO  backing file inode number
  BACK-MAJ:MIN  backing file major:minor device number
+     BACK-MAJ  backing file major device number
+     BACK-MIN  backing file minor device number
       MAJ:MIN  loop device major:minor number
+          MAJ  loop device major number
+          MIN  loop device minor number
        OFFSET  offset from the beginning
      PARTSCAN  partscan flag set
+          REF  loop device reference string
            RO  read-only device
     SIZELIMIT  size limit of the file in bytes
           DIO  access backing file with direct-io
       LOG-SEC  logical sector size in bytes
 
 For more details see losetup(8).
-";
+"#;
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
@@ -214,7 +220,7 @@ fn run(args: &[OsString]) -> i32 {
     if ops.len() == 1 {
         let dev = io::lossy(&ops[0]);
         let e = sys::stat(&ops[0]).err().unwrap_or(Errno::ENODEV);
-        ul::warn(&short, format!("{dev}: failed to use device"), e);
+        ul::warn(&short, format!("{dev}"), e);
         return 1;
     }
     if ops.len() > 2 {

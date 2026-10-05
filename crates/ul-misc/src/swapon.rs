@@ -29,7 +29,7 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
-const USAGE: &str = "
+const USAGE: &str = r#"
 Usage:
  swapon [options] [<spec>]
 
@@ -37,12 +37,13 @@ Enable devices and files for paging and swapping.
 
 Options:
  -a, --all                enable all swaps from /etc/fstab
- -d, --discard[=<policy>] enable discard, value: once or pages
+ -d, --discard[=<policy>] enable swap discards, if supported by device
  -e, --ifexists           silently skip devices that do not exist
  -f, --fixpgsz            reinitialize the swap space if necessary
  -o, --options <list>     comma-separated list of swap options
  -p, --priority <prio>    specify the priority of the swap device
  -s, --summary            display summary about used swap devices (DEPRECATED)
+ -T, --fstab <path>       alternative file to /etc/fstab
      --show[=<columns>]   display summary in definable table
      --noheadings         don't print table heading (with --show)
      --raw                use the raw output format (with --show)
@@ -62,17 +63,22 @@ The <spec> parameter:
  <device>               name of device to be used
  <file>                 name of file to be used
 
+Available discard policy types (for --discard):
+ once    : only single-time area discards are issued
+ pages   : freed pages are discarded before they are reused
+If no policy is selected, both discard types are enabled (default).
+
 Available output columns:
- NAME  device file or partition path
- TYPE  type of the device
- SIZE  size of the swap area
- USED  bytes in use
- PRIO  swap priority
- UUID  swap UUID
-LABEL  swap label
+ NAME   device file or partition path
+ TYPE   type of the device
+ SIZE   size of the swap area
+ USED   bytes in use
+ PRIO   swap priority
+ UUID   swap uuid
+ LABEL  swap label
 
 For more details see swapon(8).
-";
+"#;
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
@@ -239,7 +245,7 @@ fn run(args: &[OsString]) -> i32 {
                 if ifexists && e == Errno::ENOENT {
                     continue;
                 }
-                ul::warn(&short, format!("cannot stat {name}"), e);
+                ul::warn(&short, format!("cannot open {name}"), e);
                 rc = 255;
                 continue;
             }

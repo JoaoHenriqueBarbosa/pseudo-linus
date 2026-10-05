@@ -29,7 +29,7 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
-const USAGE: &str = "
+const USAGE: &str = r#"
 Usage:
  mkswap [options] device [size]
 
@@ -44,15 +44,16 @@ Options:
  -v, --swapversion NUM     specify swap-space version number
  -U, --uuid UUID           specify the uuid to use
  -e, --endianness=<value>  specify the endianness to use (native, little or big)
- -o, --offset OFFSET       specify the offset in bytes
-     --lock[=<mode>]       use exclusive device lock (yes, no or nonblock)
+ -o, --offset OFFSET       specify the offset in the device
+ -s, --size SIZE           specify the size of a swap file in bytes
+ -F, --file                create a swap file
      --verbose             verbose output
-
+     --lock[=<mode>]       use exclusive device lock (yes, no or nonblock)
  -h, --help                display this help
  -V, --version             display version
 
 For more details see mkswap(8).
-";
+"#;
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
@@ -169,7 +170,9 @@ fn run(args: &[OsString]) -> i32 {
                 return 0;
             }
             Some('V') => {
-                ul::print_version(&short);
+                let _ = io::stdout().write_all(
+                    b"mkswap from util-linux 2.41.5 (features: extends-check, nocow, fallocate, blkid-check, uuid, selinux)\n",
+                );
                 return 0;
             }
             _ => {
@@ -208,7 +211,7 @@ fn run(args: &[OsString]) -> i32 {
     let st = match sys::stat(&dev) {
         Ok(s) => s,
         Err(e) => {
-            ul::warn(&short, format!("cannot stat {dev_s}"), e);
+            ul::warn(&short, format!("cannot open {dev_s}"), e);
             return 1;
         }
     };

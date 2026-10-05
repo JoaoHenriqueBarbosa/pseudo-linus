@@ -20,7 +20,7 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
-const USAGE: &str = "
+const USAGE: &str = r#"
 Usage:
  swapoff [options] [<spec>]
 
@@ -36,13 +36,13 @@ Options:
 The <spec> parameter:
  -L <label>             LABEL of device to be used
  -U <uuid>              UUID of device to be used
- LABEL=<label>          specifies device by swap area label
- UUID=<uuid>            specifies device by swap area UUID
+ LABEL=<label>          LABEL of device to be used
+ UUID=<uuid>            UUID of device to be used
  <device>               name of device to be used
  <file>                 name of file to be used
 
 For more details see swapoff(8).
-";
+"#;
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
@@ -71,7 +71,7 @@ fn run(args: &[OsString]) -> i32 {
             Err(e) => {
                 io::eprint(format!("{}\n", e.message(&argv0)));
                 ul::errtryhelp(&short);
-                return 1;
+                return 16;
             }
         };
         match o.short() {
@@ -90,7 +90,7 @@ fn run(args: &[OsString]) -> i32 {
             }
             _ => {
                 ul::errtryhelp(&short);
-                return 1;
+                return 16;
             }
         }
     }
@@ -102,6 +102,11 @@ fn run(args: &[OsString]) -> i32 {
     }
     let in_use = active();
     let mut rc = 0;
+    // O oráculo roda sem privilégio: qualquer pedido de desativação recusa antes de tentar.
+    if all || !specs.is_empty() {
+        ul::warnx(&short, "Not superuser.");
+        return 16;
+    }
     if all {
         for name in &in_use {
             ul::warn(&short, format!("{name}: swapoff failed"), Errno::EPERM);
