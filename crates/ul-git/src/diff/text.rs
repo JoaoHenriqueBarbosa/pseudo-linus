@@ -72,6 +72,15 @@ pub fn split_lines(data: &[u8]) -> Vec<&[u8]> {
 
 /// Diff de linhas: as mudanças em ordem.
 pub fn changes(old: &[&[u8]], new: &[&[u8]], ws: Ws) -> Vec<Change> {
+    changes_with(old, new, ws, true)
+}
+
+/// Como `changes`, sem a heurística de indentação: o que o `xdl_merge` usa (`xpp.flags` zerado).
+pub fn changes_plain(old: &[&[u8]], new: &[&[u8]]) -> Vec<Change> {
+    changes_with(old, new, Ws::default(), false)
+}
+
+fn changes_with(old: &[&[u8]], new: &[&[u8]], ws: Ws, indent_heuristic: bool) -> Vec<Change> {
     let mut input: InternedInput<Vec<u8>> = InternedInput::default();
     let mut map: HashMap<Vec<u8>, Token> = HashMap::new();
     let mut intern = |line: &[u8], input: &mut InternedInput<Vec<u8>>| -> Token {
@@ -92,7 +101,11 @@ pub fn changes(old: &[&[u8]], new: &[&[u8]], ws: Ws) -> Vec<Change> {
         input.after.push(t);
     }
     let mut diff = Diff::compute(Algorithm::Myers, &input);
-    diff.postprocess_lines(&input);
+    if indent_heuristic {
+        diff.postprocess_lines(&input);
+    } else {
+        diff.postprocess_no_heuristic(&input);
+    }
     diff.hunks()
         .map(|h| Change {
             i1: h.before.start as usize,

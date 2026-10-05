@@ -290,8 +290,7 @@ fn reset_commit(repo: &Repo, p: &opts::Parsed, mode: Mode, rev_text: Option<Stri
         let c = repo.read_commit(&target)?;
         os::outs(&format!("HEAD is now at {} {}\n", repo.abbrev_default(&target), os::lossy(&c.subject())));
     }
-    for f in ["MERGE_HEAD", "MERGE_MSG", "MERGE_MODE", "SQUASH_MSG", "CHERRY_PICK_HEAD", "REVERT_HEAD"] {
-        let _ = os::unlink(&repo.path(f));
-    }
+    // O `remove_branch_state`: o que mesclagem, cherry-pick e revert em andamento deixam.
+    super::revert::remove_branch_state(repo, false);
     Ok(0)
 }
