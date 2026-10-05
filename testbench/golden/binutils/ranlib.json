@@ -1,0 +1,44 @@
+{
+  "ranlib-bad-option": {
+    "stdout": "",
+    "stderr": "ranlib: invalid option -- 'Z'\nranlib: 'x.a': No such file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ranlib-help": {
+    "stdout": "Usage: ranlib [options] archive\n Generate an index to speed access to archives\n The options are:\n  @<file>                      Read options from <file>\n  --plugin <name>              Load the specified plugin\n  -D                           Use zero for symbol map timestamp (default)\n  -U                           Use an actual symbol map timestamp\n  -t                           Update the archive's symbol map timestamp\n  -h --help                    Print this help message\n  -v --version                 Print version information\nranlib: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ranlib-missing-archive": {
+    "stdout": "ranlib: 'nao-existe.a': No such file\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ranlib-no-args": {
+    "stdout": "",
+    "stderr": "Usage: ranlib [options] archive\n Generate an index to speed access to archives\n The options are:\n  @<file>                      Read options from <file>\n  --plugin <name>              Load the specified plugin\n  -D                           Use zero for symbol map timestamp (default)\n  -U                           Use an actual symbol map timestamp\n  -t                           Update the archive's symbol map timestamp\n  -h --help                    Print this help message\n  -v --version                 Print version information\nranlib: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ranlib-not-an-archive": {
+    "stdout": "ranlib: f.txt: file format not recognized\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ranlib-text-members": {
+    "stdout": "0\na.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ranlib-version": {
+    "stdout": "GNU ranlib (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

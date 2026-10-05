@@ -1,0 +1,38 @@
+{
+  "size-bad-option": {
+    "stdout": "",
+    "stderr": "size: invalid option -- 'Z'\nUsage: size [option(s)] [file(s)]\n Displays the sizes of sections inside binary files\n If no input file(s) are specified, a.out is assumed\n The options are:\n  -A|-B|-G  --format={sysv|berkeley|gnu}  Select output style (default is berkeley)\n  -o|-d|-x  --radix={8|10|16}         Display numbers in octal, decimal or hex\n  -t        --totals                  Display the total sizes (Berkeley only)\n  -f                                  Ignored.\n            --common                  Display total size for *COM* syms\n            --target=<bfdname>        Set the binary file format\n            @<file>                   Read options from <file>\n  -h|-H|-?  --help                    Display this information\n  -v|-V     --version                 Display the program's version\n\nsize: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "size-default-missing-a-out": {
+    "stdout": "size: 'a.out': No such file\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "size-help": {
+    "stdout": "Usage: size [option(s)] [file(s)]\n Displays the sizes of sections inside binary files\n If no input file(s) are specified, a.out is assumed\n The options are:\n  -A|-B|-G  --format={sysv|berkeley|gnu}  Select output style (default is berkeley)\n  -o|-d|-x  --radix={8|10|16}         Display numbers in octal, decimal or hex\n  -t        --totals                  Display the total sizes (Berkeley only)\n  -f                                  Ignored.\n            --common                  Display total size for *COM* syms\n            --target=<bfdname>        Set the binary file format\n            @<file>                   Read options from <file>\n  -h|-H|-?  --help                    Display this information\n  -v|-V     --version                 Display the program's version\n\nsize: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "size-missing-file": {
+    "stdout": "",
+    "stderr": "size: 'nao-existe': No such file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "size-not-elf": {
+    "stdout": "size: f.txt: file format not recognized\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "size-version": {
+    "stdout": "GNU size (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

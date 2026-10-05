@@ -1,0 +1,98 @@
+{
+  "ar-bad-option": {
+    "stdout": "",
+    "stderr": "ar: invalid option -- 'Z'\nUsage: ar [emulation options] [-]{dmpqrstx}[abcDfilMNoOPsSTuvV] [--plugin <name>] [member-name] [count] archive-file file...\n       ar -M [<mri-script]\n commands:\n  d            - delete file(s) from the archive\n  m[ab]        - move file(s) in the archive\n  p            - print file(s) found in the archive\n  q[f]         - quick append file(s) to the archive\n  r[ab][f][u]  - replace existing or insert new file(s) into the archive\n  s            - act as ranlib\n  t[O][v]      - display contents of the archive\n  x[o]         - extract file(s) from the archive\n command specific modifiers:\n  [a]          - put file(s) after [member-name]\n  [b]          - put file(s) before [member-name] (same as [i])\n  [D]          - use zero for timestamps and uids/gids (default)\n  [U]          - use actual timestamps and uids/gids\n  [N]          - use instance [count] of name\n  [f]          - truncate inserted file names\n  [P]          - use full path names when matching\n  [o]          - preserve original dates\n  [O]          - display offsets of files in the archive\n  [u]          - only replace files that are newer than current archive contents\n generic modifiers:\n  [c]          - do not warn if the library had to be created\n  [s]          - create an archive index (cf. ranlib)\n  [l <text> ]  - specify the dependencies of this library\n  [S]          - do not build a symbol table\n  [T]          - deprecated, use --thin instead\n  [v]          - be verbose\n  [V]          - display the version number\n  @<file>      - read options from <file>\n  --target=BFDNAME - specify the target object format as BFDNAME\n  --output=DIRNAME - specify the output directory for extraction operations\n  --record-libdeps=<text> - specify the dependencies of this library\n  --thin       - make a thin archive\n optional:\n  --plugin <p> - load the specified plugin\n emulation options: \n  No emulation specific options\nar: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ar-create-list-extract": {
+    "stdout": "a.txt\nb.txt\num\ndois\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-create-warning": {
+    "stdout": "ar: creating x.a\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-delete": {
+    "stdout": "b.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-deterministic-bytes": {
+    "stdout": "0000000   !   <   a   r   c   h   >  \\n   a   .   t   x   t   /        \n0000020                                   0                            \n0000040                   0                       0                    \n0000060   6   4   4                       2                            \n0000100           `  \\n   a  \\n\n0000106\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-extract-missing-member": {
+    "stdout": "no entry nada.txt in archive\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-help": {
+    "stdout": "Usage: ar [emulation options] [-]{dmpqrstx}[abcDfilMNoOPsSTuvV] [--plugin <name>] [member-name] [count] archive-file file...\n       ar -M [<mri-script]\n commands:\n  d            - delete file(s) from the archive\n  m[ab]        - move file(s) in the archive\n  p            - print file(s) found in the archive\n  q[f]         - quick append file(s) to the archive\n  r[ab][f][u]  - replace existing or insert new file(s) into the archive\n  s            - act as ranlib\n  t[O][v]      - display contents of the archive\n  x[o]         - extract file(s) from the archive\n command specific modifiers:\n  [a]          - put file(s) after [member-name]\n  [b]          - put file(s) before [member-name] (same as [i])\n  [D]          - use zero for timestamps and uids/gids (default)\n  [U]          - use actual timestamps and uids/gids\n  [N]          - use instance [count] of name\n  [f]          - truncate inserted file names\n  [P]          - use full path names when matching\n  [o]          - preserve original dates\n  [O]          - display offsets of files in the archive\n  [u]          - only replace files that are newer than current archive contents\n generic modifiers:\n  [c]          - do not warn if the library had to be created\n  [s]          - create an archive index (cf. ranlib)\n  [l <text> ]  - specify the dependencies of this library\n  [S]          - do not build a symbol table\n  [T]          - deprecated, use --thin instead\n  [v]          - be verbose\n  [V]          - display the version number\n  @<file>      - read options from <file>\n  --target=BFDNAME - specify the target object format as BFDNAME\n  --output=DIRNAME - specify the output directory for extraction operations\n  --record-libdeps=<text> - specify the dependencies of this library\n  --thin       - make a thin archive\n optional:\n  --plugin <p> - load the specified plugin\n emulation options: \n  No emulation specific options\nar: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-long-names": {
+    "stdout": "um-nome-bem-comprido-demais.txt\n0000000   !   <   a   r   c   h   >  \\n   /   /                        \n0000020                                                                \n*\n0000060                                   3   4                        \n0000100           `  \\n   u   m   -   n   o   m   e   -   b   e   m   -\n0000120\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-missing-archive": {
+    "stdout": "ar: nao-existe.a: No such file or directory\n9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-missing-member-file": {
+    "stdout": "ar: nao-existe.txt: No such file or directory\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-no-args": {
+    "stdout": "",
+    "stderr": "Usage: ar [emulation options] [-]{dmpqrstx}[abcDfilMNoOPsSTuvV] [--plugin <name>] [member-name] [count] archive-file file...\n       ar -M [<mri-script]\n commands:\n  d            - delete file(s) from the archive\n  m[ab]        - move file(s) in the archive\n  p            - print file(s) found in the archive\n  q[f]         - quick append file(s) to the archive\n  r[ab][f][u]  - replace existing or insert new file(s) into the archive\n  s            - act as ranlib\n  t[O][v]      - display contents of the archive\n  x[o]         - extract file(s) from the archive\n command specific modifiers:\n  [a]          - put file(s) after [member-name]\n  [b]          - put file(s) before [member-name] (same as [i])\n  [D]          - use zero for timestamps and uids/gids (default)\n  [U]          - use actual timestamps and uids/gids\n  [N]          - use instance [count] of name\n  [f]          - truncate inserted file names\n  [P]          - use full path names when matching\n  [o]          - preserve original dates\n  [O]          - display offsets of files in the archive\n  [u]          - only replace files that are newer than current archive contents\n generic modifiers:\n  [c]          - do not warn if the library had to be created\n  [s]          - create an archive index (cf. ranlib)\n  [l <text> ]  - specify the dependencies of this library\n  [S]          - do not build a symbol table\n  [T]          - deprecated, use --thin instead\n  [v]          - be verbose\n  [V]          - display the version number\n  @<file>      - read options from <file>\n  --target=BFDNAME - specify the target object format as BFDNAME\n  --output=DIRNAME - specify the output directory for extraction operations\n  --record-libdeps=<text> - specify the dependencies of this library\n  --thin       - make a thin archive\n optional:\n  --plugin <p> - load the specified plugin\n emulation options: \n  No emulation specific options\nar: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ar-no-operation": {
+    "stdout": "-c: invalid option -- '.'\nUsage: ar [emulation options] [-]{dmpqrstx}[abcDfilMNoOPsSTuvV] [--plugin <name>] [member-name] [count] archive-file file...\n       ar -M [<mri-script]\n commands:\n  d            - delete file(s) from the archive\n  m[ab]        - move file(s) in the archive\n  p            - print file(s) found in the archive\n  q[f]         - quick append file(s) to the archive\n  r[ab][f][u]  - replace existing or insert new file(s) into the archive\n  s            - act as ranlib\n  t[O][v]      - display contents of the archive\n  x[o]         - extract file(s) from the archive\n command specific modifiers:\n  [a]          - put file(s) after [member-name]\n  [b]          - put file(s) before [member-name] (same as [i])\n  [D]          - use zero for timestamps and uids/gids (default)\n  [U]          - use actual timestamps and uids/gids\n  [N]          - use instance [count] of name\n  [f]          - truncate inserted file names\n  [P]          - use full path names when matching\n  [o]          - preserve original dates\n  [O]          - display offsets of files in the archive\n  [u]          - only replace files that are newer than current archive contents\n generic modifiers:\n  [c]          - do not warn if the library had to be created\n  [s]          - create an archive index (cf. ranlib)\n  [l <text> ]  - specify the dependencies of this library\n  [S]          - do not build a symbol table\n  [T]          - deprecated, use --thin instead\n  [v]          - be verbose\n  [V]          - display the version number\n  @<file>      - read options from <file>\n  --target=BFDNAME - specify the target object format as BFDNAME\n  --output=DIRNAME - specify the output directory for extraction operations\n  --record-libdeps=<text> - specify the dependencies of this library\n  --thin       - make a thin archive\n optional:\n  --plugin <p> - load the specified plugin\n emulation options: \n  No emulation specific options\nar: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-not-an-archive": {
+    "stdout": "ar: f.txt: file format not recognized\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-print-member": {
+    "stdout": "conteudo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-verbose-list": {
+    "stdout": "a - a.txt\nrw-r--r-- 0/0      3 Jan  1 00:00 1970 a.txt\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ar-version": {
+    "stdout": "GNU ar (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
