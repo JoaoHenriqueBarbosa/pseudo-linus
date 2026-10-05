@@ -6,7 +6,7 @@
 use std::ffi::OsString;
 use std::io::Write;
 
-use sysabi::{Ctx, sys};
+use sysabi::{Ctx, Errno};
 
 use crate::util::io;
 use crate::util::ul;
@@ -71,14 +71,15 @@ fn run(args: &[OsString]) -> i32 {
     }
     let ops = g.operands();
     if ops.len() < 2 || ops[0].is_empty() || ops[1].is_empty() {
-        ul::warnx(&short, "bad usage");
+        ul::warnx(&short, "not enough arguments");
         ul::errtryhelp(&short);
         return 1;
     }
-    if sys::current().getpid() != 1 {
-        ul::warnx(&short, "not running as PID 1");
-        return 1;
-    }
-    ul::warnx(&short, "failed to change directory to the new root");
+    ul::warn(
+        &short,
+        format!("failed to mount moving {} to /", io::lossy(&ops[0])),
+        Errno::EPERM,
+    );
+    ul::warnx(&short, "failed. Sorry.");
     1
 }

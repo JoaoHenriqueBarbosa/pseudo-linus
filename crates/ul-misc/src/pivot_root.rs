@@ -19,7 +19,7 @@ const LONGS: &[LongOpt] = &[
 
 const USAGE: &str = "
 Usage:
- pivot_root new_root put_old
+ pivot_root [options] new_root put_old
 
 Change the root filesystem.
 

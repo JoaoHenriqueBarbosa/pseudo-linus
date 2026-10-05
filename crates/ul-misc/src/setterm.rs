@@ -12,7 +12,7 @@ use sysabi::Ctx;
 
 use crate::util::io;
 use crate::util::ul;
-use crate::util::{Getopt, HasArg, LongOpt};
+use crate::util::{Getopt, GetoptError, HasArg, LongOpt};
 
 const COLORS: &[&str] = &[
     "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
@@ -39,7 +39,6 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("underline", HasArg::Required, 273),
     LongOpt::new("clear", HasArg::Optional, 274),
     LongOpt::new("msg", HasArg::Required, 275),
-    LongOpt::new("version", HasArg::No, b'V' as i32),
     LongOpt::new("help", HasArg::No, b'h' as i32),
 ];
 
@@ -50,47 +49,53 @@ Usage:
 Set the attributes of a terminal.
 
 Options:
- --term <terminal_name>     override TERM environment variable
- --reset                    reset terminal to power-on state
- --resize                   reset terminal size to window size
- --initialize               display init string, and use default settings
- --default                  use default terminal settings
- --store                    save current terminal settings as default
+ --term <terminal_name>        override TERM environment variable
+ --reset                       reset terminal to power-on state
+ --resize                      reset terminal rows and columns
+ --initialize                  display init string, and use default settings
+ --default                     use default terminal settings
+ --store                       save current terminal settings as default
 
- --cursor on|off            display cursor
- --repeat on|off            keyboard repetition
- --appcursorkeys on|off     cursor key application mode
- --linewrap on|off          continue on next line when line is full
- --inversescreen on|off     swap colors for the whole screen
+ --cursor on|off               display cursor
+ --repeat on|off               keyboard repeat
+ --appcursorkeys on|off        cursor key application mode
+ --linewrap on|off             continue on a new line when a line is full
+ --inversescreen on|off        swap colors for the whole screen
 
- --foreground default|black|blue|cyan|green|magenta|red|white|yellow
- --background default|black|blue|cyan|green|magenta|red|white|yellow
- --ulcolor [bright] black|blue|brown|cyan|green|grey|magenta|red|white|yellow
- --hbcolor [bright] black|blue|brown|cyan|green|grey|magenta|red|white|yellow
- --bold on|off              bold
- --half-bright on|off       dim
- --blink on|off             blink
- --reverse on|off           swap colors
- --underline on|off         underline
+ --msg on|off                  send kernel messages to console
+ --msglevel <0-8>              kernel console log level
 
- --tabs[=<number>...]       set tab stops
- --clear[=all|rest]         clear screen and cursor position
- --regtabs[=1-160]          set regular tab stops
- --blank[=0-60|force|poke]  set time of inactivity before screen blanks
- --dump[=<number>]          write vcsa<number> console dump to file
- --append <number>          append vcsa<number> console dump to file
- --file <filename>          name of the dump file
- --msg on|off               send kernel messages to console
- --msglevel 0-8             kernel console log level
- --powersave on|off|vsync|hsync|powerdown
-                            set vesa powersave features
- --powerdown[=<0-60>]       set vesa powerdown interval in minutes
- --blength[=<0-2000>]       duration of the bell in milliseconds
- --bfreq[=<number>]         bell frequency in Hertz
- --lcdbacklight[=<number>]  lcd backlight level
- --snap[=<file>]            write screen dump to file
- --help                     display this help
- --version                  display version
+ --foreground default|<color>  set foreground color
+ --background default|<color>  set background color
+ --ulcolor [bright] <color>    set underlined text color
+ --hbcolor [bright] <color>    set half-bright text color
+        <color>: black blue cyan green grey magenta red white yellow
+
+ --bold on|off                 bold
+ --half-bright on|off          dim
+ --blink on|off                blink
+ --underline on|off            underline
+ --reverse  on|off             swap foreground and background colors
+
+ --clear[=<all|rest>]          clear screen and set cursor position
+ --tabs[=<number>...]          set these tab stop positions, or show them
+ --clrtabs[=<number>...]       clear these tab stop positions, or all
+ --regtabs[=1-160]             set a regular tab stop interval
+ --blank[=0-60|force|poke]     set time of inactivity before screen blanks
+
+ --dump[=<number>]             write vcsa<number> console dump to file
+ --append <number>             append vcsa<number> console dump to file
+ --file <filename>             name of the dump file
+
+ --powersave on|vsync|hsync|powerdown|off
+                               set vesa powersaving features
+ --powerdown[=<0-60>]          set vesa powerdown interval in minutes
+
+ --blength[=<0-2000>]          duration of the bell in milliseconds
+ --bfreq[=<number>]            bell frequency in Hertz
+
+ --help                        display this help
+ --version                     display version
 
 For more details see setterm(1).
 ";
@@ -135,11 +140,33 @@ fn run(args: &[OsString]) -> i32 {
     let short = ul::short_name(args);
 
     let mut esc: Vec<u8> = Vec::new();
-    let mut g = Getopt::from_env(&argv[1..], "Vh", LONGS);
+    // O original usa `getopt_long_only` sem opções curtas: `-x` é tratado como longa `--x`, e a
+    // falha mostra o argumento com um traço só.
+    let converted: Vec<Vec<u8>> = argv[1..]
+        .iter()
+        .map(|a| {
+            if a.len() >= 2 && a[0] == b'-' && a[1] != b'-' {
+                let mut c = b"-".to_vec();
+                c.extend_from_slice(a);
+                c
+            } else {
+                a.clone()
+            }
+        })
+        .collect();
+    let mut g = Getopt::from_env(&converted, "", LONGS);
     while let Some(r) = g.next_opt() {
         let o = match r {
             Ok(o) => o,
             Err(e) => {
+                let e = match e {
+                    GetoptError::Unrecognized(s)
+                        if argv[1..].iter().any(|a| a.as_slice() == s[1..].as_bytes()) =>
+                    {
+                        GetoptError::Unrecognized(s[1..].to_string())
+                    }
+                    other => other,
+                };
                 io::eprint(format!("{}\n", e.message(&argv0)));
                 ul::errtryhelp(&short);
                 return 1;
@@ -196,10 +223,6 @@ fn run(args: &[OsString]) -> i32 {
                 String::new()
             }
             _ => match o.short() {
-                Some('V') => {
-                    ul::print_version(&short);
-                    return 0;
-                }
                 Some('h') => {
                     let mut out = io::stdout();
                     let _ = out.write_all(USAGE.as_bytes());

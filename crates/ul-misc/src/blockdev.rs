@@ -13,7 +13,8 @@ use sysabi::{Ctx, Errno, sys};
 use crate::util::io;
 use crate::util::ul;
 
-const USAGE: &str = "Usage:
+const USAGE: &str = "
+Usage:
  blockdev [-v|-q] commands devices
  blockdev --report [devices]
  blockdev -h|-V

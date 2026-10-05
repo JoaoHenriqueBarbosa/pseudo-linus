@@ -20,6 +20,7 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("log-io", HasArg::Required, b'B' as i32),
     LongOpt::new("typescript", HasArg::Required, b's' as i32),
     LongOpt::new("command", HasArg::Required, b'c' as i32),
+    LongOpt::new("echo", HasArg::Required, b'E' as i32),
     LongOpt::new("divisor", HasArg::Required, b'd' as i32),
     LongOpt::new("maxdelay", HasArg::Required, b'm' as i32),
     LongOpt::new("version", HasArg::No, b'V' as i32),
@@ -28,19 +29,21 @@ const LONGS: &[LongOpt] = &[
 
 const USAGE: &str = "
 Usage:
- scriptlive [options] [-t] timingfile [-I|-B] typescript
+ scriptlive [options] <timingfile> <typescript>
 
-Execute terminal typescript, using timing information.
+Execute terminal typescript.
 
 Options:
  -t, --timing <file>     script timing log file
  -T, --log-timing <file> alias to -t
  -I, --log-in <file>     script stdin log file
  -B, --log-io <file>     script stdin and stdout log file
- -s, --typescript <file> deprecated alias to -I
- -c, --command <cmd>     run command rather than interactive shell
+
+ -c, --command <command> run command rather than interactive shell
  -d, --divisor <num>     speed up or slow down execution with time divisor
+ -E, --echo <when>       echo input in session (auto, always or never)
  -m, --maxdelay <num>    wait at most this many seconds between updates
+
  -h, --help              display this help
  -V, --version           display version
 
@@ -63,7 +66,7 @@ fn run(args: &[OsString]) -> i32 {
     let mut timing: Option<Vec<u8>> = None;
     let mut typescript: Option<Vec<u8>> = None;
     let mut divisor = 1.0f64;
-    let mut g = Getopt::from_env(&argv[1..], "B:c:d:I:m:s:T:t:Vh", LONGS);
+    let mut g = Getopt::from_env(&argv[1..], "B:c:d:E:I:m:s:T:t:Vh", LONGS);
     while let Some(r) = g.next_opt() {
         let o = match r {
             Ok(o) => o,
@@ -77,17 +80,20 @@ fn run(args: &[OsString]) -> i32 {
         match o.short() {
             Some('t') | Some('T') => timing = Some(arg),
             Some('I') | Some('B') | Some('s') => typescript = Some(arg),
-            Some('c') => {}
+            Some('c') | Some('E') => {}
             Some('d') => match parse_f64(&arg) {
                 Some(v) => divisor = v,
                 None => {
-                    ul::warnx(&short, format!("unsupported divisor: '{}'", io::lossy(&arg)));
+                    ul::warnx(&short, format!("failed to parse number: '{}'", io::lossy(&arg)));
                     return 1;
                 }
             },
             Some('m') => {
                 if parse_f64(&arg).is_none() {
-                    ul::warnx(&short, format!("unsupported maxdelay: '{}'", io::lossy(&arg)));
+                    ul::warnx(
+                        &short,
+                        format!("failed to parse maximal delay argument: '{}'", io::lossy(&arg)),
+                    );
                     return 1;
                 }
             }

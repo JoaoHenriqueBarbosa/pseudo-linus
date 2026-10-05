@@ -15,6 +15,8 @@ use crate::util::{Getopt, HasArg, LongOpt};
 
 const O_NOESCAPE: i32 = 256;
 const O_TIME_FORMAT: i32 = 257;
+const O_SINCE: i32 = 258;
+const O_UNTIL: i32 = 259;
 
 const LONGS: &[LongOpt] = &[
     LongOpt::new("buffer-size", HasArg::Required, b's' as i32),
@@ -27,8 +29,11 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("decode", HasArg::No, b'x' as i32),
     LongOpt::new("file", HasArg::Required, b'F' as i32),
     LongOpt::new("facility", HasArg::Required, b'f' as i32),
-    LongOpt::new("follow", HasArg::No, b'W' as i32),
-    LongOpt::new("follow-new", HasArg::No, b'w' as i32),
+    LongOpt::new("follow", HasArg::No, b'w' as i32),
+    LongOpt::new("follow-new", HasArg::No, b'W' as i32),
+    LongOpt::new("kmsg-file", HasArg::Required, b'K' as i32),
+    LongOpt::new("since", HasArg::Required, O_SINCE),
+    LongOpt::new("until", HasArg::Required, O_UNTIL),
     LongOpt::new("force-prefix", HasArg::No, b'p' as i32),
     LongOpt::new("help", HasArg::No, b'h' as i32),
     LongOpt::new("human", HasArg::No, b'H' as i32),
@@ -60,6 +65,7 @@ Options:
  -D, --console-off           disable printing messages to console
  -E, --console-on            enable printing messages to console
  -F, --file <file>           use the file instead of the kernel log buffer
+ -K, --kmsg-file <file>      use the file in kmsg format
  -f, --facility <list>       restrict output to defined facilities
  -H, --human                 human readable output
  -J, --json                  use JSON output format
@@ -75,18 +81,19 @@ Options:
  -S, --syslog                force to use syslog(2) rather than /dev/kmsg
  -s, --buffer-size <size>    buffer size to query the kernel ring buffer
  -u, --userspace             display userspace messages
- -w, --follow-new            wait and print only new messages
- -W, --follow                wait and print messages
+ -w, --follow                wait for new messages
+ -W, --follow-new            wait and print only new messages
  -x, --decode                decode facility and level to readable string
  -d, --show-delta            show time delta between printed messages
  -e, --reltime               show local time and time delta in readable format
  -T, --ctime                 show human-readable timestamp (may be inaccurate!)
  -t, --notime                don't show any timestamp with messages
      --time-format <format>  show timestamp using the given format:
-                               [delta|reltime|ctime|notime|iso]
-                             Suggestions:
-                               - Use only one timestamp format
-                               - May conflict with other options
+                               [delta|reltime|ctime|notime|iso|raw]
+Suspending/resume will make ctime and iso timestamps inaccurate.
+     --since <time>          display the lines since the specified time
+     --until <time>          display the lines until the specified time
+
  -h, --help                  display this help
  -V, --version               display version
 
@@ -99,6 +106,22 @@ Supported log facilities:
   syslog - messages generated internally by syslogd
      lpr - line printer subsystem
     news - network news subsystem
+    uucp - UUCP subsystem
+    cron - clock daemon
+ authpriv - security/authorization messages (private)
+     ftp - FTP daemon
+    res0 - reserved 0
+    res1 - reserved 1
+    res2 - reserved 2
+    res3 - reserved 3
+  local0 - local use 0
+  local1 - local use 1
+  local2 - local use 2
+  local3 - local use 3
+  local4 - local use 4
+  local5 - local use 5
+  local6 - local use 6
+  local7 - local use 7
 
 Supported log levels (priorities):
    emerg - system is unusable
@@ -117,7 +140,9 @@ const LEVELS: &[&str] = &[
     "emerg", "alert", "crit", "err", "warn", "notice", "info", "debug",
 ];
 const FACILITIES: &[&str] = &[
-    "kern", "user", "mail", "daemon", "auth", "syslog", "lpr", "news",
+    "kern", "user", "mail", "daemon", "auth", "syslog", "lpr", "news", "uucp", "cron", "authpriv",
+    "ftp", "res0", "res1", "res2", "res3", "local0", "local1", "local2", "local3", "local4",
+    "local5", "local6", "local7",
 ];
 
 /// Lê uma lista de nomes (ou números) separada por vírgulas e devolve a máscara.
@@ -151,9 +176,9 @@ fn run(args: &[OsString]) -> i32 {
     let mut file: Option<Vec<u8>> = None;
     let mut raw = false;
     let mut level_mask = 0xffu32;
-    let mut fac_mask = 0xffu32;
+    let mut fac_mask = 0xff_ffffu32;
     let mut follow = false;
-    let mut g = Getopt::from_env(&argv[1..], "CcDEF:f:HJkL::l:n:Pprs:uWwxdeTtVh", LONGS);
+    let mut g = Getopt::from_env(&argv[1..], "CcDEF:K:f:HJkL::l:n:Pprs:uWwxdeTtVh", LONGS);
     while let Some(r) = g.next_opt() {
         let o = match r {
             Ok(o) => o,
@@ -165,9 +190,9 @@ fn run(args: &[OsString]) -> i32 {
         };
         let arg = o.arg.clone().unwrap_or_default();
         match o.id {
-            O_NOESCAPE => continue,
+            O_NOESCAPE | O_SINCE | O_UNTIL => continue,
             O_TIME_FORMAT => {
-                const FORMATS: &[&[u8]] = &[b"delta", b"reltime", b"ctime", b"notime", b"iso"];
+                const FORMATS: &[&[u8]] = &[b"delta", b"reltime", b"ctime", b"notime", b"iso", b"raw"];
                 if !FORMATS.contains(&arg.as_slice()) {
                     ul::warnx(
                         &short,
@@ -197,7 +222,7 @@ fn run(args: &[OsString]) -> i32 {
                 }
                 control = Some('n');
             }
-            Some('F') => file = Some(arg),
+            Some('F') | Some('K') => file = Some(arg),
             Some('f') => match parse_list(&arg, FACILITIES, "facility", &short) {
                 Ok(m) => fac_mask = m,
                 Err(()) => return 1,
@@ -219,8 +244,11 @@ fn run(args: &[OsString]) -> i32 {
                         ul::warnx(&short, "invalid buffer size argument");
                         return 1;
                     }
-                    Err(m) => {
-                        ul::warnx(&short, m);
+                    Err(_) => {
+                        ul::warnx(
+                            &short,
+                            format!("invalid buffer size argument: '{}'", io::lossy(&arg)),
+                        );
                         return 1;
                     }
                 }
@@ -287,7 +315,7 @@ fn run(args: &[OsString]) -> i32 {
                 rest = &rest[end + 1..];
             }
         }
-        if (level_mask >> (prio & 7)) & 1 == 0 || (fac_mask >> ((prio >> 3) & 7)) & 1 == 0 {
+        if (level_mask >> (prio & 7)) & 1 == 0 || (fac_mask >> ((prio >> 3) & 31)) & 1 == 0 {
             continue;
         }
         let _ = out.write_all(rest);

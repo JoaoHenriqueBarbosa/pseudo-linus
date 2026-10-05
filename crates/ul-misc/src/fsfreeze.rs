@@ -28,6 +28,7 @@ Suspend access to a filesystem.
 Options:
  -f, --freeze      freeze the filesystem
  -u, --unfreeze    unfreeze the filesystem
+
  -h, --help        display this help
  -V, --version     display version
 
@@ -95,8 +96,7 @@ fn run(args: &[OsString]) -> i32 {
     }
     let ops = g.operands();
     if ops.is_empty() {
-        ul::warnx(&short, "no filesystem specified");
-        ul::errtryhelp(&short);
+        ul::warnx(&short, "no filename specified");
         return 1;
     }
     if ops.len() > 1 {
@@ -106,7 +106,6 @@ fn run(args: &[OsString]) -> i32 {
     }
     if !freeze && !unfreeze {
         ul::warnx(&short, "neither --freeze or --unfreeze specified");
-        ul::errtryhelp(&short);
         return 1;
     }
     let path = &ops[0];

@@ -27,9 +27,10 @@ Usage:
 Write a message to all users.
 
 Options:
- -g, --group <group>     only send message to members of the group
+ -g, --group <group>     only send message to group
  -n, --nobanner          do not print banner, works only for root
  -t, --timeout <timeout> write timeout in seconds
+
  -h, --help              display this help
  -V, --version           display version
 

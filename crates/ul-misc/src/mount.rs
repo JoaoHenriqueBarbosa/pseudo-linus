@@ -21,6 +21,8 @@ const O_OPTIONS_MODE: i32 = 259;
 const O_OPTIONS_SOURCE: i32 = 260;
 const O_OPTIONS_SOURCE_FORCE: i32 = 261;
 const O_MAKE: i32 = 262;
+const O_MAP: i32 = 263;
+const O_ONLYONCE: i32 = 264;
 
 const LONGS: &[LongOpt] = &[
     LongOpt::new("all", HasArg::No, b'a' as i32),
@@ -56,6 +58,9 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("options-source", HasArg::Required, O_OPTIONS_SOURCE),
     LongOpt::new("options-source-force", HasArg::No, O_OPTIONS_SOURCE_FORCE),
     LongOpt::new("make-shared", HasArg::No, O_MAKE),
+    LongOpt::new("map-groups", HasArg::Required, O_MAP),
+    LongOpt::new("map-users", HasArg::Required, O_MAP),
+    LongOpt::new("onlyonce", HasArg::No, O_ONLYONCE),
     LongOpt::new("make-slave", HasArg::No, O_MAKE),
     LongOpt::new("make-private", HasArg::No, O_MAKE),
     LongOpt::new("make-unbindable", HasArg::No, O_MAKE),
@@ -83,7 +88,12 @@ Options:
  -T, --fstab <path>      alternative file to /etc/fstab
  -i, --internal-only     don't call the mount.<type> helpers
  -l, --show-labels       show also filesystem labels
- -L, --label <label>     synonym for LABEL=<label>
+     --map-groups <inner>:<outer>:<count>
+                         add the specified GID map to an ID-mapped mount
+     --map-users <inner>:<outer>:<count>
+                         add the specified UID map to an ID-mapped mount
+     --map-users /proc/<pid>/ns/user
+                         specify the user namespace for an ID-mapped mount
  -m, --mkdir[=<mode>]    alias to '-o X-mount.mkdir[=<mode>]'
  -n, --no-mtab           don't write to /etc/mtab
      --options-mode <mode>
@@ -92,23 +102,21 @@ Options:
                          mount options source
      --options-source-force
                          force use of options from fstab/mtab
+     --onlyonce          check if filesystem is already mounted
  -o, --options <list>    comma-separated list of mount options
  -O, --test-opts <list>  limit the set of filesystems (use with -a)
  -r, --read-only         mount the filesystem read-only (same as -o ro)
- -R, --rbind             remount a subtree and all possible submounts
- -s, --sloppy            interpret mount options sloppily
  -t, --types <list>      limit the set of filesystem types
      --source <src>      explicitly specifies source (path, label, uuid)
      --target <target>   explicitly specifies mountpoint
      --target-prefix <path>
                          specifies path used for all mountpoints
- -U, --uuid <uuid>       synonym for UUID=<uuid>
  -v, --verbose           say what is being done
  -w, --rw, --read-write  mount the filesystem read-write (default)
  -N, --namespace <ns>    perform mount in another namespace
 
- -h, --help              display help text and exit
- -V, --version           display version and exit
+ -h, --help              display this help
+ -V, --version           display version
 
 Source:
  -L, --label <label>     synonym for LABEL=<label>
@@ -221,7 +229,8 @@ fn run(args: &[OsString]) -> i32 {
         match o.id {
             O_SOURCE => source = arg,
             O_TARGET => target = arg,
-            O_MAKE | O_TARGET_PREFIX | O_OPTIONS_MODE | O_OPTIONS_SOURCE | O_OPTIONS_SOURCE_FORCE => {
+            O_MAKE | O_TARGET_PREFIX | O_OPTIONS_MODE | O_OPTIONS_SOURCE | O_OPTIONS_SOURCE_FORCE
+            | O_MAP | O_ONLYONCE => {
                 if o.id == O_MAKE {
                     op_only = true;
                 }
@@ -246,7 +255,7 @@ fn run(args: &[OsString]) -> i32 {
                 Some('V') => {
                     let mut out = io::stdout();
                     let _ = out.write_all(
-                        format!("{short} from util-linux 2.41.5 (libmount 2.41.5: selinux, btrfs, verity, namespaces, idmapping, assert, debug)\n")
+                        format!("{short} from util-linux 2.41.5 (libmount 2.41.5: selinux, smack, btrfs, verity, namespaces, idmapping, fd-based-mount, statmount, statx, assert, debug)\n")
                             .as_bytes(),
                     );
                     return 0;
@@ -312,12 +321,12 @@ fn run(args: &[OsString]) -> i32 {
                         ul::warnx(
                             &short,
                             format!(
-                                "{}: can't find in {}",
+                                "{}: can't find in {}.",
                                 io::lossy(&one),
                                 io::lossy(&fstab)
                             ),
                         );
-                        return 32;
+                        return 1;
                     }
                 }
             }
@@ -328,12 +337,12 @@ fn run(args: &[OsString]) -> i32 {
                 ul::warnx(
                     &short,
                     format!(
-                        "{}: can't find in {}",
+                        "{}: can't find in {}.",
                         io::lossy(one),
                         io::lossy(&fstab)
                     ),
                 );
-                return 32;
+                return 1;
             }
             _ => unreachable!(),
         },

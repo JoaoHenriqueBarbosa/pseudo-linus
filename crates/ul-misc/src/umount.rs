@@ -47,7 +47,7 @@ Unmount filesystems.
 Options:
  -a, --all               unmount all filesystems
  -A, --all-targets       unmount all mountpoints for the given device in the
-                         current namespace
+                           current namespace
  -c, --no-canonicalize   don't canonicalize paths
  -d, --detach-loop       if mounted loop device, also free this loop device
      --fake              dry run; skip the umount(2) syscall
@@ -63,8 +63,8 @@ Options:
  -q, --quiet             suppress 'not mounted' error messages
  -N, --namespace <ns>    perform umount in another namespace
 
- -h, --help              display help text and exit
- -V, --version           display version and exit
+ -h, --help              display this help
+ -V, --version           display version
 
 For more details see umount(8).
 ";
@@ -103,7 +103,7 @@ fn run(args: &[OsString]) -> i32 {
             Some('V') => {
                 let mut out = io::stdout();
                 let _ = out.write_all(
-                    format!("{short} from util-linux 2.41.5 (libmount 2.41.5: selinux, btrfs, verity, namespaces, idmapping, assert, debug)\n")
+                    format!("{short} from util-linux 2.41.5 (libmount 2.41.5: selinux, smack, btrfs, verity, namespaces, idmapping, fd-based-mount, statmount, statx, assert, debug)\n")
                         .as_bytes(),
                 );
                 return 0;
@@ -139,6 +139,14 @@ fn run(args: &[OsString]) -> i32 {
     }
     let mut rc = 0;
     for target in &ops {
+        if !is_root {
+            ul::warnx(
+                &short,
+                format!("{}: must be superuser to unmount.", io::lossy(target)),
+            );
+            rc = 32;
+            continue;
+        }
         // Normaliza `.../` final como o canonicalize do libmount (sem resolver links).
         let mut t = target.clone();
         while t.len() > 1 && t.ends_with(b"/") {
@@ -165,17 +173,10 @@ fn run(args: &[OsString]) -> i32 {
         if fake {
             continue;
         }
-        if !is_root {
-            ul::warnx(
-                &short,
-                format!("{}: must be superuser to unmount.", io::lossy(target)),
-            );
-        } else {
-            ul::warnx(
-                &short,
-                format!("{}: permission denied.", io::lossy(target)),
-            );
-        }
+        ul::warnx(
+            &short,
+            format!("{}: permission denied.", io::lossy(target)),
+        );
         rc = 32;
     }
     rc

@@ -61,6 +61,10 @@ Options:
  -h, --help                    display this help
  -V, --version                 display version
 
+Arguments:
+ Values for <size> may be followed by a suffix: KiB, MiB,
+ GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).
+
 For more details see script(1).
 ";
 
@@ -99,7 +103,7 @@ fn run(args: &[OsString]) -> i32 {
                 if ![b"auto".as_slice(), b"always", b"never"].contains(&arg.as_slice()) {
                     ul::warnx(
                         &short,
-                        format!("unssuported echo mode: '{}'", io::lossy(&arg)),
+                        format!("unsupported echo mode: '{}'", io::lossy(&arg)),
                     );
                     return 1;
                 }

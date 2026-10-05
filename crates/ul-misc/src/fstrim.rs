@@ -30,24 +30,28 @@ const LONGS: &[LongOpt] = &[
 
 const USAGE: &str = "
 Usage:
- fstrim [options] <mount point>
+ fstrim [options] <-A|-a|mount point>
 
 Discard unused blocks on a mounted filesystem.
 
 Options:
- -a, --all           trim mounted filesystems
- -A, --fstab         trim filesystems from /etc/fstab
- -I, --listed-in <list>  trim filesystems listed in specified files
- -o, --offset <num>  the offset in bytes to start discarding from
- -l, --length <num>  the number of bytes to discard
- -m, --minimum <num> the minimum extent length to discard
- -t, --types <list>  limit the set of filesystem types
- -v, --verbose       print number of discarded bytes
+ -a, --all                trim mounted filesystems
+ -A, --fstab              trim filesystems from /etc/fstab
+ -I, --listed-in <list>   trim filesystems listed in specified files
+ -o, --offset <num>       the offset in bytes to start discarding from
+ -l, --length <num>       the number of bytes to discard
+ -m, --minimum <num>      the minimum extent length to discard
+ -t, --types <list>       limit the set of filesystem types
+ -v, --verbose            print number of discarded bytes
      --quiet-unsupported  suppress error messages if trim unsupported
- -n, --dry-run       does everything, but trim
+ -n, --dry-run            does everything, but trim
 
  -h, --help          display this help
  -V, --version       display version
+
+Arguments:
+ Values for <num> may be followed by a suffix: KiB, MiB,
+ GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).
 
 For more details see fstrim(8).
 ";
@@ -85,7 +89,7 @@ fn run(args: &[OsString]) -> i32 {
                 let what = match o.short() {
                     Some('o') => "failed to parse offset",
                     Some('l') => "failed to parse length",
-                    _ => "failed to parse minimal extent length",
+                    _ => "failed to parse minimum extent length",
                 };
                 if let Err(m) = ul::strtosize_or_err(&arg, what) {
                     ul::warnx(&short, m);
@@ -113,7 +117,6 @@ fn run(args: &[OsString]) -> i32 {
     let ops = g.operands();
     if !all && ops.is_empty() {
         ul::warnx(&short, "no mountpoint specified");
-        ul::errtryhelp(&short);
         return 1;
     }
     if all && !ops.is_empty() {
@@ -158,6 +161,18 @@ fn run(args: &[OsString]) -> i32 {
 }
 
 fn trim_one(short: &str, path: &[u8], dry: bool) -> i32 {
+    let st = match sys::stat(path) {
+        Ok(st) => st,
+        Err(e) => {
+            ul::warn(short, format!("stat of {} failed", io::lossy(path)), e);
+            return 1;
+        }
+    };
+    let is_dir = st.file_type() == FileType::Directory;
+    if !is_dir {
+        ul::warnx(short, format!("{}: not a directory", io::lossy(path)));
+        return 1;
+    }
     let fd = match sys::open(path, OFlags::RDONLY, 0) {
         Ok(fd) => fd,
         Err(e) => {
@@ -165,12 +180,7 @@ fn trim_one(short: &str, path: &[u8], dry: bool) -> i32 {
             return 1;
         }
     };
-    let is_dir = sys::stat(path).is_ok_and(|st| st.file_type() == FileType::Directory);
     let _ = sys::close(fd);
-    if !is_dir {
-        ul::warnx(short, format!("{}: not a directory", io::lossy(path)));
-        return 1;
-    }
     if dry {
         let mut out = io::stdout();
         let _ = out.write_all(format!("{}: 0 B (dry run) trimmed\n", io::lossy(path)).as_bytes());
