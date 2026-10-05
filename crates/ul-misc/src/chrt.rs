@@ -366,7 +366,7 @@ fn run(args: &[OsString]) -> i32 {
         }
     }
     if verbose && pid_mode {
-        let r = show_sched_info(&short, pid, Some("old"));
+        let r = show_sched_info(&short, pid, Some("current"));
         if r != 0 {
             return r;
         }

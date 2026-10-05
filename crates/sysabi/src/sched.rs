@@ -142,9 +142,9 @@ pub fn priority_min(policy: i32) -> Result<i32, Errno> {
     }
 }
 
-/// `sysctl_sched_base_slice`: 0,75 ms vezes (1 + log2 das CPUs, no máximo 8).
+/// `sysctl_sched_base_slice`: 0,70 ms (o `700000ULL` do 6.12) vezes (1 + log2 das CPUs, no máximo 8).
 pub fn default_slice_ns(ncpus: usize) -> u64 {
-    750_000 * (1 + u64::from(ncpus.clamp(1, 8).ilog2()))
+    700_000 * (1 + u64::from(ncpus.clamp(1, 8).ilog2()))
 }
 
 impl SchedState {
@@ -652,12 +652,12 @@ mod tests {
     fn getattr_reports_policy_nice_and_default_slice() {
         let s = SchedState::default();
         let a = s.attr(4, 56, 8);
-        assert_eq!((a.size, a.policy, a.nice, a.priority, a.runtime), (56, 0, 4, 0, 3_000_000));
+        assert_eq!((a.size, a.policy, a.nice, a.priority, a.runtime), (56, 0, 4, 0, 2_800_000));
         assert_eq!((a.util_min, a.util_max), (0, 1024));
         assert_eq!(s.attr(0, 1000, 1).size, 56);
-        assert_eq!(default_slice_ns(1), 750_000);
-        assert_eq!(default_slice_ns(2), 1_500_000);
-        assert_eq!(default_slice_ns(64), 3_000_000);
+        assert_eq!(default_slice_ns(1), 700_000);
+        assert_eq!(default_slice_ns(2), 1_400_000);
+        assert_eq!(default_slice_ns(64), 2_800_000);
     }
 
     #[test]
