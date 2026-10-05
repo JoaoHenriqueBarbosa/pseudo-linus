@@ -41,10 +41,10 @@ const USAGE: &str = "
 Usage:
  blkid --label <label> | --uuid <uuid>
 
- blkid [--cache-file <file>] [-ghlLv] [--output <format>] [--match-tag <tag>]
+ blkid [--cache-file <file>] [-ghlLv] [--output <format>] [--match-tag <tag>]\x20
        [--match-token <token>] [<dev> ...]
 
- blkid -p [--match-tag <tag>] [--offset <offset>] [--size <size>]
+ blkid -p [--match-tag <tag>] [--offset <offset>] [--size <size>]\x20
        [--output <format>] <dev> ...
 
  blkid -i [--match-tag <tag>] [--output <format>] <dev> ...

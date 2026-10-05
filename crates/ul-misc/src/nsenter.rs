@@ -20,6 +20,7 @@ const EX_EXEC_ENOENT: i32 = 127;
 
 const OPT_PRESERVE_CRED: i32 = 256;
 const OPT_USER_PARENT: i32 = 257;
+const OPT_KEEP_CAPS: i32 = 258;
 
 const LONGS: &[LongOpt] = &[
     LongOpt::new("all", HasArg::No, b'a' as i32),
@@ -36,6 +37,11 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("setgid", HasArg::Optional, b'G' as i32),
     LongOpt::new("root", HasArg::Optional, b'r' as i32),
     LongOpt::new("wd", HasArg::Optional, b'w' as i32),
+    LongOpt::new("net-socket", HasArg::Required, b'N' as i32),
+    LongOpt::new("wdns", HasArg::Required, b'W' as i32),
+    LongOpt::new("env", HasArg::No, b'e' as i32),
+    LongOpt::new("join-cgroup", HasArg::No, b'c' as i32),
+    LongOpt::new("keep-caps", HasArg::No, OPT_KEEP_CAPS),
     LongOpt::new("no-fork", HasArg::No, b'F' as i32),
     LongOpt::new("follow-context", HasArg::No, b'Z' as i32),
     LongOpt::new("preserve-credentials", HasArg::No, OPT_PRESERVE_CRED),
@@ -63,18 +69,22 @@ Options:
  -u, --uts[=<file>]     enter UTS namespace (hostname etc)
  -i, --ipc[=<file>]     enter System V IPC namespace
  -n, --net[=<file>]     enter network namespace
+ -N, --net-socket <fd>  enter socket's network namespace (use with --target)
  -p, --pid[=<file>]     enter pid namespace
  -C, --cgroup[=<file>]  enter cgroup namespace
  -U, --user[=<file>]    enter user namespace
      --user-parent      enter parent user namespace
  -T, --time[=<file>]    enter time namespace
-
  -S, --setuid[=<uid>]   set uid in entered namespace
  -G, --setgid[=<gid>]   set gid in entered namespace
      --preserve-credentials do not touch uids or gids
+     --keep-caps        retain capabilities granted in user namespaces
  -r, --root[=<dir>]     set the root directory
  -w, --wd[=<dir>]       set the working directory
+ -W, --wdns <dir>       set the working directory in namespace
+ -e, --env              inherit environment variables from target process
  -F, --no-fork          do not fork before exec'ing <program>
+ -c, --join-cgroup      join the cgroup of the target process
  -Z, --follow-context   set SELinux context according to --target PID
 
  -h, --help             display this help
@@ -140,7 +150,7 @@ fn run(args: &[OsString]) -> i32 {
 
     let mut g = Getopt::from_env(
         &argv[1..],
-        "+ahVt:m::u::i::n::p::C::U::T::S::G::r::w::FZ",
+        "+ahVt:m::u::i::n::N:p::C::U::T::S::G::r::w::W:ecFZ",
         LONGS,
     );
     while let Some(r) = g.next_opt() {
@@ -168,7 +178,7 @@ fn run(args: &[OsString]) -> i32 {
                 None
             }
             x if x == b't' as i32 => {
-                match ul::strtou64_or_err(&arg.clone().unwrap_or_default(), "failed to parse PID") {
+                match ul::strtou64_or_err(&arg.clone().unwrap_or_default(), "failed to parse pid") {
                     Ok(v) => target = Some(v),
                     Err(m) => {
                         ul::warnx(&short, m);
@@ -227,7 +237,16 @@ fn run(args: &[OsString]) -> i32 {
                 wd = Some(arg.clone());
                 None
             }
-            x if x == b'F' as i32 || x == b'Z' as i32 => None,
+            x if x == b'F' as i32
+                || x == b'Z' as i32
+                || x == b'N' as i32
+                || x == b'W' as i32
+                || x == b'e' as i32
+                || x == b'c' as i32
+                || x == OPT_KEEP_CAPS =>
+            {
+                None
+            }
             _ => {
                 ul::errtryhelp(&short);
                 return 1;
@@ -242,9 +261,14 @@ fn run(args: &[OsString]) -> i32 {
 
     let cmd = g.operands();
 
-    if do_all && target.is_none() {
-        ul::warnx(&short, "no target PID specified for --all");
-        return 1;
+    if do_all {
+        // O original usa o pid 0 e abre ns/user primeiro.
+        let pid = target.unwrap_or(0);
+        let path = format!("/proc/{pid}/ns/user");
+        if let Err(e) = sys.fstatat(Fd::CWD, path.as_bytes(), AtFlags::empty()) {
+            ul::warn(&short, format!("stat of {path} failed"), e);
+            return 1;
+        }
     }
     if do_all {
         for w in want.iter_mut() {
@@ -263,7 +287,8 @@ fn run(args: &[OsString]) -> i32 {
             (Some(f), _) => f.clone(),
             (None, Some(pid)) => format!("/proc/{pid}/{name}").into_bytes(),
             (None, None) => {
-                ul::warnx(&short, format!("no target PID specified for {name}"));
+                let _ = name;
+                ul::warnx(&short, "no target PID specified");
                 return 1;
             }
         };
