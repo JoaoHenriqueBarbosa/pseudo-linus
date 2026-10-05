@@ -36,6 +36,8 @@ pub fn all_programs() -> Vec<Program> {
     all.extend(ul_sqlite::programs());
     #[cfg(feature = "git")]
     all.extend(ul_git::programs());
+    #[cfg(feature = "python")]
+    all.extend(ul_python::programs());
     dedup(all)
 }
 

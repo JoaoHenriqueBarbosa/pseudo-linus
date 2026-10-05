@@ -8,7 +8,7 @@ publish.workspace = true
 description = "Painel de conformidade: a bancada inteira sobre o kernel real com todos os programas"
 
 [features]
-default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "yaml", "diff", "archive", "misc", "procps", "net", "sqlite", "git"]
+default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "yaml", "diff", "archive", "misc", "procps", "net", "sqlite", "git", "python"]
 shell = ["userland/shell"]
 coreutils = ["userland/coreutils"]
 findutils = ["userland/findutils"]
@@ -23,6 +23,7 @@ misc = ["userland/misc"]
 procps = ["userland/procps"]
 sqlite = ["userland/sqlite"]
 git = ["userland/git"]
+python = ["userland/python"]
 
 [dependencies]
 sysabi = { workspace = true }

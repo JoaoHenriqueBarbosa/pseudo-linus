@@ -1,0 +1,34 @@
+tool = "python3"
+source = "manual"
+
+# Linha de comando do CPython 3.13.5 (fatia 1 de docs/python3-port.md): versão, ajuda e erro de uso.
+
+[[case]]
+id = "python-version"
+argv = ["python3", "-V"]
+tags = ["cli"]
+
+[[case]]
+id = "python-version-long"
+argv = ["python3", "--version"]
+tags = ["cli"]
+
+[[case]]
+id = "python-help"
+argv = ["python3", "-h"]
+tags = ["cli"]
+
+[[case]]
+id = "python-unknown-option"
+argv = ["python3", "-z"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "python-unknown-long-option"
+argv = ["python3", "--nope"]
+tags = ["cli", "error"]
+
+[[case]]
+id = "python-c-missing-argument"
+argv = ["python3", "-c"]
+tags = ["cli", "error"]

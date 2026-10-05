@@ -8,7 +8,7 @@ publish.workspace = true
 description = "Tabela única de programas do pseudo-linus (agrega o programs() de cada crate de userland)"
 
 [features]
-default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "yaml", "diff", "archive", "misc", "procps", "net", "sqlite", "git"]
+default = ["shell", "coreutils", "findutils", "textproc", "awk", "jq", "yaml", "diff", "archive", "misc", "procps", "net", "sqlite", "git", "python"]
 shell = ["dep:shell"]
 coreutils = ["dep:ul-coreutils"]
 findutils = ["dep:ul-findutils"]
@@ -23,6 +23,7 @@ procps = ["dep:ul-procps"]
 net = ["dep:ul-net"]
 sqlite = ["dep:ul-sqlite"]
 git = ["dep:ul-git"]
+python = ["dep:ul-python"]
 
 [dependencies]
 sysabi = { workspace = true }
@@ -40,6 +41,7 @@ ul-procps = { path = "../ul-procps", optional = true }
 ul-net = { path = "../ul-net", optional = true }
 ul-sqlite = { path = "../ul-sqlite", optional = true }
 ul-git = { path = "../ul-git", optional = true }
+ul-python = { path = "../ul-python", optional = true }
 
 [lints]
 workspace = true
