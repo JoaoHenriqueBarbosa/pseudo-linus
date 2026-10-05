@@ -7,7 +7,7 @@ use sysabi::{Fd, OFlags};
 use super::consts::*;
 use super::extra::get_ef_ut_ztime;
 use super::matching::namecmp;
-use super::names::{display_name, is_ascii};
+use super::names::is_ascii;
 use super::out::OutFile;
 use super::state::{IzTimes, R, Zip, Zlist};
 use super::times::unix2dostime;
@@ -317,7 +317,8 @@ impl Zip {
                     if self.verbose > 0 {
                         let mut l = b"zip diagnostic: ".to_vec();
                         l.extend_from_slice(&self.zfiles[i].oname);
-                        l.extend_from_slice(if trash { b" up to date\n" } else { b" missing or early\n" });
+                        let tail: &[u8] = if trash { b" up to date\n" } else { b" missing or early\n" };
+                        l.extend_from_slice(tail);
                         self.mesg_raw(&l);
                         self.log_raw(&l);
                     }
@@ -916,7 +917,6 @@ impl Zip {
                 }
             }
         }
-        let _ = display_name;
         Ok(())
     }
 }

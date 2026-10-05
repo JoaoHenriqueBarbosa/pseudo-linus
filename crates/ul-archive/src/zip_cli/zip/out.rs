@@ -6,7 +6,7 @@ use sysabi::sys;
 use sysabi::{Errno, Fd, OFlags, Whence};
 
 use super::consts::*;
-use super::state::{Exit, R, Zip};
+use super::state::{R, Zip};
 
 const OUT_BUF: usize = 16384;
 
@@ -211,9 +211,5 @@ impl Zip {
             }
         }
         Ok(())
-    }
-
-    pub fn exit_with(&self, code: i32) -> Exit {
-        Exit(code)
     }
 }

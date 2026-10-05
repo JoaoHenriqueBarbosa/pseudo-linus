@@ -7,7 +7,7 @@ use super::consts::*;
 use super::crypt::crc32_update;
 use super::extra::*;
 use super::in_scan::{find_next_signature, find_signature};
-use super::names::{display_name, ex2in};
+use super::names::display_name;
 use super::state::{R, Zip, Zlist};
 
 impl Zip {
@@ -461,7 +461,6 @@ impl Zip {
             return Ok(ZE_FORM);
         }
         self.zfiles = zlist;
-        let _ = ex2in;
         Ok(ZE_OK)
     }
 }
