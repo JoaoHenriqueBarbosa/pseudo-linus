@@ -121,11 +121,11 @@ fn run(args: &[OsString]) -> i32 {
         return 1;
     }
     if let Err(e) = io::File::open(&profile) {
-        ul::warn(&short, format!("error opening {}", io::lossy(&profile)), e);
+        ul::warn(&short, io::lossy(&profile).to_string(), e);
         return 1;
     }
     if let Err(e) = io::File::open(&map) {
-        ul::warn(&short, format!("error opening {}", io::lossy(&map)), e);
+        ul::warn(&short, io::lossy(&map).to_string(), e);
         return 1;
     }
     ul::warnx(&short, "input file is too short to be a profile");

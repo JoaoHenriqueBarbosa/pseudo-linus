@@ -135,7 +135,7 @@ fn run(args: &[OsString]) -> i32 {
     let mut rc = 0;
     for d in &ops {
         if let Err(e) = io::File::open(d) {
-            ul::warn(&short, format!("cannot open {}", io::lossy(d)), e);
+            ul::warn(&short, format!("cannot read information about {}", io::lossy(d)), e);
             rc = 1;
         } else {
             ul::warnx(&short, format!("{}: unable to read the watchdog status: Inappropriate ioctl for device", io::lossy(d)));

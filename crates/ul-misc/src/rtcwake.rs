@@ -171,7 +171,8 @@ fn run(args: &[OsString]) -> i32 {
     }
     let passive = mode == "disable" || mode == "show";
     if seconds.is_none() && time.is_none() && !passive {
-        ul::warnx(&short, "must provide wake time (see --seconds or --time)");
+        let _ = io::stdout().write_all(b"rtcwake: assuming RTC uses UTC ...\n");
+        ul::warnx(&short, "must provide wake time (see --seconds, --time and --date options)");
         return 1;
     }
     if !KNOWN_MODES.contains(&mode.as_str()) {

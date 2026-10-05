@@ -115,7 +115,11 @@ fn run(args: &[OsString]) -> i32 {
     }
 
     let ops = g.operands();
-    if (pid.is_none() && ops.is_empty()) || (pid.is_some() && !ops.is_empty()) {
+    if pid.is_none() && ops.is_empty() {
+        let _ = io::stdout().write_all(usage(&short).as_bytes());
+        return 0;
+    }
+    if pid.is_some() && !ops.is_empty() {
         ul::warnx(&short, "bad usage");
         ul::errtryhelp(&short);
         return 1;

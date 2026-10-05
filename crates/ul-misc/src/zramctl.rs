@@ -190,14 +190,8 @@ fn run(args: &[OsString]) -> i32 {
         ul::errtryhelp(&short);
         return 1;
     }
-    if find && !have_size {
-        ul::warnx(&short, "option --find requires option --size");
-        ul::errtryhelp(&short);
-        return 1;
-    }
     if reset && ops.is_empty() {
         ul::warnx(&short, "no device specified");
-        ul::errtryhelp(&short);
         return 1;
     }
     if (have_size || want_setup) && !find && ops.is_empty() {
@@ -212,7 +206,8 @@ fn run(args: &[OsString]) -> i32 {
     if !ops.is_empty() {
         for d in &ops {
             if let Err(e) = io::File::open(d) {
-                ul::warn(&short, format!("cannot open {}", io::lossy(d)), e);
+                let _ = e;
+                ul::warnx(&short, format!("{}: No such device", io::lossy(d)));
                 return 1;
             }
         }
