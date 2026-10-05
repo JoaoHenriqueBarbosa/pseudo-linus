@@ -1,0 +1,19 @@
+tool = "procps"
+source = "manual"
+
+# killall5 do sysvinit-utils 3.14. Nenhum caso envia sinal de verdade (mataria o oráculo).
+
+[[case]]
+id = "killall5-cmd-no-args"
+script = "killall5 2>&1; echo \"exit=$?\""
+tags = ["killall5", "error", "usage"]
+
+[[case]]
+id = "killall5-cmd-bad-signal"
+script = "killall5 -s BOGUS 2>&1; echo \"exit=$?\""
+tags = ["killall5", "error"]
+
+[[case]]
+id = "killall5-cmd-bad-option"
+script = "killall5 -Z 2>&1; echo \"exit=$?\""
+tags = ["killall5", "error", "usage"]

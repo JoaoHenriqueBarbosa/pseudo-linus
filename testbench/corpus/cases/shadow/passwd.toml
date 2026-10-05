@@ -1,0 +1,70 @@
+tool = "passwd"
+source = "manual"
+
+# passwd do shadow 4.17. Nenhum golden foi gerado aqui. Os arquivos ficam num diretório temporário
+# e o prefixo vai por -P. Sem crypt(3), só as operações que não geram hash são cobertas.
+
+[[case]]
+id = "passwd-help"
+argv = ["passwd", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "passwd-bad-option"
+argv = ["passwd", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "passwd-status-user"
+script = "cd $(mktemp -d); mkdir etc; printf 'root:x:0:0:root:/root:/bin/bash\\nalice:x:1000:1000::/home/alice:/bin/sh\\n' > etc/passwd; printf 'root:$6$abc$def:19000:0:99999:7:::\\nalice:!$6$abc$def:19100:1:90:5:3:\\n' > etc/shadow; passwd -S -P . alice 2>&1; echo $?"
+tags = ["status"]
+
+[[case]]
+id = "passwd-status-all"
+script = "cd $(mktemp -d); mkdir etc; printf 'root:x:0:0:root:/root:/bin/bash\\nalice:x:1000:1000::/home/alice:/bin/sh\\nbob:x:1001:1001::/home/bob:/bin/sh\\n' > etc/passwd; printf 'root:$6$abc$def:19000:0:99999:7:::\\nalice:!$6$abc$def:19100:1:90:5:3:\\nbob::19200:::::\\n' > etc/shadow; passwd -S -a -P . 2>&1; echo $?"
+tags = ["status"]
+
+[[case]]
+id = "passwd-status-missing-user"
+script = "cd $(mktemp -d); mkdir etc; printf 'root:x:0:0:root:/root:/bin/bash\\n' > etc/passwd; printf 'root:*:19000:0:99999:7:::\\n' > etc/shadow; passwd -S -P . nobody 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "passwd-lock"
+script = "cd $(mktemp -d); mkdir etc; printf 'alice:x:1000:1000::/home/alice:/bin/sh\\n' > etc/passwd; printf 'alice:$6$abc$def:19100:0:99999:7:::\\n' > etc/shadow; passwd -l -P . alice 2>&1; echo $?; cat etc/shadow"
+tags = ["lock"]
+
+[[case]]
+id = "passwd-unlock"
+script = "cd $(mktemp -d); mkdir etc; printf 'alice:x:1000:1000::/home/alice:/bin/sh\\n' > etc/passwd; printf 'alice:!$6$abc$def:19100:0:99999:7:::\\n' > etc/shadow; passwd -u -P . alice 2>&1; echo $?; cat etc/shadow"
+tags = ["lock"]
+
+[[case]]
+id = "passwd-unlock-passwordless"
+script = "cd $(mktemp -d); mkdir etc; printf 'alice:x:1000:1000::/home/alice:/bin/sh\\n' > etc/passwd; printf 'alice:!:19100:0:99999:7:::\\n' > etc/shadow; passwd -u -P . alice 2>&1; echo $?; cat etc/shadow"
+tags = ["lock", "error"]
+
+[[case]]
+id = "passwd-delete"
+script = "cd $(mktemp -d); mkdir etc; printf 'alice:x:1000:1000::/home/alice:/bin/sh\\n' > etc/passwd; printf 'alice:$6$abc$def:19100:0:99999:7:::\\n' > etc/shadow; passwd -d -q -P . alice 2>&1; echo $?; cut -d: -f1,2,4- etc/shadow"
+tags = ["delete"]
+
+[[case]]
+id = "passwd-expire"
+script = "cd $(mktemp -d); mkdir etc; printf 'alice:x:1000:1000::/home/alice:/bin/sh\\n' > etc/passwd; printf 'alice:$6$abc$def:19100:0:99999:7:::\\n' > etc/shadow; passwd -e -P . alice 2>&1; echo $?; cat etc/shadow"
+tags = ["expire"]
+
+[[case]]
+id = "passwd-aging"
+script = "cd $(mktemp -d); mkdir etc; printf 'alice:x:1000:1000::/home/alice:/bin/sh\\n' > etc/passwd; printf 'alice:$6$abc$def:19100:0:99999:7:::\\n' > etc/shadow; passwd -n 2 -x 60 -w 10 -i 5 -P . alice 2>&1; echo $?; cat etc/shadow"
+tags = ["aging"]
+
+[[case]]
+id = "passwd-bad-number"
+script = "cd $(mktemp -d); mkdir etc; printf 'alice:x:1000:1000::/home/alice:/bin/sh\\n' > etc/passwd; printf 'alice:*:19100:0:99999:7:::\\n' > etc/shadow; passwd -x abc -P . alice 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "passwd-all-without-status"
+argv = ["passwd", "-a"]
+tags = ["error"]

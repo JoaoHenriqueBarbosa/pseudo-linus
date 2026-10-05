@@ -1,0 +1,39 @@
+tool = "procps"
+source = "manual"
+
+# pwdx do procps-ng 4.0.4.
+
+[[case]]
+id = "pwdx-cmd-version"
+argv = ["pwdx", "-V"]
+tags = ["pwdx", "version"]
+
+[[case]]
+id = "pwdx-cmd-help"
+argv = ["pwdx", "--help"]
+tags = ["pwdx", "usage"]
+
+[[case]]
+id = "pwdx-cmd-no-operand"
+script = "pwdx 2>&1; echo \"exit=$?\""
+tags = ["pwdx", "error", "usage"]
+
+[[case]]
+id = "pwdx-cmd-bad-pid"
+script = "pwdx abc 2>&1; echo \"exit=$?\""
+tags = ["pwdx", "error", "usage"]
+
+[[case]]
+id = "pwdx-cmd-missing-pid"
+script = "pwdx 999999 2>&1; echo \"exit=$?\""
+tags = ["pwdx", "error"]
+
+[[case]]
+id = "pwdx-cmd-own-shell"
+script = "cd /tmp; pwdx $$ | sed 's/^[0-9]*:/PID:/'"
+tags = ["pwdx", "format"]
+
+[[case]]
+id = "pwdx-cmd-proc-path"
+script = "cd /tmp; pwdx /proc/$$ | sed 's/^[0-9]*:/PID:/'"
+tags = ["pwdx", "format"]

@@ -65,6 +65,11 @@ pub mod ischroot;
 pub mod isosize;
 pub mod lessecho;
 pub mod lesskey;
+pub mod losetup;
+pub mod mkswap;
+pub mod partx;
+pub mod swapoff;
+pub mod swapon;
 pub mod locale;
 pub mod logger;
 pub mod look;
@@ -80,6 +85,7 @@ pub mod namei;
 pub mod nologin;
 pub mod nsenter;
 pub mod pager;
+pub mod passwd;
 pub mod prlimit;
 pub mod pwck;
 pub mod rename_ul;
@@ -103,6 +109,7 @@ pub mod tree;
 pub mod underline;
 pub mod unshare;
 pub mod update_alternatives;
+pub mod update_passwd;
 pub mod useradd;
 pub mod usermgmt;
 pub mod util;
@@ -188,6 +195,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("lsns", lsns::main),
         Program::bin("mcookie", mcookie::main),
         Program::bin("nsenter", nsenter::main),
+        Program::bin("passwd", passwd::main),
         Program::bin("prlimit", prlimit::main),
         Program::bin("mountpoint", mountpoint::main),
         Program::bin("namei", namei::main),
@@ -234,6 +242,11 @@ pub fn programs() -> Vec<Program> {
         Program::sbin("blkid", blkid::main),
         Program::sbin("blockdev", blockdev::main),
         Program::sbin("swaplabel", swaplabel::main),
+        Program::sbin("losetup", losetup::main),
+        Program::sbin("mkswap", mkswap::main),
+        Program::sbin("partx", partx::main),
+        Program::sbin("swapoff", swapoff::main),
+        Program::sbin("swapon", swapon::main),
         Program::sbin("wipefs", wipefs::main),
         Program::sbin("chgpasswd", shadowconv::chgpasswd_main),
         Program::sbin("chpasswd", shadowconv::chpasswd_main),
@@ -249,6 +262,7 @@ pub fn programs() -> Vec<Program> {
         Program::sbin("pwck", pwck::main),
         Program::sbin("remove-shell", debscripts::remove_shell_main),
         Program::sbin("start-stop-daemon", start_stop_daemon::main),
+        Program::sbin("update-passwd", update_passwd::main),
         Program::sbin("useradd", useradd::main),
         Program::sbin("userdel",usermgmt::userdel_main),
         Program::sbin("usermod", usermgmt::usermod_main),

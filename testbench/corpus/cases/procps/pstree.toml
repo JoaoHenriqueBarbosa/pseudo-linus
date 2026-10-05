@@ -1,0 +1,39 @@
+tool = "procps"
+source = "manual"
+
+# pstree do psmisc 23.7: versão, uso, erros e árvore do próprio script (sem pids nem hora).
+
+[[case]]
+id = "pstree-cmd-version"
+argv = ["pstree", "-V"]
+tags = ["pstree", "version"]
+
+[[case]]
+id = "pstree-cmd-bad-option"
+script = "pstree --bogus 2>&1; echo \"exit=$?\""
+tags = ["pstree", "error", "usage"]
+
+[[case]]
+id = "pstree-cmd-missing-pid"
+script = "pstree 999999 2>&1; echo \"exit=$?\""
+tags = ["pstree", "error"]
+
+[[case]]
+id = "pstree-cmd-missing-user"
+script = "pstree nosuchuser9 2>&1; echo \"exit=$?\""
+tags = ["pstree", "error"]
+
+[[case]]
+id = "pstree-cmd-own-shell-ascii"
+script = "sleep 5 & pid=$!; pstree -A $$ | head -1 | sed 's/[0-9]//g' | cut -c1-3; kill $pid"
+tags = ["pstree", "format"]
+
+[[case]]
+id = "pstree-cmd-pids-of-child"
+script = "sleep 5 & pid=$!; pstree -p $pid | sed \"s/$pid/PID/\"; kill $pid"
+tags = ["pstree", "format"]
+
+[[case]]
+id = "pstree-cmd-arguments-of-child"
+script = "sleep 5 & pid=$!; pstree -a $pid; kill $pid"
+tags = ["pstree", "format"]

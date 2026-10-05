@@ -4,6 +4,7 @@ pub mod unzip;
 pub mod zip;
 
 mod funzip;
+mod zipcloak;
 mod zipnote;
 mod zipsplit;
 mod ztools;
@@ -20,6 +21,14 @@ pub fn zip_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 
 pub fn zipnote_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     zipnote::main(&sysutil::args_bytes(args))
+}
+
+pub fn zipcloak_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
+    zipcloak::main(&sysutil::args_bytes(args))
+}
+
+pub fn unzipsfx_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
+    unzip::main_sfx(&sysutil::args_bytes(args))
 }
 
 pub fn zipsplit_main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {

@@ -44,6 +44,8 @@ pub fn programs() -> Vec<Program> {
         Program::bin("unzip", zip_cli::unzip_main),
         Program::bin("zipinfo", zip_cli::unzip_main),
         Program::bin("zipnote", zip_cli::zipnote_main),
+        Program::bin("zipcloak", zip_cli::zipcloak_main),
+        Program::bin("unzipsfx", zip_cli::unzipsfx_main),
         Program::bin("zipsplit", zip_cli::zipsplit_main),
         Program::bin("funzip", zip_cli::funzip_main),
     ]

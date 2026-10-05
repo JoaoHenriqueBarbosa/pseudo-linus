@@ -1,0 +1,24 @@
+tool = "utillinux"
+source = "manual"
+
+# swapoff do util-linux 2.41: ajuda, versão, erros de argumento e alvo inexistente.
+
+[[case]]
+id = "swapoff-help"
+argv = ["swapoff", "--help"]
+tags = ["swapoff", "usage"]
+
+[[case]]
+id = "swapoff-version"
+argv = ["swapoff", "-V"]
+tags = ["swapoff", "version"]
+
+[[case]]
+id = "swapoff-bad-option"
+argv = ["swapoff", "-Z"]
+tags = ["swapoff", "usage", "error"]
+
+[[case]]
+id = "swapoff-missing-device"
+argv = ["swapoff", "/nonexistent/device"]
+tags = ["swapoff", "error"]

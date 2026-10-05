@@ -1,0 +1,34 @@
+tool = "procps"
+source = "manual"
+
+# prtstat do psmisc 23.7.
+
+[[case]]
+id = "prtstat-cmd-version"
+argv = ["prtstat", "-V"]
+tags = ["prtstat", "version"]
+
+[[case]]
+id = "prtstat-cmd-no-operand"
+script = "prtstat 2>&1; echo \"exit=$?\""
+tags = ["prtstat", "error", "usage"]
+
+[[case]]
+id = "prtstat-cmd-bad-option"
+script = "prtstat --bogus 2>&1; echo \"exit=$?\""
+tags = ["prtstat", "error", "usage"]
+
+[[case]]
+id = "prtstat-cmd-missing-pid"
+script = "prtstat 999999 2>&1; echo \"exit=$?\""
+tags = ["prtstat", "error"]
+
+[[case]]
+id = "prtstat-cmd-name-of-child"
+script = "sleep 5 & pid=$!; prtstat $pid | head -1 | sed \"s/$pid/PID/\"; kill $pid"
+tags = ["prtstat", "format"]
+
+[[case]]
+id = "prtstat-cmd-raw-fields"
+script = "sleep 5 & pid=$!; prtstat -r $pid | head -1 | awk '{print $2}'; kill $pid"
+tags = ["prtstat", "format"]

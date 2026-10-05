@@ -1,0 +1,24 @@
+tool = "utillinux"
+source = "manual"
+
+# partx do util-linux 2.41: ajuda, versão, erros de argumento e disco inexistente.
+
+[[case]]
+id = "partx-help"
+argv = ["partx", "--help"]
+tags = ["partx", "usage"]
+
+[[case]]
+id = "partx-version"
+argv = ["partx", "-V"]
+tags = ["partx", "version"]
+
+[[case]]
+id = "partx-bad-option"
+argv = ["partx", "-Z"]
+tags = ["partx", "usage", "error"]
+
+[[case]]
+id = "partx-missing-device"
+argv = ["partx", "--show", "/nonexistent/device"]
+tags = ["partx", "error"]

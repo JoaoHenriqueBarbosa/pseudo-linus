@@ -1,0 +1,39 @@
+tool = "procps"
+source = "manual"
+
+# w do procps-ng 4.0.4: uso, versão, cabeçalhos. Sem sessões utmp, só o cabeçalho aparece.
+
+[[case]]
+id = "w-cmd-version"
+argv = ["w", "-V"]
+tags = ["w", "version"]
+
+[[case]]
+id = "w-cmd-help"
+argv = ["w", "--help"]
+tags = ["w", "usage"]
+
+[[case]]
+id = "w-cmd-bad-option"
+script = "w --bogus 2>&1; echo \"exit=$?\""
+tags = ["w", "error", "usage"]
+
+[[case]]
+id = "w-cmd-no-header"
+script = "w -h | wc -l | tr -d ' ' | awk '{print ($1 >= 0)}'"
+tags = ["w", "format"]
+
+[[case]]
+id = "w-cmd-columns-header"
+script = "w | sed -n 2p | tr -s ' '"
+tags = ["w", "header"]
+
+[[case]]
+id = "w-cmd-short-header"
+script = "w -s | sed -n 2p | tr -s ' '"
+tags = ["w", "header"]
+
+[[case]]
+id = "w-cmd-no-from-header"
+script = "w -f | sed -n 2p | tr -s ' '"
+tags = ["w", "header"]

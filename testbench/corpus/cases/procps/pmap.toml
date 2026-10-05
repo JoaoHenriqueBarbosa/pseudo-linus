@@ -1,0 +1,45 @@
+tool = "procps"
+source = "manual"
+
+# pmap do procps-ng 4.0.4: uso, versão, erros de operando e do pid inexistente. Nada depende de
+# endereços reais.
+
+[[case]]
+id = "pmap-cmd-version"
+argv = ["pmap", "-V"]
+tags = ["pmap", "version"]
+
+[[case]]
+id = "pmap-cmd-help"
+argv = ["pmap", "--help"]
+tags = ["pmap", "usage"]
+
+[[case]]
+id = "pmap-cmd-no-operand"
+script = "pmap 2>&1; echo \"exit=$?\""
+tags = ["pmap", "error", "usage"]
+
+[[case]]
+id = "pmap-cmd-bad-option"
+script = "pmap --bogus 2>&1; echo \"exit=$?\""
+tags = ["pmap", "error", "usage"]
+
+[[case]]
+id = "pmap-cmd-bad-pid"
+script = "pmap abc 2>&1; echo \"exit=$?\""
+tags = ["pmap", "error", "usage"]
+
+[[case]]
+id = "pmap-cmd-missing-pid"
+script = "pmap 999999 2>&1; echo \"exit=$?\""
+tags = ["pmap", "error"]
+
+[[case]]
+id = "pmap-cmd-exclusive-options"
+script = "pmap -d -x $$ 2>&1; echo \"exit=$?\""
+tags = ["pmap", "error"]
+
+[[case]]
+id = "pmap-cmd-quiet-first-line"
+script = "pmap -q $$ | head -1 | cut -d: -f1 | wc -l"
+tags = ["pmap", "format"]

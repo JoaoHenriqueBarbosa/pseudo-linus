@@ -1,0 +1,45 @@
+tool = "update-passwd"
+source = "manual"
+
+# update-passwd do base-passwd 3.6.7. Nenhum golden foi gerado aqui. Os arquivos mestres e os do
+# sistema ficam num diretório temporário e entram pelas opções -p, -g, -P e -G.
+
+[[case]]
+id = "update-passwd-help"
+argv = ["update-passwd", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "update-passwd-version"
+argv = ["update-passwd", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "update-passwd-bad-option"
+argv = ["update-passwd", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "update-passwd-missing-master"
+script = "cd $(mktemp -d); update-passwd -P nao-existe -G nao-existe -p p -g g 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "update-passwd-in-sync"
+script = "cd $(mktemp -d); printf 'root:x:0:0:root:/root:/bin/bash\\n' > pm; printf 'root:x:0:\\n' > gm; cp pm p; cp gm g; update-passwd -P pm -G gm -p p -g g 2>&1; echo $?; cat p g"
+tags = ["sync"]
+
+[[case]]
+id = "update-passwd-adds-missing"
+script = "cd $(mktemp -d); printf 'root:x:0:0:root:/root:/bin/bash\\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\\n' > pm; printf 'root:x:0:\\ndaemon:x:1:\\n' > gm; printf 'root:x:0:0:root:/root:/bin/bash\\n' > p; printf 'root:x:0:\\n' > g; update-passwd -P pm -G gm -p p -g g 2>&1; echo $?; cat p g"
+tags = ["sync"]
+
+[[case]]
+id = "update-passwd-dry-run"
+script = "cd $(mktemp -d); printf 'root:x:0:0:root:/root:/bin/bash\\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\\n' > pm; printf 'root:x:0:\\ndaemon:x:1:\\n' > gm; printf 'root:x:0:0:root:/root:/bin/bash\\n' > p; printf 'root:x:0:\\n' > g; update-passwd -n -P pm -G gm -p p -g g 2>&1; echo $?; cat p g"
+tags = ["sync"]
+
+[[case]]
+id = "update-passwd-uid-mismatch"
+script = "cd $(mktemp -d); printf 'daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\\n' > pm; printf 'daemon:x:1:\\n' > gm; printf 'daemon:x:5:1:daemon:/usr/sbin:/usr/sbin/nologin\\n' > p; printf 'daemon:x:1:\\n' > g; update-passwd -P pm -G gm -p p -g g 2>&1; echo $?"
+tags = ["sync"]

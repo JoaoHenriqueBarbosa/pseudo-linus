@@ -1,0 +1,64 @@
+tool = "procps"
+source = "manual"
+
+# sysctl do procps-ng 4.0.4: só chaves estáveis e erros, nada que dependa do kernel do oráculo.
+
+[[case]]
+id = "sysctl-cmd-version"
+argv = ["sysctl", "-V"]
+tags = ["sysctl", "version"]
+
+[[case]]
+id = "sysctl-cmd-help"
+argv = ["sysctl", "--help"]
+tags = ["sysctl", "usage"]
+
+[[case]]
+id = "sysctl-cmd-no-args"
+script = "sysctl 2>&1; echo \"exit=$?\""
+tags = ["sysctl", "error", "usage"]
+
+[[case]]
+id = "sysctl-cmd-ostype"
+argv = ["sysctl", "kernel.ostype"]
+tags = ["sysctl", "read"]
+
+[[case]]
+id = "sysctl-cmd-ostype-slash"
+argv = ["sysctl", "kernel/ostype"]
+tags = ["sysctl", "read"]
+
+[[case]]
+id = "sysctl-cmd-values-only"
+argv = ["sysctl", "-n", "kernel.ostype"]
+tags = ["sysctl", "read"]
+
+[[case]]
+id = "sysctl-cmd-names-only"
+argv = ["sysctl", "-N", "kernel.ostype"]
+tags = ["sysctl", "read"]
+
+[[case]]
+id = "sysctl-cmd-unknown-key"
+script = "sysctl no.such.key 2>&1; echo \"exit=$?\""
+tags = ["sysctl", "error"]
+
+[[case]]
+id = "sysctl-cmd-unknown-key-ignored"
+script = "sysctl -e no.such.key 2>&1; echo \"exit=$?\""
+tags = ["sysctl", "error"]
+
+[[case]]
+id = "sysctl-cmd-unknown-key-quiet"
+script = "sysctl -q no.such.key 2>&1; echo \"exit=$?\""
+tags = ["sysctl", "error"]
+
+[[case]]
+id = "sysctl-cmd-load-missing-file"
+script = "sysctl -p /nao/existe 2>&1; echo \"exit=$?\""
+tags = ["sysctl", "error"]
+
+[[case]]
+id = "sysctl-cmd-dry-run"
+script = "sysctl --dry-run -w kernel.ostype=Foo 2>&1; echo \"exit=$?\""
+tags = ["sysctl", "write"]

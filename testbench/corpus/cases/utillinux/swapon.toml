@@ -1,0 +1,24 @@
+tool = "utillinux"
+source = "manual"
+
+# swapon do util-linux 2.41: ajuda, versão, erros de argumento e alvo inexistente.
+
+[[case]]
+id = "swapon-help"
+argv = ["swapon", "--help"]
+tags = ["swapon", "usage"]
+
+[[case]]
+id = "swapon-version"
+argv = ["swapon", "-V"]
+tags = ["swapon", "version"]
+
+[[case]]
+id = "swapon-bad-option"
+argv = ["swapon", "-Z"]
+tags = ["swapon", "usage", "error"]
+
+[[case]]
+id = "swapon-missing-device"
+argv = ["swapon", "/nonexistent/device"]
+tags = ["swapon", "error"]

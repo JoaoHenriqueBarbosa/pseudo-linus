@@ -1,0 +1,89 @@
+tool = "archive"
+source = "agent-style"
+
+# zipcloak 3.0 e unzipsfx 6.0 (Debian 13). A senha do zipcloak vem de /dev/tty, que não existe na
+# bancada, então só se comparam ajuda, versão, erros e o caminho sem terminal. O unzipsfx extrai o zip
+# colado no fim do próprio executável. Os textos de ajuda e de erro foram reproduzidos de memória do
+# código C e precisam ser conferidos contra o golden do oráculo.
+
+[[case]]
+id = "zipcloak-help"
+argv = ["zipcloak", "-h"]
+tags = ["zipcloak", "help"]
+
+[[case]]
+id = "zipcloak-noargs"
+argv = ["zipcloak"]
+tags = ["zipcloak", "help"]
+
+[[case]]
+id = "zipcloak-version"
+argv = ["zipcloak", "-v"]
+tags = ["zipcloak", "version"]
+
+[[case]]
+id = "zipcloak-bad-option"
+script = "zipcloak -x t.zip; echo \"exit=$?\""
+tags = ["zipcloak", "error"]
+
+[[case]]
+id = "zipcloak-missing-file"
+script = "zipcloak nothere.zip; echo \"exit=$?\""
+tags = ["zipcloak", "error"]
+
+[[case]]
+id = "zipcloak-not-a-zip"
+script = "zipcloak a.txt; echo \"exit=$?\""
+tags = ["zipcloak", "error"]
+[case.files]
+"a.txt" = "not an archive at all\n"
+
+[[case]]
+id = "zipcloak-encrypt-no-tty"
+script = "zip -q t.zip a.txt; zipcloak t.zip; echo \"exit=$?\"; unzip -Z1 t.zip; unzip -q -c t.zip a.txt"
+tags = ["zipcloak", "crypt", "error"]
+[case.files]
+"a.txt" = "hello world\n"
+
+[[case]]
+id = "zipcloak-decrypt-no-tty"
+script = "zip -q -P segredo t.zip a.txt; zipcloak -d t.zip; echo \"exit=$?\"; unzip -q -P segredo -c t.zip a.txt"
+tags = ["zipcloak", "crypt", "error"]
+[case.files]
+"a.txt" = "conteudo secreto\n"
+
+[[case]]
+id = "unzipsfx-extract"
+script = "zip -q t.zip a.txt b.txt; cat \"$(command -v unzipsfx)\" t.zip > t.sfx; chmod +x t.sfx; ./t.sfx -c a.txt; echo \"exit=$?\""
+tags = ["unzipsfx", "extract"]
+[case.files]
+"a.txt" = "hello world\n"
+"b.txt" = "second file\n"
+
+[[case]]
+id = "unzipsfx-test"
+script = "zip -q t.zip a.txt b.txt; cat \"$(command -v unzipsfx)\" t.zip > t.sfx; chmod +x t.sfx; ./t.sfx -t; echo \"exit=$?\""
+tags = ["unzipsfx", "test"]
+[case.files]
+"a.txt" = "hello world\n"
+"b.txt" = "second file\n"
+
+[[case]]
+id = "unzipsfx-extract-all"
+script = "zip -q t.zip a.txt b.txt; cat \"$(command -v unzipsfx)\" t.zip > t.sfx; chmod +x t.sfx; mkdir out; ./t.sfx -q -d out; echo \"exit=$?\"; ls out; cat out/b.txt"
+tags = ["unzipsfx", "extract"]
+[case.files]
+"a.txt" = "hello world\n"
+"b.txt" = "second file\n"
+
+[[case]]
+id = "unzipsfx-password"
+script = "zip -q -P segredo t.zip a.txt; cat \"$(command -v unzipsfx)\" t.zip > t.sfx; chmod +x t.sfx; ./t.sfx -P segredo -c a.txt; echo \"exit=$?\""
+tags = ["unzipsfx", "crypt"]
+[case.files]
+"a.txt" = "conteudo secreto\n"
+
+[[case]]
+id = "unzipsfx-no-archive"
+script = "unzipsfx; echo \"exit=$?\""
+tags = ["unzipsfx", "error"]

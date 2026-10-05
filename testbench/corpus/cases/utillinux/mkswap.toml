@@ -1,0 +1,24 @@
+tool = "utillinux"
+source = "manual"
+
+# mkswap do util-linux 2.41: ajuda, versão e erros de argumento.
+
+[[case]]
+id = "mkswap-help"
+argv = ["mkswap", "--help"]
+tags = ["mkswap", "usage"]
+
+[[case]]
+id = "mkswap-version"
+argv = ["mkswap", "-V"]
+tags = ["mkswap", "version"]
+
+[[case]]
+id = "mkswap-bad-option"
+argv = ["mkswap", "-Z"]
+tags = ["mkswap", "usage", "error"]
+
+[[case]]
+id = "mkswap-missing-device"
+argv = ["mkswap", "/nonexistent/device"]
+tags = ["mkswap", "error"]

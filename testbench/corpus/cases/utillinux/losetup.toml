@@ -1,0 +1,24 @@
+tool = "utillinux"
+source = "manual"
+
+# losetup do util-linux 2.41: ajuda, versão, erros de argumento e dispositivo inexistente.
+
+[[case]]
+id = "losetup-help"
+argv = ["losetup", "--help"]
+tags = ["losetup", "usage"]
+
+[[case]]
+id = "losetup-version"
+argv = ["losetup", "-V"]
+tags = ["losetup", "version"]
+
+[[case]]
+id = "losetup-bad-option"
+argv = ["losetup", "-Z"]
+tags = ["losetup", "usage", "error"]
+
+[[case]]
+id = "losetup-missing-device"
+argv = ["losetup", "/nonexistent/device"]
+tags = ["losetup", "error"]

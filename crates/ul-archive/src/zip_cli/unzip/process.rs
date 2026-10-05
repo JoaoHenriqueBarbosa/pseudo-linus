@@ -277,7 +277,7 @@ impl Uz {
                 error_in_archive = error;
             }
         }
-        if win + warn + lose == 0 && miss_dirs + miss_files == 1
+        if !self.sfx && win + warn + lose == 0 && miss_dirs + miss_files == 1
             && let Some(last) = lastzipfn {
                 (miss_dirs, miss_files) = (0, 0);
                 error_in_archive = PK_OK;

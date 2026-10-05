@@ -1,0 +1,24 @@
+tool = "procps"
+source = "manual"
+
+# pslog do psmisc 23.7.
+
+[[case]]
+id = "pslog-cmd-version"
+argv = ["pslog", "-V"]
+tags = ["pslog", "version"]
+
+[[case]]
+id = "pslog-cmd-no-operand"
+script = "pslog 2>&1; echo \"exit=$?\""
+tags = ["pslog", "error", "usage"]
+
+[[case]]
+id = "pslog-cmd-two-operands"
+script = "pslog 1 2 2>&1; echo \"exit=$?\""
+tags = ["pslog", "error", "usage"]
+
+[[case]]
+id = "pslog-cmd-missing-pid"
+script = "pslog 999999 2>&1; echo \"exit=$?\""
+tags = ["pslog", "error"]
