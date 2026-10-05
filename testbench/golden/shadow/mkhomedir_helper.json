@@ -1,0 +1,26 @@
+{
+  "mkhomedir-helper-existing-home": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mkhomedir-helper-no-args": {
+    "stdout": "Usage: /usr/sbin/mkhomedir_helper <username> [<umask> [<skeldir> [<home_mode>]]]\nrc=14\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mkhomedir-helper-too-many": {
+    "stdout": "rc=10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "mkhomedir-helper-unknown-user": {
+    "stdout": "rc=10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

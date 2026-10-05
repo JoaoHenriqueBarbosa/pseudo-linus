@@ -1,0 +1,8 @@
+{
+  "pwhistory-helper-no-args": {
+    "stdout": "This binary is not designed for running in this way.\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

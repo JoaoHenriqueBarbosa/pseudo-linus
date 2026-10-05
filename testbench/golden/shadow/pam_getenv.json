@@ -1,0 +1,14 @@
+{
+  "pam-getenv-no-args": {
+    "stdout": "Usage: pam_getenv [-l] [-s] env_var\nrc=255\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pam-getenv-unset": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

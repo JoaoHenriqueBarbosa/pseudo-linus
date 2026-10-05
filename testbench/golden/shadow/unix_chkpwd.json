@@ -1,0 +1,20 @@
+{
+  "unix-chkpwd-no-args": {
+    "stdout": "This binary is not designed for running in this way\n-- the system administrator has been informed\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "unix-chkpwd-one-arg": {
+    "stdout": "This binary is not designed for running in this way\n-- the system administrator has been informed\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "unix-chkpwd-unknown-user": {
+    "stdout": "rc=9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

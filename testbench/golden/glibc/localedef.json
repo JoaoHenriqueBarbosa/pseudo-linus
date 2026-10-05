@@ -1,0 +1,62 @@
+{
+  "localedef-bad-option": {
+    "stdout": "localedef: unrecognized option '--frobnicate'\nTry `localedef --help' or `localedef --usage' for more information.\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "localedef-bad-short-option": {
+    "stdout": "localedef: invalid option -- 'Q'\nTry `localedef --help' or `localedef --usage' for more information.\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "localedef-help": {
+    "stdout": "Usage: localedef [OPTION...] NAME\n  or:  localedef [OPTION...] [--add-to-archive|--delete-from-archive] FILE...\n  or:  localedef [OPTION...] --list-archive [FILE]\nCompile locale specification\n\n Input Files:\n  -f, --charmap=FILE         Symbolic character names defined in FILE\n  -i, --inputfile=FILE       Source definitions are found in FILE\n  -u, --repertoire-map=FILE  FILE contains mapping from symbolic names to UCS4\n                             values\n\n Output control:\n  -c, --force                Create output even if warning messages were issued\n                            \n      --no-hard-links        Do not create hard links between installed\n                             locales\n      --no-warnings=<warnings>   Comma-separated list of warnings to disable;\n                             supported warnings are: ascii, intcurrsym\n      --posix                Strictly conform to POSIX\n      --prefix=PATH          Optional output file prefix\n      --quiet                Suppress warnings and information messages\n  -v, --verbose              Print more messages\n      --warnings=<warnings>  Comma-separated list of warnings to enable;\n                             supported warnings are: ascii, intcurrsym\n\n Archive control:\n      --add-to-archive       Add locales named by parameters to archive\n  -A, --alias-file=FILE      locale.alias file to consult when making archive\n      --big-endian           Generate big-endian output\n      --delete-from-archive  Remove locales named by parameters from archive\n      --list-archive         List content of archive\n      --little-endian        Generate little-endian output\n      --no-archive           Don't add new data to archive\n      --replace              Replace existing archive content\n\n  -?, --help                 Give this help list\n      --usage                Give a short usage message\n  -V, --version              Print program version\n\nMandatory or optional arguments to long options are also mandatory or optional\nfor any corresponding short options.\n\nSystem's directory for character maps : /usr/share/i18n/charmaps\n\t\t       repertoire maps: /usr/share/i18n/repertoiremaps\n\t\t       locale path    : /usr/lib/locale:/usr/share/i18n\nFor bug reporting instructions, please see:\n<http://www.debian.org/Bugs/>.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "localedef-list-archive": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "localedef-missing-charmap": {
+    "stdout": "[error] character map file `nao-existe' not found: No such file or directory\n[error] cannot read character map directory `/usr/share/i18n/charmaps': No such file or directory\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "localedef-missing-input": {
+    "stdout": "[error] default character map file `ANSI_X3.4-1968' not found: No such file or directory\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "localedef-no-args": {
+    "stdout": "Try `localedef --help' or `localedef --usage' for more information.\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "localedef-too-many-names": {
+    "stdout": "Try `localedef --help' or `localedef --usage' for more information.\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "localedef-usage": {
+    "stdout": "Usage: localedef [-cv?V] [-f FILE] [-i FILE] [-u FILE] [-A FILE]\n            [--charmap=FILE] [--inputfile=FILE] [--repertoire-map=FILE]\n            [--force] [--no-hard-links] [--no-warnings=<warnings>] [--posix]\n            [--prefix=PATH] [--quiet] [--verbose] [--warnings=<warnings>]\n            [--add-to-archive] [--alias-file=FILE] [--big-endian]\n            [--delete-from-archive] [--list-archive] [--little-endian]\n            [--no-archive] [--replace] [--help] [--usage] [--version] NAME\n  or:  localedef [OPTION...] [--add-to-archive|--delete-from-archive] FILE...\n  or:  localedef [OPTION...] --list-archive [FILE]\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "localedef-version": {
+    "stdout": "localedef (Debian GLIBC 2.41-12+deb13u4) 2.41\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nWritten by Ulrich Drepper.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

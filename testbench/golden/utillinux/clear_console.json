@@ -1,0 +1,8 @@
+{
+  "clear-console-no-tty": {
+    "stdout": "clear_console: terminal is not a console\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

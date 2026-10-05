@@ -1,0 +1,8 @@
+{
+  "unix-update-no-args": {
+    "stdout": "This binary is not designed for running in this way\n-- the system administrator has been informed\nrc=4\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

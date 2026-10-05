@@ -1,0 +1,38 @@
+{
+  "faillock-bad-option": {
+    "stdout": "faillock: Unknown option: --nope\nUsage: faillock [--dir /path/to/tally-directory] [--user username] [--reset] [--legacy-output]\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "faillock-missing-arg": {
+    "stdout": "faillock: No user name supplied.\nUsage: faillock [--dir /path/to/tally-directory] [--user username] [--reset] [--legacy-output]\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "faillock-missing-dir": {
+    "stdout": "faillock: Error reading tally directory: No such file or directory\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "faillock-reset-root": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "faillock-unknown-user": {
+    "stdout": "faillock: Error no such user: nosuchuser_x\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "faillock-user-root": {
+    "stdout": "root:\nWhen                Type  Source                                           Valid\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

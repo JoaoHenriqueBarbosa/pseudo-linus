@@ -1,0 +1,52 @@
+{
+  "rmt-bad-option": {
+    "stdout": "rmt: unrecognized option '--nope'\nTry 'rmt --help' or 'rmt --usage' for more information.\nrc=64\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rmt-eof": {
+    "stdout": "rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rmt-garbage": {
+    "stdout": "E22\nGarbage command\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rmt-help": {
+    "stdout": "Usage: rmt [OPTION...]\nManipulate a tape drive, accepting commands from a remote process\n\n      --debug-file=FILE      set debug output file name\n  -d, --debug=NUMBER         set debug level\n  -?, --help                 give this help list\n      --usage                give a short usage message\n  -V, --version              print program version\n\nMandatory or optional arguments to long options are also mandatory or optional\nfor any corresponding short options.\n\nReport bugs to <bug-tar@gnu.org>.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rmt-open-missing": {
+    "stdout": "E2\nNo such file or directory\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rmt-version": {
+    "stdout": "rmt (GNU tar) 1.35\nCopyright (C) 2023 Free Software Foundation, Inc.\nLicense GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nWritten by Sergey Poznyakoff.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "rmt-write-read": {
+    "stdout": "A0\nA5\nA0\n\nhellorc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "fita": {
+        "kind": "file",
+        "mode": 420,
+        "size": 5,
+        "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+        "data": "hello"
+      }
+    }
+  }
+}

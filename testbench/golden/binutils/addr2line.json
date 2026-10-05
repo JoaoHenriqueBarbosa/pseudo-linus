@@ -1,0 +1,128 @@
+{
+  "addr2line-addresses": {
+    "stdout": "0x0000000000001000\n??:0\n0x0000000000002010\n??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-all-flags": {
+    "stdout": "0x0000000000001000: ?? ??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-bad-option": {
+    "stdout": "addr2line: invalid option -- 'Z'\nUsage: addr2line [option(s)] [addr(s)]\n Convert addresses into line number/file name pairs.\n If no addresses are specified on the command line, they will be read from stdin\n The options are:\n  @<file>                Read options from <file>\n  -a --addresses         Show addresses\n  -b --target=<bfdname>  Set the binary file format\n  -e --exe=<executable>  Set the input file name (default is a.out)\n  -i --inlines           Unwind inlined functions\n  -j --section=<name>    Read section-relative offsets instead of addresses\n  -p --pretty-print      Make the output easier to read for humans\n  -s --basenames         Strip directory names\n  -f --functions         Show function names\n  -C --demangle[=style]  Demangle function names\n  -R --recurse-limit     Enable a limit on recursion whilst demangling.  [Default]\n  -r --no-recurse-limit  Disable a limit on recursion whilst demangling\n  -h --help              Display this information\n  -v --version           Display the program's version\n\naddr2line: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-basenames": {
+    "stdout": "??\n??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-basic": {
+    "stdout": "??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-default-exe-missing": {
+    "stdout": "addr2line: 'a.out': No such file\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-functions": {
+    "stdout": "??\n??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-functions-demangle": {
+    "stdout": "??\n??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-help": {
+    "stdout": "Usage: addr2line [option(s)] [addr(s)]\n Convert addresses into line number/file name pairs.\n If no addresses are specified on the command line, they will be read from stdin\n The options are:\n  @<file>                Read options from <file>\n  -a --addresses         Show addresses\n  -b --target=<bfdname>  Set the binary file format\n  -e --exe=<executable>  Set the input file name (default is a.out)\n  -i --inlines           Unwind inlined functions\n  -j --section=<name>    Read section-relative offsets instead of addresses\n  -p --pretty-print      Make the output easier to read for humans\n  -s --basenames         Strip directory names\n  -f --functions         Show function names\n  -C --demangle[=style]  Demangle function names\n  -R --recurse-limit     Enable a limit on recursion whilst demangling.  [Default]\n  -r --no-recurse-limit  Disable a limit on recursion whilst demangling\n  -h --help              Display this information\n  -v --version           Display the program's version\n\naddr2line: supported targets: elf64-x86-64 elf32-i386 elf32-iamcu elf32-x86-64 pei-i386 pe-x86-64 pei-x86-64 elf64-little elf64-big elf32-little elf32-big pe-bigobj-x86-64 pe-i386 pdb srec symbolsrec verilog tekhex binary ihex plugin\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-inlines": {
+    "stdout": "??\n??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-long-options": {
+    "stdout": "0x0000000000001000\n??\n??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-missing-file": {
+    "stdout": "",
+    "stderr": "addr2line: 'nao-existe': No such file\n",
+    "exit": 1,
+    "files": {}
+  },
+  "addr2line-multiple": {
+    "stdout": "??:0\n??:0\n??:?\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-not-elf": {
+    "stdout": "addr2line: f.txt: file format not recognized\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-pretty": {
+    "stdout": "??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-pretty-addresses-functions": {
+    "stdout": "0x0000000000001000: ?? ??:0\n0x0000000000002010: ?? ??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-pretty-functions": {
+    "stdout": "?? ??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-stdin": {
+    "stdout": "??:0\n??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-stdin-addresses-functions": {
+    "stdout": "0x0000000000001000\n??\n??:0\n0x0000000000002010\n??\n??:0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-version": {
+    "stdout": "GNU addr2line (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "addr2line-version-short": {
+    "stdout": "GNU addr2line (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

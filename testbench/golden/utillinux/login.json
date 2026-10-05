@@ -1,0 +1,32 @@
+{
+  "login-help": {
+    "stdout": "\nUsage:\n login [-p] [-h <host>] [-H] [[-f] <username>]\n\nBegin a session on the system.\n\nOptions:\n -p             do not destroy the environment\n -f             skip a login authentication\n -h <host>      hostname to be used for utmp logging\n -H             suppress hostname in the login prompt\n     --help     display this help\n -V, --version  display version\n\nFor more details see login(1).\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "login-invalid-option": {
+    "stdout": "login: invalid option -- 'Q'\nTry 'login --help' for more information.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "login-no-tty": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "login-no-tty-no-user": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "login-version": {
+    "stdout": "login from util-linux 2.41.5\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

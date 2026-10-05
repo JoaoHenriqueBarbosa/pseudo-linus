@@ -1,0 +1,20 @@
+{
+  "pam-timestamp-check-bad-option": {
+    "stdout": "/usr/sbin/pam_timestamp_check: invalid option -- 'x'\nUsage: /usr/sbin/pam_timestamp_check [[-k] | [-d]] [target user]\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pam-timestamp-check-no-tty": {
+    "stdout": "rc=7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pam-timestamp-check-too-many": {
+    "stdout": "rc=7\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

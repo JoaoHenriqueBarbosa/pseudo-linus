@@ -1,0 +1,110 @@
+{
+  "elfedit-all-three": {
+    "stdout": "0\nELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              DYN (Position-Independent Executable file)\n  Machine:                           Advanced Micro Devices X86-64\n  Version:                           0x1\n  Entry point address:               0x27e0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          41512 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         14\n  Size of section headers:           64 (bytes)\n  Number of section headers:         30\n  Section header string table index: 29\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-bad-option": {
+    "stdout": "elfedit: invalid option -- 'Z'\nUsage: elfedit <option(s)> elffile(s)\n Update the ELF header of ELF files\n The options are:\n  --input-mach [none|i386|iamcu|l1om|k1om|x86_64]\n                              Set input machine type\n  --output-mach [none|i386|iamcu|l1om|k1om|x86_64]\n                              Set output machine type\n  --input-type [none|rel|exec|dyn]\n                              Set input file type\n  --output-type [none|rel|exec|dyn]\n                              Set output file type\n  --input-osabi [none|HPUX|NetBSD|GNU|Linux|Solaris|AIX|Irix|FreeBSD|TRU64|Modesto|OpenBSD|OpenVMS|NSK|AROS|FenixOS]\n                              Set input OSABI\n  --output-osabi [none|HPUX|NetBSD|GNU|Linux|Solaris|AIX|Irix|FreeBSD|TRU64|Modesto|OpenBSD|OpenVMS|NSK|AROS|FenixOS]\n                              Set output OSABI\n  --input-abiversion [0-255]  Set input ABIVERSION\n  --output-abiversion [0-255] Set output ABIVERSION\n  --enable-x86-feature [ibt|shstk|lam_u48|lam_u57]\n                              Enable x86 feature\n  --disable-x86-feature [ibt|shstk|lam_u48|lam_u57]\n                              Disable x86 feature\n  -h --help                   Display this information\n  -v --version                Display the version number of elfedit\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-help": {
+    "stdout": "Usage: elfedit <option(s)> elffile(s)\n Update the ELF header of ELF files\n The options are:\n  --input-mach [none|i386|iamcu|l1om|k1om|x86_64]\n                              Set input machine type\n  --output-mach [none|i386|iamcu|l1om|k1om|x86_64]\n                              Set output machine type\n  --input-type [none|rel|exec|dyn]\n                              Set input file type\n  --output-type [none|rel|exec|dyn]\n                              Set output file type\n  --input-osabi [none|HPUX|NetBSD|GNU|Linux|Solaris|AIX|Irix|FreeBSD|TRU64|Modesto|OpenBSD|OpenVMS|NSK|AROS|FenixOS]\n                              Set input OSABI\n  --output-osabi [none|HPUX|NetBSD|GNU|Linux|Solaris|AIX|Irix|FreeBSD|TRU64|Modesto|OpenBSD|OpenVMS|NSK|AROS|FenixOS]\n                              Set output OSABI\n  --input-abiversion [0-255]  Set input ABIVERSION\n  --output-abiversion [0-255] Set output ABIVERSION\n  --enable-x86-feature [ibt|shstk|lam_u48|lam_u57]\n                              Enable x86 feature\n  --disable-x86-feature [ibt|shstk|lam_u48|lam_u57]\n                              Disable x86 feature\n  -h --help                   Display this information\n  -v --version                Display the version number of elfedit\nReport bugs to <https://sourceware.org/bugzilla/>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-input-mach-mismatch": {
+    "stdout": "1\nELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              DYN (Position-Independent Executable file)\n  Machine:                           Advanced Micro Devices X86-64\n  Version:                           0x1\n  Entry point address:               0x27e0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          41512 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         14\n  Size of section headers:           64 (bytes)\n  Number of section headers:         30\n  Section header string table index: 29\n",
+    "stderr": "elfedit: Error: t: Unmatched input EI_CLASS: 2 is not 1\n",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-input-type-match": {
+    "stdout": "0\nELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              EXEC (Executable file)\n  Machine:                           Advanced Micro Devices X86-64\n  Version:                           0x1\n  Entry point address:               0x27e0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          41512 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         14\n  Size of section headers:           64 (bytes)\n  Number of section headers:         30\n  Section header string table index: 29\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-input-type-mismatch": {
+    "stdout": "1\nELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              DYN (Position-Independent Executable file)\n  Machine:                           Advanced Micro Devices X86-64\n  Version:                           0x1\n  Entry point address:               0x27e0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          41512 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         14\n  Size of section headers:           64 (bytes)\n  Number of section headers:         30\n  Section header string table index: 29\n",
+    "stderr": "elfedit: Error: t: Unmatched e_type: 3 is not 1\n",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-missing-file": {
+    "stdout": "elfedit: Error: 'nao-existe': No such file\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-no-action": {
+    "stdout": "Usage: elfedit <option(s)> elffile(s)\n Update the ELF header of ELF files\n The options are:\n  --input-mach [none|i386|iamcu|l1om|k1om|x86_64]\n                              Set input machine type\n  --output-mach [none|i386|iamcu|l1om|k1om|x86_64]\n                              Set output machine type\n  --input-type [none|rel|exec|dyn]\n                              Set input file type\n  --output-type [none|rel|exec|dyn]\n                              Set output file type\n  --input-osabi [none|HPUX|NetBSD|GNU|Linux|Solaris|AIX|Irix|FreeBSD|TRU64|Modesto|OpenBSD|OpenVMS|NSK|AROS|FenixOS]\n                              Set input OSABI\n  --output-osabi [none|HPUX|NetBSD|GNU|Linux|Solaris|AIX|Irix|FreeBSD|TRU64|Modesto|OpenBSD|OpenVMS|NSK|AROS|FenixOS]\n                              Set output OSABI\n  --input-abiversion [0-255]  Set input ABIVERSION\n  --output-abiversion [0-255] Set output ABIVERSION\n  --enable-x86-feature [ibt|shstk|lam_u48|lam_u57]\n                              Enable x86 feature\n  --disable-x86-feature [ibt|shstk|lam_u48|lam_u57]\n                              Disable x86 feature\n  -h --help                   Display this information\n  -v --version                Display the version number of elfedit\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-no-args": {
+    "stdout": "Usage: elfedit <option(s)> elffile(s)\n Update the ELF header of ELF files\n The options are:\n  --input-mach [none|i386|iamcu|l1om|k1om|x86_64]\n                              Set input machine type\n  --output-mach [none|i386|iamcu|l1om|k1om|x86_64]\n                              Set output machine type\n  --input-type [none|rel|exec|dyn]\n                              Set input file type\n  --output-type [none|rel|exec|dyn]\n                              Set output file type\n  --input-osabi [none|HPUX|NetBSD|GNU|Linux|Solaris|AIX|Irix|FreeBSD|TRU64|Modesto|OpenBSD|OpenVMS|NSK|AROS|FenixOS]\n                              Set input OSABI\n  --output-osabi [none|HPUX|NetBSD|GNU|Linux|Solaris|AIX|Irix|FreeBSD|TRU64|Modesto|OpenBSD|OpenVMS|NSK|AROS|FenixOS]\n                              Set output OSABI\n  --input-abiversion [0-255]  Set input ABIVERSION\n  --output-abiversion [0-255] Set output ABIVERSION\n  --enable-x86-feature [ibt|shstk|lam_u48|lam_u57]\n                              Enable x86 feature\n  --disable-x86-feature [ibt|shstk|lam_u48|lam_u57]\n                              Disable x86 feature\n  -h --help                   Display this information\n  -v --version                Display the version number of elfedit\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-not-elf": {
+    "stdout": "elfedit: Error: f.txt: Failed to read ELF header\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-output-mach": {
+    "stdout": "1\nELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              DYN (Position-Independent Executable file)\n  Machine:                           Advanced Micro Devices X86-64\n  Version:                           0x1\n  Entry point address:               0x27e0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          41512 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         14\n  Size of section headers:           64 (bytes)\n  Number of section headers:         30\n  Section header string table index: 29\n",
+    "stderr": "elfedit: Error: t: Unmatched output EI_CLASS: 2 is not 1\n",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-output-osabi": {
+    "stdout": "0\nELF Header:\n  Magic:   7f 45 4c 46 02 01 01 09 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - FreeBSD\n  ABI Version:                       0\n  Type:                              DYN (Position-Independent Executable file)\n  Machine:                           Advanced Micro Devices X86-64\n  Version:                           0x1\n  Entry point address:               0x27e0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          41512 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         14\n  Size of section headers:           64 (bytes)\n  Number of section headers:         30\n  Section header string table index: 29\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-output-osabi-none": {
+    "stdout": "0\nELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              DYN (Position-Independent Executable file)\n  Machine:                           Advanced Micro Devices X86-64\n  Version:                           0x1\n  Entry point address:               0x27e0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          41512 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         14\n  Size of section headers:           64 (bytes)\n  Number of section headers:         30\n  Section header string table index: 29\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-output-type-exec": {
+    "stdout": "0\nELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              EXEC (Executable file)\n  Machine:                           Advanced Micro Devices X86-64\n  Version:                           0x1\n  Entry point address:               0x27e0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          41512 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         14\n  Size of section headers:           64 (bytes)\n  Number of section headers:         30\n  Section header string table index: 29\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-output-type-rel": {
+    "stdout": "0\nELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              REL (Relocatable file)\n  Machine:                           Advanced Micro Devices X86-64\n  Version:                           0x1\n  Entry point address:               0x27e0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          41512 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         14\n  Size of section headers:           64 (bytes)\n  Number of section headers:         30\n  Section header string table index: 29\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-unknown-type": {
+    "stdout": "elfedit: Error: Unknown type: foo\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-version": {
+    "stdout": "GNU elfedit (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "elfedit-version-short": {
+    "stdout": "GNU elfedit (GNU Binutils for Debian) 2.44\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
