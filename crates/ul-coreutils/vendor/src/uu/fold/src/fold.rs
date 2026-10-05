@@ -284,34 +284,38 @@ fn next_tab_stop(col_count: usize) -> usize {
 }
 
 fn compute_col_count(buffer: &[u8], mode: WidthMode) -> usize {
-    if let Ok(s) = std::str::from_utf8(buffer) {
-        let mut width = 0;
-        for ch in s.chars() {
-            match ch {
-                '\r' => width = 0,
-                '\t' => width = next_tab_stop(width),
-                '\x08' => width = width.saturating_sub(1),
-                _ => {
-                    width += match mode {
-                        WidthMode::Characters => 1,
-                        WidthMode::Columns => UnicodeWidthChar::width(ch).unwrap_or(0),
-                    }
-                }
-            }
-        }
-        width
-    } else {
+    // Porte pseudo-linus: o `fold` do GNU 9.7 conta bytes (um `ç` ocupa duas colunas e pode ser
+    // partido no meio); só tab, backspace e CR mexem na coluna de outro jeito. Texto ASCII segue a
+    // conta de antes.
+    if buffer.is_ascii() {
         let mut width = 0;
         for &byte in buffer {
             match byte {
                 CR => width = 0,
                 TAB => width = next_tab_stop(width),
                 0x08 => width = width.saturating_sub(1),
-                _ => width += 1,
+                _ => {
+                    width += match mode {
+                        WidthMode::Characters => 1,
+                        WidthMode::Columns => {
+                            UnicodeWidthChar::width(char::from(byte)).unwrap_or(0)
+                        }
+                    }
+                }
             }
         }
-        width
+        return width;
     }
+    let mut width = 0;
+    for &byte in buffer {
+        match byte {
+            CR => width = 0,
+            TAB => width = next_tab_stop(width),
+            0x08 => width = width.saturating_sub(1),
+            _ => width += 1,
+        }
+    }
+    width
 }
 
 fn emit_output<W: Write>(ctx: &mut FoldContext<'_, W>) -> UResult<()> {
@@ -499,9 +503,11 @@ fn process_utf8_line<W: Write>(line: &str, ctx: &mut FoldContext<'_, W>) -> URes
         return process_ascii_line(line.as_bytes(), ctx);
     }
 
-    process_utf8_chars(line, ctx)
+    // Porte pseudo-linus: com multibyte o GNU 9.7 conta bytes, não caracteres nem colunas.
+    process_non_utf8_line(line.as_bytes(), ctx)
 }
 
+#[allow(dead_code)] // Porte pseudo-linus: o caminho por caractere ficou sem uso (o GNU conta bytes).
 fn process_utf8_chars<W: Write>(line: &str, ctx: &mut FoldContext<'_, W>) -> UResult<()> {
     let line_bytes = line.as_bytes();
     let mut iter = line.char_indices().peekable();

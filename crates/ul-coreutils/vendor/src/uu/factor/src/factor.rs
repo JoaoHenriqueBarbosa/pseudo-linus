@@ -17,7 +17,6 @@ use clap::{Arg, ArgAction, Command};
 use memchr::memchr3_iter;
 use num_bigint::BigUint;
 use num_prime::nt_funcs::{factorize64, factorize128, factors};
-use uucore::display::Quotable;
 use uucore::error::{FromIo, UResult, USimpleError, set_exit_code, strip_errno};
 use uucore::translate;
 use uucore::{format_usage, show_error, show_if_err};
@@ -75,31 +74,35 @@ fn write_factors_str(
 }
 
 fn parse_num(slice: &[u8]) -> UResult<Number> {
-    let err_invalid = |s: &str| {
+    // Porte pseudo-linus: o GNU cita o número com o `quote()` do gnulib (`‘abc’`); o argumento já
+    // chega citado, porque o byte inválido sai em octal e não pode passar de novo pelo quote.
+    let err_invalid = |quoted: String| {
         USimpleError::new(
             1,
-            format!("{} {}", s.quote(), translate!("factor-error-invalid-int")),
+            format!("{quoted} {}", translate!("factor-error-invalid-int")),
         )
     };
-    let num = str::from_utf8(slice).map_err(|_| err_invalid(&NumError(slice).to_string()))?;
+    let quote_str = |s: &str| uucore::display::locale_quote(s);
+    let num = str::from_utf8(slice)
+        .map_err(|_| err_invalid(format!("\u{2018}{}\u{2019}", NumError(slice))))?;
 
     match num.parse::<u64>() {
         Ok(x) => return Ok(Number::U64(x)),
         // If overflown, attempt a greater width
         Err(e) if *e.kind() == IntErrorKind::PosOverflow => {}
-        Err(_) => return Err(err_invalid(num)),
+        Err(_) => return Err(err_invalid(quote_str(num))),
     }
 
     match num.parse::<u128>() {
         Ok(x) => return Ok(Number::U128(x)),
         // If overflown, attempt a greater width
         Err(e) if *e.kind() == IntErrorKind::PosOverflow => {}
-        Err(_) => return Err(err_invalid(num)),
+        Err(_) => return Err(err_invalid(quote_str(num))),
     }
 
     num.parse::<BigUint>()
         .map(Number::BigUint)
-        .map_err(|_| err_invalid(num))
+        .map_err(|_| err_invalid(quote_str(num)))
 }
 
 /// This is a newtype wrapper over a potentially malformed UTF-8

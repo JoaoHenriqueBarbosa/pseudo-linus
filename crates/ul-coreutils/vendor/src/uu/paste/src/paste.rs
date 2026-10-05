@@ -13,7 +13,8 @@ use std::iter::Cycle;
 use std::path::Path;
 use std::rc::Rc;
 use std::slice::Iter;
-use uucore::error::{UResult, USimpleError};
+use uucore::display::Quotable;
+use uucore::error::{FromIo, UResult, USimpleError};
 use uucore::format_usage;
 use uucore::i18n::charmap::mb_char_len;
 use uucore::line_ending::LineEnding;
@@ -108,7 +109,8 @@ fn paste(
             )
         } else {
             let path = Path::new(&filename);
-            let file = File::open(path)?;
+            // Porte pseudo-linus: o GNU nomeia o arquivo que não abre (`paste: nope: No such file...`).
+            let file = File::open(path).map_err_context(|| path.maybe_quote().to_string())?;
             InputSource::File(BufReader::new(file))
         };
 

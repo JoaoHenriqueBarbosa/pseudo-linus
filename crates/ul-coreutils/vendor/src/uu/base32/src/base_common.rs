@@ -56,7 +56,8 @@ impl Config {
                 if let Some(extra_op) = values.next() {
                     return Err(UUsageError::new(
                         BASE_CMD_PARSE_ERROR,
-                        translate!("base-common-extra-operand", "operand" => extra_op.quote()),
+                        // Porte pseudo-linus: o GNU cita o operando com o `quote()` do gnulib.
+                        translate!("base-common-extra-operand", "operand" => uucore::display::locale_quote(extra_op)),
                     ));
                 }
 
@@ -725,7 +726,7 @@ pub mod fast_decode {
             } else if ignore_garbage {
                 continue;
             } else {
-                return Err(USimpleError::new(1, "error: invalid input"));
+                return Err(USimpleError::new(1, "invalid input"));
             }
 
             if supports_partial_decode {
@@ -774,7 +775,7 @@ pub mod fast_decode {
             write_to_output(&mut decoded_buffer, output)?;
 
             if had_invalid_tail {
-                return Err(USimpleError::new(1, "error: invalid input"));
+                return Err(USimpleError::new(1, "invalid input"));
             }
         }
 
@@ -837,7 +838,7 @@ pub mod fast_decode {
                             buffer.drain(..decode_in_chunks_of_size);
                         }
                     }
-                    return Err(USimpleError::new(1, "error: invalid input"));
+                    return Err(USimpleError::new(1, "invalid input"));
                 }
 
                 if supports_partial_decode {
@@ -889,7 +890,7 @@ pub mod fast_decode {
             write_to_output(&mut decoded_buffer, output)?;
 
             if had_invalid_tail {
-                return Err(USimpleError::new(1, "error: invalid input"));
+                return Err(USimpleError::new(1, "invalid input"));
             }
         }
 

@@ -4,7 +4,15 @@
 // file that was distributed with this source code.
 
 use clap::{Arg, ArgAction, Command};
-use uucore::{checksum::SUPPORTED_ALGORITHMS, translate};
+use uucore::translate;
+
+/// Porte pseudo-linus: os algoritmos que o `cksum -a` do GNU 9.7 aceita, na ordem em que ele os
+/// lista na mensagem de argumento inválido (sem `sha2`, `sha3`, `blake3` nem `shake*`, que são
+/// extensões do uutils).
+const GNU_CKSUM_ALGORITHMS: [&str; 12] = [
+    "bsd", "sysv", "crc", "crc32b", "md5", "sha1", "sha224", "sha256", "sha384", "sha512",
+    "blake2b", "sm3",
+];
 
 /// List of all options that can be encountered in checksum utils
 pub mod options {
@@ -67,7 +75,7 @@ impl ChecksumCommand for Command {
                 .short('a')
                 .help(translate!("ck-common-help-algorithm"))
                 .value_name("ALGORITHM")
-                .value_parser(SUPPORTED_ALGORITHMS),
+                .value_parser(GNU_CKSUM_ALGORITHMS),
         )
     }
 

@@ -1062,7 +1062,8 @@ fn bad_field_spec(spec: &str, span: Range<usize>, msg_key: &str, kind: KeyErrorK
         message: translate!(
             "sort-invalid-field-spec",
             "msg" => translate!(msg_key),
-            "spec" => spec.quote()
+            // Porte pseudo-linus: o GNU cita a especificação com o `quote()` do gnulib.
+            "spec" => uucore::display::locale_quote(spec)
         ),
         span,
         kind,

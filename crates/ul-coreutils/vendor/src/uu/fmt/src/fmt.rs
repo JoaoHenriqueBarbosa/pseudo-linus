@@ -30,7 +30,8 @@ enum FmtError {
     InvalidGoal(String),
     #[error("{}", translate!("fmt-error-goal-greater-than-width"))]
     GoalGreaterThanWidth,
-    #[error("{}", translate!("fmt-error-invalid-width", "width" => .0.quote()))]
+    // Porte pseudo-linus: o GNU cita a largura com o `quote()` do gnulib (`‘abc’`).
+    #[error("{}", translate!("fmt-error-invalid-width", "width" => uucore::display::locale_quote(.0)))]
     InvalidWidth(String),
     #[error("{}", translate!("fmt-error-width-out-of-range", "width" => .0))]
     WidthOutOfRange(usize),
@@ -40,7 +41,7 @@ enum FmtError {
     FirstOptionWidth(char),
     #[error("{}", translate!("fmt-error-read"))]
     ReadError,
-    #[error("{}", translate!("fmt-error-invalid-width-malformed", "width" => .0.quote()))]
+    #[error("{}", translate!("fmt-error-invalid-width-malformed", "width" => uucore::display::locale_quote(.0)))]
     InvalidWidthMalformed(String),
 }
 
@@ -140,8 +141,9 @@ impl FmtOptions {
                 (0, 0)
             }
             (Some(w), None) => {
-                let g = match w.checked_mul(DEFAULT_GOAL_TO_WIDTH_RATIO) {
-                    Some(result) => (result / 100).max(1),
+                // Porte pseudo-linus: o GNU arredonda a meta pra `width * (2 * (100 - 7) + 1) / 200`.
+                let g = match w.checked_mul(187) {
+                    Some(result) => (result / 200).max(1),
                     None => { Err(FmtError::InvalidWidth(w.to_string())) }?,
                 };
                 (w, g)

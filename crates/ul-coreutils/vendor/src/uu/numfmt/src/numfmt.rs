@@ -20,7 +20,6 @@ use std::ffi::OsString;
 use sysio::io::{BufRead, BufWriter, IsTerminal, Write, stderr};
 use std::str::FromStr;
 
-use uucore::display::Quotable;
 use uucore::error::UResult;
 use uucore::i18n::decimal::locale_grouping_separator;
 use uucore::parser::parse_size::{IEC_BASES, SI_BASES};
@@ -35,6 +34,19 @@ pub mod options;
 mod diagnostics;
 mod numeric;
 mod units;
+
+/// Porte pseudo-linus: o `quote()` do gnulib em C.UTF-8 (`‘x’`), que é como o `numfmt` do GNU cita
+/// tudo nas mensagens. Faz o papel do `uucore::display::Quotable` neste crate, que cita com aspas
+/// retas.
+pub(crate) trait Quotable {
+    fn quote(&self) -> String;
+}
+
+impl<T: AsRef<std::ffi::OsStr> + ?Sized> Quotable for T {
+    fn quote(&self) -> String {
+        uucore::display::locale_quote(self)
+    }
+}
 
 // Returns `true` if the input is in scientific notation
 fn is_scientific(input: &[u8]) -> bool {
@@ -73,7 +85,7 @@ fn format_and_write(
             Ok(s) => {
                 if is_scientific(s.as_bytes()) {
                     Err(format!(
-                        "invalid suffix in input: '{}'",
+                        "invalid suffix in input: \u{2018}{}\u{2019}",
                         String::from_utf8_lossy(line)
                     ))
                 } else {
@@ -82,7 +94,7 @@ fn format_and_write(
             }
             Err(_) => Err(translate!(
                 "numfmt-error-invalid-number",
-                "input" => escape_line(line).quote()
+                "input" => format!("\u{2018}{}\u{2019}", escape_line(line))
             )),
         }
     };
@@ -228,22 +240,71 @@ fn handle_buffer_to<R: BufRead>(
 }
 
 fn parse_unit(s: &str, opt: &'static str) -> std::result::Result<Unit, ParseError> {
-    match s {
-        "auto" if opt != TO => Ok(Unit::Auto),
-        "si" => Ok(Unit::Si),
-        "iec" => Ok(Unit::Iec(false)),
-        "iec-i" => Ok(Unit::Iec(true)),
-        "none" => Ok(Unit::None),
-        value => Err(OptionValueError {
-            message: translate!("numfmt-error-invalid-unit-argument", "arg" => value, "opt" => format!("--{opt}")),
-            option: opt,
-            value: value.to_string(),
-            // `auto` is a real unit, just not one --to can scale to.
-            label: (value == "auto").then_some("numfmt-diag-label-auto-from-only"),
-            help: "numfmt-diag-help-unit",
+    // Porte pseudo-linus: o GNU resolve o valor com o `argmatch` do gnulib: o nome exato vence, um
+    // prefixo único vale e o resto é `invalid`/`ambiguous`, com a lista dos argumentos válidos.
+    // `auto` só existe em `--from`.
+    const TO_CHOICES: &[(&str, Unit)] = &[
+        ("none", Unit::None),
+        ("si", Unit::Si),
+        ("iec", Unit::Iec(false)),
+        ("iec-i", Unit::Iec(true)),
+    ];
+    const FROM_CHOICES: &[(&str, Unit)] = &[
+        ("none", Unit::None),
+        ("auto", Unit::Auto),
+        ("si", Unit::Si),
+        ("iec", Unit::Iec(false)),
+        ("iec-i", Unit::Iec(true)),
+    ];
+    let choices = if opt == TO { TO_CHOICES } else { FROM_CHOICES };
+
+    let mut found: Option<Unit> = None;
+    let mut ambiguous = false;
+    for (name, unit) in choices {
+        if *name == s {
+            return Ok(*unit);
         }
-        .into()),
+        if name.starts_with(s) {
+            if let Some(previous) = found {
+                if previous != *unit {
+                    ambiguous = true;
+                }
+            } else {
+                found = Some(*unit);
+            }
+        }
     }
+    if let (Some(unit), false) = (found, ambiguous) {
+        return Ok(unit);
+    }
+
+    let quoted = uucore::display::locale_quote(s);
+    let option = uucore::display::locale_quote(&format!("--{opt}"));
+    let mut message = if ambiguous {
+        translate!("numfmt-error-ambiguous-unit-argument", "arg" => quoted, "opt" => option)
+    } else {
+        translate!("numfmt-error-invalid-unit-argument", "arg" => quoted, "opt" => option)
+    };
+    message.push('\n');
+    message.push_str(&translate!("numfmt-error-valid-arguments"));
+    for (name, _) in choices {
+        message.push_str("\n  - ");
+        message.push_str(&uucore::display::locale_quote(*name));
+    }
+    message.push_str(&format!(
+        "\nTry '{} --help' for more information.",
+        uucore::execution_phrase()
+    ));
+
+    Err(OptionValueError {
+        message,
+        option: opt,
+        value: s.to_string(),
+        // `auto` is a real unit, just not one --to can scale to.
+        label: (s == "auto").then_some("numfmt-diag-label-auto-from-only"),
+        help: "numfmt-diag-help-unit",
+    }
+    .into())
 }
 
 /// Parses a unit size. Suffixes are turned into their integer representations. For example, 'K'

@@ -7,7 +7,7 @@
 
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
 use clap::{Arg, ArgAction, Command};
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use sysio::fs;
 use sysio::io::ErrorKind;
 use uucore::display::Quotable;
@@ -33,7 +33,9 @@ mod options {
 }
 
 // a few global constants as used in the GNU implementation
-const POSIX_PATH_MAX: usize = 256;
+// Porte pseudo-linus: o GNU compara com `_POSIX_PATH_MAX - 1` (o limite conta o NUL final), e a
+// mensagem diz 255.
+const POSIX_PATH_MAX: usize = 255;
 const POSIX_NAME_MAX: usize = 14;
 
 // Porte pseudo-linus: os valores do Linux (PATH_MAX e FILENAME_MAX da glibc) sem a libc do host.
@@ -82,7 +84,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         for path_segment in path_str.split('/') {
             path.push(path_segment.to_string());
         }
-        res &= check_path(&mode, &path);
+        res &= check_path(&mode, p, &path);
     }
 
     // determine error code
@@ -127,60 +129,68 @@ pub fn uu_app() -> Command {
         )
 }
 
-/// check a path, given as a slice of it's components and an operating mode
-fn check_path(mode: &Mode, path: &[String]) -> bool {
+/// check a path, given as the operand and as a slice of it's components and an operating mode
+///
+/// Porte pseudo-linus: a ordem das verificações é a do GNU, medida no oráculo: nome vazio, `-`
+/// inicial (`-P`), caracteres portáveis do nome inteiro, comprimento do caminho e só então o de cada
+/// componente (`-p`).
+fn check_path(mode: &Mode, name: &OsStr, path: &[String]) -> bool {
     // GNU rejects an empty file name in any portability mode before touching the filesystem.
-    if !matches!(mode, Mode::Default) && path.join("/").is_empty() {
+    if !matches!(mode, Mode::Default) && name.is_empty() {
         show_error!("{}", translate!("pathchk-error-empty-file-name"));
         return false;
     }
 
     match *mode {
-        Mode::Basic => check_basic(path),
-        Mode::Extra => check_default(path) && check_extra(path),
-        Mode::Both => check_basic(path) && check_extra(path),
+        Mode::Basic => check_basic(name),
+        Mode::Extra => check_extra(name) && check_default(path),
+        Mode::Both => check_extra(name) && check_basic(name),
         Mode::Default => check_default(path),
     }
 }
 
 /// check a path in basic compatibility mode
-fn check_basic(path: &[String]) -> bool {
-    let joined_path = path.join("/");
-    let total_len = joined_path.len();
+fn check_basic(name: &OsStr) -> bool {
+    let bytes = name.as_encoded_bytes();
+    // characters: only the portable filename character set (and the separator)
+    if !check_portable_chars(name) {
+        return false;
+    }
     // path length
-    if total_len > POSIX_PATH_MAX {
+    if bytes.len() > POSIX_PATH_MAX {
         show_error!(
             "{}",
-            translate!("pathchk-error-posix-path-length-exceeded", "limit" => POSIX_PATH_MAX, "length" => total_len, "path" => joined_path)
+            translate!("pathchk-error-posix-path-length-exceeded", "limit" => POSIX_PATH_MAX, "length" => bytes.len(), "path" => name.quote())
         );
         return false;
     }
 
-    // components: character portability and length
-    for p in path {
-        let component_len = p.len();
-        if component_len > POSIX_NAME_MAX {
+    // components: length (every byte is ASCII here, the character check above already passed)
+    for component in bytes.split(|b| *b == b'/') {
+        if component.len() > POSIX_NAME_MAX {
+            let component = String::from_utf8_lossy(component);
             show_error!(
                 "{}",
-                translate!("pathchk-error-posix-name-length-exceeded", "limit" => POSIX_NAME_MAX, "length" => component_len, "component" => p.quote())
+                translate!("pathchk-error-posix-name-length-exceeded", "limit" => POSIX_NAME_MAX, "length" => component.len(), "component" => uucore::display::locale_quote(&*component))
             );
-            return false;
-        }
-        if !check_portable_chars(p) {
             return false;
         }
     }
     // permission checks
-    check_searchable(&joined_path)
+    check_searchable(&name.to_string_lossy())
 }
 
 /// check a path in extra compatibility mode
-fn check_extra(path: &[String]) -> bool {
+fn check_extra(name: &OsStr) -> bool {
     // components: leading hyphens
-    if let Some(p) = path.iter().find(|p| p.starts_with('-')) {
+    if name
+        .as_encoded_bytes()
+        .split(|b| *b == b'/')
+        .any(|component| component.first() == Some(&b'-'))
+    {
         show_error!(
             "{}",
-            translate!("pathchk-error-leading-hyphen", "component" => p.quote())
+            translate!("pathchk-error-leading-hyphen", "path" => name.quote())
         );
         return false;
     }
@@ -216,7 +226,7 @@ fn check_default(path: &[String]) -> bool {
         if component_len > FILENAME_MAX {
             show_error!(
                 "{}",
-                translate!("pathchk-error-name-length-exceeded", "limit" => FILENAME_MAX, "length" => component_len, "component" => p.quote())
+                translate!("pathchk-error-name-length-exceeded", "limit" => FILENAME_MAX, "length" => component_len, "component" => uucore::display::locale_quote(p))
             );
             return false;
         }
@@ -238,15 +248,30 @@ fn check_searchable(path: &str) -> bool {
     }
 }
 
-/// check whether a path segment contains only valid (read: portable) characters
-fn check_portable_chars(path_segment: &str) -> bool {
-    const VALID_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-";
-    for (i, ch) in path_segment.as_bytes().iter().enumerate() {
+/// check whether a file name contains only portable characters (and the separator)
+///
+/// Porte pseudo-linus: o GNU olha o nome inteiro, mostra o primeiro caractere fora do conjunto
+/// portável entre aspas do `quote()` (`‘ç’`, `‘\t’`, `‘\377’` pra byte inválido) e o nome com as
+/// aspas de shell do `quoteaf`.
+fn check_portable_chars(name: &OsStr) -> bool {
+    const VALID_CHARS: &[u8] =
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-/";
+    let bytes = name.as_encoded_bytes();
+    for (i, ch) in bytes.iter().enumerate() {
         if !VALID_CHARS.contains(ch) {
-            let invalid = path_segment[i..].chars().next().unwrap();
+            let rest = &bytes[i..];
+            let chunk = rest.utf8_chunks().next().unwrap();
+            let shown = match chunk.valid().chars().next() {
+                Some(c) => {
+                    let mut buf = [0u8; 4];
+                    let s: &str = c.encode_utf8(&mut buf);
+                    uucore::display::locale_quote(s)
+                }
+                None => format!("\u{2018}\\{:03o}\u{2019}", chunk.invalid()[0]),
+            };
             show_error!(
                 "{}",
-                translate!("pathchk-error-nonportable-character", "character" => invalid, "component" => path_segment.quote())
+                translate!("pathchk-error-nonportable-character", "character" => shown, "path" => name.quote())
             );
             return false;
         }

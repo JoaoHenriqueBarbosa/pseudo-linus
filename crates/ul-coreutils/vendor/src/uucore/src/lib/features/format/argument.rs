@@ -9,10 +9,8 @@ use crate::{
     error::set_exit_code,
     os_str_as_bytes,
     parser::num_parser::{ExtendedParser, ExtendedParserError},
-    quoting_style::{QuotingStyle, locale_aware_escape_name},
     show_error, show_warning,
 };
-use os_display::Quotable;
 use std::{
     ffi::{OsStr, OsString},
     num::NonZero,
@@ -209,14 +207,15 @@ fn extract_value<T: Default>(
         Ok(v) => v,
         Err(e) => {
             set_exit_code(1);
-            let input = locale_aware_escape_name(OsStr::new(input), QuotingStyle::C_NO_QUOTES);
+            // Porte pseudo-linus: o GNU cita o argumento com o `quote()` do gnulib (`‘abc’`).
+            let input = crate::display::locale_quote(input);
             match e {
                 ExtendedParserError::Overflow(v) | ExtendedParserError::Underflow(v) => {
-                    show_error!("{}: Numerical result out of range", input.quote());
+                    show_error!("{input}: Numerical result out of range");
                     v
                 }
                 ExtendedParserError::NotNumeric => {
-                    show_error!("{}: expected a numeric value", input.quote());
+                    show_error!("{input}: expected a numeric value");
                     Default::default()
                 }
                 ExtendedParserError::PartialMatch(v, rest) => {
@@ -232,7 +231,7 @@ fn extract_value<T: Default>(
                             );
                         }
                     } else {
-                        show_error!("{}: value not completely converted", input.quote());
+                        show_error!("{input}: value not completely converted");
                     }
 
                     v

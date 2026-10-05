@@ -360,7 +360,9 @@ fn score_cases(cand: &dyn Candidate, cases: &[(harness::Case, Outcome)]) -> (Con
             },
             Err(e) => Outcome::unsupported(format!("caso inválido: {e}")),
         };
-        let cmp = if case.tags.iter().any(|t| t == ORDER_INSENSITIVE) {
+        // Os casos de `shuf` do corpus usam a tag `unordered` ("a bancada compara stdout como
+        // multiconjunto de linhas", ver o cabeçalho de textmisc.toml): vale o mesmo que `order-insensitive`.
+        let cmp = if case.tags.iter().any(|t| t == ORDER_INSENSITIVE || t == "unordered") {
             let mut g = golden.clone();
             let mut a = actual;
             g.stdout = sorted_lines(&g.stdout);

@@ -223,16 +223,11 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
 
     // Update the settings from the command line options, and terminate the
     // program if some options could not successfully be parsed.
-    let parse_errors = helper::parse_options(&mut settings, &matches);
+    // Porte pseudo-linus: cada opção é validada com a mensagem do GNU antes de ser aplicada.
+    let numbers = helper::validate_options(&matches)?;
+    let parse_errors = helper::parse_options(&mut settings, &matches, &numbers);
     if !parse_errors.is_empty() {
-        return Err(USimpleError::new(
-            1,
-            format!(
-                "{}\n{}",
-                translate!("nl-error-invalid-arguments"),
-                parse_errors.join("\n")
-            ),
-        ));
+        return Err(USimpleError::new(1, parse_errors.join("\n")));
     }
 
     let files: Vec<OsString> = match matches.get_many::<OsString>(options::FILE) {
@@ -331,7 +326,7 @@ pub fn uu_app() -> Command {
                 .long(options::LINE_INCREMENT)
                 .help(translate!("nl-help-line-increment"))
                 .value_name("NUMBER")
-                .value_parser(clap::value_parser!(i64)),
+                .allow_hyphen_values(true),
         )
         .arg(
             Arg::new(options::JOIN_BLANK_LINES)
@@ -339,15 +334,14 @@ pub fn uu_app() -> Command {
                 .long(options::JOIN_BLANK_LINES)
                 .help(translate!("nl-help-join-blank-lines"))
                 .value_name("NUMBER")
-                .value_parser(clap::value_parser!(u64)),
+                .allow_hyphen_values(true),
         )
         .arg(
             Arg::new(options::NUMBER_FORMAT)
                 .short('n')
                 .long(options::NUMBER_FORMAT)
                 .help(translate!("nl-help-number-format"))
-                .value_name("FORMAT")
-                .value_parser(["ln", "rn", "rz"]),
+                .value_name("FORMAT"),
         )
         .arg(
             Arg::new(options::NO_RENUMBER)
@@ -370,7 +364,7 @@ pub fn uu_app() -> Command {
                 .long(options::STARTING_LINE_NUMBER)
                 .help(translate!("nl-help-starting-line-number"))
                 .value_name("NUMBER")
-                .value_parser(clap::value_parser!(i64)),
+                .allow_hyphen_values(true),
         )
         .arg(
             Arg::new(options::NUMBER_WIDTH)
@@ -378,7 +372,7 @@ pub fn uu_app() -> Command {
                 .long(options::NUMBER_WIDTH)
                 .help(translate!("nl-help-number-width"))
                 .value_name("NUMBER")
-                .value_parser(clap::value_parser!(u64).range(1..=(i32::MAX as u64))),
+                .allow_hyphen_values(true),
         )
 }
 

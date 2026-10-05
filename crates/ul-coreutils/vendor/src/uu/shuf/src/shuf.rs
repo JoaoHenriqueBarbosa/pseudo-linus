@@ -79,8 +79,14 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
                 .cloned()
                 .collect(),
         )
-    } else if let Some(range) = matches.get_one(options::INPUT_RANGE).cloned() {
-        Mode::InputRange(range)
+    } else if let Some(range) = matches.get_one::<String>(options::INPUT_RANGE) {
+        // Porte pseudo-linus: o GNU diz `invalid input range: ‘5-1’` pra qualquer intervalo ruim.
+        Mode::InputRange(parse_range(range).map_err(|_| {
+            USimpleError::new(
+                1,
+                format!("invalid input range: {}", uucore::display::locale_quote(range.as_str())),
+            )
+        })?)
     } else {
         let mut operands = matches
             .get_many::<OsString>(options::FILE_OR_ARGS)
@@ -109,9 +115,11 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         // Busybox takes the final value which is more typical: later
         // options override earlier options.
         head_count: matches
-            .get_many::<u64>(options::HEAD_COUNT)
+            .get_many::<String>(options::HEAD_COUNT)
             .unwrap_or_default()
-            .copied()
+            .map(|text| parse_count(text))
+            .collect::<UResult<Vec<u64>>>()?
+            .into_iter()
             .min()
             .unwrap_or(u64::MAX),
         output: matches.get_one(options::OUTPUT).cloned(),
@@ -198,7 +206,6 @@ pub fn uu_app() -> Command {
                 .long(options::INPUT_RANGE)
                 .value_name("LO-HI")
                 .help(translate!("shuf-help-input-range"))
-                .value_parser(parse_range)
                 .conflicts_with(options::FILE_OR_ARGS),
         )
         .arg(
@@ -207,8 +214,7 @@ pub fn uu_app() -> Command {
                 .long(options::HEAD_COUNT)
                 .value_name("COUNT")
                 .action(ArgAction::Append)
-                .help(translate!("shuf-help-head-count"))
-                .value_parser(u64::from_str),
+                .help(translate!("shuf-help-head-count")),
         )
         .arg(
             Arg::new(options::OUTPUT)
@@ -444,6 +450,20 @@ fn shuf_exec(
     output.flush().map_err(handle_write_error)?;
 
     Ok(())
+}
+
+/// Porte pseudo-linus: `-n COUNT`: dígitos (com `+` opcional), e um número grande demais vale o
+/// máximo, como no GNU; o resto é `invalid line count: ‘x’`.
+fn parse_count(text: &str) -> UResult<u64> {
+    let digits = text.strip_prefix('+').unwrap_or(text);
+    if !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()) {
+        Ok(digits.parse::<u64>().unwrap_or(u64::MAX))
+    } else {
+        Err(USimpleError::new(
+            1,
+            format!("invalid line count: {}", uucore::display::locale_quote(text)),
+        ))
+    }
 }
 
 fn parse_range(input_range: &str) -> Result<RangeInclusive<u64>, String> {

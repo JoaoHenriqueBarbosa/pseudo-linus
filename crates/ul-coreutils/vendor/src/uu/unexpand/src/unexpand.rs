@@ -171,7 +171,10 @@ impl Options {
 
         let aflag = (matches.get_flag(options::ALL) || matches.contains_id(options::TABS))
             && !matches.get_flag(options::FIRST_ONLY);
-        let utf8 = !matches.get_flag(options::NO_UTF8);
+        // Porte pseudo-linus: o `unexpand` do GNU 9.7 conta um byte por coluna (um `ç` vale duas);
+        // o tratamento multibyte do uutils é de versões novas do GNU. `-U` continua aceito.
+        let utf8 = false;
+        let _ = matches.get_flag(options::NO_UTF8);
         #[allow(clippy::unwrap_used, reason = "clap provides '-' by default")]
         let files = matches
             .get_many::<OsString>(options::FILE)

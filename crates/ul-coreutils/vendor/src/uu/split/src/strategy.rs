@@ -252,6 +252,11 @@ impl StrategyError {
 impl Strategy {
     /// Parse a strategy from the command-line arguments.
     pub fn from(matches: &ArgMatches, obs_lines: Option<&str>) -> Result<Self, StrategyError> {
+        // Porte pseudo-linus: o GNU diz `invalid number of lines: ‘x’` (o `quote()` do gnulib) pra
+        // qualquer falha do valor: sintaxe, sufixo, estouro ou zero.
+        fn bad_size(s: &str) -> ParseSizeError {
+            ParseSizeError::ParseFailure(uucore::display::locale_quote(s))
+        }
         fn get_and_parse(
             matches: &ArgMatches,
             option: &'static str,
@@ -263,11 +268,11 @@ impl Strategy {
             // `None` for a size that did not come from an option, such as the
             // obsolete `split -22` spelling: there is nothing to point at.
             let origin = || Some(OptionValue::new(s, short, option));
-            let n = parse_size_u64_max(s).map_err(|e| error(e, origin()))?;
+            let n = parse_size_u64_max(s).map_err(|_| error(bad_size(s), origin()))?;
             if n > 0 {
                 Ok(strategy(n))
             } else {
-                Err(error(ParseSizeError::ParseFailure(s.to_owned()), origin()))
+                Err(error(bad_size(s), origin()))
             }
         }
         // Check that the user is not specifying more than one strategy.
@@ -282,16 +287,12 @@ impl Strategy {
             matches.value_source(options::NUMBER) == Some(ValueSource::CommandLine),
         ) {
             (Some(v), false, false, false, false) => {
-                let v = parse_size_u64_max(v).map_err(|_| {
-                    StrategyError::Lines(ParseSizeError::ParseFailure(v.to_string()), None)
-                })?;
-                if v > 0 {
-                    Ok(Self::Lines(v))
+                let n = parse_size_u64_max(v)
+                    .map_err(|_| StrategyError::Lines(bad_size(v), None))?;
+                if n > 0 {
+                    Ok(Self::Lines(n))
                 } else {
-                    Err(StrategyError::Lines(
-                        ParseSizeError::ParseFailure(v.to_string()),
-                        None,
-                    ))
+                    Err(StrategyError::Lines(bad_size(v), None))
                 }
             }
             (None, false, false, false, false) => Ok(Self::Lines(1000)),

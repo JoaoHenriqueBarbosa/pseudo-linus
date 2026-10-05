@@ -442,7 +442,8 @@ pub enum ChecksumError {
     // --length sanitization errors
     #[error("{}", translate_text!("checksum-error-length-required", "algorithm" => _0.quote()))]
     LengthRequired(String),
-    #[error("{}", translate_text!("checksum-error-invalid-length", "length" => _0.quote()))]
+    // Porte pseudo-linus: o GNU cita o comprimento com o `quote()` do gnulib (`‘13’`).
+    #[error("{}", translate_text!("checksum-error-invalid-length", "length" => crate::display::locale_quote(_0)))]
     InvalidLength(String),
     #[error("{}", translate_text!("checksum-error-length-too-big-for-blake", "algorithm" => _0.quote()))]
     LengthTooBigForBlake(String),

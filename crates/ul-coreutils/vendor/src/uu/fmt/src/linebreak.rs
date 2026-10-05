@@ -6,6 +6,10 @@
 // spell-checker:ignore (ToDO) INFTY MULT accum breakwords linebreak linebreaking linebreaks linelen maxlength minlength nchars ostream overlen parasplit plass posn powf punct signum slen sstart tabwidth tlen underlen winfo wlen wordlen
 
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
+// Porte pseudo-linus: o algoritmo de Knuth-Plass do uutils ficou sem uso (o GNU quebra as linhas
+// por outro custo); as funções dele continuam no arquivo.
+#![allow(dead_code)]
+
 use sysio::io::{BufWriter, Stdout, Write};
 use std::mem;
 
@@ -140,7 +144,8 @@ fn break_knuth_plass<'a, T: Clone + Iterator<Item = &'a WordInfo<'a>>>(
     args: &mut BreakArgs<'a>,
 ) -> sysio::io::Result<()> {
     // run the algorithm to get the breakpoints
-    let breakpoints = find_kp_breakpoints(iter.clone(), args);
+    // Porte pseudo-linus: a quebra ótima é a do GNU (ver `find_gnu_breakpoints`).
+    let breakpoints = find_gnu_breakpoints(iter.clone(), args);
 
     // iterate through the breakpoints (note that breakpoints is in reverse break order, so we .rev() it
     let result: sysio::io::Result<(bool, bool)> = breakpoints.iter().rev().try_fold(
@@ -213,6 +218,145 @@ struct LineBreak<'a> {
     prev_rat: f32,
     length: usize,
     fresh: bool,
+}
+
+// Porte pseudo-linus: a quebra ótima do `fmt` do GNU 9.7 (programação dinâmica de trás pra frente,
+// com custo quadrático em relação à meta, penalidade de irregularidade entre linhas consecutivas e
+// bônus e multas por fim de sentença). As constantes foram medidas contra o oráculo, não lidas do
+// GNU: a forma é a do GNU, os números são o que reproduz a saída dele.
+const SENTENCE_BONUS: i64 = 25;
+const NOBREAK_COST: i64 = 600;
+const WIDOW_COST_NUM: i64 = 400;
+const ORPHAN_COST_NUM: i64 = 300;
+
+/// Custo da linha de comprimento `len` que termina antes da palavra `next` (índice em `0..=total`,
+/// onde `total` é o fim do parágrafo e a última linha sai de graça).
+fn gnu_line_cost(
+    next: usize,
+    total: usize,
+    len: i64,
+    goal: i64,
+    next_break: &[usize],
+    line_length: &[i64],
+) -> i64 {
+    if next == total {
+        return 0;
+    }
+    let short = goal - len;
+    // Passar da meta custa mais do que ficar aquém dela.
+    let mut cost = short * short * if short < 0 { 2 } else { 1 };
+    if next_break[next] != total {
+        let ragged = len - line_length[next];
+        cost += ragged * ragged / 2;
+    }
+    cost
+}
+
+/// Custo de abrir uma linha na palavra `this`, olhando a pontuação em volta.
+fn gnu_base_cost(
+    this: usize,
+    total: usize,
+    period: &[bool],
+    sentence_end: &[bool],
+    length: &[i64],
+    next_break: &[usize],
+) -> i64 {
+    let mut cost = 0;
+    if this > 0 {
+        if period[this - 1] {
+            if sentence_end[this - 1] {
+                cost -= SENTENCE_BONUS;
+            } else {
+                cost += NOBREAK_COST;
+            }
+        } else if this > 1 && sentence_end[this - 2] {
+            cost += WIDOW_COST_NUM / (length[this - 1] + 2);
+        }
+    }
+    if this < total && sentence_end[this] && next_break[this] == this + 1 {
+        cost += ORPHAN_COST_NUM / (length[this] + 2);
+    }
+    cost
+}
+
+/// Acha as quebras de linha ótimas: devolve, do último pro primeiro, as palavras que abrem uma
+/// linha nova (a primeira linha não entra).
+fn find_gnu_breakpoints<'a, T: Iterator<Item = &'a WordInfo<'a>>>(
+    iter: T,
+    args: &BreakArgs<'a>,
+) -> Vec<(&'a WordInfo<'a>, bool)> {
+    // `rest[j - 1]` é a palavra `j`; a palavra 0 é a primeira, que o chamador já escreveu.
+    let rest: Vec<&'a WordInfo<'a>> = iter.collect();
+    if rest.is_empty() {
+        return Vec::new();
+    }
+    let total = rest.len() + 1;
+    let goal = args.opts.goal as i64;
+
+    let mut sentence_end = vec![false; total];
+    let mut period = vec![false; total];
+    let mut length = vec![0_i64; total];
+    length[0] = args.init_len.saturating_sub(args.indent_len) as i64;
+    for j in 1..total {
+        let word = rest[j - 1];
+        period[j] = word.ends_punct;
+        length[j] = word.word_nchars as i64;
+        sentence_end[j] = match rest.get(j) {
+            None => true,
+            Some(next) => next.sentence_start || (next.new_line && word.ends_punct),
+        };
+    }
+    sentence_end[0] = total == 1;
+
+    // Espaço antes de cada palavra, como o GNU pós-fixa: depende só do fim de sentença anterior.
+    let mut slen = vec![0_usize; total];
+    for j in 1..total {
+        slen[j] = compute_slen(args.uniform, rest[j - 1].new_line, sentence_end[j - 1], false);
+    }
+
+    let mut best_cost = vec![0_i64; total + 1];
+    let mut next_break = vec![total; total + 1];
+    let mut line_length = vec![0_i64; total + 1];
+
+    for start in (0..total).rev() {
+        let mut best = i64::MAX;
+        let mut len = if start == 0 {
+            args.init_len
+        } else {
+            args.indent_len + rest[start - 1].word_nchars
+        };
+        let mut w = start;
+        loop {
+            w += 1;
+            // Considera quebrar antes de `w`.
+            let cost = gnu_line_cost(w, total, len as i64, goal, &next_break, &line_length)
+                + best_cost[w];
+            if cost < best {
+                best = cost;
+                next_break[start] = w;
+                line_length[start] = len as i64;
+            }
+            if w == total {
+                break;
+            }
+            let word = rest[w - 1];
+            len += slen[w] + args.compute_width(word, len, false) + word.word_nchars;
+            if len >= args.opts.width {
+                break;
+            }
+        }
+        best_cost[start] = best
+            + gnu_base_cost(start, total, &period, &sentence_end, &length, &next_break);
+    }
+
+    let mut breaks = Vec::new();
+    let mut i = next_break[0];
+    while i < total {
+        breaks.push((rest[i - 1], true));
+        i = next_break[i];
+    }
+    breaks.reverse();
+    breaks
 }
 
 #[allow(clippy::cognitive_complexity)]

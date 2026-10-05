@@ -437,6 +437,10 @@ impl CharCut<'_> {
     }
 }
 
+/// Porte pseudo-linus: o GNU 9.7 corta por bytes também com `-c`; ligar isto devolve o corte por
+/// caracteres do uutils.
+const GNU_CUT_MULTIBYTE: bool = false;
+
 /// Cut `-c` (whole characters) or `-b -n` (bytes, keeping whole characters).
 ///
 /// In a single-byte locale, or for `-b` without `-n`, this falls back to the
@@ -450,6 +454,11 @@ fn cut_chars<R: Read, W: Write>(
     opts: &Options,
     by_char: bool,
 ) -> UResult<()> {
+    // Porte pseudo-linus: o `cut` do GNU 9.7 não tem suporte a multibyte: `-c` é sinônimo de `-b` e
+    // `-n` é ignorado, então tudo passa pelo caminho de bytes.
+    if !GNU_CUT_MULTIBYTE {
+        return cut_bytes(reader, out, ranges, opts);
+    }
     let encoding = locale_encoding();
     if encoding == Encoding::SingleByte || !(by_char || opts.suppress_split) {
         return cut_bytes(reader, out, ranges, opts);

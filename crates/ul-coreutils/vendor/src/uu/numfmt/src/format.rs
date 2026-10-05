@@ -6,7 +6,7 @@
 // spell-checker:ignore powf seps replacen
 
 // Porte pseudo-linus: E/S, FS, ambiente, processos e threads do pseudo-processo (sysio).
-use uucore::display::Quotable;
+use crate::Quotable;
 use uucore::i18n::decimal::{locale_decimal_separator, locale_grouping_separator};
 use uucore::translate;
 
@@ -556,7 +556,7 @@ fn consider_suffix(
         Unit::Iec(with_i) => (iec_bases_f64(), with_i),
         Unit::Auto => {
             return Err(
-                translate!("numfmt-error-invalid-unit-argument", "arg" => "auto", "opt" => "--to"),
+                translate!("numfmt-error-invalid-unit-argument", "arg" => "‘auto’", "opt" => "‘--to’"),
             );
         }
         Unit::None => return Ok((n, None)),
@@ -927,7 +927,7 @@ pub fn write_formatted_with_delimiter<W: sysio::io::Write + ?Sized>(
         if field_selected {
             // Field must be valid UTF-8 for numeric conversion
             let field_str = std::str::from_utf8(field)
-                .map_err(|_| translate!("numfmt-error-invalid-number", "input" => escape_line(field).quote()))?
+                .map_err(|_| translate!("numfmt-error-invalid-number", "input" => format!("\u{2018}{}\u{2019}", escape_line(field))))?
                 .trim_start();
             let formatted = format_string(field_str, options, None)?;
             writer.write_all(formatted.as_bytes()).unwrap();

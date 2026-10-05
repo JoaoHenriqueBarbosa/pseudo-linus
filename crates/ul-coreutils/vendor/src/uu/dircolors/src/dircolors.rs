@@ -10,18 +10,22 @@ use sysio::path::PathExt; // Porte pseudo-linus: métodos de Path sobre o FS do 
 use std::borrow::Borrow;
 use sysio::env;
 use std::ffi::OsString;
-use std::fmt::Write as _;
 use sysio::fs::File;
 use sysio::io::{BufRead, BufReader, Write, stdout};
 use std::path::Path;
 
 use clap::{Arg, ArgAction, Command};
-use uucore::colors::{FILE_ATTRIBUTE_CODES, FILE_COLORS, FILE_TYPES, TERMS};
+use uucore::colors::FILE_ATTRIBUTE_CODES;
 use uucore::display::Quotable;
-use uucore::error::{UResult, USimpleError, UUsageError};
+use uucore::error::{UResult, USimpleError, UUsageError, set_exit_code, strip_errno};
 use uucore::translate;
 
-use uucore::{format_usage, parser::parse_glob};
+use uucore::{format_usage, parser::parse_glob, show_error};
+
+/// Porte pseudo-linus: o banco de dados embutido do GNU 9.7 (o que `dircolors -p` imprime). Sem
+/// arquivo, o GNU passa este texto pelo mesmo analisador que usa nos arquivos do usuário, então os
+/// filtros `TERM` e `COLORTERM` valem também pra ele.
+const DATABASE: &str = include_str!("database.txt");
 
 mod options {
     pub const BOURNE_SHELL: &str = "bourne-shell";
@@ -70,49 +74,6 @@ fn get_colors_format_strings(fmt: &OutputFmt) -> (String, String) {
     (prefix, suffix)
 }
 
-fn generate_type_output(fmt: &OutputFmt) -> String {
-    match fmt {
-        OutputFmt::Display => FILE_TYPES
-            .iter()
-            .map(|&(_, key, val)| format!("\x1b[{val}m{key}\t{val}\x1b[0m"))
-            .collect::<Vec<String>>()
-            .join("\n"),
-        _ => {
-            // Existing logic for other formats
-            FILE_TYPES
-                .iter()
-                .map(|&(_, v1, v2)| format!("{v1}={v2}"))
-                .collect::<Vec<String>>()
-                .join(":")
-        }
-    }
-}
-
-fn generate_ls_colors(fmt: &OutputFmt, sep: &str) -> String {
-    if let OutputFmt::Display = fmt {
-        let mut display_parts = vec![];
-        let type_output = generate_type_output(fmt);
-        display_parts.push(type_output);
-        for &(extension, code) in FILE_COLORS {
-            let prefix = if extension.starts_with('*') { "" } else { "*" };
-            let formatted_extension = format!("\x1b[{code}m{prefix}{extension}\t{code}\x1b[0m");
-            display_parts.push(formatted_extension);
-        }
-        display_parts.join("\n")
-    } else {
-        // existing logic for other formats
-        let mut parts = vec![];
-        for &(extension, code) in FILE_COLORS {
-            let prefix = if extension.starts_with('*') { "" } else { "*" };
-            let formatted_extension = format!("{prefix}{extension}");
-            parts.push(format!("{formatted_extension}={code}"));
-        }
-        let (prefix, suffix) = get_colors_format_strings(fmt);
-        let ls_colors = parts.join(sep);
-        format!("{prefix}{}:{ls_colors}:{suffix}", generate_type_output(fmt))
-    }
-}
-
 #[uucore::main(no_signals)]
 pub fn uumain(args: impl uucore::Args) -> UResult<()> {
     let matches = uucore::clap_localization::handle_clap_result(uu_app(), args)?;
@@ -143,11 +104,12 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         if !files.is_empty() {
             return Err(UUsageError::new(
                 1,
-                translate!("dircolors-error-extra-operand-print-database", "operand" => files[0].quote()),
+                translate!("dircolors-error-extra-operand-print-database", "operand" => uucore::display::locale_quote(files[0])),
             ));
         }
 
-        writeln!(stdout(), "{}", generate_dircolors_config())?;
+        // Porte pseudo-linus: o banco embutido já termina em quebra de linha.
+        write!(stdout(), "{DATABASE}")?;
         return Ok(());
     }
 
@@ -165,17 +127,18 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
             })?
     };
 
-    match files.as_slice() {
-        [] => {
-            writeln!(stdout(), "{}", generate_ls_colors(&out_format, ":"))?;
-            Ok(())
+    let result = match files.as_slice() {
+        // Porte pseudo-linus: sem arquivo o GNU analisa o banco embutido, com os mesmos filtros de
+        // `TERM` e `COLORTERM` de um arquivo do usuário.
+        [] => parse(DATABASE.lines(), &out_format, "<internal>"),
+        [_file_arg, extra, ..] => {
+            return Err(UUsageError::new(
+                1,
+                translate!("dircolors-error-extra-operand", "operand" => uucore::display::locale_quote(*extra)),
+            ));
         }
-        [_file_arg, extra, ..] => Err(UUsageError::new(
-            1,
-            translate!("dircolors-error-extra-operand", "operand" => extra.quote()),
-        )),
         [file_arg] => {
-            let result = if *file_arg == "-" {
+            if *file_arg == "-" {
                 let fin = BufReader::new(sysio::io::stdin());
                 // For example, for echo "owt 40;33"|dircolors -b -
                 parse(fin.lines().map_while(Result::ok), &out_format, "-")
@@ -187,21 +150,27 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
                         translate!("dircolors-error-expected-file-got-directory", "path" => path.quote()),
                     ));
                 }
-                let file = File::open(path)
-                    .map_err(|e| USimpleError::new(1, format!("{}: {e}", path.maybe_quote())))?;
+                let file = File::open(path).map_err(|e| {
+                    USimpleError::new(1, format!("{}: {}", path.maybe_quote(), strip_errno(&e)))
+                })?;
                 let fin = BufReader::new(file);
                 parse(
                     fin.lines().map_while(Result::ok),
                     &out_format,
                     &path.to_string_lossy(),
                 )
-            };
-
-            let string = result.map_err(|s| USimpleError::new(1, s))?;
-            writeln!(stdout(), "{string}")?;
-            Ok(())
+            }
         }
+    };
+
+    // Porte pseudo-linus: com erro de sintaxe o GNU já avisou cada linha ruim, não escreve nada e
+    // sai com 1.
+    match result {
+        Some(string) if out_format == OutputFmt::Display => write!(stdout(), "{string}")?,
+        Some(string) => writeln!(stdout(), "{string}")?,
+        None => set_exit_code(1),
     }
+    Ok(())
 }
 
 pub fn uu_app() -> Command {
@@ -307,15 +276,25 @@ impl StrUtils for str {
     }
 }
 
-#[derive(PartialEq)]
+/// Estado do filtro de terminal (`TERM` e `COLORTERM`), como o GNU o mede.
+#[derive(PartialEq, Clone, Copy)]
 enum ParseState {
+    /// Antes de qualquer filtro: as entradas valem pra todo terminal.
     Global,
+    /// O último filtro casou e ainda não houve entrada depois dele (um filtro seguinte soma a ele).
     Matched,
+    /// O filtro casou e já houve entrada: um filtro seguinte abre uma condição nova.
     Continue,
+    /// O filtro não casou: as entradas são ignoradas até um filtro que case.
     Pass,
 }
 
-fn parse<T>(user_input: T, fmt: &OutputFmt, fp: &str) -> Result<String, String>
+/// Analisa o banco de cores (o embutido ou o arquivo do usuário) e devolve a saída pronta.
+///
+/// Porte pseudo-linus: como o GNU, avisa de cada linha ruim (`arquivo:linha: ...`) e segue em frente;
+/// com algum aviso devolve `None`, e quem chamou não escreve nada. Palavra-chave desconhecida só
+/// conta como erro depois do primeiro filtro de terminal.
+fn parse<T>(user_input: T, fmt: &OutputFmt, fp: &str) -> Option<String>
 where
     T: IntoIterator,
     T::Item: Borrow<str>,
@@ -330,7 +309,7 @@ where
     let colorterm = env::var("COLORTERM").unwrap_or_default();
 
     let mut state = ParseState::Global;
-    let mut saw_colorterm_match = false;
+    let mut ok = true;
 
     for (num, line) in (1..).zip(user_input) {
         let line = line.borrow().purify();
@@ -342,63 +321,58 @@ where
 
         let (key, val) = line.split_two();
         if val.is_empty() {
-            return Err(
-                translate!("dircolors-error-invalid-line-missing-token", "file" => fp.maybe_quote(), "line" => num),
+            show_error!(
+                "{}",
+                translate!("dircolors-error-invalid-line-missing-token", "file" => fp.maybe_quote(), "line" => num)
             );
+            ok = false;
+            continue;
         }
 
         let lower = key.to_lowercase();
         match lower.as_str() {
-            "term" => {
-                if term.fnmatch(val) {
-                    state = ParseState::Matched;
-                } else if state == ParseState::Global {
-                    state = ParseState::Pass;
-                }
-            }
-            "colorterm" => {
-                // For COLORTERM ?*, only match if COLORTERM is non-empty
-                let matches = if val == "?*" {
+            "term" | "colorterm" => {
+                let matched = if lower == "term" {
+                    term.fnmatch(val)
+                } else if val == "?*" {
+                    // For COLORTERM ?*, only match if COLORTERM is non-empty
                     !colorterm.is_empty()
                 } else {
                     colorterm.fnmatch(val)
                 };
-                if matches {
-                    state = ParseState::Matched;
-                    saw_colorterm_match = true;
-                } else if !saw_colorterm_match && state == ParseState::Global {
-                    state = ParseState::Pass;
-                }
+                state = if matched {
+                    ParseState::Matched
+                } else if state == ParseState::Global || state == ParseState::Continue {
+                    ParseState::Pass
+                } else {
+                    state
+                };
             }
             _ => {
                 if state == ParseState::Matched {
-                    // prevent subsequent mismatched TERM from
-                    // cancelling the input
                     state = ParseState::Continue;
                 }
-                if state != ParseState::Pass {
-                    append_entry(&mut result, fmt, key, &lower, val)?;
+                if state != ParseState::Pass
+                    && !append_entry(&mut result, fmt, key, &lower, val)
+                    && state != ParseState::Global
+                {
+                    show_error!(
+                        "{}",
+                        translate!("dircolors-error-unrecognized-keyword", "file" => fp.maybe_quote(), "line" => num, "keyword" => key)
+                    );
+                    ok = false;
                 }
             }
         }
     }
 
-    if fmt == &OutputFmt::Display {
-        // remove latest "\n"
-        result.pop();
-    }
     result.push_str(&suffix);
 
-    Ok(result)
+    ok.then_some(result)
 }
 
-fn append_entry(
-    result: &mut String,
-    fmt: &OutputFmt,
-    key: &str,
-    lower: &str,
-    val: &str,
-) -> Result<(), String> {
+/// Acrescenta uma entrada à saída; `false` quando a palavra-chave não existe.
+fn append_entry(result: &mut String, fmt: &OutputFmt, key: &str, lower: &str, val: &str) -> bool {
     if key.starts_with(['.', '*']) {
         let entry = if key.starts_with('.') {
             format!("*{key}")
@@ -411,11 +385,11 @@ fn append_entry(
             format!("{entry}={val}:")
         };
         result.push_str(&disp);
-        return Ok(());
+        return true;
     }
 
     match lower {
-        "options" | "color" | "eightbit" => Ok(()), // Slackware only, ignore
+        "options" | "color" | "eightbit" => true, // Slackware only, ignore
         _ => {
             if let Some((_, s)) = FILE_ATTRIBUTE_CODES.iter().find(|&&(key, _)| key == lower) {
                 let disp = if *fmt == OutputFmt::Display {
@@ -424,9 +398,9 @@ fn append_entry(
                     format!("{s}={val}:")
                 };
                 result.push_str(&disp);
-                Ok(())
+                true
             } else {
-                Err(translate!("dircolors-error-unrecognized-keyword", "keyword" => key))
+                false
             }
         }
     }
@@ -451,58 +425,6 @@ fn escape(s: &str) -> String {
     }
 
     result
-}
-
-fn generate_dircolors_config() -> String {
-    let mut config = String::new();
-
-    config.push_str(
-        "\
-         # Configuration file for dircolors, a utility to help you set the\n\
-         # LS_COLORS environment variable used by GNU ls with the --color option.\n\
-         # The keywords COLOR, OPTIONS, and EIGHTBIT (honored by the\n\
-         # slackware version of dircolors) are recognized but ignored.\n\
-         # Global config options can be specified before TERM or COLORTERM entries\n\
-         # Below are TERM or COLORTERM entries, which can be glob patterns, which\n\
-         # restrict following config to systems with matching environment variables.\n\
-        ",
-    );
-    config.push_str("COLORTERM ?*\n");
-    for term in TERMS {
-        let _ = writeln!(config, "TERM {term}");
-    }
-
-    config.push_str(
-        "\
-        # Below are the color init strings for the basic file types.\n\
-        # One can use codes for 256 or more colors supported by modern terminals.\n\
-        # The default color codes use the capabilities of an 8 color terminal\n\
-        # with some additional attributes as per the following codes:\n\
-        # Attribute codes:\n\
-        # 00=none 01=bold 04=underscore 05=blink 07=reverse 08=concealed\n\
-        # Text color codes:\n\
-        # 30=black 31=red 32=green 33=yellow 34=blue 35=magenta 36=cyan 37=white\n\
-        # Background color codes:\n\
-        # 40=black 41=red 42=green 43=yellow 44=blue 45=magenta 46=cyan 47=white\n\
-        #NORMAL 00 # no color code at all\n\
-        #FILE 00 # regular file: use no color at all\n\
-        ",
-    );
-
-    for (name, _, code) in FILE_TYPES {
-        let _ = writeln!(config, "{name} {code}");
-    }
-
-    config.push_str("# List any file extensions like '.gz' or '.tar' that you would like ls\n");
-    config.push_str("# to color below. Put the extension, a space, and the color init string.\n");
-
-    for (ext, color) in FILE_COLORS {
-        let _ = writeln!(config, "{ext} {color}");
-    }
-    config.push_str("# Subsequent TERM or COLORTERM entries, can be used to add / override\n");
-    config.push_str("# config specific to those matching environment variables.");
-
-    config
 }
 
 #[cfg(test)]

@@ -98,7 +98,9 @@ pub fn enabled() -> bool {
     match MODE.get_or_init(|| Mode::from_env(env::var_os(MODE_VAR).as_deref())) {
         Mode::Always => true,
         Mode::Never => false,
-        Mode::Auto => std::io::stderr().is_terminal(),
+        // Porte pseudo-linus: o GNU não desenha o caret; só `UUTILS_DIAG=always` o liga. E o stderr
+        // do host não diz nada sobre o do pseudo-processo.
+        Mode::Auto => false,
     }
 }
 
