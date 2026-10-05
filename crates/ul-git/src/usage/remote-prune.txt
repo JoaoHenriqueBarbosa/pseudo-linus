@@ -1,0 +1,4 @@
+usage: git remote prune [<options>] <name>
+
+    -n, --[no-]dry-run    dry run
+

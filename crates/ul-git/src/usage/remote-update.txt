@@ -1,0 +1,4 @@
+usage: git remote update [<options>] [<group> | <remote>]...
+
+    -p, --[no-]prune      prune remotes after fetching
+

@@ -1,0 +1,4 @@
+usage: git remote show [<options>] <name>
+
+    -n                    do not query remotes
+

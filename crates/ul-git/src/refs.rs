@@ -450,8 +450,11 @@ impl Repo {
         let log = self.log_file(name);
         let _ = os::unlink(&log);
         let base = if is_per_worktree(name) { self.git_dir.clone() } else { self.common_dir.clone() };
-        os::remove_empty_parents(os::dirname(&path), &os::join(&base, b"refs"));
-        os::remove_empty_parents(os::dirname(&log), &os::join(&base, b"logs/refs"));
+        // Como o `try_remove_empty_parents`: os dois primeiros componentes (`refs/heads`,
+        // `refs/remotes`) nunca somem.
+        let top: String = name.splitn(3, '/').take(2).collect::<Vec<_>>().join("/");
+        os::remove_empty_parents(os::dirname(&path), &os::join(&base, top.as_bytes()));
+        os::remove_empty_parents(os::dirname(&log), &os::join(&os::join(&base, b"logs"), top.as_bytes()));
         Ok(())
     }
 
