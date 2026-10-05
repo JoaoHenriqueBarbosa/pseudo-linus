@@ -17,6 +17,7 @@ pub mod hash;
 pub mod ident;
 pub mod ignore;
 pub mod index;
+pub mod merge;
 pub mod msg;
 pub mod object;
 pub mod odb;
@@ -32,6 +33,7 @@ pub mod store;
 pub mod usage;
 pub mod wildmatch;
 pub mod worktree;
+pub mod xmerge;
 
 use std::ffi::OsString;
 

@@ -23,6 +23,7 @@ pub fn of(cmd: &str) -> &'static str {
         "cherry" => include_str!("usage/cherry.txt"),
         "clean" => include_str!("usage/clean.txt"),
         "clone" => include_str!("usage/clone.txt"),
+        "column" => include_str!("usage/column.txt"),
         "commit-tree" => include_str!("usage/commit-tree.txt"),
         "commit" => include_str!("usage/commit.txt"),
         "config" => include_str!("usage/config.txt"),

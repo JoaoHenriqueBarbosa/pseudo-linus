@@ -40,6 +40,11 @@ const SPECS: &[Spec] = &[
     opts::flag(None, "status", "status"),
 ];
 
+/// O aviso de um cherry-pick que ficou vazio (`empty_cherry_pick_advice` do git).
+const EMPTY_CHERRY_PICK_ADVICE: &str = "The previous cherry-pick is now empty, possibly due to conflict resolution.\nIf you wish to commit it anyway, use:\n\n    git commit --allow-empty\n\n";
+const EMPTY_CHERRY_PICK_ADVICE_SINGLE: &str = "Otherwise, please use 'git cherry-pick --skip'\n";
+const EMPTY_CHERRY_PICK_ADVICE_MULTI: &str = "and then use:\n\n    git cherry-pick --continue\n\nto resume cherry-picking the remaining commits.\nIf you wish to skip this commit, use:\n\n    git cherry-pick --skip\n\n";
+
 /// Pasta dos hooks (`core.hooksPath` ou `<repositório>/hooks`).
 fn hooks_dir(repo: &Repo) -> Vec<u8> {
     match repo.config.get_bytes("core.hookspath") {
@@ -112,7 +117,7 @@ fn stage_paths(repo: &Repo, idx: &mut Index, ps: &Pathspec, head_tree: Option<&O
 }
 
 /// `Signed-off-by:` no fim da mensagem: sem linha em branco se o último parágrafo já é de trailers.
-fn append_signoff(msg: &mut Vec<u8>, who: &Ident) {
+pub fn append_signoff(msg: &mut Vec<u8>, who: &Ident) {
     let mut line = b"Signed-off-by: ".to_vec();
     line.extend_from_slice(&who.name_email());
     let keep = object::rtrim(msg).len();
@@ -172,6 +177,12 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         return Err(Fail::Fatal(format!("paths '{}' with -a does not make sense", names.join(" "))));
     }
     let merge_head = os::read_opt(&repo.path("MERGE_HEAD")).ok().flatten();
+    // `CHERRY_PICK_HEAD`: um cherry-pick parou e este commit o conclui (autor e reflog diferentes).
+    let cherry_pick_head: Option<Oid> = match os::read_opt(&repo.path("CHERRY_PICK_HEAD")).ok().flatten() {
+        Some(data) if merge_head.is_none() => Oid::from_hex(object::trim_ascii(&data)),
+        _ => None,
+    };
+    let cherry_pick = cherry_pick_head.is_some();
     let head = repo.head_oid()?;
     let head_commit: Option<Commit> = match head {
         Some(h) => Some(repo.read_commit(&h)?),
@@ -186,7 +197,14 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         }
     }
     let head_tree = head_commit.as_ref().map(|c| c.tree);
-
+    if !p.args.is_empty() && !all && !p.has("include") {
+        if merge_head.is_some() {
+            return Err(Fail::Fatal("cannot do a partial commit during a merge.".into()));
+        }
+        if cherry_pick {
+            return Err(Fail::Fatal("cannot do a partial commit during a cherry-pick.".into()));
+        }
+    }
     // O índice que vai virar a tree.
     let ipath = repo.index_path();
     let mut idx = Index::load(&ipath)?;
@@ -202,6 +220,17 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     }
     let tree_idx: &Index = commit_idx.as_ref().unwrap_or(&idx);
     if tree_idx.has_conflicts() {
+        // O refresh do índice lista os caminhos em conflito (`U<TAB>caminho`) antes do erro.
+        let mut listing = String::new();
+        let mut last: Option<Vec<u8>> = None;
+        for path in tree_idx.unmerged_paths() {
+            if last.as_ref() == Some(&path) {
+                continue;
+            }
+            listing.push_str(&format!("U\t{}\n", os::lossy(&path)));
+            last = Some(path);
+        }
+        os::outs(&listing);
         error("Committing is not possible because you have unmerged files.");
         hint("Fix them up in the work tree, and then use 'git add/rm <file>'\nas appropriate to mark resolution and make a commit.");
         return Err(Fail::Fatal("Exiting because of an unresolved conflict.".into()));
@@ -236,15 +265,32 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     };
     if nothing && !amend && !p.has("allow-empty") && merge_head.is_none() {
         status::print_for_commit(repo)?;
+        if cherry_pick {
+            os::errs(EMPTY_CHERRY_PICK_ADVICE);
+            if os::exists(&repo.path("sequencer")) {
+                os::errs(EMPTY_CHERRY_PICK_ADVICE_MULTI);
+            } else {
+                os::errs(EMPTY_CHERRY_PICK_ADVICE_SINGLE);
+            }
+        }
         return Ok(1);
     }
 
     // Quem assina.
     let committer = ident::ident(&repo.config, Who::Committer, true)?;
     let date_given = p.value("date").is_some();
-    let mut author = match (&head_commit, amend && !p.has("reset-author")) {
-        (Some(c), true) => c.author_ident(),
-        _ => ident::ident(&repo.config, Who::Author, true)?,
+    // Concluindo um cherry-pick, o autor (e a data) são os do commit escolhido.
+    let author_from_pick: Option<Ident> = match cherry_pick_head {
+        Some(cp) if !amend && !p.has("reset-author") => Some(repo.read_commit(&cp)?.author_ident()),
+        _ => None,
+    };
+    let from_pick = author_from_pick.is_some();
+    let mut author = match author_from_pick {
+        Some(a) => a,
+        None => match (&head_commit, amend && !p.has("reset-author")) {
+            (Some(c), true) => c.author_ident(),
+            _ => ident::ident(&repo.config, Who::Author, true)?,
+        },
     };
     if let Some(a) = p.value("author") {
         let (name, email) = parse_author(a)?;
@@ -283,6 +329,8 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
                 head_commit.as_ref().map(|c| c.message.clone()).unwrap_or_default()
             } else if let Ok(Some(m)) = os::read_opt(&repo.path("MERGE_MSG")) {
                 m
+            } else if let Ok(Some(m)) = os::read_opt(&repo.path("SQUASH_MSG")) {
+                m
             } else {
                 Vec::new()
             }
@@ -301,7 +349,10 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         );
         text.extend_from_slice(&status::commit_template(repo, &Pathspec::default())?);
         os::write(&editmsg, &text, 0o666).map_err(|e| Fail::Fatal(format!("could not write '{}': {}", os::lossy(&editmsg), e.message())))?;
-        editor::edit_file(&repo.config, &editmsg)?;
+        if editor::edit_file(&repo.config, &editmsg).is_err() {
+            os::errs("Please supply the message using either -m or -F option.\n");
+            return Ok(1);
+        }
         message = os::read(&editmsg).map_err(|e| Fail::Fatal(format!("could not read '{}': {}", os::lossy(&editmsg), e.message())))?;
         edited = true;
     }
@@ -365,6 +416,8 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
         "commit (merge)"
     } else if parents.is_empty() {
         "commit (initial)"
+    } else if cherry_pick {
+        "commit (cherry-pick)"
     } else {
         "commit"
     };
@@ -372,18 +425,20 @@ pub fn run(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     if index_dirty {
         idx.write(&ipath)?;
     }
-    for name in ["MERGE_HEAD", "MERGE_MSG", "MERGE_MODE"] {
+    // O `CHERRY_PICK_HEAD` e o `REVERT_HEAD` saem (e a fila do sequenciador, se este era o último).
+    for name in ["MERGE_HEAD", "MERGE_MSG", "MERGE_MODE", "SQUASH_MSG", "AUTO_MERGE"] {
         let _ = os::unlink(&repo.path(name));
     }
+    super::revert::post_commit_cleanup(repo, false);
     editor::run_hook(&hooks, "post-commit", &[], &[])?;
     if !quiet {
-        print_summary(repo, &id, &commit, &author, &committer, amend || date_given)?;
+        print_summary(repo, &id, &commit, &author, &committer, amend || date_given || from_pick)?;
     }
     Ok(0)
 }
 
 /// `[ramo (root-commit) abc1234] assunto`, autor se difere, data se importa e o resumo da mudança.
-fn print_summary(repo: &Repo, id: &Oid, commit: &Commit, author: &Ident, committer: &Ident, show_date: bool) -> R<()> {
+pub(crate) fn print_summary(repo: &Repo, id: &Oid, commit: &Commit, author: &Ident, committer: &Ident, show_date: bool) -> R<()> {
     let place = match repo.head()? {
         Head::Branch(name, _) => name.strip_prefix("refs/heads/").unwrap_or(&name).to_string(),
         Head::Detached(_) => "detached HEAD".to_string(),

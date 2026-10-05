@@ -1,0 +1,80 @@
+{
+  "git-column": {
+    "stdout": "1  4  7  10 13 16 19 22 25 28\n2  5  8  11 14 17 20 23 26 29\n3  6  9  12 15 18 21 24 27 30\n1  2  3  4  5  6\n7  8  9  10 11 12\na\nbb\nccc\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-merge-adds-on-both-sides": {
+    "stdout": "Merge made by the 'ort' strategy.\n n | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 n\nexit=0\nf\ng\nn\n100644 78981922613b2afb6025042ff6bd878ac1994e85 0\tf\n100644 61780798228d17af2d34fce4cfbdf35556832472 0\tg\n100644 8ba3a16384aacc37d01564b28401755ce8053f51 0\tn\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-merge-already-up-to-date": {
+    "stdout": "Already up to date.\nexit=0\nexit=1\n",
+    "stderr": "merge: nope - not something we can merge\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-merge-conflict-and-abort": {
+    "stdout": "Auto-merging f\nCONFLICT (content): Merge conflict in f\nAutomatic merge failed; fix conflicts and then commit the result.\nexit=1\n<<<<<<< HEAD\nmain\n=======\ntopic\n>>>>>>> topic\nOn branch main\nYou have unmerged paths.\n  (fix conflicts and run \"git commit\")\n  (use \"git merge --abort\" to abort the merge)\n\nUnmerged paths:\n  (use \"git add <file>...\" to mark resolution)\n\tboth modified:   f\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\nexit=0\nmain\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-merge-fast-forward": {
+    "stdout": "Updating acc56ec..8d8f20b\nFast-forward\n f | 1 +\n 1 file changed, 1 insertion(+)\nexit=0\n8d8f20b two\nacc56ec one\na\nb\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-merge-no-ff-clean": {
+    "stdout": "Merge made by the 'ort' strategy.\n f | 1 +\n 1 file changed, 1 insertion(+)\nexit=0\n63448a5 55c688b e796b0e Merge branch 'topic'\n55c688b c351f34 main\ne796b0e c351f34 topic\nc351f34  base\n1\n2\n3\n4\ny\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-remote-add-list-show": {
+    "stdout": "origin\nup\norigin\thttps://example.com/r.git (fetch)\norigin\thttps://example.com/r.git (push)\nup\t/srv/up.git (fetch)\nup\t/srv/up.git (push)\nhttps://example.com/r.git\n* remote origin\n  Fetch URL: https://example.com/r.git\n  Push  URL: https://example.com/r.git\n  HEAD branch: (not queried)\n  Local ref configured for 'git push' (status not queried):\n    (matching) pushes to (matching)\n[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n\tlogallrefupdates = true\n[remote \"origin\"]\n\turl = https://example.com/r.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n[remote \"up\"]\n\turl = /srv/up.git\n\tfetch = +refs/heads/*:refs/remotes/up/*\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-remote-rename-remove-errors": {
+    "stdout": "exit=0\nother\nexit=2\nexit=3\n/z.git\nexit=0\n",
+    "stderr": "error: No such remote: 'nope'\nerror: remote other already exists.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-revert-clean": {
+    "stdout": "[main f8558b2] Revert \"two\"\n Date: Thu Jan 15 12:00:00 2026 +0000\n 1 file changed, 1 deletion(-)\nexit=0\nRevert \"two\"\nThis reverts commit 8d8f20b0668787a8523f751a039a5b30e343b221.\n\na\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "git-revert-conflict-abort": {
+    "stdout": "Auto-merging f\nCONFLICT (content): Merge conflict in f\nexit=1\n<<<<<<< HEAD\nc\n=======\na\n>>>>>>> parent of eee234d (two)\nUU f\nexit=0\nc\n",
+    "stderr": "error: could not revert eee234d... two\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git revert --continue\".\nhint: You can instead skip this commit with \"git revert --skip\".\nhint: To abort and get back to the state before \"git revert\",\nhint: run \"git revert --abort\".\nhint: Disable this message with \"git config advice.mergeConflict false\"\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-stash-message-apply-drop": {
+    "stdout": "Saved working directory and index state On main: wip\nSaved working directory and index state WIP on main: acc56ec one\nstash@{0}: WIP on main: acc56ec one\nstash@{1}: On main: wip\nOn branch main\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   f\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\nexit=0\nDropped refs/stash@{0} (7a4c8835a00b474dbca59f5e2dedc3572d06f873)\nexit=0\nstash@{0}: On main: wip\nexit=128\n",
+    "stderr": "fatal: log for 'stash' only has 1 entries\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-stash-nothing": {
+    "stdout": "No local changes to save\nexit=0\nexit=1\n",
+    "stderr": "No stash entries found.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "git-stash-push-list-pop": {
+    "stdout": "Saved working directory and index state WIP on main: acc56ec one\nexit=0\na\nstash@{0}: WIP on main: acc56ec one\n f | 1 +\n n | 1 +\n 2 files changed, 2 insertions(+)\nOn branch main\nChanges to be committed:\n  (use \"git restore --staged <file>...\" to unstage)\n\tnew file:   n\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   f\n\nDropped refs/stash@{0} (b21bfb8b5f245946ace48f5eb1aaf4b33b4217fc)\nexit=0\n M f\nA  n\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

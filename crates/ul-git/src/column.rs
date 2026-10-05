@@ -179,24 +179,30 @@ pub struct Options<'a> {
 
 /// `print_columns`: devolve o texto da lista no layout pedido.
 pub fn print_columns(list: &[Vec<u8>], colopts: u32, o: &Options) -> Vec<u8> {
+    print_columns_nl(list, colopts, o, b"\n")
+}
+
+/// `print_columns` com o fim de linha dado (`git column --nl`): vale no layout `plain` e no fim de
+/// cada linha da tabela.
+pub fn print_columns_nl(list: &[Vec<u8>], colopts: u32, o: &Options, nl: &[u8]) -> Vec<u8> {
     let mut out = Vec::new();
     if list.is_empty() {
         return out;
     }
     let width = if o.width > 0 { o.width } else { crate::diff::term_columns().saturating_sub(1) };
-    let plain = |out: &mut Vec<u8>, indent: &str| {
+    let plain = |out: &mut Vec<u8>, indent: &str, nl: &[u8]| {
         for s in list {
             out.extend_from_slice(indent.as_bytes());
             out.extend_from_slice(s);
-            out.push(b'\n');
+            out.extend_from_slice(nl);
         }
     };
     if !active(colopts) {
-        plain(&mut out, "");
+        plain(&mut out, "", &b"\n"[..]);
     } else if colopts & LAYOUT_MASK == PLAIN {
-        plain(&mut out, o.indent);
+        plain(&mut out, o.indent, nl);
     } else {
-        display_table(&mut out, list, colopts, width, o);
+        display_table(&mut out, list, colopts, width, o, nl);
     }
     out
 }
@@ -250,7 +256,7 @@ impl Table {
     }
 }
 
-fn display_table(out: &mut Vec<u8>, list: &[Vec<u8>], colopts: u32, width: usize, o: &Options) {
+fn display_table(out: &mut Vec<u8>, list: &[Vec<u8>], colopts: u32, width: usize, o: &Options, nl: &[u8]) {
     let len: Vec<usize> = list.iter().map(|s| item_width(s)).collect();
     let initial_width = len.iter().copied().max().unwrap_or(0) + o.padding;
     let cols = (width.saturating_sub(o.indent.len()) / initial_width.max(1)).max(1);
@@ -278,7 +284,7 @@ fn display_table(out: &mut Vec<u8>, list: &[Vec<u8>], colopts: u32, width: usize
             }
             out.extend_from_slice(&list[i]);
             if newline {
-                out.push(b'\n');
+                out.extend_from_slice(nl);
             } else {
                 out.resize(out.len() + initial_width.saturating_sub(l), b' ');
             }

@@ -363,9 +363,7 @@ fn switch_to(repo: &Repo, co: &Co, target: Option<Target>, new_branch_start: Opt
             }
         }
     }
-    for f in ["MERGE_HEAD", "MERGE_MSG", "MERGE_MODE", "SQUASH_MSG"] {
-        let _ = os::unlink(&repo.path(f));
-    }
+    super::revert::remove_branch_state(repo, !quiet);
     if !quiet && !co.detach {
         let report_path: Option<String> = match &new_path {
             Some(np) => {

@@ -1,0 +1,154 @@
+tool = "git"
+source = "agent-style"
+
+# remote, merge, revert, stash e column. Cada caso monta um repositório pequeno com autor, committer
+# e datas fixos e termina com `rm -rf .git` (o índice guarda ctime/ino/dev).
+
+[[case]]
+id = "git-remote-add-list-show"
+script = '''git init -q -b main; git remote add origin https://example.com/r.git; git remote add up /srv/up.git; git remote; git remote -v; git remote get-url origin; git remote show -n origin; cat .git/config; rm -rf .git'''
+tags = ["remote"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-remote-rename-remove-errors"
+script = '''git init -q -b main; git remote add origin /x.git; git remote rename origin other; echo "exit=$?"; git remote; git remote remove nope; echo "exit=$?"; git remote add other /y.git; echo "exit=$?"; git remote set-url other /z.git; git remote get-url other; git remote rm other; echo "exit=$?"; git remote; rm -rf .git'''
+tags = ["remote", "error"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-merge-fast-forward"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; git switch -qc topic; echo b >> f; git commit -qam two; git switch -q main; git merge topic; echo "exit=$?"; git log --oneline; cat f; rm -rf .git f'''
+tags = ["merge"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-merge-no-ff-clean"
+script = '''git init -q -b main; printf '1\n2\n3\n' > f; echo x > g; git add .; git commit -qm base; git switch -qc topic; printf '1\n2\n3\n4\n' > f; git commit -qam topic; git switch -q main; echo y > g; git commit -qam main; git merge --no-edit topic; echo "exit=$?"; git log --format='%h %p %s'; cat f g; rm -rf .git f g'''
+tags = ["merge"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-merge-conflict-and-abort"
+script = '''git init -q -b main; echo base > f; git add f; git commit -qm base; git switch -qc topic; echo topic > f; git commit -qam topic; git switch -q main; echo main > f; git commit -qam main; git merge topic; echo "exit=$?"; cat f; git status; git merge --abort; echo "exit=$?"; cat f; git status --short; rm -rf .git f'''
+tags = ["merge", "conflict"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-merge-already-up-to-date"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; git branch topic; git merge topic; echo "exit=$?"; git merge nope; echo "exit=$?"; rm -rf .git f'''
+tags = ["merge", "error"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-merge-adds-on-both-sides"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; git switch -qc t; echo n > n; git add n; git commit -qm n; git switch -q main; echo b > g; git add g; git commit -qm g; git merge --no-edit t; echo "exit=$?"; ls; git ls-files -s; rm -rf .git f g n'''
+tags = ["merge"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-revert-clean"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; echo b >> f; git commit -qam two; git revert --no-edit HEAD; echo "exit=$?"; git log --format='%s%n%b' -1; cat f; rm -rf .git f'''
+tags = ["revert"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-revert-conflict-abort"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; echo b > f; git commit -qam two; echo c > f; git commit -qam three; git revert --no-edit HEAD~1; echo "exit=$?"; cat f; git status --short; git revert --abort; echo "exit=$?"; cat f; rm -rf .git f'''
+tags = ["revert", "conflict"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-stash-push-list-pop"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; echo b >> f; echo new > n; git add n; git stash; echo "exit=$?"; git status --short; cat f; git stash list; git stash show; git stash pop; echo "exit=$?"; git status --short; git stash list; rm -rf .git f n'''
+tags = ["stash"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-stash-message-apply-drop"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; echo b >> f; git stash push -m wip; echo c >> f; git stash; git stash list; git stash apply stash@{1}; echo "exit=$?"; git stash drop; echo "exit=$?"; git stash list; git stash drop stash@{5}; echo "exit=$?"; rm -rf .git f'''
+tags = ["stash"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-stash-nothing"
+script = '''git init -q -b main; echo a > f; git add f; git commit -qm one; git stash; echo "exit=$?"; git stash pop; echo "exit=$?"; rm -rf .git f'''
+tags = ["stash", "error"]
+[case.env]
+GIT_AUTHOR_NAME = "Agent"
+GIT_AUTHOR_EMAIL = "agent@example.com"
+GIT_COMMITTER_NAME = "Agent"
+GIT_COMMITTER_EMAIL = "agent@example.com"
+GIT_AUTHOR_DATE = "1768478400 +0000"
+GIT_COMMITTER_DATE = "1768478400 +0000"
+
+[[case]]
+id = "git-column"
+script = '''seq 1 30 | git column --mode=column --width=40; seq 1 12 | git column --mode=row --width=20; printf 'a\nbb\nccc\n' | git column --mode=column,dense --width=10 --padding=3'''
+tags = ["column"]

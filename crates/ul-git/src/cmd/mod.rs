@@ -5,6 +5,7 @@ pub mod add;
 pub mod branch;
 pub mod cat_file;
 pub mod checkout;
+pub mod column;
 pub mod commit;
 pub mod config_cmd;
 pub mod diff_cmd;
@@ -12,6 +13,7 @@ pub mod for_each_ref;
 pub mod init;
 pub mod log;
 pub mod ls;
+pub mod merge;
 pub mod misc;
 pub mod mv;
 pub mod plumbing;
@@ -20,7 +22,9 @@ pub mod remote;
 pub mod reset;
 pub mod restore;
 pub mod rev_parse;
+pub mod revert;
 pub mod rm;
+pub mod stash;
 pub mod status;
 pub mod tag;
 pub mod unpack;
@@ -98,6 +102,11 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "tag" => (Setup::Repo, tag::run),
         "branch" => (Setup::Repo, branch::run),
         "remote" => (Setup::Repo, remote::run),
+        "merge" => (Setup::WorkTree, merge::run),
+        "cherry-pick" => (Setup::WorkTree, revert::run_cherry_pick),
+        "revert" => (Setup::WorkTree, revert::run_revert),
+        "stash" => (Setup::WorkTree, stash::run),
+        "column" => (Setup::Gently, column::run),
         "restore" => (Setup::WorkTree, restore::run),
         "reset" => (Setup::Repo, reset::run),
         "checkout" => (Setup::WorkTree, checkout::run_checkout),
@@ -435,7 +444,12 @@ fn run(argv: &[Vec<u8>]) -> R<i32> {
         }
     }
     if args.len() == 1 && args[0] == b"-h" && !usage::of(&cmd).is_empty() {
-        os::outs(usage::of(&cmd));
+        // O `git merge -h` é o `usage_with_options` do próprio comando: sai no stderr.
+        if cmd == "merge" {
+            os::errs(usage::of(&cmd));
+        } else {
+            os::outs(usage::of(&cmd));
+        }
         return Ok(129);
     }
     f(&mut git, &args)

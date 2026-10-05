@@ -210,6 +210,7 @@ pub(crate) struct SbInner {
     pub ns: Arc<Namespace>,
     pub rootfs: Arc<Tmpfs>,
     pub devfs: Arc<Tmpfs>,
+    pub workfs: Arc<Tmpfs>,
     pub procfs: Arc<Procfs>,
     programs: HashMap<Vec<u8>, Program>,
     pub table: Mutex<Table>,
@@ -311,6 +312,7 @@ impl SbInner {
 pub struct Snapshot {
     root: TmpfsSnapshot,
     dev: TmpfsSnapshot,
+    work: TmpfsSnapshot,
 }
 
 /// Uso de recursos de um sandbox.
@@ -410,12 +412,17 @@ impl Sandbox {
             max_inodes: cfg.limits.fs_inodes,
         };
         let dev_limits = TmpfsLimits { max_blocks: Some(65536 / 4), max_inodes: None };
-        let (rootfs, devfs) = match from {
+        let (rootfs, devfs, workfs) = match from {
             Some(s) => (
                 Tmpfs::from_snapshot(kernel.anon_dev(), &s.root, root_limits),
                 Tmpfs::from_snapshot(kernel.anon_dev(), &s.dev, dev_limits),
+                Tmpfs::from_snapshot(kernel.anon_dev(), &s.work, root_limits),
             ),
-            None => (Tmpfs::new(kernel.anon_dev(), 0o755, now, root_limits), Tmpfs::new(kernel.anon_dev(), 0o755, now, dev_limits)),
+            None => (
+                Tmpfs::new(kernel.anon_dev(), 0o755, now, root_limits),
+                Tmpfs::new(kernel.anon_dev(), 0o755, now, dev_limits),
+                Tmpfs::new(kernel.anon_dev(), 0o755, now, root_limits),
+            ),
         };
         let mut root_opts = String::new();
         if let Some(b) = cfg.limits.fs_bytes {
@@ -436,6 +443,10 @@ impl Sandbox {
         if from.is_none() {
             image::build_dev(&ns, &cx)?;
         }
+        // O oráculo roda com `--tmpfs /work:exec`: o diretório de trabalho é outro sistema de
+        // arquivos, e o git, por exemplo, para a busca do repositório na fronteira.
+        let work_dir = w.lookup_child(&root, b"work")?;
+        ns.mount(&work_dir, workfs.clone(), MountFlags::NOSUID | MountFlags::NODEV | MountFlags::RELATIME, "tmpfs", "inode64")?;
         let provider = Arc::new(SbProcProvider { sb: OnceLock::new() });
         let boot_ts = now;
         let procfs = Procfs::new(kernel.anon_dev(), provider.clone(), boot_ts);
@@ -476,6 +487,7 @@ impl Sandbox {
             ns,
             rootfs,
             devfs,
+            workfs,
             procfs,
             programs,
             table: Mutex::new(Table::new(init)),
@@ -520,7 +532,7 @@ impl Sandbox {
 
     /// Retrato O(1) do sistema de arquivos (raiz e `/dev`).
     pub fn snapshot(&self) -> Snapshot {
-        Snapshot { root: self.inner.rootfs.snapshot(), dev: self.inner.devfs.snapshot() }
+        Snapshot { root: self.inner.rootfs.snapshot(), dev: self.inner.devfs.snapshot(), work: self.inner.workfs.snapshot() }
     }
 
     /// Volta o sistema de arquivos ao retrato. Processos vivos continuam: um fd cujo inode não existe no
@@ -528,12 +540,15 @@ impl Sandbox {
     pub fn restore(&self, snap: &Snapshot) {
         self.inner.rootfs.restore(&snap.root);
         self.inner.devfs.restore(&snap.dev);
+        self.inner.workfs.restore(&snap.work);
     }
 
     /// Uso de recursos.
     pub fn usage(&self) -> Usage {
         let (rb, ri) = self.inner.rootfs.usage();
         let (db, di) = self.inner.devfs.usage();
+        let (wb, wi) = self.inner.workfs.usage();
+        let (db, di) = (db + wb, di + wi);
         let t = self.inner.table.lock();
         let procs = t.live;
         drop(t);

@@ -201,6 +201,70 @@ fn entry(out: &mut Vec<u8>, label: &str, width: usize, name: &[u8]) {
     out.push(b'\n');
 }
 
+/// A primeira palavra do `.git/sequencer/todo`: o comando que a sequência está executando.
+fn sequencer_command(repo: &Repo) -> Option<&'static str> {
+    let todo = os::read_opt(&repo.path("sequencer/todo")).ok()??;
+    let line = todo.split(|c| *c == b'\n').find(|l| !l.is_empty() && !l.starts_with(b"#"))?;
+    let word = line.split(|c| *c == b' ').next()?;
+    match word {
+        b"pick" | b"p" => Some("pick"),
+        b"revert" => Some("revert"),
+        _ => None,
+    }
+}
+
+/// O bloco "mesclagem / cherry-pick / revert em andamento" do status (o `wt_longstatus_print_state`).
+fn state_text(repo: &Repo, has_unmerged: bool, hints: bool) -> String {
+    let mut out = String::new();
+    let read_head = |name: &str| -> Option<crate::hash::Oid> {
+        let d = os::read_opt(&repo.path(name)).ok()??;
+        crate::hash::Oid::from_hex(crate::object::trim_ascii(&d))
+    };
+    if os::exists(&repo.path("MERGE_HEAD")) {
+        if has_unmerged {
+            out.push_str("You have unmerged paths.\n");
+            if hints {
+                out.push_str("  (fix conflicts and run \"git commit\")\n  (use \"git merge --abort\" to abort the merge)\n");
+            }
+        } else {
+            out.push_str("All conflicts fixed but you are still merging.\n");
+            if hints {
+                out.push_str("  (use \"git commit\" to conclude merge)\n");
+            }
+        }
+        out.push('\n');
+        return out;
+    }
+    let seq = sequencer_command(repo);
+    let cherry_head = read_head("CHERRY_PICK_HEAD");
+    let revert_head = read_head("REVERT_HEAD");
+    let (name, head, picking) = if os::exists(&repo.path("CHERRY_PICK_HEAD")) || (seq == Some("pick") && revert_head.is_none()) {
+        ("cherry-pick", cherry_head, true)
+    } else if os::exists(&repo.path("REVERT_HEAD")) || seq == Some("revert") {
+        ("revert", revert_head, false)
+    } else {
+        return out;
+    };
+    let _ = picking;
+    match head {
+        None => out.push_str(&format!("{} currently in progress.\n", if name == "revert" { "Revert" } else { "Cherry-pick" })),
+        Some(h) => out.push_str(&format!("You are currently {} commit {}.\n", if name == "revert" { "reverting" } else { "cherry-picking" }, repo.abbrev_default(&h))),
+    }
+    if hints {
+        if has_unmerged {
+            out.push_str(&format!("  (fix conflicts and run \"git {name} --continue\")\n"));
+        } else if head.is_none() {
+            out.push_str(&format!("  (run \"git {name} --continue\" to continue)\n"));
+        } else {
+            out.push_str(&format!("  (all conflicts fixed: run \"git {name} --continue\")\n"));
+        }
+        out.push_str(&format!("  (use \"git {name} --skip\" to skip this patch)\n"));
+        out.push_str(&format!("  (use \"git {name} --abort\" to cancel the {name} operation)\n"));
+    }
+    out.push('\n');
+    out
+}
+
 #[allow(clippy::too_many_arguments)]
 fn long_format(
     repo: &Repo,
@@ -221,17 +285,12 @@ fn long_format(
     if st.initial {
         put(&mut out, if template { "\nInitial commit\n\n" } else { "\nNo commits yet\n\n" });
     }
-    let merging = os::exists(&repo.path("MERGE_HEAD"));
-    if !st.unmerged.is_empty() {
-        if merging && hints {
-            put(&mut out, "You have unmerged paths.\n  (fix conflicts and run \"git commit\")\n  (use \"git merge --abort\" to abort the merge)\n\n");
-        } else if merging {
-            put(&mut out, "You have unmerged paths.\n\n");
-        }
-    }
+    put(&mut out, &state_text(repo, !st.unmerged.is_empty(), hints));
+    // `determine_whence`: com merge ou cherry-pick em andamento o wt-status não dá dica de unstage.
+    let from_commit = !os::exists(&repo.path("MERGE_HEAD")) && !os::exists(&repo.path("CHERRY_PICK_HEAD"));
     if !st.staged.is_empty() {
         put(&mut out, "Changes to be committed:\n");
-        if hints {
+        if hints && from_commit {
             if st.initial {
                 put(&mut out, "  (use \"git rm --cached <file>...\" to unstage)\n");
             } else {
@@ -253,7 +312,8 @@ fn long_format(
     if !st.unmerged.is_empty() {
         put(&mut out, "Unmerged paths:\n");
         if hints {
-            if !st.initial {
+            if !from_commit {
+            } else if !st.initial {
                 put(&mut out, "  (use \"git restore --staged <file>...\" to unstage)\n");
             } else {
                 put(&mut out, "  (use \"git rm --cached <file>...\" to unstage)\n");
