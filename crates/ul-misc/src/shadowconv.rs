@@ -80,6 +80,31 @@ fn fail_write(p: &str, name: &str) -> i32 {
     1
 }
 
+/// Cria o arquivo de trava vazio `etc/.pwd.lock` (modo 0600) sob o prefixo, como o `lckpwdf`.
+fn touch_lock(prefix: &[u8]) {
+    let path = join(prefix, "/etc/.pwd.lock");
+    let _ = io::File::open_with(&path, sysabi::OFlags::WRONLY | sysabi::OFlags::CREAT, 0o600);
+}
+
+/// Grava o backup `path-` com modo 0600 (o `passwd-` do `pwconv`).
+fn write_private_backup(path: &[u8], old: &[Vec<u8>]) -> bool {
+    let mut p = path.to_vec();
+    p.push(b'-');
+    let mut data = Vec::new();
+    for l in old {
+        data.extend_from_slice(l);
+        data.push(b'\n');
+    }
+    match io::File::open_with(
+        &p,
+        sysabi::OFlags::WRONLY | sysabi::OFlags::CREAT | sysabi::OFlags::TRUNC,
+        0o600,
+    ) {
+        Ok(mut f) => std::io::Write::write_all(&mut f, &data).is_ok(),
+        Err(_) => false,
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum Kind {
     Passwd,
@@ -132,6 +157,7 @@ fn convert(p: &str, kind: Kind, prefix: &[u8]) -> i32 {
             return 1;
         }
     };
+    touch_lock(prefix);
     let old_shadow = read_lines(&spath).ok();
     let old_main = main.clone();
     let mut shadow: Vec<Vec<u8>> = Vec::new();
@@ -189,7 +215,12 @@ fn convert(p: &str, kind: Kind, prefix: &[u8]) -> i32 {
     if !write_lines(&spath, &shadow) {
         return fail_write(p, kind.shadow_name());
     }
-    if !write_backup(&mpath, &old_main) || !write_lines(&mpath, &main) {
+    let backed_up = if kind == Kind::Passwd {
+        write_private_backup(&mpath, &old_main)
+    } else {
+        write_backup(&mpath, &old_main)
+    };
+    if !backed_up || !write_lines(&mpath, &main) {
         return fail_write(p, kind.main_name());
     }
     0
@@ -209,6 +240,7 @@ fn unconvert(p: &str, kind: Kind, prefix: &[u8]) -> i32 {
             return 1;
         }
     };
+    touch_lock(prefix);
     let old_main = main.clone();
     for l in main.iter_mut() {
         if !kind.is_entry(l) {
@@ -310,6 +342,10 @@ fn chpasswd(p: &str, kind: Kind, args: &[OsString]) -> i32 {
             return 1;
         }
     };
+    if kind == Kind::Group {
+        // O golden só mostra a trava do `chgpasswd`; o `chpasswd` do oráculo não deixa o arquivo.
+        touch_lock(&prefix);
+    }
     let mut shadow = read_lines(&spath).ok();
     let old_main = main.clone();
     let old_shadow = shadow.clone();

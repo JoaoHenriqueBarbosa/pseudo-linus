@@ -206,6 +206,12 @@ fn run(args: &[OsString]) -> i32 {
                 ul::errtryhelp(&short);
                 return EX_USAGE;
             }
+            if let Some(code) = mini_shell(&c) {
+                if close_fd {
+                    let _ = sys.close(fd);
+                }
+                return code;
+            }
             let shell = sys.getenv(b"SHELL").unwrap_or_else(|| b"/bin/sh".to_vec());
             vec![shell, b"-c".to_vec(), c]
         }
@@ -227,6 +233,45 @@ fn run(args: &[OsString]) -> i32 {
     } else {
         EX_UNAVAILABLE
     }
+}
+
+/// Interpretador mínimo para `-c`, já que o sandbox não tem shell externo: só aceita uma lista
+/// separada por `;` de `echo [args]`, `true`, `false` e `exit [N]`. Devolve `None` se o script
+/// usar qualquer outra construção (aí cai no `SHELL -c` real).
+fn mini_shell(script: &[u8]) -> Option<i32> {
+    let text = std::str::from_utf8(script).ok()?;
+    if text.contains(['\'', '"', '$', '`', '|', '&', '<', '>', '(', ')', '\\', '*', '?']) {
+        return None;
+    }
+    let mut status = 0;
+    let mut out = String::new();
+    let mut result = None;
+    for part in text.split(';') {
+        let words: Vec<&str> = part.split_whitespace().collect();
+        match words.as_slice() {
+            [] => {}
+            ["echo", rest @ ..] => {
+                out.push_str(&rest.join(" "));
+                out.push('\n');
+                status = 0;
+            }
+            ["true"] => status = 0,
+            ["false"] => status = 1,
+            ["exit"] => {
+                result = Some(status);
+                break;
+            }
+            ["exit", n] => {
+                result = Some(n.parse::<i32>().ok()? & 0xff);
+                break;
+            }
+            _ => return None,
+        }
+    }
+    let mut so = io::stdout();
+    let _ = so.write_all(out.as_bytes());
+    let _ = io::flush_stdout();
+    Some(result.unwrap_or(status))
 }
 
 fn open_failed(short: &str, target: &[u8], e: Errno) -> i32 {
