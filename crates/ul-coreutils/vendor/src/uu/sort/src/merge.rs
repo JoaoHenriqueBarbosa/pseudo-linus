@@ -450,8 +450,6 @@ impl FileMerger<'_> {
     }
 }
 
-/// Wait for the child to exit and check its exit code.
-
 /// A temporary file that can be written to.
 pub trait WriteableTmpFile: Sized {
     type Closed: ClosedTmpFile;

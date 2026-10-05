@@ -32,10 +32,6 @@ impl ProgressBar {
     fn set_message(&self, _msg: String) {
         match *self {}
     }
-
-    fn suspend<R>(&self, _f: impl FnOnce() -> R) -> R {
-        match *self {}
-    }
 }
 
 /// Ver [`ProgressBar`].
@@ -184,7 +180,6 @@ static OPT_STRIP_TRAILING_SLASHES: &str = "strip-trailing-slashes";
 static OPT_TARGET_DIRECTORY: &str = "target-directory";
 static OPT_NO_TARGET_DIRECTORY: &str = "no-target-directory";
 static OPT_VERBOSE: &str = "verbose";
-static OPT_PROGRESS: &str = "progress";
 static ARG_FILES: &str = "files";
 static OPT_DEBUG: &str = "debug";
 static OPT_CONTEXT: &str = "context";

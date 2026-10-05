@@ -373,19 +373,6 @@ impl<'a> ErrorFormatter<'a> {
     }
 }
 
-/// Porte pseudo-linus: erro de linha de comando no formato do `getopt_long` da glibc, que é o que
-/// o GNU escreve (o uutils usa o formato do clap, com `error:`, dica e `Usage:`):
-///
-/// - opção curta desconhecida: `prog: invalid option -- 'Z'`;
-/// - opção longa desconhecida: `prog: unrecognized option '--foo=bar'` (o token como foi digitado);
-/// - operando a mais: `prog: extra operand ‘x’`;
-/// - falta o argumento: `prog: option requires an argument -- 'n'` ou
-///   `prog: option '--lines' requires an argument`;
-/// - argumento numa opção que não aceita: `prog: option '--verbose' doesn't allow an argument`;
-/// - falta operando obrigatório: `prog: missing operand`;
-///
-/// seguidos de `Try 'prog --help' for more information.`. Devolve `None` pros erros que não são de
-/// `getopt` (valor inválido, ajuda, versão), que seguem o tratamento do uucore.
 // Porte pseudo-linus: as opções que levam valor (curtas e longas) do comando em análise, pra contar
 // os operandos como o getopt. Uma por thread: cada pseudo-processo roda na sua.
 thread_local! {
@@ -437,6 +424,19 @@ fn has_operand(args: &[String]) -> bool {
     })
 }
 
+/// Porte pseudo-linus: erro de linha de comando no formato do `getopt_long` da glibc, que é o que
+/// o GNU escreve (o uutils usa o formato do clap, com `error:`, dica e `Usage:`):
+///
+/// - opção curta desconhecida: `prog: invalid option -- 'Z'`;
+/// - opção longa desconhecida: `prog: unrecognized option '--foo=bar'` (o token como foi digitado);
+/// - operando a mais: `prog: extra operand ‘x’`;
+/// - falta o argumento: `prog: option requires an argument -- 'n'` ou
+///   `prog: option '--lines' requires an argument`;
+/// - argumento numa opção que não aceita: `prog: option '--verbose' doesn't allow an argument`;
+/// - falta operando obrigatório: `prog: missing operand`;
+///
+/// seguidos de `Try 'prog --help' for more information.`. Devolve `None` pros erros que não são de
+/// `getopt` (valor inválido, ajuda, versão), que seguem o tratamento do uucore.
 fn gnu_getopt_error(err: &Error, exit_code: i32) -> Option<i32> {
     let prog = crate::program_name();
     let args: Vec<String> = crate::args_os()
@@ -444,7 +444,7 @@ fn gnu_getopt_error(err: &Error, exit_code: i32) -> Option<i32> {
         .map(|a| a.to_string_lossy().into_owned())
         .take_while(|a| a != "--")
         .collect();
-    let invalid_arg = err.get(ContextKind::InvalidArg).map(std::string::ToString::to_string);
+    let invalid_arg = err.get(ContextKind::InvalidArg).map(ToString::to_string);
     let long_name = |arg: &str| -> Option<String> {
         let first = arg.split([' ', '=']).next()?;
         first.starts_with("--").then(|| first.to_string())

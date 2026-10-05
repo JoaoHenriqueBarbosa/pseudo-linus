@@ -626,8 +626,12 @@ pub fn ignore_interrupts() -> Result<(), Errno> {
 // (não há handler assíncrono sem unsafe). Um "handler" é registrado por processo, o sinal fica com
 // disposição "capturar", e o programa chama [`run_pending_handlers`] nos pontos em que o GNU
 // receberia o sinal (laços de espera). O resultado observável é o mesmo pros usos do coreutils.
+/// Handlers registrados: número do sinal e a função a chamar.
 #[cfg(unix)]
-struct Handlers(std::sync::Mutex<Vec<(i32, fn(i32))>>);
+type HandlerList = Vec<(i32, fn(i32))>;
+
+#[cfg(unix)]
+struct Handlers(std::sync::Mutex<HandlerList>);
 
 #[cfg(unix)]
 fn handlers() -> std::sync::Arc<Handlers> {

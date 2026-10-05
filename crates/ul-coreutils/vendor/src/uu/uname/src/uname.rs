@@ -13,8 +13,8 @@ use clap::{Arg, ArgAction, Command};
 struct PlatformInfo(sysabi::Utsname);
 
 impl PlatformInfo {
-    fn new() -> Result<Self, ()> {
-        Ok(Self(sysio::unistd::uname()))
+    fn new() -> Self {
+        Self(sysio::unistd::uname())
     }
     fn field(b: &[u8]) -> &OsStr {
         std::os::unix::ffi::OsStrExt::from_bytes(b)
@@ -113,8 +113,8 @@ impl UNameOutput {
     }
 
     pub fn new(opts: &Options) -> UResult<Self> {
-        let uname = PlatformInfo::new()
-            .map_err(|_e| USimpleError::new(1, translate!("uname-error-cannot-get-system-name")))?;
+        // Porte pseudo-linus: o uname(2) do pseudo-kernel não falha.
+        let uname = PlatformInfo::new();
         let none = !(opts.all
             || opts.all_labeled
             || opts.kernel_name

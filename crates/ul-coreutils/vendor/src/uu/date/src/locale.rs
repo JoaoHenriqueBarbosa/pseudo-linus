@@ -50,25 +50,21 @@ cfg_langinfo! {
     /// information is included in the output.
     pub fn get_locale_default_format() -> &'static str {
         DEFAULT_FORMAT_CACHE.get_or_init(|| {
-            // Try to get locale format string
-            if let Some(format) = get_locale_format_string() {
-                let format_with_tz = ensure_timezone_in_format(&format);
-                return Box::leak(format_with_tz.into_boxed_str());
-            }
-
-            // Fallback: use 24-hour format as safe default
-            "%a %b %e %X %Z %Y"
+            // Porte pseudo-linus: o formato vem sempre do locale C, então a busca não falha.
+            let format = get_locale_format_string();
+            let format_with_tz = ensure_timezone_in_format(&format);
+            Box::leak(format_with_tz.into_boxed_str())
         })
     }
 
     /// Retrieves the date/time format string from the system locale
-    fn get_locale_format_string() -> Option<String> {
+    fn get_locale_format_string() -> String {
         // In tests, acquire mutex to prevent race conditions with setlocale()
         // which is process-global and not thread-safe
         #[cfg(test)]
         let _lock = LOCALE_MUTEX.lock().unwrap();
 
-        Some(C_DATE_FMT.to_owned())
+        C_DATE_FMT.to_owned()
     }
 
     /// Ensures the format string includes timezone (%Z)

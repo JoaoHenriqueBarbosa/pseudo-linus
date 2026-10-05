@@ -32,8 +32,6 @@ use std::ffi::OsString;
 use sysio::fs::Metadata;
 use sysio::fs::{File, OpenOptions};
 use sysio::io::{self, Read, Seek, SeekFrom, Write};
-#[cfg(any(target_os = "linux", target_os = "android"))]
-use sysio::os::unix::fs::OpenOptionsExt;
 // Porte pseudo-linus: os traits de fd do sysio (o `from_raw_fd` é seguro: o fd é do pseudo-processo).
 #[cfg(unix)]
 use sysio::os::unix::{
@@ -47,13 +45,13 @@ use sysio::os::unix::{
 mod libc {
     pub const O_APPEND: i32 = 0o2000;
     pub const O_DIRECT: i32 = 0o40000;
-    pub const O_DIRECTORY: i32 = 0o200000;
+    pub const O_DIRECTORY: i32 = 0o200_000;
     pub const O_DSYNC: i32 = 0o10000;
-    pub const O_NOATIME: i32 = 0o1000000;
+    pub const O_NOATIME: i32 = 0o1_000_000;
     pub const O_NOCTTY: i32 = 0o400;
-    pub const O_NOFOLLOW: i32 = 0o400000;
+    pub const O_NOFOLLOW: i32 = 0o400_000;
     pub const O_NONBLOCK: i32 = 0o4000;
-    pub const O_SYNC: i32 = 0o4010000;
+    pub const O_SYNC: i32 = 0o4_010_000;
     pub const ESPIPE: i32 = sysio::errno::ESPIPE;
     pub const EINVAL: i32 = sysio::errno::EINVAL;
 }

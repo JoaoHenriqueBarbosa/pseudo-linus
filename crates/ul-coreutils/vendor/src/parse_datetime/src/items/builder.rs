@@ -247,6 +247,12 @@ impl DateTimeBuilder {
             || self.base.as_ref().is_some_and(|b| b.year() >= 9999)
     }
 
+    // Porte pseudo-linus: o relógio do host só é lido quando o chamador não passa base; o crate
+    // não depende do sysio, então o fallback fica como no original.
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "fallback sem base; parse_datetime não depende do sysio"
+    )]
     fn build_in_range(self) -> Result<Zoned, error::Error> {
         // 1. Choose the base instant.
         // If a TZ="..." prefix was parsed, it should override the base's timezone
@@ -394,6 +400,10 @@ impl DateTimeBuilder {
         Ok(dt)
     }
 
+    #[expect(
+        clippy::disallowed_methods,
+        reason = "fallback sem base; parse_datetime não depende do sysio"
+    )]
     fn build_extended(self) -> Result<ParsedDateTime, error::Error> {
         if self.timestamp.is_some() {
             return Err("timestamp cannot be combined with large years".into());

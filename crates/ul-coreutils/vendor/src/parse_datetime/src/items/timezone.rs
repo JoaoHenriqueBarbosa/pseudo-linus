@@ -81,6 +81,12 @@ fn posix(input: &mut &str) -> ModalResult<TimeZone> {
 /// > ‘Asia/Tokyo’.  These data files are installed by the system
 /// > administrator, who also sets ‘/etc/localtime’ to point to the data file
 /// > for the local time zone ruleset.
+// Porte pseudo-linus: o crate não depende do uucore nem do sysio, então não alcança
+// `uucore::time::tz_database`; trocar a fonte da tzdb aqui mudaria a saída. Fica registrado.
+#[expect(
+    clippy::disallowed_methods,
+    reason = "parse_datetime não tem acesso ao uucore::time::tz_database"
+)]
 fn iana(input: &mut &str) -> ModalResult<TimeZone> {
     repeat(
         0..,

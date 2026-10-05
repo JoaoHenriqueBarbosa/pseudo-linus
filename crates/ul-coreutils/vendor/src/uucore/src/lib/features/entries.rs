@@ -113,7 +113,6 @@ pub struct Passwd {
     /// AKA passwd.pw_dir
     pub user_dir: Option<String>,
     /// AKA passwd.pw_passwd
-    #[expect(clippy::struct_field_names)]
     pub user_passwd: Option<String>,
     /// AKA passwd.pw_class
     #[cfg(any(target_vendor = "apple", target_os = "freebsd"))]

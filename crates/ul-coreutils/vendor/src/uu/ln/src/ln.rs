@@ -476,7 +476,7 @@ pub fn link(src: &Path, dst: &Path, settings: &Settings) -> LnResult<()> {
                     "dest" => dst.quote()
                 ),
             )
-        } else if hard_link_src.as_ref().is_some_and(sysio::path::PathExt::sys_is_dir) {
+        } else if hard_link_src.as_ref().is_some_and(PathExt::sys_is_dir) {
             LnError::FailedToCreateHardLinkDir(source.to_path_buf())
         } else {
             LnError::IoContext(

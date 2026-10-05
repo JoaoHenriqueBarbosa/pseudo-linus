@@ -484,7 +484,7 @@ fn print_unbuffered<R: FdReadable>(
     let mut stdout = uucore::io::RawWriter(stdout); // use raw syscall to remove buffering
     #[cfg(not(any(unix, target_os = "wasi")))]
     let mut stdout = stdout.lock();
-    let mut buf = [0; 1024 * 64];
+    let mut buf = vec![0; 1024 * 64];
     loop {
         match handle.reader.read(&mut buf) {
             Ok(0) => return Ok(()),
@@ -510,7 +510,7 @@ fn print_lines<R: FdReadable>(
     options: &OutputOptions,
     state: &mut OutputState,
 ) -> CatResult<()> {
-    let mut in_buf = [0; 1024 * 31];
+    let mut in_buf = vec![0; 1024 * 31];
     let stdout = io::stdout();
     let stdout = stdout.lock();
     // Add a 32K buffer for stdout - this greatly improves performance.

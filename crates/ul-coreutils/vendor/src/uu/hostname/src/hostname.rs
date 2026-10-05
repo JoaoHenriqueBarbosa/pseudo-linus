@@ -35,8 +35,8 @@ mod hostname {
     use std::ffi::{OsStr, OsString};
     use std::os::unix::ffi::{OsStrExt, OsStringExt};
 
-    pub fn get() -> sysio::io::Result<OsString> {
-        Ok(OsString::from_vec(sysio::unistd::gethostname()))
+    pub fn get() -> OsString {
+        OsString::from_vec(sysio::unistd::gethostname())
     }
 
     pub fn set(name: &OsStr) -> sysio::io::Result<()> {
@@ -123,10 +123,8 @@ pub fn uu_app() -> Command {
 }
 
 fn display_hostname(matches: &ArgMatches) -> UResult<()> {
-    let hostname = hostname::get()
-        .map_err_context(|| "failed to get hostname".to_owned())?
-        .to_string_lossy()
-        .into_owned();
+    // Porte pseudo-linus: o gethostname do pseudo-kernel não falha.
+    let hostname = hostname::get().to_string_lossy().into_owned();
 
     if matches.get_flag(OPT_IP_ADDRESS) {
         let addresses = hostname::lookup(&hostname)

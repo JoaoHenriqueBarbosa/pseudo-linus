@@ -227,7 +227,7 @@ impl PathExtTail for Path {
     /// Return true if `path` has an existing parent directory
     fn has_active_parent(&self) -> bool {
         // Porte pseudo-linus: stat no FS do pseudo-processo.
-        self.parent().is_some_and(sysio::path::PathExt::sys_is_dir)
+        self.parent().is_some_and(PathExt::sys_is_dir)
     }
 
     /// Return true if `path` is a file type that can be tailed

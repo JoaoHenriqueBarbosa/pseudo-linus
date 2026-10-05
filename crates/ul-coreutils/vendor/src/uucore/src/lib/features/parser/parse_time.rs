@@ -10,7 +10,6 @@
 //! Use the [`from_str`] function to parse a [`Duration`] from a string.
 
 use crate::{
-    display::Quotable,
     extendedbigdecimal::ExtendedBigDecimal,
     parser::num_parser::{self, ExtendedParserError, ParseTarget},
 };

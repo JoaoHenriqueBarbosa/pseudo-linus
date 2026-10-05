@@ -437,7 +437,6 @@ impl error::UError for NonUtf8OsStrError {}
 ///
 /// This always succeeds on unix platforms,
 /// and fails on other platforms if the string can't be coerced to UTF-8.
-#[cfg_attr(any(unix, target_os = "wasi"), expect(clippy::unnecessary_wraps))]
 pub fn os_str_as_bytes(os_string: &OsStr) -> Result<&[u8], NonUtf8OsStrError> {
     #[cfg(any(unix, target_os = "wasi"))]
     return Ok(os_string.as_encoded_bytes());
@@ -470,10 +469,6 @@ pub fn os_str_as_bytes_lossy(os_string: &OsStr) -> Cow<'_, [u8]> {
 ///
 /// This always succeeds on unix platforms,
 /// and fails on other platforms if the bytes can't be parsed as UTF-8.
-#[cfg_attr(
-    any(unix, all(target_os = "wasi", target_env = "p1")),
-    expect(clippy::unnecessary_wraps)
-)]
 pub fn os_str_from_bytes(bytes: &[u8]) -> error::UResult<&OsStr> {
     #[cfg(any(unix, all(target_os = "wasi", target_env = "p1")))]
     return Ok(OsStr::from_bytes(bytes));
@@ -488,10 +483,6 @@ pub fn os_str_from_bytes(bytes: &[u8]) -> error::UResult<&OsStr> {
 ///
 /// This always succeeds on unix platforms,
 /// and fails on other platforms if the bytes can't be parsed as UTF-8.
-#[cfg_attr(
-    any(unix, all(target_os = "wasi", target_env = "p1")),
-    expect(clippy::unnecessary_wraps)
-)]
 pub fn os_string_from_vec(vec: Vec<u8>) -> error::UResult<OsString> {
     #[cfg(any(unix, all(target_os = "wasi", target_env = "p1")))]
     return Ok(OsString::from_vec(vec));
@@ -506,10 +497,6 @@ pub fn os_string_from_vec(vec: Vec<u8>) -> error::UResult<OsString> {
 ///
 /// This always succeeds on unix platforms,
 /// and fails on other platforms if the bytes can't be parsed as UTF-8.
-#[cfg_attr(
-    any(unix, all(target_os = "wasi", target_env = "p1")),
-    expect(clippy::unnecessary_wraps)
-)]
 pub fn os_string_to_vec(s: OsString) -> error::UResult<Vec<u8>> {
     #[cfg(any(unix, all(target_os = "wasi", target_env = "p1")))]
     let v = s.into_vec();

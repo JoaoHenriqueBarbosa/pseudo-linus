@@ -68,7 +68,7 @@ where
     P: ChunkProcessor + ?Sized,
 {
     const BUFFER_SIZE: usize = 32768;
-    let mut buf = [0; BUFFER_SIZE];
+    let mut buf = vec![0; BUFFER_SIZE];
     let mut output_buf = Vec::with_capacity(BUFFER_SIZE);
 
     loop {

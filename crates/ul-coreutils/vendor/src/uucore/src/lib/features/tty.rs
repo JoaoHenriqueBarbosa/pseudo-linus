@@ -9,6 +9,8 @@ use std::{
     path::PathBuf,
 };
 
+// Porte pseudo-linus: nenhum utilitário portado usa este tipo ainda (era do `ps`/`who` do uutils).
+#[expect(dead_code, reason = "sem utilitário portado que use o tipo")]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Teletype {
     Tty(u64),

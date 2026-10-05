@@ -23,6 +23,9 @@ pub struct FileTime {
     nanos: u32,
 }
 
+// Porte pseudo-linus: a interface completa do crate `filetime` fica, nem todo usuário do módulo
+// chama todos os construtores e acessores.
+#[allow(dead_code)]
 impl FileTime {
     pub fn from_unix_time(seconds: i64, nanos: u32) -> Self {
         Self { seconds, nanos }
@@ -86,6 +89,7 @@ pub fn set_symlink_file_times<P: AsRef<Path>>(path: P, atime: FileTime, mtime: F
 }
 
 /// `futimens(fd, times)`.
+#[allow(dead_code)]
 pub fn set_fd_times(fd: i32, atime: FileTime, mtime: FileTime) -> sysio::io::Result<()> {
     sysio::errno::cvt(sysabi::sys::current().futimens(sysabi::Fd(fd), atime.to_set_time(), mtime.to_set_time()))
 }

@@ -666,6 +666,8 @@ fn set_times_by_path(path: &Path, atime: FileTime, mtime: FileTime) -> UResult<(
 /// access and modification times on the open FD (not by path), which also
 /// triggers `IN_CLOSE_WRITE` on Linux when the FD is closed.
 fn try_futimens_via_write_fd(path: &Path, atime: FileTime, mtime: FileTime) -> sysio::io::Result<()> {
+    use sysio::os::fd::AsRawFd;
+
     let file = OpenOptions::new()
         .write(true)
         // Avoid blocking on special files (e.g. FIFOs) before we can inspect metadata.
@@ -673,7 +675,6 @@ fn try_futimens_via_write_fd(path: &Path, atime: FileTime, mtime: FileTime) -> s
         .open(path)?;
 
     // Porte pseudo-linus: futimens(2) do pseudo-kernel.
-    use sysio::os::fd::AsRawFd;
     filetime::set_fd_times(file.as_raw_fd(), atime, mtime)
 }
 

@@ -30,9 +30,6 @@ impl Mode {
     fn from_bits_truncate(bits: mode_t) -> Self {
         Self(bits & 0o7777)
     }
-    fn bits(self) -> mode_t {
-        self.0
-    }
 }
 
 struct SFlag(mode_t);

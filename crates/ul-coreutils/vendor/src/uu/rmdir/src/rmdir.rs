@@ -43,7 +43,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
         .map(Path::new)
     {
         if let Err(error) = remove(path, opts) {
-            let Error { error, path, ancestor } = error;
+            let Error { source: error, path, ancestor } = error;
 
             if opts.ignore && dir_not_empty(&error, path) {
                 continue;
@@ -101,7 +101,7 @@ pub fn uumain(args: impl uucore::Args) -> UResult<()> {
 }
 
 struct Error<'a> {
-    error: io::Error,
+    source: io::Error,
     path: &'a Path,
     /// Porte pseudo-linus: falha ao remover um ancestral (`-p`), que o GNU diz como
     /// `failed to remove directory 'x'`, e não `failed to remove 'x'`.
@@ -132,7 +132,7 @@ fn remove_single(path: &Path, opts: Opts) -> Result<(), Error<'_>> {
             translate!("rmdir-verbose-removing-directory", "util_name" => "rmdir", "path" => path.quote())
         );
     }
-    remove_dir(path).map_err(|error| Error { error, path, ancestor: false })
+    remove_dir(path).map_err(|source| Error { source, path, ancestor: false })
 }
 
 #[cfg(unix)]

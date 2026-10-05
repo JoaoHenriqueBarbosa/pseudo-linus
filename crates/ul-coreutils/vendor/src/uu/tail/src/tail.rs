@@ -382,7 +382,7 @@ fn forwards_thru_file(
         return Ok(0);
     }
     // Use a 32K buffer.
-    let mut buf = [0; 32 * 1024];
+    let mut buf = vec![0; 32 * 1024];
     let mut total = 0;
     let mut count = 0;
     // Iterate through the input, using `count` to record the number of times `delimiter`

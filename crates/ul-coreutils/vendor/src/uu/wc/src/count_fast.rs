@@ -119,7 +119,7 @@ pub(crate) fn count_bytes_fast<T: WordCountable>(handle: &mut T) -> (usize, Opti
 
     // Fall back on `read`, but without the overhead of counting words and lines.
 
-    let mut buf = [0_u8; BUF_SIZE];
+    let mut buf = vec![0_u8; BUF_SIZE];
     loop {
         match handle.read(&mut buf) {
             Ok(0) => return (byte_count, None),
@@ -140,6 +140,8 @@ struct AlignedBuffer {
 }
 
 impl Default for AlignedBuffer {
+    // O alinhamento de 32 bytes só existe com o vetor dentro do tipo; ir pro heap aqui perderia isso.
+    #[expect(clippy::large_stack_arrays, reason = "buffer alinhado precisa ser um array fixo")]
     fn default() -> Self {
         Self {
             data: [0; BUF_SIZE],

@@ -3,6 +3,15 @@
 // For the full copyright and license information, please view the LICENSE
 // file that was distributed with this source code.
 
+// Porte pseudo-linus: o build script roda no host do cargo, não num pseudo-processo, então
+// falar com o ambiente e o disco do host aqui é o comportamento certo (o sysio não existe nesta
+// fase da compilação).
+#![allow(
+    clippy::disallowed_methods,
+    clippy::disallowed_macros,
+    reason = "build script roda no host do cargo"
+)]
+
 use std::env;
 use std::fs::File;
 use std::io::Write;

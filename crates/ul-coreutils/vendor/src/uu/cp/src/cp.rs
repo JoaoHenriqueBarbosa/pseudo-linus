@@ -541,7 +541,6 @@ mod options {
     pub const PARENT: &str = "parent";
     pub const PARENTS: &str = "parents";
     pub const PATHS: &str = "paths";
-    pub const PROGRESS_BAR: &str = "progress";
     pub const PRESERVE: &str = "preserve";
     pub const PRESERVE_DEFAULT_ATTRIBUTES: &str = "preserve-default-attributes";
     pub const RECURSIVE: &str = "recursive";
@@ -2853,7 +2852,7 @@ fn copy_file(
         // fall back to the original source path
         let src_for_attrs = canonicalize(source, MissingHandling::Normal, ResolveMode::Physical)
             .ok()
-            .filter(sysio::path::PathExt::sys_exists)
+            .filter(PathExt::sys_exists)
             .unwrap_or_else(|| source.to_path_buf());
         copy_attributes(
             &src_for_attrs,

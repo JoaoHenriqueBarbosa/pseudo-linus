@@ -71,19 +71,6 @@ fn getegid() -> Uid {
 }
 use uucore::{format_usage, show_error};
 
-macro_rules! cstr2cow {
-    ($v:expr) => {
-        unsafe {
-            let ptr = $v;
-            // Must be not null to call cstr2cow
-            if ptr.is_null() {
-                None
-            } else {
-                Some({ CStr::from_ptr(ptr) }.to_string_lossy())
-            }
-        }
-    };
-}
 
 fn get_context_help_text() -> String {
     #[cfg(any(

@@ -333,7 +333,7 @@ where
 {
     let file_size = input.seek(SeekFrom::End(0))?;
 
-    let mut buffer = [0u8; BUF_SIZE];
+    let mut buffer = vec![0u8; BUF_SIZE];
 
     let mut lines = 0u64;
     let mut check_last_byte_first_loop = true;

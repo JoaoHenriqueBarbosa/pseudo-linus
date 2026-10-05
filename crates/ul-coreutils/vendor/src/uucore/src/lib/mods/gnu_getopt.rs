@@ -235,9 +235,8 @@ fn scan_specs(specs: &[OptSpec], args: &[OsString], config: &Config) -> Result<S
                         b"' doesn't allow an argument",
                     ]));
                 }
-                (HasArg::No, None) => None,
+                (HasArg::No | HasArg::Optional, None) => None,
                 (_, Some(v)) => Some(os_from(v.to_vec())),
-                (HasArg::Optional, None) => None,
                 (HasArg::Required, None) => {
                     if i + 1 < args.len() {
                         i += 1;
