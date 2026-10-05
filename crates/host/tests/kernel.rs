@@ -120,6 +120,83 @@ fn files_snapshots_and_tar_on_the_real_vfs() {
     assert_eq!(run(&c, &other, &["cat", "/work/q/a.txt"], json!({}))["stdout"], "alfa\n");
 }
 
+/// Listagem de metadados de uma árvore (tipo, modo, tamanho, alvo do link, mtime, nlink), ordenada.
+fn tree_meta(c: &Client, sb: &str, root: &str) -> String {
+    let r = run(c, sb, &["find", root, "-printf", "%p|%y|%m|%s|%l|%T@|%n|%U|%G\\n"], json!({}));
+    assert_eq!(r["exit_code"], 0, "{r}");
+    let mut lines: Vec<&str> = r["stdout"].as_str().unwrap().lines().collect();
+    lines.sort_unstable();
+    lines.join("\n")
+}
+
+#[test]
+fn persisted_snapshot_restores_the_whole_tree_after_a_crash() {
+    let d = Daemon::kernel("");
+    let t = d.user("elis", json!({}));
+    let c = d.client(&t);
+    let keep = sandbox(&c);
+    let lose = sandbox(&c);
+    // Binário com todos os bytes, arquivo grande, vazio, diretório vazio, links, modos e mtime fixo.
+    let big: Vec<u8> = (0..300_000u32).map(|i| (i.wrapping_mul(2_654_435_761) >> 24) as u8).collect();
+    use base64::Engine as _;
+    let b64 = base64::engine::general_purpose::STANDARD;
+    c.call("fs.write", json!({ "sandbox_id": keep, "path": "/home/user/t/big.bin", "data_base64": b64.encode(&big), "create_parents": true })).unwrap();
+    c.call("fs.write", json!({ "sandbox_id": keep, "path": "/home/user/t/empty", "data": "" })).unwrap();
+    c.call("fs.write", json!({ "sandbox_id": keep, "path": "/home/user/t/ação.txt", "data": "utf8\n" })).unwrap();
+    for argv in [
+        vec!["mkdir", "-p", "/home/user/t/d/vazio"],
+        vec!["ln", "-s", "ação.txt", "/home/user/t/sym"],
+        vec!["ln", "-s", "/nao/existe", "/home/user/t/dangling"],
+        vec!["ln", "/home/user/t/ação.txt", "/home/user/t/hard"],
+        vec!["chmod", "600", "/home/user/t/empty"],
+        vec!["chmod", "4755", "/home/user/t/big.bin"],
+        vec!["chmod", "1777", "/home/user/t/d"],
+        vec!["touch", "-d", "2020-02-29 12:34:56", "/home/user/t/ação.txt"],
+        vec!["touch", "-d", "2001-09-09 01:46:40", "/home/user/t/d"],
+    ] {
+        let r = run(&c, &keep, &argv, json!({}));
+        assert_eq!(r["exit_code"], 0, "{argv:?}: {r}");
+    }
+    let before = tree_meta(&c, &keep, "/home/user/t");
+    let exported = c.call("export", json!({ "sandbox_id": keep, "path": "/home/user/t" })).unwrap();
+    let raw = b64.decode(exported["data_base64"].as_str().unwrap()).unwrap();
+    let listing: Vec<String> = tar::Archive::new(&raw[..])
+        .entries()
+        .unwrap()
+        .map(|e| {
+            let e = e.unwrap();
+            format!("{:?} {} -> {:?}", e.header().entry_type(), String::from_utf8_lossy(&e.path_bytes()), e.link_name_bytes().map(|l| String::from_utf8_lossy(&l).into_owned()))
+        })
+        .collect();
+    assert!(listing.iter().any(|l| l.starts_with("Link ")), "o export não gerou hardlink: {listing:#?}");
+    let snap = c.call("snapshot", json!({ "sandbox_id": keep, "persist": true })).unwrap();
+    // Mudança posterior ao snapshot: tem que sumir na recuperação.
+    c.call("fs.write", json!({ "sandbox_id": keep, "path": "/home/user/t/depois", "data": "x" })).unwrap();
+
+    let e = c.call("exec", json!({ "sandbox_id": lose, "argv": ["pl-crash"] })).unwrap_err();
+    assert_eq!(rpc_code(&e), codes::WORKER_CRASHED, "{e}");
+    d.wait_health(|v| v["status"] == "ok" && v["workers"].as_array().unwrap().iter().any(|w| w["restarts"] == 1), Duration::from_secs(30));
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let l = c.call("sandbox.list", json!({})).unwrap();
+        let s = l["sandboxes"].as_array().unwrap().iter().find(|s| s["sandbox_id"] == keep.as_str()).unwrap().clone();
+        if s["state"] == "active" {
+            assert_eq!(s["recovered_from"], snap["snapshot_id"]);
+            break;
+        }
+        assert!(Instant::now() < deadline, "não recuperou: {s}\n{}", d.log());
+        thread::sleep(Duration::from_millis(100));
+    }
+    let after = run(&c, &keep, &["find", "/home/user/t", "-name", "depois"], json!({}));
+    assert_eq!(after["stdout"], "", "o que veio depois do snapshot não pode voltar");
+    let mut after_meta = tree_meta(&c, &keep, "/home/user/t");
+    // `depois` não existe mais; `before` foi tirado antes dela, então a comparação é direta.
+    assert_eq!(after_meta, before, "metadados divergem após a recuperação");
+    let r = c.call("fs.read", json!({ "sandbox_id": keep, "path": "/home/user/t/big.bin", "encoding": "base64" })).unwrap();
+    assert_eq!(b64.decode(r["data"].as_str().unwrap()).unwrap(), big);
+    after_meta.clear();
+}
+
 #[test]
 fn worker_crash_with_real_kernel() {
     let d = Daemon::kernel("");

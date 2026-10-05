@@ -195,16 +195,7 @@ impl Sandbox for KSandbox {
     }
 
     fn link(&self, existing: &[u8], new: &[u8]) -> BResult<()> {
-        // O FS direto do kernel ainda não tem `link` (pedido ao kernel). Até lá, hardlink de tar vira
-        // cópia do conteúdo e do modo: o arquivo fica certo, só não compartilha o inode.
-        self.fs(new, |fs| {
-            let st = fs.lstat(existing)?;
-            if st.file_type() != sysabi::FileType::Regular {
-                return Err(Errno::EPERM);
-            }
-            let data = fs.read_file(existing)?;
-            fs.write(new, &data, kernel::WriteMode::CreateNew, st.mode & 0o7777)
-        })
+        self.fs(new, |fs| fs.link(existing, new))
     }
 
     fn mknod(&self, path: &[u8], _mode: Mode, _dev: u64) -> BResult<()> {

@@ -858,6 +858,11 @@ impl SandboxFs<'_> {
         self.ns().symlink(&self.cx(), target, &Start::Cwd, path)
     }
 
+    /// `link(2)`: hardlink de `existing` em `new` (sem seguir symlink, como o `link` do Linux).
+    pub fn link(&self, existing: &[u8], new: &[u8]) -> Result<(), Errno> {
+        self.ns().link(&self.cx(), &Start::Cwd, existing, &Start::Cwd, new, AtFlags::empty())
+    }
+
     pub fn rename(&self, from: &[u8], to: &[u8]) -> Result<(), Errno> {
         self.ns().rename(&self.cx(), &Start::Cwd, from, &Start::Cwd, to, RenameFlags::empty())
     }

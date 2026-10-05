@@ -1,0 +1,56 @@
+{
+  "nsenter-all-without-target": {
+    "stdout": "",
+    "stderr": "nsenter: stat of /proc/0/ns/user failed: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nsenter-bad-long-option": {
+    "stdout": "",
+    "stderr": "nsenter: unrecognized option '--bogus'\nTry 'nsenter --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nsenter-bad-option": {
+    "stdout": "",
+    "stderr": "nsenter: invalid option -- 'x'\nTry 'nsenter --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nsenter-bad-pid": {
+    "stdout": "",
+    "stderr": "nsenter: failed to parse pid: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nsenter-bad-setuid": {
+    "stdout": "",
+    "stderr": "nsenter: failed to parse uid: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nsenter-help": {
+    "stdout": "\nUsage:\n nsenter [options] [<program> [<argument>...]]\n\nRun a program with namespaces of other processes.\n\nOptions:\n -a, --all              enter all namespaces\n -t, --target <pid>     target process to get namespaces from\n -m, --mount[=<file>]   enter mount namespace\n -u, --uts[=<file>]     enter UTS namespace (hostname etc)\n -i, --ipc[=<file>]     enter System V IPC namespace\n -n, --net[=<file>]     enter network namespace\n -N, --net-socket <fd>  enter socket's network namespace (use with --target)\n -p, --pid[=<file>]     enter pid namespace\n -C, --cgroup[=<file>]  enter cgroup namespace\n -U, --user[=<file>]    enter user namespace\n     --user-parent      enter parent user namespace\n -T, --time[=<file>]    enter time namespace\n -S, --setuid[=<uid>]   set uid in entered namespace\n -G, --setgid[=<gid>]   set gid in entered namespace\n     --preserve-credentials do not touch uids or gids\n     --keep-caps        retain capabilities granted in user namespaces\n -r, --root[=<dir>]     set the root directory\n -w, --wd[=<dir>]       set the working directory\n -W, --wdns <dir>       set the working directory in namespace\n -e, --env              inherit environment variables from target process\n -F, --no-fork          do not fork before exec'ing <program>\n -c, --join-cgroup      join the cgroup of the target process\n -Z, --follow-context   set SELinux context according to --target PID\n\n -h, --help             display this help\n -V, --version          display version\n\nFor more details see nsenter(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "nsenter-missing-pid": {
+    "stdout": "",
+    "stderr": "nsenter: cannot open /proc/999999/ns/mnt: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nsenter-mount-without-target": {
+    "stdout": "",
+    "stderr": "nsenter: no target PID specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "nsenter-version": {
+    "stdout": "nsenter from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

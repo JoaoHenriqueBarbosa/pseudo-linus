@@ -111,6 +111,9 @@ fn add(
     max_bytes: u64,
 ) -> BResult<()> {
     let path = Path::new(OsStr::from_bytes(rel));
+    // mtime com a fração de segundo (o campo do cabeçalho só guarda segundos): extensão PAX.
+    let pax_mtime = format!("{}.{:09}", st.mtime.sec.max(0), st.mtime.nsec.min(999_999_999));
+    b.append_pax_extensions([("mtime", pax_mtime.as_bytes())]).map_err(tar_err)?;
     let mut h = Header::new_gnu();
     h.set_mode(st.mode & 0o7777);
     h.set_uid(u64::from(st.uid));
@@ -197,7 +200,16 @@ pub fn wipe_root(sb: &dyn Sandbox) -> BResult<()> {
             }
             continue;
         }
-        fsops::remove(sb, &full, true, true)?;
+        match fsops::remove(sb, &full, true, true) {
+            Ok(()) => {}
+            // Ponto de montagem (o /work é um tmpfs à parte): fica, mas vazio.
+            Err(BackendError::Os { errno, .. }) if errno == Errno::EBUSY => {
+                for c in sb.read_dir(&full)? {
+                    fsops::remove(sb, &join_path(&full, &c.name), true, true)?;
+                }
+            }
+            Err(e) => return Err(e),
+        }
     }
     Ok(())
 }
@@ -207,7 +219,7 @@ pub fn import(sb: &dyn Sandbox, dest: &[u8], data: &[u8], max_bytes: u64) -> BRe
     fsops::mkdir_p(sb, dest, 0o755)?;
     let mut ar = Archive::new(Cursor::new(data));
     let mut report = TarReport::default();
-    let mut dir_times: Vec<(Vec<u8>, i64)> = Vec::new();
+    let mut dir_times: Vec<(Vec<u8>, TimeSpec)> = Vec::new();
     for entry in ar.entries().map_err(tar_err)? {
         let mut entry = entry.map_err(tar_err)?;
         let raw_name = entry.path_bytes().into_owned();
@@ -226,12 +238,28 @@ pub fn import(sb: &dyn Sandbox, dest: &[u8], data: &[u8], max_bytes: u64) -> BRe
             Err(BackendError::Os { errno, .. }) if errno == Errno::ENOENT => Ok(()),
             Err(e) => Err(e),
         };
-        let ts = TimeSpec { sec: mtime, nsec: 0 };
+        let mut nsec = 0u32;
+        let mut mtime = mtime;
+        if let Ok(Some(exts)) = entry.pax_extensions() {
+            for x in exts.flatten() {
+                if x.key_bytes() == b"mtime"
+                    && let Ok(v) = std::str::from_utf8(x.value_bytes())
+                {
+                    let (s, f) = v.split_once('.').unwrap_or((v, ""));
+                    if let Ok(s) = s.parse::<i64>() {
+                        mtime = s;
+                        let digits: String = f.chars().take(9).collect();
+                        nsec = format!("{digits:0<9}").parse().unwrap_or(0);
+                    }
+                }
+            }
+        }
+        let ts = TimeSpec { sec: mtime, nsec };
         match h.entry_type() {
             EntryType::Directory => {
                 fsops::mkdir_p(sb, &full, 0o755)?;
                 sb.chmod(&full, perm)?;
-                dir_times.push((full.clone(), mtime));
+                dir_times.push((full.clone(), ts));
                 report.dirs += 1;
             }
             EntryType::Regular | EntryType::Continuous | EntryType::GNUSparse => {
@@ -281,8 +309,7 @@ pub fn import(sb: &dyn Sandbox, dest: &[u8], data: &[u8], max_bytes: u64) -> BRe
             let _ = sb.chown(&full, uid as u32, gid as u32, follow);
         }
     }
-    for (dir, mtime) in dir_times.into_iter().rev() {
-        let ts = TimeSpec { sec: mtime, nsec: 0 };
+    for (dir, ts) in dir_times.into_iter().rev() {
         sb.set_times(&dir, ts, ts, true)?;
     }
     Ok(report)
@@ -294,6 +321,19 @@ mod tests {
     use crate::fake::test_sandbox;
 
     const W: WriteOpts = WriteOpts { append: false, exclusive: false, mode: 0o640 };
+
+    #[test]
+    fn subsecond_mtime_survives_the_round_trip() {
+        let a = test_sandbox();
+        fsops::write(&*a, b"/work/p/b.txt", b"conteudo", W, true).unwrap();
+        let t = TimeSpec { sec: 1_700_000_000, nsec: 123_456_789 };
+        a.set_times(b"/work/p/b.txt", t, t, true).unwrap();
+        let (tar, _) = export(&*a, b"/work/p", 1 << 20).unwrap();
+        let b = test_sandbox();
+        import(&*b, b"/work/q", &tar, 1 << 20).unwrap();
+        let st = b.stat(b"/work/q/b.txt", false).unwrap();
+        assert_eq!(st.mtime, t, "mtime perdeu a fração de segundo");
+    }
 
     #[test]
     fn round_trip_between_sandboxes() {
