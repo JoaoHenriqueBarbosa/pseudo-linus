@@ -508,7 +508,7 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
             Some(nline),
             Some(ncol),
             &names,
-            &format!("invalid entry name \"{}\"", io::lossy(&names)),
+            &format!("invalid entry name \"{}\"", io::lossy(first_name(&names))),
         );
     }
     if let Some(p) = names.iter().rposition(|b| *b == b'|') {
@@ -555,7 +555,7 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
             let (il, ic) = raw.pos[fld.start + off];
             diag.warn(
                 Some(il),
-                Some(ic + 1),
+                Some(if c0 == b':' { ic } else { ic + 1 }),
                 &term,
                 &format!(
                     "Illegal character (expected alphanumeric or @%&*!#) - '{}'",
@@ -1344,7 +1344,7 @@ fn run(args: &[OsString]) -> i32 {
                 smart_defaults = false;
                 literal = true;
             }
-            'Q' => quickdump = optarg_to_number(&arg),
+            'Q' => quickdump = strtol(&arg).0 as i32,
             'R' => tversion = Some(io::lossy(&arg).to_string()),
             'T' => limited = false,
             'U' => literal = true,
@@ -1528,7 +1528,7 @@ fn run(args: &[OsString]) -> i32 {
             if len > limit {
                 let _ = io::flush_stdout();
                 io::eprint(format!(
-                    "warning: resolved {} entry is {} bytes long\n",
+                    "tic: resolved {} entry is {} bytes long\n",
                     io::lossy(first_name(&e.names)),
                     len
                 ));
@@ -1613,6 +1613,15 @@ fn run(args: &[OsString]) -> i32 {
     let mut tr = Translate::default();
     for e in &entries {
         if !matches_list(&namelst, &e.names) {
+            continue;
+        }
+        if infodump && quickdump & 1 != 0 {
+            let mut s = String::from("hex:");
+            for b in compile(e) {
+                s.push_str(&format!("{b:02X}"));
+            }
+            s.push('\n');
+            let _ = io::stdout().write_all(s.as_bytes());
             continue;
         }
         if infodump {

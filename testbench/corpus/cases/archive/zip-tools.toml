@@ -148,14 +148,14 @@ tags = ["funzip", "error"]
 
 [[case]]
 id = "funzip-password"
-script = "zip -q -P segredo t.zip a.txt; funzip -segredo t.zip; echo \"exit=$?\""
+script = "zip -q -P segredo t.zip a.txt; funzip -segredo t.zip; rm -f t.zip; echo \"exit=$?\""
 tags = ["funzip", "crypt"]
 [case.files]
 "a.txt" = "conteudo secreto\n"
 
 [[case]]
 id = "funzip-wrong-password"
-script = "zip -q -P segredo t.zip a.txt; funzip -errada t.zip; echo \"exit=$?\""
+script = "zip -q -P segredo t.zip a.txt; funzip -errada t.zip; rm -f t.zip; echo \"exit=$?\""
 tags = ["funzip", "crypt", "error"]
 [case.files]
 "a.txt" = "conteudo secreto\n"

@@ -132,22 +132,31 @@ fn zip_member(data: &[u8], key: Option<Vec<u8>>) -> i32 {
         }
         let check = if flg & 8 != 0 { data[11] } else { (crc >> 24) as u8 };
         if body[11] != check {
-            return err(3, "incorrect password");
+            return err(3, "incorrect password for first entry");
         }
         body.drain(..12);
         limit = limit.saturating_sub(12).min(body.len());
     }
+    let more = |end: usize| data.len() >= end + 4 && &data[end..end + 4] == b"PK\x03\x04";
+    let warn = || sysutil::eprint("funzip warning: zipfile has more than one entry--rest ignored\n");
     if how == 0 {
         emit(&body[..limit]);
+        if more(start + csize) {
+            warn();
+        }
         return 0;
     }
-    let (out, _used, bad) = inflate(&body);
+    let (out, used, bad) = inflate(&body);
     emit(&out);
     if bad {
         return err(3, "invalid compressed data--format violated");
     }
     if flg & 8 == 0 && crc32fast::hash(&out) != crc {
         return err(1, "invalid compressed data--crc error");
+    }
+    let end = if csize > 0 || flg & 8 == 0 { start + csize } else { start + used };
+    if more(end) {
+        warn();
     }
     0
 }

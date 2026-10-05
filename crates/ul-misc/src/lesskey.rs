@@ -9,10 +9,10 @@
 //! escopo: o `+=` do `#env` e a busca em `XDG_CONFIG_HOME`.
 
 use std::ffi::OsString;
-use std::io::{Read, Write};
-use std::os::unix::ffi::{OsStrExt, OsStringExt};
+use std::io::Write;
+use std::os::unix::ffi::OsStringExt;
 
-use sysabi::Ctx;
+use sysabi::{Ctx, OFlags};
 
 use crate::util::io;
 
@@ -336,7 +336,7 @@ fn run(args: &[OsString]) -> i32 {
             return if out.flush().is_err() { 1 } else { 0 };
         } else if a == b"--help" {
             io::eprint(USAGE.to_string());
-            return 0;
+            return 1;
         } else if a == b"-o" || a == b"--output" {
             let Some(v) = argv.get(idx) else {
                 return usage();
@@ -361,19 +361,17 @@ fn run(args: &[OsString]) -> i32 {
     };
     let output: Vec<u8> = output.unwrap_or_else(|| [home.as_slice(), b"/.less"].concat());
 
-    let mut src = Vec::new();
-    if input == b"-" {
-        let _ = std::io::stdin().read_to_end(&mut src);
+    let src = if input == b"-" {
+        io::read_stdin().unwrap_or_default()
     } else {
-        let path = std::ffi::OsStr::from_bytes(&input);
-        match std::fs::read(path) {
-            Ok(d) => src = d,
+        match io::read_path(&input) {
+            Ok(d) => d,
             Err(_) => {
                 io::eprint("-1 errors; no output produced\n".to_string());
                 return 1;
             }
         }
-    }
+    };
     let bin = match compile(&src) {
         Ok(b) => b,
         Err(m) => {
@@ -381,8 +379,9 @@ fn run(args: &[OsString]) -> i32 {
             return 1;
         }
     };
-    let path = std::ffi::OsStr::from_bytes(&output);
-    if std::fs::write(path, &bin).is_err() {
+    let written = io::File::open_with(&output, OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC, 0o666)
+        .and_then(|f| sysabi::sys::write_all(f.fd(), &bin));
+    if written.is_err() {
         io::eprint(format!("cannot open {}\n", String::from_utf8_lossy(&output)));
         return 1;
     }

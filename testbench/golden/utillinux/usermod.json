@@ -1,6 +1,6 @@
 {
   "usermod-append-without-groups": {
-    "stdout": "usermod: prefix must be an absolute path\nrc=0\n",
+    "stdout": "usermod: -a flag is only allowed with the -G flag\nrc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -18,8 +18,8 @@
     }
   },
   "usermod-comment-shell": {
-    "stdout": "rc=3\nbob:x:1000:1000:b:/home/bob:/bin/sh\n",
-    "stderr": "usermod: prefix must be an absolute path\n",
+    "stdout": "rc=0\nbob:x:1000:1000:Bob S:/home/bob:/bin/sh\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -36,6 +36,13 @@
       "etc/passwd": {
         "kind": "file",
         "mode": 420,
+        "size": 40,
+        "sha256": "050fd90b47bb207a827c907d40ece1ffb57fa7d30e783029ffe18032fd3a46b9",
+        "data": "bob:x:1000:1000:Bob S:/home/bob:/bin/sh\n"
+      },
+      "etc/passwd-": {
+        "kind": "file",
+        "mode": 420,
         "size": 36,
         "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
         "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
@@ -43,8 +50,8 @@
     }
   },
   "usermod-expire-inactive": {
-    "stdout": "rc=3\nbob:!:19000:0:99999:7:::\nbob:!:19000:0:99999:7:::\n",
-    "stderr": "usermod: prefix must be an absolute path\nusermod: prefix must be an absolute path\n",
+    "stdout": "rc=0\nbob:!:19000:0:99999:7:30:21915:\nbob:!:19000:0:99999:7:::\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -64,11 +71,18 @@
         "size": 25,
         "sha256": "e17022addfbedf5472f6257fb501c45ea417e74cc76cd52e8e87f68719b4bec5",
         "data": "bob:!:19000:0:99999:7:::\n"
+      },
+      "etc/shadow-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
+        "sha256": "d833f3a0fd33c90a1b362e5663351590ee23b5bff7e918bfb9a0e95a4027c248",
+        "data": "bob:!:19000:0:99999:7:30:21915:\n"
       }
     }
   },
   "usermod-expire-invalid": {
-    "stdout": "usermod: prefix must be an absolute path\nrc=3\n",
+    "stdout": "usermod: invalid date 'nodate'\nrc=3\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -93,8 +107,8 @@
     }
   },
   "usermod-groups-append": {
-    "stdout": "rc=3\nbob:x:1000:\na:x:50:bob\nb:x:51:\n",
-    "stderr": "usermod: prefix must be an absolute path\n",
+    "stdout": "rc=0\nbob:x:1000:\na:x:50:bob\nb:x:51:bob\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -102,6 +116,13 @@
         "mode": 493
       },
       "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 34,
+        "sha256": "94e3d6a4b312916920abaafa1404fc44764355eb10ec181835dc8273870f884f",
+        "data": "bob:x:1000:\na:x:50:bob\nb:x:51:bob\n"
+      },
+      "etc/group-": {
         "kind": "file",
         "mode": 420,
         "size": 31,
@@ -118,7 +139,7 @@
     }
   },
   "usermod-groups-missing": {
-    "stdout": "usermod: prefix must be an absolute path\nrc=3\n",
+    "stdout": "usermod: group 'nope' does not exist\nrc=6\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -143,8 +164,8 @@
     }
   },
   "usermod-groups-replace": {
-    "stdout": "rc=3\nbob:x:1000:\na:x:50:bob\nb:x:51:\n",
-    "stderr": "usermod: prefix must be an absolute path\n",
+    "stdout": "rc=0\nbob:x:1000:\na:x:50:\nb:x:51:bob\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -152,6 +173,13 @@
         "mode": 493
       },
       "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "0402083cd95e7b922c6a34c9870a2da2f45d5bb9819261466485a678171ea00b",
+        "data": "bob:x:1000:\na:x:50:\nb:x:51:bob\n"
+      },
+      "etc/group-": {
         "kind": "file",
         "mode": 420,
         "size": 31,
@@ -174,8 +202,8 @@
     "files": {}
   },
   "usermod-lock-unlock": {
-    "stdout": "bob:$6$abc:19000:0:99999:7:::\nbob:$6$abc:19000:0:99999:7:::\nrc=0\n",
-    "stderr": "usermod: prefix must be an absolute path\nusermod: prefix must be an absolute path\n",
+    "stdout": "bob:!$6$abc:19000:0:99999:7:::\nbob:$6$abc:19000:0:99999:7:::\nrc=0\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -189,17 +217,31 @@
         "sha256": "cc3cdf1b591b5e9e47db84705ebafd20979af5bb5de686a7663f214f75884bfa",
         "data": "bob:x:1000:1000:b:/h:/bin/sh\n"
       },
+      "etc/passwd-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "cc3cdf1b591b5e9e47db84705ebafd20979af5bb5de686a7663f214f75884bfa",
+        "data": "bob:x:1000:1000:b:/h:/bin/sh\n"
+      },
       "etc/shadow": {
         "kind": "file",
         "mode": 420,
         "size": 30,
         "sha256": "ef50ff720c125e152bf9193f328bcad185b09b3c342c008f95be2fd5420c4ce6",
         "data": "bob:$6$abc:19000:0:99999:7:::\n"
+      },
+      "etc/shadow-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "0b7a1d2278b352c59acdc36d1d2717c47d1f1830addcbd4c4518b4e97743c599",
+        "data": "bob:!$6$abc:19000:0:99999:7:::\n"
       }
     }
   },
   "usermod-missing-user": {
-    "stdout": "usermod: prefix must be an absolute path\nrc=3\n",
+    "stdout": "usermod: user 'nope' does not exist\nrc=6\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -217,7 +259,7 @@
     }
   },
   "usermod-move-home": {
-    "stdout": "usermod: prefix must be an absolute path\nrc=3\nbob:x:1000:1000:b:/old/bob:/bin/sh\n",
+    "stdout": "usermod: cannot rename directory /work/case//old/bob to /work/case//new/bob\nrc=12\nbob:x:1000:1000:b:/new/bob:/bin/sh\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -226,6 +268,13 @@
         "mode": 493
       },
       "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "84e656c3564799e4b5868136a05d45e89f51966fb59cfac03c724d70a2cf354b",
+        "data": "bob:x:1000:1000:b:/new/bob:/bin/sh\n"
+      },
+      "etc/passwd-": {
         "kind": "file",
         "mode": 420,
         "size": 35,
@@ -256,7 +305,7 @@
     "files": {}
   },
   "usermod-no-options": {
-    "stdout": "usermod: prefix must be an absolute path\nrc=0\n",
+    "stdout": "usermod: no changes\nrc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -274,8 +323,8 @@
     }
   },
   "usermod-rename": {
-    "stdout": "rc=3\nbob:x:1000:1000:b:/home/bob:/bin/sh\nbob:!:1:0:99999:7:::\nbob:x:1000:\nstaff:x:50:bob,root\nbob:!::\nstaff:!:bob:bob,root\n",
-    "stderr": "usermod: prefix must be an absolute path\n",
+    "stdout": "rc=0\nrob:x:1000:1000:b:/home/bob:/bin/sh\nrob:!:1:0:99999:7:::\nbob:x:1000:\nstaff:x:50:root,rob\nbob:!::\nstaff:!:rob:root,rob\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -286,10 +335,24 @@
         "kind": "file",
         "mode": 420,
         "size": 32,
+        "sha256": "246f084852ae42d00a31964d98531844d7e7f136b688c5f120033dfa467cc9b8",
+        "data": "bob:x:1000:\nstaff:x:50:root,rob\n"
+      },
+      "etc/group-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 32,
         "sha256": "6b09648b48ac0762ccfa9f5928216ec962872bde1f2ad762c87f46ad16c9b3b0",
         "data": "bob:x:1000:\nstaff:x:50:bob,root\n"
       },
       "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "fd2c9b254c7dfab40fb7d9a58f04e798ccf4627963e85c901e73cfe7f605112e",
+        "data": "bob:!::\nstaff:!:rob:root,rob\n"
+      },
+      "etc/gshadow-": {
         "kind": "file",
         "mode": 420,
         "size": 29,
@@ -300,10 +363,24 @@
         "kind": "file",
         "mode": 420,
         "size": 36,
+        "sha256": "773ac2f5080e3b4726485691ead94def2293e373076b43f2d11740fb77d61d1e",
+        "data": "rob:x:1000:1000:b:/home/bob:/bin/sh\n"
+      },
+      "etc/passwd-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
         "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
         "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
       },
       "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "51cda866eaba7319ac8e42fce683082a15bf1dec91de7dceabea2b6b361ae907",
+        "data": "rob:!:1:0:99999:7:::\n"
+      },
+      "etc/shadow-": {
         "kind": "file",
         "mode": 420,
         "size": 21,
@@ -313,7 +390,7 @@
     }
   },
   "usermod-rename-exists": {
-    "stdout": "usermod: prefix must be an absolute path\nrc=3\n",
+    "stdout": "usermod: user 'ann' already exists\nrc=9\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -331,8 +408,8 @@
     }
   },
   "usermod-uid-duplicate": {
-    "stdout": "usermod: prefix must be an absolute path\nrc=3\nrc=3\nbob:x:1000:1000:b:/h:/bin/sh\nann:x:1001:1001:a:/h2:/bin/sh\n",
-    "stderr": "usermod: prefix must be an absolute path\n",
+    "stdout": "usermod: UID '1001' already exists\nrc=4\nrc=0\nbob:x:1001:1000:b:/h:/bin/sh\nann:x:1001:1001:a:/h2:/bin/sh\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -343,14 +420,21 @@
         "kind": "file",
         "mode": 420,
         "size": 59,
+        "sha256": "ec5defc35473450a1a3c0da6d19d72246c8ed8bdfc4e5d676e8c0f558853fb05",
+        "data": "bob:x:1001:1000:b:/h:/bin/sh\nann:x:1001:1001:a:/h2:/bin/sh\n"
+      },
+      "etc/passwd-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 59,
         "sha256": "a428153671bc4c11e72d415635ae2cc7ca9eb749a383148002c8f46e80cf8742",
         "data": "bob:x:1000:1000:b:/h:/bin/sh\nann:x:1001:1001:a:/h2:/bin/sh\n"
       }
     }
   },
   "usermod-uid-gid-home": {
-    "stdout": "rc=3\nbob:x:1000:1000:b:/home/bob:/bin/sh\n",
-    "stderr": "usermod: prefix must be an absolute path\n",
+    "stdout": "rc=0\nbob:x:2000:50:b:/srv/bob:/bin/sh\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -367,6 +451,13 @@
       "etc/passwd": {
         "kind": "file",
         "mode": 420,
+        "size": 33,
+        "sha256": "5703f59bea01b70df942dc616520b6968db48ba82d1a14971ae1235cd716805d",
+        "data": "bob:x:2000:50:b:/srv/bob:/bin/sh\n"
+      },
+      "etc/passwd-": {
+        "kind": "file",
+        "mode": 420,
         "size": 36,
         "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
         "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
@@ -374,7 +465,7 @@
     }
   },
   "usermod-uid-invalid": {
-    "stdout": "usermod: prefix must be an absolute path\nrc=3\n",
+    "stdout": "usermod: invalid user ID 'abc'\nrc=3\n",
     "stderr": "",
     "exit": 0,
     "files": {

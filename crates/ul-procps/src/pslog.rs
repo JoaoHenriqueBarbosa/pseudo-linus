@@ -11,8 +11,8 @@ use ul_misc::util::io;
 
 use crate::common::out;
 
-const USAGE: &str = "Usage: pslog pid\n       pslog -V\n";
-const VERSION: &str = "pslog (PSmisc) 23.7\nCopyright (C) 1993-2024 Werner Almesberger and Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n";
+const USAGE: &str = "Usage: pslog PID...\n       pslog -V, --version\n\n  -V,--version display version information\n\n";
+const VERSION: &str = "pslog (PSmisc) 23.7\nCopyright (C) 2015-2017 Vito Mule'.\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n";
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
@@ -22,7 +22,7 @@ fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
     if argv.len() != 2 {
         io::eprint(USAGE);
-        return 1;
+        return 255;
     }
     let a = &argv[1];
     if a == b"-V" || a == b"--version" {

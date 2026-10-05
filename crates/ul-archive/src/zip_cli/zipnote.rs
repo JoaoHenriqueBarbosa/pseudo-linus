@@ -83,7 +83,7 @@ pub fn main(args: &[Vec<u8>]) -> i32 {
                             return fail_args();
                         }
                     }
-                    _ => return fail_args(),
+                    _ => return fail(ZE_PARMS, "unknown option"),
                 }
                 k += 1;
             }
@@ -159,6 +159,18 @@ fn strip_nl(mut v: Vec<u8>) -> Vec<u8> {
     v
 }
 
+/// O zipnote grava os comentários com fins de linha `\r\n`: cada `\n` sem `\r` antes ganha um.
+fn crlf(v: Vec<u8>) -> Vec<u8> {
+    let mut out = Vec::with_capacity(v.len() + 8);
+    for (j, &b) in v.iter().enumerate() {
+        if b == b'\n' && (j == 0 || v[j - 1] != b'\r') {
+            out.push(b'\r');
+        }
+        out.push(b);
+    }
+    out
+}
+
 fn write_mode(zipfile: &[u8], data: &[u8], arc: Archive) -> i32 {
     let input = sys::read_to_end(Fd::STDIN).unwrap_or_default();
     let n = arc.entries.len();
@@ -178,7 +190,7 @@ fn write_mode(zipfile: &[u8], data: &[u8], arc: Archive) -> i32 {
             let l = strip_nl(line.to_vec());
             if l == b"@ (comment above this line)" {
                 if let Some(i) = cur {
-                    comments[i] = Some(strip_nl(std::mem::take(&mut buf)));
+                    comments[i] = Some(crlf(strip_nl(std::mem::take(&mut buf))));
                 }
                 cur = None;
                 buf.clear();
@@ -207,7 +219,7 @@ fn write_mode(zipfile: &[u8], data: &[u8], arc: Archive) -> i32 {
         }
     }
     if in_zip_comment {
-        zip_comment = Some(strip_nl(zc));
+        zip_comment = Some(crlf(strip_nl(zc)));
     }
 
     let mut out = Vec::new();

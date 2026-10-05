@@ -276,7 +276,14 @@ fn run(args: &[OsString]) -> i32 {
         if interactive {
             io::eprint(format!("{line}? "));
             let mut ans = String::new();
-            let _ = std::io::stdin().read_line(&mut ans);
+            // Lê uma linha do stdin do pseudo-processo, um byte por vez para não consumir além dela.
+            let mut b = [0u8; 1];
+            while matches!(sysabi::sys::read(sysabi::Fd::STDIN, &mut b), Ok(1)) {
+                if b[0] == b'\n' {
+                    break;
+                }
+                ans.push(char::from(b[0]));
+            }
             if !ans.trim_start().starts_with(['y', 'Y']) {
                 continue;
             }

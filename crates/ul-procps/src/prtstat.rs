@@ -12,8 +12,8 @@ use ul_misc::util::io;
 use crate::common::out;
 use crate::procfs;
 
-const USAGE: &str = "Usage: prtstat [options] PID ...\n       prtstat -V\nPrint information about a process\n    -r,--raw       Raw display of information\n    -V,--version   Display version information and exit\n\n";
-const VERSION: &str = "prtstat (PSmisc) 23.7\nCopyright (C) 2009 Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n";
+const USAGE: &str = "Usage: prtstat [options] PID ...\n       prtstat -V\nPrint information about a process\n    -r,--raw       Raw display of information\n    -V,--version   Display version information and exit\n";
+const VERSION: &str = "prtstat (PSmisc) 23.7\nCopyright (C) 2009-2024 Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n";
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
@@ -80,6 +80,7 @@ fn run(args: &[OsString]) -> i32 {
         }
     }
     if pids.is_empty() {
+        io::eprint("You must provide at least one PID.\n");
         io::eprint(USAGE);
         return 1;
     }
@@ -87,15 +88,10 @@ fn run(args: &[OsString]) -> i32 {
     for p in pids {
         let digits: Vec<u8> = p.iter().copied().take_while(u8::is_ascii_digit).collect();
         let pid: i64 = String::from_utf8_lossy(&digits).parse().unwrap_or(0);
-        if pid <= 0 {
-            io::eprint(format!("Invalid process id: {}\n", String::from_utf8_lossy(&p)));
-            rc = 1;
-            continue;
-        }
         let path = format!("/proc/{pid}/stat");
-        let Some(data) = procfs::read(&path) else {
-            io::eprint(format!("prtstat: process {pid} not found\n"));
-            rc = 1;
+        let data = if pid > 0 { procfs::read(&path) } else { None };
+        let Some(data) = data else {
+            io::eprint(format!("Process with pid {pid} does not exist.\n"));
             continue;
         };
         if raw {

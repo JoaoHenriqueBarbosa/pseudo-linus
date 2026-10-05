@@ -168,6 +168,13 @@ pub(crate) fn write_lines(path: &[u8], lines: &[Vec<u8>]) -> bool {
     }
 }
 
+/// Grava `path-` com o conteúdo anterior, como o `.bak` do shadow (modo 0644).
+pub(crate) fn write_backup(path: &[u8], old: &[Vec<u8>]) -> bool {
+    let mut p = path.to_vec();
+    p.push(b'-');
+    write_lines(&p, old)
+}
+
 pub(crate) fn fields(line: &[u8]) -> Vec<&[u8]> {
     line.split(|b| *b == b':').collect()
 }
@@ -216,7 +223,7 @@ pub(crate) fn is_data(line: &[u8]) -> bool {
 
 // ---------------------------------------------------------------- groupadd
 
-const GROUPADD_USAGE: &str = "Usage: groupadd [options] GROUP\n\nOptions:\n  -f, --force                   exit successfully if the group already exists,\n                                and cancel -g if the GID is already used\n  -g, --gid GID                 use GID for the new group\n  -h, --help                    display this help message and exit\n  -K, --key KEY=VALUE           override /etc/login.defs defaults\n  -o, --non-unique              allow to create groups with duplicate\n                                (non-unique) GID\n  -p, --password PASSWORD       use this encrypted password for the new group\n  -r, --system                  create a system account\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n\n";
+const GROUPADD_USAGE: &str = "Usage: groupadd [options] GROUP\n\nOptions:\n  -f, --force                   exit successfully if the group already exists,\n                                and cancel -g if the GID is already used\n  -g, --gid GID                 use GID for the new group\n  -h, --help                    display this help message and exit\n  -K, --key KEY=VALUE           override /etc/login.defs defaults\n  -o, --non-unique              allow to create groups with duplicate\n                                (non-unique) GID\n  -p, --password PASSWORD       use this encrypted password for the new group\n  -r, --system                  create a system account\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -U, --users USERS             list of user members of this group\n\n";
 
 pub fn groupadd_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| groupadd(args))
@@ -235,6 +242,7 @@ fn groupadd(args: &[OsString]) -> i32 {
         (b'r', "system", false),
         (b'R', "root", true),
         (b'P', "prefix", true),
+        (b'U', "users", true),
     ];
     let Some(o) = parse(P, &argv, spec) else {
         return usage(GROUPADD_USAGE, 2);
@@ -349,18 +357,21 @@ fn groupadd(args: &[OsString]) -> i32 {
     };
     let pw = o.get(b'p').map(|v| io::lossy(&v));
     let nm = io::lossy(&name);
+    let members = o.get(b'U').map(|v| io::lossy(&v)).unwrap_or_default();
+    let old_group = group.clone();
+    let old_gshadow = gshadow.clone();
     if let Some(sh) = gshadow.as_mut() {
-        group.push(format!("{nm}:x:{gid}:").into_bytes());
-        sh.push(format!("{nm}:{}::", pw.as_deref().unwrap_or("!")).into_bytes());
+        group.push(format!("{nm}:x:{gid}:{members}").into_bytes());
+        sh.push(format!("{nm}:{}::{members}", pw.as_deref().unwrap_or("!")).into_bytes());
     } else {
-        group.push(format!("{nm}:{}:{gid}:", pw.as_deref().unwrap_or("!")).into_bytes());
+        group.push(format!("{nm}:{}:{gid}:{members}", pw.as_deref().unwrap_or("x")).into_bytes());
     }
-    if !write_lines(&gpath, &group) {
+    if !write_backup(&gpath, &old_group) || !write_lines(&gpath, &group) {
         io::eprint(format!("{P}: failure while writing changes to /etc/group\n"));
         return 10;
     }
-    if let Some(sh) = gshadow {
-        if !write_lines(&spath, &sh) {
+    if let (Some(sh), Some(old)) = (gshadow, old_gshadow) {
+        if !write_backup(&spath, &old) || !write_lines(&spath, &sh) {
             io::eprint(format!("{P}: failure while writing changes to /etc/gshadow\n"));
             return 10;
         }
@@ -370,7 +381,7 @@ fn groupadd(args: &[OsString]) -> i32 {
 
 // ---------------------------------------------------------------- groupdel
 
-const GROUPDEL_USAGE: &str = "Usage: groupdel [options] GROUP\n\nOptions:\n  -f, --force                   delete group even if it is the primary group of a user\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n\n";
+const GROUPDEL_USAGE: &str = "Usage: groupdel [options] GROUP\n\nOptions:\n  -h, --help                    display this help message and exit\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -f, --force                   delete group even if it is the primary group of a user\n\n";
 
 pub fn groupdel_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| groupdel(args))
@@ -429,7 +440,7 @@ fn groupdel(args: &[OsString]) -> i32 {
         .filter(|l| !(is_data(l) && name_eq(l, &name)))
         .cloned()
         .collect();
-    if !write_lines(&gpath, &new_group) {
+    if !write_backup(&gpath, &group) || !write_lines(&gpath, &new_group) {
         io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&gpath)));
         return 10;
     }
@@ -439,7 +450,7 @@ fn groupdel(args: &[OsString]) -> i32 {
             .filter(|l| !(is_data(l) && name_eq(l, &name)))
             .cloned()
             .collect();
-        if !write_lines(&spath, &ns) {
+        if !write_backup(&spath, &sh) || !write_lines(&spath, &ns) {
             io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&spath)));
             return 10;
         }
@@ -492,10 +503,6 @@ fn groupmod(args: &[OsString]) -> i32 {
     if o.rest.len() != 1 {
         return usage(GROUPMOD_USAGE, 2);
     }
-    if o.has(b'a') && !o.has(b'U') {
-        io::eprint(format!("{P}: {} flag is only allowed with the {} flag\n", "-a", "-U"));
-        return usage(GROUPMOD_USAGE, 2);
-    }
     let name = o.rest[0].clone();
     let prefix = o.get(b'P').or_else(|| o.get(b'R')).unwrap_or_default();
     let gpath = join(&prefix, "/etc/group");
@@ -537,14 +544,19 @@ fn groupmod(args: &[OsString]) -> i32 {
             let pw = read_lines(&join(&prefix, "/etc/passwd")).unwrap_or_default();
             for n in u.split(|b| *b == b',') {
                 if !pw.iter().any(|l| is_data(l) && name_eq(l, n)) {
-                    io::eprint(format!("{P}: user '{}' does not exist\n", io::lossy(n)));
-                    return 6;
+                    io::eprint(format!("Invalid member username {}\n", io::lossy(n)));
+                    return 10;
                 }
                 users.push(n.to_vec());
             }
         }
     }
-    if !(new_gid.is_some() || new_name.is_some() || o.has(b'p') || users_arg.is_some()) {
+    if !(new_gid.is_some()
+        || new_name.is_some()
+        || o.has(b'p')
+        || o.has(b'a')
+        || users_arg.is_some())
+    {
         return 0;
     }
     let merge = |old: &[u8]| -> Vec<u8> {
@@ -586,18 +598,20 @@ fn groupmod(args: &[OsString]) -> i32 {
         v.join(&b':'.to_owned())
     };
     let has_shadow = gshadow.is_some();
+    let old_group = group.clone();
+    let old_gshadow = gshadow.clone();
     group[idx] = edit(&group[idx].clone(), false, has_shadow);
     if let Some(sh) = gshadow.as_mut() {
         if let Some(i) = sh.iter().position(|l| is_data(l) && name_eq(l, &name)) {
             sh[i] = edit(&sh[i].clone(), true, true);
         }
     }
-    if !write_lines(&gpath, &group) {
+    if !write_backup(&gpath, &old_group) || !write_lines(&gpath, &group) {
         io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&gpath)));
         return 10;
     }
-    if let Some(sh) = gshadow {
-        if !write_lines(&spath, &sh) {
+    if let (Some(sh), Some(old)) = (gshadow, old_gshadow) {
+        if !write_backup(&spath, &old) || !write_lines(&spath, &sh) {
             io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&spath)));
             return 10;
         }
@@ -607,7 +621,7 @@ fn groupmod(args: &[OsString]) -> i32 {
 
 // ---------------------------------------------------------------- grpck
 
-const GRPCK_USAGE: &str = "Usage: grpck [options] [group [gshadow]]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -q, --quiet                   report errors only\n  -r, --read-only               display errors and warnings\n                                but do not change files\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --sort                    sort entries by GID\n\n";
+const GRPCK_USAGE: &str = "Usage: grpck [options] [group [gshadow]]\n\nOptions:\n  -h, --help                    display this help message and exit\n  -r, --read-only               display errors and warnings\n                                but do not change files\n  -R, --root CHROOT_DIR         directory to chroot into\n  -s, --sort                    sort entries by UID\n  -S, --silence-warnings        silence controversial/paranoid warnings\n\n";
 
 pub fn grpck_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| grpck(args))
@@ -618,10 +632,10 @@ fn grpck(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
     let spec: Spec = &[
         (b'h', "help", false),
-        (b'q', "quiet", false),
         (b'r', "read-only", false),
         (b'R', "root", true),
         (b's', "sort", false),
+        (b'S', "silence-warnings", false),
     ];
     let Some(o) = parse(P, &argv, spec) else {
         return usage(GRPCK_USAGE, 1);
@@ -646,7 +660,7 @@ fn grpck(args: &[OsString]) -> i32 {
     let group = match read_lines(&gpath) {
         Ok(g) => g,
         Err(_) => {
-            io::eprint(format!("{P}: cannot open file {}\n", io::lossy(&gpath)));
+            io::eprint(format!("{P}: cannot open {}\n", io::lossy(&gpath)));
             return 3;
         }
     };
@@ -655,7 +669,7 @@ fn grpck(args: &[OsString]) -> i32 {
             Ok(s) => Some(s),
             Err(Errno::ENOENT) if o.rest.is_empty() => None,
             Err(_) => {
-                io::eprint(format!("{P}: cannot open file {}\n", io::lossy(p)));
+                io::eprint(format!("{P}: cannot open {}\n", io::lossy(p)));
                 return 3;
             }
         },
@@ -669,7 +683,6 @@ fn grpck(args: &[OsString]) -> i32 {
         .collect();
 
     let mut errors = 0;
-    let mut seen: Vec<Vec<u8>> = Vec::new();
     for line in group.iter().filter(|l| is_data(l)) {
         let shown = io::lossy(line);
         let f = fields(line);
@@ -678,12 +691,11 @@ fn grpck(args: &[OsString]) -> i32 {
             io::eprint(format!("invalid group file entry\ndelete line '{shown}'? No\n"));
             continue;
         }
-        if seen.iter().any(|n| n.as_slice() == f[0]) {
+        if group.iter().filter(|l| is_data(l) && name_eq(l, f[0])).count() > 1 {
             errors += 1;
             io::eprint(format!("duplicate group entry\ndelete line '{shown}'? No\n"));
             continue;
         }
-        seen.push(f[0].to_vec());
         if !valid_name(f[0]) {
             errors += 1;
             io::eprint(format!("invalid group name '{}'\n", io::lossy(f[0])));
@@ -692,7 +704,7 @@ fn grpck(args: &[OsString]) -> i32 {
             if !users.contains(&m) {
                 errors += 1;
                 io::eprint(format!(
-                    "group '{}': user '{}' does not exist\ndelete member '{}'? No\n",
+                    "group {}: no user {}\ndelete member '{}'? No\n",
                     io::lossy(f[0]),
                     io::lossy(m),
                     io::lossy(m)

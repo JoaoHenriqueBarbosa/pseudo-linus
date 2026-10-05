@@ -1,0 +1,80 @@
+{
+  "findmnt-help": {
+    "stdout": "\nUsage:\n findmnt [options]\n findmnt [options] <device> | <mountpoint>\n findmnt [options] <device> <mountpoint>\n findmnt [options] [--source <device>] [--target <path> | --mountpoint <dir>]\n\nFind a (mounted) filesystem.\n\nData sources:\n -F, --tab-file <path>  alternative file for -s, -m or -k options\n -m, --mtab             search in table of mounted filesystems\n                          (includes user space mount options)\n -k                     an alias for '--kernel=mountinfo'\n --kernel[=<method>]    search in kernel mount table (default behavior);\n                          <method> is mountinfo or listmount\n -N, --task <tid>       use alternative namespace (/proc/<tid>/mountinfo file)\n -p, --poll[=<list>]    monitor changes in table of mounted filesystems\n -s, --fstab            search in static table of filesystems\n\nData filters:\n -A, --all              disable all built-in filters, print all filesystems\n -d, --direction <word> direction of search, 'forward' or 'backward'\n -f, --first-only       print the first found filesystem only\n -i, --invert           invert the sense of matching\n     --id <num>         filter by mount node ID\n     --uniq-id <num>    filter by mount node 64-bit ID (requires --kernel=listmount)\n     --pseudo           print only pseudo-filesystems\n -Q, --filter <expr>    apply display filter\n -M, --mountpoint <dir> the mountpoint directory\n     --shadowed         print only filesystems over-mounted by another filesystem\n -R, --submounts        print all submounts for the matching filesystems\n     --real             print only real filesystems\n -S, --source <string>  the device to mount (by name, maj:min, \n                          LABEL=, UUID=, PARTUUID=, PARTLABEL=)\n -T, --target <path>    the path to the filesystem to use\n -t, --types <list>     limit the set of filesystems by FS types\n -U, --uniq             ignore filesystems with duplicate target\n\nOptions:\n -a, --ascii            use ASCII chars for tree formatting\n -b, --bytes            print sizes in bytes rather than in human readable format\n -C, --nocanonicalize   don't canonicalize when comparing paths\n -c, --canonicalize     canonicalize printed paths\n -D, --df               imitate the output of df(1)\n -e, --evaluate         convert tags (LABEL,UUID,PARTUUID,PARTLABEL) \n                          to device names\n -I, --dfi              imitate the output of df(1) with -i option\n -J, --json             use JSON output format\n -l, --list             use list format output\n -n, --noheadings       don't print column headings\n -O, --options <list>   limit the set of filesystems by mount options\n -o, --output <list>    output columns (see --list-columns)\n     --output-all       output all available columns\n -P, --pairs            use key=\"value\" output format\n -r, --raw              use raw output format\n     --tree             enable tree format output if possible\n -u, --notruncate       don't truncate text in columns\n -v, --nofsroot         don't print [/dir] for bind or btrfs mounts\n -w, --timeout <num>    upper limit in milliseconds that --poll will block\n -y, --shell            use column names to be usable as shell variable identifiers\n\n -x, --verify           verify mount table content (default is fstab)\n     --verbose          print more details\n     --vfs-all          print all VFS options\n\n -H, --list-columns     list the available columns\n -h, --help             display this help\n -V, --version          display version\n\nFor more details see findmnt(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "findmnt-help-short": {
+    "stdout": "\nUsage:\n findmnt [options]\n findmnt [options] <device> | <mountpoint>\n findmnt [options] <device> <mountpoint>\n findmnt [options] [--source <device>] [--target <path> | --mountpoint <dir>]\n\nFind a (mounted) filesystem.\n\nData sources:\n -F, --tab-file <path>  alternative file for -s, -m or -k options\n -m, --mtab             search in table of mounted filesystems\n                          (includes user space mount options)\n -k                     an alias for '--kernel=mountinfo'\n --kernel[=<method>]    search in kernel mount table (default behavior);\n                          <method> is mountinfo or listmount\n -N, --task <tid>       use alternative namespace (/proc/<tid>/mountinfo file)\n -p, --poll[=<list>]    monitor changes in table of mounted filesystems\n -s, --fstab            search in static table of filesystems\n\nData filters:\n -A, --all              disable all built-in filters, print all filesystems\n -d, --direction <word> direction of search, 'forward' or 'backward'\n -f, --first-only       print the first found filesystem only\n -i, --invert           invert the sense of matching\n     --id <num>         filter by mount node ID\n     --uniq-id <num>    filter by mount node 64-bit ID (requires --kernel=listmount)\n     --pseudo           print only pseudo-filesystems\n -Q, --filter <expr>    apply display filter\n -M, --mountpoint <dir> the mountpoint directory\n     --shadowed         print only filesystems over-mounted by another filesystem\n -R, --submounts        print all submounts for the matching filesystems\n     --real             print only real filesystems\n -S, --source <string>  the device to mount (by name, maj:min, \n                          LABEL=, UUID=, PARTUUID=, PARTLABEL=)\n -T, --target <path>    the path to the filesystem to use\n -t, --types <list>     limit the set of filesystems by FS types\n -U, --uniq             ignore filesystems with duplicate target\n\nOptions:\n -a, --ascii            use ASCII chars for tree formatting\n -b, --bytes            print sizes in bytes rather than in human readable format\n -C, --nocanonicalize   don't canonicalize when comparing paths\n -c, --canonicalize     canonicalize printed paths\n -D, --df               imitate the output of df(1)\n -e, --evaluate         convert tags (LABEL,UUID,PARTUUID,PARTLABEL) \n                          to device names\n -I, --dfi              imitate the output of df(1) with -i option\n -J, --json             use JSON output format\n -l, --list             use list format output\n -n, --noheadings       don't print column headings\n -O, --options <list>   limit the set of filesystems by mount options\n -o, --output <list>    output columns (see --list-columns)\n     --output-all       output all available columns\n -P, --pairs            use key=\"value\" output format\n -r, --raw              use raw output format\n     --tree             enable tree format output if possible\n -u, --notruncate       don't truncate text in columns\n -v, --nofsroot         don't print [/dir] for bind or btrfs mounts\n -w, --timeout <num>    upper limit in milliseconds that --poll will block\n -y, --shell            use column names to be usable as shell variable identifiers\n\n -x, --verify           verify mount table content (default is fstab)\n     --verbose          print more details\n     --vfs-all          print all VFS options\n\n -H, --list-columns     list the available columns\n -h, --help             display this help\n -V, --version          display version\n\nFor more details see findmnt(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "findmnt-invalid-option": {
+    "stdout": "",
+    "stderr": "findmnt: invalid option -- 'Z'\nTry 'findmnt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "findmnt-no-match": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "findmnt-root-json": {
+    "stdout": "{\n   \"filesystems\": [\n      {\n         \"target\": \"/\"\n      }\n   ]\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "findmnt-root-pairs": {
+    "stdout": "TARGET=\"/\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "findmnt-root-raw-header": {
+    "stdout": "TARGET\n/\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "findmnt-root-target": {
+    "stdout": "/\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "findmnt-root-target-list": {
+    "stdout": "/\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "findmnt-source-and-operand": {
+    "stdout": "",
+    "stderr": "findmnt: options --target and --source can't be used together with command line element that is not an option\n",
+    "exit": 1,
+    "files": {}
+  },
+  "findmnt-unknown-column": {
+    "stdout": "",
+    "stderr": "findmnt: unknown column: BOGUS\n",
+    "exit": 1,
+    "files": {}
+  },
+  "findmnt-unrecognized-option": {
+    "stdout": "",
+    "stderr": "findmnt: unrecognized option '--bogus'\nTry 'findmnt --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "findmnt-version": {
+    "stdout": "findmnt from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

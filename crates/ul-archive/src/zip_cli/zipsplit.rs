@@ -20,8 +20,7 @@ Usage:  zipsplit [-tipqs] [-n size] [-r room] [-b path] zipfile\n\
 \x20 -s   do a sequential split even if it takes more zip files\n\
 \x20 -h   show this help    -v   show version info    -L   show software license\n";
 
-const VERSION: &str = "Copyright (c) 1990-2008 Info-ZIP - Type 'zipsplit \"-L\"' for software license.\n\
-This is ZipSplit 3.0 (July 5th 2008), by Info-ZIP.\n\
+const VERSION: &str = "This is ZipSplit 3.0 (July 5th 2008), by Info-ZIP.\n\
 Currently maintained by E. Gordon.  Please send bug reports to\n\
 the authors using the web page at www.info-zip.org; see README for details.\n\
 \n\
@@ -34,8 +33,19 @@ ZipSplit special compilation options:\n\
 \t[none]\n";
 
 fn fail(code: i32, h: &str) -> i32 {
-    sysutil::eprint(format!("zipsplit error: {} ({})\n", ztools::error_text(code), h));
+    put_stdout(format!("zipsplit error: {} ({})\n", ztools::error_text(code), h).as_bytes());
     code
+}
+
+/// Entrada maior que o tamanho máximo de cada zip: dois avisos e o erro, todos em stdout.
+fn fail_big(cap: usize, name: &[u8]) -> i32 {
+    put_stdout(
+        format!(
+            "zipsplit warning: Entry is larger than max split size of: {cap}\nzipsplit warning: use -n to set split size\n"
+        )
+        .as_bytes(),
+    );
+    fail(ZE_BIG, &String::from_utf8_lossy(name))
 }
 
 fn fail_args() -> i32 {
@@ -146,7 +156,7 @@ pub fn main(args: &[Vec<u8>]) -> i32 {
     let data = match sysutil::read_path(&zipfile) {
         Ok(d) => d,
         Err(_) => {
-            sysutil::eprint("\nzipsplit error: Interrupted (aborting)\n");
+            put_stdout(b"\nzipsplit error: Interrupted (aborting)\n");
             return ztools::ZE_ABORT;
         }
     };
@@ -170,7 +180,7 @@ pub fn main(args: &[Vec<u8>]) -> i32 {
     let other_cap = size.saturating_sub(22);
     for (e, &c) in arc.entries.iter().zip(&costs) {
         if c > other_cap.max(first_cap) {
-            return fail(ZE_BIG, &String::from_utf8_lossy(&e.name));
+            return fail_big(other_cap, &e.name);
         }
     }
     // Divisão sequencial.
@@ -183,7 +193,7 @@ pub fn main(args: &[Vec<u8>]) -> i32 {
             nseq += 1;
             used = 0;
             if c > other_cap {
-                return fail(ZE_BIG, &String::from_utf8_lossy(&arc.entries[j].name));
+                return fail_big(other_cap, &arc.entries[j].name);
             }
         }
         used += c;
@@ -216,7 +226,9 @@ pub fn main(args: &[Vec<u8>]) -> i32 {
     }
     let sizes: Vec<usize> = groups.iter().map(|g| g.iter().map(|&j| costs[j]).sum::<usize>() + 22).collect();
     let sum: usize = sizes.iter().sum();
-    let efficiency = (200 * sum / (size.max(1) * nzips_real) + 1) / 2;
+    // Eficiência: os zips cheios contam pelo tamanho máximo; o último, pelo que realmente ocupa.
+    let denom = size.max(1) * (nzips_real - 1) + sizes[nzips_real - 1];
+    let efficiency = (200 * sum / denom.max(1) + 1) / 2;
     if !quiet || test {
         put_stdout(format!("{} zip files will be made ({}% efficiency)\n", nzips_real, efficiency).as_bytes());
     }

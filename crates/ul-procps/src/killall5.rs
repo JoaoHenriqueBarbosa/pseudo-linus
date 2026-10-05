@@ -36,6 +36,9 @@ fn parse_signal(s: &[u8]) -> Option<i32> {
 
 fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
+    if argv.len() < 2 {
+        return 2;
+    }
     let mut sig = 15;
     let mut omit: Vec<i32> = Vec::new();
     let mut i = 1;
@@ -69,7 +72,6 @@ fn run(args: &[OsString]) -> i32 {
             match parse_signal(&a[1..]) {
                 Some(v) => sig = v,
                 None => {
-                    io::eprint(USAGE);
                     return 1;
                 }
             }

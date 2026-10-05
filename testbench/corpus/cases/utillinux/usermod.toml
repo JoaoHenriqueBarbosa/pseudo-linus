@@ -5,67 +5,67 @@ source = "manual"
 
 [[case]]
 id = "usermod-comment-shell"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\n' > etc/group; usermod -P . -c 'Bob S' -s /bin/sh bob; echo \"rc=$?\"; cat etc/passwd"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\n' > etc/group; usermod -P $PWD -c 'Bob S' -s /bin/sh bob; echo \"rc=$?\"; cat etc/passwd"
 
 [[case]]
 id = "usermod-uid-gid-home"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\nstaff:x:50:\\n' > etc/group; usermod -P . -u 2000 -g staff -d /srv/bob bob; echo \"rc=$?\"; cat etc/passwd"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\nstaff:x:50:\\n' > etc/group; usermod -P $PWD -u 2000 -g staff -d /srv/bob bob; echo \"rc=$?\"; cat etc/passwd"
 
 [[case]]
 id = "usermod-rename"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; printf 'bob:!:1:0:99999:7:::\\n' > etc/shadow; printf 'bob:x:1000:\\nstaff:x:50:bob,root\\n' > etc/group; printf 'bob:!::\\nstaff:!:bob:bob,root\\n' > etc/gshadow; usermod -P . -l rob bob; echo \"rc=$?\"; cat etc/passwd etc/shadow etc/group etc/gshadow"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; printf 'bob:!:1:0:99999:7:::\\n' > etc/shadow; printf 'bob:x:1000:\\nstaff:x:50:bob,root\\n' > etc/group; printf 'bob:!::\\nstaff:!:bob:bob,root\\n' > etc/gshadow; usermod -P $PWD -l rob bob; echo \"rc=$?\"; cat etc/passwd etc/shadow etc/group etc/gshadow"
 
 [[case]]
 id = "usermod-rename-exists"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\nann:x:1001:1001:a:/h2:/bin/sh\\n' > etc/passwd; usermod -P . -l ann bob 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\nann:x:1001:1001:a:/h2:/bin/sh\\n' > etc/passwd; usermod -P $PWD -l ann bob 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "usermod-groups-replace"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\na:x:50:bob\\nb:x:51:\\n' > etc/group; usermod -P . -G b bob; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\na:x:50:bob\\nb:x:51:\\n' > etc/group; usermod -P $PWD -G b bob; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "usermod-groups-append"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\na:x:50:bob\\nb:x:51:\\n' > etc/group; usermod -P . -aG b bob; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\na:x:50:bob\\nb:x:51:\\n' > etc/group; usermod -P $PWD -aG b bob; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "usermod-groups-missing"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\n' > etc/group; usermod -P . -G nope bob 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\n' > etc/group; usermod -P $PWD -G nope bob 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "usermod-append-without-groups"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; usermod -P . -a bob 2>&1 | head -1; echo \"rc=$?\""
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; usermod -P $PWD -a bob 2>&1 | head -1; echo \"rc=$?\""
 
 [[case]]
 id = "usermod-lock-unlock"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:$6$abc:19000:0:99999:7:::\\n' > etc/shadow; usermod -P . -L bob; cat etc/shadow; usermod -P . -U bob; cat etc/shadow; echo \"rc=$?\""
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:$6$abc:19000:0:99999:7:::\\n' > etc/shadow; usermod -P $PWD -L bob; cat etc/shadow; usermod -P $PWD -U bob; cat etc/shadow; echo \"rc=$?\""
 
 [[case]]
 id = "usermod-expire-inactive"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:!:19000:0:99999:7:::\\n' > etc/shadow; usermod -P . -e 2030-01-01 -f 30 bob; echo \"rc=$?\"; cat etc/shadow; usermod -P . -e '' -f -1 bob; cat etc/shadow"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:!:19000:0:99999:7:::\\n' > etc/shadow; usermod -P $PWD -e 2030-01-01 -f 30 bob; echo \"rc=$?\"; cat etc/shadow; usermod -P $PWD -e '' -f -1 bob; cat etc/shadow"
 
 [[case]]
 id = "usermod-expire-invalid"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:!:1:::::\\:\\n' > etc/shadow; usermod -P . -e nodate bob 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; printf 'bob:!:1:::::\\:\\n' > etc/shadow; usermod -P $PWD -e nodate bob 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "usermod-uid-duplicate"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\nann:x:1001:1001:a:/h2:/bin/sh\\n' > etc/passwd; usermod -P . -u 1001 bob 2>&1; echo \"rc=$?\"; usermod -P . -o -u 1001 bob; echo \"rc=$?\"; cat etc/passwd"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\nann:x:1001:1001:a:/h2:/bin/sh\\n' > etc/passwd; usermod -P $PWD -u 1001 bob 2>&1; echo \"rc=$?\"; usermod -P $PWD -o -u 1001 bob; echo \"rc=$?\"; cat etc/passwd"
 
 [[case]]
 id = "usermod-uid-invalid"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; usermod -P . -u abc bob 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; usermod -P $PWD -u abc bob 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "usermod-move-home"
-script = "mkdir -p etc old/bob; echo x > old/bob/f; printf 'bob:x:1000:1000:b:/old/bob:/bin/sh\\n' > etc/passwd; usermod -P . -d /new/bob -m bob 2>&1; echo \"rc=$?\"; cat etc/passwd"
+script = "mkdir -p etc old/bob; echo x > old/bob/f; printf 'bob:x:1000:1000:b:/old/bob:/bin/sh\\n' > etc/passwd; usermod -P $PWD -d /new/bob -m bob 2>&1; echo \"rc=$?\"; cat etc/passwd"
 
 [[case]]
 id = "usermod-missing-user"
-script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; usermod -P . -c x nope 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; usermod -P $PWD -c x nope 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "usermod-no-options"
-script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; usermod -P . bob 2>&1 | head -1; echo \"rc=$?\""
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\n' > etc/passwd; usermod -P $PWD bob 2>&1 | head -1; echo \"rc=$?\""
 
 [[case]]
 id = "usermod-no-args"

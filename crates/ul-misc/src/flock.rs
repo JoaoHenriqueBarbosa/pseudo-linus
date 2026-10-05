@@ -21,9 +21,9 @@ const EX_USAGE: i32 = 64;
 const EX_NOINPUT: i32 = 66;
 const EX_CANTCREAT: i32 = 73;
 const EX_NOPERM: i32 = 77;
-/// `EX_EXEC_FAILED` e `EX_EXEC_ENOENT` do `exitcodes.h`.
-const EX_EXEC_FAILED: i32 = 126;
-const EX_EXEC_ENOENT: i32 = 127;
+/// `EX_UNAVAILABLE` e `EX_OSERR` do `sysexits.h` (falha ao executar o comando).
+const EX_UNAVAILABLE: i32 = 69;
+const EX_OSERR: i32 = 71;
 
 const LONGS: &[LongOpt] = &[
     LongOpt::new("shared", HasArg::No, b's' as i32),
@@ -39,6 +39,7 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("no-fork", HasArg::No, b'F' as i32),
     LongOpt::new("command", HasArg::Required, b'c' as i32),
     LongOpt::new("verbose", HasArg::No, b'v' as i32),
+    LongOpt::new("fcntl", HasArg::No, 128),
     LongOpt::new("help", HasArg::No, b'h' as i32),
     LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
@@ -58,18 +59,20 @@ Usage:
 Manage file locks from shell scripts.
 
 Options:
- -s, --shared               get a shared lock
- -x, --exclusive            get an exclusive lock (default)
- -u, --unlock               remove a lock
- -n, --nonblock             fail rather than wait
- -w, --timeout <secs>       wait for a limited amount of time
+ -s, --shared             get a shared lock
+ -x, --exclusive          get an exclusive lock (default)
+ -u, --unlock             remove a lock
+ -n, --nonblock           fail rather than wait
+ -w, --timeout <secs>     wait for a limited amount of time
  -E, --conflict-exit-code <number>  exit code after conflict or timeout
- -o, --close                close file descriptor before running command
- -c, --command <command>    run a single command string through the shell
- -F, --no-fork              execute command without forking
+ -o, --close              close file descriptor before running command
+ -c, --command <command>  run a single command string through the shell
+ -F, --no-fork            execute command without forking
+     --fcntl              use fcntl(F_OFD_SETLK) rather than flock()
+     --verbose            increase verbosity
 
- -h, --help                 display this help
- -V, --version              display version
+ -h, --help               display this help
+ -V, --version            display version
 
 For more details see flock(1).
 "
@@ -127,7 +130,11 @@ fn run(args: &[OsString]) -> i32 {
                 let a = o.arg_str();
                 match a.trim().parse::<i64>() {
                     Ok(n) if (0..=255).contains(&n) => conflict_code = n as i32,
-                    _ => {
+                    Ok(_) => {
+                        ul::warnx(&short, "exit code out of range (expected 0 to 255)");
+                        return EX_USAGE;
+                    }
+                    Err(_) => {
                         ul::warnx(&short, format!("invalid exit code: '{a}'"));
                         return EX_USAGE;
                     }
@@ -154,7 +161,7 @@ fn run(args: &[OsString]) -> i32 {
 
     let ops = g2.operands();
     if ops.is_empty() {
-        ul::warnx(&short, "requires file descriptor, file or directory");
+        ul::warnx(&short, "not enough arguments");
         ul::errtryhelp(&short);
         return EX_USAGE;
     }
@@ -166,8 +173,10 @@ fn run(args: &[OsString]) -> i32 {
         // Modo `flock <fd>`: trava (ou destrava) um descritor já aberto.
         let digits = target.iter().all(|b| b.is_ascii_digit()) && !target.is_empty();
         if !digits {
-            ul::warnx(&short, "requires file descriptor, file or directory");
-            ul::errtryhelp(&short);
+            ul::warnx(
+                &short,
+                format!("bad file descriptor: '{}'", io::lossy(target)),
+            );
             return EX_USAGE;
         }
         let n: i32 = io::lossy(target).parse().unwrap_or(-1);
@@ -213,10 +222,10 @@ fn run(args: &[OsString]) -> i32 {
         format!("failed to execute {}", io::lossy(&cmd[0])),
         e,
     );
-    if e == Errno::ENOENT {
-        EX_EXEC_ENOENT
+    if e == Errno::ENOMEM {
+        EX_OSERR
     } else {
-        EX_EXEC_FAILED
+        EX_UNAVAILABLE
     }
 }
 

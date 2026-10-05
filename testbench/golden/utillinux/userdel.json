@@ -1,7 +1,7 @@
 {
   "userdel-basic": {
-    "stdout": "rc=3\nroot:x:0:0:r:/root:/bin/sh\nbob:x:1000:1000:b:/home/bob:/bin/sh\nroot:*:1:::::\\:\nbob:!:1:0:99999:7:::\nroot:x:0:\nbob:x:1000:\nstaff:x:50:bob,root\nroot:*::\nbob:!::\nstaff:!:bob:bob,root\n",
-    "stderr": "userdel: prefix must be an absolute path\n",
+    "stdout": "rc=0\nroot:x:0:0:r:/root:/bin/sh\nroot:*:1:::::\\:\nroot:x:0:\nbob:x:1000:\nstaff:x:50:root\nroot:*::\nbob:!::\nstaff:!::root\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -11,11 +11,25 @@
       "etc/group": {
         "kind": "file",
         "mode": 420,
+        "size": 38,
+        "sha256": "2b1c3a967fb18784d4f28532ff6696040b68fa413a4e698c161e9cc681356a8f",
+        "data": "root:x:0:\nbob:x:1000:\nstaff:x:50:root\n"
+      },
+      "etc/group-": {
+        "kind": "file",
+        "mode": 420,
         "size": 42,
         "sha256": "a076462a94aa59928bf199edbcd4e67582d8dbc008c3df4de2bf6995f577d9dd",
         "data": "root:x:0:\nbob:x:1000:\nstaff:x:50:bob,root\n"
       },
       "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "40de7fc96872928f8af7da5f36a950bbd437580f4003977a880df3e1f0eefb79",
+        "data": "root:*::\nbob:!::\nstaff:!::root\n"
+      },
+      "etc/gshadow-": {
         "kind": "file",
         "mode": 420,
         "size": 38,
@@ -25,11 +39,25 @@
       "etc/passwd": {
         "kind": "file",
         "mode": 420,
+        "size": 27,
+        "sha256": "0a243b6d8183a4e5f7e68b0468c2e72b33017cca2c67e63fd43ea85a5dbdf0fb",
+        "data": "root:x:0:0:r:/root:/bin/sh\n"
+      },
+      "etc/passwd-": {
+        "kind": "file",
+        "mode": 420,
         "size": 63,
         "sha256": "ff863ae0d7d16f4d1d14148a545e7dcafe071de8eaf3bb899afed68b13ca8042",
         "data": "root:x:0:0:r:/root:/bin/sh\nbob:x:1000:1000:b:/home/bob:/bin/sh\n"
       },
       "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "669270498a830d828cefffe854e1a36f0c499993c8653d84ca7673334a75a7c0",
+        "data": "root:*:1:::::\\:\n"
+      },
+      "etc/shadow-": {
         "kind": "file",
         "mode": 420,
         "size": 37,
@@ -39,7 +67,7 @@
     }
   },
   "userdel-group-has-other-members": {
-    "stdout": "userdel: prefix must be an absolute path\nrc=3\nbob:x:1000:1000:b:/h:/bin/sh\nann:x:1001:1000:a:/h2:/bin/sh\nbob:x:1000:\n",
+    "stdout": "rc=0\nann:x:1001:1000:a:/h2:/bin/sh\nbob:x:1000:\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -55,6 +83,13 @@
         "data": "bob:x:1000:\n"
       },
       "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "efc1a4749898887709ff625f45f914d23e45922a1a01071eaa0015a4b47afbd5",
+        "data": "ann:x:1001:1000:a:/h2:/bin/sh\n"
+      },
+      "etc/passwd-": {
         "kind": "file",
         "mode": 420,
         "size": 59,
@@ -76,7 +111,7 @@
     "files": {}
   },
   "userdel-missing": {
-    "stdout": "userdel: prefix must be an absolute path\nrc=3\n",
+    "stdout": "userdel: user 'nope' does not exist\nrc=6\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -107,7 +142,7 @@
     "files": {}
   },
   "userdel-remove-home": {
-    "stdout": "userdel: prefix must be an absolute path\nrc=3\nbob\n",
+    "stdout": "userdel: bob mail spool (/work/case//var/mail/bob) not found\nrc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -125,6 +160,13 @@
       "etc/passwd": {
         "kind": "file",
         "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd-": {
+        "kind": "file",
+        "mode": 420,
         "size": 31,
         "sha256": "a0897a04f326cc1322112e8db39bf5c76c7edd0d25a2e9d24ef5a98fd372fe25",
         "data": "bob:x:0:0:b:./home/bob:/bin/sh\n"
@@ -132,26 +174,11 @@
       "home": {
         "kind": "dir",
         "mode": 493
-      },
-      "home/bob": {
-        "kind": "dir",
-        "mode": 493
-      },
-      "home/bob/sub": {
-        "kind": "dir",
-        "mode": 493
-      },
-      "home/bob/sub/f": {
-        "kind": "file",
-        "mode": 420,
-        "size": 2,
-        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
-        "data": "x\n"
       }
     }
   },
   "userdel-remove-home-missing": {
-    "stdout": "userdel: prefix must be an absolute path\nrc=0\n",
+    "stdout": "userdel: bob mail spool (/work/case//var/mail/bob) not found\nuserdel: bob home directory (HOME/bob) not found\nrc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -167,6 +194,13 @@
         "data": "bob:x:1000:\n"
       },
       "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "etc/passwd-": {
         "kind": "file",
         "mode": 420,
         "size": 36,

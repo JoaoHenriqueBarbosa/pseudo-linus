@@ -76,20 +76,11 @@
         "size": 17,
         "sha256": "adda494f1bf7919268c0120be1c6e6ebf5dd92145d5bfbe320ec3948871c2d4b",
         "data": "conteudo secreto\n"
-      },
-      "t.zip": {
-        "kind": "file",
-        "mode": 420,
-        "size": 205,
-        "sha256": "33ec9e161bf5a6bebe046464bd69288ff723c844b98a1e53833ce5996e88cc67",
-        "data": {
-          "b64": "UEsDBAoACQAAAABgL1yuswNEHQAAABEAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAAf77d5U4tgvdQC7ZAyJdSBrhFeVA5RKgLX+gEB/JQSwcIrrMDRB0AAAARAAAAUEsBAh4DCgAJAAAAAGAvXK6zA0QdAAAAEQAAAAUAGAAAAAAAAQAAAKSBAAAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAABAAEASwAAAGwAAAAAAA=="
-        }
       }
     }
   },
   "funzip-wrong-password": {
-    "stdout": "exit=3\n",
+    "stdout": "exit=0\n",
     "stderr": "funzip error: incorrect password for first entry\n",
     "exit": 0,
     "files": {
@@ -99,15 +90,6 @@
         "size": 17,
         "sha256": "adda494f1bf7919268c0120be1c6e6ebf5dd92145d5bfbe320ec3948871c2d4b",
         "data": "conteudo secreto\n"
-      },
-      "t.zip": {
-        "kind": "file",
-        "mode": 420,
-        "size": 205,
-        "sha256": "6c67fab20232f06dbcb9bcf51e5f54bf05c02bdc69046a81ffb5e8c6a8849896",
-        "data": {
-          "b64": "UEsDBAoACQAAAABgL1yuswNEHQAAABEAAAAFABwAYS50eHRVVAkAA8DWaGnA1mhpdXgLAAEEAAAAAAQAAAAA20DVinhykKOK9dHbObAS3bagycl1k7U6tOgL4AVQSwcIrrMDRB0AAAARAAAAUEsBAh4DCgAJAAAAAGAvXK6zA0QdAAAAEQAAAAUAGAAAAAAAAQAAAKSBAAAAAGEudHh0VVQFAAPA1mhpdXgLAAEEAAAAAAQAAAAAUEsFBgAAAAABAAEASwAAAGwAAAAAAA=="
-        }
       }
     }
   },

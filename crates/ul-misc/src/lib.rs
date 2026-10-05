@@ -45,7 +45,6 @@ pub mod look;
 pub mod lscpu;
 pub mod lsmem;
 pub mod mcookie;
-pub mod uuidgen;
 pub mod mountpoint;
 pub mod namei;
 pub mod nologin;
@@ -121,7 +120,6 @@ pub fn programs() -> Vec<Program> {
         Program::bin("lscpu", lscpu::main),
         Program::bin("lsmem", lsmem::main),
         Program::bin("mcookie", mcookie::main),
-        Program::bin("uuidgen", uuidgen::main),
         Program::bin("mountpoint", mountpoint::main),
         Program::bin("namei", namei::main),
         Program::bin("ngettext", gettext::ngettext_main),

@@ -10,8 +10,7 @@
 //! morreram, 3 problema; com `--status`: 0 rodando, 1 parado com pidfile, 3 parado, 4 indeterminado.
 //!
 //! Fora do porte: `--chuid`/`--group`/`--chroot`/`--nicelevel`/`--procsched`/`--iosched`/`--umask`/
-//! `--no-close` são aceitos e validados, mas só `--chdir` é aplicado; o pidfile é escrito com
-//! `std::fs`.
+//! `--no-close` são aceitos e validados, mas só `--chdir` é aplicado.
 
 use std::ffi::OsString;
 use std::io::Write;
@@ -50,18 +49,21 @@ Options:
   -a, --startas <pathname>      program to start (default is <executable>)
   -r, --chroot <directory>      chroot to <directory> before starting
   -d, --chdir <directory>       change to <directory> (default is /)
-  -N, --nicelevel <incr>        add incr to the process's nice level
+  -N, --nicelevel <incr>        add incr to the process' nice level
   -P, --procsched <policy[:prio]>
                                 use <policy> with <prio> for the kernel
                                   process scheduler (default prio is 0)
   -I, --iosched <class[:prio]>  use <class> with <prio> to set the IO
                                   scheduler (default prio is 4)
-  -k, --umask <mask>            change the process' file creation mask
+  -k, --umask <mask>            change the umask to <mask> before starting
   -b, --background              force the process to detach
+      --notify-await            wait for a readiness notification
+      --notify-timeout <int>    timeout after <int> seconds of notify wait
   -C, --no-close                do not close any file descriptor
+  -O, --output <filename>       send stdout and stderr to <filename>
   -m, --make-pidfile            create the pidfile before starting
-  -R, --retry <schedule|timeout>
-                                check whether processes have exited
+      --remove-pidfile          delete the pidfile after stopping
+  -R, --retry <schedule>        check whether processes die, and retry
   -t, --test                    test mode, don't do anything
   -o, --oknodo                  exit status 0 (not 1) if nothing done
   -q, --quiet                   be more quiet
@@ -76,17 +78,22 @@ or <schedule> may be just <timeout>, meaning <signal>/<timeout>/KILL/<timeout>
 The process scheduler <policy> can be one of:
   other, fifo or rr
 
-Exit status:  0 = done      1 = nothing done (= 0 if --oknodo)
-              2 = with --retry, processes would not die
-              3 = trouble
+The IO scheduler <class> can be one of:
+  real-time, best-effort or idle
+
+Exit status:
+  0 = done
+  1 = nothing done (=> 0 if --oknodo)
+  2 = with --retry, processes would not die
+  3 = trouble
 Exit status with --status:
-              0 = program is running
-              1 = program is not running and the pid file exists
-              3 = program is not running
-              4 = unable to determine status
+  0 = program is running
+  1 = program is not running and the pid file exists
+  3 = program is not running
+  4 = unable to determine status
 ";
 
-const VERSION: &str = "start-stop-daemon 1.22.21 for Debian\n\nThis is free software; see the GNU General Public License version 2 or later for copying conditions. There is NO warranty.\n";
+const VERSION: &str = "start-stop-daemon 1.22.22 for Debian\n\nWritten by Marek Michalkiewicz, public domain.\n";
 
 const SIGNAMES: [(&str, i32); 31] = [
     ("HUP", 1), ("INT", 2), ("QUIT", 3), ("ILL", 4), ("TRAP", 5), ("ABRT", 6), ("BUS", 7),
@@ -149,6 +156,14 @@ fn badusage(msg: &str) -> i32 {
 fn fatal(msg: &str) -> i32 {
     io::eprint(format!("{PROG}: {msg}\n"));
     3
+}
+
+/// Grava o pidfile pelo processo corrente (nada de `std::fs`, que tocaria o host).
+fn write_pidfile(path: &[u8], text: &str) -> Result<(), String> {
+    use sysabi::OFlags;
+    io::File::open_with(path, OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC, 0o666)
+        .and_then(|f| sys::write_all(f.fd(), text.as_bytes()))
+        .map_err(|e| e.message())
 }
 
 fn lossy(b: &[u8]) -> String {
@@ -329,10 +344,10 @@ fn what(o: &Opts) -> String {
         lossy(e)
     } else if let Some(p) = &o.pidfile {
         format!("process in pidfile '{}'", lossy(p))
+    } else if let Some(n) = &o.name {
+        lossy(n)
     } else if let Some(u) = o.user {
         format!("process(es) owned by '{u}'")
-    } else if let Some(n) = &o.name {
-        format!("process '{}'", lossy(n))
     } else {
         "process".to_string()
     }
@@ -355,10 +370,10 @@ fn do_start(o: &Opts, args: &[Vec<u8>]) -> i32 {
     }
     let prog = o.startas.clone().or_else(|| o.exec.clone()).unwrap_or_default();
     if o.test {
-        let mut s = format!("Would start {}", lossy(&prog));
+        let mut s = format!("Would start {} ", lossy(&prog));
         for a in args {
-            s.push(' ');
             s.push_str(&lossy(a));
+            s.push(' ');
         }
         out(format!("{s}.\n"));
         return 0;
@@ -402,7 +417,7 @@ fn do_start(o: &Opts, args: &[Vec<u8>]) -> i32 {
             Ok(p) => {
                 if o.makepidfile
                     && let Some(pf) = &o.pidfile
-                    && let Err(e) = std::fs::write(lossy(pf), format!("{p}\n"))
+                    && let Err(e) = write_pidfile(pf, &format!("{p}\n"))
                 {
                     return fatal(&format!("unable to write pidfile '{}': {e}", lossy(pf)));
                 }
@@ -413,7 +428,7 @@ fn do_start(o: &Opts, args: &[Vec<u8>]) -> i32 {
     } else {
         if o.makepidfile
             && let Some(pf) = &o.pidfile
-            && let Err(e) = std::fs::write(lossy(pf), format!("{}\n", sysc.getpid()))
+            && let Err(e) = write_pidfile(pf, &format!("{}\n", sysc.getpid()))
         {
             return fatal(&format!("unable to write pidfile '{}': {e}", lossy(pf)));
         }
@@ -517,24 +532,9 @@ fn do_stop(o: &Opts, sig: i32, schedule: Option<Vec<Step>>) -> i32 {
 
 fn do_status(o: &Opts) -> i32 {
     match find(o) {
-        Found::Pids(v) if !v.is_empty() => {
-            if !o.quiet {
-                out(format!("{} is running\n", what(o)));
-            }
-            0
-        }
-        Found::Pids(_) => {
-            if !o.quiet {
-                out(format!("{} is not running\n", what(o)));
-            }
-            3
-        }
-        Found::StalePidfile => {
-            if !o.quiet {
-                out(format!("{} is not running, but pid file exists\n", what(o)));
-            }
-            1
-        }
+        Found::Pids(v) if !v.is_empty() => 0,
+        Found::Pids(_) => 3,
+        Found::StalePidfile => 1,
         Found::Unknown => 4,
     }
 }
@@ -544,10 +544,10 @@ const WITH_ARG: &[(&str, char)] = &[
     ("pid", '\u{1}'), ("ppid", '\u{2}'), ("pidfile", 'p'), ("exec", 'x'), ("name", 'n'),
     ("user", 'u'), ("group", 'g'), ("chuid", 'c'), ("signal", 's'), ("startas", 'a'),
     ("chroot", 'r'), ("chdir", 'd'), ("nicelevel", 'N'), ("procsched", 'P'), ("iosched", 'I'),
-    ("umask", 'k'), ("retry", 'R'),
+    ("umask", 'k'), ("retry", 'R'), ("notify-timeout", '\u{4}'), ("output", 'O'),
 ];
 const NO_ARG: &[(&str, char)] = &[
-    ("start", 'S'), ("stop", 'K'), ("status", 'T'), ("help", 'H'), ("version", 'V'),
+    ("notify-await", '\u{3}'), ("remove-pidfile", '\u{5}'), ("start", 'S'), ("stop", 'K'), ("status", 'T'), ("help", 'H'), ("version", 'V'),
     ("background", 'b'), ("no-close", 'C'), ("make-pidfile", 'm'), ("test", 't'),
     ("oknodo", 'o'), ("quiet", 'q'), ("verbose", 'v'),
 ];
@@ -670,10 +670,7 @@ fn run(args: &[OsString]) -> i32 {
             's' => match parse_signal(&v) {
                 Some(s) => sig = s,
                 None => {
-                    return badusage(&format!(
-                        "signal value '{}' not an integer or name",
-                        lossy(&v)
-                    ));
+                    return badusage("signal value must be numeric or name of signal (KILL, INT, ...)");
                 }
             },
             'R' => match parse_schedule(&v) {
@@ -687,9 +684,6 @@ fn run(args: &[OsString]) -> i32 {
     if cmd == Cmd::None {
         return badusage("need one of --start or --stop or --status");
     }
-    if cmd == Cmd::Start && o.exec.is_none() && o.startas.is_none() {
-        return badusage("need --exec or --startas for --start");
-    }
     if o.pid.is_none()
         && o.ppid.is_none()
         && o.pidfile.is_none()
@@ -697,7 +691,10 @@ fn run(args: &[OsString]) -> i32 {
         && o.name.is_none()
         && o.user.is_none()
     {
-        return badusage("need at least one of --exec, --pidfile, --user or --name");
+        return badusage("need at least one of --exec, --pid, --ppid, --pidfile, --user or --name");
+    }
+    if cmd == Cmd::Start && o.exec.is_none() && o.startas.is_none() {
+        return badusage("--start needs --exec or --startas");
     }
     if o.makepidfile && o.pidfile.is_none() {
         return badusage("--make-pidfile is only relevant with --pidfile");

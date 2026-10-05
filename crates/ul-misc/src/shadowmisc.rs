@@ -6,7 +6,9 @@
 use std::ffi::OsString;
 use std::io::Write;
 
-use crate::groupmgmt::{fields, is_data, join, name_eq, parse, read_lines, usage, write_lines, Spec};
+use crate::groupmgmt::{
+    fields, is_data, join, name_eq, parse, read_lines, usage, write_backup, write_lines, Spec,
+};
 use crate::util::io;
 
 fn parse_long(s: &[u8]) -> Option<i64> {
@@ -88,7 +90,7 @@ fn put_num(v: &mut [Vec<u8>], i: usize, n: i64) {
 
 // ---------------------------------------------------------------- chage
 
-const CHAGE_USAGE: &str = "Usage: chage [options] LOGIN\n\nOptions:\n  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -h, --help                    display this help message and exit\n  -i, --iso8601                 use YYYY-MM-DD when printing dates\n  -I, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --list                    show account aging information\n  -m, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -M, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n\n";
+const CHAGE_USAGE: &str = "Usage: chage [options] LOGIN\n\nOptions:\n  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -h, --help                    display this help message and exit\n  -i, --iso8601                 use YYYY-MM-DD when printing dates\n  -I, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --list                    show account aging information\n  -m, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -M, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n\n";
 
 pub fn chage_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     io::run(|| chage(args))
@@ -158,8 +160,14 @@ fn chage(args: &[OsString]) -> i32 {
     }
     let name = o.rest[0].clone();
     let prefix = o.get(b'P').or_else(|| o.get(b'R')).unwrap_or_default();
-    let ppath = join(&prefix, "/etc/passwd");
-    let spath = join(&prefix, "/etc/shadow");
+    // O oráculo concatena o prefixo sem normalizar (`/work/case//etc/passwd`).
+    let raw = |p: &str| {
+        let mut v = prefix.clone();
+        v.extend_from_slice(p.as_bytes());
+        v
+    };
+    let ppath = raw("/etc/passwd");
+    let spath = raw("/etc/shadow");
     let passwd = read_lines(&ppath).unwrap_or_default();
     if !passwd.iter().any(|l| is_data(l) && name_eq(l, &name)) {
         io::eprint(format!(
@@ -193,7 +201,8 @@ fn chage(args: &[OsString]) -> i32 {
         let warn = num_field(&f, 5);
         let inact = num_field(&f, 6);
         let expire = num_field(&f, 7);
-        let never_exp = last <= 0 || max >= 10000 || max < 0;
+        let must_change = last == 0;
+        let never_exp = last < 0 || max >= 10000 || max < 0;
         let mut out = String::new();
         out.push_str("Last password change\t\t\t\t\t: ");
         if last < 0 {
@@ -205,14 +214,18 @@ fn chage(args: &[OsString]) -> i32 {
             out.push('\n');
         }
         out.push_str("Password expires\t\t\t\t\t: ");
-        if never_exp {
+        if must_change {
+            out.push_str("password must be changed\n");
+        } else if never_exp {
             out.push_str("never\n");
         } else {
             out.push_str(&fmt_date(last + max, iso));
             out.push('\n');
         }
         out.push_str("Password inactive\t\t\t\t\t: ");
-        if never_exp || inact < 0 {
+        if must_change {
+            out.push_str("password must be changed\n");
+        } else if never_exp || inact < 0 {
             out.push_str("never\n");
         } else {
             out.push_str(&fmt_date(last + max + inact, iso));
@@ -234,8 +247,9 @@ fn chage(args: &[OsString]) -> i32 {
     for (i, n) in edits {
         put_num(&mut f, i, n);
     }
+    let old_shadow = shadow.clone();
     shadow[idx] = f.join(&b':'.to_owned());
-    if !write_lines(&spath, &shadow) {
+    if !write_backup(&spath, &old_shadow) || !write_lines(&spath, &shadow) {
         io::eprint(format!("{P}: failure while writing changes to /etc/shadow\n"));
         return 1;
     }
@@ -275,16 +289,35 @@ fn gpasswd(args: &[OsString]) -> i32 {
     }
     let single = [b'a', b'd', b'r', b'R'].iter().filter(|c| o.has(**c)).count()
         + usize::from(o.has(b'A') || o.has(b'M'));
-    if single > 1 || o.rest.len() != 1 {
-        return usage(GPASSWD_USAGE, 2);
-    }
-    if single == 0 {
-        // A troca interativa de senha não é suportada.
+    if o.rest.len() != 1 {
         return usage(GPASSWD_USAGE, 2);
     }
     let name = o.rest[0].clone();
     let nm = io::lossy(&name);
+    let has_prefix = o.has(b'Q');
     let prefix = o.get(b'Q').unwrap_or_default();
+    // Como o oráculo: sob -Q o uid 0 precisa existir no passwd do prefixo.
+    if has_prefix {
+        let pw = read_lines(&join(&prefix, "/etc/passwd")).unwrap_or_default();
+        let root = pw
+            .iter()
+            .any(|l| is_data(l) && fields(l).get(2).is_some_and(|f| *f == b"0"));
+        if !root {
+            io::eprint(format!("{P}: Cannot determine your user name.\n"));
+            return 1;
+        }
+    }
+    if let Some(u) = o.get(b'a') {
+        let pw = read_lines(&join(&prefix, "/etc/passwd")).unwrap_or_default();
+        if !pw.iter().any(|l| is_data(l) && name_eq(l, &u)) {
+            io::eprint(format!("{P}: user '{}' does not exist\n", io::lossy(&u)));
+            return 3;
+        }
+    }
+    if single > 1 || single == 0 {
+        // A troca interativa de senha não é suportada.
+        return usage(GPASSWD_USAGE, 2);
+    }
     let gpath = join(&prefix, "/etc/group");
     let spath = join(&prefix, "/etc/gshadow");
     let ppath = join(&prefix, "/etc/passwd");
@@ -385,8 +418,10 @@ fn gpasswd(args: &[OsString]) -> i32 {
         }
     }
 
+    let old_group = group.clone();
+    let old_gshadow = gshadow.clone();
     group[gi] = g.join(&b':'.to_owned());
-    if !write_lines(&gpath, &group) {
+    if !write_backup(&gpath, &old_group) || !write_lines(&gpath, &group) {
         io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&gpath)));
         return 1;
     }
@@ -396,7 +431,8 @@ fn gpasswd(args: &[OsString]) -> i32 {
             Some(i) => sh[i] = line,
             None => sh.push(line),
         }
-        if !write_lines(&spath, sh) {
+        let old = old_gshadow.unwrap_or_default();
+        if !write_backup(&spath, &old) || !write_lines(&spath, sh) {
             io::eprint(format!("{P}: cannot rewrite {}\n", io::lossy(&spath)));
             return 1;
         }
