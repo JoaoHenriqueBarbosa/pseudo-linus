@@ -108,6 +108,9 @@ pub struct SnapEntry {
     pub persisted: Option<(PathBuf, u64)>,
 }
 
+/// Nome do snapshot que o host persiste sozinho (um por sandbox; não conta na cota do usuário).
+pub const AUTOSAVE_NAME: &str = "autosave";
+
 #[derive(Clone, Debug)]
 pub struct SandboxEntry {
     pub id: String,
@@ -127,6 +130,10 @@ pub struct SandboxEntry {
     pub sessions: BTreeSet<String>,
     /// Se as reservas desta sandbox ainda contam (deixam de contar quando ela se perde).
     pub reserved: bool,
+    /// Houve escrita (exec, sessão, fs) depois do último autosave.
+    pub dirty: bool,
+    /// Quando o último autosave terminou (segundos Unix; 0 = nunca).
+    pub last_autosave: u64,
 }
 
 impl SandboxEntry {
@@ -238,7 +245,7 @@ impl State {
             sb.owner.clone(),
             sb.limits.mem_bytes,
             u64::from(sb.limits.max_procs),
-            sb.snapshots.iter().filter(|s| s.persisted.is_some()).count() as u32,
+            sb.snapshots.iter().filter(|s| s.persisted.is_some() && s.name != AUTOSAVE_NAME).count() as u32,
         );
         self.total_mem = self.total_mem.saturating_sub(mem);
         self.total_sandboxes = self.total_sandboxes.saturating_sub(1);
@@ -468,6 +475,7 @@ impl Supervisor {
         call: Call,
         events: Option<mpsc::UnboundedSender<(Stream, Vec<u8>)>>,
     ) -> Result<Reply, RpcError> {
+        self.mark_dirty(&call);
         let slot = &self.slots[idx];
         let tx = {
             let i = slot.inner.lock();
@@ -791,8 +799,101 @@ impl Supervisor {
     }
 
     /// Faxina periódica: sandboxes ociosas, donos removidos, lápides velhas e o último uso das chaves.
+    /// Marca a sandbox como alterada quando a chamada pode escrever nela (o autosave só persiste as sujas).
+    fn mark_dirty(&self, call: &Call) {
+        let mut st = self.state.lock();
+        let id = match call {
+            Call::Exec { sandbox_id, .. }
+            | Call::FsWrite { sandbox_id, .. }
+            | Call::FsMkdir { sandbox_id, .. }
+            | Call::FsRemove { sandbox_id, .. }
+            | Call::Import { sandbox_id, .. }
+            | Call::Restore { sandbox_id, .. } => sandbox_id.clone(),
+            Call::SessionExec { session_id, .. } => match st.sessions.get(session_id) {
+                Some(s) => s.sandbox_id.clone(),
+                None => return,
+            },
+            _ => return,
+        };
+        if let Some(sb) = st.sandboxes.get_mut(&id) {
+            sb.dirty = true;
+        }
+    }
+
+    /// Persiste sozinho um snapshot (`autosave`) de cada sandbox alterada desde o último, no máximo um
+    /// por `autosave_secs`, pra que a queda do worker recupere o estado mais novo sem ninguém ter pedido
+    /// snapshot. Fica um só `autosave` por sandbox (o novo substitui o antigo) e ele não conta na cota
+    /// de snapshots persistidos do usuário.
+    async fn autosave(self: &Arc<Self>) {
+        let every = self.cfg.sandbox.autosave_secs;
+        if every == 0 {
+            return;
+        }
+        let now = now_unix();
+        let due: Vec<(String, usize)> = {
+            let mut st = self.state.lock();
+            st.sandboxes
+                .values_mut()
+                .filter(|s| s.status == SbStatus::Active && s.dirty && now.saturating_sub(s.last_autosave) >= every)
+                .map(|s| {
+                    s.dirty = false;
+                    (s.id.clone(), s.worker)
+                })
+                .collect()
+        };
+        for (id, worker) in due {
+            let snap_id = crate::ids::random_id("sn");
+            let path = self.cfg.snapshots_dir().join(&id).join(format!("{snap_id}.tar"));
+            let call = Call::Snapshot {
+                sandbox_id: id.clone(),
+                snapshot_id: snap_id.clone(),
+                persist_to: Some(path.display().to_string()),
+                max_bytes: self.cfg.service.max_request_bytes.0.max(1 << 30),
+            };
+            let res = self.call(worker, call, None).await;
+            let generation = self.worker_generation(worker);
+            let old: Vec<SnapEntry> = match res {
+                Ok(Reply::Snapshot { persisted_bytes }) => {
+                    let mut st = self.state.lock();
+                    let Some(entry) = st.sandboxes.get_mut(&id) else { continue };
+                    let (gone, kept): (Vec<SnapEntry>, Vec<SnapEntry>) =
+                        std::mem::take(&mut entry.snapshots).into_iter().partition(|s| s.name == AUTOSAVE_NAME);
+                    entry.snapshots = kept;
+                    entry.snapshots.push(SnapEntry {
+                        id: snap_id,
+                        name: AUTOSAVE_NAME.to_string(),
+                        created_at: now_unix(),
+                        generation,
+                        persisted: Some(path).zip(persisted_bytes),
+                    });
+                    entry.last_autosave = now_unix();
+                    gone
+                }
+                other => {
+                    tracing::warn!(sandbox = %id, "autosave falhou: {}", other.err().map(|e| e.message).unwrap_or_default());
+                    if let Some(e) = self.state.lock().sandboxes.get_mut(&id) {
+                        e.dirty = true;
+                    }
+                    continue;
+                }
+            };
+            for o in old {
+                if o.generation == generation {
+                    let _ = self.call(worker, Call::DropSnapshot { sandbox_id: id.clone(), snapshot_id: o.id.clone() }, None).await;
+                }
+                if let Some((path, _)) = o.persisted {
+                    let _ = tokio::task::spawn_blocking(move || std::fs::remove_file(path)).await;
+                }
+            }
+        }
+    }
+
     async fn housekeeping(self: Arc<Self>) {
-        let mut tick = tokio::time::interval(Duration::from_secs(30));
+        let secs = match self.cfg.sandbox.autosave_secs {
+            0 => 30,
+            n => n.min(30),
+        };
+        let mut tick = tokio::time::interval(Duration::from_secs(secs));
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             tokio::select! {
@@ -804,6 +905,7 @@ impl Supervisor {
             }
             let auth = self.auth.clone();
             let _ = tokio::task::spawn_blocking(move || auth.flush_last_used()).await;
+            self.autosave().await;
             let now = now_unix();
             let ttl = self.cfg.sandbox.idle_ttl_secs;
             let users: Option<BTreeSet<String>> =

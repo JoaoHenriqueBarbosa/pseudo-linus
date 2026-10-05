@@ -263,6 +263,10 @@ pub struct SandboxDefaults {
     pub idle_ttl_secs: u64,
     /// Snapshots guardados por sandbox (em memória; cada um segura os blocos que mudaram depois dele).
     pub max_snapshots: u32,
+    /// Intervalo mínimo entre dois autosaves de uma sandbox alterada: o host persiste sozinho um
+    /// snapshot (`autosave`, um por sandbox, sempre o mais novo) pra que a queda do worker nunca
+    /// perca o estado do usuário, sem ninguém ter pedido snapshot. 0 desliga.
+    pub autosave_secs: u64,
 }
 
 impl Default for SandboxDefaults {
@@ -278,6 +282,7 @@ impl Default for SandboxDefaults {
             drain_grace_ms: 100,
             idle_ttl_secs: 24 * 3600,
             max_snapshots: 16,
+            autosave_secs: 60,
         }
     }
 }

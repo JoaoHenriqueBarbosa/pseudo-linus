@@ -578,6 +578,8 @@ impl Supervisor {
                     snapshots: Vec::new(),
                     sessions: Default::default(),
                     reserved: true,
+                    dirty: false,
+                    last_autosave: 0,
                 },
             );
             worker
@@ -1018,6 +1020,7 @@ impl Supervisor {
                 e.snapshots.retain(|s| s.id != snap.id);
             }
             if snap.persisted.is_some()
+                && snap.name != crate::supervisor::AUTOSAVE_NAME
                 && let Some(u) = st.users.get_mut(&sb.owner)
             {
                 u.persisted_snapshots = u.persisted_snapshots.saturating_sub(1);

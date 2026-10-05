@@ -226,6 +226,45 @@ fn session_restores_the_whole_shell_state_after_a_reset() {
 }
 
 #[test]
+fn autosave_recovers_the_sandbox_and_the_session_without_any_manual_snapshot() {
+    let d = Daemon::kernel("[sandbox]\nautosave_secs = 1\n");
+    let t = d.user("iara", json!({}));
+    let c = d.client(&t);
+    let keep = sandbox(&c);
+    let lose = sandbox(&c);
+    // Nenhum `snapshot` pedido: quem persiste é o host.
+    c.call("fs.write", json!({ "sandbox_id": keep, "path": "/work/f", "data": "autosalvo" })).unwrap();
+    let sess = c.call("session.open", json!({ "sandbox_id": keep })).unwrap()["session_id"].as_str().unwrap().to_string();
+    c.call("session.exec", json!({ "session_id": sess, "command": "cd /work; plain=local; export B=2" })).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let l = c.call("sandbox.list", json!({})).unwrap();
+        let s = l["sandboxes"].as_array().unwrap().iter().find(|s| s["sandbox_id"] == keep.as_str()).unwrap().clone();
+        if s["snapshots"].as_array().is_some_and(|a| a.iter().any(|x| x["persisted"] == true)) {
+            break;
+        }
+        assert!(Instant::now() < deadline, "o autosave não aconteceu: {s}\n{}", d.log());
+        thread::sleep(Duration::from_millis(200));
+    }
+    let e = c.call("exec", json!({ "sandbox_id": lose, "argv": ["pl-crash"] })).unwrap_err();
+    assert_eq!(rpc_code(&e), codes::WORKER_CRASHED, "{e}");
+    d.wait_health(|v| v["status"] == "ok" && v["workers"].as_array().unwrap().iter().any(|w| w["restarts"] == 1), Duration::from_secs(30));
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let l = c.call("sandbox.list", json!({})).unwrap();
+        let s = l["sandboxes"].as_array().unwrap().iter().find(|s| s["sandbox_id"] == keep.as_str()).unwrap().clone();
+        if s["state"] == "active" {
+            break;
+        }
+        assert!(Instant::now() < deadline, "não recuperou: {s}\n{}", d.log());
+        thread::sleep(Duration::from_millis(100));
+    }
+    assert_eq!(run(&c, &keep, &["cat", "/work/f"], json!({}))["stdout"], "autosalvo");
+    let r = c.call("session.exec", json!({ "session_id": sess, "command": "pwd; echo $B $plain" })).unwrap();
+    assert_eq!(r["stdout"], "/work\n2 local\n", "{r}");
+}
+
+#[test]
 fn worker_crash_with_real_kernel() {
     let d = Daemon::kernel("");
     let t = d.user("davi", json!({}));

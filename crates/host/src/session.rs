@@ -72,7 +72,7 @@ pub struct ShellState {
 }
 
 /// Teto do dump do shell: acima disso ele é descartado em vez de truncado (truncar corromperia o script).
-const DUMP_LIMIT: usize = 4 << 20;
+const DUMP_LIMIT: usize = 64 << 20;
 
 struct Shell {
     pid: Pid,
@@ -514,7 +514,7 @@ impl Session {
             .and_then(|p| std::str::from_utf8(p).ok())
             .and_then(|p| p.trim().parse().ok())
             .unwrap_or(0);
-        if let Ok(state) = self.sb.read_file(format!("{base}.state").as_bytes(), 0, 4 << 20)
+        if let Ok(state) = self.sb.read_file(format!("{base}.state").as_bytes(), 0, DUMP_LIMIT)
             && let Some(s) = parse_state(&state)
         {
             inner.state = s;
