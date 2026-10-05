@@ -3,7 +3,7 @@
 //! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst` (gettext 0.23),
 //! `less` não interativo, `clear`/`tput` (ncurses 6.5), `iconv`, `getconf` e `locale` (glibc 2.41).
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`. Do debianutils 5.23 também: `tempfile`.
+//! `whereis`, `mcookie`. Do debianutils 5.23 também: `tempfile`, `ischroot`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
 
@@ -16,6 +16,7 @@ pub mod envsubst;
 pub mod file;
 pub mod getopt_cmd;
 pub mod hexdump;
+pub mod ischroot;
 pub mod look;
 pub mod mcookie;
 pub mod namei;
@@ -46,6 +47,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("getopt", getopt_cmd::main),
         Program::bin("hexdump", hexdump::main),
         Program::bin("hd", hexdump::main),
+        Program::bin("ischroot", ischroot::main),
         Program::bin("less", pager::less_main),
         Program::bin("look", look::main),
         Program::bin("mcookie", mcookie::main),
