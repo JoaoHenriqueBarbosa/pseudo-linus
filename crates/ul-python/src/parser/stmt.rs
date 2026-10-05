@@ -19,19 +19,9 @@ use ExprContext::{Del, Load, Store};
 
 type PatternFn = fn(&mut Parser) -> PResult<Pattern>;
 
-/// `ast.parse(src)`: regra `file: [statements] ENDMARKER`.
+/// `ast.parse(src)`: regra `file: [statements] ENDMARKER`, com a segunda passada de `invalid`.
 pub fn parse_module(src: &str) -> Result<Mod, ParseError> {
-    let mut p = Parser::new(src);
-    let mut body = Vec::new();
-    loop {
-        if p.at_op(T::Endmarker)? {
-            return Ok(Mod::Module { body, type_ignores: Vec::new() });
-        }
-        match p.statement()? {
-            Some(stmts) => body.extend(stmts),
-            None => return Err(p.invalid_syntax()),
-        }
-    }
+    super::invalid::run(src, Parser::file)
 }
 
 /// Tokens que o `_PyPegen_get_last_nonnwhitespace_token` pula.
@@ -49,7 +39,7 @@ fn full(pos: Pos) -> FullPos {
 }
 
 /// `augassign`.
-fn aug_operator(kind: T) -> Option<Operator> {
+pub(super) fn aug_operator(kind: T) -> Option<Operator> {
     Some(match kind {
         T::PlusEqual => Operator::Add,
         T::MinEqual => Operator::Sub,
@@ -94,6 +84,17 @@ impl Parser {
     // -----------------------------------------------------------------------------------------
     // Sequências de comandos
 
+    /// `file: [statements] ENDMARKER`.
+    fn file(&mut self) -> PResult<Mod> {
+        let mut body = Vec::new();
+        loop {
+            if self.at_op(T::Endmarker)? {
+                return Ok(Some(Mod::Module { body, type_ignores: Vec::new() }));
+            }
+            body.extend(req!(self.statement()));
+        }
+    }
+
     /// `statements: statement+`.
     fn statements(&mut self) -> PResult<Vec<Stmt>> {
         let mut out = Vec::new();
@@ -126,9 +127,9 @@ impl Parser {
         })
     }
 
-    /// `block: NEWLINE INDENT statements DEDENT | simple_stmts`.
+    /// `block: NEWLINE INDENT statements DEDENT | simple_stmts | invalid_block`.
     fn block(&mut self) -> PResult<Vec<Stmt>> {
-        self.attempt(|p| {
+        let result = self.attempt(|p| {
             if p.eat_op(T::Newline)? {
                 need!(p.eat_op(T::Indent));
                 let body = req!(p.statements());
@@ -136,14 +137,21 @@ impl Parser {
                 return Ok(Some(body));
             }
             p.simple_stmts()
-        })
+        })?;
+        if result.is_none() && self.call_invalid_rules {
+            self.invalid_block()?;
+        }
+        Ok(result)
     }
 
-    /// `else_block: 'else' ':' block` e `finally_block: 'finally' ':' block`.
+    /// `else_block: 'else' &&':' block` e `finally_block: 'finally' &&':' block`, depois de
+    /// `invalid_else_stmt`/`invalid_finally_stmt`.
     fn keyword_block(&mut self, kw: &str) -> PResult<Vec<Stmt>> {
         self.attempt(|p| {
+            let line = p.peek(0)?.start.line;
             need!(p.eat_kw(kw));
-            need!(p.eat_op(T::Colon));
+            p.invalid_block_header(&format!("'{kw}' statement"), line, false)?;
+            p.expect_forced(T::Colon, ":")?;
             p.block()
         })
     }
@@ -259,13 +267,17 @@ impl Parser {
             return Ok(r);
         }
         // single_target augassign ~ (yield_expr | star_expressions)
-        self.attempt(|p| {
+        let r = self.attempt(|p| {
             let target = req!(p.single_target());
             let Some(op) = aug_operator(p.peek_kind(0)?) else { return Ok(None) };
             p.mark += 1;
             let value = req!(p.annotated_rhs());
             Ok(Some(p.snode(S::AugAssign { target: Box::new(target), op, value: Box::new(value) }, start)))
-        })
+        })?;
+        if r.is_none() && self.call_invalid_rules {
+            self.invalid_assignment()?;
+        }
+        Ok(r)
     }
 
     /// `':' expression ['=' annotated_rhs]` depois do alvo de um `AnnAssign`.
@@ -278,7 +290,7 @@ impl Parser {
     }
 
     /// `annotated_rhs: yield_expr | star_expressions`.
-    fn annotated_rhs(&mut self) -> PResult<Expr> {
+    pub(super) fn annotated_rhs(&mut self) -> PResult<Expr> {
         if let Some(e) = self.yield_expr()? {
             return Ok(Some(e));
         }
@@ -608,7 +620,9 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw(kw));
+            let line = p.tokens[start].start.line;
             let test = req!(p.named_expression());
+            p.invalid_block_header(&format!("'{kw}' statement"), line, true)?;
             need!(p.eat_op(T::Colon));
             let body = req!(p.block());
             let orelse = if p.at_kw("elif")? { vec![req!(p.if_stmt("elif"))] } else { p.opt_else()? };
@@ -621,7 +635,9 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw("while"));
+            let line = p.tokens[start].start.line;
             let test = req!(p.named_expression());
+            p.invalid_block_header("'while' statement", line, true)?;
             need!(p.eat_op(T::Colon));
             let body = req!(p.block());
             let orelse = p.opt_else()?;
@@ -630,15 +646,17 @@ impl Parser {
     }
 
     /// `for_stmt: ['async'] 'for' star_targets 'in' ~ star_expressions ':' [TYPE_COMMENT] block
-    /// [else_block]`.
+    /// [else_block] | invalid_for_target`.
     fn for_stmt(&mut self) -> PResult<Stmt> {
-        self.attempt(|p| {
+        let result = self.attempt(|p| {
             let start = p.mark;
             let is_async = p.eat_kw("async")?;
             need!(p.eat_kw("for"));
+            let line = p.tokens[p.mark - 1].start.line;
             let target = Box::new(req!(p.star_targets()));
             need!(p.eat_kw("in"));
             let iter = Box::new(req!(p.star_expressions()));
+            p.invalid_block_header("'for' statement", line, true)?;
             need!(p.eat_op(T::Colon));
             let body = req!(p.block());
             let orelse = p.opt_else()?;
@@ -648,7 +666,11 @@ impl Parser {
                 S::For { target, iter, body, orelse, type_comment: None }
             };
             Ok(Some(p.snode(kind, start)))
-        })
+        })?;
+        if result.is_none() && self.call_invalid_rules {
+            self.invalid_for_target()?;
+        }
+        Ok(result)
     }
 
     /// `with_stmt: ['async'] 'with' '(' ','.with_item+ ','? ')' ':' block |
@@ -658,10 +680,12 @@ impl Parser {
             let start = p.mark;
             let is_async = p.eat_kw("async")?;
             need!(p.eat_kw("with"));
+            let line = p.tokens[p.mark - 1].start.line;
             let items = match p.paren_with_items()? {
                 Some(items) => items,
                 None => req!(p.with_items()),
             };
+            p.invalid_block_header("'with' statement", line, true)?;
             need!(p.eat_op(T::Colon));
             let body = req!(p.block());
             let kind = if is_async {
@@ -716,13 +740,15 @@ impl Parser {
         Ok(Some(WithItem { context_expr, optional_vars: None }))
     }
 
-    /// `try_stmt: 'try' ':' block finally_block | 'try' ':' block except_block+ [else_block]
-    /// [finally_block] | 'try' ':' block except_star_block+ [else_block] [finally_block]`.
+    /// `try_stmt: 'try' &&':' block finally_block | 'try' &&':' block except_block+ [else_block]
+    /// [finally_block] | 'try' &&':' block except_star_block+ [else_block] [finally_block]`.
     fn try_stmt(&mut self) -> PResult<Stmt> {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw("try"));
-            need!(p.eat_op(T::Colon));
+            let line = p.tokens[start].start.line;
+            p.invalid_block_header("'try' statement", line, false)?;
+            p.expect_forced(T::Colon, ":")?;
             let body = req!(p.block());
             let star = p.at_kw("except")? && p.peek_kind(1)? == T::Star;
             let mut handlers = Vec::new();
@@ -750,16 +776,21 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw("except"));
+            let line = p.tokens[start].start.line;
             if star {
                 need!(p.eat_op(T::Star));
             } else if p.at_op(T::Star)? {
                 return Ok(None);
             }
-            let (ty, name) = if !star && p.eat_op(T::Colon)? {
+            let what = if star { "'except*' statement" } else { "'except' statement" };
+            let (ty, name) = if !star && (p.at_op(T::Colon)? || p.at_op(T::Newline)?) {
+                p.invalid_block_header(what, line, true)?;
+                need!(p.eat_op(T::Colon));
                 (None, None)
             } else {
                 let ty = req!(p.expression());
                 let name = if p.eat_kw("as")? { Some(req!(p.eat_name()).text) } else { None };
+                p.invalid_block_header(what, line, true)?;
                 need!(p.eat_op(T::Colon));
                 (Some(Box::new(ty)), name)
             };
@@ -771,20 +802,22 @@ impl Parser {
     // -----------------------------------------------------------------------------------------
     // def e class
 
-    /// `function_def_raw: ['async'] 'def' NAME [type_params] '(' [params] ')' ['->' expression]
-    /// ':' [func_type_comment] block`.
+    /// `function_def_raw: ['async'] 'def' NAME [type_params] &&'(' [params] ')' ['->' expression]
+    /// &&':' [func_type_comment] block`.
     fn function_def(&mut self, decorator_list: Vec<Expr>) -> PResult<Stmt> {
         self.attempt(|p| {
             let start = p.mark;
             let is_async = p.eat_kw("async")?;
             need!(p.eat_kw("def"));
+            let line = p.tokens[p.mark - 1].start.line;
             let name = req!(p.eat_name()).text;
             let type_params = if p.at_op(T::Lsqb)? { req!(p.type_params()) } else { Vec::new() };
-            need!(p.eat_op(T::Lpar));
+            p.expect_forced(T::Lpar, "(")?;
             let args = if p.at_op(T::Rpar)? { Arguments::default() } else { req!(p.params()) };
             need!(p.eat_op(T::Rpar));
             let returns = if p.eat_op(T::Rarrow)? { Some(Box::new(req!(p.expression()))) } else { None };
-            need!(p.eat_op(T::Colon));
+            p.invalid_block_header("function definition", line, false)?;
+            p.expect_forced(T::Colon, ":")?;
             let body = req!(p.block());
             let args = Box::new(args);
             let kind = if is_async {
@@ -801,6 +834,7 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw("class"));
+            let line = p.tokens[start].start.line;
             let name = req!(p.eat_name()).text;
             let type_params = if p.at_op(T::Lsqb)? { req!(p.type_params()) } else { Vec::new() };
             let (bases, keywords) = if p.eat_op(T::Lpar)? {
@@ -810,6 +844,7 @@ impl Parser {
             } else {
                 (Vec::new(), Vec::new())
             };
+            p.invalid_block_header("class definition", line, true)?;
             need!(p.eat_op(T::Colon));
             let body = req!(p.block());
             Ok(Some(p.snode(S::ClassDef { name, bases, keywords, body, decorator_list, type_params }, start)))
@@ -1554,6 +1589,6 @@ mod tests {
     #[test]
     fn syntax_errors() {
         assert_eq!(parse_module("x = = 1\n").unwrap_err().msg, "invalid syntax");
-        assert_eq!(parse_module("if x\n    pass\n").unwrap_err().msg, "invalid syntax");
+        assert_eq!(parse_module("if x\n    pass\n").unwrap_err().msg, "expected ':'");
     }
 }

@@ -7,8 +7,9 @@
 //! `ast.parse(src)`, em `stmt`). As regras recursivas à esquerda (`bitwise_or`, `sum`, `term`,
 //! `primary` e as demais) viram laços que constroem a árvore associando à esquerda, o mesmo resultado
 //! do "crescimento da semente" do CPython. As regras `invalid_*` (mensagens específicas de erro) são a
-//! fatia 8; até lá toda falha vira `invalid syntax` no token mais distante que o parser examinou, que
-//! é onde o CPython põe o erro genérico.
+//! fatia 8, em `invalid`: como o `_PyPegen_run_parser`, uma falha da primeira passada dispara uma
+//! segunda com `call_invalid_rules` ligado, e só se nenhuma regra `invalid_*` levantar erro sai o
+//! `invalid syntax` genérico no último token lido na primeira passada.
 //!
 //! Posições: como a macro `EXTRA` do CPython, o início de um nó é o primeiro token da regra e o fim é
 //! o último token consumido; `col_offset` conta bytes UTF-8.
@@ -44,8 +45,10 @@ macro_rules! need {
 }
 
 mod expr;
+mod invalid;
 mod stmt;
 
+pub use invalid::format_syntax_error;
 pub use stmt::parse_module;
 
 /// Palavras-chave rígidas do 3.13 (`keyword.kwlist`); as suaves (`match`, `case`, `type`, `_`)
@@ -131,31 +134,44 @@ enum Rule {
 /// sintaxe anterior vence um erro do tokenizer mais adiante), a marca atual e a memória.
 struct Parser {
     tokenizer: Tokenizer,
+    /// Tokens já lidos; o último é o `p->tokens[p->fill - 1]` do C.
     tokens: Vec<Token>,
     mark: usize,
-    /// Maior índice de token examinado, onde cai o `invalid syntax` genérico.
-    furthest: usize,
     memo: HashMap<(Rule, usize), Option<(Expr, usize)>>,
+    /// Segunda passada: as regras `invalid_*` estão ativas.
+    call_invalid_rules: bool,
+    /// O tokenizer devolveu erro (o `tok->done` fora de `E_OK`/`E_DONE`).
+    tok_failed: bool,
+    /// Linhas do fonte com as novas linhas normalizadas, para converter colunas de bytes em
+    /// caracteres como o `_PyPegen_byte_offset_to_character_offset`.
+    lines: Vec<String>,
 }
 
 impl Parser {
     fn new(src: &str) -> Parser {
+        let normalized = src.replace("\r\n", "\n").replace('\r', "\n");
         Parser {
             tokenizer: Tokenizer::new(src, Mode::Parser),
             tokens: Vec::new(),
             mark: 0,
-            furthest: 0,
             memo: HashMap::new(),
+            call_invalid_rules: false,
+            tok_failed: false,
+            lines: normalized.split('\n').map(str::to_string).collect(),
         }
     }
 
     fn fill(&mut self, idx: usize) -> Result<(), ParseError> {
         // Depois do ENDMARKER o tokenizer devolve ENDMARKER de novo, então o laço sempre termina.
         while self.tokens.len() <= idx {
-            let tok = self.tokenizer.next_token()?;
-            self.tokens.push(tok);
+            match self.tokenizer.next_token() {
+                Ok(tok) => self.tokens.push(tok),
+                Err(e) => {
+                    self.tok_failed = true;
+                    return Err(e.into());
+                }
+            }
         }
-        self.furthest = self.furthest.max(idx);
         Ok(())
     }
 
@@ -265,19 +281,12 @@ impl Parser {
         Ok(result)
     }
 
-    fn invalid_syntax(&self) -> ParseError {
-        let idx = self.furthest.min(self.tokens.len().saturating_sub(1));
-        match self.tokens.get(idx) {
-            Some(tok) => error_at(tok, "invalid syntax"),
-            None => ParseError {
-                kind: ErrorKind::Syntax,
-                msg: "invalid syntax".to_string(),
-                lineno: 1,
-                offset: 1,
-                end_lineno: 1,
-                end_offset: 1,
-            },
-        }
+    /// `eval: expressions NEWLINE* ENDMARKER`.
+    fn eval_input(&mut self) -> PResult<Expr> {
+        let expr = req!(self.expressions());
+        while self.eat_op(TokenType::Newline)? {}
+        need!(self.at_op(TokenType::Endmarker));
+        Ok(Some(expr))
     }
 }
 
@@ -292,14 +301,7 @@ fn token_pos(tok: &Token) -> Pos {
 
 /// `ast.parse(src, mode='eval').body`: regra `eval: expressions NEWLINE* ENDMARKER`.
 pub fn parse_expression(src: &str) -> Result<Expr, ParseError> {
-    let mut p = Parser::new(src);
-    if let Some(expr) = p.expressions()? {
-        while p.eat_op(TokenType::Newline)? {}
-        if p.at_op(TokenType::Endmarker)? {
-            return Ok(expr);
-        }
-    }
-    Err(p.invalid_syntax())
+    invalid::run(src, Parser::eval_input)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -718,7 +720,10 @@ mod tests {
     #[test]
     fn syntax_errors() {
         assert_eq!(parse_expression("1 +").unwrap_err().msg, "invalid syntax");
-        assert_eq!(parse_expression("f(a=1, b)").unwrap_err().msg, "invalid syntax");
+        assert_eq!(
+            parse_expression("f(a=1, b)").unwrap_err().msg,
+            "positional argument follows keyword argument"
+        );
         assert_eq!(
             parse_expression("'a' b'c'").unwrap_err().msg,
             "cannot mix bytes and nonbytes literals"

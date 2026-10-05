@@ -68,12 +68,18 @@ impl Parser {
     // -----------------------------------------------------------------------------------------
     // expression, yield, starred, named
 
-    /// `expression (memo): disjunction 'if' disjunction 'else' expression | disjunction | lambdef`.
+    /// `expression (memo): invalid_expression | invalid_legacy_expression | disjunction 'if'
+    /// disjunction 'else' expression | disjunction | lambdef`.
     pub(super) fn expression(&mut self) -> PResult<Expr> {
         self.memo(Rule::Expression, Parser::expression_raw)
     }
 
-    fn expression_raw(&mut self) -> PResult<Expr> {
+    /// Corpo de `expression`; com `call_invalid_rules` desligado é o `expression_without_invalid`.
+    pub(super) fn expression_raw(&mut self) -> PResult<Expr> {
+        if self.call_invalid_rules {
+            self.invalid_expression()?;
+            self.invalid_legacy_expression()?;
+        }
         let start = self.mark;
         if let Some(body) = self.disjunction()? {
             let after = self.mark;
@@ -134,7 +140,7 @@ impl Parser {
     }
 
     /// `starred_expression: '*' expression`.
-    fn starred_expression(&mut self) -> PResult<Expr> {
+    pub(super) fn starred_expression(&mut self) -> PResult<Expr> {
         self.starred_with(Parser::expression)
     }
 
@@ -165,16 +171,26 @@ impl Parser {
     }
 
     /// `assignment_expression | expression !':='` (argumentos e genexp).
-    fn walrus_or_expression(&mut self) -> PResult<Expr> {
+    pub(super) fn walrus_or_expression(&mut self) -> PResult<Expr> {
         if let Some(e) = self.assignment_expression()? {
             return Ok(Some(e));
         }
         self.expression_not_walrus()
     }
 
-    /// `named_expression: assignment_expression | expression !':='`.
+    /// `named_expression: assignment_expression | invalid_named_expression | expression !':='`.
     pub(super) fn named_expression(&mut self) -> PResult<Expr> {
-        self.memo(Rule::NamedExpression, Parser::walrus_or_expression)
+        self.memo(Rule::NamedExpression, Parser::named_expression_raw)
+    }
+
+    fn named_expression_raw(&mut self) -> PResult<Expr> {
+        if let Some(e) = self.assignment_expression()? {
+            return Ok(Some(e));
+        }
+        if self.call_invalid_rules {
+            self.invalid_named_expression()?;
+        }
+        self.expression_not_walrus()
     }
 
     // -----------------------------------------------------------------------------------------
@@ -205,7 +221,7 @@ impl Parser {
     }
 
     /// `disjunction (memo): conjunction ('or' conjunction)+ | conjunction`.
-    fn disjunction(&mut self) -> PResult<Expr> {
+    pub(super) fn disjunction(&mut self) -> PResult<Expr> {
         self.memo(Rule::Disjunction, |p| p.bool_chain("or", BoolOp::Or, Parser::conjunction))
     }
 
@@ -303,7 +319,7 @@ impl Parser {
     }
 
     /// `bitwise_or: bitwise_or '|' bitwise_xor | bitwise_xor`.
-    fn bitwise_or(&mut self) -> PResult<Expr> {
+    pub(super) fn bitwise_or(&mut self) -> PResult<Expr> {
         self.memo(Rule::BitwiseOr, |p| p.binary_chain(Parser::bitwise_xor, &[(T::Vbar, Operator::BitOr)]))
     }
 
@@ -558,7 +574,7 @@ impl Parser {
     }
 
     /// `tuple: '(' [star_named_expression ',' [star_named_expressions]] ')'`.
-    fn tuple(&mut self) -> PResult<Expr> {
+    pub(super) fn tuple(&mut self) -> PResult<Expr> {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_op(T::Lpar));
@@ -589,7 +605,7 @@ impl Parser {
     }
 
     /// `genexp: '(' (assignment_expression | expression !':=') for_if_clauses ')'`.
-    fn genexp(&mut self) -> PResult<Expr> {
+    pub(super) fn genexp(&mut self) -> PResult<Expr> {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_op(T::Lpar));
@@ -601,7 +617,7 @@ impl Parser {
     }
 
     /// `list: '[' [star_named_expressions] ']'`.
-    fn list(&mut self) -> PResult<Expr> {
+    pub(super) fn list(&mut self) -> PResult<Expr> {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_op(T::Lsqb));
@@ -736,10 +752,11 @@ impl Parser {
     // -----------------------------------------------------------------------------------------
     // Argumentos de chamada
 
-    /// `arguments: args [','] &')'`, com `args` e `kwargs`. Os `*x` vão para `args` na ordem em que
-    /// aparecem, como o `_PyPegen_collect_call_seqs`. `None` se a lista não casar.
+    /// `arguments: args [','] &')' | invalid_arguments`, com `args` e `kwargs`. Os `*x` vão para
+    /// `args` na ordem em que aparecem, como o `_PyPegen_collect_call_seqs`. `None` se a lista não
+    /// casar.
     pub(super) fn call_arguments(&mut self) -> Result<Option<CallArgs>, ParseError> {
-        self.attempt(|p| {
+        let result = self.attempt(|p| {
             let (mut args, mut keywords) = (Vec::new(), Vec::new());
             // 0: posicionais; 1: depois de `nome=`; 2: depois de `**`.
             let mut phase = 0u8;
@@ -773,7 +790,11 @@ impl Parser {
             }
             need!(p.at_op(T::Rpar));
             Ok(Some((args, keywords)))
-        })
+        })?;
+        if result.is_none() && self.call_invalid_rules {
+            self.invalid_arguments()?;
+        }
+        Ok(result)
     }
 
     // -----------------------------------------------------------------------------------------
