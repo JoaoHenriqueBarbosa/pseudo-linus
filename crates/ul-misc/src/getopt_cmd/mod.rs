@@ -198,7 +198,10 @@ fn add_short_options(ctl: &mut Control, options: &[u8], posix_env: bool) {
 /// `add_long_options`: lista separada por vírgula ou espaço; `:` no fim pede argumento, `::` opcional.
 /// `Err` com a mensagem de `parse_error`.
 fn add_long_options(ctl: &mut Control, options: &[u8]) -> Result<(), &'static str> {
-    for tok in options.split(|b| matches!(b, b',' | b' ' | b'\t' | b'\n')).filter(|t| !t.is_empty()) {
+    for tok in options
+        .split(|b| matches!(b, b',' | b' ' | b'\t' | b'\n'))
+        .filter(|t| !t.is_empty())
+    {
         let mut name = tok.to_vec();
         let len = name.len();
         let mut has_arg = 0u8;
@@ -216,7 +219,12 @@ fn add_long_options(ctl: &mut Control, options: &[u8]) -> Result<(), &'static st
             }
         }
         let val = ctl.long_options.len() as i32;
-        ctl.long_options.push(LongDef { name, has_arg, val, flag: true });
+        ctl.long_options.push(LongDef {
+            name,
+            has_arg,
+            val,
+            flag: true,
+        });
     }
     Ok(())
 }
@@ -243,7 +251,14 @@ fn own_long_options() -> Vec<LongDef> {
         ("name", 1, b'n'),
         ("version", 0, b'V'),
     ];
-    t.iter().map(|(n, a, v)| LongDef { name: n.as_bytes().to_vec(), has_arg: *a, val: i32::from(*v), flag: false }).collect()
+    t.iter()
+        .map(|(n, a, v)| LongDef {
+            name: n.as_bytes().to_vec(),
+            has_arg: *a,
+            val: i32::from(*v),
+            flag: false,
+        })
+        .collect()
 }
 
 fn run(args: &[OsString]) -> i32 {
@@ -274,7 +289,10 @@ fn run(args: &[OsString]) -> i32 {
 
     if argv[1].first() != Some(&b'-') || compatible {
         ctl.quote = false;
-        let skip = argv[1].iter().take_while(|b| matches!(b, b'-' | b'+')).count();
+        let skip = argv[1]
+            .iter()
+            .take_while(|b| matches!(b, b'-' | b'+'))
+            .count();
         ctl.optstr = Some(argv[1][skip..].to_vec());
         let mut av = vec![argv[0].clone()];
         av.extend(argv[2..].iter().cloned());
@@ -303,7 +321,9 @@ fn run(args: &[OsString]) -> i32 {
             b'Q' => ctl.quiet_output = true,
             b's' => match shell_type(&optarg) {
                 Some(s) => ctl.shell = s,
-                None => return parse_error(&short, Some("unknown shell after -s or --shell argument")),
+                None => {
+                    return parse_error(&short, Some("unknown shell after -s or --shell argument"));
+                }
             },
             b'T' => return TEST_EXIT_CODE,
             b'u' => ctl.quote = false,
@@ -350,8 +370,28 @@ mod tests {
 
     #[test]
     fn quotes_and_permutes() {
-        let r = kit().run(&["getopt", "-o", "ab:c::", "-l", "alpha,beta:,gamma::", "--", "-a", "-b", "x", "-cy", "--gamma", "foo", "it's"], b"");
-        assert_eq!(r.stdout_str(), " -a -b 'x' -c 'y' --gamma '' -- 'foo' 'it'\\''s'\n");
+        let r = kit().run(
+            &[
+                "getopt",
+                "-o",
+                "ab:c::",
+                "-l",
+                "alpha,beta:,gamma::",
+                "--",
+                "-a",
+                "-b",
+                "x",
+                "-cy",
+                "--gamma",
+                "foo",
+                "it's",
+            ],
+            b"",
+        );
+        assert_eq!(
+            r.stdout_str(),
+            " -a -b 'x' -c 'y' --gamma '' -- 'foo' 'it'\\''s'\n"
+        );
         assert_eq!(r.code(), 0);
     }
 
@@ -364,12 +404,18 @@ mod tests {
     #[test]
     fn invalid_option_exits_one() {
         let r = kit().run(&["getopt", "-o", "a", "--", "-z"], b"");
-        assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str(), r.code()), (" --\n", "getopt: invalid option -- 'z'\n", 1));
+        assert_eq!(
+            (r.stdout_str().as_str(), r.stderr_str().as_str(), r.code()),
+            (" --\n", "getopt: invalid option -- 'z'\n", 1)
+        );
     }
 
     #[test]
     fn tcsh_quoting() {
-        let r = kit().run(&["getopt", "-s", "tcsh", "-o", "a:", "--", "-a", "x y!\\z\nw"], b"");
+        let r = kit().run(
+            &["getopt", "-s", "tcsh", "-o", "a:", "--", "-a", "x y!\\z\nw"],
+            b"",
+        );
         assert_eq!(r.stdout_str(), " -a 'x'\\ 'y'\\!'\\\\z\\nw' --\n");
     }
 }

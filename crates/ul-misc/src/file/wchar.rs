@@ -28,7 +28,11 @@ pub fn iswprint(c: u32) -> bool {
 
 /// `wcwidth()` limitado por baixo a 1 (o `w > 0 ? w : 1` do `file_mbswidth`).
 pub fn width_at_least_one(c: u32) -> usize {
-    if c >= 0x80 && in_ranges(c, WIDE) { 2 } else { 1 }
+    if c >= 0x80 && in_ranges(c, WIDE) {
+        2
+    } else {
+        1
+    }
 }
 
 /// Sequência multibyte inválida ou incompleta (o `(size_t)-1` e o `(size_t)-2` do `mbrtowc`).
@@ -100,7 +104,11 @@ pub fn mbswidth(name: &[u8], raw: bool) -> usize {
                 i += 1;
             }
             Ok((c, n)) => {
-                w += if raw || iswprint(c) { width_at_least_one(c) } else { 4 };
+                w += if raw || iswprint(c) {
+                    width_at_least_one(c)
+                } else {
+                    4
+                };
                 i += n;
             }
         }

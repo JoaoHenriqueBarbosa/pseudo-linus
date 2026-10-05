@@ -209,7 +209,10 @@ impl NssConf {
                 explicit.insert(name, parse_actions(&line[p..]).unwrap_or_default());
             }
         }
-        NssConf { explicit, overrides: HashMap::new() }
+        NssConf {
+            explicit,
+            overrides: HashMap::new(),
+        }
     }
 
     /// `-s CONFIG`: troca a lista de um banco (`__nss_configure_lookup`, que ignora nomes que o NSS
@@ -248,7 +251,10 @@ impl NssConf {
             _ => None,
         };
         if let Some(parent) = follow
-            && let Some(l) = self.overrides.get(parent).or_else(|| self.explicit.get(parent))
+            && let Some(l) = self
+                .overrides
+                .get(parent)
+                .or_else(|| self.explicit.get(parent))
         {
             return l.clone();
         }
@@ -257,9 +263,17 @@ impl NssConf {
 
     /// Consulta pontual: percorre as fontes até uma ação `return` (o `DB_LOOKUP` do NSS). `f` recebe
     /// a fonte e devolve o status e, no sucesso, o valor.
-    pub fn lookup<T>(&self, db: &str, mut f: impl FnMut(&Source) -> (Status, Option<T>)) -> Option<T> {
+    pub fn lookup<T>(
+        &self,
+        db: &str,
+        mut f: impl FnMut(&Source) -> (Status, Option<T>),
+    ) -> Option<T> {
         for src in self.sources(db) {
-            let (st, val) = if src.is_files() { f(&src) } else { (Status::Unavail, None) };
+            let (st, val) = if src.is_files() {
+                f(&src)
+            } else {
+                (Status::Unavail, None)
+            };
             if st == Status::Success
                 && let Some(v) = val
             {
@@ -277,10 +291,18 @@ impl NssConf {
     pub fn enumerate<T>(&self, db: &str, mut f: impl FnMut(&Source) -> (Status, Vec<T>)) -> Vec<T> {
         let mut out = Vec::new();
         for src in self.sources(db) {
-            let (st, mut items) = if src.is_files() { f(&src) } else { (Status::Unavail, Vec::new()) };
+            let (st, mut items) = if src.is_files() {
+                f(&src)
+            } else {
+                (Status::Unavail, Vec::new())
+            };
             out.append(&mut items);
             // Ao esgotar os dados de uma fonte o status é NOTFOUND (ou UNAVAIL se ela não abriu).
-            let end = if st == Status::Success { Status::NotFound } else { st };
+            let end = if st == Status::Success {
+                Status::NotFound
+            } else {
+                st
+            };
             if src.action(end) == Action::Return {
                 break;
             }

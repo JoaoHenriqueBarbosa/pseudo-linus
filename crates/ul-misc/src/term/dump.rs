@@ -2,14 +2,17 @@
 //! em nomes de variável C ou em termcap, a quebra de linhas e a comparação de duas descrições.
 
 use super::caps_table::{
-    BOOL_TERMCAP_SORT, BOOL_TERMINFO_SORT, BOOL_VARIABLE_SORT, NUM_TERMCAP_SORT, NUM_TERMINFO_SORT, NUM_VARIABLE_SORT,
-    STR_TERMCAP_SORT, STR_TERMINFO_SORT, STR_VARIABLE_SORT,
+    BOOL_TERMCAP_SORT, BOOL_TERMINFO_SORT, BOOL_VARIABLE_SORT, NUM_TERMCAP_SORT, NUM_TERMINFO_SORT,
+    NUM_VARIABLE_SORT, STR_TERMCAP_SORT, STR_TERMINFO_SORT, STR_VARIABLE_SORT,
 };
 use super::expand::tic_expand;
 use super::infotocap::infotocap;
 use super::terminfo::{Str, TermType};
 use super::tparm::{ParmState, tiparm};
-use super::{BOOLCOUNT, BOOLS, Kind, NUMCOUNT, NUMS, STRCOUNT, STRS, bool_index, c_isspace, num_index, str_index};
+use super::{
+    BOOLCOUNT, BOOLS, Kind, NUMCOUNT, NUMS, STRCOUNT, STRS, bool_index, c_isspace, num_index,
+    str_index,
+};
 use crate::util::io;
 
 pub const FAIL: i32 = -1;
@@ -119,16 +122,23 @@ impl Dump {
         };
         if traceval != 0 {
             match sort {
-                SortMode::NoSort => io::eprint(format!("{progname}: sorting by term structure order\n")),
-                SortMode::Terminfo => io::eprint(format!("{progname}: sorting by terminfo name order\n")),
-                SortMode::Variable => io::eprint(format!("{progname}: sorting by C variable order\n")),
-                SortMode::Termcap => io::eprint(format!("{progname}: sorting by termcap name order\n")),
+                SortMode::NoSort => {
+                    io::eprint(format!("{progname}: sorting by term structure order\n"))
+                }
+                SortMode::Terminfo => {
+                    io::eprint(format!("{progname}: sorting by terminfo name order\n"))
+                }
+                SortMode::Variable => {
+                    io::eprint(format!("{progname}: sorting by C variable order\n"))
+                }
+                SortMode::Termcap => {
+                    io::eprint(format!("{progname}: sorting by termcap name order\n"))
+                }
                 SortMode::Default => {}
             }
             io::eprint(format!(
                 "{progname}: width = {twidth}, tversion = {}, outform = {}\n",
-                tversion as i32,
-                mode as i32
+                tversion as i32, mode as i32
             ));
         }
         Dump {
@@ -216,15 +226,27 @@ impl Dump {
     }
 
     fn bool_name(&self, tt: &TermType, i: usize) -> Vec<u8> {
-        if i >= BOOLCOUNT { tt.ext_bool_name(i).to_vec() } else { self.pick(&BOOLS[i]).as_bytes().to_vec() }
+        if i >= BOOLCOUNT {
+            tt.ext_bool_name(i).to_vec()
+        } else {
+            self.pick(&BOOLS[i]).as_bytes().to_vec()
+        }
     }
 
     fn num_name(&self, tt: &TermType, i: usize) -> Vec<u8> {
-        if i >= NUMCOUNT { tt.ext_num_name(i).to_vec() } else { self.pick(&NUMS[i]).as_bytes().to_vec() }
+        if i >= NUMCOUNT {
+            tt.ext_num_name(i).to_vec()
+        } else {
+            self.pick(&NUMS[i]).as_bytes().to_vec()
+        }
     }
 
     fn str_name(&self, tt: &TermType, i: usize) -> Vec<u8> {
-        if i >= STRCOUNT { tt.ext_str_name(i).to_vec() } else { self.pick(&STRS[i]).as_bytes().to_vec() }
+        if i >= STRCOUNT {
+            tt.ext_str_name(i).to_vec()
+        } else {
+            self.pick(&STRS[i]).as_bytes().to_vec()
+        }
     }
 
     /// `version_filter`: tira as capacidades que o formato escolhido não tem.
@@ -234,7 +256,8 @@ impl Dump {
         let label_width = num_index("label_width");
         let prtr_non = str_index("prtr_non");
         let fnkey = |i: usize| {
-            (i >= str_index("key_f0") && i <= str_index("key_f9")) || (i >= str_index("key_f11") && i <= str_index("key_f63"))
+            (i >= str_index("key_f0") && i <= str_index("key_f9"))
+                || (i >= str_index("key_f11") && i <= str_index("key_f63"))
         };
         match self.tversion {
             TVersion::AllCaps => true,
@@ -371,7 +394,11 @@ impl Dump {
         if mode & W1ST != 0 && self.column > self.indent && self.column + want > self.width {
             self.force_wrap();
         }
-        if (mode & WEND != 0 && mode & WERR == 0) && self.wrapped && self.width >= 0 && (self.column + want) > self.width {
+        if (mode & WEND != 0 && mode & WERR == 0)
+            && self.wrapped
+            && self.width >= 0
+            && (self.column + want) > self.width
+        {
             let mut step: i32 = 0;
             let used = self.width.max(WRAPPED);
             let mut base: i32 = 0;
@@ -417,7 +444,8 @@ impl Dump {
                     size = self.find_split(&fill, step, size);
                     let from = step as usize;
                     let to = (step + size).max(step) as usize;
-                    self.outbuf.extend_from_slice(&fill[from.min(fill.len())..to.min(fill.len())]);
+                    self.outbuf
+                        .extend_from_slice(&fill[from.min(fill.len())..to.min(fill.len())]);
                     step += size;
                     need -= size;
                     if need > 0 {
@@ -431,7 +459,8 @@ impl Dump {
                 if step != 0 {
                     self.outbuf.extend_from_slice(&align);
                 }
-                self.outbuf.extend_from_slice(&fill[(step as usize).min(fill.len())..]);
+                self.outbuf
+                    .extend_from_slice(&fill[(step as usize).min(fill.len())..]);
             }
             if mode & WEND != 0 {
                 self.outbuf.extend_from_slice(self.separator.as_bytes());
@@ -489,7 +518,14 @@ impl Dump {
     }
 
     /// `fmt_complex`: devolve a posição em `src` onde parou.
-    fn fmt_complex(&mut self, tterm: &TermType, capability: &[u8], src: &[u8], mut pos: usize, level: i32) -> usize {
+    fn fmt_complex(
+        &mut self,
+        tterm: &TermType,
+        capability: &[u8],
+        src: &[u8],
+        mut pos: usize,
+        level: i32,
+    ) -> usize {
         let at = |i: usize| src.get(i).copied().unwrap_or(0);
         let mut percent = false;
         let mut params = has_params(&src[pos.min(src.len())..], true);
@@ -558,7 +594,8 @@ impl Dump {
                             self.tmpbuf.push(b'%');
                             self.tmpbuf.push(at(pos));
                             pos += 1;
-                            if at(pos) == b'%' && at(pos + 1) != 0 && !b"?e;".contains(&at(pos + 1)) {
+                            if at(pos) == b'%' && at(pos + 1) != 0 && !b"?e;".contains(&at(pos + 1))
+                            {
                                 self.tmpbuf.push(b'\n');
                                 self.indent_tmp(level);
                             }
@@ -618,7 +655,11 @@ pub fn has_params(src: &[u8], formatting: bool) -> bool {
         n += 1;
     }
     if !ifthen {
-        result = if formatting { len > 50 && params } else { params };
+        result = if formatting {
+            len > 50 && params
+        } else {
+            params
+        };
     }
     result
 }
@@ -717,7 +758,11 @@ fn strip_padding(value: &mut Vec<u8>) {
             }
             s += 1;
         } else {
-            let d = if ch == b'$' { skip_padding(&value[s..]) } else { None };
+            let d = if ch == b'$' {
+                skip_padding(&value[s..])
+            } else {
+                None
+            };
             match d {
                 Some(len) => {
                     value.drain(s..s + len);
@@ -842,7 +887,9 @@ fn compare_part(part: &[u8], full: &[u8]) -> usize {
 /// `_nc_trim_sgr0`: tira de `sgr0` o que desliga o conjunto de caracteres alternativo, que um programa
 /// termcap não entende. Devolve o valor original quando nada muda.
 pub fn trim_sgr0(tt: &TermType, sgr: &Str, sgr0: &[u8]) -> Vec<u8> {
-    let Str::Val(sgr_val) = sgr else { return sgr0.to_vec() };
+    let Str::Val(sgr_val) = sgr else {
+        return sgr0.to_vec();
+    };
     let dummy = TermType::empty();
     let mut state = ParmState::default();
     let attr9 = |flag: i64| -> Option<Vec<u8>> {
@@ -905,7 +952,9 @@ pub fn trim_sgr0(tt: &TermType, sgr: &Str, sgr0: &[u8]) -> Vec<u8> {
                 }
             }
             if !found
-                && let Some(pos) = end.windows(off.len().max(1)).position(|w| w == off.as_slice())
+                && let Some(pos) = end
+                    .windows(off.len().max(1))
+                    .position(|w| w == off.as_slice())
                 && end != off
             {
                 let mut tmp = end.clone();
@@ -1137,7 +1186,9 @@ impl Dump {
                         self.tmpbuf.clear();
                         self.tmpbuf.extend_from_slice(&name);
                         self.tmpbuf.push(b'=');
-                        if self.pretty && matches!(self.outform, OutForm::Terminfo | OutForm::Variable) {
+                        if self.pretty
+                            && matches!(self.outform, OutForm::Terminfo | OutForm::Variable)
+                        {
                             self.fmt_complex(tterm, &name, &src, 0, 1);
                         } else {
                             self.tmpbuf.extend_from_slice(&src);
@@ -1186,7 +1237,11 @@ impl Dump {
             }
             if box_ok {
                 let mut b = b"box1=".to_vec();
-                b.extend_from_slice(&tic_expand(&boxchars, self.outform == OutForm::Terminfo, numbers));
+                b.extend_from_slice(&tic_expand(
+                    &boxchars,
+                    self.outform == OutForm::Terminfo,
+                    numbers,
+                ));
                 self.wrap_concat1(&b);
                 outcount = true;
             }
@@ -1215,7 +1270,11 @@ impl Dump {
                 self.outbuf.push(b' ');
             }
         }
-        if infodump { len } else { self.outbuf.len() as i32 }
+        if infodump {
+            len
+        } else {
+            self.outbuf.len() as i32
+        }
     }
 }
 
@@ -1270,13 +1329,20 @@ pub fn set_obsolete_termcaps(tp: &mut TermType) {
     let r1 = str_index("reset_1string");
     let r2 = str_index("reset_2string");
     let r3 = str_index("reset_3string");
-    if !tp.strs[reset].valid() && tp.strs[r2].valid() && !tp.strs[r1].valid() && !tp.strs[r3].valid() {
+    if !tp.strs[reset].valid()
+        && tp.strs[r2].valid()
+        && !tp.strs[r1].valid()
+        && !tp.strs[r3].valid()
+    {
         tp.strs[reset] = tp.strs[r2].clone();
         tp.strs[r2] = Str::Absent;
     }
     let ul = num_index("magic_cookie_glitch_ul");
     let mcg = num_index("magic_cookie_glitch");
-    if tp.nums[ul] == super::ABSENT_NUMERIC && tp.nums[mcg] != super::ABSENT_NUMERIC && tp.s("enter_underline_mode").valid() {
+    if tp.nums[ul] == super::ABSENT_NUMERIC
+        && tp.nums[mcg] != super::ABSENT_NUMERIC
+        && tp.s("enter_underline_mode").valid()
+    {
         tp.nums[ul] = tp.nums[mcg];
     }
     let nl_is = tp.sv("newline").is_some_and(|n| n == b"\n");
@@ -1419,7 +1485,14 @@ impl Dump {
     }
 
     /// `dump_entry`: formata uma entrada, com os cortes pra caber no limite do termcap.
-    pub fn dump_entry(&mut self, tterm: &mut TermType, suppress_untranslatable: bool, limited: bool, numbers: i32, pred: PredFn<'_>) {
+    pub fn dump_entry(
+        &mut self,
+        tterm: &mut TermType,
+        suppress_untranslatable: bool,
+        limited: bool,
+        numbers: i32,
+        pred: PredFn<'_>,
+    ) {
         let (critlen, legend, infodump) = if self.tc_output() {
             set_obsolete_termcaps(tterm);
             (MAX_TERMCAP_LENGTH, "older termcap", false)
@@ -1433,7 +1506,9 @@ impl Dump {
         if first > critlen && self.tc_output() && limited {
             let save_tterm = tterm.clone();
             if !suppress {
-                show_why(&format!("# (untranslatable capabilities removed to fit entry within {critlen} bytes)\n"));
+                show_why(&format!(
+                    "# (untranslatable capabilities removed to fit entry within {critlen} bytes)\n"
+                ));
                 suppress = true;
             }
             if self.fmt_entry(tterm, pred, false, suppress, infodump, numbers) > critlen {
@@ -1444,40 +1519,66 @@ impl Dump {
                     if tterm.strs[n].valid() {
                         tterm.strs[sgr_idx] = Str::Absent;
                         if name.len() <= 2 {
-                            show_why(&format!("# ({} removed to fit entry within {critlen} bytes)\n", io::lossy(&name)));
+                            show_why(&format!(
+                                "# ({} removed to fit entry within {critlen} bytes)\n",
+                                io::lossy(&name)
+                            ));
                         }
                         changed = true;
-                        if self.fmt_entry(tterm, pred, false, suppress, infodump, numbers) <= critlen {
+                        if self.fmt_entry(tterm, pred, false, suppress, infodump, numbers)
+                            <= critlen
+                        {
                             break;
                         }
                     }
                 }
                 if tterm.strs[sgr_idx].valid() {
                     tterm.strs[sgr_idx] = Str::Absent;
-                    show_why(&format!("# (sgr removed to fit entry within {critlen} bytes)\n"));
+                    show_why(&format!(
+                        "# (sgr removed to fit entry within {critlen} bytes)\n"
+                    ));
                     changed = true;
                 }
-                if (!changed || self.fmt_entry(tterm, pred, false, suppress, infodump, numbers) > critlen) && self.purged_acs(tterm) {
+                if (!changed
+                    || self.fmt_entry(tterm, pred, false, suppress, infodump, numbers) > critlen)
+                    && self.purged_acs(tterm)
+                {
                     tterm.strs[str_index("acs_chars")] = Str::Absent;
-                    show_why(&format!("# (acsc removed to fit entry within {critlen} bytes)\n"));
+                    show_why(&format!(
+                        "# (acsc removed to fit entry within {critlen} bytes)\n"
+                    ));
                     changed = true;
                 }
-                if !changed || self.fmt_entry(tterm, pred, false, suppress, infodump, numbers) > critlen {
+                if !changed
+                    || self.fmt_entry(tterm, pred, false, suppress, infodump, numbers) > critlen
+                {
                     let oldversion = self.tversion;
                     self.tversion = TVersion::Bsd;
-                    show_why(&format!("# (terminfo-only capabilities suppressed to fit entry within {critlen} bytes)\n"));
+                    show_why(&format!(
+                        "# (terminfo-only capabilities suppressed to fit entry within {critlen} bytes)\n"
+                    ));
                     let mut len = self.fmt_entry(tterm, pred, false, suppress, infodump, numbers);
                     if len > critlen && self.kill_labels(tterm, len - critlen) != 0 {
-                        show_why(&format!("# (some labels capabilities suppressed to fit entry within {critlen} bytes)\n"));
+                        show_why(&format!(
+                            "# (some labels capabilities suppressed to fit entry within {critlen} bytes)\n"
+                        ));
                         len = self.fmt_entry(tterm, pred, false, suppress, infodump, numbers);
                     }
                     if len > critlen && self.kill_fkeys(tterm, len - critlen) != 0 {
-                        show_why(&format!("# (some function-key capabilities suppressed to fit entry within {critlen} bytes)\n"));
+                        show_why(&format!(
+                            "# (some function-key capabilities suppressed to fit entry within {critlen} bytes)\n"
+                        ));
                         len = self.fmt_entry(tterm, pred, false, suppress, infodump, numbers);
                     }
                     if len > critlen {
-                        io::eprint(format!("{}: {} entry is {len} bytes long\n", self.progname, io::lossy(super::first_name(&tterm.names))));
-                        show_why(&format!("# WARNING: this entry, {len} bytes long, may core-dump {legend} libraries!\n"));
+                        io::eprint(format!(
+                            "{}: {} entry is {len} bytes long\n",
+                            self.progname,
+                            io::lossy(super::first_name(&tterm.names))
+                        ));
+                        show_why(&format!(
+                            "# WARNING: this entry, {len} bytes long, may core-dump {legend} libraries!\n"
+                        ));
                     }
                     self.tversion = oldversion;
                 }
@@ -1533,7 +1634,12 @@ impl Dump {
     }
 
     /// `compare_entry`: chama o gancho pra cada capacidade na ordem escolhida.
-    pub fn compare_entry(&self, hook: &mut dyn FnMut(CmpKind, usize, &[u8]), tp: &TermType, quiet: bool) {
+    pub fn compare_entry(
+        &self,
+        hook: &mut dyn FnMut(CmpKind, usize, &[u8]),
+        tp: &TermType,
+        quiet: bool,
+    ) {
         use std::io::Write;
         let mut o = io::stdout();
         if !quiet {
@@ -1581,4 +1687,3 @@ pub enum CmpKind {
     String,
     Use,
 }
-

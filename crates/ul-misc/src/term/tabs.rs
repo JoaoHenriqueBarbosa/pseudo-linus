@@ -41,12 +41,16 @@ fn skip_csi(value: &[u8]) -> &[u8] {
 
 /// Com o `ct` ANSI (`\E[3g`) não precisa ir à margem esquerda antes.
 fn ansi_clear_tabs(term: &Term) -> bool {
-    term.tt.sv("clear_all_tabs").is_some_and(|c| skip_csi(c) == b"3g")
+    term.tt
+        .sv("clear_all_tabs")
+        .is_some_and(|c| skip_csi(c) == b"3g")
 }
 
 fn skip_list(value: &[u8]) -> usize {
     let mut i = 0;
-    while i < value.len() && (value[i].is_ascii_digit() || c_isspace(value[i]) || b"+,".contains(&value[i])) {
+    while i < value.len()
+        && (value[i].is_ascii_digit() || c_isspace(value[i]) || b"+,".contains(&value[i]))
+    {
         i += 1;
     }
     i
@@ -86,7 +90,11 @@ fn comma_is_needed(source: Option<&[u8]>) -> bool {
 fn add_to_tab_list(append: &mut Option<Vec<u8>>, value: &[u8]) {
     let copied = trimmed_tab_list(value);
     if !copied.is_empty() {
-        let comma: &[u8] = if copied[0] == b',' || !comma_is_needed(append.as_deref()) { b"" } else { b"," };
+        let comma: &[u8] = if copied[0] == b',' || !comma_is_needed(append.as_deref()) {
+            b""
+        } else {
+            b","
+        };
         let mut result = append.take().unwrap_or_default();
         result.extend_from_slice(comma);
         result.extend_from_slice(&copied);
@@ -106,7 +114,12 @@ impl Tabs {
     fn do_tabs(&self, tab_list: &[i32]) {
         let mut last = 1;
         let mut first = true;
-        let set_tab = self.term.tt.sv("set_tab").map(<[u8]>::to_vec).unwrap_or_default();
+        let set_tab = self
+            .term
+            .tt
+            .sv("set_tab")
+            .map(<[u8]>::to_vec)
+            .unwrap_or_default();
         for &stop in tab_list {
             if stop <= 0 {
                 break;
@@ -160,7 +173,9 @@ impl Tabs {
                 if n > 0 && result[n] <= result[n - 1] {
                     io::eprint(format!(
                         "{}: tab-stops are not in increasing order: {} {}\n",
-                        self.progname, value, result[n - 1]
+                        self.progname,
+                        value,
+                        result[n - 1]
                     ));
                     return None;
                 }
@@ -198,9 +213,17 @@ impl Tabs {
         let mut n = 0;
         while n < self.max_cols {
             let ch = 1 + n / 10;
-            let mark = if ch < 10 { (ch as u8) + b'0' } else { (ch as u8) + b'A' - 10 };
+            let mark = if ch < 10 {
+                (ch as u8) + b'0'
+            } else {
+                (ch as u8) + b'A' - 10
+            };
             let buffer = format!("----+----{}", mark as char);
-            let take = if self.max_cols - n > 10 { 10 } else { (self.max_cols - n) as usize };
+            let take = if self.max_cols - n > 10 {
+                10
+            } else {
+                (self.max_cols - n) as usize
+            };
             out(&buffer.as_bytes()[..take.min(buffer.len())]);
             n += 10;
         }
@@ -290,7 +313,8 @@ impl Tabs {
                     }
                 } else if margin >= 1 {
                     if let Some(pr) = parm_right {
-                        let r = tiparm(&self.term.tt, &mut self.state, 1, &pr, &[i64::from(margin)]);
+                        let r =
+                            tiparm(&self.term.tt, &mut self.state, 1, &pr, &[i64::from(margin)]);
                         if let Some(r) = r {
                             self.tput_cap(&r);
                         }
@@ -309,14 +333,29 @@ impl Tabs {
         self.after_margin_set(no_op, margin, set_left_parm, set_right_parm, set_lr)
     }
 
-    fn after_margin_set(&mut self, no_op: bool, margin: i32, set_left_parm: Option<Vec<u8>>, set_right_parm: Option<Vec<u8>>, set_lr: Option<Vec<u8>>) -> bool {
+    fn after_margin_set(
+        &mut self,
+        no_op: bool,
+        margin: i32,
+        set_left_parm: Option<Vec<u8>>,
+        set_right_parm: Option<Vec<u8>>,
+        set_lr: Option<Vec<u8>>,
+    ) -> bool {
         if let Some(sl) = set_left_parm {
             if !no_op {
                 if set_right_parm.is_some() {
-                    if let Some(r) = tiparm(&self.term.tt, &mut self.state, 1, &sl, &[i64::from(margin)]) {
+                    if let Some(r) =
+                        tiparm(&self.term.tt, &mut self.state, 1, &sl, &[i64::from(margin)])
+                    {
                         self.tput_cap(&r);
                     }
-                } else if let Some(r) = tiparm(&self.term.tt, &mut self.state, 2, &sl, &[i64::from(margin), i64::from(self.max_cols)]) {
+                } else if let Some(r) = tiparm(
+                    &self.term.tt,
+                    &mut self.state,
+                    2,
+                    &sl,
+                    &[i64::from(margin), i64::from(self.max_cols)],
+                ) {
                     self.tput_cap(&r);
                 }
             }
@@ -324,7 +363,13 @@ impl Tabs {
         }
         if let Some(lr) = set_lr {
             if !no_op
-                && let Some(r) = tiparm(&self.term.tt, &mut self.state, 2, &lr, &[i64::from(margin), i64::from(self.max_cols)])
+                && let Some(r) = tiparm(
+                    &self.term.tt,
+                    &mut self.state,
+                    2,
+                    &lr,
+                    &[i64::from(margin), i64::from(self.max_cols)],
+                )
             {
                 self.tput_cap(&r);
             }
@@ -340,7 +385,8 @@ fn legal_tab_list(progname: &str, tab_list: Option<&[u8]>) -> bool {
             if comma_is_needed(Some(t)) {
                 for &ch in t {
                     if !(ch.is_ascii_digit() || ch == b',' || ch == b'+') {
-                        let mut msg = format!("{progname}: unexpected character found '").into_bytes();
+                        let mut msg =
+                            format!("{progname}: unexpected character found '").into_bytes();
                         msg.push(ch);
                         msg.extend_from_slice(b"'\n");
                         io::eprint(msg);
@@ -349,7 +395,10 @@ fn legal_tab_list(progname: &str, tab_list: Option<&[u8]>) -> bool {
                 }
                 true
             } else {
-                io::eprint(format!("{progname}: trailing comma found '{}'\n", io::lossy(t)));
+                io::eprint(format!(
+                    "{progname}: trailing comma found '{}'\n",
+                    io::lossy(t)
+                ));
                 false
             }
         }
@@ -364,7 +413,8 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
     let progname = io::lossy(rootname(&argv[0]));
-    let mut term_name: Option<Vec<u8>> = Some(sys::getenv("TERM").unwrap_or_else(|| b"ansi+tabs".to_vec()));
+    let mut term_name: Option<Vec<u8>> =
+        Some(sys::getenv("TERM").unwrap_or_else(|| b"ansi+tabs".to_vec()));
     let mut debug = false;
     let mut no_op = false;
     let mut append: Option<Vec<u8>> = None;
@@ -401,7 +451,12 @@ fn run(args: &[OsString]) -> i32 {
                             option += 1;
                             match at(option) {
                                 b'2' => tab_list = Some(b"1,6,10,14,49".to_vec()),
-                                b'3' => tab_list = Some(b"1,6,10,14,18,22,26,30,34,38,42,46,50,54,58,62,67".to_vec()),
+                                b'3' => {
+                                    tab_list = Some(
+                                        b"1,6,10,14,18,22,26,30,34,38,42,46,50,54,58,62,67"
+                                            .to_vec(),
+                                    )
+                                }
                                 _ => {
                                     tab_list = Some(b"1,8,12,16,20,55".to_vec());
                                     option -= 1;
@@ -416,7 +471,8 @@ fn run(args: &[OsString]) -> i32 {
                         }
                         b'n' => no_op = true,
                         b'p' => {
-                            tab_list = Some(b"1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61".to_vec());
+                            tab_list =
+                                Some(b"1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61".to_vec());
                             list_is_append = false;
                         }
                         b's' => {
@@ -515,13 +571,25 @@ fn run(args: &[OsString]) -> i32 {
     if margin > 0 {
         max_cols -= margin;
     }
-    let mut tabs = Tabs { progname: progname.clone(), max_cols, term, state: ParmState::default() };
-    let tname = term_name.as_deref().map(io::lossy).unwrap_or_else(|| "(null)".to_string());
+    let mut tabs = Tabs {
+        progname: progname.clone(),
+        max_cols,
+        term,
+        state: ParmState::default(),
+    };
+    let tname = term_name
+        .as_deref()
+        .map(io::lossy)
+        .unwrap_or_else(|| "(null)".to_string());
     let mut rc = 1;
     if !tabs.term.tt.s("clear_all_tabs").valid() {
-        io::eprint(format!("{progname}: terminal type '{tname}' cannot reset tabs\n"));
+        io::eprint(format!(
+            "{progname}: terminal type '{tname}' cannot reset tabs\n"
+        ));
     } else if !tabs.term.tt.s("set_tab").valid() {
-        io::eprint(format!("{progname}: terminal type '{tname}' cannot set tabs\n"));
+        io::eprint(format!(
+            "{progname}: terminal type '{tname}' cannot set tabs\n"
+        ));
     } else if legal_tab_list(&progname, tab_list.as_deref()) {
         if tab_list.is_none() {
             add_to_tab_list(&mut append, b"8");

@@ -102,7 +102,10 @@ fn run(args: &[OsString]) -> i32 {
         match o.short() {
             Some('v') => verbose = true,
             Some('f') => files.push(o.arg.clone().unwrap_or_default()),
-            Some('m') => match ul::strtosize_or_err(o.arg.as_deref().unwrap_or(b""), "failed to parse length") {
+            Some('m') => match ul::strtosize_or_err(
+                o.arg.as_deref().unwrap_or(b""),
+                "failed to parse length",
+            ) {
                 Ok(n) => maxsz = n,
                 Err(m) => {
                     ul::warnx(&short, m);
@@ -147,9 +150,7 @@ fn run(args: &[OsString]) -> i32 {
             let unit = if count == 1 { "byte" } else { "bytes" };
             io::eprint(format!("Got {count} {unit} from {}\n", io::lossy(fname)));
         }
-        if owned
-            && let Err(e) = sys::close(fd)
-        {
+        if owned && let Err(e) = sys::close(fd) {
             ul::warn(&short, format!("closing {} failed", io::lossy(fname)), e);
             return 1;
         }
@@ -167,7 +168,9 @@ fn run(args: &[OsString]) -> i32 {
     }
     ctx.update(&buf);
     if verbose {
-        io::eprint(format!("Got {RAND_BYTES} bytes from getrandom() function\n"));
+        io::eprint(format!(
+            "Got {RAND_BYTES} bytes from getrandom() function\n"
+        ));
     }
 
     let digest = ctx.finish();

@@ -40,10 +40,18 @@ fn run_script(args: &[OsString], script: &str, installed: &str, errexit: bool) -
 
     let _ = io::flush_stdout();
     let s = sys::current();
-    let pid = match s.spawn(SpawnSpec { path: b"/bin/sh".to_vec(), argv: v, attrs: ProcAttrs::default() }) {
+    let pid = match s.spawn(SpawnSpec {
+        path: b"/bin/sh".to_vec(),
+        argv: v,
+        attrs: ProcAttrs::default(),
+    }) {
         Ok(p) => p,
         Err(e) => {
-            io::eprint(format!("{}: /bin/sh: {}\n", io::lossy(&argv[0]), e.message()));
+            io::eprint(format!(
+                "{}: /bin/sh: {}\n",
+                io::lossy(&argv[0]),
+                e.message()
+            ));
             return 127;
         }
     };

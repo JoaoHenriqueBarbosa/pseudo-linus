@@ -85,7 +85,12 @@ pub struct Db {
 
 impl std::fmt::Debug for Db {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Db({} + {})", self.map.sets[0].len(), self.map.sets[1].len())
+        write!(
+            f,
+            "Db({} + {})",
+            self.map.sets[0].len(),
+            self.map.sets[1].len()
+        )
     }
 }
 
@@ -99,7 +104,10 @@ impl Db {
     }
 
     pub fn list(&self, set: usize) -> MagicList<'_> {
-        MagicList { magic: &self.map.sets[set], rx: &self.rx[set] }
+        MagicList {
+            magic: &self.map.sets[set],
+            rx: &self.rx[set],
+        }
     }
 }
 
@@ -112,7 +120,10 @@ pub struct MagicList<'a> {
 
 impl<'a> MagicList<'a> {
     pub fn sub(&self, start: usize, end: usize) -> MagicList<'a> {
-        MagicList { magic: &self.magic[start..end], rx: &self.rx[start..end] }
+        MagicList {
+            magic: &self.magic[start..end],
+            rx: &self.rx[start..end],
+        }
     }
 }
 
@@ -239,7 +250,11 @@ impl MagicSet {
         let blen = self.o.as_ref().map_or(0, Vec::len);
         if s.len() > 1024 || s.len() + blen > 1024 * 1024 {
             self.o = None;
-            self.error_msg(0, &format!("Output buffer space exceeded {}+{blen}", s.len()), 0);
+            self.error_msg(
+                0,
+                &format!("Output buffer space exceeded {}+{blen}", s.len()),
+                0,
+            );
             return Err(Fail);
         }
         self.o.get_or_insert_with(Vec::new).extend_from_slice(s);
@@ -373,7 +388,11 @@ impl MagicSet {
 
     /// `magic_error()`: a mensagem do erro, se houve.
     pub fn error_text(&self) -> Option<Vec<u8>> {
-        if self.had_err { Some(self.o.clone().unwrap_or_default()) } else { None }
+        if self.had_err {
+            Some(self.o.clone().unwrap_or_default())
+        } else {
+            None
+        }
     }
 }
 
@@ -401,7 +420,10 @@ pub fn printable(raw: bool, bufsiz: usize, s: &[u8]) -> Vec<u8> {
 /// `file_strtrim()`: tira espaços (isspace) das pontas, até o NUL.
 pub fn strtrim(s: &[u8]) -> &[u8] {
     let s = super::cutil::cstr(s);
-    let start = s.iter().position(|&c| !super::cutil::is_space(c)).unwrap_or(s.len());
+    let start = s
+        .iter()
+        .position(|&c| !super::cutil::is_space(c))
+        .unwrap_or(s.len());
     let mut end = s.len();
     while end > start && super::cutil::is_space(s[end - 1]) {
         end -= 1;
@@ -427,7 +449,11 @@ pub fn fmtdatetime(v: u64, local: bool, windows: bool, tz: &jiff::tz::TimeZone) 
     if t < -377_705_116_800 {
         return "*Invalid datetime*".to_string();
     }
-    let zone = if local { tz.clone() } else { jiff::tz::TimeZone::UTC };
+    let zone = if local {
+        tz.clone()
+    } else {
+        jiff::tz::TimeZone::UTC
+    };
     crate::util::time::ctime(t, &zone)
 }
 
@@ -493,7 +519,11 @@ pub fn fmtdate(v: u16) -> String {
     let mday = v & 0x1f;
     let mon = i32::from((v >> 5) & 0xf) - 1;
     let year = 1980 + i32::from(v >> 9);
-    let mname = if (0..12).contains(&mon) { crate::util::time::MONTHS[mon as usize] } else { "?" };
+    let mname = if (0..12).contains(&mon) {
+        crate::util::time::MONTHS[mon as usize]
+    } else {
+        "?"
+    };
     format!("{mname} {mday:02} {year}")
 }
 
@@ -521,10 +551,19 @@ mod tests {
     #[test]
     fn datetimes() {
         let utc = jiff::tz::TimeZone::UTC;
-        assert_eq!(fmtdatetime(1_768_478_400, false, false, &utc), "Thu Jan 15 12:00:00 2026");
-        assert_eq!(fmtdatetime(0x3b_0000_0000, false, false, &utc), "*Invalid datetime*");
+        assert_eq!(
+            fmtdatetime(1_768_478_400, false, false, &utc),
+            "Thu Jan 15 12:00:00 2026"
+        );
+        assert_eq!(
+            fmtdatetime(0x3b_0000_0000, false, false, &utc),
+            "*Invalid datetime*"
+        );
         // 2021-08-02 13:10:27 UTC em FILETIME.
-        assert_eq!(fmtdatetime(132_723_834_270_000_000, false, true, &utc), "Mon Aug  2 13:10:27 2021");
+        assert_eq!(
+            fmtdatetime(132_723_834_270_000_000, false, true, &utc),
+            "Mon Aug  2 13:10:27 2021"
+        );
     }
 
     #[test]

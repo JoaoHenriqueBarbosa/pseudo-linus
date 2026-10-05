@@ -24,9 +24,7 @@ pub fn clear_cmd(term: &Term, legacy: bool) -> bool {
         }
         None => false,
     };
-    if !legacy
-        && let TiStr::Val(e3) = term.tigetstr(b"E3")
-    {
+    if !legacy && let TiStr::Val(e3) = term.tigetstr(b"E3") {
         tputs(Some(&term.tt), e3, affcnt, false, &mut sink);
     }
     ok
@@ -54,7 +52,10 @@ fn run(args: &[OsString]) -> i32 {
         match r {
             Ok(o) => match o.short() {
                 Some('T') => {
-                    opts = SetupOpts { use_env: false, use_tioctl: true };
+                    opts = SetupOpts {
+                        use_env: false,
+                        use_tioctl: true,
+                    };
                     term = o.arg.clone();
                 }
                 Some('V') => {

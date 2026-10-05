@@ -27,7 +27,10 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 fn isfakechroot() -> bool {
     sys::getenv("FAKECHROOT").is_some_and(|v| v == b"true")
         && sys::getenv("FAKECHROOT_BASE").is_some()
-        && sys::getenv("LD_PRELOAD").is_some_and(|v| v.windows(b"libfakechroot.so".len()).any(|w| w == b"libfakechroot.so"))
+        && sys::getenv("LD_PRELOAD").is_some_and(|v| {
+            v.windows(b"libfakechroot.so".len())
+                .any(|w| w == b"libfakechroot.so")
+        })
 }
 
 /// Lê até `buf.len()` bytes (um `read`).
@@ -106,7 +109,10 @@ fn run(args: &[OsString]) -> i32 {
         let o = match r {
             Ok(o) => o,
             Err(e) => {
-                io::eprint(format!("{}\nTry `ischroot --help' for more information.\n", e.message(&argv0)));
+                io::eprint(format!(
+                    "{}\nTry `ischroot --help' for more information.\n",
+                    e.message(&argv0)
+                ));
                 return 1;
             }
         };
@@ -135,7 +141,9 @@ fn run(args: &[OsString]) -> i32 {
     }
 
     if default_false && default_true {
-        io::eprint("Can't default to both true and false!\nTry `ischroot --help' for more information.\n");
+        io::eprint(
+            "Can't default to both true and false!\nTry `ischroot --help' for more information.\n",
+        );
         return 1;
     }
 

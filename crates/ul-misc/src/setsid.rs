@@ -70,11 +70,17 @@ fn execvp(file: &[u8], argv: &[Vec<u8>]) -> Errno {
     if file.contains(&b'/') {
         return try_exec(file);
     }
-    let path = sys.getenv(b"PATH").unwrap_or_else(|| b"/bin:/usr/bin".to_vec());
+    let path = sys
+        .getenv(b"PATH")
+        .unwrap_or_else(|| b"/bin:/usr/bin".to_vec());
     let mut got_eacces = false;
     let mut last = Errno::ENOENT;
     for dir in path.split(|b| *b == b':') {
-        let mut full = if dir.is_empty() { Vec::new() } else { dir.to_vec() };
+        let mut full = if dir.is_empty() {
+            Vec::new()
+        } else {
+            dir.to_vec()
+        };
         if !full.is_empty() {
             full.push(b'/');
         }
@@ -115,8 +121,16 @@ fn session_body(short: &str, ctty: bool, cmd: &[Vec<u8>]) -> i32 {
     }
     let _ = io::flush_stdout();
     let e = execvp(&cmd[0], cmd);
-    ul::warn(short, format!("failed to execute {}", io::lossy(&cmd[0])), e);
-    if e == Errno::ENOENT { EX_EXEC_ENOENT } else { EX_EXEC_FAILED }
+    ul::warn(
+        short,
+        format!("failed to execute {}", io::lossy(&cmd[0])),
+        e,
+    );
+    if e == Errno::ENOENT {
+        EX_EXEC_ENOENT
+    } else {
+        EX_EXEC_FAILED
+    }
 }
 
 fn run(args: &[OsString]) -> i32 {
@@ -202,11 +216,16 @@ fn run(args: &[OsString]) -> i32 {
     };
     match status {
         WaitStatus::Exited(code) => code & 0xff,
-        WaitStatus::Signaled { signal, core_dumped } => {
+        WaitStatus::Signaled {
+            signal,
+            core_dumped,
+        } => {
             // err(status, ...): o errno ainda é o do wait bem-sucedido (0, "Success"), e o código de
             // saída é o status cru do wait (o número do sinal, com 0x80 se gerou core).
             let raw = signal.0 | if core_dumped { 0x80 } else { 0 };
-            io::eprint(format!("{short}: child {child} did not exit normally: Success\n"));
+            io::eprint(format!(
+                "{short}: child {child} did not exit normally: Success\n"
+            ));
             raw & 0xff
         }
         WaitStatus::Stopped(_) | WaitStatus::Continued => 1,

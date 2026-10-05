@@ -70,7 +70,13 @@ impl<'a> Cursor<'a> {
 
     /// `INT_FIELD_MAYBE_NULL`: como `int_field`, mas campo vazio vale `default`; `None` se a linha
     /// acabou antes (espera-se mais entrada) ou o campo é inválido.
-    pub fn int_field_maybe_null(&mut self, term: fn(u8) -> bool, swallow: bool, base: u32, default: u64) -> Option<u64> {
+    pub fn int_field_maybe_null(
+        &mut self,
+        term: fn(u8) -> bool,
+        swallow: bool,
+        base: u32,
+        default: u64,
+    ) -> Option<u64> {
         if self.at_end() {
             return None;
         }
@@ -182,7 +188,10 @@ pub fn strtoull(s: &[u8], start: usize, base: u32) -> (u64, usize) {
         if d >= base {
             break;
         }
-        match val.checked_mul(u64::from(base)).and_then(|v| v.checked_add(u64::from(d))) {
+        match val
+            .checked_mul(u64::from(base))
+            .and_then(|v| v.checked_add(u64::from(d)))
+        {
             Some(v) => val = v,
             None => overflow = true,
         }
@@ -216,7 +225,10 @@ pub fn read_db_lines(path: &[u8], eol_set: &[u8]) -> Result<Vec<Vec<u8>>, Errno>
         if line.is_empty() || line[0] == b'#' {
             continue;
         }
-        let cut = line.iter().position(|b| eol_set.contains(b)).unwrap_or(line.len());
+        let cut = line
+            .iter()
+            .position(|b| eol_set.contains(b))
+            .unwrap_or(line.len());
         out.push(line[..cut].to_vec());
     }
     Ok(out)
@@ -243,7 +255,15 @@ pub fn parse_passwd(line: &[u8]) -> Option<Passwd> {
     let mut c = Cursor::new(line);
     let name = c.string_field(is_colon, false).to_vec();
     if c.at_end() && is_nis_name(&name) {
-        return Some(Passwd { name, passwd: None, uid: 0, gid: 0, gecos: None, dir: None, shell: None });
+        return Some(Passwd {
+            name,
+            passwd: None,
+            uid: 0,
+            gid: 0,
+            gecos: None,
+            dir: None,
+            shell: None,
+        });
     }
     let passwd = c.string_field(is_colon, false).to_vec();
     let (uid, gid) = if is_nis_name(&name) {
@@ -258,7 +278,15 @@ pub fn parse_passwd(line: &[u8]) -> Option<Passwd> {
     let gecos = c.string_field(is_colon, false).to_vec();
     let dir = c.string_field(is_colon, false).to_vec();
     let shell = c.s[c.p.min(c.s.len())..].to_vec();
-    Some(Passwd { name, passwd: Some(passwd), uid, gid, gecos: Some(gecos), dir: Some(dir), shell: Some(shell) })
+    Some(Passwd {
+        name,
+        passwd: Some(passwd),
+        uid,
+        gid,
+        gecos: Some(gecos),
+        dir: Some(dir),
+        shell: Some(shell),
+    })
 }
 
 /// Campo válido para o arquivo de banco: sem `:` nem quebra de linha (o `__nss_valid_field`).
@@ -272,13 +300,15 @@ fn valid_opt(f: &Option<Vec<u8>>) -> bool {
 
 /// Lista válida: cada membro sem `:`, quebra de linha nem `,` (o `__nss_valid_list_field`).
 fn valid_list(list: &[Vec<u8>]) -> bool {
-    list.iter().all(|m| !m.iter().any(|b| *b == b':' || *b == b'\n' || *b == b','))
+    list.iter()
+        .all(|m| !m.iter().any(|b| *b == b':' || *b == b'\n' || *b == b','))
 }
 
 /// `putpwent`; `Err` é o EINVAL de um campo com caractere proibido (o getent então não imprime a
 /// entrada e avisa no stderr).
 pub fn format_passwd(p: &Passwd) -> Result<Vec<u8>, ()> {
-    if !valid_field(&p.name) || !valid_opt(&p.passwd) || !valid_opt(&p.dir) || !valid_opt(&p.shell) {
+    if !valid_field(&p.name) || !valid_opt(&p.passwd) || !valid_opt(&p.dir) || !valid_opt(&p.shell)
+    {
         return Err(());
     }
     let mut out = Vec::new();
@@ -292,7 +322,10 @@ pub fn format_passwd(p: &Passwd) -> Result<Vec<u8>, ()> {
         out.extend_from_slice(format!(":{}:{}:", p.uid, p.gid).as_bytes());
     }
     // O GECOS tem os caracteres proibidos trocados por espaço (nunca ocorrem vindos do arquivo).
-    let gecos: Vec<u8> = s(&p.gecos).iter().map(|b| if *b == b':' || *b == b'\n' { b' ' } else { *b }).collect();
+    let gecos: Vec<u8> = s(&p.gecos)
+        .iter()
+        .map(|b| if *b == b':' || *b == b'\n' { b' ' } else { *b })
+        .collect();
     out.extend_from_slice(&gecos);
     out.push(b':');
     out.extend_from_slice(&s(&p.dir));
@@ -327,7 +360,12 @@ pub fn parse_group(line: &[u8]) -> Option<Group> {
         (Some(passwd), gid as u32)
     };
     let members = c.parse_list(0, is_comma);
-    Some(Group { name, passwd, gid, members })
+    Some(Group {
+        name,
+        passwd,
+        gid,
+        members,
+    })
 }
 
 /// `putgrent`; `Err` é o EINVAL de campo ou membro com caractere proibido.
@@ -381,7 +419,17 @@ pub fn parse_shadow(line: &[u8]) -> Option<Shadow> {
     let name = c.string_field(is_colon, false).to_vec();
     let none = u64::MAX; // ~0ul, e o "default" -1 passa pelo `as_long_int`
     if c.at_end() && is_nis_name(&name) {
-        return Some(Shadow { name, pwdp: None, lstchg: 0, min: 0, max: 0, warn: -1, inact: -1, expire: -1, flag: none });
+        return Some(Shadow {
+            name,
+            pwdp: None,
+            lstchg: 0,
+            min: 0,
+            max: 0,
+            warn: -1,
+            inact: -1,
+            expire: -1,
+            flag: none,
+        });
     }
     let pwdp = c.string_field(is_colon, false).to_vec();
     let lstchg = as_long_int(c.int_field_maybe_null(is_colon, false, 10, none)?);
@@ -399,7 +447,17 @@ pub fn parse_shadow(line: &[u8]) -> Option<Shadow> {
             flag = c.int_field_maybe_null(never, false, 10, none)?;
         }
     }
-    Some(Shadow { name, pwdp: Some(pwdp), lstchg, min, max, warn, inact, expire, flag })
+    Some(Shadow {
+        name,
+        pwdp: Some(pwdp),
+        lstchg,
+        min,
+        max,
+        warn,
+        inact,
+        expire,
+        flag,
+    })
 }
 
 /// `putspent`; `Err` é o EINVAL de nome ou senha com caractere proibido.
@@ -441,17 +499,31 @@ pub fn parse_gshadow(line: &[u8]) -> Option<GShadow> {
     let mut c = Cursor::new(line);
     let name = c.string_field(is_colon, false).to_vec();
     if c.at_end() && is_nis_name(&name) {
-        return Some(GShadow { name, passwd: None, adm: Vec::new(), members: Vec::new() });
+        return Some(GShadow {
+            name,
+            passwd: None,
+            adm: Vec::new(),
+            members: Vec::new(),
+        });
     }
     let passwd = c.string_field(is_colon, false).to_vec();
     let adm = c.parse_list(b':', is_comma);
     let members = c.parse_list(0, is_comma);
-    Some(GShadow { name, passwd: Some(passwd), adm, members })
+    Some(GShadow {
+        name,
+        passwd: Some(passwd),
+        adm,
+        members,
+    })
 }
 
 /// `putsgent`; `Err` é o EINVAL de campo ou membro com caractere proibido.
 pub fn format_gshadow(g: &GShadow) -> Result<Vec<u8>, ()> {
-    if !valid_field(&g.name) || !valid_opt(&g.passwd) || !valid_list(&g.adm) || !valid_list(&g.members) {
+    if !valid_field(&g.name)
+        || !valid_opt(&g.passwd)
+        || !valid_list(&g.adm)
+        || !valid_list(&g.members)
+    {
         return Err(());
     }
     let mut out = Vec::new();
@@ -485,7 +557,10 @@ mod tests {
     #[test]
     fn passwd_roundtrip() {
         let p = parse_passwd(b"root:x:0:0:root:/root:/bin/bash").unwrap();
-        assert_eq!(format_passwd(&p).unwrap(), b"root:x:0:0:root:/root:/bin/bash\n");
+        assert_eq!(
+            format_passwd(&p).unwrap(),
+            b"root:x:0:0:root:/root:/bin/bash\n"
+        );
         assert!(parse_passwd(b"bad:x:zero:0:a:b:c").is_none());
         assert!(parse_passwd(b"short:x:1").is_none());
         let p = parse_passwd(b"+").unwrap();
@@ -497,7 +572,10 @@ mod tests {
     #[test]
     fn group_and_gshadow() {
         let g = parse_group(b"adm:x:4:syslog, john ,,ana").unwrap();
-        assert_eq!(g.members, vec![b"syslog".to_vec(), b"john ".to_vec(), b"ana".to_vec()]);
+        assert_eq!(
+            g.members,
+            vec![b"syslog".to_vec(), b"john ".to_vec(), b"ana".to_vec()]
+        );
         assert_eq!(format_group(&g).unwrap(), b"adm:x:4:syslog,john ,ana\n");
         let s = parse_gshadow(b"adm:*:root,a:syslog").unwrap();
         assert_eq!(format_gshadow(&s).unwrap(), b"adm:*:root,a:syslog\n");

@@ -1,0 +1,189 @@
+tool = "fallocate"
+source = "manual"
+
+# fallocate do util-linux 2.41. Os casos de tamanho e blocos usam stat -c no fim, porque o retrato
+# do diretório não mostra alocação. Os de EOPNOTSUPP dependem do cwd estar num tmpfs.
+
+[[case]]
+id = "fallocate-help"
+argv = ["fallocate", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "fallocate-version"
+argv = ["fallocate", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "fallocate-create"
+script = "fallocate -l 1MiB novo && stat -c '%s %b' novo"
+tags = ["create"]
+
+[[case]]
+id = "fallocate-create-verbose"
+script = "fallocate -v -l 1536 a && fallocate -v -l 10MB b && fallocate -v --length=4K c && stat -c '%n %s' a b c"
+tags = ["create", "verbose"]
+
+[[case]]
+id = "fallocate-extend-offset"
+script = "fallocate -o 4096 -l 4096 f && stat -c '%s %b' f"
+tags = ["create"]
+[case.files]
+"f" = "abc\n"
+
+[[case]]
+id = "fallocate-keep-size"
+script = "fallocate -n -l 64KiB f && stat -c '%s %b' f && cat f"
+tags = ["keep-size"]
+[case.files]
+"f" = "dados\n"
+
+[[case]]
+id = "fallocate-keep-size-missing"
+argv = ["fallocate", "-n", "-l", "4096", "nao-existe"]
+tags = ["keep-size", "error"]
+
+[[case]]
+id = "fallocate-punch-hole"
+script = "head -c 16384 /dev/zero | tr '\\0' 'x' > f && fallocate -v -p -o 4096 -l 8192 f && stat -c '%s %b' f && od -An -c f | head -n 3"
+tags = ["punch"]
+
+[[case]]
+id = "fallocate-dig-holes"
+script = "{ head -c 4096 /dev/zero | tr '\\0' a; head -c 8192 /dev/zero; head -c 4096 /dev/zero | tr '\\0' b; } > f && stat -c '%s %b' f && fallocate -v -d f && stat -c '%s %b' f && md5sum f"
+tags = ["dig"]
+
+[[case]]
+id = "fallocate-dig-holes-range"
+script = "head -c 16384 /dev/zero > f && fallocate -d -o 4096 -l 4096 f && stat -c '%s %b' f"
+tags = ["dig"]
+
+[[case]]
+id = "fallocate-dig-holes-empty"
+script = "fallocate -v -d f && stat -c '%s %b' f"
+tags = ["dig"]
+[case.files]
+"f" = ""
+
+[[case]]
+id = "fallocate-posix"
+script = "fallocate -x -v -l 8192 f && stat -c '%s %b' f"
+tags = ["posix"]
+
+[[case]]
+id = "fallocate-zero-range-tmpfs"
+script = "fallocate -z -l 4096 f; echo \"exit $?\"; stat -c '%s' f"
+tags = ["eopnotsupp"]
+[case.files]
+"f" = "abc\n"
+
+[[case]]
+id = "fallocate-zero-range-keep-size-tmpfs"
+script = "fallocate -z -n -l 4096 f; echo \"exit $?\""
+tags = ["eopnotsupp"]
+[case.files]
+"f" = "abc\n"
+
+[[case]]
+id = "fallocate-collapse-tmpfs"
+script = "head -c 16384 /dev/zero > f; fallocate -c -l 4096 f; echo \"exit $?\"; stat -c '%s' f"
+tags = ["eopnotsupp"]
+
+[[case]]
+id = "fallocate-insert-tmpfs"
+script = "head -c 16384 /dev/zero > f; fallocate -i -l 4096 f; echo \"exit $?\"; stat -c '%s' f"
+tags = ["eopnotsupp"]
+
+[[case]]
+id = "fallocate-no-filename"
+argv = ["fallocate", "-l", "10"]
+tags = ["error"]
+
+[[case]]
+id = "fallocate-too-many"
+argv = ["fallocate", "-l", "10", "a", "b"]
+tags = ["error"]
+
+[[case]]
+id = "fallocate-no-length"
+argv = ["fallocate", "f"]
+tags = ["error"]
+
+[[case]]
+id = "fallocate-length-zero"
+argv = ["fallocate", "-l", "0", "f"]
+tags = ["error", "size"]
+
+[[case]]
+id = "fallocate-length-garbage"
+argv = ["fallocate", "-l", "12Q", "f"]
+tags = ["error", "size"]
+
+[[case]]
+id = "fallocate-length-negative"
+argv = ["fallocate", "-l", "-5", "f"]
+tags = ["error", "size"]
+
+[[case]]
+id = "fallocate-length-huge"
+argv = ["fallocate", "-l", "16EiB", "f"]
+tags = ["error", "size"]
+
+[[case]]
+id = "fallocate-offset-garbage"
+argv = ["fallocate", "-o", "abc", "-l", "1", "f"]
+tags = ["error", "size"]
+
+[[case]]
+id = "fallocate-offset-overflow"
+argv = ["fallocate", "-o", "9EiB", "-l", "1", "f"]
+tags = ["error", "size"]
+
+[[case]]
+id = "fallocate-sizes"
+script = "fallocate -l 1.5K a && fallocate -l 2KB b && fallocate -l 0x10 c && fallocate -l 1k d && stat -c '%n %s' a b c d"
+tags = ["size"]
+
+[[case]]
+id = "fallocate-dig-negative-length"
+argv = ["fallocate", "-d", "-l", "x", "f"]
+tags = ["error", "dig"]
+[case.files]
+"f" = "a\n"
+
+[[case]]
+id = "fallocate-exclusive-punch-zero"
+argv = ["fallocate", "-p", "-z", "-l", "1", "f"]
+tags = ["error", "exclusive"]
+
+[[case]]
+id = "fallocate-exclusive-collapse-keep"
+argv = ["fallocate", "-n", "--collapse-range", "-l", "1", "f"]
+tags = ["error", "exclusive"]
+
+[[case]]
+id = "fallocate-exclusive-posix-dig"
+argv = ["fallocate", "-x", "-d", "f"]
+tags = ["error", "exclusive"]
+
+[[case]]
+id = "fallocate-invalid-option"
+argv = ["fallocate", "-q", "f"]
+tags = ["error"]
+
+[[case]]
+id = "fallocate-missing-arg"
+argv = ["fallocate", "-l"]
+tags = ["error"]
+
+[[case]]
+id = "fallocate-unknown-long"
+argv = ["fallocate", "--write-zeroes", "-l", "1", "f"]
+tags = ["error"]
+
+[[case]]
+id = "fallocate-directory"
+argv = ["fallocate", "-l", "10", "d"]
+tags = ["error"]
+[case.files]
+"d" = { dir = true }

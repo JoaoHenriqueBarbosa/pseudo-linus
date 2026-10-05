@@ -41,11 +41,18 @@ fn putwc(out: &mut impl Write, c: char) {
 
 /// Processa uma linha (ou o resto do arquivo). `Ok(true)` quando terminou numa quebra de linha e há
 /// mais a ler, `Ok(false)` no fim da entrada.
-fn process_input(rd: &mut Reader, out: &mut impl Write, first: u64, last: u64) -> Result<bool, Errno> {
+fn process_input(
+    rd: &mut Reader,
+    out: &mut impl Write,
+    first: u64,
+    last: u64,
+) -> Result<bool, Errno> {
     let mut ct: u64 = 0;
     let mut w: i64;
     loop {
-        let Some(c) = rd.getwc()? else { return Ok(false) };
+        let Some(c) = rd.getwc()? else {
+            return Ok(false);
+        };
         if c == '\t' {
             w = (((ct + 8) & !7) - ct) as i64;
         } else if c == '\u{8}' {
@@ -74,7 +81,9 @@ fn process_input(rd: &mut Reader, out: &mut impl Write, first: u64, last: u64) -
 
     // Loop getting rid of characters
     while last == 0 || ct < last {
-        let Some(c) = rd.getwc()? else { return Ok(false) };
+        let Some(c) = rd.getwc()? else {
+            return Ok(false);
+        };
         if c == '\n' {
             putwc(out, c);
             return Ok(true);
@@ -116,8 +125,18 @@ fn run(args: &[OsString]) -> i32 {
     let short = ul::short_name(args);
 
     let longs = vec![
-        LongDef { name: b"version".to_vec(), has_arg: 0, val: i32::from(b'V'), flag: false },
-        LongDef { name: b"help".to_vec(), has_arg: 0, val: i32::from(b'h'), flag: false },
+        LongDef {
+            name: b"version".to_vec(),
+            has_arg: 0,
+            val: i32::from(b'V'),
+            flag: false,
+        },
+        LongDef {
+            name: b"help".to_vec(),
+            has_arg: 0,
+            val: i32::from(b'h'),
+            flag: false,
+        },
     ];
     let posix = sysabi::sys::getenv("POSIXLY_CORRECT").is_some();
     let mut eng = Engine::new(argv.clone(), 1, posix);

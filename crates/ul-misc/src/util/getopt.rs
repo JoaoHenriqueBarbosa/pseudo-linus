@@ -53,7 +53,10 @@ impl Opt {
     }
 
     pub fn arg_str(&self) -> String {
-        self.arg.as_deref().map(|a| String::from_utf8_lossy(a).into_owned()).unwrap_or_default()
+        self.arg
+            .as_deref()
+            .map(|a| String::from_utf8_lossy(a).into_owned())
+            .unwrap_or_default()
     }
 }
 
@@ -71,7 +74,10 @@ pub enum GetoptError {
     /// `option '--foo' doesn't allow an argument` (com o nome completo).
     NoArgAllowed(String),
     /// `option '--fo' is ambiguous; possibilities: '--foo' '--fob'`
-    Ambiguous { given: String, candidates: Vec<String> },
+    Ambiguous {
+        given: String,
+        candidates: Vec<String>,
+    },
 }
 
 impl GetoptError {
@@ -80,9 +86,13 @@ impl GetoptError {
         match self {
             GetoptError::Invalid(c) => format!("{argv0}: invalid option -- '{c}'"),
             GetoptError::Unrecognized(s) => format!("{argv0}: unrecognized option '{s}'"),
-            GetoptError::MissingShort(c) => format!("{argv0}: option requires an argument -- '{c}'"),
+            GetoptError::MissingShort(c) => {
+                format!("{argv0}: option requires an argument -- '{c}'")
+            }
             GetoptError::MissingLong(s) => format!("{argv0}: option '{s}' requires an argument"),
-            GetoptError::NoArgAllowed(s) => format!("{argv0}: option '{s}' doesn't allow an argument"),
+            GetoptError::NoArgAllowed(s) => {
+                format!("{argv0}: option '{s}' doesn't allow an argument")
+            }
             GetoptError::Ambiguous { given, candidates } => {
                 let mut m = format!("{argv0}: option '{given}' is ambiguous; possibilities:");
                 for c in candidates {
@@ -132,7 +142,12 @@ pub struct Getopt<'a> {
 impl<'a> Getopt<'a> {
     /// `args` sem o `argv[0]`. `spec` é a string de opções curtas do `getopt` (`"bF:i::"`, com `+`
     /// opcional no começo); `posixly_correct` liga o modo REQUIRE_ORDER como a variável de ambiente.
-    pub fn new(args: &[Vec<u8>], spec: &str, longs: &'a [LongOpt], posixly_correct: bool) -> Getopt<'a> {
+    pub fn new(
+        args: &[Vec<u8>],
+        spec: &str,
+        longs: &'a [LongOpt],
+        posixly_correct: bool,
+    ) -> Getopt<'a> {
         let mut spec = spec;
         let mut require_order = posixly_correct;
         if let Some(rest) = spec.strip_prefix('+') {
@@ -175,7 +190,8 @@ impl<'a> Getopt<'a> {
 
     /// Atalho que lê `POSIXLY_CORRECT` do ambiente do processo corrente.
     pub fn from_env(args: &[Vec<u8>], spec: &str, longs: &'a [LongOpt]) -> Getopt<'a> {
-        let posix = sysabi::sys::try_current().is_some_and(|s| s.getenv(b"POSIXLY_CORRECT").is_some());
+        let posix =
+            sysabi::sys::try_current().is_some_and(|s| s.getenv(b"POSIXLY_CORRECT").is_some());
         Getopt::new(args, spec, longs, posix)
     }
 
@@ -229,24 +245,44 @@ impl<'a> Getopt<'a> {
         // nossa tem opção fora do ASCII, então um byte alto é sempre "invalid option".
         let b = self.pending.remove(0);
         let c = char::from(b);
-        let Some(kind) = (if b.is_ascii() { self.short_kind(c) } else { None }) else {
+        let Some(kind) = (if b.is_ascii() {
+            self.short_kind(c)
+        } else {
+            None
+        }) else {
             return Err(GetoptError::Invalid(c));
         };
         let spelled = format!("-{c}");
         match kind {
-            ShortArg::No => Ok(Opt { id: i32::from(b), arg: None, spelled }),
+            ShortArg::No => Ok(Opt {
+                id: i32::from(b),
+                arg: None,
+                spelled,
+            }),
             ShortArg::Optional => {
                 let arg = (!self.pending.is_empty()).then(|| std::mem::take(&mut self.pending));
-                Ok(Opt { id: i32::from(b), arg, spelled })
+                Ok(Opt {
+                    id: i32::from(b),
+                    arg,
+                    spelled,
+                })
             }
             ShortArg::Required => {
                 if !self.pending.is_empty() {
-                    return Ok(Opt { id: i32::from(b), arg: Some(std::mem::take(&mut self.pending)), spelled });
+                    return Ok(Opt {
+                        id: i32::from(b),
+                        arg: Some(std::mem::take(&mut self.pending)),
+                        spelled,
+                    });
                 }
                 match self.args.get(self.idx).cloned() {
                     Some(a) => {
                         self.idx += 1;
-                        Ok(Opt { id: i32::from(b), arg: Some(a), spelled })
+                        Ok(Opt {
+                            id: i32::from(b),
+                            arg: Some(a),
+                            spelled,
+                        })
                     }
                     None => Err(GetoptError::MissingShort(c)),
                 }
@@ -264,15 +300,23 @@ impl<'a> Getopt<'a> {
         let found = match self.longs.iter().find(|l| l.name == name) {
             Some(l) => *l,
             None => {
-                let matches: Vec<&LongOpt> = self.longs.iter().filter(|l| l.name.starts_with(name.as_str())).collect();
+                let matches: Vec<&LongOpt> = self
+                    .longs
+                    .iter()
+                    .filter(|l| l.name.starts_with(name.as_str()))
+                    .collect();
                 match matches.as_slice() {
                     [] => return Err(GetoptError::Unrecognized(given)),
                     [one] => **one,
                     [first, rest @ ..] => {
-                        if rest.iter().all(|l| l.has_arg == first.has_arg && l.id == first.id) {
+                        if rest
+                            .iter()
+                            .all(|l| l.has_arg == first.has_arg && l.id == first.id)
+                        {
                             **first
                         } else {
-                            let candidates = matches.iter().map(|l| format!("--{}", l.name)).collect();
+                            let candidates =
+                                matches.iter().map(|l| format!("--{}", l.name)).collect();
                             return Err(GetoptError::Ambiguous { given, candidates });
                         }
                     }
@@ -285,17 +329,33 @@ impl<'a> Getopt<'a> {
                 if value.is_some() {
                     return Err(GetoptError::NoArgAllowed(spelled));
                 }
-                Ok(Opt { id: found.id, arg: None, spelled })
+                Ok(Opt {
+                    id: found.id,
+                    arg: None,
+                    spelled,
+                })
             }
-            HasArg::Optional => Ok(Opt { id: found.id, arg: value, spelled }),
+            HasArg::Optional => Ok(Opt {
+                id: found.id,
+                arg: value,
+                spelled,
+            }),
             HasArg::Required => {
                 if value.is_some() {
-                    return Ok(Opt { id: found.id, arg: value, spelled });
+                    return Ok(Opt {
+                        id: found.id,
+                        arg: value,
+                        spelled,
+                    });
                 }
                 match self.args.get(self.idx).cloned() {
                     Some(a) => {
                         self.idx += 1;
-                        Ok(Opt { id: found.id, arg: Some(a), spelled })
+                        Ok(Opt {
+                            id: found.id,
+                            arg: Some(a),
+                            spelled,
+                        })
                     }
                     None => Err(GetoptError::MissingLong(spelled)),
                 }
@@ -385,22 +445,40 @@ mod tests {
             "file: option '--mim' is ambiguous; possibilities: '--mime' '--mime-type' '--mime-encoding'"
         );
         let (opts, _) = collect(&["--bogus=1"], "");
-        assert_eq!(opts[0].as_ref().unwrap_err().message("x"), "x: unrecognized option '--bogus=1'");
+        assert_eq!(
+            opts[0].as_ref().unwrap_err().message("x"),
+            "x: unrecognized option '--bogus=1'"
+        );
         let (opts, _) = collect(&["--separator"], "");
-        assert_eq!(opts[0].as_ref().unwrap_err().message("x"), "x: option '--separator' requires an argument");
+        assert_eq!(
+            opts[0].as_ref().unwrap_err().message("x"),
+            "x: option '--separator' requires an argument"
+        );
         let (opts, _) = collect(&["--br=1"], "");
-        assert_eq!(opts[0].as_ref().unwrap_err().message("x"), "x: option '--brief' doesn't allow an argument");
+        assert_eq!(
+            opts[0].as_ref().unwrap_err().message("x"),
+            "x: option '--brief' doesn't allow an argument"
+        );
         let (opts, _) = collect(&["-Z"], "b");
-        assert_eq!(opts[0].as_ref().unwrap_err().message("x"), "x: invalid option -- 'Z'");
+        assert_eq!(
+            opts[0].as_ref().unwrap_err().message("x"),
+            "x: invalid option -- 'Z'"
+        );
         let (opts, _) = collect(&["-F"], "F:");
-        assert_eq!(opts[0].as_ref().unwrap_err().message("x"), "x: option requires an argument -- 'F'");
+        assert_eq!(
+            opts[0].as_ref().unwrap_err().message("x"),
+            "x: option requires an argument -- 'F'"
+        );
     }
 
     #[test]
     fn optional_arguments_only_attached() {
         let (opts, ops) = collect(&["--color", "x", "--color=never", "-ifoo"], "i::");
         assert_eq!(opts[0].as_ref().unwrap().arg, None);
-        assert_eq!(opts[1].as_ref().unwrap().arg.as_deref(), Some(&b"never"[..]));
+        assert_eq!(
+            opts[1].as_ref().unwrap().arg.as_deref(),
+            Some(&b"never"[..])
+        );
         assert_eq!(opts[2].as_ref().unwrap().arg.as_deref(), Some(&b"foo"[..]));
         assert_eq!(ops, v(&["x"]));
     }

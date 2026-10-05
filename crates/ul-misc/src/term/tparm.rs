@@ -178,7 +178,8 @@ pub fn analyze(string: &[u8]) -> Analysis {
                         cp += 1;
                     }
                 }
-                b'+' | b'-' | b'*' | b'/' | b'm' | b'A' | b'O' | b'&' | b'|' | b'^' | b'=' | b'<' | b'>' => {
+                b'+' | b'-' | b'*' | b'/' | b'm' | b'A' | b'O' | b'&' | b'|' | b'^' | b'='
+                | b'<' | b'>' => {
                     bump(level, &mut number);
                     level -= 1;
                     lastpop = -1;
@@ -219,7 +220,13 @@ pub fn setup(string: &[u8]) -> Setup {
             tparm_type |= 1 << n;
         }
     }
-    Setup { tparm_type, num_actual, num_parsed, num_popped, p_is_s: a.p_is_s }
+    Setup {
+        tparm_type,
+        num_actual,
+        num_parsed,
+        num_popped,
+        p_is_s: a.p_is_s,
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -322,7 +329,9 @@ fn format_int(fmt: &[u8], x: i32) -> Vec<u8> {
     }
     let mut width = 0usize;
     while i + 1 < fmt.len() && fmt[i].is_ascii_digit() {
-        width = width.saturating_mul(10).saturating_add(usize::from(fmt[i] - b'0'));
+        width = width
+            .saturating_mul(10)
+            .saturating_add(usize::from(fmt[i] - b'0'));
         i += 1;
     }
     let mut prec: Option<usize> = None;
@@ -330,7 +339,9 @@ fn format_int(fmt: &[u8], x: i32) -> Vec<u8> {
         i += 1;
         let mut p = 0usize;
         while i + 1 < fmt.len() && fmt[i].is_ascii_digit() {
-            p = p.saturating_mul(10).saturating_add(usize::from(fmt[i] - b'0'));
+            p = p
+                .saturating_mul(10)
+                .saturating_add(usize::from(fmt[i] - b'0'));
             i += 1;
         }
         prec = Some(p);
@@ -383,7 +394,9 @@ fn format_str(fmt: &[u8], s: &[u8]) -> Vec<u8> {
     }
     let mut width = 0usize;
     while i + 1 < fmt.len() && fmt[i].is_ascii_digit() {
-        width = width.saturating_mul(10).saturating_add(usize::from(fmt[i] - b'0'));
+        width = width
+            .saturating_mul(10)
+            .saturating_add(usize::from(fmt[i] - b'0'));
         i += 1;
     }
     let mut body = s.to_vec();
@@ -391,7 +404,9 @@ fn format_str(fmt: &[u8], s: &[u8]) -> Vec<u8> {
         i += 1;
         let mut p = 0usize;
         while i + 1 < fmt.len() && fmt[i].is_ascii_digit() {
-            p = p.saturating_mul(10).saturating_add(usize::from(fmt[i] - b'0'));
+            p = p
+                .saturating_mul(10)
+                .saturating_add(usize::from(fmt[i] - b'0'));
             i += 1;
         }
         body.truncate(p);
@@ -400,9 +415,18 @@ fn format_str(fmt: &[u8], s: &[u8]) -> Vec<u8> {
 }
 
 /// `tparam_internal`: expande a cadeia com os parâmetros.
-fn expand(state: &mut ParmState, string: &[u8], setup: &Setup, mut param: [i32; NUM_PARM], pstr: &[Option<Vec<u8>>; NUM_PARM]) -> Vec<u8> {
+fn expand(
+    state: &mut ParmState,
+    string: &[u8],
+    setup: &Setup,
+    mut param: [i32; NUM_PARM],
+    pstr: &[Option<Vec<u8>>; NUM_PARM],
+) -> Vec<u8> {
     let mut out: Vec<u8> = Vec::new();
-    let mut stack = Stack { items: Vec::new(), ptr: 0 };
+    let mut stack = Stack {
+        items: Vec::new(),
+        ptr: 0,
+    };
     let termcap_hack = setup.num_popped == 0;
     if termcap_hack {
         for i in (0..setup.num_parsed).rev() {
@@ -482,7 +506,9 @@ fn expand(state: &mut ParmState, string: &[u8], setup: &Setup, mut param: [i32; 
                     let mut number = 0i32;
                     cp += 1;
                     while at(string, cp).is_ascii_digit() {
-                        number = number.wrapping_mul(10).wrapping_add(i32::from(at(string, cp) - b'0'));
+                        number = number
+                            .wrapping_mul(10)
+                            .wrapping_add(i32::from(at(string, cp) - b'0'));
                         cp += 1;
                     }
                     stack.npush(number);
@@ -565,17 +591,13 @@ fn expand(state: &mut ParmState, string: &[u8], setup: &Setup, mut param: [i32; 
                         incremented_two = true;
                         if !setup.p_is_s[0] {
                             param[0] = param[0].wrapping_add(1);
-                            if termcap_hack
-                                && let Some(it) = stack.items.get_mut(0)
-                            {
+                            if termcap_hack && let Some(it) = stack.items.get_mut(0) {
                                 *it = Item::Num(param[0]);
                             }
                         }
                         if !setup.p_is_s[1] {
                             param[1] = param[1].wrapping_add(1);
-                            if termcap_hack
-                                && let Some(it) = stack.items.get_mut(1)
-                            {
+                            if termcap_hack && let Some(it) = stack.items.get_mut(1) {
                                 *it = Item::Num(param[1]);
                             }
                         }
@@ -650,7 +672,11 @@ fn is_cap(tt: &TermType, var: &str, string: &[u8]) -> bool {
 /// `check_string_caps`: só algumas capacidades aceitam parâmetros de cadeia.
 fn check_string_caps(tt: &TermType, tparm_type: u32, string: &[u8]) -> bool {
     let mut want = 0u32;
-    if is_cap(tt, "pkey_key", string) || is_cap(tt, "pkey_local", string) || is_cap(tt, "pkey_xmit", string) || is_cap(tt, "plab_norm", string) {
+    if is_cap(tt, "pkey_key", string)
+        || is_cap(tt, "pkey_local", string)
+        || is_cap(tt, "pkey_xmit", string)
+        || is_cap(tt, "plab_norm", string)
+    {
         want = 2;
     } else if is_cap(tt, "pkey_plab", string) {
         want = 6;
@@ -721,7 +747,13 @@ pub fn tparm(tt: &TermType, state: &mut ParmState, string: &[u8], args: &[Arg]) 
 }
 
 /// `_nc_tiparm(expected, string, ...)`: só aceita parâmetros numéricos e confere a contagem.
-pub fn tiparm(tt: &TermType, state: &mut ParmState, expected: i32, string: &[u8], args: &[i64]) -> Option<Vec<u8>> {
+pub fn tiparm(
+    tt: &TermType,
+    state: &mut ParmState,
+    expected: i32,
+    string: &[u8],
+    args: &[i64],
+) -> Option<Vec<u8>> {
     let su = setup(string);
     if su.tparm_type != 0 {
         return None;
@@ -797,7 +829,13 @@ fn delay_output(ms: i32, no_pad_char: bool, sink: &mut dyn Sink) {
 
 /// `tputs(string, affcnt, outc)` com o `BSD_TPUTS` ligado. `always_delay` vale quando a cadeia é a
 /// própria `bell` ou `flash_screen`.
-pub fn tputs(tt: Option<&TermType>, string: &[u8], affcnt: i32, always_delay: bool, sink: &mut dyn Sink) {
+pub fn tputs(
+    tt: Option<&TermType>,
+    string: &[u8],
+    affcnt: i32,
+    always_delay: bool,
+    sink: &mut dyn Sink,
+) {
     let no_pad_char = tt.is_some_and(|t| t.b("no_pad_char"));
     // `normal_delay` depende da velocidade da linha (0 sem terminal) contra `padding_baud_rate`:
     // nunca vale aqui.
@@ -806,7 +844,9 @@ pub fn tputs(tt: Option<&TermType>, string: &[u8], affcnt: i32, always_delay: bo
     let mut trailpad: i32 = 0;
     if at(string, i).is_ascii_digit() {
         while at(string, i).is_ascii_digit() {
-            trailpad = trailpad.wrapping_mul(10).wrapping_add(i32::from(at(string, i) - b'0'));
+            trailpad = trailpad
+                .wrapping_mul(10)
+                .wrapping_add(i32::from(at(string, i) - b'0'));
             i += 1;
         }
         trailpad = trailpad.wrapping_mul(10);
@@ -838,14 +878,18 @@ pub fn tputs(tt: Option<&TermType>, string: &[u8], affcnt: i32, always_delay: bo
             } else {
                 i += 1;
                 let rest = &string[i.min(string.len())..];
-                if (!at(string, i).is_ascii_digit() && at(string, i) != b'.') || !rest.contains(&b'>') {
+                if (!at(string, i).is_ascii_digit() && at(string, i) != b'.')
+                    || !rest.contains(&b'>')
+                {
                     sink.put(b'$');
                     sink.put(b'<');
                     continue;
                 }
                 let mut number: i32 = 0;
                 while at(string, i).is_ascii_digit() {
-                    number = number.wrapping_mul(10).wrapping_add(i32::from(at(string, i) - b'0'));
+                    number = number
+                        .wrapping_mul(10)
+                        .wrapping_add(i32::from(at(string, i) - b'0'));
                     i += 1;
                 }
                 number = number.wrapping_mul(10);
@@ -904,14 +948,35 @@ mod tests {
 
     #[test]
     fn conditionals() {
-        assert_eq!(run(b"%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m", &[1]), b"31m");
-        assert_eq!(run(b"%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m", &[9]), b"91m");
-        assert_eq!(run(b"%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m", &[100]), b"38;5;100m");
+        assert_eq!(
+            run(
+                b"%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m",
+                &[1]
+            ),
+            b"31m"
+        );
+        assert_eq!(
+            run(
+                b"%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m",
+                &[9]
+            ),
+            b"91m"
+        );
+        assert_eq!(
+            run(
+                b"%?%p1%{8}%<%t3%p1%d%e%p1%{16}%<%t9%p1%{8}%-%d%e38;5;%p1%d%;m",
+                &[100]
+            ),
+            b"38;5;100m"
+        );
     }
 
     #[test]
     fn formats() {
-        assert_eq!(run(b"%p1%03d|%p1%:-4d|%p1%x|%p1%#o", &[7]), b"007|7   |7|07");
+        assert_eq!(
+            run(b"%p1%03d|%p1%:-4d|%p1%x|%p1%#o", &[7]),
+            b"007|7   |7|07"
+        );
         assert_eq!(run(b"%p1%c", &[0]), b"\x80");
     }
 

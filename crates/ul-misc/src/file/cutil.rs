@@ -94,7 +94,10 @@ fn scan_integer(s: &[u8], base: u32) -> (bool, u64, usize, bool) {
         if d >= base {
             break;
         }
-        match value.checked_mul(u64::from(base)).and_then(|v| v.checked_add(u64::from(d))) {
+        match value
+            .checked_mul(u64::from(base))
+            .and_then(|v| v.checked_add(u64::from(d)))
+        {
             Some(v) => value = v,
             None => {
                 overflow = true;
@@ -113,10 +116,18 @@ fn scan_integer(s: &[u8], base: u32) -> (bool, u64, usize, bool) {
 pub fn strtoull(s: &[u8], base: u32) -> Conv<u64> {
     let (neg, mag, used, overflow) = scan_integer(s, base);
     if overflow {
-        return Conv { value: u64::MAX, used, overflow };
+        return Conv {
+            value: u64::MAX,
+            used,
+            overflow,
+        };
     }
     let value = if neg { mag.wrapping_neg() } else { mag };
-    Conv { value, used, overflow }
+    Conv {
+        value,
+        used,
+        overflow,
+    }
 }
 
 /// `strtoul` (unsigned long de 64 bits no x86-64).
@@ -129,14 +140,30 @@ pub fn strtol(s: &[u8], base: u32) -> Conv<i64> {
     let (neg, mag, used, overflow) = scan_integer(s, base);
     if neg {
         if overflow || mag > (i64::MAX as u64) + 1 {
-            return Conv { value: i64::MIN, used, overflow: true };
+            return Conv {
+                value: i64::MIN,
+                used,
+                overflow: true,
+            };
         }
-        Conv { value: (mag as i64).wrapping_neg(), used, overflow: false }
+        Conv {
+            value: (mag as i64).wrapping_neg(),
+            used,
+            overflow: false,
+        }
     } else {
         if overflow || mag > i64::MAX as u64 {
-            return Conv { value: i64::MAX, used, overflow: true };
+            return Conv {
+                value: i64::MAX,
+                used,
+                overflow: true,
+            };
         }
-        Conv { value: mag as i64, used, overflow: false }
+        Conv {
+            value: mag as i64,
+            used,
+            overflow: false,
+        }
     }
 }
 
@@ -159,8 +186,16 @@ pub fn strtod(s: &[u8]) -> Conv<f64> {
         if (0..5).all(|k| lower(i + 3 + k) == b"inity"[k]) {
             used = i + 8;
         }
-        let v = if neg { f64::NEG_INFINITY } else { f64::INFINITY };
-        return Conv { value: v, used, overflow: false };
+        let v = if neg {
+            f64::NEG_INFINITY
+        } else {
+            f64::INFINITY
+        };
+        return Conv {
+            value: v,
+            used,
+            overflow: false,
+        };
     }
     if lower(i) == b'n' && lower(i + 1) == b'a' && lower(i + 2) == b'n' {
         let mut used = i + 3;
@@ -174,13 +209,21 @@ pub fn strtod(s: &[u8]) -> Conv<f64> {
             }
         }
         let v = if neg { -f64::NAN } else { f64::NAN };
-        return Conv { value: v, used, overflow: false };
+        return Conv {
+            value: v,
+            used,
+            overflow: false,
+        };
     }
     if at(s, i) == b'0'
         && lower(i + 1) == b'x'
         && let Some((v, used)) = scan_hex_float(s, i + 2)
     {
-        return Conv { value: if neg { -v } else { v }, used, overflow: v.is_infinite() };
+        return Conv {
+            value: if neg { -v } else { v },
+            used,
+            overflow: v.is_infinite(),
+        };
     }
     let digits_start = i;
     let mut saw_digit = false;
@@ -196,7 +239,11 @@ pub fn strtod(s: &[u8]) -> Conv<f64> {
         }
     }
     if !saw_digit {
-        return Conv { value: 0.0, used: 0, overflow: false };
+        return Conv {
+            value: 0.0,
+            used: 0,
+            overflow: false,
+        };
     }
     let mut end = i;
     if lower(i) == b'e' {
@@ -212,10 +259,18 @@ pub fn strtod(s: &[u8]) -> Conv<f64> {
         }
     }
     let text = String::from_utf8_lossy(&s[digits_start..end]).into_owned();
-    let text = if text.starts_with('.') { format!("0{text}") } else { text };
+    let text = if text.starts_with('.') {
+        format!("0{text}")
+    } else {
+        text
+    };
     let v: f64 = text.parse().unwrap_or(0.0);
     let _ = sign_start;
-    Conv { value: if neg { -v } else { v }, used: end, overflow: v.is_infinite() }
+    Conv {
+        value: if neg { -v } else { v },
+        used: end,
+        overflow: v.is_infinite(),
+    }
 }
 
 fn scan_hex_float(s: &[u8], mut i: usize) -> Option<(f64, usize)> {
@@ -252,7 +307,11 @@ fn scan_hex_float(s: &[u8], mut i: usize) -> Option<(f64, usize)> {
 /// `strtof`: o `strtod` arredondado pra `float`.
 pub fn strtof(s: &[u8]) -> Conv<f32> {
     let c = strtod(s);
-    Conv { value: c.value as f32, used: c.used, overflow: c.overflow || (c.value.is_finite() && (c.value as f32).is_infinite()) }
+    Conv {
+        value: c.value as f32,
+        used: c.used,
+        overflow: c.overflow || (c.value.is_finite() && (c.value as f32).is_infinite()),
+    }
 }
 
 #[cfg(test)]
@@ -261,13 +320,34 @@ mod tests {
 
     #[test]
     fn strtol_bases_and_prefixes() {
-        assert_eq!(strtol(b"0x1f rest", 0), Conv { value: 31, used: 4, overflow: false });
+        assert_eq!(
+            strtol(b"0x1f rest", 0),
+            Conv {
+                value: 31,
+                used: 4,
+                overflow: false
+            }
+        );
         assert_eq!(strtol(b"017", 0).value, 15);
-        assert_eq!(strtol(b"-12x", 0), Conv { value: -12, used: 3, overflow: false });
+        assert_eq!(
+            strtol(b"-12x", 0),
+            Conv {
+                value: -12,
+                used: 3,
+                overflow: false
+            }
+        );
         assert_eq!(strtol(b"  +7", 0).value, 7);
         assert_eq!(strtol(b"x", 0).used, 0);
         // "0x" sem dígito hexadecimal: converte só o zero.
-        assert_eq!(strtol(b"0xg", 0), Conv { value: 0, used: 1, overflow: false });
+        assert_eq!(
+            strtol(b"0xg", 0),
+            Conv {
+                value: 0,
+                used: 1,
+                overflow: false
+            }
+        );
         assert!(strtol(b"99999999999999999999", 10).overflow);
     }
 

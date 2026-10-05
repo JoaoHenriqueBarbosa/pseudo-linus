@@ -50,7 +50,11 @@ struct Asker {
 
 impl Asker {
     fn new() -> Asker {
-        Asker { input: Vec::new(), pos: 0, at_eof_seen: false }
+        Asker {
+            input: Vec::new(),
+            pos: 0,
+            at_eof_seen: false,
+        }
     }
 
     fn fgets(&mut self) -> Option<Vec<u8>> {
@@ -106,7 +110,14 @@ fn caseless_eq(a: &[u8], b: &[u8]) -> bool {
 /// `tbaudrate`: a tabela do original só alcança até `134`, porque `134.5` repete o valor de `134` e
 /// o teste de "velocidades crescentes" para ali.
 fn tbaudrate(progname: &str, rate: &[u8]) -> i32 {
-    const SPEEDS: &[(&str, i32)] = &[("0", 0), ("50", 1), ("75", 2), ("110", 3), ("134", 4), ("134.5", 4)];
+    const SPEEDS: &[(&str, i32)] = &[
+        ("0", 0),
+        ("50", 1),
+        ("75", 2),
+        ("110", 3),
+        ("134", 4),
+        ("134.5", 4),
+    ];
     let rate = rate.strip_prefix(b"B").unwrap_or(rate);
     for (n, (name, speed)) in SPEEDS.iter().enumerate() {
         if n > 0 && *speed <= SPEEDS[n - 1].1 {
@@ -121,11 +132,20 @@ fn tbaudrate(progname: &str, rate: &[u8]) -> i32 {
 
 /// `badmopt:`.
 fn bad_mapping(progname: &str, arg: &[u8]) -> ! {
-    err(progname, &format!("illegal -m option format: {}", io::lossy(arg)))
+    err(
+        progname,
+        &format!("illegal -m option format: {}", io::lossy(arg)),
+    )
 }
 
 /// O fim de `add_mapping`: com `-a`/`-d`/`-p` o tipo de porta vem da opção.
-fn finish_mapping(progname: &str, arg: &[u8], port: Option<&str>, mut mapp: Map, maps: &mut Vec<Map>) {
+fn finish_mapping(
+    progname: &str,
+    arg: &[u8],
+    port: Option<&str>,
+    mut mapp: Map,
+    maps: &mut Vec<Map>,
+) {
     if let Some(port) = port {
         if mapp.porttype.is_some() {
             bad_mapping(progname, arg);
@@ -137,7 +157,12 @@ fn finish_mapping(progname: &str, arg: &[u8], port: Option<&str>, mut mapp: Map,
 
 /// `add_mapping`.
 fn add_mapping(progname: &str, maps: &mut Vec<Map>, port: Option<&str>, arg: &[u8]) {
-    let mut mapp = Map { porttype: Some(arg.to_vec()), ty: Vec::new(), conditional: 0, speed: 0 };
+    let mut mapp = Map {
+        porttype: Some(arg.to_vec()),
+        ty: Vec::new(),
+        conditional: 0,
+        speed: 0,
+    };
     let Some(first) = arg.iter().position(|b| b"><@=!:".contains(b)) else {
         mapp.ty = arg.to_vec();
         mapp.porttype = None;
@@ -219,7 +244,13 @@ fn mapped(maps: &[Map], ty: &[u8]) -> Vec<u8> {
 
 /// `get_termcap_entry`: o tipo vem do argumento, do `TERM` ou é `unknown`, e é pedido ao usuário
 /// quando falta ou não existe.
-fn get_termcap_entry(progname: &str, fd: Fd, userarg: Option<&[u8]>, maps: &[Map], asker: &mut Asker) -> (Term, Vec<u8>) {
+fn get_termcap_entry(
+    progname: &str,
+    fd: Fd,
+    userarg: Option<&[u8]>,
+    maps: &[Map],
+    asker: &mut Asker,
+) -> (Term, Vec<u8>) {
     let mut ttype: Vec<u8> = match userarg {
         Some(u) => u.to_vec(),
         None => match sys::getenv("TERM") {
@@ -235,16 +266,27 @@ fn get_termcap_entry(progname: &str, fd: Fd, userarg: Option<&[u8]>, maps: &[Map
         let _ = s.unsetenv(b"TERMCAP");
     }
     if ttype.first() == Some(&b'?') {
-        ttype = if ttype.len() > 1 { asker.ask(Some(&ttype[1..])) } else { asker.ask(None) };
+        ttype = if ttype.len() > 1 {
+            asker.ask(Some(&ttype[1..]))
+        } else {
+            asker.ask(None)
+        };
     }
     loop {
         match setupterm(Some(&ttype), fd, SetupOpts::default()) {
             Ok(t) => return (t, ttype),
             Err(f) => {
                 if f.code == 0 {
-                    io::eprint(format!("{progname}: unknown terminal type {}\n", io::lossy(&ttype)));
+                    io::eprint(format!(
+                        "{progname}: unknown terminal type {}\n",
+                        io::lossy(&ttype)
+                    ));
                 } else {
-                    io::eprint(format!("{progname}: can't initialize terminal type {} (error {})\n", io::lossy(&ttype), f.code));
+                    io::eprint(format!(
+                        "{progname}: can't initialize terminal type {} (error {})\n",
+                        io::lossy(&ttype),
+                        f.code
+                    ));
                 }
                 ttype = asker.ask(None);
             }
@@ -261,7 +303,11 @@ fn obsolete(argv: &mut [Vec<u8>]) {
             continue;
         }
         let next_is_arg = argv.get(i + 1).is_some_and(|n| n.first() != Some(&b'-'));
-        if parm.first() != Some(&b'-') || next_is_arg || !matches!(parm.get(1), Some(b'e' | b'i' | b'k')) || parm.len() != 2 {
+        if parm.first() != Some(&b'-')
+            || next_is_arg
+            || !matches!(parm.get(1), Some(b'e' | b'i' | b'k'))
+            || parm.len() != 2
+        {
             continue;
         }
         argv[i] = match parm[1] {
@@ -316,7 +362,8 @@ fn run(args: &[OsString]) -> i32 {
     let progname = io::lossy(rootname(&argv[0]));
     let is_reset = rootname(&argv[0]) == b"reset";
     obsolete(&mut argv);
-    let (mut noinit, mut noset, mut quiet, mut s_flag_big, mut s_flag, mut showterm) = (false, false, false, false, false, false);
+    let (mut noinit, mut noset, mut quiet, mut s_flag_big, mut s_flag, mut showterm) =
+        (false, false, false, false, false, false);
     let (mut opt_c, mut opt_w) = (false, false);
     let mut maps: Vec<Map> = Vec::new();
     // Os caracteres de controle são lidos e validados, mas não aplicados (não há termios aqui).
@@ -364,7 +411,13 @@ fn run(args: &[OsString]) -> i32 {
     let _ = quiet;
     let fd = save_tty_settings(&progname, true);
     let mut asker = Asker::new();
-    let (term, ttype) = get_termcap_entry(&progname, fd, operands.first().map(Vec::as_slice), &maps, &mut asker);
+    let (term, ttype) = get_termcap_entry(
+        &progname,
+        fd,
+        operands.first().map(Vec::as_slice),
+        &maps,
+        &mut asker,
+    );
     let mut r = Reset::new(&term, Fd::STDERR, is_reset, !is_reset, &progname);
     if !noset {
         if opt_w

@@ -175,7 +175,10 @@ const VARS: &[(&str, Call)] = &[
     ("_POSIX_THREADS", Call::Sys(Val::N(200809))),
     ("_POSIX_THREAD_ATTR_STACKADDR", Call::Sys(Val::N(200809))),
     ("_POSIX_THREAD_ATTR_STACKSIZE", Call::Sys(Val::N(200809))),
-    ("_POSIX_THREAD_PRIORITY_SCHEDULING", Call::Sys(Val::N(200809))),
+    (
+        "_POSIX_THREAD_PRIORITY_SCHEDULING",
+        Call::Sys(Val::N(200809)),
+    ),
     ("_POSIX_THREAD_PRIO_INHERIT", Call::Sys(Val::N(200809))),
     ("_POSIX_THREAD_PRIO_PROTECT", Call::Sys(Val::N(200809))),
     ("_POSIX_THREAD_ROBUST_PRIO_INHERIT", Call::Sys(Val::U)),
@@ -265,8 +268,14 @@ const VARS: &[(&str, Call)] = &[
     ("POSIX_V6_ILP32_OFF32_LDFLAGS", Call::Conf("")),
     ("POSIX_V6_ILP32_OFF32_LIBS", Call::Conf("")),
     ("POSIX_V6_ILP32_OFF32_LINTFLAGS", Call::Conf("")),
-    ("_POSIX_V6_WIDTH_RESTRICTED_ENVS", Call::Conf("POSIX_V6_LP64_OFF64")),
-    ("POSIX_V6_WIDTH_RESTRICTED_ENVS", Call::Conf("POSIX_V6_LP64_OFF64")),
+    (
+        "_POSIX_V6_WIDTH_RESTRICTED_ENVS",
+        Call::Conf("POSIX_V6_LP64_OFF64"),
+    ),
+    (
+        "POSIX_V6_WIDTH_RESTRICTED_ENVS",
+        Call::Conf("POSIX_V6_LP64_OFF64"),
+    ),
     ("_POSIX_V6_ILP32_OFFBIG", Call::Sys(Val::U)),
     ("POSIX_V6_ILP32_OFFBIG_CFLAGS", Call::Conf("")),
     ("POSIX_V6_ILP32_OFFBIG_LDFLAGS", Call::Conf("")),
@@ -287,8 +296,14 @@ const VARS: &[(&str, Call)] = &[
     ("POSIX_V7_ILP32_OFF32_LDFLAGS", Call::Conf("")),
     ("POSIX_V7_ILP32_OFF32_LIBS", Call::Conf("")),
     ("POSIX_V7_ILP32_OFF32_LINTFLAGS", Call::Conf("")),
-    ("_POSIX_V7_WIDTH_RESTRICTED_ENVS", Call::Conf("POSIX_V7_LP64_OFF64")),
-    ("POSIX_V7_WIDTH_RESTRICTED_ENVS", Call::Conf("POSIX_V7_LP64_OFF64")),
+    (
+        "_POSIX_V7_WIDTH_RESTRICTED_ENVS",
+        Call::Conf("POSIX_V7_LP64_OFF64"),
+    ),
+    (
+        "POSIX_V7_WIDTH_RESTRICTED_ENVS",
+        Call::Conf("POSIX_V7_LP64_OFF64"),
+    ),
     ("_POSIX_V7_ILP32_OFFBIG", Call::Sys(Val::U)),
     ("POSIX_V7_ILP32_OFFBIG_CFLAGS", Call::Conf("")),
     ("POSIX_V7_ILP32_OFFBIG_LDFLAGS", Call::Conf("")),
@@ -484,10 +499,11 @@ fn filesize_bits(fs_type: u64) -> i64 {
     match fs_type {
         F2FS_SUPER_MAGIC => 256,
         BTRFS_SUPER_MAGIC => 255,
-        EXT2_SUPER_MAGIC | UFS_MAGIC | UFS_CIGAM | REISERFS_SUPER_MAGIC | XFS_SUPER_MAGIC | SMB_SUPER_MAGIC
-        | NTFS_SUPER_MAGIC | UDF_SUPER_MAGIC | JFS_SUPER_MAGIC | VXFS_SUPER_MAGIC | CGROUP_SUPER_MAGIC
-        | LUSTRE_SUPER_MAGIC => 64,
-        MSDOS_SUPER_MAGIC | JFFS_SUPER_MAGIC | JFFS2_SUPER_MAGIC | NCP_SUPER_MAGIC | ROMFS_SUPER_MAGIC => 32,
+        EXT2_SUPER_MAGIC | UFS_MAGIC | UFS_CIGAM | REISERFS_SUPER_MAGIC | XFS_SUPER_MAGIC
+        | SMB_SUPER_MAGIC | NTFS_SUPER_MAGIC | UDF_SUPER_MAGIC | JFS_SUPER_MAGIC
+        | VXFS_SUPER_MAGIC | CGROUP_SUPER_MAGIC | LUSTRE_SUPER_MAGIC => 64,
+        MSDOS_SUPER_MAGIC | JFFS_SUPER_MAGIC | JFFS2_SUPER_MAGIC | NCP_SUPER_MAGIC
+        | ROMFS_SUPER_MAGIC => 32,
         _ => 32,
     }
 }
@@ -495,8 +511,9 @@ fn filesize_bits(fs_type: u64) -> i64 {
 /// `__statfs_symlinks`: 0 nos sistemas sem link simbólico.
 fn symlinks(fs_type: u64) -> i64 {
     match fs_type {
-        ADFS_SUPER_MAGIC | BFS_MAGIC | CRAMFS_MAGIC | DEVPTS_SUPER_MAGIC | EFS_SUPER_MAGIC | EFS_MAGIC
-        | MSDOS_SUPER_MAGIC | NTFS_SUPER_MAGIC | QNX4_SUPER_MAGIC | ROMFS_SUPER_MAGIC => 0,
+        ADFS_SUPER_MAGIC | BFS_MAGIC | CRAMFS_MAGIC | DEVPTS_SUPER_MAGIC | EFS_SUPER_MAGIC
+        | EFS_MAGIC | MSDOS_SUPER_MAGIC | NTFS_SUPER_MAGIC | QNX4_SUPER_MAGIC
+        | ROMFS_SUPER_MAGIC => 0,
         _ => 1,
     }
 }
@@ -531,20 +548,28 @@ fn pathconf(pc: Pc, path: &[u8]) -> PathRes {
                 Ok(s) => PathRes::Val(f(&s)),
                 Err(e) => PathRes::Err(e),
             };
-            let frsize = |s: &sysabi::StatFs| -> i64 { if s.frsize != 0 { s.frsize as i64 } else { s.bsize as i64 } };
+            let frsize = |s: &sysabi::StatFs| -> i64 {
+                if s.frsize != 0 {
+                    s.frsize as i64
+                } else {
+                    s.bsize as i64
+                }
+            };
             match pc {
                 Pc::MaxCanon | Pc::MaxInput => PathRes::Val(255),
                 Pc::NameMax => vfs(&|s| s.namelen as i64),
                 Pc::PathMax | Pc::PipeBuf => PathRes::Val(4096),
                 Pc::NoTrunc => PathRes::Val(1),
                 Pc::Vdisable => PathRes::Val(0),
-                Pc::AsyncIo => match kernel.fstatat(sysabi::Fd::CWD, path, sysabi::AtFlags::empty()) {
-                    Err(e) => PathRes::Err(e),
-                    Ok(st) => match st.file_type() {
-                        FileType::Regular | FileType::BlockDevice => PathRes::Val(1),
-                        _ => PathRes::Undef,
-                    },
-                },
+                Pc::AsyncIo => {
+                    match kernel.fstatat(sysabi::Fd::CWD, path, sysabi::AtFlags::empty()) {
+                        Err(e) => PathRes::Err(e),
+                        Ok(st) => match st.file_type() {
+                            FileType::Regular | FileType::BlockDevice => PathRes::Val(1),
+                            _ => PathRes::Undef,
+                        },
+                    }
+                }
                 Pc::RecMinXferSize => vfs(&|s| s.bsize as i64),
                 Pc::RecXferAlign | Pc::AllocSizeMin => vfs(&frsize),
                 Pc::SockMaxbuf
@@ -554,7 +579,9 @@ fn pathconf(pc: Pc, path: &[u8]) -> PathRes {
                 | Pc::RecMaxXferSize
                 | Pc::SymlinkMax => PathRes::Undef,
                 // Os quatro com tratamento próprio já saíram acima.
-                Pc::LinkMax | Pc::FileSizeBits | Pc::Symlinks2 | Pc::ChownRestricted => PathRes::Undef,
+                Pc::LinkMax | Pc::FileSizeBits | Pc::Symlinks2 | Pc::ChownRestricted => {
+                    PathRes::Undef
+                }
             }
         }
     }
@@ -562,12 +589,22 @@ fn pathconf(pc: Pc, path: &[u8]) -> PathRes {
 
 /// O valor `meminfo` em kB (`MemTotal`, `MemFree`), ou 0 sem o arquivo.
 fn meminfo_kib(key: &str) -> i64 {
-    let Ok(data) = sys::read_file(b"/proc/meminfo") else { return 0 };
+    let Ok(data) = sys::read_file(b"/proc/meminfo") else {
+        return 0;
+    };
     for line in data.split(|b| *b == b'\n') {
-        let Some(rest) = line.strip_prefix(key.as_bytes()) else { continue };
-        let Some(rest) = rest.strip_prefix(b":") else { continue };
+        let Some(rest) = line.strip_prefix(key.as_bytes()) else {
+            continue;
+        };
+        let Some(rest) = rest.strip_prefix(b":") else {
+            continue;
+        };
         let text = String::from_utf8_lossy(rest);
-        if let Some(n) = text.split_whitespace().next().and_then(|t| t.parse::<i64>().ok()) {
+        if let Some(n) = text
+            .split_whitespace()
+            .next()
+            .and_then(|t| t.parse::<i64>().ok())
+        {
             return n;
         }
     }
@@ -576,13 +613,17 @@ fn meminfo_kib(key: &str) -> i64 {
 
 /// Quantidade de CPUs de uma lista como `0-3,8` (o `read_sysfs_file` da glibc); 0 se ilegível.
 fn cpu_list_count(path: &[u8]) -> i64 {
-    let Ok(data) = sys::read_file(path) else { return 0 };
+    let Ok(data) = sys::read_file(path) else {
+        return 0;
+    };
     let text = String::from_utf8_lossy(&data);
     let line = text.lines().next().unwrap_or("");
     let mut total = 0i64;
     for part in line.split(',') {
         let mut it = part.splitn(2, '-');
-        let Some(a) = it.next().and_then(|t| t.trim().parse::<i64>().ok()) else { return 0 };
+        let Some(a) = it.next().and_then(|t| t.trim().parse::<i64>().ok()) else {
+            return 0;
+        };
         let b = match it.next() {
             Some(t) => match t.trim().parse::<i64>() {
                 Ok(b) => b,
@@ -637,10 +678,12 @@ fn sysconf(v: Val) -> i64 {
             Err(_) => 1024,
         },
         Val::NgroupsMax => {
-            let from_proc = sys::read_file(b"/proc/sys/kernel/ngroups_max").ok().and_then(|d| {
-                let t = String::from_utf8_lossy(&d).into_owned();
-                t.trim_end_matches('\n').parse::<i64>().ok()
-            });
+            let from_proc = sys::read_file(b"/proc/sys/kernel/ngroups_max")
+                .ok()
+                .and_then(|d| {
+                    let t = String::from_utf8_lossy(&d).into_owned();
+                    t.trim_end_matches('\n').parse::<i64>().ok()
+                });
             from_proc.unwrap_or(65536)
         }
         Val::SigqueueMax => match kernel.getrlimit(Resource::Sigpending) {
@@ -769,7 +812,12 @@ fn run(args: &[OsString]) -> i32 {
                         let _ = out.write_all(b"undefined\n");
                         0
                     }
-                    PathRes::Err(e) => fail(&argv0, 3, &format!("pathconf: {}", io::lossy(path)), Some(e)),
+                    PathRes::Err(e) => fail(
+                        &argv0,
+                        3,
+                        &format!("pathconf: {}", io::lossy(path)),
+                        Some(e),
+                    ),
                 }
             }
             Call::Sys(v) => {
@@ -797,7 +845,12 @@ fn run(args: &[OsString]) -> i32 {
             }
         };
     }
-    fail(&argv0, 2, &format!("Unrecognized variable `{}'", io::lossy(var)), None)
+    fail(
+        &argv0,
+        2,
+        &format!("Unrecognized variable `{}'", io::lossy(var)),
+        None,
+    )
 }
 
 #[cfg(test)]
@@ -822,13 +875,32 @@ mod tests {
         let k = kit();
         assert_eq!(k.run(&["getconf", "LONG_BIT"], b"").stdout_str(), "64\n");
         assert_eq!(k.run(&["getconf", "PAGESIZE"], b"").stdout_str(), "4096\n");
-        assert_eq!(k.run(&["getconf", "ULONG_MAX"], b"").stdout_str(), "18446744073709551615\n");
-        assert_eq!(k.run(&["getconf", "GNU_LIBC_VERSION"], b"").stdout_str(), "glibc 2.41\n");
-        assert_eq!(k.run(&["getconf", "_POSIX_V7_LP64_OFF64"], b"").stdout_str(), "1\n");
-        assert_eq!(k.run(&["getconf", "POSIX_V7_LP64_OFF64"], b"").stdout_str(), "1\n");
-        assert_eq!(k.run(&["getconf", "TZNAME_MAX"], b"").stdout_str(), "undefined\n");
+        assert_eq!(
+            k.run(&["getconf", "ULONG_MAX"], b"").stdout_str(),
+            "18446744073709551615\n"
+        );
+        assert_eq!(
+            k.run(&["getconf", "GNU_LIBC_VERSION"], b"").stdout_str(),
+            "glibc 2.41\n"
+        );
+        assert_eq!(
+            k.run(&["getconf", "_POSIX_V7_LP64_OFF64"], b"")
+                .stdout_str(),
+            "1\n"
+        );
+        assert_eq!(
+            k.run(&["getconf", "POSIX_V7_LP64_OFF64"], b"").stdout_str(),
+            "1\n"
+        );
+        assert_eq!(
+            k.run(&["getconf", "TZNAME_MAX"], b"").stdout_str(),
+            "undefined\n"
+        );
         let r = k.run(&["getconf", "FOO"], b"");
-        assert_eq!((r.stderr_str().as_str(), r.code()), ("getconf: Unrecognized variable `FOO'\n", 2));
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("getconf: Unrecognized variable `FOO'\n", 2)
+        );
         let r = k.run(&["getconf"], b"");
         assert_eq!(r.code(), 2);
         let r = k.run(&["getconf", "PATH_MAX"], b"");

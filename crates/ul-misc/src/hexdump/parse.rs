@@ -50,7 +50,10 @@ fn next_number(s: &[u8], i: usize) -> Option<(i32, usize)> {
     let mut v: i64 = 0;
     let mut overflow = false;
     while at(s, j).is_ascii_digit() {
-        match v.checked_mul(10).and_then(|x| x.checked_add(i64::from(at(s, j) - b'0'))) {
+        match v
+            .checked_mul(10)
+            .and_then(|x| x.checked_add(i64::from(at(s, j) - b'0')))
+        {
             Some(x) => v = x,
             None => overflow = true,
         }
@@ -69,7 +72,10 @@ fn badfmt(fmt: &[u8]) -> String {
 }
 
 fn badcnt(s: &[u8]) -> String {
-    format!("bad byte count for conversion character {}", String::from_utf8_lossy(s))
+    format!(
+        "bad byte count for conversion character {}",
+        String::from_utf8_lossy(s)
+    )
 }
 
 fn badconv(s: &[u8]) -> String {
@@ -112,16 +118,28 @@ impl Hexdump {
             Some(n) => &fmt[..n],
             None => fmt,
         };
-        let mut fs = Fs { fus: Vec::new(), bcnt: 0 };
+        let mut fs = Fs {
+            fus: Vec::new(),
+            bcnt: 0,
+        };
         let mut p = 0;
         loop {
             p = skip_space(fmt, p);
             if p >= fmt.len() {
                 break;
             }
-            let mut fu = Fu { reps: 1, bcnt: 0, setrep: false, ignore: false, fmt: Vec::new(), prs: Vec::new() };
+            let mut fu = Fu {
+                reps: 1,
+                bcnt: 0,
+                setrep: false,
+                ignore: false,
+                fmt: Vec::new(),
+                prs: Vec::new(),
+            };
             if fmt[p].is_ascii_digit() {
-                let Some((n, q)) = next_number(fmt, p) else { return Err(badfmt(fmt)) };
+                let Some((n, q)) = next_number(fmt, p) else {
+                    return Err(badfmt(fmt));
+                };
                 fu.reps = n;
                 p = q;
                 if !is_space(at(fmt, p)) && at(fmt, p) != b'/' {
@@ -135,7 +153,9 @@ impl Hexdump {
                 p = skip_space(fmt, p + 1);
             }
             if at(fmt, p).is_ascii_digit() {
-                let Some((n, q)) = next_number(fmt, p) else { return Err(badfmt(fmt)) };
+                let Some((n, q)) = next_number(fmt, p) else {
+                    return Err(badfmt(fmt));
+                };
                 fu.bcnt = n;
                 p = q;
                 if !is_space(at(fmt, p)) {
@@ -167,7 +187,8 @@ impl Hexdump {
         let mut cursize: i64 = 0;
         for fu in &fs.fus {
             if fu.bcnt != 0 {
-                cursize = cursize.saturating_add(i64::from(fu.bcnt).saturating_mul(i64::from(fu.reps)));
+                cursize =
+                    cursize.saturating_add(i64::from(fu.bcnt).saturating_mul(i64::from(fu.reps)));
                 continue;
             }
             let mut bcnt: i64 = 0;
@@ -291,7 +312,11 @@ impl Hexdump {
                     };
                 } else if c0 != 0 && b"diouxX".contains(&c0) || c0 == 0 {
                     // `first_letter` com NUL dá verdadeiro: cai como inteiro, como no C.
-                    kind = if c0 == 0 || b"di".contains(&c0) { Kind::Int } else { Kind::Uint };
+                    kind = if c0 == 0 || b"di".contains(&c0) {
+                        Kind::Int
+                    } else {
+                        Kind::Uint
+                    };
                     cs = vec![b'l', b'l', c0];
                     if c0 == 0 {
                         cs.pop();
@@ -311,7 +336,9 @@ impl Hexdump {
                 } else if c0 == b's' {
                     kind = Kind::Str;
                     bcnt = match sokay {
-                        Sokay::NotOkay => return Err("%s requires a precision or a byte count".to_string()),
+                        Sokay::NotOkay => {
+                            return Err("%s requires a precision or a byte count".to_string());
+                        }
                         Sokay::UseBcnt => fu_bcnt,
                         Sokay::UsePrec => prec,
                     };
@@ -383,7 +410,14 @@ impl Hexdump {
                 let mut pfmt = f[fmtp..p1].to_vec();
                 let cchar = pfmt.len();
                 pfmt.extend_from_slice(&cs);
-                prs.push(Pr { kind, bcnt, fmt: pfmt, cchar, colorlist, nospace: None });
+                prs.push(Pr {
+                    kind,
+                    bcnt,
+                    fmt: pfmt,
+                    cchar,
+                    colorlist,
+                    nospace: None,
+                });
                 fmtp = p2;
 
                 if kind != Kind::Address && fu_bcnt != 0 {
@@ -406,7 +440,9 @@ impl Hexdump {
         for (i, fu) in fs.fus.iter_mut().enumerate() {
             if i + 1 == n && fs_bcnt < blocksize as i64 && !fu.setrep && fu.bcnt != 0 {
                 let extra = (blocksize as i64 - fs_bcnt) / i64::from(fu.bcnt);
-                fu.reps = fu.reps.saturating_add(extra.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32);
+                fu.reps = fu
+                    .reps
+                    .saturating_add(extra.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32);
             }
             if fu.reps > 1
                 && let Some(pr) = fu.prs.last_mut()
@@ -481,7 +517,10 @@ fn strtoul(s: &[u8], i: usize, base: u32) -> (Option<i64>, usize) {
     let mut v: u64 = 0;
     let mut overflow = false;
     while let Some(d) = (at(s, j) as char).to_digit(base) {
-        match v.checked_mul(u64::from(base)).and_then(|x| x.checked_add(u64::from(d))) {
+        match v
+            .checked_mul(u64::from(base))
+            .and_then(|x| x.checked_add(u64::from(d)))
+        {
             Some(x) => v = x,
             None => overflow = true,
         }
@@ -509,8 +548,13 @@ fn color_fmt(cfmt: &[u8], bcnt: i32) -> Result<Option<Vec<Clr>>, String> {
             cur.invert = true;
             c += 1;
         }
-        let name_len = cfmt[c..].iter().position(|b| b":@,".contains(b)).unwrap_or(cfmt.len() - c);
-        let Some(seq) = color_sequence(&cfmt[c..c + name_len]) else { return Ok(None) };
+        let name_len = cfmt[c..]
+            .iter()
+            .position(|b| b":@,".contains(b))
+            .unwrap_or(cfmt.len() - c);
+        let Some(seq) = color_sequence(&cfmt[c..c + name_len]) else {
+            return Ok(None);
+        };
         cur.fmt = seq;
         c += name_len;
 
@@ -524,7 +568,9 @@ fn color_fmt(cfmt: &[u8], bcnt: i32) -> Result<Option<Vec<Clr>>, String> {
                 } else {
                     strtoul(cfmt, c, 8)
                 };
-                let Some(v) = v else { return Err(badfmt(whole)) };
+                let Some(v) = v else {
+                    return Err(badfmt(whole));
+                };
                 if end == c {
                     return Err(badfmt(whole));
                 }
@@ -532,7 +578,10 @@ fn color_fmt(cfmt: &[u8], bcnt: i32) -> Result<Option<Vec<Clr>>, String> {
                 c = end;
             } else {
                 cur.val = -1;
-                let fmt_end = cfmt[c..].iter().position(|&b| b == b',').map_or(cfmt.len(), |k| c + k);
+                let fmt_end = cfmt[c..]
+                    .iter()
+                    .position(|&b| b == b',')
+                    .map_or(cfmt.len(), |k| c + k);
                 let seg = &cfmt[c..fmt_end];
                 let s = match seg.iter().rposition(|&b| b == b'@') {
                     Some(k) => {
@@ -555,12 +604,16 @@ fn color_fmt(cfmt: &[u8], bcnt: i32) -> Result<Option<Vec<Clr>>, String> {
         cur.range = bcnt;
         if at(cfmt, c) == b'@' {
             let (v, end) = strtoul(cfmt, c + 1, 10);
-            let Some(v) = v else { return Err(badfmt(whole)) };
+            let Some(v) = v else {
+                return Err(badfmt(whole));
+            };
             cur.offt = v;
             c = end;
             if at(cfmt, c) == b'-' {
                 let (v, end) = strtoul(cfmt, c + 1, 10);
-                let Some(v) = v else { return Err(badfmt(whole)) };
+                let Some(v) = v else {
+                    return Err(badfmt(whole));
+                };
                 c = end;
                 cur.range = (v - cur.offt + 1) as i32;
                 if cur.range < 0 {
@@ -629,7 +682,10 @@ mod tests {
         assert!(l[1].invert && l[1].offt == 2 && l[1].range == 1);
         assert_eq!(l[2].offt, 3);
         assert!(color_fmt(b"nocolor", 1).unwrap().is_none());
-        assert_eq!(color_fmt(b"red:65", 1).unwrap_err(), "bad byte count for conversion character _L");
+        assert_eq!(
+            color_fmt(b"red:65", 1).unwrap_err(),
+            "bad byte count for conversion character _L"
+        );
         assert_eq!(color_fmt(b"red:0101", 1).unwrap().unwrap()[0].val, 0o101);
     }
 }

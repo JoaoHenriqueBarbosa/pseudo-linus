@@ -224,14 +224,15 @@ pub fn inet_aton(s: &[u8], exact: bool) -> Option<u32> {
         }
         // `strtoul(cp, &endp, 0)`: o `0x` só vale com um dígito hexa depois; estouro (`ERANGE`) ou
         // valor acima de 32 bits invalidam.
-        let base: u64 = if c == b'0' && (get(i + 1) | 0x20) == b'x' && get(i + 2).is_ascii_hexdigit() {
-            i += 2;
-            16
-        } else if c == b'0' {
-            8
-        } else {
-            10
-        };
+        let base: u64 =
+            if c == b'0' && (get(i + 1) | 0x20) == b'x' && get(i + 2).is_ascii_hexdigit() {
+                i += 2;
+                16
+            } else if c == b'0' {
+                8
+            } else {
+                10
+            };
         let mut ul: u64 = 0;
         let mut overflow = false;
         loop {
@@ -380,7 +381,10 @@ pub fn ether_aton(asc: &[u8]) -> Option<[u8; 6]> {
 
 /// `ether_ntoa`: `%x:%x:%x:%x:%x:%x`, sem zeros à esquerda.
 pub fn ether_ntoa(a: &[u8; 6]) -> String {
-    format!("{:x}:{:x}:{:x}:{:x}:{:x}:{:x}", a[0], a[1], a[2], a[3], a[4], a[5])
+    format!(
+        "{:x}:{:x}:{:x}:{:x}:{:x}:{:x}",
+        a[0], a[1], a[2], a[3], a[4], a[5]
+    )
 }
 
 #[cfg(test)]
@@ -393,13 +397,25 @@ mod tests {
         assert_eq!(pton4(b"08.1.1.1"), None);
         assert_eq!(pton4(b"1.2.3"), None);
         assert_eq!(pton6(b"::1").map(|a| ntop6(&a)), Some("::1".to_string()));
-        assert_eq!(pton6(b"::ffff:1.2.3.4").map(|a| ntop6(&a)), Some("::ffff:1.2.3.4".to_string()));
-        assert_eq!(pton6(b"fe00::0").map(|a| ntop6(&a)), Some("fe00::".to_string()));
-        assert_eq!(pton6(b"1:2:3:4:5:6:7:8").map(|a| ntop6(&a)), Some("1:2:3:4:5:6:7:8".to_string()));
+        assert_eq!(
+            pton6(b"::ffff:1.2.3.4").map(|a| ntop6(&a)),
+            Some("::ffff:1.2.3.4".to_string())
+        );
+        assert_eq!(
+            pton6(b"fe00::0").map(|a| ntop6(&a)),
+            Some("fe00::".to_string())
+        );
+        assert_eq!(
+            pton6(b"1:2:3:4:5:6:7:8").map(|a| ntop6(&a)),
+            Some("1:2:3:4:5:6:7:8".to_string())
+        );
         assert_eq!(pton6(b"::").map(|a| ntop6(&a)), Some("::".to_string()));
         assert_eq!(pton6(b"1::2::3"), None);
         assert_eq!(pton6(b":1"), None);
-        assert_eq!(ntop6(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4]), "::1.2.3.4");
+        assert_eq!(
+            ntop6(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4]),
+            "::1.2.3.4"
+        );
     }
 
     #[test]
@@ -418,8 +434,14 @@ mod tests {
 
     #[test]
     fn ethers() {
-        assert_eq!(ether_aton(b"0:11:22:33:44:55"), Some([0, 0x11, 0x22, 0x33, 0x44, 0x55]));
+        assert_eq!(
+            ether_aton(b"0:11:22:33:44:55"),
+            Some([0, 0x11, 0x22, 0x33, 0x44, 0x55])
+        );
         assert_eq!(ether_aton(b"00:11:22:33:44"), None);
-        assert_eq!(ether_ntoa(&[0, 0x11, 0x22, 0x33, 0x44, 0x55]), "0:11:22:33:44:55");
+        assert_eq!(
+            ether_ntoa(&[0, 0x11, 0x22, 0x33, 0x44, 0x55]),
+            "0:11:22:33:44:55"
+        );
     }
 }

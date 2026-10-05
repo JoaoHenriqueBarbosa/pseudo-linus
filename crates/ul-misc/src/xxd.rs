@@ -195,7 +195,12 @@ Options:\n\
 
 /// Valor de uma opção: colado (`-c8`) ou, na forma curta sozinha ou na longa (`-cols`, que pode
 /// vir com lixo depois, como `-cols3`), o próximo argumento. `None` quando falta o argumento.
-fn opt_value<'a>(pp: &'a [u8], long: Option<&[u8]>, argv: &'a [Vec<u8>], i: &mut usize) -> Option<&'a [u8]> {
+fn opt_value<'a>(
+    pp: &'a [u8],
+    long: Option<&[u8]>,
+    argv: &'a [Vec<u8>],
+    i: &mut usize,
+) -> Option<&'a [u8]> {
     if pp.len() == 2 || long.is_some_and(|l| pp.starts_with(l)) {
         *i += 1;
         argv.get(*i).map(Vec::as_slice)
@@ -216,7 +221,11 @@ fn parse(argv: &[Vec<u8>], pname: &str) -> Parsed {
             i += 1;
             break;
         }
-        let pp = if raw.starts_with(b"--") { &raw[1..] } else { raw };
+        let pp = if raw.starts_with(b"--") {
+            &raw[1..]
+        } else {
+            raw
+        };
         macro_rules! value {
             ($long:expr) => {
                 match opt_value(pp, $long, argv, &mut i) {
@@ -303,7 +312,11 @@ fn parse_seek(v: &[u8]) -> Seek {
         negative = true;
         s = r;
     }
-    Seek { relative, negative, value: strtol(s) }
+    Seek {
+        relative,
+        negative,
+        value: strtol(s),
+    }
 }
 
 fn c_isspace(b: u8) -> bool {
@@ -323,7 +336,9 @@ fn strto_parts(s: &[u8]) -> (u64, bool, bool) {
         i += 1;
     }
     let base: u64 = if s.get(i) == Some(&b'0') {
-        if matches!(s.get(i + 1), Some(b'x' | b'X')) && s.get(i + 2).is_some_and(u8::is_ascii_hexdigit) {
+        if matches!(s.get(i + 1), Some(b'x' | b'X'))
+            && s.get(i + 2).is_some_and(u8::is_ascii_hexdigit)
+        {
             i += 2;
             16
         } else {
@@ -357,7 +372,11 @@ fn strto_parts(s: &[u8]) -> (u64, bool, bool) {
 fn strtol(s: &[u8]) -> i64 {
     let (val, neg, overflow) = strto_parts(s);
     if neg {
-        if overflow || val > (i64::MAX as u64) + 1 { i64::MIN } else { (val as i64).wrapping_neg() }
+        if overflow || val > (i64::MAX as u64) + 1 {
+            i64::MIN
+        } else {
+            (val as i64).wrapping_neg()
+        }
     } else if overflow || val > i64::MAX as u64 {
         i64::MAX
     } else {
@@ -400,7 +419,13 @@ struct Input {
 impl Input {
     fn new(file: Option<File>) -> Input {
         let fd = file.as_ref().map_or(Fd::STDIN, File::fd);
-        Input { fd, _file: file, buf: vec![0; 4096], pos: 0, len: 0 }
+        Input {
+            fd,
+            _file: file,
+            buf: vec![0; 4096],
+            pos: 0,
+            len: 0,
+        }
     }
 
     fn getc(&mut self) -> Result<Option<u8>, Errno> {
@@ -505,7 +530,10 @@ fn execute(o: &Opts, pname: &str) -> Result<(), i32> {
         };
     }
     if o.little && group & (group - 1) != 0 {
-        complain(pname, "number of octets per group must be a power of 2 with -e.");
+        complain(
+            pname,
+            "number of octets per group must be a power of 2 with -e.",
+        );
         return Err(1);
     }
 
@@ -528,7 +556,10 @@ fn execute(o: &Opts, pname: &str) -> Result<(), i32> {
                 flags |= OFlags::TRUNC;
             }
             match File::open_with(name, flags, 0o666 as Mode) {
-                Ok(file) => Output::File { file, buf: Vec::new() },
+                Ok(file) => Output::File {
+                    file,
+                    buf: Vec::new(),
+                },
                 Err(e) => {
                     complain(pname, [name, b": ", e.message().as_bytes()].concat());
                     return Err(3);
@@ -609,7 +640,11 @@ fn c_name(name: &[u8], capitalize: bool) -> Vec<u8> {
     }
     for &b in name {
         if b.is_ascii_alphanumeric() {
-            out.push(if capitalize { b.to_ascii_uppercase() } else { b });
+            out.push(if capitalize {
+                b.to_ascii_uppercase()
+            } else {
+                b
+            });
         } else {
             out.push(b'_');
         }
@@ -617,7 +652,14 @@ fn c_name(name: &[u8], capitalize: bool) -> Vec<u8> {
     out
 }
 
-fn dump(o: &Opts, pname: &str, group: i32, infile: Option<&[u8]>, input: &mut Input, out: &mut Output) -> Result<(), i32> {
+fn dump(
+    o: &Opts,
+    pname: &str,
+    group: i32,
+    infile: Option<&[u8]>,
+    input: &mut Input,
+    out: &mut Output,
+) -> Result<(), i32> {
     let seekoff = match o.seek {
         Some(s) => do_seek(s, pname, input)?,
         None => 0,
@@ -638,8 +680,11 @@ fn dump(o: &Opts, pname: &str, group: i32, infile: Option<&[u8]>, input: &mut In
         let mut n: u64 = 0;
         let mut p = 0usize;
         while length.is_none_or(|l| n < l) {
-            let Some(e) = input.getc().map_err(read_failed)? else { break };
-            out.put(&[digits[usize::from(e >> 4)], digits[usize::from(e & 15)]]).map_err(wf)?;
+            let Some(e) = input.getc().map_err(read_failed)? else {
+                break;
+            };
+            out.put(&[digits[usize::from(e >> 4)], digits[usize::from(e & 15)]])
+                .map_err(wf)?;
             n += 1;
             p += 1;
             if cols > 0 && p == cols {
@@ -665,12 +710,15 @@ fn dump(o: &Opts, pname: &str, group: i32, infile: Option<&[u8]>, input: &mut In
             (None, None) => None,
         };
         if let Some(name) = &name {
-            out.put(&[b"unsigned char ".as_slice(), name, b"[] = {\n"].concat()).map_err(wf)?;
+            out.put(&[b"unsigned char ".as_slice(), name, b"[] = {\n"].concat())
+                .map_err(wf)?;
         }
         let digits = if o.upper { HEX_UPPER } else { HEX_LOWER };
         let mut n: u64 = 0;
         while length.is_none_or(|l| n < l) {
-            let Some(e) = input.getc().map_err(read_failed)? else { break };
+            let Some(e) = input.getc().map_err(read_failed)? else {
+                break;
+            };
             let mut item: Vec<u8> = Vec::with_capacity(16);
             if n == 0 {
                 item.extend_from_slice(b"  ");
@@ -697,7 +745,13 @@ fn dump(o: &Opts, pname: &str, group: i32, infile: Option<&[u8]>, input: &mut In
         }
         if let Some(name) = &name {
             let len_suffix: &[u8] = if o.capitalize { b"_LEN" } else { b"_len" };
-            let tail = [b"};\nunsigned int ".as_slice(), name, len_suffix, format!(" = {n};\n").as_bytes()].concat();
+            let tail = [
+                b"};\nunsigned int ".as_slice(),
+                name,
+                len_suffix,
+                format!(" = {n};\n").as_bytes(),
+            ]
+            .concat();
             out.put(&tail).map_err(wf)?;
         }
         return Ok(());
@@ -713,7 +767,12 @@ fn dump(o: &Opts, pname: &str, group: i32, infile: Option<&[u8]>, input: &mut In
         g = cols;
     }
     let color = want_color(o.color, out);
-    let layout = Layout { cols, group: g, bits: o.bits, little: o.little };
+    let layout = Layout {
+        cols,
+        group: g,
+        bits: o.bits,
+        little: o.little,
+    };
     let mut line = LineBuf::new(layout.capacity());
     let mut skip = AutoSkip::default();
     let digits = if o.upper { HEX_UPPER } else { HEX_LOWER };
@@ -723,10 +782,16 @@ fn dump(o: &Opts, pname: &str, group: i32, infile: Option<&[u8]>, input: &mut In
     let mut addrlen = 0usize;
     let mut text: Vec<u8> = Vec::new();
     while length.is_none_or(|l| n < l) {
-        let Some(e) = input.getc().map_err(read_failed)? else { break };
+        let Some(e) = input.getc().map_err(read_failed)? else {
+            break;
+        };
         if p == 0 {
             let addr = n.wrapping_add(seekoff).wrapping_add(o.offset);
-            let s = if o.decimal { format!("{:08}:", addr as i64) } else { format!("{addr:08x}:") };
+            let s = if o.decimal {
+                format!("{:08}:", addr as i64)
+            } else {
+                format!("{addr:08x}:")
+            };
             addrlen = s.len();
             line.reset(addrlen + layout.capacity());
             line.put_str(0, s.as_bytes());
@@ -736,7 +801,12 @@ fn dump(o: &Opts, pname: &str, group: i32, infile: Option<&[u8]>, input: &mut In
         let c = addrlen + 1 + (layout.grplen() * x) / g;
         if o.bits {
             for k in 0..8 {
-                line.put(c + k, if e & (0x80 >> k) != 0 { b'1' } else { b'0' }, 0, false);
+                line.put(
+                    c + k,
+                    if e & (0x80 >> k) != 0 { b'1' } else { b'0' },
+                    0,
+                    false,
+                );
             }
         } else {
             let col = if color { class } else { 0 };
@@ -747,14 +817,20 @@ fn dump(o: &Opts, pname: &str, group: i32, infile: Option<&[u8]>, input: &mut In
             nonzero += 1;
         }
         let a = layout.ascii_start(addrlen) + p;
-        line.put(a, display_char(e, o.ebcdic), if color { class } else { 0 }, true);
+        line.put(
+            a,
+            display_char(e, o.ebcdic),
+            if color { class } else { 0 },
+            true,
+        );
         n += 1;
         p += 1;
         if p == cols {
             text.clear();
             line.render(a + 1, &mut text);
             text.push(b'\n');
-            skip.line(out, &text, o.autoskip && nonzero == 0).map_err(wf)?;
+            skip.line(out, &text, o.autoskip && nonzero == 0)
+                .map_err(wf)?;
             nonzero = 0;
             p = 0;
         }
@@ -784,7 +860,11 @@ struct Layout {
 impl Layout {
     /// Largura de um grupo com o espaço que o separa do próximo.
     fn grplen(&self) -> usize {
-        if self.bits { 8 * self.group + 1 } else { 2 * self.group + 1 }
+        if self.bits {
+            8 * self.group + 1
+        } else {
+            2 * self.group + 1
+        }
     }
 
     /// Coluna onde começa o texto (ASCII ou EBCDIC) da linha.
@@ -877,7 +957,11 @@ struct LineBuf {
 
 impl LineBuf {
     fn new(cap: usize) -> LineBuf {
-        LineBuf { chars: vec![b' '; cap], colors: vec![0; cap], starts: vec![false; cap] }
+        LineBuf {
+            chars: vec![b' '; cap],
+            colors: vec![0; cap],
+            starts: vec![false; cap],
+        }
     }
 
     fn reset(&mut self, cap: usize) {
@@ -1117,7 +1201,8 @@ fn revert(o: &Opts, pname: &str, input: &mut Input, out: &mut Output) -> Result<
                 }
             }
         } else if n2 >= 0 && n1 >= 0 {
-            out.put(&[((n2 << 4) | n1) as u8]).map_err(|e| write_failed(pname, e))?;
+            out.put(&[((n2 << 4) | n1) as u8])
+                .map_err(|e| write_failed(pname, e))?;
             have += 1;
             want += 1;
             n1 = -1;
@@ -1156,7 +1241,10 @@ mod tests {
     // pseudo-linus-oracle:719900900623), em /work, com LC_ALL=C.UTF-8.
 
     fn kit(files: &[(&str, &[u8])]) -> TestKit {
-        let kit = TestKit::new().programs([Program::bin("xxd", main)]).dir("/work", 0o755).cwd("/work");
+        let kit = TestKit::new()
+            .programs([Program::bin("xxd", main)])
+            .dir("/work", 0o755)
+            .cwd("/work");
         for (name, data) in files {
             kit.put_file(format!("/work/{name}").as_bytes(), data, 0o644);
         }
@@ -1191,10 +1279,38 @@ mod tests {
 
     #[test]
     fn seek_spec() {
-        assert_eq!(parse_seek(b"+-2"), Seek { relative: true, negative: true, value: 2 });
-        assert_eq!(parse_seek(b"-+2"), Seek { relative: false, negative: true, value: 2 });
-        assert_eq!(parse_seek(b"++2"), Seek { relative: true, negative: false, value: 2 });
-        assert_eq!(parse_seek(b"-"), Seek { relative: false, negative: true, value: 0 });
+        assert_eq!(
+            parse_seek(b"+-2"),
+            Seek {
+                relative: true,
+                negative: true,
+                value: 2
+            }
+        );
+        assert_eq!(
+            parse_seek(b"-+2"),
+            Seek {
+                relative: false,
+                negative: true,
+                value: 2
+            }
+        );
+        assert_eq!(
+            parse_seek(b"++2"),
+            Seek {
+                relative: true,
+                negative: false,
+                value: 2
+            }
+        );
+        assert_eq!(
+            parse_seek(b"-"),
+            Seek {
+                relative: false,
+                negative: true,
+                value: 0
+            }
+        );
     }
 
     #[test]
@@ -1219,17 +1335,26 @@ mod tests {
 
     #[test]
     fn cols_and_groups() {
-        assert_eq!(out(&["-c", "5", "-l", "10", "txt"]), "00000000: 5468 6520 71  The q\n00000005: 7569 636b 20  uick \n");
+        assert_eq!(
+            out(&["-c", "5", "-l", "10", "txt"]),
+            "00000000: 5468 6520 71  The q\n00000005: 7569 636b 20  uick \n"
+        );
         assert_eq!(
             out(&["-c", "7", "-g", "3", "-l", "14", "txt"]),
             "00000000: 546865 207175 69  The qui\n00000007: 636b20 62726f 77  ck brow\n"
         );
-        assert_eq!(out(&["-g", "4", "-l", "16", "txt"]), "00000000: 54686520 71756963 6b206272 6f776e20  The quick brown \n");
+        assert_eq!(
+            out(&["-g", "4", "-l", "16", "txt"]),
+            "00000000: 54686520 71756963 6b206272 6f776e20  The quick brown \n"
+        );
         assert_eq!(
             out(&["-g", "5", "-c", "12", "-s", "48", "txt"]),
             "00000030: 3334353637 3839             3456789\n"
         );
-        assert_eq!(out(&["-c", "33", "-g", "0", "-s", "33", "txt"]), "00000021: 65206c617a7920646f672e0a30313233343536373839                        e lazy dog..0123456789\n");
+        assert_eq!(
+            out(&["-c", "33", "-g", "0", "-s", "33", "txt"]),
+            "00000021: 65206c617a7920646f672e0a30313233343536373839                        e lazy dog..0123456789\n"
+        );
     }
 
     #[test]
@@ -1238,22 +1363,39 @@ mod tests {
             out(&["-e", "-s", "32", "txt"]),
             "00000020: 6c206568 20797a61 2e676f64 3231300a  he lazy dog..012\n00000030: 36353433   393837                    3456789\n"
         );
-        assert_eq!(out(&["-e", "-c", "10", "-l", "10", "txt"]), "00000000: 20656854 63697571     206b  The quick \n");
-        assert_eq!(out(&["-e", "-g", "8", "-s", "48", "txt"]), "00000030:   39383736353433                   3456789\n");
+        assert_eq!(
+            out(&["-e", "-c", "10", "-l", "10", "txt"]),
+            "00000000: 20656854 63697571     206b  The quick \n"
+        );
+        assert_eq!(
+            out(&["-e", "-g", "8", "-s", "48", "txt"]),
+            "00000030:   39383736353433                   3456789\n"
+        );
     }
 
     #[test]
     fn little_endian_odd_group_overlaps() {
-        let r = xxd(&["-e", "-c", "6", "-g", "8", "-l", "6", "s"], b"", &[("s", b"abcdefghijklmnopqrstuvwxyz")]);
+        let r = xxd(
+            &["-e", "-c", "6", "-g", "8", "-l", "6", "s"],
+            b"",
+            &[("s", b"abcdefghijklmnopqrstuvwxyz")],
+        );
         assert_eq!(r.stdout_str(), "00000000: 6665    6261 646cdef\n");
-        let r = xxd(&["-e", "-c", "3", "-l", "3", "s"], b"", &[("s", b"abcdefghijklmnopqrstuvwxyz")]);
+        let r = xxd(
+            &["-e", "-c", "3", "-l", "3", "s"],
+            b"",
+            &[("s", b"abcdefghijklmnopqrstuvwxyz")],
+        );
         assert_eq!(r.stdout_str(), "00000000: 63  61 62bc\n");
     }
 
     #[test]
     fn little_endian_group_must_be_power_of_two() {
         let r = xxd(&["-e", "-g", "3", "txt"], b"", &[("txt", TXT)]);
-        assert_eq!(r.stderr_str(), "xxd: number of octets per group must be a power of 2 with -e.\n");
+        assert_eq!(
+            r.stderr_str(),
+            "xxd: number of octets per group must be a power of 2 with -e.\n"
+        );
         assert_eq!(r.code(), 1);
     }
 
@@ -1263,24 +1405,48 @@ mod tests {
             out(&["-b", "-l", "8", "txt"]),
             "00000000: 01010100 01101000 01100101 00100000 01110001 01110101  The qu\n00000006: 01101001 01100011                                      ic\n"
         );
-        assert_eq!(out(&["-b", "-g", "2", "-l", "3", "txt"]), "00000000: 0101010001101000 01100101                             The\n");
+        assert_eq!(
+            out(&["-b", "-g", "2", "-l", "3", "txt"]),
+            "00000000: 0101010001101000 01100101                             The\n"
+        );
     }
 
     #[test]
     fn upper_decimal_offset() {
-        assert_eq!(out(&["-u", "-l", "16", "txt"]), "00000000: 5468 6520 7175 6963 6B20 6272 6F77 6E20  The quick brown \n");
-        assert_eq!(out(&["-d", "-s", "3", "-l", "20", "txt"]), "00000003: 2071 7569 636b 2062 726f 776e 2066 6f78   quick brown fox\n00000019: 206a 756d                                 jum\n");
-        assert_eq!(out(&["-d", "-o", "-5", "-l", "2", "txt"]), "-0000005: 5468                                     Th\n");
-        assert_eq!(out(&["-o", "-1", "-l", "2", "txt"]), "ffffffffffffffff: 5468                                     Th\n");
-        assert_eq!(out(&["-u", "-o", "0xab", "-l", "2", "txt"]), "000000ab: 5468                                     Th\n");
+        assert_eq!(
+            out(&["-u", "-l", "16", "txt"]),
+            "00000000: 5468 6520 7175 6963 6B20 6272 6F77 6E20  The quick brown \n"
+        );
+        assert_eq!(
+            out(&["-d", "-s", "3", "-l", "20", "txt"]),
+            "00000003: 2071 7569 636b 2062 726f 776e 2066 6f78   quick brown fox\n00000019: 206a 756d                                 jum\n"
+        );
+        assert_eq!(
+            out(&["-d", "-o", "-5", "-l", "2", "txt"]),
+            "-0000005: 5468                                     Th\n"
+        );
+        assert_eq!(
+            out(&["-o", "-1", "-l", "2", "txt"]),
+            "ffffffffffffffff: 5468                                     Th\n"
+        );
+        assert_eq!(
+            out(&["-u", "-o", "0xab", "-l", "2", "txt"]),
+            "000000ab: 5468                                     Th\n"
+        );
     }
 
     #[test]
     fn ebcdic() {
-        assert_eq!(out(&["-E", "-l", "16", "txt"]), "00000000: 5468 6520 7175 6963 6b20 6272 6f77 6e20  ........,...?.>.\n");
+        assert_eq!(
+            out(&["-E", "-l", "16", "txt"]),
+            "00000000: 5468 6520 7175 6963 6b20 6272 6f77 6e20  ........,...?.>.\n"
+        );
         let all: Vec<u8> = (0..=255u8).collect();
         let r = xxd(&["-E", "-s", "64", "-l", "16", "a"], b"", &[("a", &all)]);
-        assert_eq!(r.stdout_str(), "00000040: 4041 4243 4445 4647 4849 4a4b 4c4d 4e4f   ...........<(+|\n");
+        assert_eq!(
+            r.stdout_str(),
+            "00000040: 4041 4243 4445 4647 4849 4a4b 4c4d 4e4f   ...........<(+|\n"
+        );
     }
 
     #[test]
@@ -1339,28 +1505,62 @@ mod tests {
 
     #[test]
     fn plain() {
-        assert_eq!(out(&["-p", "txt"]), "54686520717569636b2062726f776e20666f78206a756d7073206f766572\n20746865206c617a7920646f672e0a30313233343536373839\n");
-        assert_eq!(out(&["-p", "-c", "0", "-l", "20", "txt"]), "54686520717569636b2062726f776e20666f7820\n");
-        assert_eq!(out(&["-ps", "-u", "-c", "10", "-l", "15", "txt"]), "54686520717569636B20\n62726F776E\n");
-        assert_eq!(out(&["-p", "-s", "5", "-l", "7", "txt"]), "7569636b206272\n");
+        assert_eq!(
+            out(&["-p", "txt"]),
+            "54686520717569636b2062726f776e20666f78206a756d7073206f766572\n20746865206c617a7920646f672e0a30313233343536373839\n"
+        );
+        assert_eq!(
+            out(&["-p", "-c", "0", "-l", "20", "txt"]),
+            "54686520717569636b2062726f776e20666f7820\n"
+        );
+        assert_eq!(
+            out(&["-ps", "-u", "-c", "10", "-l", "15", "txt"]),
+            "54686520717569636B20\n62726F776E\n"
+        );
+        assert_eq!(
+            out(&["-p", "-s", "5", "-l", "7", "txt"]),
+            "7569636b206272\n"
+        );
     }
 
     #[test]
     fn include() {
         let r = xxd(&["-i", "small"], b"", &[("small", b"abc")]);
-        assert_eq!(r.stdout_str(), "unsigned char small[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int small_len = 3;\n");
-        let r = xxd(&["-i", "-C", "-c", "2", "-u", "my-file"], b"", &[("my-file", b"abc")]);
-        assert_eq!(r.stdout_str(), "unsigned char MY_FILE[] = {\n  0X61, 0X62,\n  0X63\n};\nunsigned int MY_FILE_LEN = 3;\n");
+        assert_eq!(
+            r.stdout_str(),
+            "unsigned char small[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int small_len = 3;\n"
+        );
+        let r = xxd(
+            &["-i", "-C", "-c", "2", "-u", "my-file"],
+            b"",
+            &[("my-file", b"abc")],
+        );
+        assert_eq!(
+            r.stdout_str(),
+            "unsigned char MY_FILE[] = {\n  0X61, 0X62,\n  0X63\n};\nunsigned int MY_FILE_LEN = 3;\n"
+        );
         let r = xxd(&["-i", "-b", "-n", "9x", "small"], b"", &[("small", b"ab")]);
-        assert_eq!(r.stdout_str(), "unsigned char __9x[] = {\n  0b01100001, 0b01100010\n};\nunsigned int __9x_len = 2;\n");
+        assert_eq!(
+            r.stdout_str(),
+            "unsigned char __9x[] = {\n  0b01100001, 0b01100010\n};\nunsigned int __9x_len = 2;\n"
+        );
         let r = xxd(&["-i", "e"], b"", &[("e", b"")]);
-        assert_eq!(r.stdout_str(), "unsigned char e[] = {\n};\nunsigned int e_len = 0;\n");
+        assert_eq!(
+            r.stdout_str(),
+            "unsigned char e[] = {\n};\nunsigned int e_len = 0;\n"
+        );
     }
 
     #[test]
     fn include_stdin() {
-        assert_eq!(xxd(&["-i"], b"abc", &[]).stdout_str(), "  0x61, 0x62, 0x63\n");
-        assert_eq!(xxd(&["-i", "-"], b"abc", &[]).stdout_str(), "  0x61, 0x62, 0x63\n");
+        assert_eq!(
+            xxd(&["-i"], b"abc", &[]).stdout_str(),
+            "  0x61, 0x62, 0x63\n"
+        );
+        assert_eq!(
+            xxd(&["-i", "-"], b"abc", &[]).stdout_str(),
+            "  0x61, 0x62, 0x63\n"
+        );
         assert_eq!(
             xxd(&["-i", "-n", "zz", "-C"], b"abc", &[]).stdout_str(),
             "unsigned char ZZ[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int ZZ_LEN = 3;\n"
@@ -1371,12 +1571,24 @@ mod tests {
     #[test]
     fn lazy_option_parser() {
         let f: &[(&str, &[u8])] = &[("small", b"abc")];
-        assert_eq!(xxd(&["-ab", "small"], b"", f).stdout_str(), "00000000: 6162 63                                  abc\n");
+        assert_eq!(
+            xxd(&["-ab", "small"], b"", f).stdout_str(),
+            "00000000: 6162 63                                  abc\n"
+        );
         assert_eq!(xxd(&["-pu", "small"], b"", f).stdout_str(), "616263\n");
-        assert_eq!(xxd(&["-up", "small"], b"", f).stdout_str(), "00000000: 6162 63                                  abc\n");
+        assert_eq!(
+            xxd(&["-up", "small"], b"", f).stdout_str(),
+            "00000000: 6162 63                                  abc\n"
+        );
         assert_eq!(xxd(&["--p", "small"], b"", f).stdout_str(), "616263\n");
-        assert_eq!(xxd(&["-cols3", "2", "small"], b"", f).stdout_str(), "00000000: 6162  ab\n00000002: 63    c\n");
-        assert_eq!(xxd(&["-capitalizex", "-i", "small"], b"", f).stdout_str(), "unsigned char SMALL[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int SMALL_LEN = 3;\n");
+        assert_eq!(
+            xxd(&["-cols3", "2", "small"], b"", f).stdout_str(),
+            "00000000: 6162  ab\n00000002: 63    c\n"
+        );
+        assert_eq!(
+            xxd(&["-capitalizex", "-i", "small"], b"", f).stdout_str(),
+            "unsigned char SMALL[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int SMALL_LEN = 3;\n"
+        );
         let r = xxd(&["-col", "3", "small"], b"", f);
         assert_eq!(r.stderr_str(), "xxd: 3: No such file or directory\n");
         assert_eq!(r.code(), 2);
@@ -1386,12 +1598,26 @@ mod tests {
     fn usage_and_version() {
         let r = xxd(&["-h"], b"", &[]);
         assert_eq!(r.code(), 1);
-        assert!(r.stderr_str().starts_with("Usage:\n       xxd [options] [infile [outfile]]\n    or\n"));
-        assert!(r.stderr_str().ends_with("    -v          show version: \"xxd 2024-12-07 by Juergen Weigert et al.\".\n"));
+        assert!(
+            r.stderr_str()
+                .starts_with("Usage:\n       xxd [options] [infile [outfile]]\n    or\n")
+        );
+        assert!(r.stderr_str().ends_with(
+            "    -v          show version: \"xxd 2024-12-07 by Juergen Weigert et al.\".\n"
+        ));
         assert_eq!(r.stdout, b"");
         let r = xxd(&["--version"], b"", &[]);
-        assert_eq!((r.code(), r.stderr_str().as_str()), (0, "xxd 2024-12-07 by Juergen Weigert et al.\n"));
-        for bad in [&["-x"][..], &["-R", "alw"], &["-c"], &["a", "b", "c"], &["---p"]] {
+        assert_eq!(
+            (r.code(), r.stderr_str().as_str()),
+            (0, "xxd 2024-12-07 by Juergen Weigert et al.\n")
+        );
+        for bad in [
+            &["-x"][..],
+            &["-R", "alw"],
+            &["-c"],
+            &["a", "b", "c"],
+            &["---p"],
+        ] {
             let r = xxd(bad, b"", &[]);
             assert_eq!(r.code(), 1, "{bad:?}");
             assert!(r.stderr_str().starts_with("Usage:"), "{bad:?}");
@@ -1401,28 +1627,58 @@ mod tests {
     #[test]
     fn mode_conflicts_and_columns() {
         let f: &[(&str, &[u8])] = &[("small", b"abc")];
-        for args in [&["-p", "-b"][..], &["-e", "-i"], &["-b", "-e"], &["-i", "-p"]] {
+        for args in [
+            &["-p", "-b"][..],
+            &["-e", "-i"],
+            &["-b", "-e"],
+            &["-i", "-p"],
+        ] {
             let r = xxd(args, b"", f);
-            assert_eq!(r.stderr_str(), "xxd: only one of -b, -e, -u, -p, -i can be used\n", "{args:?}");
+            assert_eq!(
+                r.stderr_str(),
+                "xxd: only one of -b, -e, -u, -p, -i can be used\n",
+                "{args:?}"
+            );
             assert_eq!(r.code(), 1);
         }
         assert_eq!(xxd(&["-i", "-b", "small"], b"", f).code(), 0);
         let r = xxd(&["-c", "257", "small"], b"", f);
-        assert_eq!((r.code(), r.stderr_str().as_str()), (1, "xxd: invalid number of columns (max. 256).\n"));
+        assert_eq!(
+            (r.code(), r.stderr_str().as_str()),
+            (1, "xxd: invalid number of columns (max. 256).\n")
+        );
         assert_eq!(xxd(&["-p", "-c", "300", "small"], b"", f).code(), 0);
-        assert_eq!(xxd(&["-c", "0", "small"], b"", f).stdout_str(), "00000000: 6162 63                                  abc\n");
+        assert_eq!(
+            xxd(&["-c", "0", "small"], b"", f).stdout_str(),
+            "00000000: 6162 63                                  abc\n"
+        );
     }
 
     #[test]
     fn seeks() {
-        assert_eq!(out(&["-s", "-2", "txt"]), "00000035: 3839                                     89\n");
+        assert_eq!(
+            out(&["-s", "-2", "txt"]),
+            "00000035: 3839                                     89\n"
+        );
         assert_eq!(out(&["-s", "100", "txt"]), "");
         let r = xxd(&["-s", "-100", "txt"], b"", &[("txt", TXT)]);
-        assert_eq!((r.code(), r.stderr_str().as_str()), (4, "xxd: Sorry, cannot seek.\n"));
-        assert_eq!(xxd(&["-s", "+3"], b"hello world\n", &[]).stdout_str(), "00000003: 6c6f 2077 6f72 6c64 0a                   lo world.\n");
-        assert_eq!(xxd(&["-s", "+3", "-o", "100"], b"hello world\n", &[]).stdout_str(), "00000067: 6c6f 2077 6f72 6c64 0a                   lo world.\n");
+        assert_eq!(
+            (r.code(), r.stderr_str().as_str()),
+            (4, "xxd: Sorry, cannot seek.\n")
+        );
+        assert_eq!(
+            xxd(&["-s", "+3"], b"hello world\n", &[]).stdout_str(),
+            "00000003: 6c6f 2077 6f72 6c64 0a                   lo world.\n"
+        );
+        assert_eq!(
+            xxd(&["-s", "+3", "-o", "100"], b"hello world\n", &[]).stdout_str(),
+            "00000067: 6c6f 2077 6f72 6c64 0a                   lo world.\n"
+        );
         let r = xxd(&["-s", "13"], b"hello world\n", &[]);
-        assert_eq!((r.code(), r.stderr_str().as_str()), (4, "xxd: Sorry, cannot seek.\n"));
+        assert_eq!(
+            (r.code(), r.stderr_str().as_str()),
+            (4, "xxd: Sorry, cannot seek.\n")
+        );
         let r = xxd(&["-s", "-1"], b"hello world\n", &[]);
         assert_eq!(r.code(), 4);
         assert_eq!(xxd(&["-s", "12"], b"hello world\n", &[]).code(), 0);
@@ -1431,13 +1687,22 @@ mod tests {
     #[test]
     fn file_errors() {
         let r = xxd(&["nofile"], b"", &[]);
-        assert_eq!((r.code(), r.stderr_str().as_str()), (2, "xxd: nofile: No such file or directory\n"));
+        assert_eq!(
+            (r.code(), r.stderr_str().as_str()),
+            (2, "xxd: nofile: No such file or directory\n")
+        );
         let k = kit(&[("in1", b"6162")]);
         k.put_dir(b"/work/dd", 0o755);
         let r = k.run(&["xxd", "in1", "dd"], b"");
-        assert_eq!((r.code(), r.stderr_str().as_str()), (3, "xxd: dd: Is a directory\n"));
+        assert_eq!(
+            (r.code(), r.stderr_str().as_str()),
+            (3, "xxd: dd: Is a directory\n")
+        );
         let r = k.run(&["xxd", "dd"], b"");
-        assert_eq!((r.code(), r.stderr_str().as_str()), (2, "xxd: Is a directory\n"));
+        assert_eq!(
+            (r.code(), r.stderr_str().as_str()),
+            (2, "xxd: Is a directory\n")
+        );
         let r = k.run(&["xxd", "-r", "dd"], b"");
         assert_eq!((r.code(), r.stderr_str().as_str()), (0, ""));
         let r = k.run(&["xxd", "-i", "dd"], b"");
@@ -1447,10 +1712,19 @@ mod tests {
 
     #[test]
     fn outfile_truncates_in_dump_mode() {
-        let k = kit(&[("in1", b"ab"), ("f3", b"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")]);
+        let k = kit(&[
+            ("in1", b"ab"),
+            (
+                "f3",
+                b"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            ),
+        ]);
         let r = k.run(&["xxd", "in1", "f3"], b"");
         assert_eq!(r.code(), 0);
-        assert_eq!(k.read_file("/work/f3").unwrap(), b"00000000: 6162                                     ab\n");
+        assert_eq!(
+            k.read_file("/work/f3").unwrap(),
+            b"00000000: 6162                                     ab\n"
+        );
     }
 
     #[test]
@@ -1476,9 +1750,18 @@ mod tests {
         let line = b"0: 4142434445464748494a4b4c4d4e4f505152\n";
         assert_eq!(xxd(&["-r"], line, &[]).stdout, b"ABCDEFGHIJKLMNOP");
         assert_eq!(xxd(&["-r", "-c", "4"], line, &[]).stdout, b"ABCD");
-        assert_eq!(xxd(&["-r", "-c", "20"], line, &[]).stdout, b"ABCDEFGHIJKLMNOPQR");
-        assert_eq!(xxd(&["-r", "-s", "4"], b"00000000: 4142\n", &[]).stdout, b"\0\0\0\0AB");
-        assert_eq!(xxd(&["-r", "-s", "-4"], b"00000010: 4142\n", &[]).stdout, b"\0\0\0\0\0\0\0\0\0\0\0\0AB");
+        assert_eq!(
+            xxd(&["-r", "-c", "20"], line, &[]).stdout,
+            b"ABCDEFGHIJKLMNOPQR"
+        );
+        assert_eq!(
+            xxd(&["-r", "-s", "4"], b"00000000: 4142\n", &[]).stdout,
+            b"\0\0\0\0AB"
+        );
+        assert_eq!(
+            xxd(&["-r", "-s", "-4"], b"00000010: 4142\n", &[]).stdout,
+            b"\0\0\0\0\0\0\0\0\0\0\0\0AB"
+        );
         assert_eq!(xxd(&["-r"], b"10000000000000000: 41\n", &[]).stdout, b"A");
     }
 
@@ -1486,7 +1769,10 @@ mod tests {
     fn revert_backwards_on_pipe() {
         let r = xxd(&["-r"], b"3: 41\n1: 42\n", &[]);
         assert_eq!(r.stdout, b"\0\0\0A");
-        assert_eq!((r.code(), r.stderr_str().as_str()), (5, "xxd: Sorry, cannot seek backwards.\n"));
+        assert_eq!(
+            (r.code(), r.stderr_str().as_str()),
+            (5, "xxd: Sorry, cannot seek backwards.\n")
+        );
         let r = xxd(&["-r", "-s", "-4"], b"0: 4142\n", &[]);
         assert_eq!(r.code(), 5);
     }
@@ -1507,19 +1793,31 @@ mod tests {
 
     #[test]
     fn revert_plain() {
-        assert_eq!(xxd(&["-r", "-p"], b"61 62\n63\t64 65\n", &[]).stdout, b"abcde");
+        assert_eq!(
+            xxd(&["-r", "-p"], b"61 62\n63\t64 65\n", &[]).stdout,
+            b"abcde"
+        );
         assert_eq!(xxd(&["-r", "-p"], b"616\n2\n", &[]).stdout, b"ab");
         assert_eq!(xxd(&["-r", "-p"], b"61zz62\n", &[]).stdout, b"a");
         assert_eq!(xxd(&["-r", "-p"], b"61zz\nz62\n", &[]).stdout, b"ab");
         assert_eq!(xxd(&["-r", "-p"], b"zz61\n", &[]).stdout, b"a");
         assert_eq!(xxd(&["-r", "-p"], b"6\x0b2\n", &[]).stdout, b"");
-        assert_eq!(xxd(&["-r", "-p", "-s", "3"], b"6162\n", &[]).stdout, b"\0\0\0ab");
+        assert_eq!(
+            xxd(&["-r", "-p", "-s", "3"], b"6162\n", &[]).stdout,
+            b"\0\0\0ab"
+        );
     }
 
     #[test]
     fn revert_bits() {
-        assert_eq!(xxd(&["-r", "-b"], b"00000000: 01100001 01100010  ab\n", &[]).stdout, b"ab");
-        assert_eq!(xxd(&["-r", "-b"], b"0: 0110x0001 01 10 00 10\n", &[]).stdout, b"ab");
+        assert_eq!(
+            xxd(&["-r", "-b"], b"00000000: 01100001 01100010  ab\n", &[]).stdout,
+            b"ab"
+        );
+        assert_eq!(
+            xxd(&["-r", "-b"], b"0: 0110x0001 01 10 00 10\n", &[]).stdout,
+            b"ab"
+        );
         assert_eq!(xxd(&["-r", "-b"], b"0: 41 01100001\n", &[]).stdout, [0xb0]);
         assert_eq!(xxd(&["-r", "-b"], b"0: 0100000\n0:1\n", &[]).stdout, b"");
         let long = b"0: 0110000101100010011000110110010001100101011001100110011101101000\n";
@@ -1530,7 +1828,10 @@ mod tests {
     #[test]
     fn revert_rejects_little_endian_and_include() {
         let r = xxd(&["-r", "-e", "small"], b"", &[("small", b"abc")]);
-        assert_eq!((r.code(), r.stderr_str().as_str()), (255, "xxd: Sorry, cannot revert this type of hexdump\n"));
+        assert_eq!(
+            (r.code(), r.stderr_str().as_str()),
+            (255, "xxd: Sorry, cannot revert this type of hexdump\n")
+        );
         let r = xxd(&["-r", "-i", "nofile"], b"", &[]);
         assert_eq!(r.code(), 2);
     }
@@ -1579,31 +1880,76 @@ mod tests {
             a.extend_from_slice(args);
             tok(&xxd(&a, input, &[]).stdout_str())
         };
-        assert_eq!(c(&["-c", "8"], b"ABC"), "00000000:_<G41><G42>_<G43>_______<R_><R_><R_><R_><R_>__<GA><GB><GC>\n");
-        assert_eq!(c(&["-c", "8", "-g", "3"], b"ABCD"), "00000000:_<G41><G42><G43>_<G44>_____<R_><R_><R_><R_>__<GA><GB><GC><GD>\n");
-        assert_eq!(c(&["-c", "8", "-e"], b"A"), "00000000:_<R_><R_><R_>___<G41>______<R_><R_><R_><R_>_<GA>\n");
-        assert_eq!(c(&["-c", "8", "-e"], b"ABCDE"), "00000000:_<G44><G43><G42><G41>_<R_><R_><R_>___<G45>__<GA><GB><GC><GD><GE>\n");
-        assert_eq!(c(&["-c", "4", "-e", "-g", "2"], b"ABC"), "00000000:_<G42><G41>_<R_>_<G43>__<GA><GB><GC>\n");
-        assert_eq!(c(&["-b", "-c", "4"], b"AB"), "00000000:_01000001_01000010____________________<GA><GB>\n");
-        assert_eq!(c(&["-c", "6"], b"\t\n\r\0\xff "), "00000000:_<Y09><Y0a>_<Y0d><W00>_<Bff><G20>__<Y.><Y.><Y.><W.><B.><G_>\n");
-        assert_eq!(c(&["-E"], b"ABC"), "00000000:_<R41><R42>_<R43>___________________<R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_>__<R.><R.><R.>\n");
+        assert_eq!(
+            c(&["-c", "8"], b"ABC"),
+            "00000000:_<G41><G42>_<G43>_______<R_><R_><R_><R_><R_>__<GA><GB><GC>\n"
+        );
+        assert_eq!(
+            c(&["-c", "8", "-g", "3"], b"ABCD"),
+            "00000000:_<G41><G42><G43>_<G44>_____<R_><R_><R_><R_>__<GA><GB><GC><GD>\n"
+        );
+        assert_eq!(
+            c(&["-c", "8", "-e"], b"A"),
+            "00000000:_<R_><R_><R_>___<G41>______<R_><R_><R_><R_>_<GA>\n"
+        );
+        assert_eq!(
+            c(&["-c", "8", "-e"], b"ABCDE"),
+            "00000000:_<G44><G43><G42><G41>_<R_><R_><R_>___<G45>__<GA><GB><GC><GD><GE>\n"
+        );
+        assert_eq!(
+            c(&["-c", "4", "-e", "-g", "2"], b"ABC"),
+            "00000000:_<G42><G41>_<R_>_<G43>__<GA><GB><GC>\n"
+        );
+        assert_eq!(
+            c(&["-b", "-c", "4"], b"AB"),
+            "00000000:_01000001_01000010____________________<GA><GB>\n"
+        );
+        assert_eq!(
+            c(&["-c", "6"], b"\t\n\r\0\xff "),
+            "00000000:_<Y09><Y0a>_<Y0d><W00>_<Bff><G20>__<Y.><Y.><Y.><W.><B.><G_>\n"
+        );
+        assert_eq!(
+            c(&["-E"], b"ABC"),
+            "00000000:_<R41><R42>_<R43>___________________<R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_>__<R.><R.><R.>\n"
+        );
         assert_eq!(c(&["-p"], b"ABC"), "414243\n");
-        assert_eq!(c(&["-d", "-o", "5"], b"ABC"), "00000005:_<G41><G42>_<G43>___________________<R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_>__<GA><GB><GC>\n");
+        assert_eq!(
+            c(&["-d", "-o", "5"], b"ABC"),
+            "00000005:_<G41><G42>_<G43>___________________<R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_><R_>__<GA><GB><GC>\n"
+        );
     }
 
     #[test]
     fn color_never_and_default() {
-        assert_eq!(xxd(&["-R", "never"], b"AB", &[]).stdout_str(), "00000000: 4142                                     AB\n");
-        assert_eq!(xxd(&["-R", "auto"], b"AB", &[]).stdout_str(), "00000000: 4142                                     AB\n");
-        assert_eq!(xxd(&[], b"AB", &[]).stdout_str(), "00000000: 4142                                     AB\n");
+        assert_eq!(
+            xxd(&["-R", "never"], b"AB", &[]).stdout_str(),
+            "00000000: 4142                                     AB\n"
+        );
+        assert_eq!(
+            xxd(&["-R", "auto"], b"AB", &[]).stdout_str(),
+            "00000000: 4142                                     AB\n"
+        );
+        assert_eq!(
+            xxd(&[], b"AB", &[]).stdout_str(),
+            "00000000: 4142                                     AB\n"
+        );
     }
 
     #[test]
     fn repeated_options_last_wins() {
         let f: &[(&str, &[u8])] = &[("small", b"abc")];
-        assert_eq!(xxd(&["-c", "3", "-c", "4", "small"], b"", f).stdout_str(), "00000000: 6162 63    abc\n");
-        assert_eq!(xxd(&["-n", "a", "-n", "b", "-i", "small"], b"", f).stdout_str(), "unsigned char b[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int b_len = 3;\n");
-        assert_eq!(xxd(&["-s", "1", "-l", "1", "-o", "1", "-d", "small"], b"", f).stdout_str(), "00000002: 62                                       b\n");
+        assert_eq!(
+            xxd(&["-c", "3", "-c", "4", "small"], b"", f).stdout_str(),
+            "00000000: 6162 63    abc\n"
+        );
+        assert_eq!(
+            xxd(&["-n", "a", "-n", "b", "-i", "small"], b"", f).stdout_str(),
+            "unsigned char b[] = {\n  0x61, 0x62, 0x63\n};\nunsigned int b_len = 3;\n"
+        );
+        assert_eq!(
+            xxd(&["-s", "1", "-l", "1", "-o", "1", "-d", "small"], b"", f).stdout_str(),
+            "00000002: 62                                       b\n"
+        );
     }
 
     #[test]
@@ -1615,7 +1961,13 @@ mod tests {
 
     #[test]
     fn stdin_and_dash() {
-        assert_eq!(xxd(&["-"], b"hi", &[]).stdout_str(), "00000000: 6869                                     hi\n");
-        assert_eq!(xxd(&["--", "-"], b"hi", &[]).stdout_str(), "00000000: 6869                                     hi\n");
+        assert_eq!(
+            xxd(&["-"], b"hi", &[]).stdout_str(),
+            "00000000: 6869                                     hi\n"
+        );
+        assert_eq!(
+            xxd(&["--", "-"], b"hi", &[]).stdout_str(),
+            "00000000: 6869                                     hi\n"
+        );
     }
 }

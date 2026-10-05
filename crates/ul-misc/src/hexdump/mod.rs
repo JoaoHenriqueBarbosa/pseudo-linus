@@ -106,7 +106,14 @@ struct Pr {
 
 impl Pr {
     fn text(fmt: Vec<u8>) -> Pr {
-        Pr { kind: Kind::Text, bcnt: 0, fmt, cchar: 0, colorlist: None, nospace: None }
+        Pr {
+            kind: Kind::Text,
+            bcnt: 0,
+            fmt,
+            cchar: 0,
+            colorlist: None,
+            nospace: None,
+        }
     }
 }
 
@@ -294,7 +301,10 @@ fn run(args: &[OsString]) -> i32 {
         let opt = match r {
             Ok(o) => o,
             Err(e) => {
-                io::eprint(format!("{}\nTry '{prog} --help' for more information.\n", e.message(&argv0)));
+                io::eprint(format!(
+                    "{}\nTry '{prog} --help' for more information.\n",
+                    e.message(&argv0)
+                ));
                 return 1;
             }
         };
@@ -336,7 +346,10 @@ fn run(args: &[OsString]) -> i32 {
                         "never" => ColorMode::Never,
                         "always" => ColorMode::Always,
                         _ => {
-                            return fatal_ret(&prog, &format!("unsupported color mode: '{}'", io::lossy(p)));
+                            return fatal_ret(
+                                &prog,
+                                &format!("unsupported color mode: '{}'", io::lossy(p)),
+                            );
                         }
                     };
                 }
@@ -401,7 +414,8 @@ fn run(args: &[OsString]) -> i32 {
         let r = if prog == "hd" {
             add_canonical(&mut hex)
         } else {
-            hex.add_fmt(HEX_OFFT).and_then(|_| hex.add_fmt(b"\"%07.7_ax \" 8/2 \"%04x \" \"\\n\""))
+            hex.add_fmt(HEX_OFFT)
+                .and_then(|_| hex.add_fmt(b"\"%07.7_ax \" 8/2 \"%04x \" \"\\n\""))
         };
         if let Err(msg) = r {
             return fatal_ret(&prog, &msg);
@@ -445,9 +459,7 @@ fn add_canonical(hex: &mut Hexdump) -> Result<(), String> {
 /// que tenha cores, e o padrão também respeita `NO_COLOR`.
 fn colors_wanted(mode: ColorMode) -> bool {
     let tty = io::stdout_is_tty();
-    let term_ready = || {
-        sysabi::sys::getenv("TERM").is_some_and(|t| !t.is_empty() && t != b"dumb")
-    };
+    let term_ready = || sysabi::sys::getenv("TERM").is_some_and(|t| !t.is_empty() && t != b"dumb");
     match mode {
         ColorMode::Always => true,
         ColorMode::Never => false,

@@ -63,7 +63,10 @@ fn run(args: &[OsString]) -> i32 {
                 _ => return 1,
             },
             Err(e) => {
-                io::eprint(format!("{}\nTry 'rev --help' for more information.\n", e.message("rev")));
+                io::eprint(format!(
+                    "{}\nTry 'rev --help' for more information.\n",
+                    e.message("rev")
+                ));
                 return 1;
             }
         }
@@ -81,7 +84,11 @@ fn run(args: &[OsString]) -> i32 {
                 Ok(fd) => fd,
                 Err(e) => {
                     let _ = out.flush();
-                    io::eprint(format!("rev: cannot open {}: {}\n", io::lossy(f), e.message()));
+                    io::eprint(format!(
+                        "rev: cannot open {}: {}\n",
+                        io::lossy(f),
+                        e.message()
+                    ));
                     status = 1;
                     continue;
                 }

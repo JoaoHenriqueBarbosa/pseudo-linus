@@ -34,7 +34,10 @@
 
 use std::cmp::Ordering;
 
-use super::cutil::{at, cstr, is_alnum, is_alpha, is_digit, is_print, is_space, is_upper, strtod, strtof, strtol, strtoul, strtoull};
+use super::cutil::{
+    at, cstr, is_alnum, is_alpha, is_digit, is_print, is_space, is_upper, strtod, strtof, strtol,
+    strtoul, strtoull,
+};
 use super::encoding::looks_utf8;
 use super::regex;
 
@@ -126,7 +129,8 @@ pub const PSTRING_2_LE: u32 = 1 << 9;
 pub const PSTRING_4_BE: u32 = 1 << 10;
 pub const PSTRING_4_LE: u32 = 1 << 11;
 pub const REGEX_LINE_COUNT: u32 = 1 << 11;
-pub const PSTRING_LEN: u32 = PSTRING_1_LE | PSTRING_2_LE | PSTRING_2_BE | PSTRING_4_LE | PSTRING_4_BE;
+pub const PSTRING_LEN: u32 =
+    PSTRING_1_LE | PSTRING_2_LE | PSTRING_2_BE | PSTRING_4_LE | PSTRING_4_BE;
 pub const PSTRING_LENGTH_INCLUDES_ITSELF: u32 = 1 << 12;
 pub const STRING_TRIM: u32 = 1 << 13;
 pub const STRING_FULL_WORD: u32 = 1 << 14;
@@ -239,15 +243,26 @@ const TYPE_TBL: &[(&str, u8, u8)] = &[
 ];
 
 /// `special_tbl`: tipos que não aceitam o prefixo `u`.
-const SPECIAL_TBL: &[(&str, u8)] = &[("der", FILE_DER), ("name", FILE_NAME), ("use", FILE_USE), ("octal", FILE_OCTAL)];
+const SPECIAL_TBL: &[(&str, u8)] = &[
+    ("der", FILE_DER),
+    ("name", FILE_NAME),
+    ("use", FILE_USE),
+    ("octal", FILE_OCTAL),
+];
 
 /// Nome de um tipo (`file_names`; a tabela do C está na ordem dos códigos).
 pub fn type_name(t: u8) -> &'static str {
-    TYPE_TBL.get(usize::from(t)).map(|e| e.0).unwrap_or("invalid")
+    TYPE_TBL
+        .get(usize::from(t))
+        .map(|e| e.0)
+        .unwrap_or("invalid")
 }
 
 fn type_format(t: u8) -> u8 {
-    TYPE_TBL.get(usize::from(t)).map(|e| e.2).unwrap_or(FILE_FMT_NONE)
+    TYPE_TBL
+        .get(usize::from(t))
+        .map(|e| e.2)
+        .unwrap_or(FILE_FMT_NONE)
 }
 
 /// `&s[i..]` sem pânico depois do fim (a cadeia C acaba no NUL implícito).
@@ -409,11 +424,19 @@ impl Magic {
     pub fn from_image(b: &[u8], swap: bool) -> Magic {
         let u16_at = |o: usize| {
             let v = [b[o], b[o + 1]];
-            if swap { u16::from_be_bytes(v) } else { u16::from_le_bytes(v) }
+            if swap {
+                u16::from_be_bytes(v)
+            } else {
+                u16::from_le_bytes(v)
+            }
         };
         let u32_at = |o: usize| {
             let v = [b[o], b[o + 1], b[o + 2], b[o + 3]];
-            if swap { u32::from_be_bytes(v) } else { u32::from_le_bytes(v) }
+            if swap {
+                u32::from_be_bytes(v)
+            } else {
+                u32::from_le_bytes(v)
+            }
         };
         let mut m = Magic::zeroed();
         m.flag = u16_at(0);
@@ -459,7 +482,16 @@ impl Magic {
 pub fn is_string_type(t: u8) -> bool {
     matches!(
         t,
-        FILE_STRING | FILE_PSTRING | FILE_BESTRING16 | FILE_LESTRING16 | FILE_REGEX | FILE_SEARCH | FILE_INDIRECT | FILE_NAME | FILE_USE | FILE_OCTAL
+        FILE_STRING
+            | FILE_PSTRING
+            | FILE_BESTRING16
+            | FILE_LESTRING16
+            | FILE_REGEX
+            | FILE_SEARCH
+            | FILE_INDIRECT
+            | FILE_NAME
+            | FILE_USE
+            | FILE_OCTAL
     )
 }
 
@@ -467,14 +499,16 @@ pub fn is_string_type(t: u8) -> bool {
 pub fn typesize(t: u8) -> u64 {
     match t {
         FILE_BYTE => 1,
-        FILE_SHORT | FILE_LESHORT | FILE_BESHORT | FILE_MSDOSDATE | FILE_BEMSDOSDATE | FILE_LEMSDOSDATE | FILE_MSDOSTIME
-        | FILE_BEMSDOSTIME | FILE_LEMSDOSTIME => 2,
+        FILE_SHORT | FILE_LESHORT | FILE_BESHORT | FILE_MSDOSDATE | FILE_BEMSDOSDATE
+        | FILE_LEMSDOSDATE | FILE_MSDOSTIME | FILE_BEMSDOSTIME | FILE_LEMSDOSTIME => 2,
         FILE_LONG | FILE_LELONG | FILE_BELONG | FILE_MELONG => 4,
-        FILE_DATE | FILE_LEDATE | FILE_BEDATE | FILE_MEDATE | FILE_LDATE | FILE_LELDATE | FILE_BELDATE | FILE_MELDATE | FILE_FLOAT
-        | FILE_BEFLOAT | FILE_LEFLOAT | FILE_BEID3 | FILE_LEID3 => 4,
-        FILE_QUAD | FILE_BEQUAD | FILE_LEQUAD | FILE_QDATE | FILE_LEQDATE | FILE_BEQDATE | FILE_QLDATE | FILE_LEQLDATE | FILE_BEQLDATE
-        | FILE_QWDATE | FILE_LEQWDATE | FILE_BEQWDATE | FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE | FILE_OFFSET | FILE_BEVARINT
-        | FILE_LEVARINT => 8,
+        FILE_DATE | FILE_LEDATE | FILE_BEDATE | FILE_MEDATE | FILE_LDATE | FILE_LELDATE
+        | FILE_BELDATE | FILE_MELDATE | FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT | FILE_BEID3
+        | FILE_LEID3 => 4,
+        FILE_QUAD | FILE_BEQUAD | FILE_LEQUAD | FILE_QDATE | FILE_LEQDATE | FILE_BEQDATE
+        | FILE_QLDATE | FILE_LEQLDATE | FILE_BEQLDATE | FILE_QWDATE | FILE_LEQWDATE
+        | FILE_BEQWDATE | FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE | FILE_OFFSET
+        | FILE_BEVARINT | FILE_LEVARINT => 8,
         FILE_GUID => 16,
         _ => FILE_BADSIZE,
     }
@@ -488,14 +522,19 @@ pub fn signextend(m: &Magic, v: u64) -> Option<u64> {
     Some(match m.typ {
         FILE_BYTE => v as i8 as i64 as u64,
         FILE_SHORT | FILE_BESHORT | FILE_LESHORT => v as i16 as i64 as u64,
-        FILE_DATE | FILE_BEDATE | FILE_LEDATE | FILE_MEDATE | FILE_LDATE | FILE_BELDATE | FILE_LELDATE | FILE_MELDATE | FILE_LONG
-        | FILE_BELONG | FILE_LELONG | FILE_MELONG | FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT | FILE_MSDOSDATE | FILE_BEMSDOSDATE
-        | FILE_LEMSDOSDATE | FILE_MSDOSTIME | FILE_BEMSDOSTIME | FILE_LEMSDOSTIME => v as i32 as i64 as u64,
-        FILE_QUAD | FILE_BEQUAD | FILE_LEQUAD | FILE_QDATE | FILE_QLDATE | FILE_QWDATE | FILE_BEQDATE | FILE_BEQLDATE | FILE_BEQWDATE
-        | FILE_LEQDATE | FILE_LEQLDATE | FILE_LEQWDATE | FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE | FILE_OFFSET | FILE_BEVARINT
-        | FILE_LEVARINT => v,
-        FILE_STRING | FILE_PSTRING | FILE_BESTRING16 | FILE_LESTRING16 | FILE_REGEX | FILE_SEARCH | FILE_DEFAULT | FILE_INDIRECT
-        | FILE_NAME | FILE_USE | FILE_CLEAR | FILE_DER | FILE_GUID | FILE_OCTAL => v,
+        FILE_DATE | FILE_BEDATE | FILE_LEDATE | FILE_MEDATE | FILE_LDATE | FILE_BELDATE
+        | FILE_LELDATE | FILE_MELDATE | FILE_LONG | FILE_BELONG | FILE_LELONG | FILE_MELONG
+        | FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT | FILE_MSDOSDATE | FILE_BEMSDOSDATE
+        | FILE_LEMSDOSDATE | FILE_MSDOSTIME | FILE_BEMSDOSTIME | FILE_LEMSDOSTIME => {
+            v as i32 as i64 as u64
+        }
+        FILE_QUAD | FILE_BEQUAD | FILE_LEQUAD | FILE_QDATE | FILE_QLDATE | FILE_QWDATE
+        | FILE_BEQDATE | FILE_BEQLDATE | FILE_BEQWDATE | FILE_LEQDATE | FILE_LEQLDATE
+        | FILE_LEQWDATE | FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE | FILE_OFFSET
+        | FILE_BEVARINT | FILE_LEVARINT => v,
+        FILE_STRING | FILE_PSTRING | FILE_BESTRING16 | FILE_LESTRING16 | FILE_REGEX
+        | FILE_SEARCH | FILE_DEFAULT | FILE_INDIRECT | FILE_NAME | FILE_USE | FILE_CLEAR
+        | FILE_DER | FILE_GUID | FILE_OCTAL => v,
         _ => return None,
     })
 }
@@ -542,12 +581,15 @@ fn magic_strength_1(m: &Magic) -> isize {
     let vallen = usize::from(m.vallen);
     match m.typ {
         FILE_DEFAULT => return 0,
-        FILE_BYTE | FILE_SHORT | FILE_LESHORT | FILE_BESHORT | FILE_LONG | FILE_LELONG | FILE_BELONG | FILE_MELONG | FILE_DATE
-        | FILE_LEDATE | FILE_BEDATE | FILE_MEDATE | FILE_LDATE | FILE_LELDATE | FILE_BELDATE | FILE_MELDATE | FILE_FLOAT | FILE_BEFLOAT
-        | FILE_LEFLOAT | FILE_QUAD | FILE_BEQUAD | FILE_LEQUAD | FILE_QDATE | FILE_LEQDATE | FILE_BEQDATE | FILE_QLDATE
-        | FILE_LEQLDATE | FILE_BEQLDATE | FILE_QWDATE | FILE_LEQWDATE | FILE_BEQWDATE | FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE
-        | FILE_BEVARINT | FILE_LEVARINT | FILE_GUID | FILE_BEID3 | FILE_LEID3 | FILE_OFFSET | FILE_MSDOSDATE | FILE_BEMSDOSDATE
-        | FILE_LEMSDOSDATE | FILE_MSDOSTIME | FILE_BEMSDOSTIME | FILE_LEMSDOSTIME => {
+        FILE_BYTE | FILE_SHORT | FILE_LESHORT | FILE_BESHORT | FILE_LONG | FILE_LELONG
+        | FILE_BELONG | FILE_MELONG | FILE_DATE | FILE_LEDATE | FILE_BEDATE | FILE_MEDATE
+        | FILE_LDATE | FILE_LELDATE | FILE_BELDATE | FILE_MELDATE | FILE_FLOAT | FILE_BEFLOAT
+        | FILE_LEFLOAT | FILE_QUAD | FILE_BEQUAD | FILE_LEQUAD | FILE_QDATE | FILE_LEQDATE
+        | FILE_BEQDATE | FILE_QLDATE | FILE_LEQLDATE | FILE_BEQLDATE | FILE_QWDATE
+        | FILE_LEQWDATE | FILE_BEQWDATE | FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE
+        | FILE_BEVARINT | FILE_LEVARINT | FILE_GUID | FILE_BEID3 | FILE_LEID3 | FILE_OFFSET
+        | FILE_MSDOSDATE | FILE_BEMSDOSDATE | FILE_LEMSDOSDATE | FILE_MSDOSTIME
+        | FILE_BEMSDOSTIME | FILE_LEMSDOSTIME => {
             val += (typesize(m.typ) as usize * MULT) as isize;
         }
         FILE_PSTRING | FILE_STRING | FILE_OCTAL => val += (vallen * MULT) as isize,
@@ -611,7 +653,8 @@ pub struct MagicMap {
 impl MagicMap {
     /// O `.mgc` deste mapa (cabeçalho + conjuntos), como o `apprentice_compile` grava.
     pub fn compile(&self) -> Vec<u8> {
-        let mut out = Vec::with_capacity(MAGIC_SIZE * (1 + self.sets[0].len() + self.sets[1].len()));
+        let mut out =
+            Vec::with_capacity(MAGIC_SIZE * (1 + self.sets[0].len() + self.sets[1].len()));
         let mut hdr = [0u8; MAGIC_SIZE];
         hdr[0..4].copy_from_slice(&MAGICNO.to_le_bytes());
         hdr[4..8].copy_from_slice(&VERSIONNO.to_le_bytes());
@@ -633,7 +676,10 @@ impl MagicMap {
             return Err(format!("Too few magic entries {entries} in `{dbname}'"));
         }
         if entries * MAGIC_SIZE != data.len() {
-            return Err(format!("Size of `{dbname}' {} is not a multiple of {MAGIC_SIZE}", data.len()));
+            return Err(format!(
+                "Size of `{dbname}' {} is not a multiple of {MAGIC_SIZE}",
+                data.len()
+            ));
         }
         let w = |o: usize| u32::from_le_bytes([data[o], data[o + 1], data[o + 2], data[o + 3]]);
         let swap = if w(0) == MAGICNO {
@@ -653,7 +699,10 @@ impl MagicMap {
         let n0 = fix(w(8)) as usize;
         let n1 = fix(w(12)) as usize;
         if entries != n0 + n1 + 1 {
-            return Err(format!("Inconsistent entries in `{dbname}' {entries} != {}", n0 + n1 + 1));
+            return Err(format!(
+                "Inconsistent entries in `{dbname}' {entries} != {}",
+                n0 + n1 + 1
+            ));
         }
         let mut map = MagicMap::default();
         for i in 0..n0 + n1 {
@@ -733,13 +782,21 @@ impl Loader {
     fn magwarn(&mut self, msg: String) {
         self.magwarn += 1;
         if self.magwarn == self.magwarn_max {
-            self.report.warnings.push(format!("{}, {}: Maximum number of warnings ({}) exceeded.", self.file, self.line, self.magwarn_max));
-            self.report.warnings.push(format!("{}, {}: Additional warnings are suppressed.", self.file, self.line));
+            self.report.warnings.push(format!(
+                "{}, {}: Maximum number of warnings ({}) exceeded.",
+                self.file, self.line, self.magwarn_max
+            ));
+            self.report.warnings.push(format!(
+                "{}, {}: Additional warnings are suppressed.",
+                self.file, self.line
+            ));
         }
         if self.magwarn >= self.magwarn_max {
             return;
         }
-        self.report.warnings.push(format!("{}, {}: Warning: {msg}", self.file, self.line));
+        self.report
+            .warnings
+            .push(format!("{}, {}: Warning: {msg}", self.file, self.line));
     }
 
     /// `file_error()` (só o primeiro conta).
@@ -783,7 +840,9 @@ impl Loader {
                 0 | b'#' => {}
                 b'!' if at(&line, 1) == b':' => {
                     const BANG: [&str; 4] = ["mime", "apple", "ext", "strength"];
-                    let found = BANG.iter().position(|b| len - 2 > b.len() && line[2..].starts_with(b.as_bytes()));
+                    let found = BANG
+                        .iter()
+                        .position(|b| len - 2 > b.len() && line[2..].starts_with(b.as_bytes()));
                     match found {
                         None => {
                             let shown = String::from_utf8_lossy(cstr(&line)).into_owned();
@@ -934,7 +993,11 @@ impl Loader {
             return false;
         }
         if at(s, *l) == b'-' || at(s, *l) == b'+' {
-            m.flag |= if at(s, *l) == b'-' { OFFNEGATIVE } else { OFFPOSITIVE };
+            m.flag |= if at(s, *l) == b'-' {
+                OFFNEGATIVE
+            } else {
+                OFFPOSITIVE
+            };
             *l += 1;
         }
         let c = strtol(tail(s, *l), 0);
@@ -973,7 +1036,10 @@ impl Loader {
                     b'Q' => FILE_BEQUAD,
                     other => {
                         if self.check {
-                            self.magwarn(format!("indirect offset type `{}' invalid", other as char));
+                            self.magwarn(format!(
+                                "indirect offset type `{}' invalid",
+                                other as char
+                            ));
                         }
                         return false;
                     }
@@ -1082,7 +1148,9 @@ impl Loader {
         if m.typ == FILE_NAME && cont_level != 0 {
             if self.check {
                 let rest = String::from_utf8_lossy(cstr(tail(s, *l))).into_owned();
-                self.magwarn(format!("`name{rest}' entries can only be declared at top level"));
+                self.magwarn(format!(
+                    "`name{rest}' entries can only be declared at top level"
+                ));
             }
             return false;
         }
@@ -1097,17 +1165,28 @@ impl Loader {
             *l += 1;
         }
         m.set_str_range(0);
-        m.set_str_flags(if m.typ == FILE_PSTRING { PSTRING_1_LE } else { 0 });
+        m.set_str_flags(if m.typ == FILE_PSTRING {
+            PSTRING_1_LE
+        } else {
+            0
+        });
         if let Some(op) = get_op(at(s, *l)) {
             if is_string_type(m.typ) {
                 if op != FILE_OPDIVIDE {
                     if self.check {
                         // O C imprime `*t` (lixo do strtol anterior); o efeito que importa é o erro.
-                        self.magwarn(format!("invalid string/indirect op: `{}'", at(s, *l) as char));
+                        self.magwarn(format!(
+                            "invalid string/indirect op: `{}'",
+                            at(s, *l) as char
+                        ));
                     }
                     return false;
                 }
-                let r = if m.typ == FILE_INDIRECT { self.parse_indirect_modifier(m, s, l) } else { self.parse_string_modifier(m, s, l) };
+                let r = if m.typ == FILE_INDIRECT {
+                    self.parse_indirect_modifier(m, s, l)
+                } else {
+                    self.parse_string_modifier(m, s, l)
+                };
                 if !r {
                     return false;
                 }
@@ -1142,7 +1221,9 @@ impl Loader {
             }
             _ => {
                 m.reln = b'=';
-                if at(s, *l) == b'x' && ((at(s, *l + 1) < 0x80 && is_space(at(s, *l + 1))) || at(s, *l + 1) == 0) {
+                if at(s, *l) == b'x'
+                    && ((at(s, *l + 1) < 0x80 && is_space(at(s, *l + 1))) || at(s, *l + 1) == 0)
+                {
                     m.reln = b'x';
                     *l += 1;
                 }
@@ -1367,7 +1448,9 @@ impl Loader {
             return true;
         }
         let f = m.str_flags();
-        if (m.typ != FILE_REGEX || f & REGEX_LINE_COUNT == 0) && (m.typ != FILE_PSTRING && f & PSTRING_LEN != 0) {
+        if (m.typ != FILE_REGEX || f & REGEX_LINE_COUNT == 0)
+            && (m.typ != FILE_PSTRING && f & PSTRING_LEN != 0)
+        {
             self.magwarn("'/BHhLl' modifiers are only allowed for pascal strings\n".into());
             return false;
         }
@@ -1386,7 +1469,9 @@ impl Loader {
             }
             FILE_SEARCH => {
                 if m.str_range() == 0 {
-                    self.magwarn(format!("missing range; defaulting to {STRING_DEFAULT_RANGE}\n"));
+                    self.magwarn(format!(
+                        "missing range; defaulting to {STRING_DEFAULT_RANGE}\n"
+                    ));
                     m.set_str_range(STRING_DEFAULT_RANGE);
                     return false;
                 }
@@ -1412,8 +1497,8 @@ impl Loader {
     /// `getvalue()`.
     fn getvalue(&mut self, m: &mut Magic, s: &[u8], l: &mut usize) -> bool {
         match m.typ {
-            FILE_BESTRING16 | FILE_LESTRING16 | FILE_STRING | FILE_PSTRING | FILE_REGEX | FILE_SEARCH | FILE_NAME | FILE_USE | FILE_DER
-            | FILE_OCTAL => {
+            FILE_BESTRING16 | FILE_LESTRING16 | FILE_STRING | FILE_PSTRING | FILE_REGEX
+            | FILE_SEARCH | FILE_NAME | FILE_USE | FILE_DER | FILE_OCTAL => {
                 let warn = self.compile;
                 match self.getstr(m, s, *l, warn) {
                     Some(end) => *l = end,
@@ -1455,7 +1540,9 @@ impl Loader {
                 true
             }
             FILE_GUID => {
-                let Some(g) = parse_guid(tail(s, *l)) else { return false };
+                let Some(g) = parse_guid(tail(s, *l)) else {
+                    return false;
+                };
                 m.value[..16].copy_from_slice(&g);
                 *l += 36;
                 true
@@ -1479,7 +1566,10 @@ impl Loader {
                 }
                 let ts = typesize(m.typ);
                 if ts == FILE_BADSIZE {
-                    self.magwarn(format!("Expected numeric type got `{}'", TYPE_TBL.get(usize::from(m.typ)).map(|t| t.0).unwrap_or("?")));
+                    self.magwarn(format!(
+                        "Expected numeric type got `{}'",
+                        TYPE_TBL.get(usize::from(m.typ)).map(|t| t.0).unwrap_or("?")
+                    ));
                     return false;
                 }
                 let mut q = *l;
@@ -1532,7 +1622,10 @@ impl Loader {
             Err(e) => {
                 if self.check {
                     let shown = printable(pat);
-                    self.magerror(format!("regex error {} for `{shown}', ({})", e.code, e.message));
+                    self.magerror(format!(
+                        "regex error {} for `{shown}', ({})",
+                        e.code, e.message
+                    ));
                 }
                 false
             }
@@ -1641,7 +1734,9 @@ impl Loader {
                 other => {
                     if warn {
                         if is_print(other) {
-                            if !b"<>&^=!".contains(&other) && (m.typ != FILE_REGEX || !b"[]().*?^$|{}".contains(&other)) {
+                            if !b"<>&^=!".contains(&other)
+                                && (m.typ != FILE_REGEX || !b"[]().*?^$|{}".contains(&other))
+                            {
                                 self.magwarn(format!("no need to escape `{}'", other as char));
                             }
                         } else {
@@ -1668,7 +1763,10 @@ impl Loader {
             match pstring_length_size(m) {
                 Some(l) => m.vallen = m.vallen.wrapping_add(l as u8),
                 None => {
-                    self.error(format!("corrupt magic file (bad pascal string length {})", m.str_flags() & PSTRING_LEN));
+                    self.error(format!(
+                        "corrupt magic file (bad pascal string length {})",
+                        m.str_flags() & PSTRING_LEN
+                    ));
                     return None;
                 }
             }
@@ -1681,12 +1779,16 @@ impl Loader {
         let m = &mut entry.mp[0];
         if m.factor_op != FILE_FACTOR_OP_NONE {
             let (op, f) = (m.factor_op as char, m.factor);
-            self.magwarn(format!("Current entry already has a strength type: {op} {f}"));
+            self.magwarn(format!(
+                "Current entry already has a strength type: {op} {f}"
+            ));
             return false;
         }
         if m.typ == FILE_NAME {
             let v = printable(m.value_str());
-            self.magwarn(format!("{v}: Strength setting is not supported in \"name\" magic entries"));
+            self.magwarn(format!(
+                "{v}: Strength setting is not supported in \"name\" magic entries"
+            ));
             return false;
         }
         let m = &mut entry.mp[0];
@@ -1724,7 +1826,11 @@ impl Loader {
         m.factor = factor as u8;
         if m.factor == 0 && m.factor_op == b'/' {
             let (op, f) = (m.factor_op as char, m.factor);
-            return fail(self, m, format!("Cannot have factor op `{op}' and factor {f}"));
+            return fail(
+                self,
+                m,
+                format!("Cannot have factor op `{op}' and factor {f}"),
+            );
         }
         true
     }
@@ -1745,13 +1851,18 @@ impl Loader {
         let mut l = 0usize;
         if current[0] != 0 {
             let shown_len = if nt { cstr(&current).len() } else { cap };
-            let old = String::from_utf8_lossy(&current[..shown_len.min(current.len())]).into_owned();
+            let old =
+                String::from_utf8_lossy(&current[..shown_len.min(current.len())]).into_owned();
             let new = String::from_utf8_lossy(cstr(line)).into_owned();
-            self.magwarn(format!("Current entry already has a {name} type `{old}', new type `{new}'"));
+            self.magwarn(format!(
+                "Current entry already has a {name} type `{old}', new type `{new}'"
+            ));
             return false;
         }
         if entry.mp[last].desc[0] == 0 {
-            self.magwarn(format!("Current entry does not yet have a description for adding a {name} type"));
+            self.magwarn(format!(
+                "Current entry does not yet have a description for adding a {name} type"
+            ));
             return false;
         }
         eatab!(line, l);
@@ -1776,7 +1887,10 @@ impl Loader {
             let c = at(line, l);
             if !is_space(c) && !good(c) {
                 let shown = String::from_utf8_lossy(cstr(line)).into_owned();
-                self.magwarn(format!("{name} type `{shown}' has bad char '{}'", c as char));
+                self.magwarn(format!(
+                    "{name} type `{shown}' has bad char '{}'",
+                    c as char
+                ));
             }
             if nt && i < cap {
                 buf[i] = 0;
@@ -1805,7 +1919,9 @@ impl Loader {
         let tname = type_name(m.typ);
         let shown = String::from_utf8_lossy(d).into_owned();
         if fmt == FILE_FMT_NONE {
-            self.magwarn(format!("No format string for `{shown}' with description `{tname}'"));
+            self.magwarn(format!(
+                "No format string for `{shown}' with description `{tname}'"
+            ));
             return false;
         }
         let rest = &d[p + 1..];
@@ -1818,7 +1934,9 @@ impl Loader {
                 true
             }
             Err(estr) => {
-                self.magwarn(format!("Printf format is {estr} for type `{tname}' in description `{shown}'"));
+                self.magwarn(format!(
+                    "Printf format is {estr} for type `{tname}' in description `{shown}'"
+                ));
                 false
             }
         }
@@ -1913,7 +2031,13 @@ fn get_cond(s: &[u8], l: &mut usize) -> u8 {
 
 /// `eatsize()`: sufixo de tamanho de um número (`10UL`).
 fn eatsize(s: &[u8], l: &mut usize) {
-    let lower = |c: u8| if is_upper(c) { c.to_ascii_lowercase() } else { c };
+    let lower = |c: u8| {
+        if is_upper(c) {
+            c.to_ascii_lowercase()
+        } else {
+            c
+        }
+    };
     if lower(at(s, *l)) == b'u' {
         *l += 1;
     }
@@ -1998,7 +2122,11 @@ fn check_format_type(p: &[u8], typ: u8, fmt: u8) -> Result<usize, &'static str> 
             *i += 1;
             cnt += 1;
         }
-        if cnt > 5 || len > 1024 { Err("too long") } else { Ok(()) }
+        if cnt > 5 || len > 1024 {
+            Err("too long")
+        } else {
+            Ok(())
+        }
     };
     match fmt {
         FILE_FMT_QUAD | FILE_FMT_NUM => {
@@ -2009,7 +2137,8 @@ fn check_format_type(p: &[u8], typ: u8, fmt: u8) -> Result<usize, &'static str> 
                 match typ {
                     FILE_BYTE => 2,
                     FILE_SHORT | FILE_BESHORT | FILE_LESHORT => 1,
-                    FILE_LONG | FILE_BELONG | FILE_LELONG | FILE_MELONG | FILE_LEID3 | FILE_BEID3 | FILE_INDIRECT => 0,
+                    FILE_LONG | FILE_BELONG | FILE_LELONG | FILE_MELONG | FILE_LEID3
+                    | FILE_BEID3 | FILE_INDIRECT => 0,
                     _ => 0,
                 }
             };
@@ -2121,12 +2250,15 @@ fn set_text_binary(e: &mut Entry) {
     let sflags0 = e.mp[0].str_flags();
     if let Some(m) = e.mp.first() {
         match m.typ {
-            FILE_BYTE | FILE_SHORT | FILE_LONG | FILE_DATE | FILE_BESHORT | FILE_BELONG | FILE_BEDATE | FILE_LESHORT | FILE_LELONG
-            | FILE_LEDATE | FILE_LDATE | FILE_BELDATE | FILE_LELDATE | FILE_MEDATE | FILE_MELDATE | FILE_MELONG | FILE_QUAD
-            | FILE_LEQUAD | FILE_BEQUAD | FILE_QDATE | FILE_LEQDATE | FILE_BEQDATE | FILE_QLDATE | FILE_LEQLDATE | FILE_BEQLDATE
-            | FILE_QWDATE | FILE_LEQWDATE | FILE_BEQWDATE | FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT | FILE_DOUBLE | FILE_BEDOUBLE
-            | FILE_LEDOUBLE | FILE_BEVARINT | FILE_LEVARINT | FILE_DER | FILE_GUID | FILE_OFFSET | FILE_MSDOSDATE
-            | FILE_BEMSDOSDATE | FILE_LEMSDOSDATE | FILE_MSDOSTIME | FILE_BEMSDOSTIME | FILE_LEMSDOSTIME | FILE_OCTAL => {
+            FILE_BYTE | FILE_SHORT | FILE_LONG | FILE_DATE | FILE_BESHORT | FILE_BELONG
+            | FILE_BEDATE | FILE_LESHORT | FILE_LELONG | FILE_LEDATE | FILE_LDATE
+            | FILE_BELDATE | FILE_LELDATE | FILE_MEDATE | FILE_MELDATE | FILE_MELONG
+            | FILE_QUAD | FILE_LEQUAD | FILE_BEQUAD | FILE_QDATE | FILE_LEQDATE | FILE_BEQDATE
+            | FILE_QLDATE | FILE_LEQLDATE | FILE_BEQLDATE | FILE_QWDATE | FILE_LEQWDATE
+            | FILE_BEQWDATE | FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT | FILE_DOUBLE
+            | FILE_BEDOUBLE | FILE_LEDOUBLE | FILE_BEVARINT | FILE_LEVARINT | FILE_DER
+            | FILE_GUID | FILE_OFFSET | FILE_MSDOSDATE | FILE_BEMSDOSDATE | FILE_LEMSDOSDATE
+            | FILE_MSDOSTIME | FILE_BEMSDOSTIME | FILE_LEMSDOSTIME | FILE_OCTAL => {
                 flag |= BINTEST;
             }
             FILE_STRING | FILE_PSTRING | FILE_BESTRING16 | FILE_LESTRING16 => {
@@ -2160,7 +2292,10 @@ fn set_text_binary(e: &mut Entry) {
 
 /// `apprentice_sort()`: força decrescente; empate pelo `memcmp` da entrada (sem a linha),
 /// maior primeiro.
-fn apprentice_sort(a: &(usize, [u8; MAGIC_SIZE], Entry), b: &(usize, [u8; MAGIC_SIZE], Entry)) -> Ordering {
+fn apprentice_sort(
+    a: &(usize, [u8; MAGIC_SIZE], Entry),
+    b: &(usize, [u8; MAGIC_SIZE], Entry),
+) -> Ordering {
     if a.0 == b.0 {
         return b.1.as_slice().cmp(a.1.as_slice());
     }
@@ -2174,7 +2309,12 @@ pub fn printable(s: &[u8]) -> String {
         if is_print(c) {
             out.push(c as char);
         } else {
-            out.push_str(&format!("\\{:o}{:o}{:o}", (c >> 6) & 7, (c >> 3) & 7, c & 7));
+            out.push_str(&format!(
+                "\\{:o}{:o}{:o}",
+                (c >> 6) & 7,
+                (c >> 3) & 7,
+                c & 7
+            ));
         }
     }
     out
@@ -2203,7 +2343,9 @@ mod tests {
 
     #[test]
     fn parses_simple_rule_with_continuations() {
-        let (map, rep) = parse_one("0\tstring\t\\x89PNG\tPNG image data\n!:mime\timage/png\n>16\tbelong\tx\t\\b, %d x\n");
+        let (map, rep) = parse_one(
+            "0\tstring\t\\x89PNG\tPNG image data\n!:mime\timage/png\n>16\tbelong\tx\t\\b, %d x\n",
+        );
         assert!(rep.warnings.is_empty(), "{:?}", rep.warnings);
         assert_eq!(rep.errs, 0);
         let set = &map.sets[0];
@@ -2223,7 +2365,8 @@ mod tests {
 
     #[test]
     fn indirect_offsets_and_masks() {
-        let (map, rep) = parse_one("0\tbyte\t1\tx\n>(4.L+8)\tbelong&0xff\t>3\ty\n>>&(2.s-1)\tleshort\t!0\tz\n");
+        let (map, rep) =
+            parse_one("0\tbyte\t1\tx\n>(4.L+8)\tbelong&0xff\t>3\ty\n>>&(2.s-1)\tleshort\t!0\tz\n");
         assert_eq!(rep.errs, 0, "{:?} {:?}", rep.error, rep.warnings);
         let m = &map.sets[0][1];
         assert_eq!(m.offset, 4);
@@ -2252,7 +2395,8 @@ mod tests {
 
     #[test]
     fn names_go_to_second_set_and_text_rules_are_flagged() {
-        let (map, rep) = parse_one("0\tname\tfoo\n>0\tbyte\t1\tone\n0\tsearch/10\thello\tgreeting\n");
+        let (map, rep) =
+            parse_one("0\tname\tfoo\n>0\tbyte\t1\tone\n0\tsearch/10\thello\tgreeting\n");
         assert_eq!(rep.errs, 0, "{:?}", rep.error);
         assert_eq!(map.sets[1].len(), 2);
         assert_eq!(map.sets[1][0].typ, FILE_NAME);
@@ -2264,7 +2408,11 @@ mod tests {
     fn rejects_bad_format() {
         let (_, rep) = parse_one("0\tbyte\t1\t%s bad\n");
         assert_eq!(rep.errs, 1);
-        assert!(rep.warnings[0].contains("Printf format is not valid"), "{:?}", rep.warnings);
+        assert!(
+            rep.warnings[0].contains("Printf format is not valid"),
+            "{:?}",
+            rep.warnings
+        );
     }
 
     /// O banco embutido carrega sem aviso nem erro (o `file -C` do oráculo também não avisa nada)
@@ -2272,7 +2420,11 @@ mod tests {
     #[test]
     fn builtin_loads_clean() {
         let (map, rep) = load_builtin();
-        assert!(rep.warnings.is_empty(), "{:?}", &rep.warnings[..rep.warnings.len().min(10)]);
+        assert!(
+            rep.warnings.is_empty(),
+            "{:?}",
+            &rep.warnings[..rep.warnings.len().min(10)]
+        );
         assert_eq!(rep.errs, 0, "{:?}", rep.error);
         assert_eq!(map.sets[0].len(), 16760);
         assert_eq!(map.sets[1].len(), 7205);
@@ -2282,20 +2434,29 @@ mod tests {
     /// o banco compilado aqui tem que ser idêntico, entrada por entrada.
     #[test]
     fn builtin_matches_oracle_mgc() {
-        let Ok(path) = std::env::var("MISC_FILE_ORACLE_MGC") else { return };
+        let Ok(path) = std::env::var("MISC_FILE_ORACLE_MGC") else {
+            return;
+        };
         let oracle = std::fs::read(path).expect("ler o mgc do oráculo");
         let (map, _) = load_builtin();
         let ours = map.compile();
         assert_eq!(ours.len(), oracle.len());
         let mut bad = 0;
-        for (i, (a, b)) in ours.chunks(MAGIC_SIZE).zip(oracle.chunks(MAGIC_SIZE)).enumerate() {
+        for (i, (a, b)) in ours
+            .chunks(MAGIC_SIZE)
+            .zip(oracle.chunks(MAGIC_SIZE))
+            .enumerate()
+        {
             if a != b {
                 bad += 1;
                 if bad <= 5 {
                     let ma = Magic::from_image(a, false);
                     let mb = Magic::from_image(b, false);
                     let diff: Vec<usize> = (0..MAGIC_SIZE).filter(|&k| a[k] != b[k]).collect();
-                    eprintln!("entrada {i}: nosso {ma:?} oráculo {mb:?} bytes {:?}", &diff[..diff.len().min(12)]);
+                    eprintln!(
+                        "entrada {i}: nosso {ma:?} oráculo {mb:?} bytes {:?}",
+                        &diff[..diff.len().min(12)]
+                    );
                 }
             }
         }

@@ -53,7 +53,11 @@ pub fn strtou64_or_err(arg: &[u8], what: &str) -> Result<u64, String> {
     if let Some(neg) = body.strip_prefix('-') {
         if !neg.is_empty() && neg.bytes().all(|b| b.is_ascii_digit()) {
             // "-0" vale zero: strtoimax não dá negativo.
-            return if neg.bytes().all(|b| b == b'0') { Ok(0) } else { Err(range()) };
+            return if neg.bytes().all(|b| b == b'0') {
+                Ok(0)
+            } else {
+                Err(range())
+            };
         }
         return Err(invalid());
     }
@@ -66,7 +70,8 @@ pub fn strtou64_or_err(arg: &[u8], what: &str) -> Result<u64, String> {
 /// `strtou32_or_err`: como [`strtou64_or_err`], com o teto de 32 bits (acima dele é fora de faixa).
 pub fn strtou32_or_err(arg: &[u8], what: &str) -> Result<u32, String> {
     let n = strtou64_or_err(arg, what)?;
-    u32::try_from(n).map_err(|_| format!("{what}: '{}': {}", io::lossy(arg), Errno::ERANGE.message()))
+    u32::try_from(n)
+        .map_err(|_| format!("{what}: '{}': {}", io::lossy(arg), Errno::ERANGE.message()))
 }
 
 /// `isspace` do locale C.
@@ -85,13 +90,14 @@ fn strtoumax0(s: &[u8]) -> Result<(u64, usize), Errno> {
     if at(i) == b'+' {
         i += 1;
     }
-    let (base, mut j): (u64, usize) = if at(i) == b'0' && matches!(at(i + 1), b'x' | b'X') && at(i + 2).is_ascii_hexdigit() {
-        (16, i + 2)
-    } else if at(i) == b'0' {
-        (8, i)
-    } else {
-        (10, i)
-    };
+    let (base, mut j): (u64, usize) =
+        if at(i) == b'0' && matches!(at(i + 1), b'x' | b'X') && at(i + 2).is_ascii_hexdigit() {
+            (16, i + 2)
+        } else if at(i) == b'0' {
+            (8, i)
+        } else {
+            (10, i)
+        };
     let digit = |b: u8| -> Option<u64> { char::from(b).to_digit(base as u32).map(u64::from) };
     let start = j;
     let mut value: u64 = 0;
@@ -276,7 +282,9 @@ pub enum Wide {
 /// O próximo caractere de `data` a partir de `pos`, sem consumir.
 pub fn peek_wide(data: &[u8], pos: usize) -> Wide {
     let rest = &data[pos.min(data.len())..];
-    let Some(&first) = rest.first() else { return Wide::Eof };
+    let Some(&first) = rest.first() else {
+        return Wide::Eof;
+    };
     if first < 0x80 {
         return Wide::Char(char::from(first));
     }
@@ -315,8 +323,18 @@ pub struct WideReader {
 impl WideReader {
     pub fn new(content: Result<Vec<u8>, Errno>) -> WideReader {
         match content {
-            Ok(data) => WideReader { data, pos: 0, read_err: None, eof: false },
-            Err(e) => WideReader { data: Vec::new(), pos: 0, read_err: Some(e), eof: false },
+            Ok(data) => WideReader {
+                data,
+                pos: 0,
+                read_err: None,
+                eof: false,
+            },
+            Err(e) => WideReader {
+                data: Vec::new(),
+                pos: 0,
+                read_err: Some(e),
+                eof: false,
+            },
         }
     }
 

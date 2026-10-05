@@ -9,7 +9,9 @@ use super::clear::clear_cmd;
 use super::reset::Reset;
 use super::terminfo::{SetupOpts, Term, TiStr, isatty, setupterm};
 use super::tparm::{Arg, ParmState, analyze, tiparm, tparm, tputs};
-use super::{StdoutSink, VERSION, err_system, find_type_entry, rootname, save_tty_settings, strtol, Kind};
+use super::{
+    Kind, StdoutSink, VERSION, err_system, find_type_entry, rootname, save_tty_settings, strtol,
+};
 use crate::util::io;
 use crate::util::{Getopt, GetoptError};
 
@@ -144,7 +146,14 @@ impl Tput {
             return (0, used);
         }
         if name == b"clear" {
-            return (if clear_cmd(&self.term, self.opt_x) { 0 } else { ERR_USAGE }, used);
+            return (
+                if clear_cmd(&self.term, self.opt_x) {
+                    0
+                } else {
+                    ERR_USAGE
+                },
+                used,
+            );
         }
         let status = self.term.tigetflag(&name);
         if status != -1 {
@@ -157,7 +166,11 @@ impl Tput {
             return (0, used);
         }
         let s: Vec<u8> = match self.term.tigetstr(&name) {
-            TiStr::NotCap => quit(&self.progname, ERR_CAPNAME, &format!("unknown terminfo capability '{}'", io::lossy(&name))),
+            TiStr::NotCap => quit(
+                &self.progname,
+                ERR_CAPNAME,
+                &format!("unknown terminfo capability '{}'", io::lossy(&name)),
+            ),
             TiStr::Absent => return (1, used),
             TiStr::Val(v) => v.to_vec(),
         };
@@ -228,7 +241,12 @@ impl Tput {
                     }
                 }
                 TParams::NumStrStr => {
-                    out_str = tparm(&self.term.tt, &mut self.state, &s, &[narg(1), sarg(2), sarg(3)]);
+                    out_str = tparm(
+                        &self.term.tt,
+                        &mut self.state,
+                        &s,
+                        &[narg(1), sarg(2), sarg(3)],
+                    );
                     if provided == 1 && argc >= 2 {
                         provided += 1;
                     }
@@ -245,14 +263,22 @@ impl Tput {
                 io::eprint(format!(
                     "{}: {} parameters for \"{}\"\n",
                     self.progname,
-                    if analyzed < provided { "extra" } else { "missing" },
+                    if analyzed < provided {
+                        "extra"
+                    } else {
+                        "missing"
+                    },
                     io::lossy(&argv[0])
                 ));
             }
             used += provided.max(0) as usize;
         } else {
             if self.opt_v {
-                io::eprint(format!("{}: missing parameters for \"{}\"\n", self.progname, io::lossy(&argv[0])));
+                io::eprint(format!(
+                    "{}: missing parameters for \"{}\"\n",
+                    self.progname,
+                    io::lossy(&argv[0])
+                ));
             }
             // A própria cadeia da capacidade: `bell` e `flash` esperam mesmo sem `padding_baud_rate`.
             always_delay = name == b"bel" || name == b"flash";
@@ -274,7 +300,11 @@ fn run(args: &[OsString]) -> i32 {
     let root = rootname(&argv[0]).to_vec();
     let mut tput = Tput {
         progname: io::lossy(&root),
-        term: Term { tt: Default::default(), fd: Fd::STDOUT, termname: Vec::new() },
+        term: Term {
+            tt: Default::default(),
+            fd: Fd::STDOUT,
+            termname: Vec::new(),
+        },
         state: ParmState::default(),
         opt_v: false,
         opt_x: false,
@@ -297,7 +327,10 @@ fn run(args: &[OsString]) -> i32 {
             Ok(o) => match o.short() {
                 Some('S') => cmdline = false,
                 Some('T') => {
-                    opts = SetupOpts { use_env: false, use_tioctl: true };
+                    opts = SetupOpts {
+                        use_env: false,
+                        use_tioctl: true,
+                    };
                     term = o.arg.clone();
                 }
                 Some('V') => {
@@ -315,7 +348,9 @@ fn run(args: &[OsString]) -> i32 {
     let operands = g.operands();
     let need_tty = tput.is_reset
         || tput.is_init
-        || operands.first().is_some_and(|a| a == b"reset" || a == b"init");
+        || operands
+            .first()
+            .is_some_and(|a| a == b"reset" || a == b"init");
 
     // `argv` sem as opções processadas; no alias o primeiro item é o nome do programa.
     let mut cmds: Vec<Vec<u8>> = Vec::new();
@@ -326,14 +361,22 @@ fn run(args: &[OsString]) -> i32 {
 
     let term_bytes = match &term {
         Some(t) if !t.is_empty() => t.clone(),
-        _ => quit(&progname, ERR_USAGE, "No value for $TERM and no -T specified"),
+        _ => quit(
+            &progname,
+            ERR_USAGE,
+            "No value for $TERM and no -T specified",
+        ),
     };
     let fd = save_tty_settings(&progname, need_tty);
     tput.term = match setupterm(Some(&term_bytes), fd, opts) {
         Ok(t) => t,
         Err(f) => match (f.code, f.term) {
             (code, Some(t)) if code > 0 => t,
-            _ => quit(&progname, ERR_TERMTYPE, &format!("unknown terminal \"{}\"", io::lossy(&term_bytes))),
+            _ => quit(
+                &progname,
+                ERR_TERMTYPE,
+                &format!("unknown terminal \"{}\"", io::lossy(&term_bytes)),
+            ),
         },
     };
 

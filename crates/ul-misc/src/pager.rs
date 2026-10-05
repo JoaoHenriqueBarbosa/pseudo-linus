@@ -196,7 +196,10 @@ fn less_run(args: &[OsString]) -> i32 {
             };
             let exact = LESS_LONG.iter().find(|(n, _)| *n == name);
             let found = exact.or_else(|| {
-                let cands: Vec<&(&str, bool)> = LESS_LONG.iter().filter(|(n, _)| n.starts_with(name.as_str())).collect();
+                let cands: Vec<&(&str, bool)> = LESS_LONG
+                    .iter()
+                    .filter(|(n, _)| n.starts_with(name.as_str()))
+                    .collect();
                 (cands.len() == 1).then(|| cands[0])
             });
             match found {
@@ -213,7 +216,9 @@ fn less_run(args: &[OsString]) -> i32 {
                         }
                     }
                 }
-                None => io::eprint(format!("There is no {name} option (\"less --help\" for help)\n")),
+                None => io::eprint(format!(
+                    "There is no {name} option (\"less --help\" for help)\n"
+                )),
             }
             continue;
         }
@@ -231,15 +236,24 @@ fn less_run(args: &[OsString]) -> i32 {
                 } else if i <= words.len() {
                     i += 1;
                 } else {
-                    io::eprint(format!("Value is required after -{} (--{long})\n", char::from(c)));
+                    io::eprint(format!(
+                        "Value is required after -{} (--{long})\n",
+                        char::from(c)
+                    ));
                 }
                 continue;
             }
             if LESS_FLAGS.contains(&c) || c.is_ascii_digit() {
                 continue;
             }
-            let shown = if c.is_ascii() { char::from(c).to_string() } else { format!("\\x{c:02x}") };
-            io::eprint(format!("There is no -{shown} option (\"less --help\" for help)\n"));
+            let shown = if c.is_ascii() {
+                char::from(c).to_string()
+            } else {
+                format!("\\x{c:02x}")
+            };
+            io::eprint(format!(
+                "There is no -{shown} option (\"less --help\" for help)\n"
+            ));
         }
     }
     let mut out = io::stdout();
@@ -378,7 +392,10 @@ fn more_run(args: &[OsString]) -> i32 {
                 _ => {}
             },
             Err(e) => {
-                io::eprint(format!("{}\nTry 'more --help' for more information.\n", e.message(&argv0)));
+                io::eprint(format!(
+                    "{}\nTry 'more --help' for more information.\n",
+                    e.message(&argv0)
+                ));
                 return 1;
             }
         }
@@ -408,7 +425,11 @@ fn more_run(args: &[OsString]) -> i32 {
             }
             Err(e) => {
                 let _ = out.flush();
-                io::eprint(format!("more: cannot open {}: {}\n", io::lossy(f), e.message()));
+                io::eprint(format!(
+                    "more: cannot open {}: {}\n",
+                    io::lossy(f),
+                    e.message()
+                ));
             }
         }
     }
@@ -423,7 +444,10 @@ mod tests {
 
     fn kit() -> TestKit {
         TestKit::new()
-            .programs([Program::bin("less", less_main), Program::bin("more", more_main)])
+            .programs([
+                Program::bin("less", less_main),
+                Program::bin("more", more_main),
+            ])
             .file("/work/a", "l1\nl2\n", 0o644)
             .file("/work/b", "x\n", 0o644)
             .file("/work/c", "nonl", 0o644)
@@ -433,7 +457,10 @@ mod tests {
     #[test]
     fn less_copies_like_the_real_one_without_tty() {
         let r = kit().run(&["less", "a", "nope", "d", "b"], b"");
-        assert_eq!(r.stdout_str(), "l1\nl2\nnope: No such file or directory\nd is a directory\nx\n");
+        assert_eq!(
+            r.stdout_str(),
+            "l1\nl2\nnope: No such file or directory\nd is a directory\nx\n"
+        );
         assert_eq!(r.code(), 0);
         let r = kit().run(&["less", "-Z", "-N", "--bogus", "a"], b"");
         assert_eq!(r.stdout_str(), "l1\nl2\n");
@@ -454,11 +481,20 @@ mod tests {
             r.stdout_str(),
             "::::::::::::::\nc\n::::::::::::::\nnonl::::::::::::::\nb\n::::::::::::::\nx\n\n*** d: directory ***\n\n"
         );
-        assert_eq!(r.stderr_str(), "more: cannot open nope: No such file or directory\n");
+        assert_eq!(
+            r.stderr_str(),
+            "more: cannot open nope: No such file or directory\n"
+        );
         let r = kit().run(&["more", "a"], b"in\n");
-        assert_eq!(r.stdout_str(), "in\n::::::::::::::\na\n::::::::::::::\nl1\nl2\n");
+        assert_eq!(
+            r.stdout_str(),
+            "in\n::::::::::::::\na\n::::::::::::::\nl1\nl2\n"
+        );
         let r = kit().run(&["more", "-Z"], b"");
-        assert_eq!(r.stderr_str(), "more: invalid option -- 'Z'\nTry 'more --help' for more information.\n");
+        assert_eq!(
+            r.stderr_str(),
+            "more: invalid option -- 'Z'\nTry 'more --help' for more information.\n"
+        );
         assert_eq!(r.code(), 1);
     }
 }

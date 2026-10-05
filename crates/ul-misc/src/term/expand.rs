@@ -32,7 +32,11 @@ pub fn tic_expand(srcp: &[u8], tic_format: bool, numbers: i32) -> Vec<u8> {
             i += 1;
             match numbers {
                 -1 => {
-                    if at(i) == b'\'' && at(i + 1) != b'\\' && realprint(at(i + 1)) && at(i + 2) == b'\'' {
+                    if at(i) == b'\''
+                        && at(i + 1) != b'\\'
+                        && realprint(at(i + 1))
+                        && at(i + 2) == b'\''
+                    {
                         buf.extend_from_slice(format!("{{{}}}", at(i + 1)).as_bytes());
                         i += 2;
                     } else {
@@ -77,7 +81,12 @@ pub fn tic_expand(srcp: &[u8], tic_format: bool, numbers: i32) -> Vec<u8> {
         } else if (ch == b',' || ch == b'^') && tic_format {
             buf.push(b'\\');
             buf.push(ch);
-        } else if realprint(ch) && ch != b',' && !(ch == b':' && !tic_format) && !(ch == b'!' && !tic_format) && ch != b'^' {
+        } else if realprint(ch)
+            && ch != b','
+            && !(ch == b':' && !tic_format)
+            && !(ch == b'!' && !tic_format)
+            && ch != b'^'
+        {
             buf.push(ch);
         } else if ch == b'\r' {
             buf.extend_from_slice(b"\\r");
@@ -112,7 +121,10 @@ mod tests {
 
     #[test]
     fn expands_like_tic() {
-        assert_eq!(tic_expand(b"\x1b[%i%p1%d;%p2%dH", true, 0), b"\\E[%i%p1%d;%p2%dH");
+        assert_eq!(
+            tic_expand(b"\x1b[%i%p1%d;%p2%dH", true, 0),
+            b"\\E[%i%p1%d;%p2%dH"
+        );
         assert_eq!(tic_expand(b"\x07", true, 0), b"^G");
         assert_eq!(tic_expand(b"a b ", true, 0), b"a b\\s");
         assert_eq!(tic_expand(b"%'a'%d", true, -1), b"%{97}%d");

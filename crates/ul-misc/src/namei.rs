@@ -78,7 +78,11 @@ struct ParentInfo {
 
 impl ParentInfo {
     fn of(item: &Item) -> ParentInfo {
-        ParentInfo { mode: item.st.mode, dev: item.st.dev, ino: item.st.ino }
+        ParentInfo {
+            mode: item.st.mode,
+            dev: item.st.dev,
+            ino: item.st.ino,
+        }
     }
 
     fn is_dir(&self) -> bool {
@@ -99,7 +103,10 @@ struct IdCache {
 
 impl IdCache {
     fn get(&self, id: u32) -> Option<&str> {
-        self.entries.iter().find(|(i, _)| *i == id).map(|(_, n)| n.as_str())
+        self.entries
+            .iter()
+            .find(|(i, _)| *i == id)
+            .map(|(_, n)| n.as_str())
     }
 
     /// `add_id`: o nome (ou o número, quando não há nome) entra uma vez só.
@@ -107,7 +114,9 @@ impl IdCache {
         if self.get(id).is_some() {
             return;
         }
-        let name = lookup().filter(|n| display_width(n) > 0).unwrap_or_else(|| id.to_string());
+        let name = lookup()
+            .filter(|n| display_width(n) > 0)
+            .unwrap_or_else(|| id.to_string());
         let w = display_width(&name);
         self.width = self.width.max(w);
         self.entries.push((id, name));
@@ -135,13 +144,25 @@ fn xstrmode(m: u32) -> Vec<u8> {
     let bit = |mask: u32, ch: u8| if m & mask != 0 { ch } else { b'-' };
     s.push(bit(0o400, b'r'));
     s.push(bit(0o200, b'w'));
-    s.push(if m & mode::S_ISUID != 0 { if m & 0o100 != 0 { b's' } else { b'S' } } else { bit(0o100, b'x') });
+    s.push(if m & mode::S_ISUID != 0 {
+        if m & 0o100 != 0 { b's' } else { b'S' }
+    } else {
+        bit(0o100, b'x')
+    });
     s.push(bit(0o040, b'r'));
     s.push(bit(0o020, b'w'));
-    s.push(if m & mode::S_ISGID != 0 { if m & 0o010 != 0 { b's' } else { b'S' } } else { bit(0o010, b'x') });
+    s.push(if m & mode::S_ISGID != 0 {
+        if m & 0o010 != 0 { b's' } else { b'S' }
+    } else {
+        bit(0o010, b'x')
+    });
     s.push(bit(0o004, b'r'));
     s.push(bit(0o002, b'w'));
-    s.push(if m & mode::S_ISVTX != 0 { if m & 0o001 != 0 { b't' } else { b'T' } } else { bit(0o001, b'x') });
+    s.push(if m & mode::S_ISVTX != 0 {
+        if m & 0o001 != 0 { b't' } else { b'T' }
+    } else {
+        bit(0o001, b'x')
+    });
     s
 }
 
@@ -150,8 +171,20 @@ impl Namei {
     fn readlink_to_namei(&self, item: &mut Item, path: &[u8]) -> Result<(), String> {
         let sym = match sys::current().readlinkat(sysabi::Fd::CWD, path) {
             Ok(s) if !s.is_empty() => s,
-            Ok(_) => return Err(format!("failed to read symlink: {}: {}", io::lossy(path), Errno::EINVAL.message())),
-            Err(e) => return Err(format!("failed to read symlink: {}: {}", io::lossy(path), e.message())),
+            Ok(_) => {
+                return Err(format!(
+                    "failed to read symlink: {}: {}",
+                    io::lossy(path),
+                    Errno::EINVAL.message()
+                ));
+            }
+            Err(e) => {
+                return Err(format!(
+                    "failed to read symlink: {}: {}",
+                    io::lossy(path),
+                    e.message()
+                ));
+            }
         };
         if sym.first() != Some(&b'/')
             && let Some(p) = path.iter().rposition(|&b| b == b'/')
@@ -173,11 +206,18 @@ impl Namei {
     fn dotdot_stat(dirname: &[u8]) -> Result<Stat, String> {
         let mut path = dirname.to_vec();
         path.extend_from_slice(b"/..");
-        sys::stat(&path).map_err(|e| format!("stat of {} failed: {}", io::lossy(&path), e.message()))
+        sys::stat(&path)
+            .map_err(|e| format!("stat of {} failed: {}", io::lossy(&path), e.message()))
     }
 
     /// `new_namei`.
-    fn new_namei(&mut self, parent: Option<ParentInfo>, path: &[u8], fname: &[u8], level: usize) -> Result<Item, String> {
+    fn new_namei(
+        &mut self,
+        parent: Option<ParentInfo>,
+        path: &[u8],
+        fname: &[u8],
+        level: usize,
+    ) -> Result<Item, String> {
         let mut item = Item {
             st: Stat::default(),
             name: fname.to_vec(),
@@ -200,8 +240,10 @@ impl Namei {
         }
         if self.flags & NAMEI_OWNERS != 0 {
             let (uid, gid) = (item.st.uid, item.st.gid);
-            self.ucache.add(uid, || sysio::users::passwd_by_uid(uid).map(|p| p.name));
-            self.gcache.add(gid, || sysio::users::group_by_gid(gid).map(|g| g.name));
+            self.ucache
+                .add(uid, || sysio::users::passwd_by_uid(uid).map(|p| p.name));
+            self.gcache
+                .add(gid, || sysio::users::group_by_gid(gid).map(|g| g.name));
         }
 
         if self.flags & NAMEI_MNTS != 0 && item.st.file_type() == FileType::Directory {
@@ -228,7 +270,13 @@ impl Namei {
     }
 
     /// `add_namei`: os componentes de `orgpath` a partir de `start`, com o `parent` do primeiro.
-    fn add_namei(&mut self, parent: Option<ParentInfo>, orgpath: &[u8], start: usize, level: usize) -> Result<Vec<Item>, String> {
+    fn add_namei(
+        &mut self,
+        parent: Option<ParentInfo>,
+        orgpath: &[u8],
+        start: usize,
+        level: usize,
+    ) -> Result<Vec<Item>, String> {
         let buf = orgpath.to_vec();
         let mut items: Vec<Item> = Vec::new();
         let mut fpos = start.min(buf.len());
@@ -347,7 +395,10 @@ impl Namei {
                     let name = cache.get(id).unwrap_or("");
                     buf.push(b' ');
                     buf.extend_from_slice(name.as_bytes());
-                    buf.extend(std::iter::repeat_n(b' ', cache.width.saturating_sub(name.len())));
+                    buf.extend(std::iter::repeat_n(
+                        b' ',
+                        cache.width.saturating_sub(name.len()),
+                    ));
                 }
             }
             if self.flags & NAMEI_CONTEXT != 0 {
@@ -403,7 +454,11 @@ fn run(args: &[OsString]) -> i32 {
             Some('v') => flags |= NAMEI_VERTICAL,
             Some('Z') => flags |= NAMEI_CONTEXT,
             Some('h') => {
-                let p = if short.is_empty() { "namei" } else { short.as_str() };
+                let p = if short.is_empty() {
+                    "namei"
+                } else {
+                    short.as_str()
+                };
                 let mut out = io::stdout();
                 let _ = out.write_all(usage_text(p).as_bytes());
                 return 0;
@@ -425,7 +480,11 @@ fn run(args: &[OsString]) -> i32 {
         return 1;
     }
 
-    let mut nm = Namei { flags, ucache: IdCache::default(), gcache: IdCache::default() };
+    let mut nm = Namei {
+        flags,
+        ucache: IdCache::default(),
+        gcache: IdCache::default(),
+    };
     let mut out = io::stdout();
     let mut rc = 0;
     for path in &paths {
@@ -450,7 +509,10 @@ fn run(args: &[OsString]) -> i32 {
             }
             if sml {
                 rc = 1;
-                ul::warnx(&short, format!("{}: exceeded limit of symlinks", io::lossy(path)));
+                ul::warnx(
+                    &short,
+                    format!("{}: exceeded limit of symlinks", io::lossy(path)),
+                );
                 continue;
             }
         }

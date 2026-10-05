@@ -8,7 +8,11 @@ fn envsubst_conformance() {
     let cand = TestkitCandidate::new("envsubst (testkit)", ul_misc::programs());
     let report = score_tool("envsubst", &cand);
     report.print();
-    assert!(report.conformance.strict_pass >= 22, "regressão no envsubst: {}", report.summary());
+    assert!(
+        report.conformance.strict_pass >= 22,
+        "regressão no envsubst: {}",
+        report.summary()
+    );
 }
 
 #[test]
@@ -16,5 +20,9 @@ fn envsubst_conformance_kernel() {
     let cand = KernelCandidate::new("envsubst (kernel)", ul_misc::programs());
     let report = score_tool("envsubst", &cand);
     report.print();
-    assert!(report.conformance.strict_pass >= 22, "regressão no envsubst (kernel): {}", report.summary());
+    assert!(
+        report.conformance.strict_pass >= 22,
+        "regressão no envsubst (kernel): {}",
+        report.summary()
+    );
 }

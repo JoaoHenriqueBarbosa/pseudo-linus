@@ -199,7 +199,10 @@ impl Grammar {
             .iter()
             .map(|k| k.iter().map(|&it| (it, BTreeSet::new())).collect())
             .collect();
-        la[0].get_mut(&(0, 0)).expect("item inicial").insert(self.eof);
+        la[0]
+            .get_mut(&(0, 0))
+            .expect("item inicial")
+            .insert(self.eof);
         let mut prop: Vec<((usize, Item), (usize, Item))> = Vec::new();
         for (st, kernel) in kernels.iter().enumerate() {
             for &kit in kernel {
@@ -207,13 +210,18 @@ impl Grammar {
                 let cl = self.closure1(&[(kit, dummy)], &by_lhs, &nullable, &first);
                 for ((r, d), a) in cl {
                     let rule = &self.rules[r as usize];
-                    let Some(&s) = rule.rhs.get(d as usize) else { continue };
+                    let Some(&s) = rule.rhs.get(d as usize) else {
+                        continue;
+                    };
                     let target = trans[st][&s] as usize;
                     let titem = (r, d + 1);
                     if a == dummy {
                         prop.push(((st, kit), (target, titem)));
                     } else {
-                        la[target].get_mut(&titem).expect("item do kernel").insert(a);
+                        la[target]
+                            .get_mut(&titem)
+                            .expect("item do kernel")
+                            .insert(a);
                     }
                 }
             }
@@ -244,7 +252,10 @@ impl Grammar {
         for st in 0..n_states {
             // Itens completos com os lookaheads (os do fecho vêm de propagação interna).
             let full = self.closure1(
-                &kernels[st].iter().flat_map(|it| la[st][it].iter().map(move |&a| (*it, a))).collect::<Vec<_>>(),
+                &kernels[st]
+                    .iter()
+                    .flat_map(|it| la[st][it].iter().map(move |&a| (*it, a)))
+                    .collect::<Vec<_>>(),
                 &by_lhs,
                 &nullable,
                 &first,
@@ -265,7 +276,8 @@ impl Grammar {
             complete_rules.sort();
             complete_rules.dedup();
             let has_term_shift = trans[st].keys().any(|&s| self.is_term(s));
-            let consistent = complete_rules.len() <= 1 && !(complete_rules.len() == 1 && has_term_shift);
+            let consistent =
+                complete_rules.len() <= 1 && !(complete_rules.len() == 1 && has_term_shift);
 
             let mut row: BTreeMap<u16, Action> = BTreeMap::new();
             let mut go = HashMap::new();
@@ -345,7 +357,16 @@ impl Grammar {
             default.push(def);
             gotos.push(go);
         }
-        Tables { actions, default, gotos, default_only, rule_lhs, rule_len, sr_conflicts, rr_conflicts }
+        Tables {
+            actions,
+            default,
+            gotos,
+            default_only,
+            rule_lhs,
+            rule_len,
+            sr_conflicts,
+            rr_conflicts,
+        }
     }
 
     /// Fecho LR(1).
@@ -360,7 +381,9 @@ impl Grammar {
         let mut work: Vec<(Item, u16)> = start.to_vec();
         while let Some(((r, d), a)) = work.pop() {
             let rule = &self.rules[r as usize];
-            let Some(&b) = rule.rhs.get(d as usize) else { continue };
+            let Some(&b) = rule.rhs.get(d as usize) else {
+                continue;
+            };
             if self.is_term(b) {
                 continue;
             }
@@ -510,7 +533,11 @@ mod tests {
     // Gramática de expressões: E -> E + E | E * E | ( E ) | n, com + e * à esquerda.
     // Terminais: 0 $end, 1 error, 2 +, 3 *, 4 (, 5 ), 6 n. Não terminais: 7 $accept, 8 E.
     fn expr_grammar() -> Grammar {
-        let r = |lhs: u16, rhs: &[u16]| Rule { lhs, rhs: rhs.to_vec(), prec: None };
+        let r = |lhs: u16, rhs: &[u16]| Rule {
+            lhs,
+            rhs: rhs.to_vec(),
+            prec: None,
+        };
         let mut term_prec = vec![(0u8, Assoc::Left); 7];
         term_prec[2] = (1, Assoc::Left);
         term_prec[3] = (2, Assoc::Left);
@@ -519,7 +546,13 @@ mod tests {
             n_symbols: 9,
             eof: 0,
             error: 1,
-            rules: vec![r(7, &[8, 0]), r(8, &[8, 2, 8]), r(8, &[8, 3, 8]), r(8, &[4, 8, 5]), r(8, &[6])],
+            rules: vec![
+                r(7, &[8, 0]),
+                r(8, &[8, 2, 8]),
+                r(8, &[8, 3, 8]),
+                r(8, &[4, 8, 5]),
+                r(8, &[6]),
+            ],
             term_prec,
         }
     }
@@ -558,7 +591,11 @@ mod tests {
         let t = g.build();
         assert_eq!(t.sr_conflicts, 0);
         // 2 + 3 * 4
-        let mut h = Eval { toks: vec![(6, 2), (2, 0), (6, 3), (3, 0), (6, 4)], pos: 0, errors: 0 };
+        let mut h = Eval {
+            toks: vec![(6, 2), (2, 0), (6, 3), (3, 0), (6, 4)],
+            pos: 0,
+            errors: 0,
+        };
         assert_eq!(parse(&t, &mut h, 0, 1), Outcome::Accept);
         assert_eq!(h.errors, 0);
     }
@@ -566,7 +603,11 @@ mod tests {
     #[test]
     fn syntax_error_aborts_without_error_rules() {
         let t = expr_grammar().build();
-        let mut h = Eval { toks: vec![(6, 2), (2, 0), (2, 0)], pos: 0, errors: 0 };
+        let mut h = Eval {
+            toks: vec![(6, 2), (2, 0), (2, 0)],
+            pos: 0,
+            errors: 0,
+        };
         assert_eq!(parse(&t, &mut h, 0, 1), Outcome::Abort);
         assert_eq!(h.errors, 1);
     }

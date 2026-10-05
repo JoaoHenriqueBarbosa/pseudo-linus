@@ -67,7 +67,11 @@ impl From<OutOfMemory> for RaiseError {
 }
 
 fn check_digits(n: u64) -> NumResult<()> {
-    if n > MAX_DIGITS { Err(OutOfMemory) } else { Ok(()) }
+    if n > MAX_DIGITS {
+        Err(OutOfMemory)
+    } else {
+        Ok(())
+    }
 }
 
 /// `10^n`.
@@ -105,15 +109,27 @@ impl Num {
     }
 
     pub fn one() -> Num {
-        Num { neg: false, mag: BigUint::one(), scale: 0 }
+        Num {
+            neg: false,
+            mag: BigUint::one(),
+            scale: 0,
+        }
     }
 
     pub fn from_u64(v: u64) -> Num {
-        Num { neg: false, mag: BigUint::from(v), scale: 0 }
+        Num {
+            neg: false,
+            mag: BigUint::from(v),
+            scale: 0,
+        }
     }
 
     pub fn from_i64(v: i64) -> Num {
-        Num { neg: v < 0, mag: BigUint::from(v.unsigned_abs()), scale: 0 }
+        Num {
+            neg: v < 0,
+            mag: BigUint::from(v.unsigned_abs()),
+            scale: 0,
+        }
     }
 
     /// Monta a partir das partes (pra testes e pra biblioteca matemática).
@@ -151,7 +167,11 @@ impl Num {
 
     /// O mesmo valor com outra escala (truncando ao reduzir), sinal preservado.
     pub fn with_scale(&self, s: u32) -> NumResult<Num> {
-        Ok(Num { neg: self.neg, mag: self.mag_at(s)?, scale: s })
+        Ok(Num {
+            neg: self.neg,
+            mag: self.mag_at(s)?,
+            scale: s,
+        })
     }
 
     /// Parte inteira (truncada em direção a zero), com o sinal do original.
@@ -162,7 +182,11 @@ impl Num {
             // 10^scale cabe: o próprio número já tem esses dígitos.
             &self.mag / BigUint::from(10u32).pow(self.scale)
         };
-        Num { neg: self.neg, mag, scale: 0 }
+        Num {
+            neg: self.neg,
+            mag,
+            scale: 0,
+        }
     }
 
     /// Estimativa barata (por cima) do total de dígitos decimais da magnitude.
@@ -188,7 +212,11 @@ impl Num {
     /// `length()`: dígitos da parte inteira (se não for zero) mais a escala, no mínimo 1.
     pub fn length(&self) -> u64 {
         let int = self.int_mag();
-        let n = if int.is_zero() { 0 } else { decimal_digits(&int) } + u64::from(self.scale);
+        let n = if int.is_zero() {
+            0
+        } else {
+            decimal_digits(&int)
+        } + u64::from(self.scale);
         n.max(1)
     }
 
@@ -207,7 +235,11 @@ impl Num {
     /// Comparação do GNU: sinal primeiro (então -0 < 0), depois magnitude.
     pub fn compare(&self, other: &Num) -> Ordering {
         if self.neg != other.neg {
-            return if self.neg { Ordering::Less } else { Ordering::Greater };
+            return if self.neg {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            };
         }
         let m = self.cmp_mag(other);
         if self.neg { m.reverse() } else { m }
@@ -226,12 +258,28 @@ impl Num {
         let s = scale_min.max(self.scale).max(other.scale);
         check_digits(u64::from(s) + self.int_digits_est().max(other.int_digits_est()) + 1)?;
         if self.neg == other.neg {
-            return Ok(Num { neg: self.neg, mag: Num::mag_sum(self, other, s)?, scale: s });
+            return Ok(Num {
+                neg: self.neg,
+                mag: Num::mag_sum(self, other, s)?,
+                scale: s,
+            });
         }
         Ok(match self.cmp_mag(other) {
-            Ordering::Less => Num { neg: other.neg, mag: Num::mag_diff(other, self, s)?, scale: s },
-            Ordering::Equal => Num { neg: false, mag: BigUint::zero(), scale: s },
-            Ordering::Greater => Num { neg: self.neg, mag: Num::mag_diff(self, other, s)?, scale: s },
+            Ordering::Less => Num {
+                neg: other.neg,
+                mag: Num::mag_diff(other, self, s)?,
+                scale: s,
+            },
+            Ordering::Equal => Num {
+                neg: false,
+                mag: BigUint::zero(),
+                scale: s,
+            },
+            Ordering::Greater => Num {
+                neg: self.neg,
+                mag: Num::mag_diff(self, other, s)?,
+                scale: s,
+            },
         })
     }
 
@@ -240,21 +288,45 @@ impl Num {
         let s = scale_min.max(self.scale).max(other.scale);
         check_digits(u64::from(s) + self.int_digits_est().max(other.int_digits_est()) + 1)?;
         if self.neg != other.neg {
-            return Ok(Num { neg: self.neg, mag: Num::mag_sum(self, other, s)?, scale: s });
+            return Ok(Num {
+                neg: self.neg,
+                mag: Num::mag_sum(self, other, s)?,
+                scale: s,
+            });
         }
         Ok(match self.cmp_mag(other) {
-            Ordering::Less => Num { neg: !other.neg, mag: Num::mag_diff(other, self, s)?, scale: s },
-            Ordering::Equal => Num { neg: false, mag: BigUint::zero(), scale: s },
-            Ordering::Greater => Num { neg: self.neg, mag: Num::mag_diff(self, other, s)?, scale: s },
+            Ordering::Less => Num {
+                neg: !other.neg,
+                mag: Num::mag_diff(other, self, s)?,
+                scale: s,
+            },
+            Ordering::Equal => Num {
+                neg: false,
+                mag: BigUint::zero(),
+                scale: s,
+            },
+            Ordering::Greater => Num {
+                neg: self.neg,
+                mag: Num::mag_diff(self, other, s)?,
+                scale: s,
+            },
         })
     }
 
     /// Negação: o GNU faz `0 - x`, então -0 vira 0 e 0 continua 0.
     pub fn negate(&self) -> Num {
         if self.mag.is_zero() {
-            return Num { neg: false, mag: BigUint::zero(), scale: self.scale };
+            return Num {
+                neg: false,
+                mag: BigUint::zero(),
+                scale: self.scale,
+            };
         }
-        Num { neg: !self.neg, mag: self.mag.clone(), scale: self.scale }
+        Num {
+            neg: !self.neg,
+            mag: self.mag.clone(),
+            scale: self.scale,
+        }
     }
 
     /// `bc_multiply`.
@@ -264,9 +336,17 @@ impl Num {
         let prod_scale = full.min(want);
         check_digits(self.digits_est() + other.digits_est())?;
         let prod = &self.mag * &other.mag;
-        let mag = if prod_scale < full { prod / pow10(full - prod_scale)? } else { prod };
+        let mag = if prod_scale < full {
+            prod / pow10(full - prod_scale)?
+        } else {
+            prod
+        };
         let neg = self.neg != other.neg && !mag.is_zero();
-        Ok(Num { neg, mag, scale: prod_scale as u32 })
+        Ok(Num {
+            neg,
+            mag,
+            scale: prod_scale as u32,
+        })
     }
 
     /// `bc_divide`: quociente truncado com exatamente `scale` dígitos. `None` se o divisor é zero.
@@ -288,7 +368,9 @@ impl Num {
 
     /// `bc_modulo`: `a - (a/b)*b`. `None` se o divisor é zero.
     pub fn modulo(&self, other: &Num, scale: u32) -> NumResult<Option<Num>> {
-        let Some(q) = self.div(other, scale)? else { return Ok(None) };
+        let Some(q) = self.div(other, scale)? else {
+            return Ok(None);
+        };
         let rscale = u64::from(self.scale).max(u64::from(other.scale) + u64::from(scale));
         let rscale = u32::try_from(rscale).map_err(|_| OutOfMemory)?;
         let t = q.mul(other, rscale)?;
@@ -329,19 +411,42 @@ impl Num {
         let negative = e < 0;
         let e = e.unsigned_abs();
         let sa = u64::from(self.scale);
-        let rscale = if negative { u64::from(scale) } else { sa.saturating_mul(e).min(u64::from(scale).max(sa)) };
+        let rscale = if negative {
+            u64::from(scale)
+        } else {
+            sa.saturating_mul(e).min(u64::from(scale).max(sa))
+        };
         let full_scale = sa.saturating_mul(e);
         let odd = e % 2 == 1;
         // Base 0 ou 1 (inteira): o resultado não cresce, qualquer que seja o expoente.
         if !negative && self.scale == 0 && (self.mag.is_zero() || self.mag.is_one()) {
-            let neg = if self.mag.is_zero() { e == 1 && self.neg } else { self.neg && odd };
-            return Ok((Num { neg, mag: self.mag.clone(), scale: 0 }, warn));
+            let neg = if self.mag.is_zero() {
+                e == 1 && self.neg
+            } else {
+                self.neg && odd
+            };
+            return Ok((
+                Num {
+                    neg,
+                    mag: self.mag.clone(),
+                    scale: 0,
+                },
+                warn,
+            ));
         }
         // Dígitos do resultado exato antes de truncar.
         check_digits(self.digits_est().saturating_mul(e))?;
         let mag = self.mag.pow(e as u32);
-        let neg = if mag.is_zero() { e == 1 && self.neg } else { self.neg && odd };
-        let power = Num { neg, mag, scale: full_scale as u32 };
+        let neg = if mag.is_zero() {
+            e == 1 && self.neg
+        } else {
+            self.neg && odd
+        };
+        let power = Num {
+            neg,
+            mag,
+            scale: full_scale as u32,
+        };
         if negative {
             let one = Num::one();
             return match one.div(&power, rscale as u32)? {
@@ -367,8 +472,16 @@ impl Num {
         check_digits(2 * u64::from(rscale) + self.int_digits_est())?;
         // floor(sqrt(m / 10^s) * 10^r) = floor(sqrt(m * 10^(2r - s)))
         let shift = 2 * i64::from(rscale) - i64::from(self.scale);
-        let n = if shift >= 0 { &self.mag * pow10(shift as u64)? } else { &self.mag / pow10(shift.unsigned_abs())? };
-        Ok(Some(Num { neg: false, mag: n.sqrt(), scale: rscale }))
+        let n = if shift >= 0 {
+            &self.mag * pow10(shift as u64)?
+        } else {
+            &self.mag / pow10(shift.unsigned_abs())?
+        };
+        Ok(Some(Num {
+            neg: false,
+            mag: n.sqrt(),
+            scale: rscale,
+        }))
     }
 
     /// Valor da parte inteira de |x| como `u64`, se couber.
@@ -395,7 +508,8 @@ impl Num {
         check_digits((int_part.len() + frac_part.len()) as u64 * 2 + 2)?;
         let base = BigUint::from(ibase);
         let top = ibase - 1;
-        let int = if ibase == 10 && int_part.iter().all(u8::is_ascii_digit) && !int_part.is_empty() {
+        let int = if ibase == 10 && int_part.iter().all(u8::is_ascii_digit) && !int_part.is_empty()
+        {
             BigUint::parse_bytes(int_part, 10).unwrap_or_default()
         } else if int_part.len() == 1 {
             BigUint::from(digit(int_part[0]))
@@ -408,7 +522,11 @@ impl Num {
         };
         let n = frac_part.len() as u32;
         if n == 0 {
-            return Ok(Num { neg: false, mag: int, scale: 0 });
+            return Ok(Num {
+                neg: false,
+                mag: int,
+                scale: 0,
+            });
         }
         let ten_n = pow10(u64::from(n))?;
         let frac = if ibase == 10 && frac_part.iter().all(u8::is_ascii_digit) {
@@ -420,7 +538,11 @@ impl Num {
             }
             num * &ten_n / base.pow(n)
         };
-        Ok(Num { neg: false, mag: int * ten_n + frac, scale: n })
+        Ok(Num {
+            neg: false,
+            mag: int * ten_n + frac,
+            scale: n,
+        })
     }
 
     /// Escreve o número em `obase` (o `out_num` do GNU), um byte por vez em `out`.
@@ -440,7 +562,10 @@ impl Num {
             let digits = digits.as_bytes();
             let sc = scale as usize;
             let (ip, fp): (Vec<u8>, Vec<u8>) = if digits.len() > sc {
-                (digits[..digits.len() - sc].to_vec(), digits[digits.len() - sc..].to_vec())
+                (
+                    digits[..digits.len() - sc].to_vec(),
+                    digits[digits.len() - sc..].to_vec(),
+                )
             } else {
                 let mut f = vec![b'0'; sc - digits.len()];
                 f.extend_from_slice(digits);
@@ -622,9 +747,18 @@ mod tests {
         assert_eq!(r("2.5", "0", 3), "1");
         assert_eq!(r("-0.0395", "19", 0), "-0");
         assert_eq!(r("-2", "-1", 10), "-.5000000000");
-        assert_eq!(n("1").raise(&n("2147483649"), 0).unwrap().0.to_text(10), "1");
-        assert_eq!(n("1").raise(&n("2147483650"), 0).unwrap_err(), RaiseError::TooLarge);
-        assert_eq!(n("0").raise(&n("-1"), 0).unwrap_err(), RaiseError::DivideByZero);
+        assert_eq!(
+            n("1").raise(&n("2147483649"), 0).unwrap().0.to_text(10),
+            "1"
+        );
+        assert_eq!(
+            n("1").raise(&n("2147483650"), 0).unwrap_err(),
+            RaiseError::TooLarge
+        );
+        assert_eq!(
+            n("0").raise(&n("-1"), 0).unwrap_err(),
+            RaiseError::DivideByZero
+        );
         assert!(n("2").raise(&n("1.5"), 0).unwrap().1);
     }
 
@@ -645,7 +779,10 @@ mod tests {
 
     #[test]
     fn sqrt_and_length() {
-        assert_eq!(t(&n("2").sqrt(30).unwrap().unwrap()), "1.414213562373095048801688724209");
+        assert_eq!(
+            t(&n("2").sqrt(30).unwrap().unwrap()),
+            "1.414213562373095048801688724209"
+        );
         assert_eq!(t(&n("1.00").sqrt(5).unwrap().unwrap()), "1");
         assert_eq!(n("0.000").sqrt(5).unwrap().unwrap().scale(), 0);
         assert_eq!(t(&n("2.25").sqrt(0).unwrap().unwrap()), "1.50");

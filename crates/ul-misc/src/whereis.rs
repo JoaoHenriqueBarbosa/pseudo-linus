@@ -138,7 +138,14 @@ struct Whereis {
 /// Entradas de um diretório como o `readdir`, com `.` e `..`; `None` se não abre.
 fn readdir_all(path: &[u8]) -> Option<Vec<Vec<u8>>> {
     let s = sys::current();
-    let fd = s.openat(Fd::CWD, path, OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC, 0).ok()?;
+    let fd = s
+        .openat(
+            Fd::CWD,
+            path,
+            OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC,
+            0,
+        )
+        .ok()?;
     let mut out = Vec::new();
     loop {
         match s.getdents(fd) {
@@ -165,7 +172,12 @@ fn filename_equal(cp: &[u8], dp: &[u8], typ: u32, use_glob: bool) -> bool {
     if use_glob {
         return fnmatch(cp, dp);
     }
-    if typ & SRC_DIR != 0 && dp.len() >= 2 && dp[0] == b's' && dp[1] == b'.' && filename_equal(cp, &dp[2..], typ, use_glob) {
+    if typ & SRC_DIR != 0
+        && dp.len() >= 2
+        && dp[0] == b's'
+        && dp[1] == b'.'
+        && filename_equal(cp, &dp[2..], typ, use_glob)
+    {
         return true;
     }
 
@@ -217,17 +229,28 @@ impl Whereis {
     /// `dirlist_add_dir`.
     fn add_dir(&mut self, typ: u32, dir: &[u8]) {
         let s = sys::current();
-        if s.faccessat(Fd::CWD, dir, AccessMode::R_OK, AtFlags::empty()).is_err() {
+        if s.faccessat(Fd::CWD, dir, AccessMode::R_OK, AtFlags::empty())
+            .is_err()
+        {
             return;
         }
         let Ok(st) = sys::stat(dir) else { return };
         if st.file_type() != FileType::Directory {
             return;
         }
-        if self.dirs.iter().any(|d| d.ino == st.ino && d.dev == st.dev && d.typ == typ) {
+        if self
+            .dirs
+            .iter()
+            .any(|d| d.ino == st.ino && d.dev == st.dev && d.typ == typ)
+        {
             return;
         }
-        self.dirs.push(Dir { typ, dev: st.dev, ino: st.ino, path: canonicalize_path(dir) });
+        self.dirs.push(Dir {
+            typ,
+            dev: st.dev,
+            ino: st.ino,
+            path: canonicalize_path(dir),
+        });
     }
 
     /// `dirlist_add_subdir`: o primeiro `*` do caminho vira cada subdiretório do pai.
@@ -235,7 +258,9 @@ impl Whereis {
         let Some(star) = dir.find('*') else { return };
         let prefix = &dir[..star];
         let postfix = &dir[star + 1..];
-        let Some(entries) = readdir_all(prefix.as_bytes()) else { return };
+        let Some(entries) = readdir_all(prefix.as_bytes()) else {
+            return;
+        };
         for name in entries {
             if name == b"." || name == b".." {
                 continue;
@@ -271,8 +296,18 @@ impl Whereis {
     }
 
     /// `findin`: imprime os nomes de `dir` que casam com `pattern`.
-    fn findin(&self, out: &mut impl Write, dir: &[u8], pattern: &[u8], count: &mut u32, wait: &mut Option<Vec<u8>>, typ: u32) {
-        let Some(entries) = readdir_all(dir) else { return };
+    fn findin(
+        &self,
+        out: &mut impl Write,
+        dir: &[u8],
+        pattern: &[u8],
+        count: &mut u32,
+        wait: &mut Option<Vec<u8>>,
+        typ: u32,
+    ) {
+        let Some(entries) = readdir_all(dir) else {
+            return;
+        };
         for name in entries {
             if !filename_equal(pattern, &name, typ, self.use_glob) {
                 continue;
@@ -383,7 +418,12 @@ fn run(args: &[OsString]) -> i32 {
         return 0;
     }
 
-    let mut w = Whereis { dirs: Vec::new(), uflag: false, use_glob: false, short: short.clone() };
+    let mut w = Whereis {
+        dirs: Vec::new(),
+        uflag: false,
+        use_glob: false,
+        short: short.clone(),
+    };
     w.construct_dirlist(BIN_DIR, BINDIRS);
     w.construct_from_env("PATH", BIN_DIR);
     w.construct_dirlist(MAN_DIR, MANDIRS);

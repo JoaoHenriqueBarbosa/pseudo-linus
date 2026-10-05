@@ -8,7 +8,7 @@ use std::io::Write;
 
 use sysabi::{Ctx, FileType, sys};
 
-use super::terminfo::{TermType, Str, db_dirs, name_match, read_file_entry};
+use super::terminfo::{Str, TermType, db_dirs, name_match, read_file_entry};
 use super::{VERSION, first_name, rootname};
 use crate::util::io;
 use crate::util::{Getopt, GetoptError};
@@ -40,7 +40,10 @@ fn string_sum(value: &Str) -> u64 {
 }
 
 fn checksum_of(tp: &TermType) -> u64 {
-    let mut result = tp.names.iter().fold(0u64, |a, b| a.wrapping_add(u64::from(*b)));
+    let mut result = tp
+        .names
+        .iter()
+        .fold(0u64, |a, b| a.wrapping_add(u64::from(*b)));
     for b in &tp.bools {
         result = result.wrapping_add(i64::from(*b) as u64);
     }
@@ -72,7 +75,10 @@ fn typelist(dirs: &[Vec<u8>], verbosity: bool, hook: Hook, progname: &str) -> i3
             Ok(e) => e,
             Err(_) => {
                 let _ = io::flush_stdout();
-                io::eprint(format!("{progname}: can't open terminfo directory {}\n", io::lossy(dir)));
+                io::eprint(format!(
+                    "{progname}: can't open terminfo directory {}\n",
+                    io::lossy(dir)
+                ));
                 continue;
             }
         };
@@ -87,7 +93,9 @@ fn typelist(dirs: &[Vec<u8>], verbosity: bool, hook: Hook, progname: &str) -> i3
             cwd.push(b'/');
             cwd.extend_from_slice(&sub.name);
             cwd.push(b'/');
-            let Some(s) = sys::try_current() else { continue };
+            let Some(s) = sys::try_current() else {
+                continue;
+            };
             if s.chdir(&cwd).is_err() {
                 continue;
             }
@@ -100,12 +108,17 @@ fn typelist(dirs: &[Vec<u8>], verbosity: bool, hook: Hook, progname: &str) -> i3
             };
             for entry in inner {
                 let name2 = entry.name;
-                if is_dotname(&name2) || !sys::stat(&name2).is_ok_and(|s| s.file_type() == FileType::Regular) {
+                if is_dotname(&name2)
+                    || !sys::stat(&name2).is_ok_and(|s| s.file_type() == FileType::Regular)
+                {
                     continue;
                 }
                 let Some(lterm) = read_file_entry(&name2, true) else {
                     let _ = io::flush_stdout();
-                    io::eprint(format!("{progname}: couldn't open terminfo file {}.\n", io::lossy(&name2)));
+                    io::eprint(format!(
+                        "{progname}: couldn't open terminfo file {}.\n",
+                        io::lossy(&name2)
+                    ));
                     continue;
                 };
                 // Só visita pelo nome primário.
@@ -120,7 +133,11 @@ fn typelist(dirs: &[Vec<u8>], verbosity: bool, hook: Hook, progname: &str) -> i3
                         }
                         Hook::Sort => collected.push(TermData {
                             db_index: i,
-                            checksum: if dirs.len() > 1 { checksum_of(&lterm) } else { 0 },
+                            checksum: if dirs.len() > 1 {
+                                checksum_of(&lterm)
+                            } else {
+                                0
+                            },
                             term_name: cn.to_vec(),
                             description: term_description(&lterm.names),
                         }),
@@ -153,7 +170,11 @@ fn show_termdata_full(data: &mut [TermData], dirs: &[Vec<u8>]) {
         }
     }
     if data.len() > 1 {
-        data.sort_by(|a, b| a.term_name.cmp(&b.term_name).then(a.db_index.cmp(&b.db_index)));
+        data.sort_by(|a, b| {
+            a.term_name
+                .cmp(&b.term_name)
+                .then(a.db_index.cmp(&b.db_index))
+        });
     }
     let mut n = 0usize;
     while n < data.len() {
@@ -162,7 +183,11 @@ fn show_termdata_full(data: &mut [TermData], dirs: &[Vec<u8>]) {
             let mut check: u64 = 0;
             let mut k = 0usize;
             loop {
-                let mark = if check == 0 || check != data[n].checksum { b'*' } else { b'+' };
+                let mark = if check == 0 || check != data[n].checksum {
+                    b'*'
+                } else {
+                    b'+'
+                };
                 while k < data[n].db_index {
                     let _ = o.write_all(b"--");
                     k += 1;
@@ -234,7 +259,11 @@ fn read_source(data: &[u8]) -> Vec<SrcEntry> {
                 let names = fields[0].clone();
                 let mut uses = Vec::new();
                 for f in &fields[1..] {
-                    let t: Vec<u8> = f.iter().copied().skip_while(|b| super::c_isspace(*b)).collect();
+                    let t: Vec<u8> = f
+                        .iter()
+                        .copied()
+                        .skip_while(|b| super::c_isspace(*b))
+                        .collect();
                     if let Some(u) = t.strip_prefix(b"use=") {
                         uses.push(u.to_vec());
                     }
@@ -365,7 +394,10 @@ fn run(args: &[OsString]) -> i32 {
     if !operands.is_empty() {
         return typelist(&operands, header, hook, &progname);
     }
-    let dirs: Vec<Vec<u8>> = db_dirs(None).into_iter().filter(|d| !(d.starts_with(b"b64:") || d.starts_with(b"hex:"))).collect();
+    let dirs: Vec<Vec<u8>> = db_dirs(None)
+        .into_iter()
+        .filter(|d| !(d.starts_with(b"b64:") || d.starts_with(b"hex:")))
+        .collect();
     if all_dirs {
         typelist(&dirs, header, hook, &progname)
     } else {

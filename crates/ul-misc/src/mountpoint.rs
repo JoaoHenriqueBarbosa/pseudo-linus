@@ -71,7 +71,10 @@ fn unmangle(s: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(s.len());
     let mut i = 0;
     while i < s.len() {
-        if s[i] == b'\\' && i + 3 < s.len() && s[i + 1..i + 4].iter().all(|b| (b'0'..=b'7').contains(b)) {
+        if s[i] == b'\\'
+            && i + 3 < s.len()
+            && s[i + 1..i + 4].iter().all(|b| (b'0'..=b'7').contains(b))
+        {
             out.push(((s[i + 1] - b'0') << 6) | ((s[i + 2] - b'0') << 3) | (s[i + 3] - b'0'));
             i += 4;
         } else {
@@ -94,15 +97,31 @@ fn read_mountinfo() -> Option<Vec<MountEntry>> {
     let data = sys::read_file(b"/proc/self/mountinfo").ok()?;
     let mut out = Vec::new();
     for line in data.split(|b| *b == b'\n') {
-        let fields: Vec<&[u8]> = line.split(|b| *b == b' ').filter(|f| !f.is_empty()).collect();
+        let fields: Vec<&[u8]> = line
+            .split(|b| *b == b' ')
+            .filter(|f| !f.is_empty())
+            .collect();
         if fields.len() < 5 {
             continue;
         }
         let devno = fields[2];
-        let Some(colon) = devno.iter().position(|b| *b == b':') else { continue };
-        let parse = |s: &[u8]| std::str::from_utf8(s).ok().and_then(|t| t.parse::<u32>().ok());
-        let (Some(major), Some(minor)) = (parse(&devno[..colon]), parse(&devno[colon + 1..])) else { continue };
-        out.push(MountEntry { major, minor, target: unmangle(fields[4]) });
+        let Some(colon) = devno.iter().position(|b| *b == b':') else {
+            continue;
+        };
+        let parse = |s: &[u8]| {
+            std::str::from_utf8(s)
+                .ok()
+                .and_then(|t| t.parse::<u32>().ok())
+        };
+        let (Some(major), Some(minor)) = (parse(&devno[..colon]), parse(&devno[colon + 1..]))
+        else {
+            continue;
+        };
+        out.push(MountEntry {
+            major,
+            minor,
+            target: unmangle(fields[4]),
+        });
     }
     Some(out)
 }
@@ -272,7 +291,11 @@ fn run(args: &[OsString]) -> i32 {
     }
 
     let path = &operands[0];
-    let st = match if nofollow { sys::lstat(path) } else { sys::stat(path) } {
+    let st = match if nofollow {
+        sys::lstat(path)
+    } else {
+        sys::stat(path)
+    } {
         Ok(st) => st,
         Err(e) => {
             if !quiet {
@@ -294,7 +317,11 @@ fn run(args: &[OsString]) -> i32 {
         return 0;
     }
 
-    let dev = if nofollow && st.file_type() == FileType::Symlink { None } else { dir_to_device(path, &st) };
+    let dev = if nofollow && st.file_type() == FileType::Symlink {
+        None
+    } else {
+        dir_to_device(path, &st)
+    };
     let Some((maj, min)) = dev else {
         if !quiet {
             let mut line = path.clone();

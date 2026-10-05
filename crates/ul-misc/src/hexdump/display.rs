@@ -9,8 +9,9 @@ use crate::util::io;
 
 /// Nomes do `%_u` pros bytes de controle (o od usava `nl`, aqui é `lf`).
 const CONV_U_NAMES: [&str; 32] = [
-    "nul", "soh", "stx", "etx", "eot", "enq", "ack", "bel", "bs", "ht", "lf", "vt", "ff", "cr", "so", "si", "dle",
-    "dc1", "dc2", "dc3", "dc4", "nak", "syn", "etb", "can", "em", "sub", "esc", "fs", "gs", "rs", "us",
+    "nul", "soh", "stx", "etx", "eot", "enq", "ack", "bel", "bs", "ht", "lf", "vt", "ff", "cr",
+    "so", "si", "dle", "dc1", "dc2", "dc3", "dc4", "nak", "syn", "etb", "can", "em", "sub", "esc",
+    "fs", "gs", "rs", "us",
 ];
 
 /// `isprint` do C.UTF-8 pra um byte isolado: só o ASCII imprimível.
@@ -114,7 +115,11 @@ impl Hexdump {
 
     /// `print`: uma unidade de impressão sobre os bytes em `block[bp..]`.
     fn print_pr(&mut self, pr: &mut Pr, fmt_len: usize, block: &[u8], bp: usize) {
-        let color = if pr.colorlist.is_some() { self.color_cond(pr, block, bp, pr.bcnt) } else { None };
+        let color = if pr.colorlist.is_some() {
+            self.color_cond(pr, block, bp, pr.bcnt)
+        } else {
+            None
+        };
         if let Some(c) = color {
             self.out.extend_from_slice(c.as_bytes());
         }
@@ -179,7 +184,10 @@ impl Hexdump {
             }
             Kind::P => {
                 let fmt = pr.fmt[..fmt_len].to_vec();
-                self.printf(&fmt, Arg::Int(u64::from(if is_print(b0) { b0 } else { b'.' })));
+                self.printf(
+                    &fmt,
+                    Arg::Int(u64::from(if is_print(b0) { b0 } else { b'.' })),
+                );
             }
             Kind::Str => {
                 let tail = block.get(bp..).unwrap_or(&[]);
@@ -194,7 +202,11 @@ impl Hexdump {
             }
             Kind::U => {
                 if b0 <= 0x1f || b0 == 0x7f {
-                    let name = if b0 == 0x7f { "del" } else { CONV_U_NAMES[usize::from(b0)] };
+                    let name = if b0 == 0x7f {
+                        "del"
+                    } else {
+                        CONV_U_NAMES[usize::from(b0)]
+                    };
                     pr.fmt[pr.cchar] = b's';
                     let fmt = pr.fmt[..fmt_len].to_vec();
                     self.printf(&fmt, Arg::Str(name.as_bytes()));
@@ -279,8 +291,11 @@ impl Hexdump {
             }
             let prs = fss[fsi].fus[fui].prs.clone();
             for pr in &prs {
-                let color =
-                    if self.colors && pr.colorlist.is_some() { self.color_cond(pr, &[], 0, pr.bcnt) } else { None };
+                let color = if self.colors && pr.colorlist.is_some() {
+                    self.color_cond(pr, &[], 0, pr.bcnt)
+                } else {
+                    None
+                };
                 if let Some(c) = color {
                     self.out.extend_from_slice(c.as_bytes());
                 }
@@ -310,7 +325,10 @@ impl Hexdump {
             if a.try_reserve_exact(bs).is_err() || b.try_reserve_exact(bs).is_err() {
                 let p = self.prog.clone();
                 self.flush_out();
-                io::eprint(format!("{p}: cannot allocate {bs} bytes: {}\n", Errno::ENOMEM.message()));
+                io::eprint(format!(
+                    "{p}: cannot allocate {bs} bytes: {}\n",
+                    Errno::ENOMEM.message()
+                ));
                 sys::exit(1);
             }
             a.resize(bs, 0);
@@ -328,7 +346,8 @@ impl Hexdump {
                 if need == bs {
                     return false;
                 }
-                if need == 0 && self.vflag != VFlag::All && self.curp[..nread] == self.savp[..nread] {
+                if need == 0 && self.vflag != VFlag::All && self.curp[..nread] == self.savp[..nread]
+                {
                     if self.vflag != VFlag::Dup {
                         self.out.extend_from_slice(b"*\n");
                     }
@@ -344,7 +363,11 @@ impl Hexdump {
                 self.warn("all input file arguments failed");
                 return false;
             };
-            let want = if self.length == -1 { need } else { (self.length.max(0) as usize).min(need) };
+            let want = if self.length == -1 {
+                need
+            } else {
+                (self.length.max(0) as usize).min(need)
+            };
             let (n, err) = fread(fd, &mut self.curp[nread..nread + want]);
             if n == 0 {
                 if let Some(e) = err {
@@ -360,7 +383,8 @@ impl Hexdump {
             }
             need -= n;
             if need == 0 {
-                if self.vflag == VFlag::All || self.vflag == VFlag::First || self.curp != self.savp {
+                if self.vflag == VFlag::All || self.vflag == VFlag::First || self.curp != self.savp
+                {
                     if self.vflag == VFlag::Dup || self.vflag == VFlag::First {
                         self.vflag = VFlag::Wait;
                     }
@@ -430,7 +454,10 @@ impl Hexdump {
             let st = match fd.map(|fd| sys::current().fstat(fd)) {
                 Some(Ok(st)) => st,
                 Some(Err(e)) => fatal(self, &format!("{}: {}", io::lossy(fname), e.message())),
-                None => fatal(self, &format!("{}: {}", io::lossy(fname), Errno::EBADF.message())),
+                None => fatal(
+                    self,
+                    &format!("{}: {}", io::lossy(fname), Errno::EBADF.message()),
+                ),
             };
             if st.file_type() == FileType::Regular && self.skip > st.size as i64 {
                 self.skip -= st.size as i64;
@@ -439,7 +466,9 @@ impl Hexdump {
             }
         }
         let r = match fd {
-            Some(fd) if self.skip >= 0 => sys::current().lseek(fd, self.skip, Whence::Set).map(|_| ()),
+            Some(fd) if self.skip >= 0 => {
+                sys::current().lseek(fd, self.skip, Whence::Set).map(|_| ())
+            }
             Some(_) => Err(Errno::EINVAL),
             None => Err(Errno::EBADF),
         };

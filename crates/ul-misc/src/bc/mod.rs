@@ -59,14 +59,22 @@ fn run(args: &[OsString]) -> i32 {
     let argv0 = io::argv0(args);
     // BC_ENV_ARGS: palavras separadas por espaço, antes dos argumentos da linha de comando.
     if let Some(env) = sys::getenv("BC_ENV_ARGS") {
-        let words: Vec<Vec<u8>> =
-            env.split(|c| matches!(c, b' ' | b'\t' | b'\n')).filter(|w| !w.is_empty()).map(<[u8]>::to_vec).collect();
+        let words: Vec<Vec<u8>> = env
+            .split(|c| matches!(c, b' ' | b'\t' | b'\n'))
+            .filter(|w| !w.is_empty())
+            .map(<[u8]>::to_vec)
+            .collect();
         let at = argv.len().min(1);
         argv.splice(at..at, words);
     }
-    let rest = if argv.is_empty() { &argv[..] } else { &argv[1..] };
+    let rest = if argv.is_empty() {
+        &argv[..]
+    } else {
+        &argv[1..]
+    };
     let mut g = Getopt::from_env(rest, "chilqswv", LONGS);
-    let (mut interactive, mut mathlib, mut quiet, mut std_only, mut warn) = (false, false, false, false, false);
+    let (mut interactive, mut mathlib, mut quiet, mut std_only, mut warn) =
+        (false, false, false, false, false);
     while let Some(opt) = g.next_opt() {
         match opt {
             Ok(o) => match o.short() {

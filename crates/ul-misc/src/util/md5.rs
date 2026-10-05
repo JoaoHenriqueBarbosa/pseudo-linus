@@ -9,8 +9,9 @@ pub struct Md5 {
 }
 
 const SHIFTS: [u32; 64] = [
-    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 4, 11,
-    16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9,
+    14, 20, 5, 9, 14, 20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10, 15,
+    21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
 ];
 
 /// As 64 constantes `floor(2^32 * abs(sin(i + 1)))`.
@@ -26,13 +27,23 @@ impl Default for Md5 {
 
 impl Md5 {
     pub fn new() -> Md5 {
-        Md5 { state: [0x6745_2301, 0xefcd_ab89, 0x98ba_dcfe, 0x1032_5476], buf: [0; 64], buflen: 0, total: 0 }
+        Md5 {
+            state: [0x6745_2301, 0xefcd_ab89, 0x98ba_dcfe, 0x1032_5476],
+            buf: [0; 64],
+            buflen: 0,
+            total: 0,
+        }
     }
 
     fn block(&mut self, chunk: &[u8; 64]) {
         let mut m = [0u32; 16];
         for (i, w) in m.iter_mut().enumerate() {
-            *w = u32::from_le_bytes([chunk[i * 4], chunk[i * 4 + 1], chunk[i * 4 + 2], chunk[i * 4 + 3]]);
+            *w = u32::from_le_bytes([
+                chunk[i * 4],
+                chunk[i * 4 + 1],
+                chunk[i * 4 + 2],
+                chunk[i * 4 + 3],
+            ]);
         }
         let [mut a, mut b, mut c, mut d] = self.state;
         for (i, &shift) in SHIFTS.iter().enumerate() {
@@ -45,7 +56,12 @@ impl Md5 {
             let tmp = d;
             d = c;
             c = b;
-            b = b.wrapping_add(a.wrapping_add(f).wrapping_add(k(i)).wrapping_add(m[g]).rotate_left(shift));
+            b = b.wrapping_add(
+                a.wrapping_add(f)
+                    .wrapping_add(k(i))
+                    .wrapping_add(m[g])
+                    .rotate_left(shift),
+            );
             a = tmp;
         }
         self.state[0] = self.state[0].wrapping_add(a);

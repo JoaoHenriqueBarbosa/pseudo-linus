@@ -24,11 +24,13 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 }
 
 fn is_executable_file(path: &[u8]) -> bool {
-    let Some(s) = sys::try_current() else { return false };
+    let Some(s) = sys::try_current() else {
+        return false;
+    };
     match s.fstatat(Fd::CWD, path, AtFlags::empty()) {
-        Ok(st) if st.file_type() == FileType::Regular => {
-            s.faccessat(Fd::CWD, path, AccessMode::X_OK, AtFlags::empty()).is_ok()
-        }
+        Ok(st) if st.file_type() == FileType::Regular => s
+            .faccessat(Fd::CWD, path, AccessMode::X_OK, AtFlags::empty())
+            .is_ok(),
         _ => false,
     }
 }
@@ -149,7 +151,12 @@ mod tests {
 
     #[test]
     fn path_splitting_matches_dash_ifs() {
-        let f = |p: &str| -> Vec<String> { path_elements(p.as_bytes()).iter().map(|e| io::lossy(e)).collect() };
+        let f = |p: &str| -> Vec<String> {
+            path_elements(p.as_bytes())
+                .iter()
+                .map(|e| io::lossy(e))
+                .collect()
+        };
         assert_eq!(f("/a:/b"), vec!["/a", "/b"]);
         assert_eq!(f("/a:"), vec!["/a", ""]);
         assert_eq!(f("/a::"), vec!["/a", ""]);
@@ -172,7 +179,10 @@ mod tests {
             .file("/work/notexec", "x", 0o644)
             .env("PATH", "/usr/local/bin:/usr/bin:/bin");
         let r = kit.run(&["which", "ls"], b"");
-        assert_eq!((r.stdout_str().as_str(), r.code()), ("/usr/local/bin/ls\n", 0));
+        assert_eq!(
+            (r.stdout_str().as_str(), r.code()),
+            ("/usr/local/bin/ls\n", 0)
+        );
         let r = kit.run(&["which", "-a", "ls", "nope"], b"");
         assert_eq!(r.stdout_str(), "/usr/local/bin/ls\n/usr/bin/ls\n/bin/ls\n");
         assert_eq!(r.code(), 1);
@@ -187,7 +197,10 @@ mod tests {
         let r = kit.run(&["which"], b"");
         assert_eq!(r.code(), 1);
         let r = kit.run(&["which", "ls", "-a"], b"");
-        assert_eq!((r.stdout_str().as_str(), r.code()), ("/usr/local/bin/ls\n", 1));
+        assert_eq!(
+            (r.stdout_str().as_str(), r.code()),
+            ("/usr/local/bin/ls\n", 1)
+        );
         let kit = kit.env("PATH", "/usr/bin:");
         let r = kit.run(&["/usr/bin/which", "-a", "x"], b"");
         assert_eq!(r.stdout_str(), "./x\n");

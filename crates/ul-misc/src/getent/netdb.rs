@@ -34,11 +34,19 @@ pub fn parse_service(line: &[u8]) -> Option<Service> {
     let port = c.int_field(is_slash, true, 0)?;
     let proto = c.string_field(is_space, true).to_vec();
     let aliases = c.parse_list(0, is_space);
-    Some(Service { name, port: port as u16, proto, aliases })
+    Some(Service {
+        name,
+        port: port as u16,
+        proto,
+        aliases,
+    })
 }
 
 pub fn read_services() -> Result<Vec<Service>, Errno> {
-    Ok(read_db_lines(b"/etc/services", b"#")?.iter().filter_map(|l| parse_service(l)).collect())
+    Ok(read_db_lines(b"/etc/services", b"#")?
+        .iter()
+        .filter_map(|l| parse_service(l))
+        .collect())
 }
 
 pub fn format_service(s: &Service) -> Vec<u8> {
@@ -77,11 +85,18 @@ pub fn parse_protocol(line: &[u8]) -> Option<Protocol> {
     let name = c.string_field(is_space, true).to_vec();
     let number = c.int_field(is_space, true, 10)?;
     let aliases = c.parse_list(0, is_space);
-    Some(Protocol { name, number: number as u32 as i32, aliases })
+    Some(Protocol {
+        name,
+        number: number as u32 as i32,
+        aliases,
+    })
 }
 
 pub fn read_protocols() -> Result<Vec<Protocol>, Errno> {
-    Ok(read_db_lines(b"/etc/protocols", b"#")?.iter().filter_map(|l| parse_protocol(l)).collect())
+    Ok(read_db_lines(b"/etc/protocols", b"#")?
+        .iter()
+        .filter_map(|l| parse_protocol(l))
+        .collect())
 }
 
 pub fn format_protocol(p: &Protocol) -> Vec<u8> {
@@ -111,11 +126,18 @@ pub fn parse_rpc(line: &[u8]) -> Option<Rpc> {
     let name = c.string_field(is_space, true).to_vec();
     let number = c.int_field(is_space, true, 10)?;
     let aliases = c.parse_list(0, is_space);
-    Some(Rpc { name, number: number as u32 as i32, aliases })
+    Some(Rpc {
+        name,
+        number: number as u32 as i32,
+        aliases,
+    })
 }
 
 pub fn read_rpc() -> Result<Vec<Rpc>, Errno> {
-    Ok(read_db_lines(b"/etc/rpc", b"#")?.iter().filter_map(|l| parse_rpc(l)).collect())
+    Ok(read_db_lines(b"/etc/rpc", b"#")?
+        .iter()
+        .filter_map(|l| parse_rpc(l))
+        .collect())
 }
 
 /// `print_rpc`: o número é seguido de um espaço extra antes do primeiro alias (como no getent).
@@ -171,7 +193,10 @@ pub fn parse_network(line: &[u8]) -> Option<Network> {
 }
 
 pub fn read_networks() -> Result<Vec<Network>, Errno> {
-    Ok(read_db_lines(b"/etc/networks", b"#")?.iter().filter_map(|l| parse_network(l)).collect())
+    Ok(read_db_lines(b"/etc/networks", b"#")?
+        .iter()
+        .filter_map(|l| parse_network(l))
+        .collect())
 }
 
 pub fn format_network(n: &Network) -> Vec<u8> {
@@ -200,7 +225,11 @@ pub fn parse_ether(line: &[u8]) -> Option<Ether> {
     let mut c = Cursor::new(line);
     let mut addr = [0u8; 6];
     for (i, slot) in addr.iter_mut().enumerate() {
-        let number = if i < 5 { c.int_field(is_colon, false, 16)? } else { c.int_field(is_space, true, 16)? };
+        let number = if i < 5 {
+            c.int_field(is_colon, false, 16)?
+        } else {
+            c.int_field(is_space, true, 16)?
+        };
         if number > 0xff {
             return None;
         }
@@ -211,7 +240,10 @@ pub fn parse_ether(line: &[u8]) -> Option<Ether> {
 }
 
 pub fn read_ethers() -> Result<Vec<Ether>, Errno> {
-    Ok(read_db_lines(b"/etc/ethers", b"#")?.iter().filter_map(|l| parse_ether(l)).collect())
+    Ok(read_db_lines(b"/etc/ethers", b"#")?
+        .iter()
+        .filter_map(|l| parse_ether(l))
+        .collect())
 }
 
 /// `printf ("%s %s\n", ether_ntoa (ethp), name)`.
@@ -284,7 +316,12 @@ pub fn parse_host(line: &[u8], af: Af, v4mapped: bool) -> Option<HostLine> {
     };
     let name = c.string_field(is_space, true).to_vec();
     let aliases = c.parse_list(0, is_space);
-    Some(HostLine { af: res_af, addr, name, aliases })
+    Some(HostLine {
+        af: res_af,
+        addr,
+        name,
+        aliases,
+    })
 }
 
 fn parse_addr(af: Af, text: &[u8]) -> Option<Vec<u8>> {
@@ -297,7 +334,10 @@ fn parse_addr(af: Af, text: &[u8]) -> Option<Vec<u8>> {
 
 /// As linhas legíveis de `/etc/hosts` no formato pedido.
 pub fn read_hosts(af: Af, v4mapped: bool) -> Result<Vec<HostLine>, Errno> {
-    Ok(read_db_lines(b"/etc/hosts", b"#")?.iter().filter_map(|l| parse_host(l, af, v4mapped)).collect())
+    Ok(read_db_lines(b"/etc/hosts", b"#")?
+        .iter()
+        .filter_map(|l| parse_host(l, af, v4mapped))
+        .collect())
 }
 
 /// O `HostLine` casa o nome (principal ou alias), sem diferenciar maiúsculas.
@@ -397,8 +437,14 @@ pub fn files_host_by_name(name: &[u8], af: Af, multi: bool) -> (super::nss::Stat
         Err(_) => return (Status::Unavail, None),
     };
     let mut iter = lines.into_iter().filter(|h| host_matches(h, name));
-    let Some(first) = iter.next() else { return (Status::NotFound, None) };
-    let mut host = Host { name: first.name.clone(), aliases: first.aliases.clone(), addrs: vec![first.addr.clone()] };
+    let Some(first) = iter.next() else {
+        return (Status::NotFound, None);
+    };
+    let mut host = Host {
+        name: first.name.clone(),
+        aliases: first.aliases.clone(),
+        addrs: vec![first.addr.clone()],
+    };
     if multi {
         for other in iter {
             host.addrs.push(other.addr.clone());
@@ -415,14 +461,25 @@ pub fn files_host_by_name(name: &[u8], af: Af, multi: bool) -> (super::nss::Stat
 /// família IPv4; 16, IPv6 com os IPv4 mapeados).
 pub fn files_host_by_addr(addr: &[u8]) -> (super::nss::Status, Option<Host>) {
     use super::nss::Status;
-    let (af, mapped) = if addr.len() == 16 { (Af::Inet6, true) } else { (Af::Inet, false) };
+    let (af, mapped) = if addr.len() == 16 {
+        (Af::Inet6, true)
+    } else {
+        (Af::Inet, false)
+    };
     let lines = match read_hosts(af, mapped) {
         Ok(l) => l,
         Err(_) => return (Status::Unavail, None),
     };
     for h in lines {
         if h.addr.len() == addr.len() && h.addr == addr {
-            return (Status::Success, Some(Host { name: h.name, aliases: h.aliases, addrs: vec![h.addr] }));
+            return (
+                Status::Success,
+                Some(Host {
+                    name: h.name,
+                    aliases: h.aliases,
+                    addrs: vec![h.addr],
+                }),
+            );
         }
     }
     (Status::NotFound, None)
@@ -448,7 +505,11 @@ impl<'a> Reader<'a> {
             return None;
         }
         let rest = &self.data[self.pos..];
-        let end = rest.iter().position(|b| *b == b'\n').map(|p| p + 1).unwrap_or(rest.len());
+        let end = rest
+            .iter()
+            .position(|b| *b == b'\n')
+            .map(|p| p + 1)
+            .unwrap_or(rest.len());
         self.pos += end;
         Some(&rest[..end])
     }
@@ -468,7 +529,10 @@ impl<'a> Reader<'a> {
 
 /// Corta a linha no primeiro `#` ou `\n` (e em NUL, que termina a string C).
 fn cut_comment(line: &[u8]) -> &[u8] {
-    let end = line.iter().position(|b| *b == b'#' || *b == b'\n' || *b == 0).unwrap_or(line.len());
+    let end = line
+        .iter()
+        .position(|b| *b == b'#' || *b == b'\n' || *b == 0)
+        .unwrap_or(line.len());
     &line[..end]
 }
 
@@ -481,8 +545,13 @@ enum NextAlias {
 
 /// Lê os membros de um arquivo `:include:`: um por vírgula, brancos antes de cada um, `#` comenta.
 fn read_include(path: &[u8], members: &mut Vec<Vec<u8>>) {
-    let Ok(data) = sys::read_file(path) else { return };
-    let mut r = Reader { data: &data, pos: 0 };
+    let Ok(data) = sys::read_file(path) else {
+        return;
+    };
+    let mut r = Reader {
+        data: &data,
+        pos: 0,
+    };
     while let Some(raw) = r.fgets() {
         let mut line = cut_comment(raw);
         while !line.is_empty() {
@@ -493,7 +562,11 @@ fn read_include(path: &[u8], members: &mut Vec<Vec<u8>>) {
             line = &line[i..];
             let end = line.iter().position(|b| *b == b',').unwrap_or(line.len());
             let piece = &line[..end];
-            line = if end < line.len() { &line[end + 1..] } else { &line[end..] };
+            line = if end < line.len() {
+                &line[end + 1..]
+            } else {
+                &line[end..]
+            };
             if !piece.is_empty() {
                 members.push(piece.to_vec());
             }
@@ -506,7 +579,9 @@ fn read_include(path: &[u8], members: &mut Vec<Vec<u8>>) {
 fn get_next_alias(r: &mut Reader<'_>, matching: Option<&[u8]>) -> NextAlias {
     let mut ignore = false;
     loop {
-        let Some(raw) = r.fgets() else { return NextAlias::Eof };
+        let Some(raw) = r.fgets() else {
+            return NextAlias::Eof;
+        };
         if ignore && raw.first().is_some_and(|b| is_space(*b)) {
             continue;
         }
@@ -537,7 +612,11 @@ fn get_next_alias(r: &mut Reader<'_>, matching: Option<&[u8]>) -> NextAlias {
             let end = rest.iter().position(|b| *b == b',').unwrap_or(rest.len());
             let piece = rest[..end].to_vec();
             if !piece.is_empty() {
-                rest = if end < rest.len() { &rest[end + 1..] } else { &rest[end..] };
+                rest = if end < rest.len() {
+                    &rest[end + 1..]
+                } else {
+                    &rest[end..]
+                };
                 if let Some(path) = piece.strip_prefix(b":include:") {
                     read_include(path, &mut members);
                 } else {
@@ -559,7 +638,11 @@ fn get_next_alias(r: &mut Reader<'_>, matching: Option<&[u8]>) -> NextAlias {
                         if other.is_some() {
                             r.ungetc();
                         }
-                        return if members.is_empty() { NextAlias::Return } else { NextAlias::Found(Alias { name, members }) };
+                        return if members.is_empty() {
+                            NextAlias::Return
+                        } else {
+                            NextAlias::Found(Alias { name, members })
+                        };
                     }
                 }
             }
@@ -570,7 +653,10 @@ fn get_next_alias(r: &mut Reader<'_>, matching: Option<&[u8]>) -> NextAlias {
 /// Todos os aliases de `/etc/aliases` (o `getaliasent`).
 pub fn read_aliases() -> Result<Vec<Alias>, Errno> {
     let data = sys::read_file(b"/etc/aliases")?;
-    let mut r = Reader { data: &data, pos: 0 };
+    let mut r = Reader {
+        data: &data,
+        pos: 0,
+    };
     let mut out = Vec::new();
     loop {
         match get_next_alias(&mut r, None) {
@@ -589,7 +675,10 @@ pub fn alias_by_name(name: &[u8]) -> (super::nss::Status, Option<Alias>) {
         Ok(d) => d,
         Err(_) => return (Status::Unavail, None),
     };
-    let mut r = Reader { data: &data, pos: 0 };
+    let mut r = Reader {
+        data: &data,
+        pos: 0,
+    };
     loop {
         match get_next_alias(&mut r, Some(name)) {
             NextAlias::Found(a) => return (Status::Success, Some(a)),
@@ -610,7 +699,11 @@ pub fn format_alias(a: &Alias) -> Vec<u8> {
     }
     for (k, m) in a.members.iter().enumerate() {
         out.extend_from_slice(m);
-        out.extend_from_slice(if k + 1 == a.members.len() { b"\n" } else { b", " });
+        out.extend_from_slice(if k + 1 == a.members.len() {
+            b"\n"
+        } else {
+            b", "
+        });
     }
     out
 }
@@ -636,9 +729,13 @@ pub fn load_netgroup(group: &[u8]) -> (super::nss::Status, Option<Vec<u8>>) {
         Ok(d) => d,
         Err(_) => return (Status::Unavail, None),
     };
-    let mut r = Reader { data: &data, pos: 0 };
+    let mut r = Reader {
+        data: &data,
+        pos: 0,
+    };
     while let Some(line) = r.fgets() {
-        let found = line.len() > group.len() && line.starts_with(group) && is_space(line[group.len()]);
+        let found =
+            line.len() > group.len() && line.starts_with(group) && is_space(line[group.len()]);
         let mut text: Vec<u8> = Vec::new();
         if found {
             text.extend_from_slice(&line[group.len() + 1..]);
@@ -676,7 +773,11 @@ fn strip_whitespace(s: &[u8]) -> Option<Vec<u8>> {
     while i < s.len() && !is_space(s[i]) {
         i += 1;
     }
-    if start == i { None } else { Some(s[start..i].to_vec()) }
+    if start == i {
+        None
+    } else {
+        Some(s[start..i].to_vec())
+    }
 }
 
 /// Os itens de uma definição (`_nss_netgroup_parseline` em laço): triplas e nomes de outros grupos;
@@ -744,25 +845,40 @@ mod tests {
     #[test]
     fn services_and_protocols() {
         let s = parse_service(b"http 80/tcp www").unwrap();
-        assert_eq!(format_service(&s), b"http                  80/tcp www\n".to_vec());
+        assert_eq!(
+            format_service(&s),
+            b"http                  80/tcp www\n".to_vec()
+        );
         let s = parse_service(b"x 0x50//udp a b").unwrap();
         assert_eq!((s.port, s.proto.as_slice()), (0x50, &b"udp"[..]));
         assert!(parse_service(b"ssh").is_none());
         let p = parse_protocol(b"tcp 6 TCP").unwrap();
-        assert_eq!(format_protocol(&p), b"tcp                   6 TCP\n".to_vec());
+        assert_eq!(
+            format_protocol(&p),
+            b"tcp                   6 TCP\n".to_vec()
+        );
         let r = parse_rpc(b"portmapper 100000 portmap sunrpc").unwrap();
-        assert_eq!(format_rpc(&r), b"portmapper      100000  portmap sunrpc\n".to_vec());
+        assert_eq!(
+            format_rpc(&r),
+            b"portmapper      100000  portmap sunrpc\n".to_vec()
+        );
     }
 
     #[test]
     fn networks_and_ethers() {
         let n = parse_network(b"loopback 127.0.0.0").unwrap();
         assert_eq!(n.net, 0x7f00_0000);
-        assert_eq!(format_network(&n), b"loopback              127.0.0.0\n".to_vec());
+        assert_eq!(
+            format_network(&n),
+            b"loopback              127.0.0.0\n".to_vec()
+        );
         let n = parse_network(b"net10 10").unwrap();
         assert_eq!(n.net, 0x0a00_0000);
         let e = parse_ether(b"00:11:22:33:44:55 host1").unwrap();
-        assert_eq!(format_ether(&e.addr, &e.name), b"0:11:22:33:44:55 host1\n".to_vec());
+        assert_eq!(
+            format_ether(&e.addr, &e.name),
+            b"0:11:22:33:44:55 host1\n".to_vec()
+        );
         assert!(parse_ether(b"00:11:22:33:44 host1").is_none());
     }
 
@@ -782,7 +898,9 @@ mod tests {
     fn netgroup_items() {
         let items = parse_netgroup_items(b"(h1,u1,d1) (,u2,) other (a b , c , )\n");
         assert_eq!(items.len(), 4);
-        assert!(matches!(&items[3], NetItem::Triple(Some(h), Some(u), None) if h == b"a" && u == b"c"));
+        assert!(
+            matches!(&items[3], NetItem::Triple(Some(h), Some(u), None) if h == b"a" && u == b"c")
+        );
         assert!(matches!(&items[2], NetItem::Group(g) if g == b"other"));
     }
 }

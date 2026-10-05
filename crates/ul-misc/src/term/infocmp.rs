@@ -9,8 +9,13 @@ use sysabi::{Ctx, sys};
 
 use super::dump::{CmpKind, Dump, FAIL, OutForm, PredFn, SortMode, dump_predicate, repair_acsc};
 use super::expand::tic_expand;
-use super::terminfo::{Str, TGETENT_ERR, TGETENT_NO, TermType, db_dirs, read_entry, read_file_entry};
-use super::{BOOLCOUNT, BOOLWRITE, Kind, NUMCOUNT, NUMWRITE, STRCOUNT, STRS, STRWRITE, VERSION, rootname, strtol};
+use super::terminfo::{
+    Str, TGETENT_ERR, TGETENT_NO, TermType, db_dirs, read_entry, read_file_entry,
+};
+use super::{
+    BOOLCOUNT, BOOLWRITE, Kind, NUMCOUNT, NUMWRITE, STRCOUNT, STRS, STRWRITE, VERSION, rootname,
+    strtol,
+};
 use crate::util::io;
 use crate::util::{Getopt, GetoptError};
 
@@ -45,7 +50,13 @@ fn capcmp_pad(s: &[u8], t: &[u8]) -> i32 {
     let skip = |v: &[u8], mut p: usize| -> usize {
         if v.get(p) == Some(&b'$') && v.get(p + 1) == Some(&b'<') {
             p += 2;
-            while p < v.len() && (v[p].is_ascii_digit() || v[p] == b'.' || v[p] == b'*' || v[p] == b'/' || v[p] == b'>') {
+            while p < v.len()
+                && (v[p].is_ascii_digit()
+                    || v[p] == b'.'
+                    || v[p] == b'*'
+                    || v[p] == b'/'
+                    || v[p] == b'>')
+            {
                 p += 1;
             }
         }
@@ -55,7 +66,10 @@ fn capcmp_pad(s: &[u8], t: &[u8]) -> i32 {
     loop {
         i = skip(s, i);
         j = skip(t, j);
-        let (a, b) = (s.get(i).copied().unwrap_or(0), t.get(j).copied().unwrap_or(0));
+        let (a, b) = (
+            s.get(i).copied().unwrap_or(0),
+            t.get(j).copied().unwrap_or(0),
+        );
         if a == 0 && b == 0 {
             return 0;
         }
@@ -90,7 +104,11 @@ impl Cfg {
     }
 
     fn no_boolean(&self, v: i8) -> bool {
-        if self.same_markers() { (v as u8) > 1 } else { v == -1 }
+        if self.same_markers() {
+            (v as u8) > 1
+        } else {
+            v == -1
+        }
     }
 
     fn no_numeric(&self, v: i32) -> bool {
@@ -98,7 +116,11 @@ impl Cfg {
     }
 
     fn no_string(&self, v: &Str) -> bool {
-        if self.same_markers() { !v.valid() } else { *v == Str::Absent }
+        if self.same_markers() {
+            !v.valid()
+        } else {
+            *v == Str::Absent
+        }
     }
 
     fn dump_boolean(&self, v: i8) -> &'static str {
@@ -143,7 +165,13 @@ impl Cfg {
 }
 
 /// `use_predicate`: o que mostrar num `infocmp -u` (o que difere da união dos `use`).
-fn use_predicate(rest: &[TermType], ignorepads: bool, tt: &TermType, kind: Kind, idx: usize) -> i32 {
+fn use_predicate(
+    rest: &[TermType],
+    ignorepads: bool,
+    tt: &TermType,
+    kind: Kind,
+    idx: usize,
+) -> i32 {
     match kind {
         Kind::Bool => {
             if idx < tt.bools.len() {
@@ -193,7 +221,10 @@ fn use_predicate(rest: &[TermType], ignorepads: bool, tt: &TermType, kind: Kind,
                     return 1;
                 } else if usestr == Str::Absent && *termstr == Str::Absent {
                     return FAIL;
-                } else if usestr == Str::Absent || *termstr == Str::Absent || capcmp(idx, &usestr, termstr, ignorepads) != 0 {
+                } else if usestr == Str::Absent
+                    || *termstr == Str::Absent
+                    || capcmp(idx, &usestr, termstr, ignorepads) != 0
+                {
                     return 1;
                 }
             }
@@ -206,7 +237,9 @@ fn use_predicate(rest: &[TermType], ignorepads: bool, tt: &TermType, kind: Kind,
 fn show_comparing(cfg: &Cfg, progname: &str, names: &[Vec<u8>]) {
     if cfg.itrace != 0 {
         match cfg.compare {
-            Compare::Difference | Compare::Nand => io::eprint(format!("{progname}: dumping differences\n")),
+            Compare::Difference | Compare::Nand => {
+                io::eprint(format!("{progname}: dumping differences\n"))
+            }
             Compare::Common => io::eprint(format!("{progname}: dumping common capabilities\n")),
             _ => {}
         }
@@ -240,7 +273,14 @@ fn compare_predicate(cfg: &Cfg, entries: &[TermType], kind: CmpKind, idx: usize,
                 Compare::Difference => {
                     let b2 = entries[1].bools[idx];
                     if !(cfg.no_boolean(b1) && cfg.no_boolean(b2)) && b1 != b2 {
-                        let _ = writeln!(o, "\t{}: {}{}{}.", name_s, cfg.dump_boolean(b1), cfg.bool_sep, cfg.dump_boolean(b2));
+                        let _ = writeln!(
+                            o,
+                            "\t{}: {}{}{}.",
+                            name_s,
+                            cfg.dump_boolean(b1),
+                            cfg.bool_sep,
+                            cfg.dump_boolean(b2)
+                        );
                     }
                 }
                 Compare::Common => {
@@ -269,7 +309,13 @@ fn compare_predicate(cfg: &Cfg, entries: &[TermType], kind: CmpKind, idx: usize,
                 Compare::Difference => {
                     let n2 = entries[1].nums[idx];
                     if !(cfg.no_numeric(n1) && cfg.no_numeric(n2)) && n1 != n2 {
-                        let _ = writeln!(o, "\t{}: {}, {}.", name_s, cfg.dump_numeric(n1), cfg.dump_numeric(n2));
+                        let _ = writeln!(
+                            o,
+                            "\t{}: {}, {}.",
+                            name_s,
+                            cfg.dump_numeric(n1),
+                            cfg.dump_numeric(n2)
+                        );
                     }
                 }
                 Compare::Common => {
@@ -297,7 +343,9 @@ fn compare_predicate(cfg: &Cfg, entries: &[TermType], kind: CmpKind, idx: usize,
             match cfg.compare {
                 Compare::Difference => {
                     let s2 = &entries[1].strs[idx];
-                    if !(cfg.no_string(s1) && cfg.no_string(s2)) && capcmp(idx, s1, s2, cfg.ignorepads) != 0 {
+                    if !(cfg.no_string(s1) && cfg.no_string(s2))
+                        && capcmp(idx, s1, s2, cfg.ignorepads) != 0
+                    {
                         let b1 = cfg.dump_string(s1);
                         let b2 = cfg.dump_string(s2);
                         if b1 != b2 {
@@ -311,7 +359,9 @@ fn compare_predicate(cfg: &Cfg, entries: &[TermType], kind: CmpKind, idx: usize,
                 }
                 Compare::Common => {
                     if *s1 != Str::Absent {
-                        let found = entries[1..].iter().all(|e| capcmp(idx, s1, &e.strs[idx], cfg.ignorepads) == 0);
+                        let found = entries[1..]
+                            .iter()
+                            .all(|e| capcmp(idx, s1, &e.strs[idx], cfg.ignorepads) == 0);
                         if found {
                             let _ = o.write_all(format!("\t{name_s}= '").as_bytes());
                             let _ = o.write_all(&cfg.tic_expand(s1));
@@ -417,12 +467,17 @@ fn skip_csi(cap: &[u8]) -> usize {
 }
 
 fn same_param(table: &[u8], param: &[u8], length: usize) -> bool {
-    param.len() >= length && table[..length] == param[..length] && !param.get(length).is_some_and(u8::is_ascii_digit)
+    param.len() >= length
+        && table[..length] == param[..length]
+        && !param.get(length).is_some_and(u8::is_ascii_digit)
 }
 
 /// `lookup_params`: traduz uma lista `a;b;c` pela tabela (os nomes que não casam ficam como estão).
 fn lookup_params(table: &[(&str, &str)], dst: &mut Vec<u8>, src: &[u8]) -> bool {
-    let tokens: Vec<&[u8]> = src.split(|b| *b == b';').filter(|t| !t.is_empty()).collect();
+    let tokens: Vec<&[u8]> = src
+        .split(|b| *b == b';')
+        .filter(|t| !t.is_empty())
+        .collect();
     if tokens.is_empty() {
         return false;
     }
@@ -445,11 +500,15 @@ fn lookup_params(table: &[(&str, &str)], dst: &mut Vec<u8>, src: &[u8]) -> bool 
 }
 
 fn span_digits_semi(s: &[u8]) -> usize {
-    s.iter().take_while(|b| b.is_ascii_digit() || **b == b';').count()
+    s.iter()
+        .take_while(|b| b.is_ascii_digit() || **b == b';')
+        .count()
 }
 
 fn analyze_string(cfg: &Cfg, name: &str, cap_idx: usize, tp: &TermType) {
-    let Str::Val(cap) = &tp.strs[cap_idx] else { return };
+    let Str::Val(cap) = &tp.strs[cap_idx] else {
+        return;
+    };
     let mut o = io::stdout();
     let _ = write!(o, "{name}: ");
     let tp_lines = tp.nums[2];
@@ -508,7 +567,11 @@ fn analyze_string(cfg: &Cfg, name: &str, cap_idx: usize, tp: &TermType) {
                     let next = csi + l;
                     let c = rest.get(next).copied().unwrap_or(0);
                     if c == b'h' || c == b'l' {
-                        let mut buf2 = if c == b'h' { b"ECMA+".to_vec() } else { b"ECMA-".to_vec() };
+                        let mut buf2 = if c == b'h' {
+                            b"ECMA+".to_vec()
+                        } else {
+                            b"ECMA-".to_vec()
+                        };
                         if lookup_params(STD_MODES, &mut buf2, &rest[csi..csi + l]) {
                             expansion = Some(buf2);
                         }
@@ -526,7 +589,11 @@ fn analyze_string(cfg: &Cfg, name: &str, cap_idx: usize, tp: &TermType) {
                     let next = csi + 1 + l;
                     let c = rest.get(next).copied().unwrap_or(0);
                     if c == b'h' || c == b'l' {
-                        let mut buf2 = if c == b'h' { b"DEC+".to_vec() } else { b"DEC-".to_vec() };
+                        let mut buf2 = if c == b'h' {
+                            b"DEC+".to_vec()
+                        } else {
+                            b"DEC-".to_vec()
+                        };
                         if lookup_params(PRIVATE_MODES, &mut buf2, &rest[csi + 1..csi + 1 + l]) {
                             expansion = Some(buf2);
                         }
@@ -603,7 +670,11 @@ fn analyze_string(cfg: &Cfg, name: &str, cap_idx: usize, tp: &TermType) {
             }
             None => {
                 let one = [at(sp)];
-                let _ = o.write_all(&tic_expand(&one, cfg.outform == OutForm::Terminfo, cfg.numbers));
+                let _ = o.write_all(&tic_expand(
+                    &one,
+                    cfg.outform == OutForm::Terminfo,
+                    cfg.numbers,
+                ));
                 sp += 1;
             }
         }
@@ -619,7 +690,11 @@ fn any_initializer(names: &[u8], fmt: &str, ty: &[u8]) -> String {
         if b == b'|' {
             break;
         }
-        s.push(if b.is_ascii_alphanumeric() { b as char } else { '_' });
+        s.push(if b.is_ascii_alphanumeric() {
+            b as char
+        } else {
+            '_'
+        });
     }
     s.push_str(&fmt.replace("%s", &io::lossy(ty)));
     s
@@ -629,8 +704,19 @@ fn dump_initializers(term: &TermType) {
     let mut o = io::stdout();
     let name_init = |ty: &str| any_initializer(&term.names, "_%s_data", ty.as_bytes());
     let str_var = |ty: &[u8]| any_initializer(&term.names, "_s_%s", ty);
-    let _ = write!(o, "\nstatic char {}[] = \"{}\";\n\n", name_init("alias"), io::lossy(&term.names));
-    let str_name = |i: usize| -> Vec<u8> { if i >= STRCOUNT { term.ext_str_name(i).to_vec() } else { STRS[i].info.as_bytes().to_vec() } };
+    let _ = write!(
+        o,
+        "\nstatic char {}[] = \"{}\";\n\n",
+        name_init("alias"),
+        io::lossy(&term.names)
+    );
+    let str_name = |i: usize| -> Vec<u8> {
+        if i >= STRCOUNT {
+            term.ext_str_name(i).to_vec()
+        } else {
+            STRS[i].info.as_bytes().to_vec()
+        }
+    };
     for n in 0..term.strs.len() {
         if let Str::Val(v) = &term.strs[n] {
             let mut buf = String::from("\"");
@@ -660,7 +746,11 @@ fn dump_initializers(term: &TermType) {
             -1 => "ABSENT_BOOLEAN",
             _ => "CANCELLED_BOOLEAN",
         };
-        let nm = if n >= BOOLCOUNT { term.ext_bool_name(n).to_vec() } else { super::BOOLS[n].info.as_bytes().to_vec() };
+        let nm = if n >= BOOLCOUNT {
+            term.ext_bool_name(n).to_vec()
+        } else {
+            super::BOOLS[n].info.as_bytes().to_vec()
+        };
         let _ = writeln!(o, "\t/* {:3}: {:<8} */\t{},", n, io::lossy(&nm), st);
     }
     let _ = writeln!(o, "}};");
@@ -671,7 +761,11 @@ fn dump_initializers(term: &TermType) {
             -2 => "CANCELLED_NUMERIC".to_string(),
             v => v.to_string(),
         };
-        let nm = if n >= NUMCOUNT { term.ext_num_name(n).to_vec() } else { super::NUMS[n].info.as_bytes().to_vec() };
+        let nm = if n >= NUMCOUNT {
+            term.ext_num_name(n).to_vec()
+        } else {
+            super::NUMS[n].info.as_bytes().to_vec()
+        };
         let _ = writeln!(o, "\t/* {:3}: {:<8} */\t{},", n, io::lossy(&nm), st);
     }
     let _ = writeln!(o, "}};");
@@ -682,19 +776,40 @@ fn dump_initializers(term: &TermType) {
             Str::Cancelled => "CANCELLED_STRING".to_string(),
             Str::Val(_) => str_var(&str_name(n)),
         };
-        let _ = writeln!(o, "\t/* {:3}: {:<8} */\t{},", n, io::lossy(&str_name(n)), st);
+        let _ = writeln!(
+            o,
+            "\t/* {:3}: {:<8} */\t{},",
+            n,
+            io::lossy(&str_name(n)),
+            st
+        );
     }
     let _ = writeln!(o, "}};");
     if term.bools.len() != BOOLCOUNT || term.nums.len() != NUMCOUNT || term.strs.len() != STRCOUNT {
         let _ = writeln!(o, "static char * {}[] = {{", name_init("string_ext"));
         for n in BOOLCOUNT..term.bools.len() {
-            let _ = writeln!(o, "\t/* {:3}: bool */\t\"{}\",", n, io::lossy(term.ext_bool_name(n)));
+            let _ = writeln!(
+                o,
+                "\t/* {:3}: bool */\t\"{}\",",
+                n,
+                io::lossy(term.ext_bool_name(n))
+            );
         }
         for n in NUMCOUNT..term.nums.len() {
-            let _ = writeln!(o, "\t/* {:3}: num */\t\"{}\",", n, io::lossy(term.ext_num_name(n)));
+            let _ = writeln!(
+                o,
+                "\t/* {:3}: num */\t\"{}\",",
+                n,
+                io::lossy(term.ext_num_name(n))
+            );
         }
         for n in STRCOUNT..term.strs.len() {
-            let _ = writeln!(o, "\t/* {:3}: str */\t\"{}\",", n, io::lossy(term.ext_str_name(n)));
+            let _ = writeln!(
+                o,
+                "\t/* {:3}: str */\t\"{}\",",
+                n,
+                io::lossy(term.ext_str_name(n))
+            );
         }
         let _ = writeln!(o, "}};");
     }
@@ -710,14 +825,35 @@ fn dump_termtype(term: &TermType) {
     let _ = writeln!(o, "\t\t{},", name_init("string"));
     let _ = writeln!(o, "#if NCURSES_XNAMES");
     let _ = writeln!(o, "\t\t(char *)0,\t/* pointer to extended string table */");
-    let ext = term.bools.len() != BOOLCOUNT || term.nums.len() != NUMCOUNT || term.strs.len() != STRCOUNT;
-    let _ = writeln!(o, "\t\t{},\t/* ...corresponding names */", if ext { name_init("string_ext") } else { "(char **)0".to_string() });
+    let ext =
+        term.bools.len() != BOOLCOUNT || term.nums.len() != NUMCOUNT || term.strs.len() != STRCOUNT;
+    let _ = writeln!(
+        o,
+        "\t\t{},\t/* ...corresponding names */",
+        if ext {
+            name_init("string_ext")
+        } else {
+            "(char **)0".to_string()
+        }
+    );
     let _ = writeln!(o, "\t\t{},\t\t/* count total Booleans */", term.bools.len());
     let _ = writeln!(o, "\t\t{},\t\t/* count total Numbers */", term.nums.len());
     let _ = writeln!(o, "\t\t{},\t\t/* count total Strings */", term.strs.len());
-    let _ = writeln!(o, "\t\t{},\t\t/* count extensions to Booleans */", term.bools.len() - BOOLCOUNT);
-    let _ = writeln!(o, "\t\t{},\t\t/* count extensions to Numbers */", term.nums.len() - NUMCOUNT);
-    let _ = writeln!(o, "\t\t{},\t\t/* count extensions to Strings */", term.strs.len() - STRCOUNT);
+    let _ = writeln!(
+        o,
+        "\t\t{},\t\t/* count extensions to Booleans */",
+        term.bools.len() - BOOLCOUNT
+    );
+    let _ = writeln!(
+        o,
+        "\t\t{},\t\t/* count extensions to Numbers */",
+        term.nums.len() - NUMCOUNT
+    );
+    let _ = writeln!(
+        o,
+        "\t\t{},\t\t/* count extensions to Strings */",
+        term.strs.len() - STRCOUNT
+    );
     let _ = writeln!(o, "#endif /* NCURSES_XNAMES */");
     let _ = writeln!(o, "\t}}");
 }
@@ -750,20 +886,37 @@ fn merge_names(a: &[Vec<u8>], b: &[Vec<u8>]) -> Vec<Vec<u8>> {
 }
 
 fn realign(t: &mut TermType, eb: &[Vec<u8>], en: &[Vec<u8>], es: &[Vec<u8>]) {
-    let old_b: Vec<(Vec<u8>, i8)> = (BOOLCOUNT..t.bools.len()).map(|i| (t.ext_bool_name(i).to_vec(), t.bools[i])).collect();
-    let old_n: Vec<(Vec<u8>, i32)> = (NUMCOUNT..t.nums.len()).map(|i| (t.ext_num_name(i).to_vec(), t.nums[i])).collect();
-    let old_s: Vec<(Vec<u8>, Str)> = (STRCOUNT..t.strs.len()).map(|i| (t.ext_str_name(i).to_vec(), t.strs[i].clone())).collect();
+    let old_b: Vec<(Vec<u8>, i8)> = (BOOLCOUNT..t.bools.len())
+        .map(|i| (t.ext_bool_name(i).to_vec(), t.bools[i]))
+        .collect();
+    let old_n: Vec<(Vec<u8>, i32)> = (NUMCOUNT..t.nums.len())
+        .map(|i| (t.ext_num_name(i).to_vec(), t.nums[i]))
+        .collect();
+    let old_s: Vec<(Vec<u8>, Str)> = (STRCOUNT..t.strs.len())
+        .map(|i| (t.ext_str_name(i).to_vec(), t.strs[i].clone()))
+        .collect();
     t.bools.truncate(BOOLCOUNT);
     t.nums.truncate(NUMCOUNT);
     t.strs.truncate(STRCOUNT);
     for n in eb {
-        t.bools.push(old_b.iter().find(|(k, _)| k == n).map_or(0, |(_, v)| *v));
+        t.bools
+            .push(old_b.iter().find(|(k, _)| k == n).map_or(0, |(_, v)| *v));
     }
     for n in en {
-        t.nums.push(old_n.iter().find(|(k, _)| k == n).map_or(super::ABSENT_NUMERIC, |(_, v)| *v));
+        t.nums.push(
+            old_n
+                .iter()
+                .find(|(k, _)| k == n)
+                .map_or(super::ABSENT_NUMERIC, |(_, v)| *v),
+        );
     }
     for n in es {
-        t.strs.push(old_s.iter().find(|(k, _)| k == n).map_or(Str::Absent, |(_, v)| v.clone()));
+        t.strs.push(
+            old_s
+                .iter()
+                .find(|(k, _)| k == n)
+                .map_or(Str::Absent, |(_, v)| v.clone()),
+        );
     }
     t.ext_bools = eb.len();
     t.ext_nums = en.len();
@@ -780,7 +933,12 @@ fn align_termtype(to: &mut TermType, from: &mut TermType) {
     if na == 0 && nb == 0 {
         return;
     }
-    if na == nb && to.ext_bools == from.ext_bools && to.ext_nums == from.ext_nums && to.ext_strs == from.ext_strs && to.ext_names == from.ext_names {
+    if na == nb
+        && to.ext_bools == from.ext_bools
+        && to.ext_nums == from.ext_nums
+        && to.ext_strs == from.ext_strs
+        && to.ext_names == from.ext_names
+    {
         return;
     }
     let part = |t: &TermType| -> ExtNameParts {
@@ -840,7 +998,9 @@ fn usage(progname: &str) -> ! {
     ];
     let last = OPTIONS.len();
     let left = last.div_ceil(2);
-    let mut text = format!("Usage: {progname} [options] [-A directory] [-B directory] [termname...]\nOptions:\n");
+    let mut text = format!(
+        "Usage: {progname} [options] [-A directory] [-B directory] [termname...]\nOptions:\n"
+    );
     for (n, first) in OPTIONS.iter().enumerate().take(left) {
         match OPTIONS.get(n + left) {
             Some(second) => text.push_str(&format!("{first:<40.40}{second}\n")),
@@ -907,7 +1067,11 @@ fn run(args: &[OsString]) -> i32 {
     let mut wrap_strings = false;
     let mut strict_bsd = false;
 
-    let mut g = Getopt::from_env(&argv[1..], "01A:aB:CcDdEeFfGgIiKLlnpQ:qR:rs:TtUuVv:Ww:x", &[]);
+    let mut g = Getopt::from_env(
+        &argv[1..],
+        "01A:aB:CcDdEeFfGgIiKLlnpQ:qR:rs:TtUuVv:Ww:x",
+        &[],
+    );
     while let Some(r) = g.next_opt() {
         let o = match r {
             Ok(o) => o,
@@ -1043,7 +1207,11 @@ fn run(args: &[OsString]) -> i32 {
         let mut entries: Vec<TermType> = Vec::new();
         let mut tfiles: Vec<Vec<u8>> = Vec::new();
         for (count, name) in names.iter().enumerate() {
-            let directory = if count > 0 { restdir.as_ref() } else { firstdir.as_ref() };
+            let directory = if count > 0 {
+                restdir.as_ref()
+            } else {
+                firstdir.as_ref()
+            };
             let (code, file, tt) = if let Some(dir) = directory {
                 let mut f = dir.clone();
                 f.push(b'/');
@@ -1051,7 +1219,11 @@ fn run(args: &[OsString]) -> i32 {
                 f.push(b'/');
                 f.extend_from_slice(name);
                 if cfg.itrace != 0 {
-                    io::eprint(format!("{progname}: reading entry {} from file {}\n", io::lossy(name), io::lossy(&f)));
+                    io::eprint(format!(
+                        "{progname}: reading entry {} from file {}\n",
+                        io::lossy(name),
+                        io::lossy(&f)
+                    ));
                 }
                 match read_file_entry(&f, cfg.user_definable) {
                     Some(t) => (1, f, Some(t)),
@@ -1059,7 +1231,10 @@ fn run(args: &[OsString]) -> i32 {
                 }
             } else {
                 if cfg.itrace != 0 {
-                    io::eprint(format!("{progname}: reading entry {} from database\n", io::lossy(name)));
+                    io::eprint(format!(
+                        "{progname}: reading entry {} from database\n",
+                        io::lossy(name)
+                    ));
                 }
                 let r = read_entry(name, cfg.user_definable);
                 (r.code, r.filename, r.tt)
@@ -1071,7 +1246,10 @@ fn run(args: &[OsString]) -> i32 {
                         io::lossy(name)
                     ));
                 } else if code == TGETENT_ERR {
-                    io::eprint(format!("{progname}: error: unable to open terminfo database: {}\n", sysabi::Errno::ENOENT.message()));
+                    io::eprint(format!(
+                        "{progname}: error: unable to open terminfo database: {}\n",
+                        sysabi::Errno::ENOENT.message()
+                    ));
                 }
                 return 1;
             };
@@ -1113,13 +1291,26 @@ fn run(args: &[OsString]) -> i32 {
             match cfg.compare {
                 Compare::Default => {
                     if cfg.itrace != 0 {
-                        io::eprint(format!("{progname}: about to dump {}\n", io::lossy(&names[0])));
+                        io::eprint(format!(
+                            "{progname}: about to dump {}\n",
+                            io::lossy(&names[0])
+                        ));
                     }
                     if !cfg.quiet {
-                        let _ = writeln!(io::stdout(), "#\tReconstructed via {progname} from file: {}", io::lossy(&tfiles[0]));
+                        let _ = writeln!(
+                            io::stdout(),
+                            "#\tReconstructed via {progname} from file: {}",
+                            io::lossy(&tfiles[0])
+                        );
                     }
                     let pred: PredFn<'_> = &dump_predicate;
-                    dump.dump_entry(&mut entries[0], suppress_untranslatable, cfg.limited, cfg.numbers, pred);
+                    dump.dump_entry(
+                        &mut entries[0],
+                        suppress_untranslatable,
+                        cfg.limited,
+                        cfg.numbers,
+                        pred,
+                    );
                     let len = dump.show_entry();
                     if cfg.itrace != 0 {
                         io::eprint(format!("{progname}: length {len}\n"));
@@ -1143,8 +1334,16 @@ fn run(args: &[OsString]) -> i32 {
                     let (first, rest) = entries.split_at_mut(1);
                     let ignorepads = cfg.ignorepads;
                     let rest: &[TermType] = rest;
-                    let pred = |tt: &TermType, kind: Kind, idx: usize| -> i32 { use_predicate(rest, ignorepads, tt, kind, idx) };
-                    dump.dump_entry(&mut first[0], suppress_untranslatable, cfg.limited, cfg.numbers, &pred);
+                    let pred = |tt: &TermType, kind: Kind, idx: usize| -> i32 {
+                        use_predicate(rest, ignorepads, tt, kind, idx)
+                    };
+                    dump.dump_entry(
+                        &mut first[0],
+                        suppress_untranslatable,
+                        cfg.limited,
+                        cfg.numbers,
+                        &pred,
+                    );
                     let tc = matches!(cfg.outform, OutForm::Termcap | OutForm::TcConvErr);
                     for n in &names[1..] {
                         dump.dump_uses(n, !tc);
@@ -1163,7 +1362,9 @@ fn run(args: &[OsString]) -> i32 {
     } else if names.len() != 2 {
         io::eprint("File comparison needs exactly two file arguments.\n");
     } else {
-        io::eprint(format!("{progname}: reading terminfo source files is not supported\n"));
+        io::eprint(format!(
+            "{progname}: reading terminfo source files is not supported\n"
+        ));
         return 1;
     }
     0

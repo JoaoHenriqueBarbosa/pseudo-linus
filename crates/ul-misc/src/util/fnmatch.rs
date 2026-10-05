@@ -17,7 +17,10 @@ fn class_matches(class: &str, c: char) -> Option<bool> {
         "lower" => c.is_lowercase(),
         "space" => matches!(c, ' ' | '\t' | '\n' | '\x0b' | '\x0c' | '\r'),
         "blank" => c == ' ' || c == '\t',
-        "punct" => c.is_ascii_punctuation() || (!c.is_ascii() && !c.is_alphanumeric() && !c.is_whitespace() && !c.is_control()),
+        "punct" => {
+            c.is_ascii_punctuation()
+                || (!c.is_ascii() && !c.is_alphanumeric() && !c.is_whitespace() && !c.is_control())
+        }
         "print" => !c.is_control(),
         "graph" => !c.is_control() && !c.is_whitespace(),
         "cntrl" => c.is_control(),
@@ -45,7 +48,8 @@ fn bracket(p: &[char], start: usize, c: char) -> Option<(bool, usize)> {
         first = false;
         if ch == '['
             && p.get(i + 1) == Some(&':')
-            && let Some(end) = (i + 2..p.len().saturating_sub(1)).find(|&k| p[k] == ':' && p[k + 1] == ']')
+            && let Some(end) =
+                (i + 2..p.len().saturating_sub(1)).find(|&k| p[k] == ':' && p[k + 1] == ']')
         {
             let name: String = p[i + 2..end].iter().collect();
             if let Some(m) = class_matches(&name, c) {
@@ -80,7 +84,9 @@ fn bracket(p: &[char], start: usize, c: char) -> Option<(bool, usize)> {
 
 fn matches(p: &[char], mut pi: usize, s: &[char], mut si: usize) -> bool {
     loop {
-        let Some(&pc) = p.get(pi) else { return si == s.len() };
+        let Some(&pc) = p.get(pi) else {
+            return si == s.len();
+        };
         match pc {
             '*' => {
                 while p.get(pi) == Some(&'*') {
@@ -116,7 +122,9 @@ fn matches(p: &[char], mut pi: usize, s: &[char], mut si: usize) -> bool {
                 }
             }
             '\\' => {
-                let Some(&lit) = p.get(pi + 1) else { return false };
+                let Some(&lit) = p.get(pi + 1) else {
+                    return false;
+                };
                 if s.get(si) != Some(&lit) {
                     return false;
                 }

@@ -284,7 +284,10 @@ impl Compiler {
 
     fn check_duplicates(&mut self, defs: &[Def], msg: &str) {
         for (i, d) in defs.iter().enumerate() {
-            if defs[..i].iter().any(|e| e.idx == d.idx && e.kind.is_array() == d.kind.is_array()) {
+            if defs[..i]
+                .iter()
+                .any(|e| e.idx == d.idx && e.kind.is_array() == d.kind.is_array())
+            {
                 self.yyerror(msg);
                 return;
             }
@@ -292,7 +295,11 @@ impl Compiler {
     }
 
     fn def(&mut self, name: Rc<[u8]>, kind: Kind) -> Def {
-        let idx = if kind.is_array() { self.lookup_array(&name) } else { self.lookup_var(&name) };
+        let idx = if kind.is_array() {
+            self.lookup_array(&name)
+        } else {
+            self.lookup_var(&name)
+        };
         Def { idx, kind }
     }
 
@@ -383,7 +390,8 @@ impl Compiler {
                 V::Expr(f & !EX_EMPTY)
             }
             A::ForM1 => {
-                self.saved_labels.push((self.break_label, self.continue_label));
+                self.saved_labels
+                    .push((self.break_label, self.continue_label));
                 let b = self.new_label();
                 self.break_label = Some(b);
                 V::None
@@ -481,7 +489,8 @@ impl Compiler {
                 V::None
             }
             A::WhileM1 => {
-                self.saved_labels.push((self.break_label, self.continue_label));
+                self.saved_labels
+                    .push((self.break_label, self.continue_label));
                 let b = self.new_label();
                 self.break_label = Some(b);
                 let top = self.new_label();
@@ -565,15 +574,34 @@ impl Compiler {
                     self.warn("Variable array parameter");
                 }
                 self.check_duplicates(&params, "duplicate parameter names");
-                if params.iter().any(|p| autos.iter().any(|a| a.idx == p.idx && a.kind.is_array() == p.kind.is_array())) {
+                if params.iter().any(|p| {
+                    autos
+                        .iter()
+                        .any(|a| a.idx == p.idx && a.kind.is_array() == p.kind.is_array())
+                }) {
                     self.yyerror("variable in both parameter and auto lists");
                 }
                 let idx = self.lookup_func(&name);
                 let f = &mut self.vm.funcs[idx as usize];
-                f.params = params.iter().map(|d| Param { idx: d.idx, kind: d.kind }).collect();
-                f.autos = autos.iter().map(|d| Param { idx: d.idx, kind: d.kind }).collect();
+                f.params = params
+                    .iter()
+                    .map(|d| Param {
+                        idx: d.idx,
+                        kind: d.kind,
+                    })
+                    .collect();
+                f.autos = autos
+                    .iter()
+                    .map(|d| Param {
+                        idx: d.idx,
+                        kind: d.kind,
+                    })
+                    .collect();
                 f.void = void;
-                self.func = Some(FuncBuild { idx, code: Code::default() });
+                self.func = Some(FuncBuild {
+                    idx,
+                    code: Code::default(),
+                });
                 self.in_function = true;
                 self.void_function = void;
                 V::None
@@ -699,7 +727,11 @@ impl Compiler {
             A::Binary(op) => {
                 if (v[0].flags() | v[2].flags()) & EX_VOID != 0 {
                     // O GNU passa o texto montado como formato do printf: com `%` sai vazio.
-                    let msg = if op == b'%' { String::new() } else { format!("void expression with {}", op as char) };
+                    let msg = if op == b'%' {
+                        String::new()
+                    } else {
+                        format!("void expression with {}", op as char)
+                    };
                     self.yyerror(&msg);
                 }
                 self.emit(Ins::Bin(op), 1);
@@ -734,13 +766,25 @@ impl Compiler {
                 V::Expr(if void { EX_VOID } else { 0 })
             }
             A::PreIncr | A::PostIncr => {
-                let (tok, named) = if a == A::PreIncr { (&v[0], v[1].named()) } else { (&v[1], v[0].named()) };
+                let (tok, named) = if a == A::PreIncr {
+                    (&v[0], v[1].named())
+                } else {
+                    (&v[1], v[0].named())
+                };
                 let up = tok.text().first() == Some(&b'+');
                 match (a, named) {
-                    (A::PreIncr, Named::Var(i)) => self.emit(Ins::PreInc(i, up), 2 + 2 * exec::name_bytes(i)),
-                    (_, Named::Var(i)) => self.emit(Ins::PostInc(i, up), 2 + 2 * exec::name_bytes(i)),
-                    (A::PreIncr, Named::Array(x)) => self.emit(Ins::PreIncArr(x, up), 3 + 2 * exec::name_bytes(x)),
-                    (_, Named::Array(x)) => self.emit(Ins::PostIncArr(x, up), 4 + 2 * exec::name_bytes(x)),
+                    (A::PreIncr, Named::Var(i)) => {
+                        self.emit(Ins::PreInc(i, up), 2 + 2 * exec::name_bytes(i))
+                    }
+                    (_, Named::Var(i)) => {
+                        self.emit(Ins::PostInc(i, up), 2 + 2 * exec::name_bytes(i))
+                    }
+                    (A::PreIncr, Named::Array(x)) => {
+                        self.emit(Ins::PreIncArr(x, up), 3 + 2 * exec::name_bytes(x))
+                    }
+                    (_, Named::Array(x)) => {
+                        self.emit(Ins::PostIncArr(x, up), 4 + 2 * exec::name_bytes(x))
+                    }
                 }
                 V::Expr(0)
             }

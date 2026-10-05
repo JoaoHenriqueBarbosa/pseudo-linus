@@ -146,7 +146,14 @@ impl Engine {
     }
 
     /// `process_long_option`. `nextchar` aponta pro texto depois do `--` (ou do `-`, ou do `-W `).
-    fn process_long(&mut self, optstring: &[u8], longopts: &[LongDef], long_only: bool, print_errors: bool, prefix: &[u8]) -> i32 {
+    fn process_long(
+        &mut self,
+        optstring: &[u8],
+        longopts: &[LongDef],
+        long_only: bool,
+        print_errors: bool,
+        prefix: &[u8],
+    ) -> i32 {
         let argc = self.argv.len();
         let nc = self.nc_rest();
         let namelen = nc.iter().position(|&b| b == b'=').unwrap_or(nc.len());
@@ -155,14 +162,19 @@ impl Engine {
         let mut found: Option<usize> = longopts.iter().position(|p| p.name == name);
 
         if found.is_none() {
-            let matches: Vec<usize> =
-                longopts.iter().enumerate().filter(|(_, p)| p.name.starts_with(name)).map(|(i, _)| i).collect();
+            let matches: Vec<usize> = longopts
+                .iter()
+                .enumerate()
+                .filter(|(_, p)| p.name.starts_with(name))
+                .map(|(i, _)| i)
+                .collect();
             if let Some(&first) = matches.first() {
                 let pf = &longopts[first];
                 let mut set: Vec<usize> = Vec::new();
                 for &i in matches.iter().skip(1) {
                     let p = &longopts[i];
-                    if long_only || pf.has_arg != p.has_arg || pf.flag != p.flag || pf.val != p.val {
+                    if long_only || pf.has_arg != p.has_arg || pf.flag != p.flag || pf.val != p.val
+                    {
                         if set.is_empty() {
                             set.push(first);
                         }
@@ -201,10 +213,19 @@ impl Engine {
                 Some(b) => optstring.contains(b),
                 None => true,
             };
-            let second_dash = self.argv.get(self.optind).is_some_and(|a| a.get(1) == Some(&b'-'));
+            let second_dash = self
+                .argv
+                .get(self.optind)
+                .is_some_and(|a| a.get(1) == Some(&b'-'));
             if !long_only || second_dash || !short_ok {
                 if print_errors {
-                    eprint_bytes(&[&self.argv[0], b": unrecognized option '", prefix, &nc, b"'\n"]);
+                    eprint_bytes(&[
+                        &self.argv[0],
+                        b": unrecognized option '",
+                        prefix,
+                        &nc,
+                        b"'\n",
+                    ]);
                 }
                 self.nextchar = None;
                 self.nc_pos = 0;
@@ -224,7 +245,13 @@ impl Engine {
                 self.optarg = Some(nc[namelen + 1..].to_vec());
             } else {
                 if print_errors {
-                    eprint_bytes(&[&self.argv[0], b": option '", prefix, &pfound.name, b"' doesn't allow an argument\n"]);
+                    eprint_bytes(&[
+                        &self.argv[0],
+                        b": option '",
+                        prefix,
+                        &pfound.name,
+                        b"' doesn't allow an argument\n",
+                    ]);
                 }
                 self.optopt = pfound.val;
                 return b'?' as i32;
@@ -235,10 +262,20 @@ impl Engine {
                 self.optind += 1;
             } else {
                 if print_errors {
-                    eprint_bytes(&[&self.argv[0], b": option '", prefix, &pfound.name, b"' requires an argument\n"]);
+                    eprint_bytes(&[
+                        &self.argv[0],
+                        b": option '",
+                        prefix,
+                        &pfound.name,
+                        b"' requires an argument\n",
+                    ]);
                 }
                 self.optopt = pfound.val;
-                return if optstring.first() == Some(&b':') { b':' as i32 } else { b'?' as i32 };
+                return if optstring.first() == Some(&b':') {
+                    b':' as i32
+                } else {
+                    b'?' as i32
+                };
             }
         }
         self.longind = idx;
@@ -360,10 +397,19 @@ impl Engine {
                 self.optarg = Some(self.nc_rest());
             } else if self.optind == argc {
                 if print_errors {
-                    eprint_bytes(&[&self.argv[0], b": option requires an argument -- '", &[c], b"'\n"]);
+                    eprint_bytes(&[
+                        &self.argv[0],
+                        b": option requires an argument -- '",
+                        &[c],
+                        b"'\n",
+                    ]);
                 }
                 self.optopt = i32::from(c);
-                return if optstring.first() == Some(&b':') { b':' as i32 } else { b'?' as i32 };
+                return if optstring.first() == Some(&b':') {
+                    b':' as i32
+                } else {
+                    b'?' as i32
+                };
             } else {
                 self.optarg = Some(self.argv[self.optind].clone());
             }
@@ -390,10 +436,19 @@ impl Engine {
                     self.optind += 1;
                 } else if self.optind == argc {
                     if print_errors {
-                        eprint_bytes(&[&self.argv[0], b": option requires an argument -- '", &[c], b"'\n"]);
+                        eprint_bytes(&[
+                            &self.argv[0],
+                            b": option requires an argument -- '",
+                            &[c],
+                            b"'\n",
+                        ]);
                     }
                     self.optopt = i32::from(c);
-                    ret = if optstring.first() == Some(&b':') { b':' as i32 } else { b'?' as i32 };
+                    ret = if optstring.first() == Some(&b':') {
+                        b':' as i32
+                    } else {
+                        b'?' as i32
+                    };
                 } else {
                     self.optarg = Some(self.argv[self.optind].clone());
                     self.optind += 1;
@@ -424,7 +479,10 @@ mod tests {
             }
             ids.push(r);
         }
-        let rest = e.argv[e.optind..].iter().map(|a| String::from_utf8_lossy(a).into_owned()).collect();
+        let rest = e.argv[e.optind..]
+            .iter()
+            .map(|a| String::from_utf8_lossy(a).into_owned())
+            .collect();
         (ids, rest)
     }
 
@@ -445,8 +503,18 @@ mod tests {
     #[test]
     fn long_options_with_flag_return_zero() {
         let longs = vec![
-            LongDef { name: b"alpha".to_vec(), has_arg: 0, val: 0, flag: true },
-            LongDef { name: b"beta".to_vec(), has_arg: 1, val: 1, flag: true },
+            LongDef {
+                name: b"alpha".to_vec(),
+                has_arg: 0,
+                val: 0,
+                flag: true,
+            },
+            LongDef {
+                name: b"beta".to_vec(),
+                has_arg: 1,
+                val: 1,
+                flag: true,
+            },
         ];
         let mut e = Engine::new(v(&["p", "--be", "x", "--alpha"]), 0, false);
         assert_eq!(e.getopt(b"", &longs, false), 0);

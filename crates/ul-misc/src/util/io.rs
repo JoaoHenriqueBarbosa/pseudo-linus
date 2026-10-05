@@ -28,7 +28,10 @@ impl File {
 
     /// O stdin do processo, sem fechar no fim.
     pub fn stdin() -> File {
-        File { fd: Fd::STDIN, owned: false }
+        File {
+            fd: Fd::STDIN,
+            owned: false,
+        }
     }
 
     pub fn fd(&self) -> Fd {
@@ -145,7 +148,9 @@ pub fn args_bytes(args: &[OsString]) -> Vec<Vec<u8>> {
 
 /// `argv[0]` como texto (pras mensagens do getopt, que usam o argv[0] inteiro).
 pub fn argv0(args: &[OsString]) -> String {
-    args.first().map(|a| String::from_utf8_lossy(a.as_bytes()).into_owned()).unwrap_or_default()
+    args.first()
+        .map(|a| String::from_utf8_lossy(a.as_bytes()).into_owned())
+        .unwrap_or_default()
 }
 
 /// Bytes como texto pra mensagens (UTF-8 inválido vira U+FFFD, como faria um terminal).

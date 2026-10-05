@@ -189,7 +189,13 @@ pub fn looks_utf8(buf: &[u8], mut ubuf: Option<&mut Vec<u32>>) -> i32 {
             for k in 0..following {
                 i += 1;
                 if i >= n {
-                    return if ctrl { 0 } else if gotone { 2 } else { 1 };
+                    return if ctrl {
+                        0
+                    } else if gotone {
+                        2
+                    } else {
+                        1
+                    };
                 }
                 let nb = buf[i];
                 if k == 0 && (nb < ar.0 || nb > ar.1) {
@@ -341,7 +347,13 @@ pub fn file_encoding(buf: &[u8], encoding_max: usize) -> Encoding {
     let buf = &buf[..buf.len().min(encoding_max)];
     let mut ubuf: Vec<u32> = Vec::new();
     if ubuf.try_reserve(buf.len() + 1).is_err() {
-        return Encoding { text: false, code: "unknown", code_mime: "binary", kind: "text", ubuf };
+        return Encoding {
+            text: false,
+            code: "unknown",
+            code_mime: "binary",
+            kind: "text",
+            ubuf,
+        };
     }
     let enc = |code: &'static str, mime: &'static str, ubuf: Vec<u32>| Encoding {
         text: true,
@@ -378,7 +390,10 @@ pub fn file_encoding(buf: &[u8], encoding_max: usize) -> Encoding {
     if looks_extended(buf, &mut ubuf) {
         return enc("Non-ISO extended-ASCII", "unknown-8bit", ubuf);
     }
-    let nbuf: Vec<u8> = buf.iter().map(|&b| EBCDIC_TO_ASCII[usize::from(b)]).collect();
+    let nbuf: Vec<u8> = buf
+        .iter()
+        .map(|&b| EBCDIC_TO_ASCII[usize::from(b)])
+        .collect();
     if looks_ascii(&nbuf, &mut ubuf) {
         return enc("EBCDIC", "ebcdic", ubuf);
     }
@@ -386,7 +401,13 @@ pub fn file_encoding(buf: &[u8], encoding_max: usize) -> Encoding {
         return enc("International EBCDIC", "ebcdic", ubuf);
     }
     // O C deixa no ubuf o que a última tentativa (latin1 no EBCDIC) chegou a converter.
-    Encoding { text: false, code: "unknown", code_mime: "binary", kind: "binary", ubuf }
+    Encoding {
+        text: false,
+        code: "unknown",
+        code_mime: "binary",
+        kind: "binary",
+        ubuf,
+    }
 }
 
 #[cfg(test)]
@@ -396,18 +417,42 @@ mod tests {
     #[test]
     fn classes() {
         assert_eq!(file_encoding(b"hello\n", 65536).code, "ASCII");
-        assert_eq!(file_encoding("olá\n".as_bytes(), 65536).code, "Unicode text, UTF-8");
-        assert_eq!(file_encoding(b"\xef\xbb\xbfhi\n", 65536).code, "Unicode text, UTF-8 (with BOM)");
-        assert_eq!(file_encoding(b"\xff\xfeh\x00i\x00", 65536).code_mime, "utf-16le");
-        assert_eq!(file_encoding(b"\xfe\xff\x00h\x00i", 65536).code_mime, "utf-16be");
-        assert_eq!(file_encoding(b"\xff\xfe\x00\x00h\x00\x00\x00", 65536).code_mime, "utf-32le");
+        assert_eq!(
+            file_encoding("olá\n".as_bytes(), 65536).code,
+            "Unicode text, UTF-8"
+        );
+        assert_eq!(
+            file_encoding(b"\xef\xbb\xbfhi\n", 65536).code,
+            "Unicode text, UTF-8 (with BOM)"
+        );
+        assert_eq!(
+            file_encoding(b"\xff\xfeh\x00i\x00", 65536).code_mime,
+            "utf-16le"
+        );
+        assert_eq!(
+            file_encoding(b"\xfe\xff\x00h\x00i", 65536).code_mime,
+            "utf-16be"
+        );
+        assert_eq!(
+            file_encoding(b"\xff\xfe\x00\x00h\x00\x00\x00", 65536).code_mime,
+            "utf-32le"
+        );
         assert_eq!(file_encoding(b"caf\xe9\n", 65536).code, "ISO-8859");
-        assert_eq!(file_encoding(b"caf\x85\x90\n", 65536).code, "Non-ISO extended-ASCII");
+        assert_eq!(
+            file_encoding(b"caf\x85\x90\n", 65536).code,
+            "Non-ISO extended-ASCII"
+        );
         assert_eq!(file_encoding(b"+/v8 abc", 65536).code_mime, "utf-7");
         // "hello" + NL em EBCDIC; o 0x15 não é texto em nenhuma tabela ASCII, então cai no EBCDIC.
-        assert_eq!(file_encoding(b"\x88\x85\x93\x93\x96\x15", 65536).code, "EBCDIC");
+        assert_eq!(
+            file_encoding(b"\x88\x85\x93\x93\x96\x15", 65536).code,
+            "EBCDIC"
+        );
         // Sem byte de controle, o mesmo texto ainda passa por "estendido".
-        assert_eq!(file_encoding(b"\x88\x85\x93\x93\x96\x25", 65536).code, "Non-ISO extended-ASCII");
+        assert_eq!(
+            file_encoding(b"\x88\x85\x93\x93\x96\x25", 65536).code,
+            "Non-ISO extended-ASCII"
+        );
         let bin = file_encoding(b"\x00\x01\x02\xff", 65536);
         assert!(!bin.text);
         assert_eq!(bin.kind, "binary");

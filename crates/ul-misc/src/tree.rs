@@ -108,19 +108,112 @@ const HELP: &str = "  ------- Listing options -------
 
 /// Charsets que o `--charset` sem argumento lista (a tabela embutida do tree).
 const CHARSETS: &[&str] = &[
-    "ISO-8859-1", "ISO-8859-1:1987", "ISO_8859-1", "latin1", "l1", "IBM819", "CP819", "csISOLatin1", "ISO-8859-3",
-    "ISO_8859-3:1988", "ISO_8859-3", "latin3", "ls", "csISOLatin3", "ISO-8859-7", "ISO_8859-7:1987", "ISO_8859-7",
-    "ELOT_928", "ECMA-118", "greek", "greek8", "csISOLatinGreek", "ISO-8859-8", "ISO_8859-8:1988", "iso-ir-138",
-    "ISO_8859-8", "hebrew", "csISOLatinHebrew", "ISO-8859-9", "ISO_8859-9:1989", "iso-ir-148", "ISO_8859-9", "latin5",
-    "l5", "csISOLatin5", "Shift_JIS", "MS_Kanji", "csShiftJIS", "EUC-JP",
-    "Extended_UNIX_Code_Packed_Format_for_Japanese", "csEUCPkdFmtJapanese", "EUC-KR", "csEUCKR", "ISO-2022-JP",
-    "csISO2022JP", "ISO-2022-JP-2", "csISO2022JP2", "IBM437", "cp437", "437", "csPC8CodePage437", "IBM852", "cp852",
-    "852", "csPCp852", "IBM863", "cp863", "863", "csIBM863", "IBM855", "cp855", "855", "csIBM855", "IBM865", "cp865",
-    "865", "csIBM865", "IBM866", "cp866", "866", "csIBM866", "IBM850", "cp850", "850", "csPC850Multilingual",
-    "IBM00858", "CCSID00858", "CP00858", "PC-Multilingual-850+euro", "IBM869", "cp869", "869", "cp-gr", "csIBM869",
-    "GB2312", "csGB2312", "UTF-8", "utf8", "Big5", "csBig5", "VISCII", "csVISCII", "KOI8-R", "csKOI8R", "KOI8-U",
-    "ISO-8859-1-Windows-3.1-Latin-1", "csWindows31Latin1", "ISO-8859-2-Windows-Latin-2", "csWindows31Latin2",
-    "windows-1250", "windows-1251", "windows-1253", "windows-1254", "windows-1255", "windows-1256", "windows-1256",
+    "ISO-8859-1",
+    "ISO-8859-1:1987",
+    "ISO_8859-1",
+    "latin1",
+    "l1",
+    "IBM819",
+    "CP819",
+    "csISOLatin1",
+    "ISO-8859-3",
+    "ISO_8859-3:1988",
+    "ISO_8859-3",
+    "latin3",
+    "ls",
+    "csISOLatin3",
+    "ISO-8859-7",
+    "ISO_8859-7:1987",
+    "ISO_8859-7",
+    "ELOT_928",
+    "ECMA-118",
+    "greek",
+    "greek8",
+    "csISOLatinGreek",
+    "ISO-8859-8",
+    "ISO_8859-8:1988",
+    "iso-ir-138",
+    "ISO_8859-8",
+    "hebrew",
+    "csISOLatinHebrew",
+    "ISO-8859-9",
+    "ISO_8859-9:1989",
+    "iso-ir-148",
+    "ISO_8859-9",
+    "latin5",
+    "l5",
+    "csISOLatin5",
+    "Shift_JIS",
+    "MS_Kanji",
+    "csShiftJIS",
+    "EUC-JP",
+    "Extended_UNIX_Code_Packed_Format_for_Japanese",
+    "csEUCPkdFmtJapanese",
+    "EUC-KR",
+    "csEUCKR",
+    "ISO-2022-JP",
+    "csISO2022JP",
+    "ISO-2022-JP-2",
+    "csISO2022JP2",
+    "IBM437",
+    "cp437",
+    "437",
+    "csPC8CodePage437",
+    "IBM852",
+    "cp852",
+    "852",
+    "csPCp852",
+    "IBM863",
+    "cp863",
+    "863",
+    "csIBM863",
+    "IBM855",
+    "cp855",
+    "855",
+    "csIBM855",
+    "IBM865",
+    "cp865",
+    "865",
+    "csIBM865",
+    "IBM866",
+    "cp866",
+    "866",
+    "csIBM866",
+    "IBM850",
+    "cp850",
+    "850",
+    "csPC850Multilingual",
+    "IBM00858",
+    "CCSID00858",
+    "CP00858",
+    "PC-Multilingual-850+euro",
+    "IBM869",
+    "cp869",
+    "869",
+    "cp-gr",
+    "csIBM869",
+    "GB2312",
+    "csGB2312",
+    "UTF-8",
+    "utf8",
+    "Big5",
+    "csBig5",
+    "VISCII",
+    "csVISCII",
+    "KOI8-R",
+    "csKOI8R",
+    "KOI8-U",
+    "ISO-8859-1-Windows-3.1-Latin-1",
+    "csWindows31Latin1",
+    "ISO-8859-2-Windows-Latin-2",
+    "csWindows31Latin2",
+    "windows-1250",
+    "windows-1251",
+    "windows-1253",
+    "windows-1254",
+    "windows-1255",
+    "windows-1256",
+    "windows-1256",
     "windows-1257",
 ];
 
@@ -264,7 +357,13 @@ impl Default for Opts {
 
 impl Opts {
     fn any_meta(&self) -> bool {
-        self.inodes || self.device || self.perms || self.user || self.group || self.size || self.date
+        self.inodes
+            || self.device
+            || self.perms
+            || self.user
+            || self.group
+            || self.size
+            || self.date
     }
 }
 
@@ -297,7 +396,11 @@ fn parse_level(s: &[u8]) -> Option<usize> {
 
 fn atoi(s: &[u8]) -> usize {
     let text = String::from_utf8_lossy(s);
-    let digits: String = text.trim_start().chars().take_while(char::is_ascii_digit).collect();
+    let digits: String = text
+        .trim_start()
+        .chars()
+        .take_while(char::is_ascii_digit)
+        .collect();
     digits.parse().unwrap_or(0)
 }
 
@@ -331,7 +434,18 @@ fn parse_args(argv: &[Vec<u8>]) -> Parsed {
                 None => (body.clone(), None),
             };
             // Opções com `[=]`: valor depois do `=` ou no próximo argumento.
-            let valued = ["gitfile", "hintro", "houtro", "sort", "filelimit", "charset", "timefmt", "infofile", "scheme", "authority"];
+            let valued = [
+                "gitfile",
+                "hintro",
+                "houtro",
+                "sort",
+                "filelimit",
+                "charset",
+                "timefmt",
+                "infofile",
+                "scheme",
+                "authority",
+            ];
             if valued.contains(&name.as_str()) {
                 let value = match inline {
                     Some(v) => Some(v),
@@ -339,7 +453,9 @@ fn parse_args(argv: &[Vec<u8>]) -> Parsed {
                 };
                 let Some(value) = value else {
                     if name == "charset" {
-                        let mut msg = String::from("tree: Missing argument to --charset\nValid charsets include:\n");
+                        let mut msg = String::from(
+                            "tree: Missing argument to --charset\nValid charsets include:\n",
+                        );
                         for c in CHARSETS {
                             msg.push_str(&format!("  {c}\n"));
                         }
@@ -478,7 +594,9 @@ fn parse_args(argv: &[Vec<u8>]) -> Parsed {
                     } else {
                         take_next(&mut i)
                     };
-                    let Some(value) = value else { return fatal("Missing argument to -L option.") };
+                    let Some(value) = value else {
+                        return fatal("Missing argument to -L option.");
+                    };
                     match parse_level(&value) {
                         Some(n) => o.max_level = Some(n),
                         None => return fatal("Invalid level, must be greater than 0."),
@@ -497,7 +615,11 @@ fn parse_args(argv: &[Vec<u8>]) -> Parsed {
                     }
                 }
                 other => {
-                    let shown = if other.is_ascii() { char::from(other).to_string() } else { format!("\\x{other:02x}") };
+                    let shown = if other.is_ascii() {
+                        char::from(other).to_string()
+                    } else {
+                        format!("\\x{other:02x}")
+                    };
                     return invalid(&format!("-`{shown}'"));
                 }
             }
@@ -512,7 +634,9 @@ fn parse_args(argv: &[Vec<u8>]) -> Parsed {
 /// Casamento de padrão do tree: `*`, `?`, `[...]` (com `^`/`!` e faixas), `\` escapa, e `|` separa
 /// alternativas.
 fn pattern_match(pattern: &[u8], text: &[u8], icase: bool) -> bool {
-    split_alternatives(pattern).iter().any(|alt| glob(alt, text, icase))
+    split_alternatives(pattern)
+        .iter()
+        .any(|alt| glob(alt, text, icase))
 }
 
 fn split_alternatives(p: &[u8]) -> Vec<Vec<u8>> {
@@ -679,7 +803,13 @@ fn parse_gitignore(data: &[u8], base: &[u8]) -> Vec<GitRule> {
         if line[0] == b'/' {
             line.remove(0);
         }
-        rules.push(GitRule { base: base.to_vec(), pattern: line, negate, dir_only, anchored });
+        rules.push(GitRule {
+            base: base.to_vec(),
+            pattern: line,
+            negate,
+            dir_only,
+            anchored,
+        });
     }
     rules
 }
@@ -690,7 +820,10 @@ fn git_glob(p: &[u8], t: &[u8]) -> bool {
         if git_glob(rest, t) {
             return true;
         }
-        return t.iter().enumerate().any(|(i, b)| *b == b'/' && git_glob(rest, &t[i + 1..]));
+        return t
+            .iter()
+            .enumerate()
+            .any(|(i, b)| *b == b'/' && git_glob(rest, &t[i + 1..]));
     }
     if p == b"**" {
         return true;
@@ -703,7 +836,11 @@ fn git_glob(p: &[u8], t: &[u8]) -> bool {
                 if git_glob(tail, rest) {
                     return true;
                 }
-                if rest.iter().enumerate().any(|(k, c)| *c == b'/' && git_glob(tail, &rest[k + 1..])) {
+                if rest
+                    .iter()
+                    .enumerate()
+                    .any(|(k, c)| *c == b'/' && git_glob(tail, &rest[k + 1..]))
+                {
                     return true;
                 }
             }
@@ -711,7 +848,10 @@ fn git_glob(p: &[u8], t: &[u8]) -> bool {
         return false;
     }
     if let Some(head) = p.strip_suffix(b"/**") {
-        return t.iter().enumerate().any(|(i, b)| *b == b'/' && glob_path(head, &t[..i]));
+        return t
+            .iter()
+            .enumerate()
+            .any(|(i, b)| *b == b'/' && glob_path(head, &t[..i]));
     }
     glob_path(p, t)
 }
@@ -733,8 +873,14 @@ fn git_ignored(rules: &[GitRule], path: &[u8], name: &[u8], is_dir: bool) -> boo
         if r.dir_only && !is_dir {
             continue;
         }
-        let Some(rel) = path.strip_prefix(r.base.as_slice()) else { continue };
-        let hit = if r.anchored { git_glob(&r.pattern, rel) } else { glob(&r.pattern, name, false) };
+        let Some(rel) = path.strip_prefix(r.base.as_slice()) else {
+            continue;
+        };
+        let hit = if r.anchored {
+            git_glob(&r.pattern, rel)
+        } else {
+            glob(&r.pattern, name, false)
+        };
         if hit {
             ignored = !r.negate;
         }
@@ -776,14 +922,18 @@ struct Node {
 
 impl Node {
     fn is_link(&self) -> bool {
-        self.lst.as_ref().is_some_and(|s| s.file_type() == FileType::Symlink)
+        self.lst
+            .as_ref()
+            .is_some_and(|s| s.file_type() == FileType::Symlink)
     }
 
     fn is_real_dir(&self) -> bool {
         if self.virtual_node {
             return self.is_dir;
         }
-        self.lst.as_ref().is_some_and(|s| s.file_type() == FileType::Directory)
+        self.lst
+            .as_ref()
+            .is_some_and(|s| s.file_type() == FileType::Directory)
     }
 
     fn sort_stat(&self) -> Option<&Stat> {
@@ -807,11 +957,15 @@ fn join(dir: &[u8], name: &[u8]) -> Vec<u8> {
 }
 
 fn lstat(path: &[u8]) -> Option<Stat> {
-    sys::try_current()?.fstatat(Fd::CWD, path, AtFlags::SYMLINK_NOFOLLOW).ok()
+    sys::try_current()?
+        .fstatat(Fd::CWD, path, AtFlags::SYMLINK_NOFOLLOW)
+        .ok()
 }
 
 fn stat(path: &[u8]) -> Option<Stat> {
-    sys::try_current()?.fstatat(Fd::CWD, path, AtFlags::empty()).ok()
+    sys::try_current()?
+        .fstatat(Fd::CWD, path, AtFlags::empty())
+        .ok()
 }
 
 fn readlink(path: &[u8]) -> Option<Vec<u8>> {
@@ -827,7 +981,13 @@ impl Walker<'_> {
     }
 
     /// Lê e filtra um diretório, e desce recursivamente.
-    fn list(&mut self, dir: &Node, depth: usize, matched: bool, rules: &[GitRule]) -> (Option<Vec<Node>>, Note) {
+    fn list(
+        &mut self,
+        dir: &Node,
+        depth: usize,
+        matched: bool,
+        rules: &[GitRule],
+    ) -> (Option<Vec<Node>>, Note) {
         let entries = match sys::read_dir(&dir.path) {
             Ok(e) => e,
             Err(_) => return (None, Note::ErrorOpening),
@@ -854,10 +1014,22 @@ impl Walker<'_> {
             }
             let path = join(&dir.path, &name);
             let lst = lstat(&path);
-            let is_link = lst.as_ref().is_some_and(|s| s.file_type() == FileType::Symlink);
-            let (target, tst) = if is_link { (readlink(&path), stat(&path)) } else { (None, None) };
-            let real_dir = lst.as_ref().is_some_and(|s| s.file_type() == FileType::Directory);
-            let is_dir = real_dir || (is_link && tst.as_ref().is_some_and(|s| s.file_type() == FileType::Directory));
+            let is_link = lst
+                .as_ref()
+                .is_some_and(|s| s.file_type() == FileType::Symlink);
+            let (target, tst) = if is_link {
+                (readlink(&path), stat(&path))
+            } else {
+                (None, None)
+            };
+            let real_dir = lst
+                .as_ref()
+                .is_some_and(|s| s.file_type() == FileType::Directory);
+            let is_dir = real_dir
+                || (is_link
+                    && tst
+                        .as_ref()
+                        .is_some_and(|s| s.file_type() == FileType::Directory));
             if self.pattern_hit(&self.o.ignores, &name, &path) {
                 continue;
             }
@@ -873,12 +1045,17 @@ impl Walker<'_> {
             let mut child_matched = false;
             if !self.o.patterns.is_empty() {
                 if treat_as_dir {
-                    child_matched = self.o.matchdirs && self.pattern_hit(&self.o.patterns, &name, &path);
+                    child_matched =
+                        self.o.matchdirs && self.pattern_hit(&self.o.patterns, &name, &path);
                 } else if !matched && !self.pattern_hit(&self.o.patterns, &name, &path) {
                     continue;
                 }
             }
-            let shown = if self.o.full_path { path.clone() } else { name.clone() };
+            let shown = if self.o.full_path {
+                path.clone()
+            } else {
+                name.clone()
+            };
             kids.push(Node {
                 name: shown,
                 path,
@@ -907,7 +1084,11 @@ impl Walker<'_> {
             if self.o.max_level.is_some_and(|m| depth + 1 >= m) {
                 continue;
             }
-            let st = if link_dir { kid.tst.clone() } else { kid.lst.clone() };
+            let st = if link_dir {
+                kid.tst.clone()
+            } else {
+                kid.lst.clone()
+            };
             if let Some(st) = &st {
                 if self.o.xdev && st.dev != self.root_dev {
                     continue;
@@ -982,8 +1163,16 @@ fn sort_nodes(nodes: &mut [Node], o: &Opts) {
         if o.dirsfirst || o.filesfirst {
             let (da, db) = (a.is_dir, b.is_dir);
             if da != db {
-                let dirs_first = if da { Ordering::Less } else { Ordering::Greater };
-                return if o.dirsfirst { dirs_first } else { dirs_first.reverse() };
+                let dirs_first = if da {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                };
+                return if o.dirsfirst {
+                    dirs_first
+                } else {
+                    dirs_first.reverse()
+                };
             }
         }
         let (na, nb) = (base_name(a), base_name(b));
@@ -992,15 +1181,24 @@ fn sort_nodes(nodes: &mut [Node], o: &Opts) {
             SortKey::Name | SortKey::None => by_name,
             SortKey::Version => version_cmp(na, nb),
             SortKey::Size => {
-                let (sa, sb) = (a.sort_stat().map_or(0, |s| s.size), b.sort_stat().map_or(0, |s| s.size));
+                let (sa, sb) = (
+                    a.sort_stat().map_or(0, |s| s.size),
+                    b.sort_stat().map_or(0, |s| s.size),
+                );
                 sb.cmp(&sa).then(by_name)
             }
             SortKey::Mtime => {
-                let (ta, tb) = (a.sort_stat().map(|s| s.mtime), b.sort_stat().map(|s| s.mtime));
+                let (ta, tb) = (
+                    a.sort_stat().map(|s| s.mtime),
+                    b.sort_stat().map(|s| s.mtime),
+                );
                 ta.cmp(&tb).then(by_name)
             }
             SortKey::Ctime => {
-                let (ta, tb) = (a.sort_stat().map(|s| s.ctime), b.sort_stat().map(|s| s.ctime));
+                let (ta, tb) = (
+                    a.sort_stat().map(|s| s.ctime),
+                    b.sort_stat().map(|s| s.ctime),
+                );
                 ta.cmp(&tb).then(by_name)
             }
         };
@@ -1022,7 +1220,10 @@ fn prune(nodes: &mut Vec<Node>) {
 /// Soma do `--du`: tamanho próprio mais o dos descendentes listados.
 fn compute_du(n: &mut Node) -> u64 {
     let own = n.lst.as_ref().map_or(0, |s| s.size);
-    let kids: u64 = n.children.as_mut().map_or(0, |k| k.iter_mut().map(compute_du).sum());
+    let kids: u64 = n
+        .children
+        .as_mut()
+        .map_or(0, |k| k.iter_mut().map(compute_du).sum());
     n.du = own + kids;
     n.du
 }
@@ -1045,7 +1246,10 @@ fn count(n: &Node, dirs: &mut u64, files: &mut u64) {
 
 fn locale_is_utf8() -> bool {
     let get = |k: &str| sys::getenv(k).filter(|v| !v.is_empty());
-    let loc = get("LC_ALL").or_else(|| get("LC_CTYPE")).or_else(|| get("LANG")).unwrap_or_default();
+    let loc = get("LC_ALL")
+        .or_else(|| get("LC_CTYPE"))
+        .or_else(|| get("LANG"))
+        .unwrap_or_default();
     let l = String::from_utf8_lossy(&loc).to_ascii_lowercase();
     l.contains("utf-8") || l.contains("utf8")
 }
@@ -1143,11 +1347,19 @@ fn human(size: u64, si: bool) -> String {
         return format!("{s:4}");
     }
     let v = (s as f32 / base as f32) as f64;
-    if s / base >= 10 { format!("{v:3.0}{}", char::from(units[idx])) } else { format!("{v:3.1}{}", char::from(units[idx])) }
+    if s / base >= 10 {
+        format!("{v:3.0}{}", char::from(units[idx]))
+    } else {
+        format!("{v:3.1}{}", char::from(units[idx]))
+    }
 }
 
 fn size_field(n: u64, o: &Opts) -> String {
-    if o.human || o.si { human(n, o.si) } else { format!("{n:11}") }
+    if o.human || o.si {
+        human(n, o.si)
+    } else {
+        format!("{n:11}")
+    }
 }
 
 fn date_field(st: &Stat, o: &Opts, tz: &jiff::tz::TimeZone, now: i64) -> String {
@@ -1168,9 +1380,29 @@ fn date_field(st: &Stat, o: &Opts, tz: &jiff::tz::TimeZone, now: i64) -> String 
 fn strftime(fmt: &[u8], t: i64, tz: &jiff::tz::TimeZone) -> String {
     let dt = time::civil(t, tz);
     let wday = time::wday(&dt);
-    let full_days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    let full_months =
-        ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    let full_days = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+    ];
+    let full_months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ];
     let mut out = String::new();
     let f = String::from_utf8_lossy(fmt);
     let mut it = f.chars().peekable();
@@ -1183,7 +1415,11 @@ fn strftime(fmt: &[u8], t: i64, tz: &jiff::tz::TimeZone) -> String {
             out.push('%');
             break;
         };
-        let h12 = if dt.hour() % 12 == 0 { 12 } else { dt.hour() % 12 };
+        let h12 = if dt.hour() % 12 == 0 {
+            12
+        } else {
+            dt.hour() % 12
+        };
         let piece = match k {
             'Y' => dt.year().to_string(),
             'y' => format!("{:02}", dt.year().rem_euclid(100)),
@@ -1206,7 +1442,11 @@ fn strftime(fmt: &[u8], t: i64, tz: &jiff::tz::TimeZone) -> String {
             'P' => (if dt.hour() < 12 { "am" } else { "pm" }).to_string(),
             'Z' => time::abbreviation(t, tz),
             'z' => {
-                let off = tz.to_offset(jiff::Timestamp::from_second(t).unwrap_or(jiff::Timestamp::UNIX_EPOCH)).seconds();
+                let off = tz
+                    .to_offset(
+                        jiff::Timestamp::from_second(t).unwrap_or(jiff::Timestamp::UNIX_EPOCH),
+                    )
+                    .seconds();
                 let sign = if off < 0 { '-' } else { '+' };
                 let a = off.abs();
                 format!("{sign}{:02}{:02}", a / 3600, (a % 3600) / 60)
@@ -1227,11 +1467,21 @@ fn strftime(fmt: &[u8], t: i64, tz: &jiff::tz::TimeZone) -> String {
                 dt.second(),
                 dt.year()
             ),
-            'x' | 'D' => format!("{:02}/{:02}/{:02}", dt.month(), dt.day(), dt.year().rem_euclid(100)),
+            'x' | 'D' => format!(
+                "{:02}/{:02}/{:02}",
+                dt.month(),
+                dt.day(),
+                dt.year().rem_euclid(100)
+            ),
             'X' | 'T' => format!("{:02}:{:02}:{:02}", dt.hour(), dt.minute(), dt.second()),
             'F' => format!("{}-{:02}-{:02}", dt.year(), dt.month(), dt.day()),
             'R' => format!("{:02}:{:02}", dt.hour(), dt.minute()),
-            'r' => format!("{h12:02}:{:02}:{:02} {}", dt.minute(), dt.second(), if dt.hour() < 12 { "AM" } else { "PM" }),
+            'r' => format!(
+                "{h12:02}:{:02}:{:02} {}",
+                dt.minute(),
+                dt.second(),
+                if dt.hour() < 12 { "AM" } else { "PM" }
+            ),
             other => format!("%{other}"),
         };
         out.push_str(&piece);
@@ -1250,7 +1500,9 @@ impl Colors {
         let mut codes = Vec::new();
         let mut exts = Vec::new();
         for item in spec.split(':') {
-            let Some((k, v)) = item.split_once('=') else { continue };
+            let Some((k, v)) = item.split_once('=') else {
+                continue;
+            };
             if let Some(ext) = k.strip_prefix('*') {
                 exts.push((ext.as_bytes().to_vec(), v.to_string()));
             } else {
@@ -1261,7 +1513,11 @@ impl Colors {
     }
 
     fn code(&self, key: &str) -> Option<&str> {
-        self.codes.iter().rev().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
+        self.codes
+            .iter()
+            .rev()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.as_str())
     }
 
     /// Código pra um arquivo pelo stat (o do link, ou do alvo).
@@ -1293,7 +1549,9 @@ impl Colors {
                     "ex"
                 } else {
                     let ext = self.exts.iter().rev().find(|(e, _)| name.ends_with(e));
-                    return ext.map(|(_, c)| c.clone()).or_else(|| self.code("fi").map(str::to_string));
+                    return ext
+                        .map(|(_, c)| c.clone())
+                        .or_else(|| self.code("fi").map(str::to_string));
                 }
             }
         };
@@ -1412,7 +1670,9 @@ impl Render<'_> {
         }
         match &n.note {
             Note::Recursive => out.extend_from_slice(b"  [recursive, not followed]"),
-            Note::FileLimit(k) => out.extend_from_slice(format!("  [{k} entries exceeds filelimit, not opening dir]").as_bytes()),
+            Note::FileLimit(k) => out.extend_from_slice(
+                format!("  [{k} entries exceeds filelimit, not opening dir]").as_bytes(),
+            ),
             Note::ErrorOpening => out.extend_from_slice(b"  [error opening dir]"),
             Note::None => {}
         }
@@ -1424,7 +1684,12 @@ impl Render<'_> {
             return Vec::new();
         }
         let (vert, branch, corner, blank): (&[u8], &[u8], &[u8], &[u8]) = match self.lines {
-            Lines::Utf8 => ("\u{2502}\u{a0}\u{a0} ".as_bytes(), "\u{251c}\u{2500}\u{2500} ".as_bytes(), "\u{2514}\u{2500}\u{2500} ".as_bytes(), b"    "),
+            Lines::Utf8 => (
+                "\u{2502}\u{a0}\u{a0} ".as_bytes(),
+                "\u{251c}\u{2500}\u{2500} ".as_bytes(),
+                "\u{2514}\u{2500}\u{2500} ".as_bytes(),
+                b"    ",
+            ),
             Lines::Ascii => (b"|   ", b"|-- ", b"`-- ", b"    "),
             Lines::Cp437 => (b"\xb3   ", b"\xc3\xc4\xc4 ", b"\xc0\xc4\xc4 ", b"    "),
             Lines::Ansi => (b"x   ", b"tqq ", b"mqq ", b"    "),
@@ -1443,7 +1708,13 @@ impl Render<'_> {
         out
     }
 
-    fn text(&self, out: &mut Vec<u8>, n: &Node, ancestors_last: &mut Vec<bool>, last: Option<bool>) {
+    fn text(
+        &self,
+        out: &mut Vec<u8>,
+        n: &Node,
+        ancestors_last: &mut Vec<bool>,
+        last: Option<bool>,
+    ) {
         let meta = self.meta(n);
         let ind = match last {
             Some(l) => self.indent(ancestors_last, l),
@@ -1506,7 +1777,10 @@ impl Render<'_> {
             v.push(("dev", AttrValue::Num(st.dev)));
         }
         if self.o.perms {
-            v.push(("mode", AttrValue::Str(format!("{:04o}", st.mode & 0o7777).into_bytes())));
+            v.push((
+                "mode",
+                AttrValue::Str(format!("{:04o}", st.mode & 0o7777).into_bytes()),
+            ));
             v.push(("prot", AttrValue::Str(prot(st.mode).into_bytes())));
         }
         if self.o.user {
@@ -1518,21 +1792,33 @@ impl Render<'_> {
         if self.o.size {
             let s = if self.o.du { n.du } else { st.size };
             if self.o.human || self.o.si {
-                v.push(("size", AttrValue::Str(human(s, self.o.si).trim_start().as_bytes().to_vec())));
+                v.push((
+                    "size",
+                    AttrValue::Str(human(s, self.o.si).trim_start().as_bytes().to_vec()),
+                ));
             } else {
                 v.push(("size", AttrValue::Num(s)));
             }
         }
         if self.o.date {
-            v.push(("time", AttrValue::Str(date_field(st, self.o, &self.tz, self.now).into_bytes())));
+            v.push((
+                "time",
+                AttrValue::Str(date_field(st, self.o, &self.tz, self.now).into_bytes()),
+            ));
         }
         v
     }
 
     fn json(&self, out: &mut Vec<u8>, n: &Node, depth: usize, compact: bool) {
-        let ind = if compact { Vec::new() } else { vec![b' '; 2 * (depth + 1)] };
+        let ind = if compact {
+            Vec::new()
+        } else {
+            vec![b' '; 2 * (depth + 1)]
+        };
         out.extend_from_slice(&ind);
-        out.extend_from_slice(format!("{{\"type\":\"{}\",\"name\":", Self::type_name(n)).as_bytes());
+        out.extend_from_slice(
+            format!("{{\"type\":\"{}\",\"name\":", Self::type_name(n)).as_bytes(),
+        );
         out.extend(json_str(&n.name));
         for (k, val) in self.attrs(n) {
             out.extend_from_slice(format!(",\"{k}\":").as_bytes());
@@ -1580,7 +1866,11 @@ impl Render<'_> {
     }
 
     fn xml(&self, out: &mut Vec<u8>, n: &Node, depth: usize, compact: bool) {
-        let ind = if compact { Vec::new() } else { vec![b' '; 2 * (depth + 1)] };
+        let ind = if compact {
+            Vec::new()
+        } else {
+            vec![b' '; 2 * (depth + 1)]
+        };
         let tag = Self::type_name(n);
         out.extend_from_slice(&ind);
         out.extend_from_slice(format!("<{tag} name=\"").as_bytes());
@@ -1683,7 +1973,10 @@ fn fromfile_tree(name: &[u8], data: &[u8]) -> Node {
             continue;
         }
         let trailing_dir = line.ends_with(b"/");
-        let comps: Vec<&[u8]> = line.split(|b| *b == b'/').filter(|c| !c.is_empty()).collect();
+        let comps: Vec<&[u8]> = line
+            .split(|b| *b == b'/')
+            .filter(|c| !c.is_empty())
+            .collect();
         let mut cur = &mut root;
         for (i, comp) in comps.iter().enumerate() {
             let last = i + 1 == comps.len();
@@ -1748,7 +2041,9 @@ fn run(args: &[OsString]) -> i32 {
         dirs.push(b".".to_vec());
     }
     let utf8 = locale_is_utf8();
-    let lines = o.lines.unwrap_or(if utf8 { Lines::Utf8 } else { Lines::Ascii });
+    let lines = o
+        .lines
+        .unwrap_or(if utf8 { Lines::Utf8 } else { Lines::Ascii });
     let term = sys::getenv("TERM").filter(|t| !t.is_empty());
     let want_color = match o.color {
         ColorMode::Never => false,
@@ -1757,10 +2052,19 @@ fn run(args: &[OsString]) -> i32 {
     } && o.format == Format::Text
         && term.is_some();
     let colors = want_color.then(|| {
-        let spec = sys::getenv("TREE_COLORS").or_else(|| sys::getenv("LS_COLORS")).map(|v| io::lossy(&v));
+        let spec = sys::getenv("TREE_COLORS")
+            .or_else(|| sys::getenv("LS_COLORS"))
+            .map(|v| io::lossy(&v));
         Colors::parse(spec.as_deref().unwrap_or(DEFAULT_COLORS))
     });
-    let render = Render { o: &o, lines, utf8, colors, tz: time::local_tz(), now: time::now().sec };
+    let render = Render {
+        o: &o,
+        lines,
+        utf8,
+        colors,
+        tz: time::local_tz(),
+        now: time::now().sec,
+    };
 
     // Monta as árvores.
     let mut roots: Vec<Node> = Vec::new();
@@ -1777,7 +2081,11 @@ fn run(args: &[OsString]) -> i32 {
         .collect();
     for d in &dirs {
         if o.fromfile {
-            let data = if d == b"." { io::read_stdin() } else { io::read_path(d) };
+            let data = if d == b"." {
+                io::read_stdin()
+            } else {
+                io::read_path(d)
+            };
             match data {
                 Ok(data) => {
                     let mut n = fromfile_tree(d, &data);
@@ -1805,7 +2113,11 @@ fn run(args: &[OsString]) -> i32 {
             roots.push(n);
             continue;
         }
-        let mut walker = Walker { o: &o, visited: BTreeSet::new(), root_dev: st_follow.dev };
+        let mut walker = Walker {
+            o: &o,
+            visited: BTreeSet::new(),
+            root_dev: st_follow.dev,
+        };
         walker.visited.insert((st_follow.dev, st_follow.ino));
         let mut root = Node {
             name: d.clone(),
@@ -1866,10 +2178,18 @@ fn run(args: &[OsString]) -> i32 {
             if !o.noreport {
                 out.push(b'\n');
                 if o.du {
-                    let size = if o.human || o.si { human(total_du, o.si) } else { format!("{total_du:11} bytes") };
+                    let size = if o.human || o.si {
+                        human(total_du, o.si)
+                    } else {
+                        format!("{total_du:11} bytes")
+                    };
                     out.extend_from_slice(format!(" {size} used in ").as_bytes());
                 }
-                let d = if ndirs == 1 { "directory" } else { "directories" };
+                let d = if ndirs == 1 {
+                    "directory"
+                } else {
+                    "directories"
+                };
                 if o.dirs_only {
                     out.extend_from_slice(format!("{ndirs} {d}\n").as_bytes());
                 } else {
@@ -1972,7 +2292,9 @@ fn run(args: &[OsString]) -> i32 {
                 if o.du {
                     out.extend_from_slice(format!("{i4}<size>{total_du}</size>{nl}").as_bytes());
                 }
-                out.extend_from_slice(format!("{i4}<directories>{ndirs}</directories>{nl}").as_bytes());
+                out.extend_from_slice(
+                    format!("{i4}<directories>{ndirs}</directories>{nl}").as_bytes(),
+                );
                 if !o.dirs_only {
                     out.extend_from_slice(format!("{i4}<files>{nfiles}</files>{nl}").as_bytes());
                 }
@@ -1983,18 +2305,28 @@ fn run(args: &[OsString]) -> i32 {
     }
 
     match &o.outfile {
-        Some(path) => match File::open_with(path, OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC, 0o666) {
-            Ok(mut f) => {
-                if let Err(e) = f.write_all(&out) {
-                    io::eprint(format!("tree: {}: {}\n", io::lossy(path), Errno::from_io(&e).message()));
+        Some(path) => {
+            match File::open_with(path, OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC, 0o666) {
+                Ok(mut f) => {
+                    if let Err(e) = f.write_all(&out) {
+                        io::eprint(format!(
+                            "tree: {}: {}\n",
+                            io::lossy(path),
+                            Errno::from_io(&e).message()
+                        ));
+                        return 1;
+                    }
+                }
+                Err(e) => {
+                    io::eprint(format!(
+                        "tree: invalid filename '{}': {}\n",
+                        io::lossy(path),
+                        e.message()
+                    ));
                     return 1;
                 }
             }
-            Err(e) => {
-                io::eprint(format!("tree: invalid filename '{}': {}\n", io::lossy(path), e.message()));
-                return 1;
-            }
-        },
+        }
         None => {
             let mut stdout = io::stdout();
             let _ = stdout.write_all(&out);
@@ -2058,22 +2390,42 @@ mod tests {
             "./\n|-- a.txt*\n|-- broken -> nowhere\n|-- docs/\n|-- empty/\n|-- link -> a.txt*\n|-- src/\n`-- srcl -> src/\n\n5 directories, 3 files\n"
         );
         let r = kit().run(&["tree", "-d"], b"");
-        assert_eq!(r.stdout_str(), format!(".\n├── docs\n├── empty\n├── src\n{V}└── sub\n└── srcl -> src\n\n6 directories\n"));
+        assert_eq!(
+            r.stdout_str(),
+            format!(
+                ".\n├── docs\n├── empty\n├── src\n{V}└── sub\n└── srcl -> src\n\n6 directories\n"
+            )
+        );
     }
 
     #[test]
     fn patterns_prune_and_errors() {
         let r = kit().run(&["tree", "-P", "*.c", "--prune"], b"");
-        assert_eq!(r.stdout_str(), ".\n└── src\n    └── sub\n        └── z.c\n\n3 directories, 1 file\n");
+        assert_eq!(
+            r.stdout_str(),
+            ".\n└── src\n    └── sub\n        └── z.c\n\n3 directories, 1 file\n"
+        );
         let r = kit().run(&["tree", "-I", "src|docs|empty"], b"");
-        assert_eq!(r.stdout_str(), ".\n├── a.txt\n├── broken -> nowhere\n├── link -> a.txt\n└── srcl -> src\n\n2 directories, 3 files\n");
+        assert_eq!(
+            r.stdout_str(),
+            ".\n├── a.txt\n├── broken -> nowhere\n├── link -> a.txt\n└── srcl -> src\n\n2 directories, 3 files\n"
+        );
         let r = kit().run(&["tree", "nope"], b"");
-        assert_eq!((r.stdout_str().as_str(), r.code()), ("nope  [error opening dir]\n\n0 directories, 0 files\n", 2));
+        assert_eq!(
+            (r.stdout_str().as_str(), r.code()),
+            ("nope  [error opening dir]\n\n0 directories, 0 files\n", 2)
+        );
         let r = kit().run(&["tree", "-Z"], b"");
-        assert!(r.stderr_str().starts_with("tree: Invalid argument -`Z'.\nusage: tree "));
+        assert!(
+            r.stderr_str()
+                .starts_with("tree: Invalid argument -`Z'.\nusage: tree ")
+        );
         assert_eq!(r.code(), 1);
         let r = kit().run(&["tree", "-L", "0"], b"");
-        assert_eq!(r.stderr_str(), "tree: Invalid level, must be greater than 0.\n");
+        assert_eq!(
+            r.stderr_str(),
+            "tree: Invalid level, must be greater than 0.\n"
+        );
     }
 
     #[test]
@@ -2105,9 +2457,18 @@ mod tests {
         use std::cmp::Ordering;
         assert_eq!(version_cmp(b"file9", b"file10"), Ordering::Less);
         assert_eq!(version_cmp(b"a", b"b"), Ordering::Less);
-        assert_eq!(escape_name(b"a\tb\xffc", Escape::Octal, true), b"a\\011b\\377c".to_vec());
-        assert_eq!(escape_name(b"a\tb\xff", Escape::Question, true), b"a?b\xff".to_vec());
-        assert_eq!(escape_name("é".as_bytes(), Escape::Octal, false), b"\\303\\251".to_vec());
+        assert_eq!(
+            escape_name(b"a\tb\xffc", Escape::Octal, true),
+            b"a\\011b\\377c".to_vec()
+        );
+        assert_eq!(
+            escape_name(b"a\tb\xff", Escape::Question, true),
+            b"a?b\xff".to_vec()
+        );
+        assert_eq!(
+            escape_name("é".as_bytes(), Escape::Octal, false),
+            b"\\303\\251".to_vec()
+        );
         assert!(pattern_match(b"*.md|*.c", b"z.c", false));
         assert!(pattern_match(b"[ab]*", b"big", false));
         assert!(!pattern_match(b"[!ab]*", b"big", false));

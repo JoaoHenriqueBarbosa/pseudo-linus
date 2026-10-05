@@ -37,7 +37,10 @@ use std::sync::Arc;
 use super::apprentice::*;
 use super::cfmt::{self, Arg};
 use super::cutil::{at, cstr, is_lower, is_space, is_upper, strtoull};
-use super::magic::{self, MAGIC_APPLE, MAGIC_CONTINUE, MAGIC_EXTENSION, MAGIC_MIME_TYPE, MAGIC_NODESC, MagicList, MagicSet};
+use super::magic::{
+    self, MAGIC_APPLE, MAGIC_CONTINUE, MAGIC_EXTENSION, MAGIC_MIME_TYPE, MAGIC_NODESC, MagicList,
+    MagicSet,
+};
 use super::regex::Regex;
 
 /// O `struct buffer`: o começo do arquivo e, sob demanda, o fim dele (pros offsets negativos).
@@ -52,7 +55,13 @@ pub struct Buffer<'a> {
 
 impl<'a> Buffer<'a> {
     pub fn new(fbuf: &'a [u8], st_mode: u32, st_size: u64, fd: Option<sysabi::Fd>) -> Buffer<'a> {
-        Buffer { fbuf, st_mode, st_size, fd, ebuf: RefCell::new(None) }
+        Buffer {
+            fbuf,
+            st_mode,
+            st_size,
+            fd,
+            ebuf: RefCell::new(None),
+        }
     }
 
     /// `buffer_fill()`: os últimos `min(st_size, flen)` bytes; `None` se não dá (não regular).
@@ -149,19 +158,30 @@ fn le16(p: &[u8]) -> u16 {
     (u16::from(at(p, 1)) << 8) | u16::from(at(p, 0))
 }
 fn be32(p: &[u8]) -> u32 {
-    (u32::from(at(p, 0)) << 24) | (u32::from(at(p, 1)) << 16) | (u32::from(at(p, 2)) << 8) | u32::from(at(p, 3))
+    (u32::from(at(p, 0)) << 24)
+        | (u32::from(at(p, 1)) << 16)
+        | (u32::from(at(p, 2)) << 8)
+        | u32::from(at(p, 3))
 }
 fn le32(p: &[u8]) -> u32 {
-    (u32::from(at(p, 3)) << 24) | (u32::from(at(p, 2)) << 16) | (u32::from(at(p, 1)) << 8) | u32::from(at(p, 0))
+    (u32::from(at(p, 3)) << 24)
+        | (u32::from(at(p, 2)) << 16)
+        | (u32::from(at(p, 1)) << 8)
+        | u32::from(at(p, 0))
 }
 fn me32(p: &[u8]) -> u32 {
-    (u32::from(at(p, 1)) << 24) | (u32::from(at(p, 0)) << 16) | (u32::from(at(p, 3)) << 8) | u32::from(at(p, 2))
+    (u32::from(at(p, 1)) << 24)
+        | (u32::from(at(p, 0)) << 16)
+        | (u32::from(at(p, 3)) << 8)
+        | u32::from(at(p, 2))
 }
 fn be64(p: &[u8]) -> u64 {
     (0..8).fold(0u64, |acc, i| (acc << 8) | u64::from(at(p, i)))
 }
 fn le64(p: &[u8]) -> u64 {
-    (0..8).rev().fold(0u64, |acc, i| (acc << 8) | u64::from(at(p, i)))
+    (0..8)
+        .rev()
+        .fold(0u64, |acc, i| (acc << 8) | u64::from(at(p, i)))
 }
 
 /// `SEXT(sgn, bits, v)`.
@@ -189,13 +209,30 @@ fn oob(n: usize, o: i64, i: usize) -> bool {
 pub fn file_softmagic(ms: &mut MagicSet, b: &Buffer<'_>, mode: u16, text: bool) -> i32 {
     let mut ic = 0u16;
     let mut nc = 0u16;
-    let mut st = State { printed_something: false, need_separator: false, firstline: true };
+    let mut st = State {
+        printed_something: false,
+        need_separator: false,
+        firstline: true,
+    };
     let mut rv = 0;
     let dbs: Vec<Arc<magic::Db>> = ms.mlist.clone();
     for db in &dbs {
         let mut returnval = 0;
         let mut found = 0;
-        let ret = do_match(ms, db.list(0), b, 0, mode, text, false, &mut ic, &mut nc, &mut st, &mut returnval, &mut found);
+        let ret = do_match(
+            ms,
+            db.list(0),
+            b,
+            0,
+            mode,
+            text,
+            false,
+            &mut ic,
+            &mut nc,
+            &mut st,
+            &mut returnval,
+            &mut found,
+        );
         match ret {
             -1 => return ret,
             0 => continue,
@@ -246,7 +283,8 @@ pub fn do_match(
             let m = &magic[magindex];
             if m.typ != FILE_NAME
                 && ((is_string_type(m.typ)
-                    && ((text && (m.str_flags() & FLT) == STRING_BINTEST) || (!text && (m.str_flags() & FLT) == STRING_TEXTTEST)))
+                    && ((text && (m.str_flags() & FLT) == STRING_BINTEST)
+                        || (!text && (m.str_flags() & FLT) == STRING_TEXTTEST)))
                     || (m.flag & mode) != mode)
             {
                 break 'body true;
@@ -260,7 +298,23 @@ pub fn do_match(
             let s_owned = bb.clone();
             let s = s_owned.bytes(b);
             let flush;
-            match mget(ms, list, magindex, b, s, offset, cont_level, mode, text, flip, ic, nc, st, returnval, found_match) {
+            match mget(
+                ms,
+                list,
+                magindex,
+                b,
+                s,
+                offset,
+                cont_level,
+                mode,
+                text,
+                flip,
+                ic,
+                nc,
+                st,
+                returnval,
+                found_match,
+            ) {
                 -1 => return -1,
                 0 => flush = m.reln != b'!',
                 _ => {
@@ -331,7 +385,23 @@ pub fn do_match(
                 }
                 let s_owned = bb.clone();
                 let s = s_owned.bytes(b);
-                let flush = match mget(ms, list, magindex, b, s, offset, cont_level, mode, text, flip, ic, nc, st, returnval, found_match) {
+                let flush = match mget(
+                    ms,
+                    list,
+                    magindex,
+                    b,
+                    s,
+                    offset,
+                    cont_level,
+                    mode,
+                    text,
+                    flip,
+                    ic,
+                    nc,
+                    st,
+                    returnval,
+                    found_match,
+                ) {
                     -1 => return -1,
                     0 => {
                         if m.reln != b'!' {
@@ -347,7 +417,11 @@ pub fn do_match(
                         false
                     }
                 };
-                let r = if flush { 1 } else { magiccheck(ms, list, magindex, s) };
+                let r = if flush {
+                    1
+                } else {
+                    magiccheck(ms, list, magindex, s)
+                };
                 match r {
                     -1 => return -1,
                     0 => ms.li[cont_level].last_match = false,
@@ -381,7 +455,8 @@ pub fn do_match(
                                     return -1;
                                 }
                             }
-                            if st.need_separator && m.flag & NOSPACE == 0 && ms.print(b" ").is_err() {
+                            if st.need_separator && m.flag & NOSPACE == 0 && ms.print(b" ").is_err()
+                            {
                                 return -1;
                             }
                             if mprint(ms, m, s).is_err() {
@@ -429,7 +504,8 @@ fn check_fmt(desc: &[u8]) -> bool {
     while i < desc.len() {
         if desc[i] == b'%' {
             let mut j = i + 1;
-            while j < desc.len() && (desc[j] == b'-' || desc[j].is_ascii_digit() || desc[j] == b'.') {
+            while j < desc.len() && (desc[j] == b'-' || desc[j].is_ascii_digit() || desc[j] == b'.')
+            {
                 j += 1;
             }
             if j < desc.len() && desc[j] == b's' {
@@ -533,10 +609,17 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
             } else {
                 let mut sv = ms.ms_value.to_vec();
                 if m.value[0] == 0 {
-                    let cut = sv.iter().position(|&c| c == b'\r' || c == b'\n' || c == 0).unwrap_or(sv.len());
+                    let cut = sv
+                        .iter()
+                        .position(|&c| c == b'\r' || c == b'\n' || c == 0)
+                        .unwrap_or(sv.len());
                     sv.truncate(cut);
                 }
-                let str_: &[u8] = if m.str_flags() & STRING_TRIM != 0 { magic::strtrim(&sv) } else { cstr(&sv) };
+                let str_: &[u8] = if m.str_flags() & STRING_TRIM != 0 {
+                    magic::strtrim(&sv)
+                } else {
+                    cstr(&sv)
+                };
                 let p = magic::printable(raw, 512, str_);
                 ms.printf(fmt(desc, b"%s"), Arg::Str(&p))?;
                 if m.typ == FILE_PSTRING && pstring_length_size(m).is_none() {
@@ -587,7 +670,11 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
             let start = ms.search.s.unwrap_or(0).min(s.len());
             let end = (start + ms.search.rm_len).min(s.len());
             let cp = cstr(&s[start..end]).to_vec();
-            let scp: &[u8] = if m.str_flags() & STRING_TRIM != 0 { magic::strtrim(&cp) } else { &cp };
+            let scp: &[u8] = if m.str_flags() & STRING_TRIM != 0 {
+                magic::strtrim(&cp)
+            } else {
+                &cp
+            };
             let p = magic::printable(raw, 512, scp);
             ms.printf(fmt(desc, b"%s"), Arg::Str(&p))
         }
@@ -681,8 +768,10 @@ fn moffset(ms: &mut MagicSet, m: &Magic, nbytes: usize, offset: usize) -> Option
     let off = ms.offset;
     let o: i32 = match m.typ {
         FILE_BYTE => off.wrapping_add(1),
-        FILE_SHORT | FILE_BESHORT | FILE_LESHORT | FILE_MSDOSDATE | FILE_LEMSDOSDATE | FILE_BEMSDOSDATE | FILE_MSDOSTIME
-        | FILE_LEMSDOSTIME | FILE_BEMSDOSTIME => off.wrapping_add(2),
+        FILE_SHORT | FILE_BESHORT | FILE_LESHORT | FILE_MSDOSDATE | FILE_LEMSDOSDATE
+        | FILE_BEMSDOSDATE | FILE_MSDOSTIME | FILE_LEMSDOSTIME | FILE_BEMSDOSTIME => {
+            off.wrapping_add(2)
+        }
         FILE_LONG | FILE_BELONG | FILE_LELONG | FILE_MELONG => off.wrapping_add(4),
         FILE_QUAD | FILE_BEQUAD | FILE_LEQUAD => off.wrapping_add(8),
         FILE_STRING | FILE_PSTRING | FILE_BESTRING16 | FILE_LESTRING16 | FILE_OCTAL => {
@@ -690,7 +779,11 @@ fn moffset(ms: &mut MagicSet, m: &Magic, nbytes: usize, offset: usize) -> Option
                 off.wrapping_add(i32::from(m.vallen))
             } else {
                 if m.value[0] == 0 {
-                    let cut = ms.ms_value.iter().position(|&c| c == b'\r' || c == b'\n' || c == 0).unwrap_or(128);
+                    let cut = ms
+                        .ms_value
+                        .iter()
+                        .position(|&c| c == b'\r' || c == b'\n' || c == 0)
+                        .unwrap_or(128);
                     if cut < 128 {
                         ms.ms_value[cut] = 0;
                     }
@@ -704,8 +797,11 @@ fn moffset(ms: &mut MagicSet, m: &Magic, nbytes: usize, offset: usize) -> Option
                 o as i32
             }
         }
-        FILE_DATE | FILE_BEDATE | FILE_LEDATE | FILE_MEDATE | FILE_LDATE | FILE_BELDATE | FILE_LELDATE | FILE_MELDATE => off.wrapping_add(4),
-        FILE_QDATE | FILE_BEQDATE | FILE_LEQDATE | FILE_QLDATE | FILE_BEQLDATE | FILE_LEQLDATE => off.wrapping_add(8),
+        FILE_DATE | FILE_BEDATE | FILE_LEDATE | FILE_MEDATE | FILE_LDATE | FILE_BELDATE
+        | FILE_LELDATE | FILE_MELDATE => off.wrapping_add(4),
+        FILE_QDATE | FILE_BEQDATE | FILE_LEQDATE | FILE_QLDATE | FILE_BEQLDATE | FILE_LEQLDATE => {
+            off.wrapping_add(8)
+        }
         FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT => off.wrapping_add(4),
         FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE => off.wrapping_add(8),
         FILE_REGEX => {
@@ -735,7 +831,13 @@ fn moffset(ms: &mut MagicSet, m: &Magic, nbytes: usize, offset: usize) -> Option
 }
 
 /// `msetoffset()`: `Ok(Some(view))` quando o `bb` muda, `Ok(None)` quando fica o anterior.
-fn msetoffset(ms: &mut MagicSet, m: &Magic, b: &Buffer<'_>, o: usize, cont_level: usize) -> Result<Option<View>, ()> {
+fn msetoffset(
+    ms: &mut MagicSet,
+    m: &Magic,
+    b: &Buffer<'_>,
+    o: usize,
+    cont_level: usize,
+) -> Result<Option<View>, ()> {
     if m.flag & OFFNEGATIVE != 0 && !(cont_level > 0 && m.flag & (OFFADD | INDIROFFADD) != 0) {
         let e = b.fill().ok_or(())?;
         if o != 0 {
@@ -751,7 +853,11 @@ fn msetoffset(ms: &mut MagicSet, m: &Magic, b: &Buffer<'_>, o: usize, cont_level
         ms.eoffset = v;
         return Ok(Some(View::End(e)));
     }
-    let offset = if m.flag & OFFNEGATIVE != 0 { m.offset.wrapping_neg() } else { m.offset };
+    let offset = if m.flag & OFFNEGATIVE != 0 {
+        m.offset.wrapping_neg()
+    } else {
+        m.offset
+    };
     if m.flag & OFFNEGATIVE != 0 || m.flag & OFFPOSITIVE != 0 || cont_level == 0 {
         ms.offset = offset;
         ms.eoffset = 0;
@@ -794,7 +900,11 @@ fn cvt_flip(t: u8, flip: bool) -> u8 {
 
 /// `DO_CVT`: a máscara (`&`, `|`, `+`...) no inteiro de `bits` bits. `None` é divisão por zero.
 fn do_cvt(m: &Magic, v: u64, bits: u32) -> Option<u64> {
-    let mask_all = if bits == 64 { u64::MAX } else { (1u64 << bits) - 1 };
+    let mask_all = if bits == 64 {
+        u64::MAX
+    } else {
+        (1u64 << bits) - 1
+    };
     let mut v = v & mask_all;
     let k = m.num_mask() & mask_all;
     if m.num_mask() != 0 {
@@ -831,7 +941,11 @@ fn do_cvt_float(m: &Magic, v: f64, single: bool) -> Option<f64> {
     if m.num_mask() == 0 {
         return Some(v);
     }
-    let k = if single { f64::from(m.num_mask() as f32) } else { m.num_mask() as f64 };
+    let k = if single {
+        f64::from(m.num_mask() as f32)
+    } else {
+        m.num_mask() as f64
+    };
     let r = match m.mask_op & FILE_OPS_MASK {
         FILE_OPADD => v + k,
         FILE_OPMINUS => v - k,
@@ -866,18 +980,25 @@ fn mconvert(ms: &mut MagicSet, m: &Magic, flip: bool) -> i32 {
     }
     match cvt_flip(m.typ, flip) {
         FILE_BYTE => cvt!(vb(ms), 8, set_vb, u8),
-        FILE_SHORT | FILE_MSDOSDATE | FILE_LEMSDOSDATE | FILE_BEMSDOSDATE | FILE_MSDOSTIME | FILE_LEMSDOSTIME | FILE_BEMSDOSTIME => {
+        FILE_SHORT | FILE_MSDOSDATE | FILE_LEMSDOSDATE | FILE_BEMSDOSDATE | FILE_MSDOSTIME
+        | FILE_LEMSDOSTIME | FILE_BEMSDOSTIME => {
             cvt!(vh(ms), 16, set_vh, u16)
         }
         FILE_LONG | FILE_DATE | FILE_LDATE => cvt!(vl(ms), 32, set_vl, u32),
-        FILE_QUAD | FILE_QDATE | FILE_QLDATE | FILE_QWDATE | FILE_OFFSET => cvt!(vq(ms), 64, set_vq, u64),
+        FILE_QUAD | FILE_QDATE | FILE_QLDATE | FILE_QWDATE | FILE_OFFSET => {
+            cvt!(vq(ms), 64, set_vq, u64)
+        }
         FILE_STRING | FILE_BESTRING16 | FILE_LESTRING16 | FILE_OCTAL => {
             ms.ms_value[127] = 0;
             1
         }
         FILE_PSTRING => {
-            let Some(sz) = pstring_length_size(m) else { return 0 };
-            let Some(len) = pstring_get_length(m, &ms.ms_value) else { return 0 };
+            let Some(sz) = pstring_length_size(m) else {
+                return 0;
+            };
+            let Some(len) = pstring_get_length(m, &ms.ms_value) else {
+                return 0;
+            };
             let maxlen = 128 - sz;
             let len = (len as usize).min(maxlen);
             let src: Vec<u8> = ms.ms_value[sz..sz + len.min(128 - sz)].to_vec();
@@ -943,7 +1064,8 @@ fn mconvert(ms: &mut MagicSet, m: &Magic, flip: bool) -> i32 {
                 None => zerodiv(ms),
             }
         }
-        FILE_REGEX | FILE_SEARCH | FILE_DEFAULT | FILE_CLEAR | FILE_NAME | FILE_USE | FILE_DER | FILE_GUID => 1,
+        FILE_REGEX | FILE_SEARCH | FILE_DEFAULT | FILE_CLEAR | FILE_NAME | FILE_USE | FILE_DER
+        | FILE_GUID => 1,
         t => {
             ms.magerror(&format!("invalid type {t} in mconvert()"));
             0
@@ -992,10 +1114,16 @@ fn mcopy(ms: &mut MagicSet, typ: u8, indir: bool, s: &[u8], offset: u32, nbytes:
                 let mut lines = linecnt;
                 let mut bpos = buf;
                 while lines > 0 && bpos < end {
-                    let nl = s[bpos..end.min(s.len())].iter().position(|&c| c == b'\n').map(|p| p + bpos);
+                    let nl = s[bpos..end.min(s.len())]
+                        .iter()
+                        .position(|&c| c == b'\n')
+                        .map(|p| p + bpos);
                     let found = match nl {
                         Some(p) => Some(p),
-                        None => s[bpos..end.min(s.len())].iter().position(|&c| c == b'\r').map(|p| p + bpos),
+                        None => s[bpos..end.min(s.len())]
+                            .iter()
+                            .position(|&c| c == b'\r')
+                            .map(|p| p + bpos),
                     };
                     let Some(mut p) = found else { break };
                     if p + 1 < end && at(s, p) == b'\r' && at(s, p + 1) == b'\n' {
@@ -1156,7 +1284,15 @@ fn mget(
         ms.file_error(0, &format!("name use count ({}) exceeded", *nc));
         return -1;
     }
-    mcopy(ms, m.typ, m.flag & INDIR != 0, s, offset.wrapping_add(o as u32), nbytes, m);
+    mcopy(
+        ms,
+        m.typ,
+        m.flag & INDIR != 0,
+        s,
+        offset.wrapping_add(o as u32),
+        nbytes,
+        m,
+    );
 
     if m.flag & INDIR != 0 {
         let mut off: i64 = i64::from(m.in_offset);
@@ -1338,8 +1474,9 @@ fn mget(
                 return 0;
             }
         }
-        FILE_LONG | FILE_BELONG | FILE_LELONG | FILE_MELONG | FILE_DATE | FILE_BEDATE | FILE_LEDATE | FILE_MEDATE | FILE_LDATE
-        | FILE_BELDATE | FILE_LELDATE | FILE_MELDATE | FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT => {
+        FILE_LONG | FILE_BELONG | FILE_LELONG | FILE_MELONG | FILE_DATE | FILE_BEDATE
+        | FILE_LEDATE | FILE_MEDATE | FILE_LDATE | FILE_BELDATE | FILE_LELDATE | FILE_MELDATE
+        | FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT => {
             if need(4) {
                 return 0;
             }
@@ -1371,7 +1508,9 @@ fn mget(
             if offset == 0 || nbytes < offset as usize {
                 return 0;
             }
-            let Some(pb) = ms.push_buffer() else { return -1 };
+            let Some(pb) = ms.push_buffer() else {
+                return -1;
+            };
             *ic += 1;
             let sub = &s[offset as usize..];
             let bb = Buffer::new(sub, b.st_mode, sub.len() as u64, None);
@@ -1381,7 +1520,20 @@ fn mget(
             for db in &dbs {
                 let mut r2 = 0;
                 let mut f2 = 0;
-                rv = do_match(ms, db.list(0), &bb, 0, BINTEST, text, false, ic, nc, st, &mut r2, &mut f2);
+                rv = do_match(
+                    ms,
+                    db.list(0),
+                    &bb,
+                    0,
+                    BINTEST,
+                    text,
+                    false,
+                    ic,
+                    nc,
+                    st,
+                    &mut r2,
+                    &mut f2,
+                );
                 if rv != 0 {
                     break;
                 }
@@ -1391,7 +1543,11 @@ fn mget(
                 return -1;
             }
             if rv == 1 {
-                if ms.flags & MAGIC_NODESC == 0 && ms.printf(fmt(m.desc_bytes(), b"%u"), Arg::Int(offset)).is_err() {
+                if ms.flags & MAGIC_NODESC == 0
+                    && ms
+                        .printf(fmt(m.desc_bytes(), b"%u"), Arg::Int(offset))
+                        .is_err()
+                {
                     return -1;
                 }
                 if let Some(r) = &rbuf
@@ -1414,7 +1570,10 @@ fn mget(
             }
             let dbs: Vec<Arc<magic::Db>> = ms.mlist.clone();
             let Some(ml) = magicfind(&dbs, name) else {
-                ms.file_error(0, &format!("cannot find entry `{}'", String::from_utf8_lossy(name)));
+                ms.file_error(
+                    0,
+                    &format!("cannot find entry `{}'", String::from_utf8_lossy(name)),
+                );
                 return -1;
             };
             let saved = ms.li.clone();
@@ -1425,7 +1584,20 @@ fn mget(
             let mut nfound = 0;
             *nc += 1;
             let eoffset = ms.eoffset;
-            let rv = do_match(ms, ml, b, offset as usize + o, mode, text, flip, ic, nc, st, returnval, &mut nfound);
+            let rv = do_match(
+                ms,
+                ml,
+                b,
+                offset as usize + o,
+                mode,
+                text,
+                flip,
+                ic,
+                nc,
+                st,
+                returnval,
+                &mut nfound,
+            );
             ms.ms_value = [0; 128];
             set_vq(ms, nfound as u64);
             *nc -= 1;
@@ -1546,7 +1718,9 @@ fn regex_for(ms: &mut MagicSet, list: MagicList<'_>, i: usize) -> Option<Arc<Reg
     list.rx[i]
         .get_or_init(|| {
             let icase = m.str_flags() & STRING_IGNORE_CASE != 0;
-            Regex::compile(cstr(&m.value), icase, true).ok().map(Arc::new)
+            Regex::compile(cstr(&m.value), icase, true)
+                .ok()
+                .map(Arc::new)
         })
         .clone()
         .or_else(|| {
@@ -1562,12 +1736,17 @@ fn magiccheck(ms: &mut MagicSet, list: MagicList<'_>, i: usize, s: &[u8]) -> i32
     let mut v: u64;
     match m.typ {
         FILE_BYTE => v = u64::from(vb(ms)),
-        FILE_SHORT | FILE_BESHORT | FILE_LESHORT | FILE_MSDOSDATE | FILE_LEMSDOSDATE | FILE_BEMSDOSDATE | FILE_MSDOSTIME
-        | FILE_LEMSDOSTIME | FILE_BEMSDOSTIME => v = u64::from(vh(ms)),
-        FILE_LONG | FILE_BELONG | FILE_LELONG | FILE_MELONG | FILE_DATE | FILE_BEDATE | FILE_LEDATE | FILE_MEDATE | FILE_LDATE
-        | FILE_BELDATE | FILE_LELDATE | FILE_MELDATE => v = u64::from(vl(ms)),
-        FILE_QUAD | FILE_LEQUAD | FILE_BEQUAD | FILE_QDATE | FILE_BEQDATE | FILE_LEQDATE | FILE_QLDATE | FILE_BEQLDATE
-        | FILE_LEQLDATE | FILE_QWDATE | FILE_BEQWDATE | FILE_LEQWDATE | FILE_OFFSET => v = vq(ms),
+        FILE_SHORT | FILE_BESHORT | FILE_LESHORT | FILE_MSDOSDATE | FILE_LEMSDOSDATE
+        | FILE_BEMSDOSDATE | FILE_MSDOSTIME | FILE_LEMSDOSTIME | FILE_BEMSDOSTIME => {
+            v = u64::from(vh(ms))
+        }
+        FILE_LONG | FILE_BELONG | FILE_LELONG | FILE_MELONG | FILE_DATE | FILE_BEDATE
+        | FILE_LEDATE | FILE_MEDATE | FILE_LDATE | FILE_BELDATE | FILE_LELDATE | FILE_MELDATE => {
+            v = u64::from(vl(ms))
+        }
+        FILE_QUAD | FILE_LEQUAD | FILE_BEQUAD | FILE_QDATE | FILE_BEQDATE | FILE_LEQDATE
+        | FILE_QLDATE | FILE_BEQLDATE | FILE_LEQLDATE | FILE_QWDATE | FILE_BEQWDATE
+        | FILE_LEQWDATE | FILE_OFFSET => v = vq(ms),
         FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT | FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE => {
             let (fl, fv) = if matches!(m.typ, FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT) {
                 (f64::from(m.value_f()), f64::from(f32::from_bits(vl(ms))))
@@ -1582,7 +1761,10 @@ fn magiccheck(ms: &mut MagicSet, list: MagicList<'_>, i: usize, s: &[u8]) -> i32
                 b'>' => i32::from(fv > fl),
                 b'<' => i32::from(fv < fl),
                 r => {
-                    ms.magerror(&format!("cannot happen with float: invalid relation `{}'", r as char));
+                    ms.magerror(&format!(
+                        "cannot happen with float: invalid relation `{}'",
+                        r as char
+                    ));
                     -1
                 }
             };
@@ -1632,7 +1814,13 @@ fn magiccheck(ms: &mut MagicSet, list: MagicList<'_>, i: usize, s: &[u8]) -> i32
                         v = 1;
                         break;
                     }
-                    v = file_strncmp(&m.value, &window[idx.min(window.len())..], slen, s_len - idx, m.str_flags());
+                    v = file_strncmp(
+                        &m.value,
+                        &window[idx.min(window.len())..],
+                        slen,
+                        s_len - idx,
+                        m.str_flags(),
+                    );
                     if v == 0 {
                         ms.search.offset += idx;
                         ms.search.rm_len = s_len - idx;
@@ -1644,12 +1832,18 @@ fn magiccheck(ms: &mut MagicSet, list: MagicList<'_>, i: usize, s: &[u8]) -> i32
         }
         FILE_REGEX => {
             let Some(sbase) = ms.search.s else { return 0 };
-            let Some(rx) = regex_for(ms, list, i) else { return -1 };
+            let Some(rx) = regex_for(ms, list, i) else {
+                return -1;
+            };
             l = 0;
             let slen = ms.search.s_len;
             let window = &s[sbase.min(s.len())..(sbase + slen).min(s.len())];
             // A cópia perde o último byte (vira o NUL) e a busca para no primeiro NUL.
-            let hay = if slen != 0 { cstr(&window[..window.len().saturating_sub(1)]) } else { &[][..] };
+            let hay = if slen != 0 {
+                cstr(&window[..window.len().saturating_sub(1)])
+            } else {
+                &[][..]
+            };
             match rx.find(hay) {
                 Some((so, eo)) => {
                     ms.search.s = Some(sbase + so);

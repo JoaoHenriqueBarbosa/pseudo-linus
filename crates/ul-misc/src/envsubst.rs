@@ -90,12 +90,20 @@ fn references(text: &[u8]) -> Vec<Reference> {
                 e += 1;
             }
             if !braced {
-                out.push(Reference { start: i, end: e, name: text[s..e].to_vec() });
+                out.push(Reference {
+                    start: i,
+                    end: e,
+                    name: text[s..e].to_vec(),
+                });
                 i = e;
                 continue;
             }
             if text.get(e) == Some(&b'}') {
-                out.push(Reference { start: i, end: e + 1, name: text[s..e].to_vec() });
+                out.push(Reference {
+                    start: i,
+                    end: e + 1,
+                    name: text[s..e].to_vec(),
+                });
                 i = e + 1;
                 continue;
             }
@@ -125,7 +133,10 @@ fn run(args: &[OsString]) -> i32 {
                 _ => {}
             },
             Err(e) => {
-                io::eprint(format!("{}\nTry 'envsubst --help' for more information.\n", e.message(&argv0)));
+                io::eprint(format!(
+                    "{}\nTry 'envsubst --help' for more information.\n",
+                    e.message(&argv0)
+                ));
                 return 1;
             }
         }
@@ -148,11 +159,15 @@ fn run(args: &[OsString]) -> i32 {
         }
         return 0;
     }
-    let allowed: Option<Vec<Vec<u8>>> = format.map(|f| references(f).into_iter().map(|r| r.name).collect());
+    let allowed: Option<Vec<Vec<u8>>> =
+        format.map(|f| references(f).into_iter().map(|r| r.name).collect());
     let input = match io::read_stdin() {
         Ok(d) => d,
         Err(e) => {
-            io::eprint(format!("envsubst: error while reading \"standard input\": {}\n", e.message()));
+            io::eprint(format!(
+                "envsubst: error while reading \"standard input\": {}\n",
+                e.message()
+            ));
             return 1;
         }
     };
@@ -187,14 +202,21 @@ mod tests {
     use sysabi::testkit::TestKit;
 
     fn kit() -> TestKit {
-        TestKit::new().programs([Program::bin("envsubst", main)]).env("FOO", "foo").env("BAR", "b a r").env("EMPTY", "")
+        TestKit::new()
+            .programs([Program::bin("envsubst", main)])
+            .env("FOO", "foo")
+            .env("BAR", "b a r")
+            .env("EMPTY", "")
     }
 
     #[test]
     fn substitutes_like_gettext() {
         let input = "a $FOO b ${BAR} c $UNDEF d ${FOO}x $FOOx $ ${ ${FOO $1 $$ \\$FOO ${FOO:-def} $EMPTY. ${9a} $_x\n";
         let r = kit().run(&["envsubst"], input.as_bytes());
-        assert_eq!(r.stdout_str(), "a foo b b a r c  d foox  $ ${ ${FOO $1 $$ \\foo ${FOO:-def} . ${9a} \n");
+        assert_eq!(
+            r.stdout_str(),
+            "a foo b b a r c  d foox  $ ${ ${FOO $1 $$ \\foo ${FOO:-def} . ${9a} \n"
+        );
         let r = kit().run(&["envsubst", "$BAR"], b"a $FOO ${BAR} $UNDEF\n");
         assert_eq!(r.stdout_str(), "a $FOO b a r $UNDEF\n");
         let r = kit().run(&["envsubst", "-v", "$FOO ${BAR} $FOO x$Y"], b"");
@@ -204,10 +226,19 @@ mod tests {
     #[test]
     fn argument_errors() {
         let r = kit().run(&["envsubst", "-v"], b"");
-        assert_eq!((r.stderr_str().as_str(), r.code()), ("envsubst: missing arguments\n", 1));
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("envsubst: missing arguments\n", 1)
+        );
         let r = kit().run(&["envsubst", "a", "b"], b"");
-        assert_eq!((r.stderr_str().as_str(), r.code()), ("envsubst: too many arguments\n", 1));
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("envsubst: too many arguments\n", 1)
+        );
         let r = kit().run(&["envsubst", "-Z"], b"");
-        assert_eq!(r.stderr_str(), "envsubst: invalid option -- 'Z'\nTry 'envsubst --help' for more information.\n");
+        assert_eq!(
+            r.stderr_str(),
+            "envsubst: invalid option -- 'Z'\nTry 'envsubst --help' for more information.\n"
+        );
     }
 }

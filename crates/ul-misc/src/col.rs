@@ -180,7 +180,10 @@ impl<W: Write> Col<W> {
             if self.no_backspaces {
                 // print only the last character
                 c = endc - 1;
-                if nchars > 0 && endc < chars.len() && chars[endc].column < this_col.wrapping_add(chars[c].width as isize as usize) {
+                if nchars > 0
+                    && endc < chars.len()
+                    && chars[endc].column < this_col.wrapping_add(chars[c].width as isize as usize)
+                {
                     continue;
                 }
             }
@@ -234,7 +237,9 @@ impl<W: Write> Col<W> {
 
     fn flush_lines(&mut self, nflush: i64) {
         for _ in 0..nflush.max(0) {
-            let Some(l) = self.lines.pop_front() else { break };
+            let Some(l) = self.lines.pop_front() else {
+                break;
+            };
             self.li = self.li.saturating_sub(1);
             if !l.chars.is_empty() {
                 self.flush_blanks();
@@ -350,7 +355,11 @@ impl<W: Write> Col<W> {
                     }
                 } else {
                     if !lns.warned {
-                        let what = if lns.cur_line < 0 { "past first line" } else { "-- line already flushed" };
+                        let what = if lns.cur_line < 0 {
+                            "past first line"
+                        } else {
+                            "-- line already flushed"
+                        };
                         let _ = self.out.flush();
                         io::eprint(format!("{}: warning: can't back up {what}.\n", self.short));
                         lns.warned = true;
@@ -395,7 +404,12 @@ impl<W: Write> Col<W> {
         let width = wcwidth(lns.ch);
         let column = if lns.cur_col > 0 { lns.cur_col } else { 0 };
         let line = &mut self.lines[self.li];
-        line.chars.push(ColChar { column, ch: lns.ch, width, set: lns.cur_set });
+        line.chars.push(ColChar {
+            column,
+            ch: lns.ch,
+            width,
+            set: lns.cur_set,
+        });
         lns.last_width = Some(width);
 
         // If things are put in out of order, they will need sorting when it is flushed.
@@ -466,7 +480,9 @@ fn run(args: &[OsString]) -> i32 {
             match seen_tabs_spaces {
                 None => seen_tabs_spaces = Some(c),
                 Some(p) if p != c => {
-                    io::eprint(format!("{short}: mutually exclusive arguments: --tabs --spaces\n"));
+                    io::eprint(format!(
+                        "{short}: mutually exclusive arguments: --tabs --spaces\n"
+                    ));
                     return 1;
                 }
                 _ => {}

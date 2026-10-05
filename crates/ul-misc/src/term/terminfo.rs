@@ -5,8 +5,8 @@
 use sysabi::{Fd, FileType, sys};
 
 use super::{
-    ABSENT_NUMERIC, BOOLCOUNT, CANCELLED_NUMERIC, Kind, NUMCOUNT, STRCOUNT, bool_index, find_type_entry, num_index,
-    str_index,
+    ABSENT_NUMERIC, BOOLCOUNT, CANCELLED_NUMERIC, Kind, NUMCOUNT, STRCOUNT, bool_index,
+    find_type_entry, num_index, str_index,
 };
 
 const MAGIC: i32 = 0o432;
@@ -75,17 +75,23 @@ impl TermType {
     /// Nome do booleano estendido na posição `i` (`i >= BOOLCOUNT`).
     pub fn ext_bool_name(&self, i: usize) -> &[u8] {
         let base = self.bools.len() - self.ext_bools;
-        self.ext_names.get(i - base).map_or(&b""[..], |v| v.as_slice())
+        self.ext_names
+            .get(i - base)
+            .map_or(&b""[..], |v| v.as_slice())
     }
 
     pub fn ext_num_name(&self, i: usize) -> &[u8] {
         let base = self.nums.len() - self.ext_nums;
-        self.ext_names.get(i - base + self.ext_bools).map_or(&b""[..], |v| v.as_slice())
+        self.ext_names
+            .get(i - base + self.ext_bools)
+            .map_or(&b""[..], |v| v.as_slice())
     }
 
     pub fn ext_str_name(&self, i: usize) -> &[u8] {
         let base = self.strs.len() - self.ext_strs;
-        self.ext_names.get(i - base + self.ext_bools + self.ext_nums).map_or(&b""[..], |v| v.as_slice())
+        self.ext_names
+            .get(i - base + self.ext_bools + self.ext_nums)
+            .map_or(&b""[..], |v| v.as_slice())
     }
 
     /// Cadeia predefinida pelo nome da variável C (`clear_screen`...).
@@ -100,7 +106,10 @@ impl TermType {
     }
 
     pub fn n(&self, var: &str) -> i32 {
-        self.nums.get(num_index(var)).copied().unwrap_or(ABSENT_NUMERIC)
+        self.nums
+            .get(num_index(var))
+            .copied()
+            .unwrap_or(ABSENT_NUMERIC)
     }
 
     pub fn b(&self, var: &str) -> bool {
@@ -150,7 +159,13 @@ fn convert_numbers(buf: &[u8], count: usize, wide: bool) -> Vec<i32> {
 }
 
 /// `convert_strings`: `offsets` são `count` shorts; devolve `None` se os dados estão corrompidos.
-fn convert_strings(offsets: &[u8], count: usize, table: &[u8], size: usize, always: bool) -> Option<Vec<Str>> {
+fn convert_strings(
+    offsets: &[u8],
+    count: usize,
+    table: &[u8],
+    size: usize,
+    always: bool,
+) -> Option<Vec<Str>> {
     let mut out = Vec::with_capacity(count);
     for i in 0..count {
         let item = if is_neg1(offsets, 2 * i) {
@@ -165,7 +180,10 @@ fn convert_strings(offsets: &[u8], count: usize, table: &[u8], size: usize, alwa
                 let start = nn as usize;
                 let limit = size.min(table.len());
                 // Sem NUL até o fim da tabela: a cadeia é ignorada.
-                match table.get(start..limit).and_then(|s| s.iter().position(|b| *b == 0)) {
+                match table
+                    .get(start..limit)
+                    .and_then(|s| s.iter().position(|b| *b == 0))
+                {
                     None => Str::Absent,
                     Some(0) if always => return None,
                     Some(p) => Str::Val(table[start..start + p].to_vec()),
@@ -174,7 +192,11 @@ fn convert_strings(offsets: &[u8], count: usize, table: &[u8], size: usize, alwa
                 return None;
             }
         };
-        if always && (is_neg1(offsets, 2 * i) || is_neg2(offsets, 2 * i) || short(offsets, 2 * i) > size as i32) {
+        if always
+            && (is_neg1(offsets, 2 * i)
+                || is_neg2(offsets, 2 * i)
+                || short(offsets, 2 * i) > size as i32)
+        {
             return None;
         }
         out.push(item);
@@ -195,7 +217,11 @@ pub fn read_termtype(buf: &[u8], user_definable: bool) -> Option<TermType> {
     }
     let wide = magic == MAGIC2;
     let size_of_numbers: usize = if wide { 4 } else { 2 };
-    let max_entry_size = if wide { MAX_ENTRY_SIZE } else { MAX_ENTRY_SIZE1 };
+    let max_entry_size = if wide {
+        MAX_ENTRY_SIZE
+    } else {
+        MAX_ENTRY_SIZE1
+    };
     let name_size = short(hdr, 2);
     let bool_count = short(hdr, 4);
     let num_count = short(hdr, 6);
@@ -212,8 +238,13 @@ pub fn read_termtype(buf: &[u8], user_definable: bool) -> Option<TermType> {
     {
         return None;
     }
-    let (name_size, bool_count, num_count, str_count, str_size) =
-        (name_size as usize, bool_count as usize, num_count as usize, str_count as usize, str_size as usize);
+    let (name_size, bool_count, num_count, str_count, str_size) = (
+        name_size as usize,
+        bool_count as usize,
+        num_count as usize,
+        str_count as usize,
+        str_size as usize,
+    );
     if str_count * 2 >= max_entry_size {
         return None;
     }
@@ -241,7 +272,10 @@ pub fn read_termtype(buf: &[u8], user_definable: bool) -> Option<TermType> {
     if nbuf.len() < num_count * size_of_numbers {
         return None;
     }
-    for (i, v) in convert_numbers(nbuf, num_count, wide).into_iter().enumerate() {
+    for (i, v) in convert_numbers(nbuf, num_count, wide)
+        .into_iter()
+        .enumerate()
+    {
         tt.nums[i] = v;
     }
 
@@ -283,8 +317,12 @@ pub fn read_termtype(buf: &[u8], user_definable: bool) -> Option<TermType> {
         {
             return None;
         }
-        let (ebc, enc, esc, limit) =
-            (ext_bool_count as usize, ext_num_count as usize, ext_str_count as usize, ext_str_limit as usize);
+        let (ebc, enc, esc, limit) = (
+            ext_bool_count as usize,
+            ext_num_count as usize,
+            ext_str_count as usize,
+            ext_str_limit as usize,
+        );
         let need = need as usize;
         tt.ext_bools = ebc;
         tt.ext_nums = enc;
@@ -340,7 +378,10 @@ pub fn read_termtype(buf: &[u8], user_definable: bool) -> Option<TermType> {
         if need != 0 {
             let names_table = table.get(base..).unwrap_or(&[]);
             let names = convert_strings(&offsets[2 * esc..], need, names_table, limit, true)?;
-            tt.ext_names = names.into_iter().map(|s| s.val().map(<[u8]>::to_vec).unwrap_or_default()).collect();
+            tt.ext_names = names
+                .into_iter()
+                .map(|s| s.val().map(<[u8]>::to_vec).unwrap_or_default())
+                .collect();
         }
     }
     Some(tt)
@@ -350,7 +391,10 @@ pub fn read_termtype(buf: &[u8], user_definable: bool) -> Option<TermType> {
 pub fn read_file_entry(path: &[u8], user_definable: bool) -> Option<TermType> {
     let st = sys::stat(path).ok()?;
     // `_nc_safe_fopen`: nada de dispositivo nem diretório.
-    if matches!(st.file_type(), FileType::Directory | FileType::CharDevice | FileType::BlockDevice) {
+    if matches!(
+        st.file_type(),
+        FileType::Directory | FileType::CharDevice | FileType::BlockDevice
+    ) {
         return None;
     }
     let data = sys::read_file(path).ok()?;
@@ -389,7 +433,9 @@ fn decode_quickdump(source: &[u8]) -> Vec<u8> {
             let mut bits = [0u32; 4];
             let mut pad = 0;
             for (j, b) in bits.iter_mut().enumerate() {
-                let Some(&ch) = rest.get(i + j) else { return Vec::new() };
+                let Some(&ch) = rest.get(i + j) else {
+                    return Vec::new();
+                };
                 match value(ch) {
                     Some(v) => {
                         if v == 64 {
@@ -500,7 +546,8 @@ pub fn db_dirs(tic_dir: Option<&[u8]>) -> Vec<Vec<u8>> {
         if quick_prefix(&item) {
             found = true;
         } else if let Ok(st) = sys::stat(&item)
-            && (st.file_type() == FileType::Directory || (st.file_type() == FileType::Regular && st.size > 0))
+            && (st.file_type() == FileType::Directory
+                || (st.file_type() == FileType::Regular && st.size > 0))
         {
             found = true;
             ident = (st.dev, st.ino);
@@ -527,7 +574,11 @@ pub struct ReadResult {
 }
 
 /// `_nc_read_tic_entry`: o arquivo `<dir>/<primeira letra>/<nome>` (ou os dados embutidos).
-fn read_tic_entry(path: &[u8], name: &[u8], user_definable: bool) -> (i32, Vec<u8>, Option<TermType>) {
+fn read_tic_entry(
+    path: &[u8],
+    name: &[u8],
+    user_definable: bool,
+) -> (i32, Vec<u8>, Option<TermType>) {
     let used = decode_quickdump(path);
     if !used.is_empty()
         && let Some(tt) = read_termtype(&used, user_definable)
@@ -558,7 +609,11 @@ pub fn read_entry(name: &[u8], user_definable: bool) -> ReadResult {
         || name.contains(&b'/')
         || name.contains(&b':')
     {
-        return ReadResult { code: TGETENT_NO, filename, tt: None };
+        return ReadResult {
+            code: TGETENT_NO,
+            filename,
+            tt: None,
+        };
     }
     let mut code = TGETENT_ERR;
     for dir in db_dirs(None) {
@@ -569,7 +624,11 @@ pub fn read_entry(name: &[u8], user_definable: bool) -> ReadResult {
             return ReadResult { code, filename, tt };
         }
     }
-    ReadResult { code, filename, tt: None }
+    ReadResult {
+        code,
+        filename,
+        tt: None,
+    }
 }
 
 /// Um terminal aberto (`TERMINAL`).
@@ -597,7 +656,10 @@ pub struct SetupOpts {
 
 impl Default for SetupOpts {
     fn default() -> SetupOpts {
-        SetupOpts { use_env: true, use_tioctl: false }
+        SetupOpts {
+            use_env: true,
+            use_tioctl: false,
+        }
     }
 }
 
@@ -606,7 +668,9 @@ pub fn isatty(fd: Fd) -> bool {
 }
 
 fn getenv_num(name: &str) -> i32 {
-    let Some(src) = sys::getenv(name) else { return -1 };
+    let Some(src) = sys::getenv(name) else {
+        return -1;
+    };
     let (value, end) = super::strtol(&src);
     if value < 0 || end == 0 || end != src.len() || i64::from(value as i32) != value {
         -1
@@ -676,16 +740,30 @@ fn set_env_num(name: &str, value: i32) {
 
 /// `setupterm(tname, fd, ...)`. A falha vai numa caixa porque carrega o `Term` inteiro.
 pub fn setupterm(tname: Option<&[u8]>, fd: Fd, opts: SetupOpts) -> Result<Term, Box<SetupFail>> {
-    let fail = |code: i32, message: String| Box::new(SetupFail { code, message, term: None });
+    let fail = |code: i32, message: String| {
+        Box::new(SetupFail {
+            code,
+            message,
+            term: None,
+        })
+    };
     let name: Vec<u8> = match tname {
         Some(n) => n.to_vec(),
         None => match sys::getenv("TERM") {
             Some(n) if !n.is_empty() => n,
-            _ => return Err(fail(TGETENT_ERR, "TERM environment variable not set.\n".to_string())),
+            _ => {
+                return Err(fail(
+                    TGETENT_ERR,
+                    "TERM environment variable not set.\n".to_string(),
+                ));
+            }
         },
     };
     if name.len() > MAX_NAME_SIZE {
-        return Err(fail(TGETENT_ERR, "TERM environment must be 1..512 characters.\n".to_string()));
+        return Err(fail(
+            TGETENT_ERR,
+            "TERM environment must be 1..512 characters.\n".to_string(),
+        ));
     }
     let shown = String::from_utf8_lossy(&name).into_owned();
     // Com a saída redirecionada, as atualizações de tela vão pro erro padrão.
@@ -696,8 +774,18 @@ pub fn setupterm(tname: Option<&[u8]>, fd: Fd, opts: SetupOpts) -> Result<Term, 
     let res = read_entry(&name, true);
     let mut tt = match (res.code, res.tt) {
         (TGETENT_YES, Some(tt)) => tt,
-        (TGETENT_ERR, _) => return Err(fail(TGETENT_ERR, "terminals database is inaccessible\n".to_string())),
-        (TGETENT_NO, _) => return Err(fail(TGETENT_NO, format!("'{shown}': unknown terminal type.\n"))),
+        (TGETENT_ERR, _) => {
+            return Err(fail(
+                TGETENT_ERR,
+                "terminals database is inaccessible\n".to_string(),
+            ));
+        }
+        (TGETENT_NO, _) => {
+            return Err(fail(
+                TGETENT_NO,
+                format!("'{shown}': unknown terminal type.\n"),
+            ));
+        }
         _ => return Err(fail(res.code, "unexpected return-code\n".to_string())),
     };
     // `_nc_setup_tinfo`: booleanos inválidos viram falsos e cadeias canceladas, ausentes.
@@ -711,12 +799,17 @@ pub fn setupterm(tname: Option<&[u8]>, fd: Fd, opts: SetupOpts) -> Result<Term, 
             *s = Str::Absent;
         }
     }
-    let mut term = Term { tt, fd, termname: name };
+    let mut term = Term {
+        tt,
+        fd,
+        termname: name,
+    };
     cmdch(&mut term);
     get_screensize(&mut term, opts);
     if term.tt.b("generic_type") {
         let t = &term.tt;
-        let addressable = t.s("cursor_address").valid() || (t.s("cursor_down").valid() && t.s("cursor_home").valid());
+        let addressable = t.s("cursor_address").valid()
+            || (t.s("cursor_down").valid() && t.s("cursor_home").valid());
         if addressable && t.s("clear_screen").valid() {
             return Err(Box::new(SetupFail {
                 code: TGETENT_YES,
@@ -724,7 +817,10 @@ pub fn setupterm(tname: Option<&[u8]>, fd: Fd, opts: SetupOpts) -> Result<Term, 
                 term: Some(term),
             }));
         }
-        return Err(fail(TGETENT_NO, format!("'{shown}': I need something more specific.\n")));
+        return Err(fail(
+            TGETENT_NO,
+            format!("'{shown}': I need something more specific.\n"),
+        ));
     } else if term.tt.b("hard_copy") {
         return Err(Box::new(SetupFail {
             code: TGETENT_YES,
@@ -850,7 +946,10 @@ mod tests {
 
     #[test]
     fn name_matching() {
-        assert!(name_match(b"xterm|xterm-debian|X terminal", b"xterm-debian"));
+        assert!(name_match(
+            b"xterm|xterm-debian|X terminal",
+            b"xterm-debian"
+        ));
         assert!(!name_match(b"xterm|X terminal", b"term"));
     }
 

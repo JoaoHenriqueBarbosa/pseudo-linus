@@ -267,7 +267,10 @@ fn run(args: &[OsString]) -> i32 {
         }
     }
     if cfg.min == u64::from(u32::MAX) {
-        return fatal(&prog, format!("minimum string length {} is too big", cfg.min).as_bytes());
+        return fatal(
+            &prog,
+            format!("minimum string length {} is too big", cfg.min).as_bytes(),
+        );
     }
     if cfg.unicode != Unicode::Default {
         cfg.encoding = b'S';
@@ -313,7 +316,10 @@ fn fatal(prog: &str, msg: &[u8]) -> i32 {
 fn usage(prog: &str, to_stdout: bool) {
     let mut text = format!("Usage: {prog} [option(s)] [file(s)]\n");
     text.push_str(USAGE_BODY);
-    text.push_str(&format!("{prog}: supported targets: {}\n", TARGETS.join(" ")));
+    text.push_str(&format!(
+        "{prog}: supported targets: {}\n",
+        TARGETS.join(" ")
+    ));
     if to_stdout {
         text.push_str("Report bugs to <https://sourceware.org/bugzilla/>\n");
         let mut out = io::stdout();
@@ -337,7 +343,9 @@ fn strtoul(s: &[u8]) -> (u64, usize) {
     }
     let mut base = 10u64;
     if i < s.len() && s[i] == b'0' {
-        if matches!(s.get(i + 1), Some(b'x' | b'X')) && s.get(i + 2).is_some_and(u8::is_ascii_hexdigit) {
+        if matches!(s.get(i + 1), Some(b'x' | b'X'))
+            && s.get(i + 2).is_some_and(u8::is_ascii_hexdigit)
+        {
             base = 16;
             i += 2;
         } else {
@@ -554,7 +562,12 @@ fn process_file(prog: &str, path: &[u8], cfg: &Config) -> bool {
             return false;
         }
         Err(e) => {
-            msg(&[b"Warning: could not locate '", path, b"'.  reason: ", e.message().as_bytes()]);
+            msg(&[
+                b"Warning: could not locate '",
+                path,
+                b"'.  reason: ",
+                e.message().as_bytes(),
+            ]);
             return false;
         }
         Ok(st) if st.file_type() == FileType::Directory => {
@@ -572,8 +585,14 @@ fn process_file(prog: &str, path: &[u8], cfg: &Config) -> bool {
     };
     let mut out = Output::new(cfg);
     let use_sections = cfg.data_only
-        && cfg.target.as_deref().is_none_or(|t| t != b"binary" && (t == b"default" || TARGETS.iter().any(|n| n.as_bytes() == t)));
-    let plan = if use_sections { elf_plan(prog, path, file.fd()) } else { Plan::Whole };
+        && cfg.target.as_deref().is_none_or(|t| {
+            t != b"binary" && (t == b"default" || TARGETS.iter().any(|n| n.as_bytes() == t))
+        });
+    let plan = if use_sections {
+        elf_plan(prog, path, file.fd())
+    } else {
+        Plan::Whole
+    };
     match plan {
         Plan::Whole => {
             let mut src = Source::fd(file.fd());
@@ -594,7 +613,12 @@ fn process_file(prog: &str, path: &[u8], cfg: &Config) -> bool {
                         a.extend_from_slice(&name);
                         a.extend_from_slice(format!(") is too large ({size:#x} bytes)").as_bytes());
                         msg(&[a.as_slice()]);
-                        msg(&[path, b": Reading section ", name.as_slice(), b" failed: file truncated"]);
+                        msg(&[
+                            path,
+                            b": Reading section ",
+                            name.as_slice(),
+                            b" failed: file truncated",
+                        ]);
                     }
                 }
             }
@@ -647,18 +671,30 @@ struct Endian(bool);
 impl Endian {
     fn u16(self, b: &[u8], at: usize) -> u64 {
         let v = [b[at], b[at + 1]];
-        u64::from(if self.0 { u16::from_le_bytes(v) } else { u16::from_be_bytes(v) })
+        u64::from(if self.0 {
+            u16::from_le_bytes(v)
+        } else {
+            u16::from_be_bytes(v)
+        })
     }
 
     fn u32(self, b: &[u8], at: usize) -> u64 {
         let v = [b[at], b[at + 1], b[at + 2], b[at + 3]];
-        u64::from(if self.0 { u32::from_le_bytes(v) } else { u32::from_be_bytes(v) })
+        u64::from(if self.0 {
+            u32::from_le_bytes(v)
+        } else {
+            u32::from_be_bytes(v)
+        })
     }
 
     fn u64(self, b: &[u8], at: usize) -> u64 {
         let mut v = [0u8; 8];
         v.copy_from_slice(&b[at..at + 8]);
-        if self.0 { u64::from_le_bytes(v) } else { u64::from_be_bytes(v) }
+        if self.0 {
+            u64::from_le_bytes(v)
+        } else {
+            u64::from_be_bytes(v)
+        }
     }
 }
 
@@ -707,12 +743,16 @@ fn elf_plan(prog: &str, path: &[u8], fd: Fd) -> Plan {
         m.push(b'\n');
         io::eprint(m);
     };
-    let Ok(st) = sys::current().fstat(fd) else { return Plan::Whole };
+    let Ok(st) = sys::current().fstat(fd) else {
+        return Plan::Whole;
+    };
     if st.file_type() != FileType::Regular {
         return Plan::Whole;
     }
     let file_size = st.size;
-    let Some(h) = pread_vec(fd, 0, 64) else { return Plan::Whole };
+    let Some(h) = pread_vec(fd, 0, 64) else {
+        return Plan::Whole;
+    };
     if h.len() < 16 || &h[..4] != b"\x7fELF" || h[6] != 1 {
         return Plan::Whole;
     }
@@ -746,7 +786,9 @@ fn elf_plan(prog: &str, path: &[u8], fd: Fd) -> Plan {
     if shentsize != entsize || beyond(shoff, entsize, file_size) {
         return Plan::Whole;
     }
-    let Some(sh0) = pread_vec(fd, shoff, entsize as usize) else { return Plan::Whole };
+    let Some(sh0) = pread_vec(fd, shoff, entsize as usize) else {
+        return Plan::Whole;
+    };
     if sh0.len() < entsize as usize {
         return Plan::Whole;
     }
@@ -755,21 +797,36 @@ fn elf_plan(prog: &str, path: &[u8], fd: Fd) -> Plan {
     if shnum == 0 {
         return Plan::Whole;
     }
-    let Some(table_len) = shnum.checked_mul(entsize) else { return Plan::Whole };
+    let Some(table_len) = shnum.checked_mul(entsize) else {
+        return Plan::Whole;
+    };
     if beyond(shoff, table_len, file_size) {
         return Plan::Whole;
     }
-    let Some(table) = pread_vec(fd, shoff, table_len as usize) else { return Plan::Whole };
+    let Some(table) = pread_vec(fd, shoff, table_len as usize) else {
+        return Plan::Whole;
+    };
     if (table.len() as u64) < table_len {
         return Plan::Whole;
     }
-    let shdrs: Vec<Shdr> = table.chunks(entsize as usize).map(|c| parse_shdr(c, e, is64)).collect();
-    let shstrndx = if e_shstrndx == 0xffff { sh0.link } else { e_shstrndx };
+    let shdrs: Vec<Shdr> = table
+        .chunks(entsize as usize)
+        .map(|c| parse_shdr(c, e, is64))
+        .collect();
+    let shstrndx = if e_shstrndx == 0xffff {
+        sh0.link
+    } else {
+        e_shstrndx
+    };
     if shstrndx == 0 || shstrndx >= shnum {
         warn(" has a corrupt string table index");
         return Plan::Whole;
     }
-    if shdrs.iter().skip(1).any(|s| s.kind != SHT_NOBITS && beyond(s.offset, s.size, file_size)) {
+    if shdrs
+        .iter()
+        .skip(1)
+        .any(|s| s.kind != SHT_NOBITS && beyond(s.offset, s.size, file_size))
+    {
         warn(" has a section extending past end of file");
     }
     let strtab = {
@@ -781,7 +838,9 @@ fn elf_plan(prog: &str, path: &[u8], fd: Fd) -> Plan {
         }
     };
     let name_of = |off: u64| -> Vec<u8> {
-        let Ok(start) = usize::try_from(off) else { return Vec::new() };
+        let Ok(start) = usize::try_from(off) else {
+            return Vec::new();
+        };
         let tail = strtab.get(start..).unwrap_or(&[]);
         tail[..tail.iter().position(|&b| b == 0).unwrap_or(tail.len())].to_vec()
     };
@@ -791,16 +850,29 @@ fn elf_plan(prog: &str, path: &[u8], fd: Fd) -> Plan {
             continue;
         }
         if beyond(s.offset, s.size, file_size) {
-            plan.push(SectionPlan::TooLarge { name: name_of(s.name), size: s.size });
+            plan.push(SectionPlan::TooLarge {
+                name: name_of(s.name),
+                size: s.size,
+            });
             continue;
         }
         sys::checkpoint();
         match pread_vec(fd, s.offset, s.size as usize) {
-            Some(data) => plan.push(SectionPlan::Scan { offset: s.offset, data }),
-            None => plan.push(SectionPlan::TooLarge { name: name_of(s.name), size: s.size }),
+            Some(data) => plan.push(SectionPlan::Scan {
+                offset: s.offset,
+                data,
+            }),
+            None => plan.push(SectionPlan::TooLarge {
+                name: name_of(s.name),
+                size: s.size,
+            }),
         }
     }
-    if plan.is_empty() { Plan::Whole } else { Plan::Sections(plan) }
+    if plan.is_empty() {
+        Plan::Whole
+    } else {
+        Plan::Sections(plan)
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -809,13 +881,28 @@ fn elf_plan(prog: &str, path: &[u8], fd: Fd) -> Plan {
 
 /// Fonte de bytes: um fd lido em blocos ou um pedaço já em memória (seção de ELF).
 enum Source<'a> {
-    Fd { fd: Fd, buf: Vec<u8>, pos: usize, len: usize, done: bool },
-    Slice { data: &'a [u8], pos: usize },
+    Fd {
+        fd: Fd,
+        buf: Vec<u8>,
+        pos: usize,
+        len: usize,
+        done: bool,
+    },
+    Slice {
+        data: &'a [u8],
+        pos: usize,
+    },
 }
 
 impl<'a> Source<'a> {
     fn fd(fd: Fd) -> Source<'static> {
-        Source::Fd { fd, buf: vec![0; 64 * 1024], pos: 0, len: 0, done: false }
+        Source::Fd {
+            fd,
+            buf: vec![0; 64 * 1024],
+            pos: 0,
+            len: 0,
+            done: false,
+        }
     }
 
     fn slice(data: &'a [u8]) -> Source<'a> {
@@ -824,7 +911,13 @@ impl<'a> Source<'a> {
 
     fn next(&mut self) -> Option<u8> {
         match self {
-            Source::Fd { fd, buf, pos, len, done } => {
+            Source::Fd {
+                fd,
+                buf,
+                pos,
+                len,
+                done,
+            } => {
                 if *pos >= *len {
                     if *done {
                         return None;
@@ -913,11 +1006,17 @@ impl Scanner<'_, '_> {
             _ => 1,
         };
         if width == 1 {
-            let Some(b) = self.byte() else { return Next::Eof };
+            let Some(b) = self.byte() else {
+                return Next::Eof;
+            };
             if cfg.unicode != Unicode::Default && b >= 0x80 {
                 return self.utf8(b, cfg);
             }
-            return if is_graphic(u32::from(b), cfg) { Next::Graphic(Char::Byte(b)) } else { Next::Stop(false) };
+            return if is_graphic(u32::from(b), cfg) {
+                Next::Graphic(Char::Byte(b))
+            } else {
+                Next::Stop(false)
+            };
         }
         let mut bytes = [0u8; 4];
         for slot in bytes.iter_mut().take(width) {
@@ -962,7 +1061,11 @@ impl Scanner<'_, '_> {
                 }
             }
         }
-        if cfg.unicode == Unicode::Invalid { Next::Stop(false) } else { Next::Graphic(Char::Utf8(seq)) }
+        if cfg.unicode == Unicode::Invalid {
+            Next::Stop(false)
+        } else {
+            Next::Graphic(Char::Utf8(seq))
+        }
     }
 }
 
@@ -984,7 +1087,11 @@ struct Output {
 
 impl Output {
     fn new(cfg: &Config) -> Output {
-        Output { pending: Vec::new(), unicode: cfg.unicode, tty: cfg.tty }
+        Output {
+            pending: Vec::new(),
+            unicode: cfg.unicode,
+            tty: cfg.tty,
+        }
     }
 
     fn put(&mut self, bytes: &[u8]) {
@@ -1035,14 +1142,24 @@ fn escape_form(seq: &[u8]) -> String {
     let c = |i: usize| u32::from(seq[i] & 0x3f);
     match seq.len() {
         2 => format!("\\u{:04x}", (u32::from(seq[0] & 0x1f) << 6) | c(1)),
-        3 => format!("\\u{:04x}", (u32::from(seq[0] & 0x0f) << 12) | (c(1) << 6) | c(2)),
-        _ => format!("\\u{:06x}", (u32::from(seq[0] & 0x07) << 22) | (c(1) << 14) | (c(2) << 6) | c(3)),
+        3 => format!(
+            "\\u{:04x}",
+            (u32::from(seq[0] & 0x0f) << 12) | (c(1) << 6) | c(2)
+        ),
+        _ => format!(
+            "\\u{:06x}",
+            (u32::from(seq[0] & 0x07) << 22) | (c(1) << 14) | (c(2) << 6) | c(3)
+        ),
     }
 }
 
 /// Varre um fluxo e imprime as cadeias. `base` é o deslocamento do primeiro byte no arquivo.
 fn scan(src: &mut Source<'_>, base: u64, name: &[u8], cfg: &Config, out: &mut Output) {
-    let mut sc = Scanner { src, pushback: Vec::new(), address: base };
+    let mut sc = Scanner {
+        src,
+        pushback: Vec::new(),
+        address: base,
+    };
     // Posição do byte devolvido ao fluxo depois de uma cadeia impressa (defeito do original).
     let mut flagged_at: Option<u64> = None;
     'tryline: loop {
@@ -1061,7 +1178,11 @@ fn scan(src: &mut Source<'_>, base: u64, name: &[u8], cfg: &Config, out: &mut Ou
             out.put(b": ");
         }
         if let Some(radix) = cfg.radix {
-            let shown = if flagged { start.wrapping_add(1 << 32) } else { start };
+            let shown = if flagged {
+                start.wrapping_add(1 << 32)
+            } else {
+                start
+            };
             let text = match radix {
                 b'o' => format!("{shown:7o} "),
                 b'd' => format!("{shown:7} "),
@@ -1097,10 +1218,14 @@ mod tests {
     use sysabi::Program;
     use sysabi::testkit::TestKit;
 
-    const SAMPLE: &[u8] = b"hello world\0abc\0abcd\0\x01\x02longer string here\nsecond line\ttab\x7f\xffxyzw\0";
+    const SAMPLE: &[u8] =
+        b"hello world\0abc\0abcd\0\x01\x02longer string here\nsecond line\ttab\x7f\xffxyzw\0";
 
     fn kit() -> TestKit {
-        TestKit::new().programs([Program::bin("strings", main)]).dir("/w", 0o755).cwd("/w")
+        TestKit::new()
+            .programs([Program::bin("strings", main)])
+            .dir("/w", 0o755)
+            .cwd("/w")
     }
 
     fn run_with(files: &[(&str, &[u8])], args: &[&str], stdin: &[u8]) -> (Vec<u8>, String, i32) {
@@ -1121,7 +1246,10 @@ mod tests {
 
     #[test]
     fn default_scan() {
-        assert_eq!(out(&[("a", SAMPLE)], &["a"]), "hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n");
+        assert_eq!(
+            out(&[("a", SAMPLE)], &["a"]),
+            "hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n"
+        );
     }
 
     #[test]
@@ -1130,13 +1258,19 @@ mod tests {
         assert_eq!(out(&[("a", SAMPLE)], &["-n", "3", "a"]), want);
         assert_eq!(out(&[("a", SAMPLE)], &["-3", "a"]), want);
         assert_eq!(out(&[("a", SAMPLE)], &["--bytes=3", "a"]), want);
-        assert_eq!(out(&[("a", SAMPLE)], &["-12", "a"]), "longer string here\nsecond line\ttab\n");
+        assert_eq!(
+            out(&[("a", SAMPLE)], &["-12", "a"]),
+            "longer string here\nsecond line\ttab\n"
+        );
     }
 
     #[test]
     fn min_length_bases() {
         let f: &[u8] = b"12345678\0abcdefghi\0";
-        assert_eq!(out(&[("n", f)], &["-n", "010", "n"]), "12345678\nabcdefghi\n");
+        assert_eq!(
+            out(&[("n", f)], &["-n", "010", "n"]),
+            "12345678\nabcdefghi\n"
+        );
         assert_eq!(out(&[("n", f)], &["-n", "0x9", "n"]), "abcdefghi\n");
         assert_eq!(out(&[("n", f)], &["-010", "n"]), "12345678\nabcdefghi\n");
         assert_eq!(out(&[("n", f)], &["-n", " 9", "n"]), "abcdefghi\n");
@@ -1145,18 +1279,43 @@ mod tests {
     #[test]
     fn min_length_errors() {
         let cases: &[(&[&str], &str)] = &[
-            (&["-n", "0", "a"], "strings: minimum string length is too small: 0\n"),
-            (&["-n", "abc", "a"], "strings: invalid integer argument abc\n"),
-            (&["-n", "-1", "a"], "strings: minimum string length is too big: -1\n"),
+            (
+                &["-n", "0", "a"],
+                "strings: minimum string length is too small: 0\n",
+            ),
+            (
+                &["-n", "abc", "a"],
+                "strings: invalid integer argument abc\n",
+            ),
+            (
+                &["-n", "-1", "a"],
+                "strings: minimum string length is too big: -1\n",
+            ),
             (&["-n", "3x", "a"], "strings: invalid integer argument 3x\n"),
-            (&["-n", "4294967296", "a"], "strings: minimum string length is too big: 4294967296\n"),
-            (&["-n", "4294967295", "a"], "strings: minimum string length 4294967295 is too big\n"),
-            (&["-0", "a"], "strings: minimum string length is too small: 0\n"),
-            (&["-n", "", "a"], "strings: minimum string length is too small: \n"),
+            (
+                &["-n", "4294967296", "a"],
+                "strings: minimum string length is too big: 4294967296\n",
+            ),
+            (
+                &["-n", "4294967295", "a"],
+                "strings: minimum string length 4294967295 is too big\n",
+            ),
+            (
+                &["-0", "a"],
+                "strings: minimum string length is too small: 0\n",
+            ),
+            (
+                &["-n", "", "a"],
+                "strings: minimum string length is too small: \n",
+            ),
         ];
         for (args, want) in cases {
             let (o, e, c) = run_with(&[("a", SAMPLE)], args, b"");
-            assert_eq!((o.as_slice(), e.as_str(), c), (&b""[..], *want, 1), "{args:?}");
+            assert_eq!(
+                (o.as_slice(), e.as_str(), c),
+                (&b""[..], *want, 1),
+                "{args:?}"
+            );
         }
     }
 
@@ -1164,15 +1323,24 @@ mod tests {
     fn numeric_option_uses_permuted_argv() {
         // `strings a -5`: o original lê o elemento `a` do argv permutado (`a` sem o primeiro byte).
         let (_, e, c) = run_with(&[("a", SAMPLE)], &["a", "-5"], b"");
-        assert_eq!((e.as_str(), c), ("strings: minimum string length is too small: \n", 1));
+        assert_eq!(
+            (e.as_str(), c),
+            ("strings: minimum string length is too small: \n", 1)
+        );
         let (_, e, _) = run_with(&[("a", SAMPLE)], &["a", "-5", "-n", "3"], b"");
         assert_eq!(e, "strings: invalid integer argument n\n");
         let (_, e, _) = run_with(&[("a", SAMPLE)], &["-13a", "a"], b"");
         assert_eq!(e, "strings: invalid integer argument trings\n");
         let (_, e, _) = run_with(&[("a", SAMPLE)], &["-a3", "a"], b"");
         assert_eq!(e, "strings: invalid integer argument a3\n");
-        assert_eq!(out(&[("a", SAMPLE)], &["-6", "a", "-n", "3"]), "hello world\nlonger string here\nsecond line\ttab\n");
-        assert_eq!(out(&[("a", SAMPLE)], &["-3", "-n5", "a"]), "hello world\nabc\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n");
+        assert_eq!(
+            out(&[("a", SAMPLE)], &["-6", "a", "-n", "3"]),
+            "hello world\nlonger string here\nsecond line\ttab\n"
+        );
+        assert_eq!(
+            out(&[("a", SAMPLE)], &["-3", "-n5", "a"]),
+            "hello world\nabc\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n"
+        );
     }
 
     #[test]
@@ -1185,19 +1353,36 @@ mod tests {
             out(&[("a", SAMPLE)], &["-o", "a"]),
             "      0 hello world\n     20 abcd\n     27 longer string here\n     52 second line\ttab\n     73 xyzw\n"
         );
-        assert_eq!(out(&[("a", SAMPLE)], &["--radix=d", "-n", "15", "a"]), "     23 longer string here\n     42 second line\ttab\n");
+        assert_eq!(
+            out(&[("a", SAMPLE)], &["--radix=d", "-n", "15", "a"]),
+            "     23 longer string here\n     42 second line\ttab\n"
+        );
         let mut big = vec![0u8; 10_000_000];
         big.extend_from_slice(b"found it");
-        assert_eq!(out(&[("b", &big)], &["-t", "d", "b"]), "10000000 found it\n");
-        assert_eq!(out(&[("b", &big)], &["-t", "o", "b"]), "46113200 found it\n");
+        assert_eq!(
+            out(&[("b", &big)], &["-t", "d", "b"]),
+            "10000000 found it\n"
+        );
+        assert_eq!(
+            out(&[("b", &big)], &["-t", "o", "b"]),
+            "46113200 found it\n"
+        );
     }
 
     #[test]
     fn radix_and_encoding_arg_errors_print_usage() {
-        for args in [&["-t", "q", "a"][..], &["-t", "xx", "a"], &["-e", "q", "a"], &["-e", "ss", "a"]] {
+        for args in [
+            &["-t", "q", "a"][..],
+            &["-t", "xx", "a"],
+            &["-e", "q", "a"],
+            &["-e", "ss", "a"],
+        ] {
             let (o, e, c) = run_with(&[("a", SAMPLE)], args, b"");
             assert!(o.is_empty());
-            assert!(e.starts_with("Usage: strings [option(s)] [file(s)]\n"), "{args:?}");
+            assert!(
+                e.starts_with("Usage: strings [option(s)] [file(s)]\n"),
+                "{args:?}"
+            );
             assert!(e.ends_with("binary ihex plugin\n"));
             assert_eq!(c, 1);
         }
@@ -1205,11 +1390,23 @@ mod tests {
 
     #[test]
     fn print_file_names_and_separator() {
-        assert_eq!(out(&[("a", SAMPLE)], &["-f", "-n", "11", "a"]), "a: hello world\na: longer string here\na: second line\ttab\n");
-        assert_eq!(out(&[("a", SAMPLE)], &["-s", "|", "a"]), "hello world|abcd|longer string here|second line\ttab|xyzw|");
-        assert_eq!(out(&[("a", SAMPLE)], &["-s", "", "-n", "11", "a"]), "hello worldlonger string heresecond line\ttab");
         assert_eq!(
-            out(&[("a", SAMPLE)], &["-f", "-t", "d", "-s", "::", "-n", "11", "a"]),
+            out(&[("a", SAMPLE)], &["-f", "-n", "11", "a"]),
+            "a: hello world\na: longer string here\na: second line\ttab\n"
+        );
+        assert_eq!(
+            out(&[("a", SAMPLE)], &["-s", "|", "a"]),
+            "hello world|abcd|longer string here|second line\ttab|xyzw|"
+        );
+        assert_eq!(
+            out(&[("a", SAMPLE)], &["-s", "", "-n", "11", "a"]),
+            "hello worldlonger string heresecond line\ttab"
+        );
+        assert_eq!(
+            out(
+                &[("a", SAMPLE)],
+                &["-f", "-t", "d", "-s", "::", "-n", "11", "a"]
+            ),
             "a:       0 hello world::a:      23 longer string here::a:      42 second line\ttab::"
         );
     }
@@ -1224,13 +1421,19 @@ mod tests {
         assert!(o.is_empty());
         assert!(e.starts_with("Usage: strings"));
         assert_eq!(c, 1);
-        assert_eq!(out(&[("a", SAMPLE)], &["-", "-n", "11", "a"]), "hello world\nlonger string here\nsecond line\ttab\n");
+        assert_eq!(
+            out(&[("a", SAMPLE)], &["-", "-n", "11", "a"]),
+            "hello world\nlonger string here\nsecond line\ttab\n"
+        );
     }
 
     #[test]
     fn file_errors() {
         let (o, e, c) = run_with(&[("a", b"hello\0")], &["nonexist", "a"], b"");
-        assert_eq!((o.as_slice(), e.as_str(), c), (&b"hello\n"[..], "strings: 'nonexist': No such file\n", 1));
+        assert_eq!(
+            (o.as_slice(), e.as_str(), c),
+            (&b"hello\n"[..], "strings: 'nonexist': No such file\n", 1)
+        );
         let k = kit();
         k.put_dir(b"/w/d", 0o755);
         k.put_file(b"/w/a", b"hello\0", 0o644);
@@ -1248,7 +1451,9 @@ mod tests {
     fn options_errors_and_help() {
         let (o, e, c) = run_with(&[], &["-Q"], b"");
         assert!(o.is_empty());
-        assert!(e.starts_with("strings: invalid option -- 'Q'\nUsage: strings [option(s)] [file(s)]\n"));
+        assert!(
+            e.starts_with("strings: invalid option -- 'Q'\nUsage: strings [option(s)] [file(s)]\n")
+        );
         assert!(!e.contains("Report bugs"));
         assert_eq!(c, 1);
         let (_, e, _) = run_with(&[], &["--foo"], b"");
@@ -1258,7 +1463,9 @@ mod tests {
         let (o, e, c) = run_with(&[], &["-H", "-Q"], b"");
         let o = String::from_utf8(o).unwrap();
         assert!(o.starts_with("Usage: strings [option(s)] [file(s)]\n Display printable strings"));
-        assert!(o.ends_with("binary ihex plugin\nReport bugs to <https://sourceware.org/bugzilla/>\n"));
+        assert!(
+            o.ends_with("binary ihex plugin\nReport bugs to <https://sourceware.org/bugzilla/>\n")
+        );
         assert_eq!((e.as_str(), c), ("", 0));
     }
 
@@ -1285,9 +1492,15 @@ mod tests {
     #[test]
     fn eight_bit_and_whitespace() {
         let (o, _, _) = run_with(&[("a", SAMPLE)], &["-e", "S", "a"], b"");
-        assert_eq!(o, b"hello world\nabcd\nlonger string here\nsecond line\ttab\n\xffxyzw\n");
+        assert_eq!(
+            o,
+            b"hello world\nabcd\nlonger string here\nsecond line\ttab\n\xffxyzw\n"
+        );
         let (o, _, _) = run_with(&[("a", SAMPLE)], &["-w", "a"], b"");
-        assert_eq!(o, b"hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n");
+        assert_eq!(
+            o,
+            b"hello world\nabcd\nlonger string here\nsecond line\ttab\nxyzw\n"
+        );
         let (o, _, _) = run_with(&[], &["-w", "-s", "|"], b"ab\ncd\0");
         assert_eq!(o, b"ab\ncd|");
         let (o, _, _) = run_with(&[], &["-e", "S", "-w"], b"a\xe9\nb\xa0c\0");
@@ -1296,23 +1509,53 @@ mod tests {
 
     #[test]
     fn sixteen_bit_resync() {
-        assert_eq!(out(&[("w", b"h\0e\0l\0l\0o\0\0\0\xe9\0t\0o\0o\0o\0\0\0x\0")], &["-e", "l", "-t", "x", "w"]), "      0 hello\n      e tooo\n");
-        assert_eq!(out(&[("w", b"\0h\0e\0l\0l\0o\0\0")], &["-e", "l", "w"]), "hello\n");
-        assert_eq!(out(&[("w", b"\0h\0e\0l\0l\0o\0\0")], &["-e", "b", "w"]), "hello\n");
-        assert_eq!(out(&[("w", b"a\0b\0\x01X\0c\0d\0e\0f\0\0")], &["-e", "l", "-t", "d", "w"]), "      5 Xcdef\n");
+        assert_eq!(
+            out(
+                &[("w", b"h\0e\0l\0l\0o\0\0\0\xe9\0t\0o\0o\0o\0\0\0x\0")],
+                &["-e", "l", "-t", "x", "w"]
+            ),
+            "      0 hello\n      e tooo\n"
+        );
+        assert_eq!(
+            out(&[("w", b"\0h\0e\0l\0l\0o\0\0")], &["-e", "l", "w"]),
+            "hello\n"
+        );
+        assert_eq!(
+            out(&[("w", b"\0h\0e\0l\0l\0o\0\0")], &["-e", "b", "w"]),
+            "hello\n"
+        );
+        assert_eq!(
+            out(
+                &[("w", b"a\0b\0\x01X\0c\0d\0e\0f\0\0")],
+                &["-e", "l", "-t", "d", "w"]
+            ),
+            "      5 Xcdef\n"
+        );
         assert_eq!(out(&[("w", b"a\0b\0c\0d\0e")], &["-e", "l", "w"]), "abcd\n");
-        assert_eq!(out(&[("w", b"a\0\n\0b\0\r\0c\0\0\0")], &["-e", "l", "-w", "w"]), "a\nb\rc\n");
+        assert_eq!(
+            out(&[("w", b"a\0\n\0b\0\r\0c\0\0\0")], &["-e", "l", "-w", "w"]),
+            "a\nb\rc\n"
+        );
     }
 
     #[test]
     fn thirty_two_bit() {
         let d32: &[u8] = b"h\0\0\0e\0\0\0l\0\0\0l\0\0\0o\0\0\0\0\0\0\0";
-        assert_eq!(out(&[("d", d32)], &["-e", "L", "-t", "x", "d"]), "      0 hello\n");
+        assert_eq!(
+            out(&[("d", d32)], &["-e", "L", "-t", "x", "d"]),
+            "      0 hello\n"
+        );
         assert_eq!(out(&[("d", d32)], &["-e", "B", "d"]), "ello\n");
         let x: &[u8] = b"a\0\0\0b\0\0\0\0\x01\0\0c\0\0\0d\0\0\0e\0\0\0f\0\0\0";
-        assert_eq!(out(&[("d", x)], &["-e", "L", "-t", "d", "d"]), "     12 cdef\n");
+        assert_eq!(
+            out(&[("d", x)], &["-e", "L", "-t", "d", "d"]),
+            "     12 cdef\n"
+        );
         let y: &[u8] = b"a\0\0\0b\0\0\0\x01X\0\0c\0\0\0d\0\0\0e\0\0\0f\0\0\0\0\0\0\0";
-        assert_eq!(out(&[("d", y)], &["-e", "L", "-t", "d", "d"]), "     12 cdef\n");
+        assert_eq!(
+            out(&[("d", y)], &["-e", "L", "-t", "d", "d"]),
+            "     12 cdef\n"
+        );
     }
 
     const UTF: &[u8] = b"caf\xc3\xa9 au lait\0euro \xe2\x82\xac sign\0smile \xf0\x9f\x98\x80 face\0bad \xc3 byte here\0\xc3\xa9\xc3\xa9\0\xc3\xa9\xc3\xa9\xc3\xa9\xc3\xa9\0";
@@ -1327,24 +1570,53 @@ mod tests {
             out(&[("u", UTF)], &["--unicode=hex", "-n", "5", "u"]),
             "caf<0xc3a9> au lait\neuro <0xe282ac> sign\nsmile <0xf09f9880> face\n byte here\n"
         );
-        assert_eq!(out(&[("u", UTF)], &["-U", "e", "-n", "2", "u"]).lines().nth(5), Some("\\u00e9\\u00e9"));
-        assert_eq!(out(&[("u", b"aaaa\xf7\xbf\xbf\xbfbbbb\0aaaa\xf1\x80\x80\x81bbbb\0")], &["-Ue", "u"]), "aaaa\\u1cfcfffbbbb\naaaa\\u400001bbbb\n");
+        assert_eq!(
+            out(&[("u", UTF)], &["-U", "e", "-n", "2", "u"])
+                .lines()
+                .nth(5),
+            Some("\\u00e9\\u00e9")
+        );
+        assert_eq!(
+            out(
+                &[("u", b"aaaa\xf7\xbf\xbf\xbfbbbb\0aaaa\xf1\x80\x80\x81bbbb\0")],
+                &["-Ue", "u"]
+            ),
+            "aaaa\\u1cfcfffbbbb\naaaa\\u400001bbbb\n"
+        );
     }
 
     #[test]
     fn unicode_locale_invalid_highlight() {
         let (o, _, _) = run_with(&[("u", UTF)], &["-U", "l", "u"], b"");
         assert_eq!(o, b"caf\xc3 au lait\neuro \xe2 sign\nsmile \xf0 face\nbad \n byte here\n\xc3\xc3\xc3\xc3\n");
-        assert_eq!(out(&[("u", UTF)], &["-U", "i", "u"]), " au lait\neuro \n sign\nsmile \n face\nbad \n byte here\n");
-        assert_eq!(out(&[("u", b"caf\xc3\xa9 ok\0")], &["-U", "h", "u"]), "caf\\u00e9 ok\n");
-        assert_eq!(out(&[("u", b"caf\xc3\xa9 ok\0")], &["-U", "default", "-e", "S", "u"]), "caf\u{e9} ok\n");
+        assert_eq!(
+            out(&[("u", UTF)], &["-U", "i", "u"]),
+            " au lait\neuro \n sign\nsmile \n face\nbad \n byte here\n"
+        );
+        assert_eq!(
+            out(&[("u", b"caf\xc3\xa9 ok\0")], &["-U", "h", "u"]),
+            "caf\\u00e9 ok\n"
+        );
+        assert_eq!(
+            out(
+                &[("u", b"caf\xc3\xa9 ok\0")],
+                &["-U", "default", "-e", "S", "u"]
+            ),
+            "caf\u{e9} ok\n"
+        );
     }
 
     #[test]
     fn unicode_forces_eight_bit() {
         let f: &[u8] = b"caf\xc3\xa9\xc3\xa9 x\0";
-        assert_eq!(out(&[("u", f)], &["-e", "l", "-U", "e", "u"]), "caf\\u00e9\\u00e9 x\n");
-        assert_eq!(out(&[("u", f)], &["-U", "e", "-e", "l", "u"]), "caf\\u00e9\\u00e9 x\n");
+        assert_eq!(
+            out(&[("u", f)], &["-e", "l", "-U", "e", "u"]),
+            "caf\\u00e9\\u00e9 x\n"
+        );
+        assert_eq!(
+            out(&[("u", f)], &["-U", "e", "-e", "l", "u"]),
+            "caf\\u00e9\\u00e9 x\n"
+        );
     }
 
     #[test]
@@ -1354,28 +1626,64 @@ mod tests {
             a.extend_from_slice(&["-t", "d", "t"]);
             out(&[("t", data)], &a).replace('\n', "|")
         };
-        assert_eq!(o(b"AAAA\xc3BBBB\0", &["-U", "x"]), "      0 AAAA|4294967301 BBBB|");
+        assert_eq!(
+            o(b"AAAA\xc3BBBB\0", &["-U", "x"]),
+            "      0 AAAA|4294967301 BBBB|"
+        );
         assert_eq!(o(b"AA\xc3BBBB\0", &["-U", "x"]), "      3 BBBB|");
-        assert_eq!(o(b"AAAA\x01\xc3BBBB\0", &["-U", "x"]), "      0 AAAA|      6 BBBB|");
-        assert_eq!(o(b"AAAA\xc3\xc3BBBB\0", &["-U", "x"]), "      0 AAAA|      6 BBBB|");
-        assert_eq!(o(b"AAAA\xc3\xc3\xa9BBBB\0", &["-U", "x"]), "      0 AAAA|4294967301 <0xc3a9>BBBB|");
+        assert_eq!(
+            o(b"AAAA\x01\xc3BBBB\0", &["-U", "x"]),
+            "      0 AAAA|      6 BBBB|"
+        );
+        assert_eq!(
+            o(b"AAAA\xc3\xc3BBBB\0", &["-U", "x"]),
+            "      0 AAAA|      6 BBBB|"
+        );
+        assert_eq!(
+            o(b"AAAA\xc3\xc3\xa9BBBB\0", &["-U", "x"]),
+            "      0 AAAA|4294967301 <0xc3a9>BBBB|"
+        );
         assert_eq!(
             o(b"ABCD\xc3EFGH\xc3IJKL\xc3MNOP\0", &["-U", "x"]),
             "      0 ABCD|4294967301 EFGH|4294967306 IJKL|4294967311 MNOP|"
         );
-        assert_eq!(o(b"ABCD\xe2\x82EFGH\0", &["-U", "x"]), "      0 ABCD|4294967302 EFGH|");
-        assert_eq!(o(b"ABCD\xe2\x82\x01EFGH\0", &["-U", "x"]), "      0 ABCD|      7 EFGH|");
-        assert_eq!(o(b"ABCD\xc3E\x01FGHI\0", &["-U", "x"]), "      0 ABCD|      7 FGHI|");
-        assert_eq!(o(b"ABCD\xc3EFGH\0", &["-U", "i"]), "      0 ABCD|4294967301 EFGH|");
-        assert_eq!(o(b"ABCD\xc3EFGH\0", &["-U", "d"]), "      0 ABCD|      5 EFGH|");
-        assert_eq!(o(b"ABCD\xc3\nEFGH\0", &["-U", "x", "-w"]), "      0 ABCD|4294967301 |EFGH|");
+        assert_eq!(
+            o(b"ABCD\xe2\x82EFGH\0", &["-U", "x"]),
+            "      0 ABCD|4294967302 EFGH|"
+        );
+        assert_eq!(
+            o(b"ABCD\xe2\x82\x01EFGH\0", &["-U", "x"]),
+            "      0 ABCD|      7 EFGH|"
+        );
+        assert_eq!(
+            o(b"ABCD\xc3E\x01FGHI\0", &["-U", "x"]),
+            "      0 ABCD|      7 FGHI|"
+        );
+        assert_eq!(
+            o(b"ABCD\xc3EFGH\0", &["-U", "i"]),
+            "      0 ABCD|4294967301 EFGH|"
+        );
+        assert_eq!(
+            o(b"ABCD\xc3EFGH\0", &["-U", "d"]),
+            "      0 ABCD|      5 EFGH|"
+        );
+        assert_eq!(
+            o(b"ABCD\xc3\nEFGH\0", &["-U", "x", "-w"]),
+            "      0 ABCD|4294967301 |EFGH|"
+        );
     }
 
     #[test]
     fn unicode_bad_argument() {
         for bad in ["q", "esc", "E", "HEX", ""] {
             let (_, e, c) = run_with(&[("u", UTF)], &["-U", bad, "u"], b"");
-            assert_eq!((e, c), (format!("strings: invalid argument to -U/--unicode: {bad}\n"), 1));
+            assert_eq!(
+                (e, c),
+                (
+                    format!("strings: invalid argument to -U/--unicode: {bad}\n"),
+                    1
+                )
+            );
         }
     }
 
@@ -1390,19 +1698,31 @@ mod tests {
         k.put_file(b"/w/q4", b"-s a\\ b a", 0o644);
         k.put_file(b"/w/loop", b"@loop", 0o644);
         k.put_dir(b"/w/d", 0o755);
-        assert_eq!(k.run(&["strings", "@opts"], b"").stdout_str(), "a: abc\na: hello\n");
+        assert_eq!(
+            k.run(&["strings", "@opts"], b"").stdout_str(),
+            "a: abc\na: hello\n"
+        );
         assert_eq!(k.run(&["strings", "@q1"], b"").stdout_str(), "");
         assert_eq!(k.run(&["strings", "@q2"], b"").stdout_str(), "helloa\"b");
         assert_eq!(k.run(&["strings", "@q3"], b"").stdout_str(), "hellox\\y");
         assert_eq!(k.run(&["strings", "@q4"], b"").stdout_str(), "helloa b");
         let r = k.run(&["strings", "@loop"], b"");
-        assert_eq!((r.stderr_str().as_str(), r.code()), ("strings: error: too many @-files encountered\n", 1));
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("strings: error: too many @-files encountered\n", 1)
+        );
         let r = k.run(&["strings", "@d"], b"");
-        assert_eq!((r.stderr_str().as_str(), r.code()), ("strings: error: @-file refers to a directory\n", 1));
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("strings: error: @-file refers to a directory\n", 1)
+        );
         let r = k.run(&["strings", "@nonexist"], b"");
         assert_eq!(r.stderr_str(), "strings: '@nonexist': No such file\n");
         let r = k.run(&["strings", "--", "@opts"], b"");
-        assert_eq!(r.stderr_str(), "strings: '-n': No such file\nstrings: '3': No such file\nstrings: '-f': No such file\n");
+        assert_eq!(
+            r.stderr_str(),
+            "strings: '-n': No such file\nstrings: '3': No such file\nstrings: '-f': No such file\n"
+        );
     }
 
     #[test]
@@ -1414,7 +1734,10 @@ mod tests {
         assert_eq!(v(b"a\"b c\"d"), vec![b"ab cd".to_vec()]);
         assert_eq!(v(b"\"a\\\\b\""), vec![b"a\\b".to_vec()]);
         assert_eq!(v(b"a\\"), vec![b"a".to_vec()]);
-        assert_eq!(v(b"-s \"unterminated a"), vec![b"-s".to_vec(), b"unterminated a".to_vec()]);
+        assert_eq!(
+            v(b"-s \"unterminated a"),
+            vec![b"-s".to_vec(), b"unterminated a".to_vec()]
+        );
     }
 
     #[test]
@@ -1426,9 +1749,21 @@ mod tests {
         assert_eq!(strtoul(b"99999999999999999999999"), (u64::MAX, 23));
         assert_eq!(strtoul(b" +"), (0, 0));
         let a = |v: &[&str]| v.iter().map(|s| s.as_bytes().to_vec()).collect::<Vec<_>>();
-        assert_eq!(permuted_argv(&a(&["strings", "a", "-n", "3", "-5", "b"]), false), a(&["strings", "-n", "3", "-5", "a", "b"]));
-        assert_eq!(permuted_argv(&a(&["strings", "a", "-s,", "--radix", "x", "--", "-5"]), false), a(&["strings", "-s,", "--radix", "x", "--", "a", "-5"]));
-        assert_eq!(permuted_argv(&a(&["strings", "a", "-5"]), true), a(&["strings", "a", "-5"]));
+        assert_eq!(
+            permuted_argv(&a(&["strings", "a", "-n", "3", "-5", "b"]), false),
+            a(&["strings", "-n", "3", "-5", "a", "b"])
+        );
+        assert_eq!(
+            permuted_argv(
+                &a(&["strings", "a", "-s,", "--radix", "x", "--", "-5"]),
+                false
+            ),
+            a(&["strings", "-s,", "--radix", "x", "--", "a", "-5"])
+        );
+        assert_eq!(
+            permuted_argv(&a(&["strings", "a", "-5"]), true),
+            a(&["strings", "a", "-5"])
+        );
     }
 
     /// `t64.o` gerado no oráculo com `as --64` (seções `.text`, `.data`, `.bss`, `.rodata`,
@@ -1437,7 +1772,10 @@ mod tests {
 
     fn b64(s: &str) -> Vec<u8> {
         let mut table = [255u8; 256];
-        for (i, c) in b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".iter().enumerate() {
+        for (i, c) in b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+            .iter()
+            .enumerate()
+        {
             table[*c as usize] = i as u8;
         }
         let mut out = Vec::new();
@@ -1467,15 +1805,35 @@ mod tests {
         let all = out(&[("t.o", &obj)], &["-t", "x", "t.o"]);
         assert!(all.contains("     7f comment string here\n     93 alloc note string\n     a5 writable str1continues here\n"));
         // `-` volta a varrer tudo nos arquivos seguintes; alvo `binary` e alvo inválido também.
-        assert_eq!(out(&[("t.o", &obj)], &["-d", "-", "t.o"]), all.lines().map(|l| format!("{}\n", &l[8..])).collect::<String>());
-        assert_eq!(out(&[("t.o", &obj)], &["-d", "-T", "binary", "t.o"]), out(&[("t.o", &obj)], &["t.o"]));
-        assert_eq!(out(&[("t.o", &obj)], &["-d", "-T", "bogus", "t.o"]), out(&[("t.o", &obj)], &["t.o"]));
-        assert_eq!(out(&[("t.o", &obj)], &["-d", "-T", "elf64-big", "-n", "16", "t.o"]), "text section string\ndata section string\nrodata section string\nalloc note string\n");
+        assert_eq!(
+            out(&[("t.o", &obj)], &["-d", "-", "t.o"]),
+            all.lines()
+                .map(|l| format!("{}\n", &l[8..]))
+                .collect::<String>()
+        );
+        assert_eq!(
+            out(&[("t.o", &obj)], &["-d", "-T", "binary", "t.o"]),
+            out(&[("t.o", &obj)], &["t.o"])
+        );
+        assert_eq!(
+            out(&[("t.o", &obj)], &["-d", "-T", "bogus", "t.o"]),
+            out(&[("t.o", &obj)], &["t.o"])
+        );
+        assert_eq!(
+            out(
+                &[("t.o", &obj)],
+                &["-d", "-T", "elf64-big", "-n", "16", "t.o"]
+            ),
+            "text section string\ndata section string\nrodata section string\nalloc note string\n"
+        );
     }
 
     #[test]
     fn data_sections_fall_back_on_non_elf() {
-        assert_eq!(out(&[("a", SAMPLE)], &["-d", "a"]), out(&[("a", SAMPLE)], &["a"]));
+        assert_eq!(
+            out(&[("a", SAMPLE)], &["-d", "a"]),
+            out(&[("a", SAMPLE)], &["a"])
+        );
         let (o, _, _) = run_with(&[], &["-d", "-t", "x"], b"abcd\0");
         assert_eq!(o, b"      0 abcd\n");
     }

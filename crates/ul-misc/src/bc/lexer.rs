@@ -177,11 +177,17 @@ pub struct Token {
 
 impl Token {
     fn new(kind: T) -> Token {
-        Token { kind, text: Vec::new() }
+        Token {
+            kind,
+            text: Vec::new(),
+        }
     }
 
     fn with(kind: T, text: &[u8]) -> Token {
-        Token { kind, text: text.to_vec() }
+        Token {
+            kind,
+            text: text.to_vec(),
+        }
     }
 }
 
@@ -223,7 +229,10 @@ impl Default for StdinShare {
 
 impl StdinShare {
     pub fn new() -> StdinShare {
-        StdinShare { stdio: VecDeque::new(), stdio_eof: false }
+        StdinShare {
+            stdio: VecDeque::new(),
+            stdio_eof: false,
+        }
     }
 
     /// `getchar()`: devolve `None` no fim (o GNU fica em laço; quem chama decide).
@@ -322,12 +331,15 @@ impl Lexer {
 
     /// Abre a próxima fonte. `Err` com o diagnóstico fatal quando o arquivo não abre.
     fn open_next(&mut self) -> Result<bool, LexDiag> {
-        let Some(next) = self.pending.pop_front() else { return Ok(false) };
+        let Some(next) = self.pending.pop_front() else {
+            return Ok(false);
+        };
         self.line = 1;
         match &next {
             SourceName::File(path) => {
                 self.name = next.clone();
-                let fd = match sys::open(path, sysabi::OFlags::RDONLY | sysabi::OFlags::CLOEXEC, 0) {
+                let fd = match sys::open(path, sysabi::OFlags::RDONLY | sysabi::OFlags::CLOEXEC, 0)
+                {
                     Ok(fd) => fd,
                     Err(_) => return Err(LexDiag::Unavailable(path.clone())),
                 };
@@ -351,11 +363,21 @@ impl Lexer {
                     }
                 }
                 let _ = sys::close(fd);
-                self.cur = Some(Open { data, pos: 0, more: false, interactive: false });
+                self.cur = Some(Open {
+                    data,
+                    pos: 0,
+                    more: false,
+                    interactive: false,
+                });
             }
             SourceName::Stdin => {
                 self.name = SourceName::Stdin;
-                self.cur = Some(Open { data: Vec::new(), pos: 0, more: true, interactive: self.interactive });
+                self.cur = Some(Open {
+                    data: Vec::new(),
+                    pos: 0,
+                    more: true,
+                    interactive: self.interactive,
+                });
             }
         }
         Ok(true)
@@ -364,7 +386,9 @@ impl Lexer {
     /// Lê mais do stdin pro buffer do scanner: um `read(2)` de até 8192 bytes (ou uma linha no modo
     /// interativo). Devolve `false` no fim.
     fn refill(&mut self) -> Result<bool, LexDiag> {
-        let Some(open) = self.cur.as_mut() else { return Ok(false) };
+        let Some(open) = self.cur.as_mut() else {
+            return Ok(false);
+        };
         if !open.more {
             return Ok(false);
         }
@@ -422,7 +446,9 @@ impl Lexer {
     /// O byte `k` posições à frente na fonte corrente (lendo mais do stdin se preciso).
     fn peek(&mut self, k: usize) -> Result<Option<u8>, LexDiag> {
         loop {
-            let Some(open) = self.cur.as_ref() else { return Ok(None) };
+            let Some(open) = self.cur.as_ref() else {
+                return Ok(None);
+            };
             if open.pos + k < open.data.len() {
                 return Ok(Some(open.data[open.pos + k]));
             }
@@ -548,7 +574,10 @@ impl Lexer {
                     if let Some((_, kw)) = KEYWORDS.iter().find(|(w, _)| *w == word.as_slice()) {
                         return Ok(Token::with(*kw, &word));
                     }
-                    return Ok(Token { kind: T::Name, text: word });
+                    return Ok(Token {
+                        kind: T::Name,
+                        text: word,
+                    });
                 }
                 b'.' if !self.number_follows_dot()? => {
                     self.bump(1);
@@ -558,7 +587,9 @@ impl Lexer {
                 _ => {
                     let two = [c, self.peek(1)?.unwrap_or(0)];
                     let tok = match &two {
-                        b"+=" | b"-=" | b"*=" | b"/=" | b"%=" | b"^=" => Some((Token::with(T::AssignOp, &two[..1]), 2)),
+                        b"+=" | b"-=" | b"*=" | b"/=" | b"%=" | b"^=" => {
+                            Some((Token::with(T::AssignOp, &two[..1]), 2))
+                        }
                         b"==" | b"<=" | b">=" | b"!=" => Some((Token::with(T::RelOp, &two), 2)),
                         b"++" | b"--" => Some((Token::with(T::IncrDecr, &two), 2)),
                         b"&&" => Some((Token::new(T::And), 2)),
@@ -641,7 +672,10 @@ impl Lexer {
         if raw.iter().any(|&c| (b'G'..=b'Z').contains(&c)) {
             diags.push((warn_line, LexDiag::NonStandardBase));
         }
-        Ok(Token { kind: T::Number, text: normalize_number(&raw) })
+        Ok(Token {
+            kind: T::Number,
+            text: normalize_number(&raw),
+        })
     }
 }
 

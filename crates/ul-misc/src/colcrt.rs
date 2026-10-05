@@ -95,7 +95,11 @@ fn trim_trailing_spaces(s: &mut [char]) {
 impl<W: Write> Ctl<W> {
     fn put_chars(&mut self, which_under: bool) {
         let mut buf = String::new();
-        let src = if which_under { &self.line_under } else { &self.line };
+        let src = if which_under {
+            &self.line_under
+        } else {
+            &self.line
+        };
         for &c in src.iter().take_while(|&&c| c != '\0') {
             buf.push(c);
         }
@@ -299,7 +303,10 @@ fn run(args: &[OsString]) -> i32 {
             match File::open(path) {
                 Ok(mut f) => {
                     let seekable = is_seekable(f.fd());
-                    Src { r: WideReader::new(f.read_to_end_sys()), seekable }
+                    Src {
+                        r: WideReader::new(f.read_to_end_sys()),
+                        seekable,
+                    }
                 }
                 Err(e) => {
                     let _ = ctl.out.flush();
@@ -309,7 +316,10 @@ fn run(args: &[OsString]) -> i32 {
             }
         } else {
             let seekable = is_seekable(Fd::STDIN);
-            Src { r: WideReader::new(io::read_stdin()), seekable }
+            Src {
+                r: WideReader::new(io::read_stdin()),
+                seekable,
+            }
         };
 
         if let Err(e) = ctl.colcrt(&mut src) {

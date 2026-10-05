@@ -17,11 +17,11 @@ pub mod expand;
 pub mod infocmp;
 pub mod infotocap;
 pub mod reset;
+pub mod tabs;
 pub mod terminfo;
 pub mod toe;
 pub mod tparm;
 pub mod tput;
-pub mod tabs;
 pub mod tset;
 
 /// O que `curses_version()` devolve nesta versão.
@@ -89,7 +89,10 @@ pub fn num_index(var: &str) -> usize {
 
 /// Índice de um booleano predefinido pelo nome da variável C.
 pub fn bool_index(var: &str) -> usize {
-    BOOLS.iter().position(|c| c.var == var).unwrap_or(usize::MAX)
+    BOOLS
+        .iter()
+        .position(|c| c.var == var)
+        .unwrap_or(usize::MAX)
 }
 
 /// `isspace` do locale C.
@@ -115,7 +118,11 @@ pub fn strtol(s: &[u8]) -> (i64, usize) {
         i += 1;
     }
     let mut base = 10u32;
-    if i + 2 < s.len() && s[i] == b'0' && (s[i + 1] == b'x' || s[i + 1] == b'X') && s[i + 2].is_ascii_hexdigit() {
+    if i + 2 < s.len()
+        && s[i] == b'0'
+        && (s[i + 1] == b'x' || s[i + 1] == b'X')
+        && s[i + 2].is_ascii_hexdigit()
+    {
         base = 16;
         i += 2;
     } else if i < s.len() && s[i] == b'0' {
@@ -141,7 +148,11 @@ pub fn strtol(s: &[u8]) -> (i64, usize) {
         return (0, 0);
     }
     let value = if neg {
-        if overflow || acc > (i64::MAX as u128) + 1 { i64::MIN } else { (acc as i128).wrapping_neg() as i64 }
+        if overflow || acc > (i64::MAX as u128) + 1 {
+            i64::MIN
+        } else {
+            (acc as i128).wrapping_neg() as i64
+        }
     } else if overflow || acc > i64::MAX as u128 {
         i64::MAX
     } else {
@@ -152,7 +163,11 @@ pub fn strtol(s: &[u8]) -> (i64, usize) {
 
 /// O primeiro nome de uma lista `a|b|c` (`_nc_first_name`), no máximo `MAX_NAME_SIZE` bytes.
 pub fn first_name(names: &[u8]) -> &[u8] {
-    let end = names.iter().take(512).position(|b| *b == b'|').unwrap_or(names.len().min(512));
+    let end = names
+        .iter()
+        .take(512)
+        .position(|b| *b == b'|')
+        .unwrap_or(names.len().min(512));
     &names[..end]
 }
 
@@ -190,7 +205,10 @@ pub struct FdSink {
 
 impl FdSink {
     pub fn new(fd: sysabi::Fd) -> FdSink {
-        FdSink { fd, buf: Vec::new() }
+        FdSink {
+            fd,
+            buf: Vec::new(),
+        }
     }
 
     pub fn write_all(&mut self, data: &[u8]) {
@@ -250,7 +268,10 @@ pub fn save_tty_settings(progname: &str, need_tty: bool) -> sysabi::Fd {
             }
             Err(e) => e,
         };
-        crate::util::io::eprint(format!("{progname}: terminal attributes: {}\n", errno.message()));
+        crate::util::io::eprint(format!(
+            "{progname}: terminal attributes: {}\n",
+            errno.message()
+        ));
         crate::util::io::eprint("\n");
         sys::exit(err_system(errno.0));
     }

@@ -73,7 +73,9 @@ fn parsemode(s: &[u8]) -> Option<u32> {
     let digits_start = j;
     let mut value: u64 = 0;
     while j < s.len() && (b'0'..=b'7').contains(&s[j]) {
-        value = value.saturating_mul(8).saturating_add(u64::from(s[j] - b'0'));
+        value = value
+            .saturating_mul(8)
+            .saturating_add(u64::from(s[j] - b'0'));
         j += 1;
     }
     if j == digits_start {
@@ -148,7 +150,10 @@ fn run(args: &[OsString]) -> i32 {
             Some('m') => match parsemode(&arg) {
                 Some(m) => mode = m,
                 None => {
-                    io::eprint(format!("Invalid mode `{}'.  Mode must be octal.\n", io::lossy(&arg)));
+                    io::eprint(format!(
+                        "Invalid mode `{}'.  Mode must be octal.\n",
+                        io::lossy(&arg)
+                    ));
                     return usage(&progname, 1);
                 }
             },
@@ -173,7 +178,12 @@ fn run(args: &[OsString]) -> i32 {
         filename = n.clone();
     } else {
         // $TMPDIR, depois -d, depois P_tmpdir e por fim /tmp
-        let tmpdirs: [Option<Vec<u8>>; 4] = [sys::getenv("TMPDIR"), dir.clone(), Some(b"/tmp".to_vec()), Some(b"/tmp".to_vec())];
+        let tmpdirs: [Option<Vec<u8>>; 4] = [
+            sys::getenv("TMPDIR"),
+            dir.clone(),
+            Some(b"/tmp".to_vec()),
+            Some(b"/tmp".to_vec()),
+        ];
         let mut found: Option<(sysabi::Fd, Vec<u8>)> = None;
         for tmpdir in tmpdirs.iter().flatten() {
             let mut template: Vec<u8> = tmpdir.clone();

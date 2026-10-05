@@ -100,7 +100,12 @@ type Item = (u8, &'static str, char, &'static str);
 
 /// Itens do locale `C` por categoria, na ordem em que o original imprime a categoria inteira.
 const ITEMS: &[Item] = &[
-    (0, "ctype-class-names", 'L', "upper;lower;alpha;digit;xdigit;space;print;graph;blank;cntrl;punct;alnum"),
+    (
+        0,
+        "ctype-class-names",
+        'L',
+        "upper;lower;alpha;digit;xdigit;space;print;graph;blank;cntrl;punct;alnum",
+    ),
     (0, "ctype-map-names", 'L', "toupper;tolower"),
     (0, "ctype-width", 'N', "7"),
     (0, "ctype-mb-cur-max", 'N', "1"),
@@ -152,9 +157,24 @@ const ITEMS: &[Item] = &[
     (1, "numeric-thousands-sep-wc", 'N', "0"),
     (1, "numeric-codeset", 'Q', "ANSI_X3.4-1968"),
     (2, "abday", 'Q', "Sun;Mon;Tue;Wed;Thu;Fri;Sat"),
-    (2, "day", 'Q', "Sunday;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday"),
-    (2, "abmon", 'Q', "Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec"),
-    (2, "mon", 'Q', "January;February;March;April;May;June;July;August;September;October;November;December"),
+    (
+        2,
+        "day",
+        'Q',
+        "Sunday;Monday;Tuesday;Wednesday;Thursday;Friday;Saturday",
+    ),
+    (
+        2,
+        "abmon",
+        'Q',
+        "Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec",
+    ),
+    (
+        2,
+        "mon",
+        'Q',
+        "January;February;March;April;May;June;July;August;September;October;November;December",
+    ),
     (2, "am_pm", 'Q', "AM;PM"),
     (2, "d_t_fmt", 'Q', "%a %b %e %H:%M:%S %Y"),
     (2, "d_fmt", 'Q', "%m/%d/%y"),
@@ -177,8 +197,18 @@ const ITEMS: &[Item] = &[
     (2, "timezone", 'Q', ""),
     (2, "date_fmt", 'Q', "%a %b %e %H:%M:%S %Z %Y"),
     (2, "time-codeset", 'Q', "ANSI_X3.4-1968"),
-    (2, "alt_mon", 'Q', "January;February;March;April;May;June;July;August;September;October;November;December"),
-    (2, "ab_alt_mon", 'Q', "Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec"),
+    (
+        2,
+        "alt_mon",
+        'Q',
+        "January;February;March;April;May;June;July;August;September;October;November;December",
+    ),
+    (
+        2,
+        "ab_alt_mon",
+        'Q',
+        "Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec",
+    ),
     (3, "collate-nrules", 'N', "0"),
     (3, "collate-rulesets", 'Q', ""),
     (3, "collate-symb-hash-sizemb", 'N', "0"),
@@ -244,7 +274,12 @@ const ITEMS: &[Item] = &[
     (7, "name_miss", 'Q', ""),
     (7, "name_ms", 'Q', ""),
     (7, "name-codeset", 'Q', "ANSI_X3.4-1968"),
-    (8, "postal_fmt", 'Q', "%a%N%f%N%d%N%b%N%s %h %e %r%N%C-%z %T%N%c%N"),
+    (
+        8,
+        "postal_fmt",
+        'Q',
+        "%a%N%f%N%d%N%b%N%s %h %e %r%N%C-%z %T%N%c%N",
+    ),
     (8, "country_name", 'Q', ""),
     (8, "country_post", 'Q', ""),
     (8, "country_ab2", 'Q', ""),
@@ -265,8 +300,18 @@ const ITEMS: &[Item] = &[
     (10, "measurement", 'N', "1"),
     (10, "measurement-codeset", 'Q', "ANSI_X3.4-1968"),
     (11, "title", 'Q', "ISO/IEC 14652 i18n FDCC-set"),
-    (11, "source", 'Q', "ISO/IEC JTC1/SC22/WG20 - internationalization"),
-    (11, "address", 'Q', "C/o Keld Simonsen, Skt. Jorgens Alle 8, DK-1615 Kobenhavn V"),
+    (
+        11,
+        "source",
+        'Q',
+        "ISO/IEC JTC1/SC22/WG20 - internationalization",
+    ),
+    (
+        11,
+        "address",
+        'Q',
+        "C/o Keld Simonsen, Skt. Jorgens Alle 8, DK-1615 Kobenhavn V",
+    ),
     (11, "contact", 'Q', "Keld Simonsen"),
     (11, "email", 'Q', "keld@dkuug.dk"),
     (11, "tel", 'Q', "+45 3122-6543"),
@@ -284,7 +329,10 @@ const ITEMS: &[Item] = &[
 
 /// O que muda no `C.UTF-8` em relação ao `C`.
 const UTF8_OVERRIDES: &[(&str, &str)] = &[
-    ("ctype-class-names", "upper;lower;alpha;digit;xdigit;space;print;graph;blank;cntrl;punct;alnum;combining;combining_level3"),
+    (
+        "ctype-class-names",
+        "upper;lower;alpha;digit;xdigit;space;print;graph;blank;cntrl;punct;alnum;combining;combining_level3",
+    ),
     ("ctype-map-names", "toupper;tolower;totitle"),
     ("ctype-width", "16"),
     ("ctype-mb-cur-max", "6"),
@@ -362,7 +410,11 @@ fn print_item(out: &mut dyn Write, item: &Item, loc: Loc, keyword: bool) {
 
 /// `print_assignment`: `NOME=valor`, com aspas duplas ou com barras antes dos caracteres especiais.
 fn print_assignment(out: &mut dyn Write, name: &str, val: &[u8], dquote: bool) {
-    let special: &[u8] = if dquote { b"$`\"\\" } else { b"~|&;<>()$`\\\"' \t\n" };
+    let special: &[u8] = if dquote {
+        b"$`\"\\"
+    } else {
+        b"~|&;<>()$`\\\"' \t\n"
+    };
     let mut buf: Vec<u8> = Vec::new();
     buf.extend_from_slice(name.as_bytes());
     buf.push(b'=');
@@ -400,7 +452,10 @@ fn env_locale_name(category: &str) -> Vec<u8> {
 
 /// O codeset normalizado da glibc (`_nl_normalize_codeset`): só letras e dígitos, em minúsculas.
 fn normalize_codeset(s: &[u8]) -> Vec<u8> {
-    s.iter().filter(|b| b.is_ascii_alphanumeric()).map(|b| b.to_ascii_lowercase()).collect()
+    s.iter()
+        .filter(|b| b.is_ascii_alphanumeric())
+        .map(|b| b.to_ascii_lowercase())
+        .collect()
 }
 
 const ENOENT_MSG: &str = "No such file or directory";
@@ -447,7 +502,10 @@ fn resolve_locale(name: &[u8]) -> Result<Loc, &'static str> {
         return Err(EINVAL_MSG);
     }
     let len = name.len();
-    let lang_end = name.iter().position(|b| matches!(*b, b'_' | b'@' | b'.')).unwrap_or(len);
+    let lang_end = name
+        .iter()
+        .position(|b| matches!(*b, b'_' | b'@' | b'.'))
+        .unwrap_or(len);
     let language = &name[..lang_end];
     if language.is_empty() {
         return Err(ENOENT_MSG);
@@ -473,7 +531,11 @@ fn resolve_locale(name: &[u8]) -> Result<Loc, &'static str> {
     while let Some(rest) = lang.strip_prefix(b"/") {
         lang = rest;
     }
-    if lang != b"C" || codeset.is_empty() || normalize_codeset(codeset) != b"utf8" || !codeset_is_utf8(codeset) {
+    if lang != b"C"
+        || codeset.is_empty()
+        || normalize_codeset(codeset) != b"utf8"
+        || !codeset_is_utf8(codeset)
+    {
         return Err(ENOENT_MSG);
     }
     Ok(Loc::Utf8)
@@ -491,7 +553,10 @@ impl Locales {
         match resolve_locale(&env_locale_name(CATEGORIES[idx])) {
             Ok(loc) => self.cat[idx] = loc,
             Err(msg) => {
-                io::eprint(format!("{argv0}: Cannot set {} to default locale: {msg}\n", CATEGORIES[idx]));
+                io::eprint(format!(
+                    "{argv0}: Cannot set {} to default locale: {msg}\n",
+                    CATEGORIES[idx]
+                ));
                 self.failed = true;
             }
         }
@@ -504,7 +569,9 @@ impl Locales {
             match resolve_locale(&env_locale_name(cat)) {
                 Ok(loc) => new[i] = loc,
                 Err(msg) => {
-                    io::eprint(format!("{argv0}: Cannot set LC_ALL to default locale: {msg}\n"));
+                    io::eprint(format!(
+                        "{argv0}: Cannot set LC_ALL to default locale: {msg}\n"
+                    ));
                     self.failed = true;
                     return;
                 }
@@ -519,7 +586,10 @@ impl Locales {
             return;
         }
         if let Some(locpath) = env("LOCPATH") {
-            io::eprint(format!("warning: The LOCPATH variable is set to \"{}\"\n", quote_string(&locpath)));
+            io::eprint(format!(
+                "warning: The LOCPATH variable is set to \"{}\"\n",
+                quote_string(&locpath)
+            ));
         }
     }
 }
@@ -579,7 +649,13 @@ fn show_locale_vars(out: &mut dyn Write) {
 }
 
 /// `show_info`: uma categoria inteira ou uma palavra-chave; `Err` é o nome desconhecido.
-fn show_info(out: &mut dyn Write, name: &[u8], locales: &Locales, show_category: bool, show_keyword: bool) -> Result<(), ()> {
+fn show_info(
+    out: &mut dyn Write,
+    name: &[u8],
+    locales: &Locales,
+    show_category: bool,
+    show_keyword: bool,
+) -> Result<(), ()> {
     for (cat_no, cat_name) in CATEGORIES.iter().enumerate() {
         let loc = locales.cat[cat_no];
         if name == cat_name.as_bytes() {
@@ -591,7 +667,10 @@ fn show_info(out: &mut dyn Write, name: &[u8], locales: &Locales, show_category:
             }
             return Ok(());
         }
-        if let Some(item) = ITEMS.iter().find(|i| usize::from(i.0) == cat_no && i.1.as_bytes() == name) {
+        if let Some(item) = ITEMS
+            .iter()
+            .find(|i| usize::from(i.0) == cat_no && i.1.as_bytes() == name)
+        {
             if show_category {
                 let _ = writeln!(out, "{cat_name}");
             }
@@ -605,7 +684,8 @@ fn show_info(out: &mut dyn Write, name: &[u8], locales: &Locales, show_category:
 /// Identificação e codeset de um locale compilado (`print_LC_IDENTIFICATION` e `print_LC_CTYPE`).
 fn print_locale_details(out: &mut dyn Write, dir: &str) {
     let word = |d: &[u8], at: usize| -> Option<u32> {
-        d.get(at..at + 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+        d.get(at..at + 4)
+            .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
     };
     let string_at = |d: &[u8], index: usize| -> Option<String> {
         let off = word(d, 8 + 4 * index)? as usize;
@@ -693,7 +773,10 @@ fn write_locales(out: &mut dyn Write, verbose: bool) {
                 }
                 first_locale = false;
                 let shown: String = String::from_utf8_lossy(&name).chars().take(15).collect();
-                let _ = write!(out, "locale: {shown:<15} directory: {dir_path}\n{linebuf}\n");
+                let _ = write!(
+                    out,
+                    "locale: {shown:<15} directory: {dir_path}\n{linebuf}\n"
+                );
                 print_locale_details(out, &dir_path);
             }
             all.insert(name);
@@ -703,8 +786,12 @@ fn write_locales(out: &mut dyn Write, verbose: bool) {
     let alias_file = format!("{LOCALE_ALIAS_PATH}/locale.alias");
     if let Ok(data) = sys::read_file(alias_file.as_bytes()) {
         for line in data.split(|b| *b == b'\n') {
-            let mut it = line.split(|b| b.is_ascii_whitespace()).filter(|t| !t.is_empty());
-            let (Some(alias), Some(value)) = (it.next(), it.next()) else { continue };
+            let mut it = line
+                .split(|b| b.is_ascii_whitespace())
+                .filter(|t| !t.is_empty());
+            let (Some(alias), Some(value)) = (it.next(), it.next()) else {
+                continue;
+            };
             if alias.starts_with(b"#") {
                 continue;
             }
@@ -726,7 +813,10 @@ fn write_charmaps(out: &mut dyn Write, argv0: &str) -> i32 {
     let entries = match sys::read_dir(CHARMAP_PATH.as_bytes()) {
         Ok(e) => e,
         Err(e) => {
-            io::eprint(format!("{argv0}: [error] cannot read character map directory `{CHARMAP_PATH}': {}\n", e.message()));
+            io::eprint(format!(
+                "{argv0}: [error] cannot read character map directory `{CHARMAP_PATH}': {}\n",
+                e.message()
+            ));
             return 1;
         }
     };
@@ -762,8 +852,12 @@ fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
     let argv0 = io::argv0(args);
     let mut out = io::stdout();
-    let mut locales = Locales { cat: [Loc::C; 12], failed: false };
-    let (mut show_category, mut show_keyword, mut do_all, mut do_charmaps, mut verbose) = (false, false, false, false, false);
+    let mut locales = Locales {
+        cat: [Loc::C; 12],
+        failed: false,
+    };
+    let (mut show_category, mut show_keyword, mut do_all, mut do_charmaps, mut verbose) =
+        (false, false, false, false, false);
 
     locales.try_one(LC_CTYPE, &argv0);
     locales.try_one(LC_MESSAGES, &argv0);
@@ -855,11 +949,20 @@ mod tests {
         let r = k.run(&["locale", "charmap", "decimal_point"], b"");
         assert_eq!(r.stdout_str(), "UTF-8\n.\n");
         let r = k.run(&["locale", "-ck", "LC_NUMERIC"], b"");
-        assert!(r.stdout_str().starts_with("LC_NUMERIC\ndecimal_point=\".\"\nthousands_sep=\"\"\ngrouping=-1\n"));
+        assert!(
+            r.stdout_str()
+                .starts_with("LC_NUMERIC\ndecimal_point=\".\"\nthousands_sep=\"\"\ngrouping=-1\n")
+        );
         let r = k.run(&["locale", "bogus"], b"");
-        assert_eq!((r.stderr_str().as_str(), r.code()), ("locale: unknown name \"bogus\"\n", 1));
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("locale: unknown name \"bogus\"\n", 1)
+        );
         let r = k.run(&["locale", "-k", "ctype-class-names"], b"");
-        assert!(r.stdout_str().starts_with("ctype-class-names=\"upper\";\"lower\""));
+        assert!(
+            r.stdout_str()
+                .starts_with("ctype-class-names=\"upper\";\"lower\"")
+        );
     }
 
     #[test]

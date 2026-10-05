@@ -23,14 +23,33 @@ pub struct Reset<'a> {
 }
 
 impl<'a> Reset<'a> {
-    pub fn new(term: &'a Term, out_fd: Fd, use_reset: bool, use_init: bool, progname: &str) -> Reset<'a> {
+    pub fn new(
+        term: &'a Term,
+        out_fd: Fd,
+        use_reset: bool,
+        use_init: bool,
+        progname: &str,
+    ) -> Reset<'a> {
         let columns = term.tt.n("columns");
-        Reset { term, out: FdSink::new(out_fd), use_reset, use_init, progname: progname.to_string(), state: ParmState::default(), columns }
+        Reset {
+            term,
+            out: FdSink::new(out_fd),
+            use_reset,
+            use_init,
+            progname: progname.to_string(),
+            state: ParmState::default(),
+            columns,
+        }
     }
 
     /// `failed()`: mensagem com o erro, uma linha em branco no `my_file` e a saída `4 + errno`.
     fn failed(&mut self, msg: &[u8], errno: Errno) -> ! {
-        io::eprint(format!("{}: {}: {}\n", self.progname, io::lossy(msg), errno.message()));
+        io::eprint(format!(
+            "{}: {}: {}\n",
+            self.progname,
+            io::lossy(msg),
+            errno.message()
+        ));
         self.out.write_all(b"\n");
         self.out.finish();
         sys::exit(err_system(errno.0));
@@ -112,7 +131,11 @@ impl<'a> Reset<'a> {
             return false;
         }
         let pick = |reset: bool, r: &str, i: &str| -> Option<Vec<u8>> {
-            if reset && tt.s(r).valid() { tt.sv(r).map(<[u8]>::to_vec) } else { tt.sv(i).map(<[u8]>::to_vec) }
+            if reset && tt.s(r).valid() {
+                tt.sv(r).map(<[u8]>::to_vec)
+            } else {
+                tt.sv(i).map(<[u8]>::to_vec)
+            }
         };
         let columns = self.columns;
         let (r1, r2, r3) = (
@@ -120,7 +143,12 @@ impl<'a> Reset<'a> {
             pick(self.use_reset, "reset_2string", "init_2string"),
             pick(self.use_reset, "reset_3string", "init_3string"),
         );
-        let file = if self.use_reset && tt.s("reset_file").valid() { tt.sv("reset_file") } else { tt.sv("init_file") }.map(<[u8]>::to_vec);
+        let file = if self.use_reset && tt.s("reset_file").valid() {
+            tt.sv("reset_file")
+        } else {
+            tt.sv("init_file")
+        }
+        .map(<[u8]>::to_vec);
         let clear_margins = tt.sv("clear_margins").map(<[u8]>::to_vec);
         let set_lr_margin = tt.sv("set_lr_margin").map(<[u8]>::to_vec);
         let set_left_parm = tt.sv("set_left_margin_parm").map(<[u8]>::to_vec);
@@ -134,18 +162,36 @@ impl<'a> Reset<'a> {
         if clear_margins.is_some() {
             need_flush |= self.sent_string(clear_margins.as_deref());
         } else if let Some(lr) = set_lr_margin {
-            let s = tiparm(&self.term.tt, &mut self.state, 2, &lr, &[0, i64::from(columns) - 1]);
+            let s = tiparm(
+                &self.term.tt,
+                &mut self.state,
+                2,
+                &lr,
+                &[0, i64::from(columns) - 1],
+            );
             need_flush |= self.sent_string(s.as_deref());
         } else if let (Some(l), Some(r)) = (&set_left_parm, &set_right_parm) {
             let s = tiparm(&self.term.tt, &mut self.state, 1, l, &[0]);
             need_flush |= self.sent_string(s.as_deref());
-            let s = tiparm(&self.term.tt, &mut self.state, 1, r, &[i64::from(columns) - 1]);
+            let s = tiparm(
+                &self.term.tt,
+                &mut self.state,
+                1,
+                r,
+                &[i64::from(columns) - 1],
+            );
             need_flush |= self.sent_string(s.as_deref());
         } else if let (Some(l), Some(r)) = (&set_left, &set_right) {
             need_flush |= self.move_to_left_margin();
             need_flush |= self.sent_string(Some(l));
             if let Some(p) = &parm_right {
-                let s = tiparm(&self.term.tt, &mut self.state, 1, p, &[i64::from(columns) - 1]);
+                let s = tiparm(
+                    &self.term.tt,
+                    &mut self.state,
+                    1,
+                    p,
+                    &[i64::from(columns) - 1],
+                );
                 need_flush |= self.sent_string(s.as_deref());
             } else {
                 for _ in 0..(columns - 1).max(0) {

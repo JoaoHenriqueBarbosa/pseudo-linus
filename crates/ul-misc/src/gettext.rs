@@ -127,11 +127,17 @@ fn print_version(argv0: &str) {
 
 /// O diretório de catálogos que o `--help` cita (o `IN_HELP2MAN` do help2man troca por um marcador).
 fn localedir_for_help() -> &'static str {
-    if sys::getenv("IN_HELP2MAN").is_none() { LOCALEDIR } else { "@localedir@" }
+    if sys::getenv("IN_HELP2MAN").is_none() {
+        LOCALEDIR
+    } else {
+        "@localedir@"
+    }
 }
 
 fn print_help(template: &str, argv0: &str) {
-    let text = template.replace("{pn}", argv0).replace("{dir}", localedir_for_help());
+    let text = template
+        .replace("{pn}", argv0)
+        .replace("{dir}", localedir_for_help());
     let _ = io::stdout().write_all(text.as_bytes());
 }
 
@@ -277,7 +283,11 @@ fn parse_count(count: &[u8]) -> Option<u64> {
     if i == digits_start || i != count.len() || overflow {
         return None;
     }
-    Some(if negative { value.wrapping_neg() } else { value })
+    Some(if negative {
+        value.wrapping_neg()
+    } else {
+        value
+    })
 }
 
 fn run_gettext(args: &[OsString]) -> i32 {
@@ -334,13 +344,21 @@ fn run_gettext(args: &[OsString]) -> i32 {
                 return 1;
             }
         };
-        let text = if do_expand { expand_escapes(msgid, Some(&mut inhibit_added_newline)) } else { msgid.clone() };
+        let text = if do_expand {
+            expand_escapes(msgid, Some(&mut inhibit_added_newline))
+        } else {
+            msgid.clone()
+        };
         let _ = out.write_all(c_string(&text));
     } else {
         // Emula o `echo`: todos os argumentos são mensagens, separados por um espaço.
         let count = operands.len();
         for (i, msgid) in operands.iter().enumerate() {
-            let text = if do_expand { expand_escapes(msgid, Some(&mut inhibit_added_newline)) } else { msgid.clone() };
+            let text = if do_expand {
+                expand_escapes(msgid, Some(&mut inhibit_added_newline))
+            } else {
+                msgid.clone()
+            };
             let _ = out.write_all(c_string(&text));
             if i + 1 < count {
                 let _ = out.write_all(b" ");
@@ -403,7 +421,10 @@ fn run_ngettext(args: &[OsString]) -> i32 {
     // COUNT inválido conta como plural (99).
     let n = parse_count(&operands[base + 2]).unwrap_or(99);
     let (msgid, msgid_plural) = if do_expand {
-        (expand_escapes(&operands[base], None), expand_escapes(&operands[base + 1], None))
+        (
+            expand_escapes(&operands[base], None),
+            expand_escapes(&operands[base + 1], None),
+        )
     } else {
         (operands[base].clone(), operands[base + 1].clone())
     };
@@ -420,13 +441,19 @@ mod tests {
     use sysabi::testkit::TestKit;
 
     fn kit() -> TestKit {
-        TestKit::new().programs([Program::bin("gettext", gettext_main), Program::bin("ngettext", ngettext_main)])
+        TestKit::new().programs([
+            Program::bin("gettext", gettext_main),
+            Program::bin("ngettext", ngettext_main),
+        ])
     }
 
     #[test]
     fn escapes_follow_escapes_h() {
         let mut c = false;
-        assert_eq!(expand_escapes(b"a\\tb\\n\\x41\\101\\0z", Some(&mut c)), b"a\tb\n\\x41A\0z");
+        assert_eq!(
+            expand_escapes(b"a\\tb\\n\\x41\\101\\0z", Some(&mut c)),
+            b"a\tb\n\\x41A\0z"
+        );
         assert!(!c);
         assert_eq!(expand_escapes(b"a\\cb", Some(&mut c)), b"ab");
         assert!(c);
@@ -458,9 +485,15 @@ mod tests {
         let r = k.run(&["gettext", "-s", "-e", "x\\cy", "z"], b"");
         assert_eq!(r.stdout_str(), "xy z");
         let r = k.run(&["gettext"], b"");
-        assert_eq!((r.stderr_str().as_str(), r.code()), ("gettext: missing arguments\n", 1));
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("gettext: missing arguments\n", 1)
+        );
         let r = k.run(&["gettext", "a", "b", "c"], b"");
-        assert_eq!((r.stderr_str().as_str(), r.code()), ("gettext: too many arguments\n", 1));
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("gettext: too many arguments\n", 1)
+        );
     }
 
     #[test]
@@ -470,6 +503,9 @@ mod tests {
         assert_eq!(k.run(&["ngettext", "a", "b", "2"], b"").stdout_str(), "b");
         assert_eq!(k.run(&["ngettext", "a", "b", "x"], b"").stdout_str(), "b");
         let r = k.run(&["ngettext", "a", "b"], b"");
-        assert_eq!((r.stderr_str().as_str(), r.code()), ("ngettext: missing arguments\n", 1));
+        assert_eq!(
+            (r.stderr_str().as_str(), r.code()),
+            ("ngettext: missing arguments\n", 1)
+        );
     }
 }

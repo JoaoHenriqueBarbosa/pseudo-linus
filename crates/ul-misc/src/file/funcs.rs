@@ -39,7 +39,11 @@ use super::softmagic::{Buffer, file_softmagic};
 fn file_default(ms: &mut MagicSet, nb: usize) -> i32 {
     if ms.flags & MAGIC_MIME != 0 {
         if ms.flags & MAGIC_MIME_TYPE != 0 {
-            let t: &[u8] = if nb != 0 { b"application/octet-stream" } else { b"application/x-empty" };
+            let t: &[u8] = if nb != 0 {
+                b"application/octet-stream"
+            } else {
+                b"application/x-empty"
+            };
             if ms.print(t).is_err() {
                 return -1;
             }
@@ -47,7 +51,11 @@ fn file_default(ms: &mut MagicSet, nb: usize) -> i32 {
         return 1;
     }
     if ms.flags & MAGIC_APPLE != 0 {
-        return if ms.print(b"UNKNUNKN").is_err() { -1 } else { 1 };
+        return if ms.print(b"UNKNUNKN").is_err() {
+            -1
+        } else {
+            1
+        };
     }
     if ms.flags & MAGIC_EXTENSION != 0 {
         return if ms.print(b"???").is_err() { -1 } else { 1 };
@@ -217,7 +225,14 @@ fn file_ascmagic(ms: &mut MagicSet, b: &Buffer<'_>, text: bool) -> i32 {
     file_ascmagic_with_encoding(ms, &bb, &e.ubuf, e.code, e.kind, text)
 }
 
-fn file_ascmagic_with_encoding(ms: &mut MagicSet, b: &Buffer<'_>, ubuf: &[u32], code: &str, typ: &str, text: bool) -> i32 {
+fn file_ascmagic_with_encoding(
+    ms: &mut MagicSet,
+    b: &Buffer<'_>,
+    ubuf: &[u32],
+    code: &str,
+    typ: &str,
+    text: bool,
+) -> i32 {
     let mime = ms.flags & MAGIC_MIME;
     let nbytes = trim_nuls(b.fbuf);
     if nbytes <= 1 {
@@ -226,7 +241,9 @@ fn file_ascmagic_with_encoding(ms: &mut MagicSet, b: &Buffer<'_>, ubuf: &[u32], 
     let mut need_separator = false;
     let ulen = ubuf.len();
     if ulen > 0 && ms.flags & MAGIC_NO_CHECK_SOFT == 0 {
-        let Some(utf8) = encode_utf8(ubuf) else { return 0 };
+        let Some(utf8) = encode_utf8(ubuf) else {
+            return 0;
+        };
         let bb = Buffer::new(&utf8, b.st_mode, b.st_size, b.fd);
         let rv = file_softmagic(ms, &bb, TEXTTEST, text);
         if rv == 0 {
@@ -315,7 +332,9 @@ fn file_ascmagic_with_encoding(ms: &mut MagicSet, b: &Buffer<'_>, ubuf: &[u32], 
         if has_long_lines != 0 {
             ms.print(format!(", with very long lines ({has_long_lines})").as_bytes())?;
         }
-        if (n_crlf == 0 && n_cr == 0 && n_nel == 0 && n_lf == 0) || (n_crlf != 0 || n_cr != 0 || n_nel != 0) {
+        if (n_crlf == 0 && n_cr == 0 && n_nel == 0 && n_lf == 0)
+            || (n_crlf != 0 || n_cr != 0 || n_nel != 0)
+        {
             ms.print(b", with")?;
             if n_crlf == 0 && n_cr == 0 && n_nel == 0 && n_lf == 0 {
                 ms.print(b" no")?;
@@ -642,11 +661,19 @@ fn json_parse_top(b: &[u8], ucp: &mut usize, st: &mut [usize; 6], lvl: usize) ->
             return 0;
         }
         if uc == ue {
-            return if st[JSON_ARRAYN] != 0 || st[JSON_OBJECT] != 0 { 1 } else { 0 };
+            return if st[JSON_ARRAYN] != 0 || st[JSON_OBJECT] != 0 {
+                1
+            } else {
+                0
+            };
         }
         let mut uc2 = uc;
         if b[ouc] == b[uc] && json_parse_top(b, &mut uc2, st, 1) != 0 {
-            return if st[JSON_ARRAYN] != 0 || st[JSON_OBJECT] != 0 { 2 } else { 0 };
+            return if st[JSON_ARRAYN] != 0 || st[JSON_OBJECT] != 0 {
+                2
+            } else {
+                0
+            };
         }
         return 0;
     }
@@ -668,9 +695,17 @@ fn file_is_json(ms: &mut MagicSet, buf: &[u8]) -> i32 {
         return 1;
     }
     let r = if mime != 0 {
-        ms.print(if jt == 1 { b"application/json".as_slice() } else { b"application/x-ndjson" })
+        ms.print(if jt == 1 {
+            b"application/json".as_slice()
+        } else {
+            b"application/x-ndjson"
+        })
     } else {
-        ms.print(if jt == 1 { b"JSON text data".as_slice() } else { b"New Line Delimited JSON text data" })
+        ms.print(if jt == 1 {
+            b"JSON text data".as_slice()
+        } else {
+            b"New Line Delimited JSON text data"
+        })
     };
     if r.is_err() { -1 } else { 1 }
 }
@@ -807,7 +842,11 @@ fn is_tar(buf: &[u8]) -> i32 {
 }
 
 fn file_is_tar(ms: &mut MagicSet, buf: &[u8]) -> i32 {
-    const TARTYPE: [&str; 3] = ["tar archive", "POSIX tar archive", "POSIX tar archive (GNU)"];
+    const TARTYPE: [&str; 3] = [
+        "tar archive",
+        "POSIX tar archive",
+        "POSIX tar archive (GNU)",
+    ];
     let mime = ms.flags & MAGIC_MIME;
     if ms.flags & (MAGIC_APPLE | MAGIC_EXTENSION) != 0 {
         return 0;
@@ -819,8 +858,16 @@ fn file_is_tar(ms: &mut MagicSet, buf: &[u8]) -> i32 {
     if mime == MAGIC_MIME_ENCODING {
         return 1;
     }
-    let t = if mime != 0 { "application/x-tar" } else { TARTYPE[(tar - 1) as usize] };
-    if ms.print(t.as_bytes()).is_err() { -1 } else { 1 }
+    let t = if mime != 0 {
+        "application/x-tar"
+    } else {
+        TARTYPE[(tar - 1) as usize]
+    };
+    if ms.print(t.as_bytes()).is_err() {
+        -1
+    } else {
+        1
+    }
 }
 
 // ---- compressão (-z) ----
@@ -870,7 +917,10 @@ fn uncompress_gzip(old: &[u8], bytes_max: usize) -> Uncompressed {
         Ok(v) => Uncompressed::Ok(v),
         // Saída truncada no limite, ou um fluxo corrompido depois de já ter produzido dados: o
         // zlib com Z_SYNC_FLUSH entrega o que saiu.
-        Err(e) if matches!(e.status, miniz_oxide::inflate::TINFLStatus::HasMoreOutput) || !e.output.is_empty() => {
+        Err(e)
+            if matches!(e.status, miniz_oxide::inflate::TINFLStatus::HasMoreOutput)
+                || !e.output.is_empty() =>
+        {
             Uncompressed::Ok(e.output)
         }
         Err(_) => Uncompressed::Err("invalid block type".to_string()),
@@ -896,7 +946,10 @@ fn filter_error(stderr: &[u8], stdout: &[u8]) -> String {
     }
     ubuf.truncate(n);
     let buf = super::cutil::cstr(&ubuf);
-    let start = buf.iter().position(|&c| !super::cutil::is_space(c)).unwrap_or(buf.len());
+    let start = buf
+        .iter()
+        .position(|&c| !super::cutil::is_space(c))
+        .unwrap_or(buf.len());
     let mut s = &buf[start..];
     if let Some(p) = s.iter().position(|&c| c == b'\n') {
         s = &s[..p];
@@ -928,8 +981,13 @@ fn uncompress_external(argv: &[&str], old: &[u8], bytes_max: usize) -> Uncompres
     use sysio::process::{Command, Stdio};
     let _ = io_flush();
     let mut cmd = Command::new(argv[0]);
-    cmd.args(&argv[1..]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
-    let Ok(mut child) = cmd.spawn() else { return Uncompressed::Ok(Vec::new()) };
+    cmd.args(&argv[1..])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let Ok(mut child) = cmd.spawn() else {
+        return Uncompressed::Ok(Vec::new());
+    };
     let stdin = child.stdin.take();
     let data = old.to_vec();
     let writer = sysio::thread::spawn(move || {
@@ -995,19 +1053,79 @@ fn compr_table() -> [Compr; 15] {
         b[0] == 0x5d && b[1] == 0 && b[2] == 0 && (b[12] == 0 || b[12] == 0xff)
     }
     [
-        (|b| b.starts_with(b"\x1f\x9d"), 2, Method::External(GZIP), "gzip"),
-        (|b| b.starts_with(b"\x1f\x9d"), 2, Method::External(UNCOMPRESS), "uncompress"),
+        (
+            |b| b.starts_with(b"\x1f\x9d"),
+            2,
+            Method::External(GZIP),
+            "gzip",
+        ),
+        (
+            |b| b.starts_with(b"\x1f\x9d"),
+            2,
+            Method::External(UNCOMPRESS),
+            "uncompress",
+        ),
         (|b| b.starts_with(b"\x1f\x8b"), 2, Method::Gzip, "zlib"),
-        (|b| b.starts_with(b"\x1f\x9e"), 2, Method::External(GZIP), "gzip"),
-        (|b| b.starts_with(b"\x1f\xa0"), 2, Method::External(GZIP), "gzip"),
-        (|b| b.starts_with(b"\x1f\x1e"), 2, Method::External(GZIP), "gzip"),
-        (|b| b.starts_with(b"PK\x03\x04"), 4, Method::External(GZIP), "gzip"),
-        (|b| b.starts_with(b"BZh"), 3, Method::External(BZIP2), "bzip2"),
-        (|b| b.starts_with(b"LZIP"), 4, Method::External(LZIP), "lzip"),
-        (|b| b.starts_with(b"\xfd7zXZ\x00"), 6, Method::External(XZ), "xz"),
-        (|b| b.starts_with(b"LRZI"), 4, Method::External(LRZIP), "lrzip"),
-        (|b| b.starts_with(b"\x04\"M\x18"), 4, Method::External(LZ4), "lz4"),
-        (|b| b.starts_with(b"\x28\xb5\x2f\xfd"), 4, Method::External(ZSTD), "zstd"),
+        (
+            |b| b.starts_with(b"\x1f\x9e"),
+            2,
+            Method::External(GZIP),
+            "gzip",
+        ),
+        (
+            |b| b.starts_with(b"\x1f\xa0"),
+            2,
+            Method::External(GZIP),
+            "gzip",
+        ),
+        (
+            |b| b.starts_with(b"\x1f\x1e"),
+            2,
+            Method::External(GZIP),
+            "gzip",
+        ),
+        (
+            |b| b.starts_with(b"PK\x03\x04"),
+            4,
+            Method::External(GZIP),
+            "gzip",
+        ),
+        (
+            |b| b.starts_with(b"BZh"),
+            3,
+            Method::External(BZIP2),
+            "bzip2",
+        ),
+        (
+            |b| b.starts_with(b"LZIP"),
+            4,
+            Method::External(LZIP),
+            "lzip",
+        ),
+        (
+            |b| b.starts_with(b"\xfd7zXZ\x00"),
+            6,
+            Method::External(XZ),
+            "xz",
+        ),
+        (
+            |b| b.starts_with(b"LRZI"),
+            4,
+            Method::External(LRZIP),
+            "lrzip",
+        ),
+        (
+            |b| b.starts_with(b"\x04\"M\x18"),
+            4,
+            Method::External(LZ4),
+            "lz4",
+        ),
+        (
+            |b| b.starts_with(b"\x28\xb5\x2f\xfd"),
+            4,
+            Method::External(ZSTD),
+            "zstd",
+        ),
         (lzmacmp, 13, Method::External(XZ), "xz"),
         (zlibcmp, 2, Method::Zlib, "zlib"),
     ]
@@ -1032,7 +1150,9 @@ fn file_zmagic(ms: &mut MagicSet, b: &Buffer<'_>, name: Option<&[u8]>) -> i32 {
         if saved_pipe.is_none()
             && let Some(s) = sysabi::sys::try_current()
         {
-            saved_pipe = s.sigaction(sysabi::Signal::SIGPIPE, sysabi::SigDisposition::Ignore).ok();
+            saved_pipe = s
+                .sigaction(sysabi::Signal::SIGPIPE, sysabi::SigDisposition::Ignore)
+                .ok();
         }
         let res = match method {
             Method::Gzip => uncompress_gzip(buf, ms.params.bytes_max),
@@ -1044,14 +1164,25 @@ fn file_zmagic(ms: &mut MagicSet, b: &Buffer<'_>, name: Option<&[u8]>) -> i32 {
             let prv = match &res {
                 Uncompressed::Err(msg) => {
                     if mime == 0 {
-                        if ms.print(format!("ERROR:[{mname}: {msg}]").as_bytes()).is_err() {
+                        if ms
+                            .print(format!("ERROR:[{mname}: {msg}]").as_bytes())
+                            .is_err()
+                        {
                             -1
                         } else {
                             0
                         }
                     } else {
-                        let m: String = msg.chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '-' }).collect();
-                        if ms.print(format!("application/x-decompression-error-{mname}-{m}").as_bytes()).is_err() {
+                        let m: String = msg
+                            .chars()
+                            .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+                            .collect();
+                        if ms
+                            .print(
+                                format!("application/x-decompression-error-{mname}-{m}").as_bytes(),
+                            )
+                            .is_err()
+                        {
                             -1
                         } else {
                             0
@@ -1073,7 +1204,12 @@ fn file_zmagic(ms: &mut MagicSet, b: &Buffer<'_>, name: Option<&[u8]>) -> i32 {
             if mime != MAGIC_MIME && mime != 0 {
                 return Ok(true);
             }
-            ms.print(if mime != 0 { b" compressed-encoding=".as_slice() } else { b" (" }).map_err(|_| ())?;
+            ms.print(if mime != 0 {
+                b" compressed-encoding=".as_slice()
+            } else {
+                b" ("
+            })
+            .map_err(|_| ())?;
             let pb = ms.push_buffer().ok_or(())?;
             let ob = Buffer::new(buf, 0, 0, None);
             if file_buffer(ms, &ob, None) == -1 {

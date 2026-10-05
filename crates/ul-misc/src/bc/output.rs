@@ -26,9 +26,15 @@ pub const DEFAULT_LINE_LENGTH: i64 = 70;
 /// A largura que o GNU usa pra um valor de `BC_LINE_LENGTH`: `atoi`, e qualquer coisa abaixo de 3
 /// que não seja 0 vira 70.
 pub fn line_length_from_env(value: Option<&[u8]>) -> i64 {
-    let Some(v) = value else { return DEFAULT_LINE_LENGTH };
+    let Some(v) = value else {
+        return DEFAULT_LINE_LENGTH;
+    };
     let n = atoi(v);
-    if n != 0 && n < 3 { DEFAULT_LINE_LENGTH } else { n }
+    if n != 0 && n < 3 {
+        DEFAULT_LINE_LENGTH
+    } else {
+        n
+    }
 }
 
 /// `atoi` da glibc: espaços à esquerda, sinal opcional, dígitos até o primeiro não dígito; o valor
@@ -45,7 +51,9 @@ pub fn atoi(v: &[u8]) -> i64 {
     }
     let mut acc: i64 = 0;
     while i < v.len() && v[i].is_ascii_digit() {
-        acc = acc.saturating_mul(10).saturating_add(i64::from(v[i] - b'0'));
+        acc = acc
+            .saturating_mul(10)
+            .saturating_add(i64::from(v[i] - b'0'));
         i += 1;
     }
     let acc = if neg { acc.saturating_neg() } else { acc };
@@ -62,7 +70,11 @@ pub struct Output {
 
 impl Output {
     pub fn new(line_size: i64) -> Output {
-        Output { line_size, col: 0, buf: Vec::new() }
+        Output {
+            line_size,
+            col: 0,
+            buf: Vec::new(),
+        }
     }
 
     pub fn line_size(&self) -> i64 {
@@ -136,7 +148,10 @@ mod tests {
         assert_eq!(lines[0].len(), 69);
         assert!(lines[0].ends_with('\\'));
         assert_eq!(text.replace("\\\n", ""), format!("{digits}\n"));
-        assert_eq!(written(70, &[&"1".repeat(68), "\n"]), format!("{}\n", "1".repeat(68)));
+        assert_eq!(
+            written(70, &[&"1".repeat(68), "\n"]),
+            format!("{}\n", "1".repeat(68))
+        );
         assert_eq!(written(3, &["123"]), "1\\\n2\\\n3");
         assert_eq!(written(0, &[&"1".repeat(200)]), "1".repeat(200));
     }
@@ -145,7 +160,10 @@ mod tests {
     fn column_carries_and_resets() {
         let text = written(70, &["ab", &"1".repeat(73), "\n"]);
         assert!(text.split('\n').next().unwrap().starts_with("ab1"));
-        assert_eq!(written(70, &["ab\n", &"1".repeat(68), "\n"]), format!("ab\n{}\n", "1".repeat(68)));
+        assert_eq!(
+            written(70, &["ab\n", &"1".repeat(68), "\n"]),
+            format!("ab\n{}\n", "1".repeat(68))
+        );
     }
 
     #[test]

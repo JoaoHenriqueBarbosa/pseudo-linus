@@ -161,7 +161,13 @@ fn run(args: &[OsString]) -> i32 {
     let short = ul::short_name(args);
 
     let mut file: Vec<u8> = match sys::getenv("WORDLIST") {
-        Some(f) if sys::current().faccessat(Fd::CWD, &f, AccessMode::R_OK, AtFlags::empty()).is_ok() => f,
+        Some(f)
+            if sys::current()
+                .faccessat(Fd::CWD, &f, AccessMode::R_OK, AtFlags::empty())
+                .is_ok() =>
+        {
+            f
+        }
         _ => PATH_WORDS.to_vec(),
     };
     let mut dflag = false;
@@ -175,7 +181,13 @@ fn run(args: &[OsString]) -> i32 {
                 Some('a') => file = PATH_WORDS_ALT.to_vec(),
                 Some('d') => dflag = true,
                 Some('f') => fflag = true,
-                Some('t') => termchar = o.arg.as_deref().and_then(|a| a.first().copied()).unwrap_or(0),
+                Some('t') => {
+                    termchar = o
+                        .arg
+                        .as_deref()
+                        .and_then(|a| a.first().copied())
+                        .unwrap_or(0)
+                }
                 Some('V') => {
                     ul::print_version(&short);
                     return 0;
@@ -233,7 +245,12 @@ fn run(args: &[OsString]) -> i32 {
     if dflag {
         string.retain(|&c| is_alnum(c) || is_blank(c));
     }
-    let look = Look { data: &data, string, dflag, fflag };
+    let look = Look {
+        data: &data,
+        string,
+        dflag,
+        fflag,
+    };
     let back = data.len();
     let front = look.binary_search(0, back);
     let Some(mut front) = look.linear_search(front, back) else {

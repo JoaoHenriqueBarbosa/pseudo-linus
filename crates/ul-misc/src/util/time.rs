@@ -41,7 +41,9 @@ pub fn local_tz() -> TimeZone {
 
 /// Agora (relógio de parede do sandbox).
 pub fn now() -> TimeSpec {
-    sys::try_current().and_then(|s| s.clock_gettime(Clock::Realtime).ok()).unwrap_or_default()
+    sys::try_current()
+        .and_then(|s| s.clock_gettime(Clock::Realtime).ok())
+        .unwrap_or_default()
 }
 
 /// Segundos desde a época em data e hora civis no fuso dado.
@@ -57,7 +59,9 @@ pub fn abbreviation(sec: i64, tz: &TimeZone) -> String {
 }
 
 pub const WEEKDAYS: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-pub const MONTHS: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+pub const MONTHS: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
 /// Dia da semana com domingo = 0, como o `tm_wday`.
 pub fn wday(dt: &DateTime) -> usize {
@@ -90,7 +94,10 @@ mod tests {
         assert_eq!(abbreviation(1_768_478_400, &sp), "-03");
         let est = parse_tz(b"EST5EDT");
         assert_eq!(civil(1_768_478_400, &est).hour(), 7);
-        assert_eq!(ctime(1_768_478_400, &parse_tz(b"UTC")), "Thu Jan 15 12:00:00 2026");
+        assert_eq!(
+            ctime(1_768_478_400, &parse_tz(b"UTC")),
+            "Thu Jan 15 12:00:00 2026"
+        );
         assert_eq!(civil(0, &parse_tz(b"Nowhere/Land")).hour(), 0);
     }
 }

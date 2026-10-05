@@ -60,7 +60,9 @@ pub fn cprintf(out: &mut Vec<u8>, fmt: &[u8], arg: Arg<'_>) {
         }
         let mut width = 0usize;
         while let Some(&d) = fmt.get(i).filter(|c| c.is_ascii_digit()) {
-            width = width.saturating_mul(10).saturating_add(usize::from(d - b'0'));
+            width = width
+                .saturating_mul(10)
+                .saturating_add(usize::from(d - b'0'));
             i += 1;
         }
         let mut prec = None;
@@ -144,7 +146,14 @@ fn pad_str(out: &mut Vec<u8>, left: bool, width: usize, s: &[u8]) {
 
 /// Junta prefixo (sinal, `0x`), zeros de precisão já aplicados nos dígitos e o preenchimento da
 /// largura (espaços, ou zeros quando vale o flag `0`).
-fn emit_num(out: &mut Vec<u8>, f: Flags, width: usize, zero_ok: bool, prefix: &[u8], digits: &[u8]) {
+fn emit_num(
+    out: &mut Vec<u8>,
+    f: Flags,
+    width: usize,
+    zero_ok: bool,
+    prefix: &[u8],
+    digits: &[u8],
+) {
     let len = prefix.len() + digits.len();
     let pad = width.saturating_sub(len);
     if f.minus {
@@ -276,7 +285,11 @@ fn fmt_float(out: &mut Vec<u8>, f: Flags, width: usize, prec: Option<usize>, con
         }
         _ => {
             let p = if p == 0 { 1 } else { p };
-            let (_, x) = if a == 0.0 { (String::new(), 0) } else { exp_parts(a, p - 1) };
+            let (_, x) = if a == 0.0 {
+                (String::new(), 0)
+            } else {
+                exp_parts(a, p - 1)
+            };
             if (x as i64) < p as i64 && x >= -4 {
                 let fp = (p as i64 - 1 - x as i64) as usize;
                 let mut s = format!("{:.*}", fp, a);

@@ -20,17 +20,50 @@ pub struct RegexError {
     pub message: &'static str,
 }
 
-const REG_BADPAT: RegexError = RegexError { code: 2, message: "Invalid regular expression" };
-const REG_ECOLLATE: RegexError = RegexError { code: 3, message: "Invalid collation character" };
-const REG_ECTYPE: RegexError = RegexError { code: 4, message: "Invalid character class name" };
-const REG_ESUBREG: RegexError = RegexError { code: 6, message: "Invalid back reference" };
-const REG_EBRACK: RegexError = RegexError { code: 7, message: "Unmatched [, [^, [:, [., or [=" };
-const REG_EPAREN: RegexError = RegexError { code: 8, message: "Unmatched ( or \\(" };
-const REG_EBRACE: RegexError = RegexError { code: 9, message: "Unmatched \\{" };
-const REG_BADBR: RegexError = RegexError { code: 10, message: "Invalid content of \\{\\}" };
-const REG_ERANGE: RegexError = RegexError { code: 11, message: "Invalid range end" };
-const REG_ESPACE: RegexError = RegexError { code: 12, message: "Memory exhausted" };
-const REG_BADRPT: RegexError = RegexError { code: 13, message: "Invalid preceding regular expression" };
+const REG_BADPAT: RegexError = RegexError {
+    code: 2,
+    message: "Invalid regular expression",
+};
+const REG_ECOLLATE: RegexError = RegexError {
+    code: 3,
+    message: "Invalid collation character",
+};
+const REG_ECTYPE: RegexError = RegexError {
+    code: 4,
+    message: "Invalid character class name",
+};
+const REG_ESUBREG: RegexError = RegexError {
+    code: 6,
+    message: "Invalid back reference",
+};
+const REG_EBRACK: RegexError = RegexError {
+    code: 7,
+    message: "Unmatched [, [^, [:, [., or [=",
+};
+const REG_EPAREN: RegexError = RegexError {
+    code: 8,
+    message: "Unmatched ( or \\(",
+};
+const REG_EBRACE: RegexError = RegexError {
+    code: 9,
+    message: "Unmatched \\{",
+};
+const REG_BADBR: RegexError = RegexError {
+    code: 10,
+    message: "Invalid content of \\{\\}",
+};
+const REG_ERANGE: RegexError = RegexError {
+    code: 11,
+    message: "Invalid range end",
+};
+const REG_ESPACE: RegexError = RegexError {
+    code: 12,
+    message: "Memory exhausted",
+};
+const REG_BADRPT: RegexError = RegexError {
+    code: 13,
+    message: "Invalid preceding regular expression",
+};
 
 const RE_DUP_MAX: u32 = 0x7fff;
 
@@ -59,16 +92,29 @@ impl Regex {
             .dot_matches_new_line(!newline);
         let start = meta::Regex::builder()
             .syntax(syn)
-            .configure(meta::Config::new().utf8_empty(false).match_kind(MatchKind::LeftmostFirst))
+            .configure(
+                meta::Config::new()
+                    .utf8_empty(false)
+                    .match_kind(MatchKind::LeftmostFirst),
+            )
             .build(&translated)
             .map_err(|_| REG_ESPACE)?;
         let longest = DFA::builder()
             .syntax(syn)
             .thompson(regex_automata::nfa::thompson::Config::new().utf8(false))
-            .configure(DFA::config().match_kind(MatchKind::All).cache_capacity(4 << 20).skip_cache_capacity_check(true))
+            .configure(
+                DFA::config()
+                    .match_kind(MatchKind::All)
+                    .cache_capacity(4 << 20)
+                    .skip_cache_capacity_check(true),
+            )
             .build(&translated)
             .map_err(|_| REG_ESPACE)?;
-        Ok(Regex { start, longest, caches: Mutex::new(Vec::new()) })
+        Ok(Regex {
+            start,
+            longest,
+            caches: Mutex::new(Vec::new()),
+        })
     }
 
     /// `regexec` com um `regmatch_t`: a casada leftmost-longest em `hay` (sem o NUL: quem
@@ -80,8 +126,14 @@ impl Regex {
             let mut pool = self.caches.lock().unwrap_or_else(|e| e.into_inner());
             pool.pop().unwrap_or_else(|| self.longest.create_cache())
         };
-        let r = self.longest.try_search_fwd(&mut cache, &Input::new(hay).range(s..).anchored(Anchored::Yes));
-        self.caches.lock().unwrap_or_else(|e| e.into_inner()).push(cache);
+        let r = self.longest.try_search_fwd(
+            &mut cache,
+            &Input::new(hay).range(s..).anchored(Anchored::Yes),
+        );
+        self.caches
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(cache);
         let end = match r {
             Ok(Some(h)) => h.offset().max(m.end()),
             // O DFA preguiçoso desistiu: fica com o fim da casada leftmost-first.
@@ -100,18 +152,30 @@ pub fn check_regex(pat: &[u8]) -> Result<(), String> {
             break;
         }
         if c == oc && b"?*+{".contains(&c) {
-            return Err(format!("repetition-operator operand `{}' invalid in regex `{}'", c as char, shown()));
+            return Err(format!(
+                "repetition-operator operand `{}' invalid in regex `{}'",
+                c as char,
+                shown()
+            ));
         }
         if c == b'{' {
             let rest = &pat[i + 1..];
             let c1 = super::cutil::strtoul(rest, 10);
             if c1.used > 0 && c1.value > 1000 {
-                return Err(format!("bounds too large {} in regex `{}'", c1.value as i64, shown()));
+                return Err(format!(
+                    "bounds too large {} in regex `{}'",
+                    c1.value as i64,
+                    shown()
+                ));
             }
             if rest.get(c1.used) == Some(&b',') {
                 let c2 = super::cutil::strtoul(&rest[c1.used + 1..], 10);
                 if c2.used > 0 && c2.value > 1000 {
-                    return Err(format!("bounds too large {} in regex `{}'", c2.value as i64, shown()));
+                    return Err(format!(
+                        "bounds too large {} in regex `{}'",
+                        c2.value as i64,
+                        shown()
+                    ));
                 }
             }
         }
@@ -119,7 +183,11 @@ pub fn check_regex(pat: &[u8]) -> Result<(), String> {
         if super::cutil::is_print(c) || super::cutil::is_space(c) || c == 0x08 || c == 0x8a {
             continue;
         }
-        return Err(format!("non-ascii characters in regex \\{:#o} `{}'", c, shown()));
+        return Err(format!(
+            "non-ascii characters in regex \\{:#o} `{}'",
+            c,
+            shown()
+        ));
     }
     Ok(())
 }
@@ -143,7 +211,13 @@ fn lit(out: &mut String, b: u8) {
 
 fn translate(pat: &[u8], newline: bool) -> Result<String, RegexError> {
     let pat = super::cutil::cstr(pat);
-    let mut t = Tr { p: pat, i: 0, out: String::new(), newline, open: 0 };
+    let mut t = Tr {
+        p: pat,
+        i: 0,
+        out: String::new(),
+        newline,
+        open: 0,
+    };
     t.parse_alt()?;
     if t.i < t.p.len() {
         // Sobrou um `)` sem par no nível de fora: o laço do parse_alt já o tratou como literal,
@@ -217,7 +291,10 @@ impl Tr<'_> {
             b'\\' => {
                 let Some(e) = self.peek() else {
                     // `\` no fim: REG_EESCAPE.
-                    return Err(RegexError { code: 5, message: "Trailing backslash" });
+                    return Err(RegexError {
+                        code: 5,
+                        message: "Trailing backslash",
+                    });
                 };
                 self.i += 1;
                 match e {
@@ -321,11 +398,21 @@ impl Tr<'_> {
         } else {
             match lo {
                 Some(v) => (v, Some(v)),
-                None => return Err(if self.peek().is_none() { REG_EBRACE } else { REG_BADBR }),
+                None => {
+                    return Err(if self.peek().is_none() {
+                        REG_EBRACE
+                    } else {
+                        REG_BADBR
+                    });
+                }
             }
         };
         if self.peek() != Some(b'}') {
-            return Err(if self.peek().is_none() { REG_EBRACE } else { REG_BADBR });
+            return Err(if self.peek().is_none() {
+                REG_EBRACE
+            } else {
+                REG_BADBR
+            });
         }
         self.i += 1;
         if lo > RE_DUP_MAX || hi.is_some_and(|h| h > RE_DUP_MAX || h < lo) {
@@ -344,7 +431,9 @@ impl Tr<'_> {
         let mut items = String::new();
         let mut first = true;
         loop {
-            let Some(c) = self.peek() else { return Err(REG_EBRACK) };
+            let Some(c) = self.peek() else {
+                return Err(REG_EBRACK);
+            };
             if c == b']' && !first {
                 self.i += 1;
                 break;
@@ -355,7 +444,9 @@ impl Tr<'_> {
                 Elem::Class(name) => items.push_str(&format!("[:{name}:]")),
                 Elem::Char(a) => {
                     // Faixa?
-                    if self.peek() == Some(b'-') && self.p.get(self.i + 1).is_some_and(|&n| n != b']') {
+                    if self.peek() == Some(b'-')
+                        && self.p.get(self.i + 1).is_some_and(|&n| n != b']')
+                    {
                         self.i += 1;
                         match self.bracket_elem()? {
                             Elem::Char(b) => {
@@ -400,7 +491,9 @@ impl Tr<'_> {
                 Some(b':') => {
                     self.i += 1;
                     let s = self.i;
-                    while self.i + 1 < self.p.len() && !(self.p[self.i] == b':' && self.p[self.i + 1] == b']') {
+                    while self.i + 1 < self.p.len()
+                        && !(self.p[self.i] == b':' && self.p[self.i + 1] == b']')
+                    {
                         self.i += 1;
                     }
                     if self.i + 1 >= self.p.len() {
@@ -408,8 +501,10 @@ impl Tr<'_> {
                     }
                     let name = String::from_utf8_lossy(&self.p[s..self.i]).into_owned();
                     self.i += 2;
-                    const CLASSES: [&str; 12] =
-                        ["alpha", "upper", "lower", "digit", "xdigit", "space", "print", "punct", "graph", "cntrl", "blank", "alnum"];
+                    const CLASSES: [&str; 12] = [
+                        "alpha", "upper", "lower", "digit", "xdigit", "space", "print", "punct",
+                        "graph", "cntrl", "blank", "alnum",
+                    ];
                     if !CLASSES.contains(&name.as_str()) {
                         return Err(REG_ECTYPE);
                     }
@@ -418,7 +513,9 @@ impl Tr<'_> {
                 Some(d @ (b'=' | b'.')) => {
                     self.i += 1;
                     let s = self.i;
-                    while self.i + 1 < self.p.len() && !(self.p[self.i] == d && self.p[self.i + 1] == b']') {
+                    while self.i + 1 < self.p.len()
+                        && !(self.p[self.i] == d && self.p[self.i + 1] == b']')
+                    {
                         self.i += 1;
                     }
                     if self.i + 1 >= self.p.len() {
@@ -456,7 +553,9 @@ mod tests {
     use super::*;
 
     fn find(p: &str, h: &str) -> Option<(usize, usize)> {
-        Regex::compile(p.as_bytes(), false, true).unwrap().find(h.as_bytes())
+        Regex::compile(p.as_bytes(), false, true)
+            .unwrap()
+            .find(h.as_bytes())
     }
 
     #[test]

@@ -48,7 +48,11 @@ pub fn name_bytes(idx: u32) -> u32 {
 
 /// Bytes de uma constante no bytecode do GNU (`0` e `1` têm instrução própria).
 pub fn const_bytes(text: &[u8]) -> u32 {
-    if text == b"0" || text == b"1" { 1 } else { 2 + text.len() as u32 }
+    if text == b"0" || text == b"1" {
+        1
+    } else {
+        2 + text.len() as u32
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -245,7 +249,11 @@ fn int(v: u64) -> Num {
 
 impl Vm {
     pub fn new(line_size: i64) -> Vm {
-        let main = Func { name: b"(main)".to_vec(), defined: true, ..Func::default() };
+        let main = Func {
+            name: b"(main)".to_vec(),
+            defined: true,
+            ..Func::default()
+        };
         Vm {
             out: Output::new(line_size),
             ibase: 10,
@@ -287,18 +295,37 @@ impl Vm {
         }
         let i = self.funcs.len() as u32;
         self.func_names.insert(name.to_vec(), i);
-        self.funcs.push(Func { name: name.to_vec(), ..Func::default() });
+        self.funcs.push(Func {
+            name: name.to_vec(),
+            ..Func::default()
+        });
         i
     }
 
     /// Carrega a biblioteca matemática: as seis funções e `scale=20`.
     pub fn install_mathlib(&mut self) {
-        for (name, lib, nparams) in
-            [(b"e", Lib::E, 1), (b"l", Lib::L, 1), (b"s", Lib::S, 1), (b"a", Lib::A, 1), (b"c", Lib::C, 1), (b"j", Lib::J, 2)]
-        {
+        for (name, lib, nparams) in [
+            (b"e", Lib::E, 1),
+            (b"l", Lib::L, 1),
+            (b"s", Lib::S, 1),
+            (b"a", Lib::A, 1),
+            (b"c", Lib::C, 1),
+            (b"j", Lib::J, 2),
+        ] {
             let fi = self.func_index(name) as usize;
-            let params = (0..nparams).map(|i| Param { idx: i, kind: Kind::Var }).collect();
-            self.funcs[fi] = Func { name: name.to_vec(), defined: true, params, native: Some(lib), ..Func::default() };
+            let params = (0..nparams)
+                .map(|i| Param {
+                    idx: i,
+                    kind: Kind::Var,
+                })
+                .collect();
+            self.funcs[fi] = Func {
+                name: name.to_vec(),
+                defined: true,
+                params,
+                native: Some(lib),
+                ..Func::default()
+            };
         }
         self.scale = 20;
     }
@@ -311,13 +338,19 @@ impl Vm {
 
     fn rt_error(&mut self, func: u32, adr: u32, msg: &str) -> Stop {
         self.out.flush();
-        io::eprint(format!("Runtime error (func={}, adr={adr}): {msg}\n", self.func_name(func)));
+        io::eprint(format!(
+            "Runtime error (func={}, adr={adr}): {msg}\n",
+            self.func_name(func)
+        ));
         Stop::Error
     }
 
     fn rt_warn(&mut self, func: u32, adr: u32, msg: &str) {
         self.out.flush();
-        io::eprint(format!("Runtime warning (func={}, adr={adr}): {msg}\n", self.func_name(func)));
+        io::eprint(format!(
+            "Runtime warning (func={}, adr={adr}): {msg}\n",
+            self.func_name(func)
+        ));
     }
 
     fn out_of_memory(&mut self) -> Stop {
@@ -394,7 +427,11 @@ impl Vm {
                     self.rt_warn(func, adr, "obase too small, set to 2");
                     2
                 } else if m > BigUint::from(number::BASE_MAX) {
-                    self.rt_warn(func, adr, &format!("obase too large, set to {}", number::BASE_MAX));
+                    self.rt_warn(
+                        func,
+                        adr,
+                        &format!("obase too large, set to {}", number::BASE_MAX),
+                    );
                     number::BASE_MAX
                 } else {
                     big_u64(&m)
@@ -406,7 +443,11 @@ impl Vm {
                     self.rt_warn(func, adr, "negative scale, set to 0");
                     0
                 } else if m > BigUint::from(number::SCALE_MAX) {
-                    self.rt_warn(func, adr, &format!("scale too large, set to {}", number::SCALE_MAX));
+                    self.rt_warn(
+                        func,
+                        adr,
+                        &format!("scale too large, set to {}", number::SCALE_MAX),
+                    );
                     number::SCALE_MAX as u32
                 } else {
                     big_u64(&m) as u32
@@ -433,7 +474,11 @@ impl Vm {
     }
 
     fn arr_get(&mut self, arr: u32, idx: u32) -> Num {
-        self.array(arr).borrow().get(&idx).cloned().unwrap_or_default()
+        self.array(arr)
+            .borrow()
+            .get(&idx)
+            .cloned()
+            .unwrap_or_default()
     }
 
     fn arr_set(&mut self, arr: u32, idx: u32, v: Num) {
@@ -481,7 +526,13 @@ impl Vm {
     /// Executa o código principal de um item de entrada. Devolve `Some(código)` se o processo tem
     /// de terminar.
     pub fn run(&mut self, code: Rc<Code>) -> Option<i32> {
-        let mut frames = vec![Frame { code, pc: 0, func: 0, pushed_vars: Vec::new(), pushed_arrays: Vec::new() }];
+        let mut frames = vec![Frame {
+            code,
+            pc: 0,
+            func: 0,
+            pushed_vars: Vec::new(),
+            pushed_arrays: Vec::new(),
+        }];
         let mut stack: Vec<Num> = Vec::new();
         let r = self.exec(&mut frames, &mut stack);
         // Erro: desfaz o que as funções em curso empilharam.
@@ -581,7 +632,11 @@ impl Vm {
                     let old = self.arr_get(*a, idx);
                     let v = self.step(&old, *up)?;
                     self.arr_set(*a, idx, v.clone());
-                    stack.push(if matches!(code.ins[pc], Ins::PreIncArr(..)) { v } else { old });
+                    stack.push(if matches!(code.ins[pc], Ins::PreIncArr(..)) {
+                        v
+                    } else {
+                        old
+                    });
                 }
                 Ins::Bin(op) => {
                     let b = stack.pop().unwrap_or_default();
@@ -672,7 +727,13 @@ impl Vm {
                     let a = stack.pop().unwrap_or_default();
                     match a.sqrt(self.scale) {
                         Ok(Some(v)) => stack.push(v),
-                        Ok(None) => return Err(self.rt_error(func, adr, "Square root of a negative number")),
+                        Ok(None) => {
+                            return Err(self.rt_error(
+                                func,
+                                adr,
+                                "Square root of a negative number",
+                            ));
+                        }
                         Err(_) => return Err(self.out_of_memory()),
                     }
                 }
@@ -729,8 +790,12 @@ impl Vm {
                         }
                         Ok(v)
                     }
-                    Err(RaiseError::TooLarge) => Err(self.rt_error(func, adr, "exponent too large in raise")),
-                    Err(RaiseError::DivideByZero) => Err(self.rt_error(func, adr, "divide by zero")),
+                    Err(RaiseError::TooLarge) => {
+                        Err(self.rt_error(func, adr, "exponent too large in raise"))
+                    }
+                    Err(RaiseError::DivideByZero) => {
+                        Err(self.rt_error(func, adr, "divide by zero"))
+                    }
                     Err(RaiseError::OutOfMemory) => Err(self.out_of_memory()),
                 };
             }
@@ -768,12 +833,24 @@ impl Vm {
         if neg { v.negate() } else { v }
     }
 
-    fn call(&mut self, frames: &mut Vec<Frame>, stack: &mut Vec<Num>, fi: u32, kinds: &[bool], caller: u32, start: u32) -> R<()> {
+    fn call(
+        &mut self,
+        frames: &mut Vec<Frame>,
+        stack: &mut Vec<Num>,
+        fi: u32,
+        kinds: &[bool],
+        caller: u32,
+        start: u32,
+    ) -> R<()> {
         let nb = name_bytes(fi);
         let total = start + 1 + nb + kinds.len() as u32 + 1;
         if !self.funcs[fi as usize].defined {
             let name = self.func_name(fi);
-            return Err(self.rt_error(caller, start + 1 + nb, &format!("Function {name} not defined.")));
+            return Err(self.rt_error(
+                caller,
+                start + 1 + nb,
+                &format!("Function {name} not defined."),
+            ));
         }
         let params = self.funcs[fi as usize].params.clone();
         let autos = self.funcs[fi as usize].autos.clone();
@@ -815,13 +892,20 @@ impl Vm {
                 (true, Kind::Array | Kind::RefArray) => {
                     let src_idx = value.int_u64().unwrap_or(0) as u32;
                     let src = self.array(src_idx);
-                    let dest = if p.kind == Kind::RefArray { src } else { Rc::new(RefCell::new(src.borrow().clone())) };
+                    let dest = if p.kind == Kind::RefArray {
+                        src
+                    } else {
+                        Rc::new(RefCell::new(src.borrow().clone()))
+                    };
                     self.array_stack(p.idx).push(dest);
                     frame.pushed_arrays.push(p.idx);
                 }
                 (_, kind) => {
                     let msg = if kind.is_array() {
-                        format!("Parameter type mismatch parameter {}.", io::lossy(&self.arr_name_of[p.idx as usize]))
+                        format!(
+                            "Parameter type mismatch parameter {}.",
+                            io::lossy(&self.arr_name_of[p.idx as usize])
+                        )
                     } else {
                         "Parameter type mismatch, parameter (null).".to_string()
                     };
@@ -845,7 +929,8 @@ impl Vm {
         }
         for a in &autos {
             if a.kind.is_array() {
-                self.array_stack(a.idx).push(Rc::new(RefCell::new(BTreeMap::new())));
+                self.array_stack(a.idx)
+                    .push(Rc::new(RefCell::new(BTreeMap::new())));
                 frame.pushed_arrays.push(a.idx);
             } else {
                 self.var_stack(a.idx).push(Num::zero());
@@ -934,7 +1019,11 @@ impl Vm {
                     }
                 }
                 self.scale = z;
-                return if m { Ok(one.div(&v, z)?.unwrap_or_default()) } else { Ok(v.div(&one, z)?.unwrap_or_default()) };
+                return if m {
+                    Ok(one.div(&v, z)?.unwrap_or_default())
+                } else {
+                    Ok(v.div(&one, z)?.unwrap_or_default())
+                };
             }
             v = v.add(&e, 0)?;
             i += 1;
@@ -946,7 +1035,10 @@ impl Vm {
         let one = Num::one();
         let mut x = x;
         if x.compare(&zero) != Ordering::Greater {
-            let p = int(10).raise(&self.sc(), self.scale).map(|r| r.0).unwrap_or_default();
+            let p = int(10)
+                .raise(&self.sc(), self.scale)
+                .map(|r| r.0)
+                .unwrap_or_default();
             return Ok(one.sub(&p, 0)?.div(&one, self.scale)?.unwrap_or_default());
         }
         let z = self.scale;
@@ -963,7 +1055,10 @@ impl Vm {
             f = f.mul(&two, self.scale)?;
             x = x.sqrt(self.scale)?.unwrap_or_default();
         }
-        let mut n = x.sub(&one, 0)?.div(&x.add(&one, 0)?, self.scale)?.unwrap_or_default();
+        let mut n = x
+            .sub(&one, 0)?
+            .div(&x.add(&one, 0)?, self.scale)?
+            .unwrap_or_default();
         let mut v = n.clone();
         let m = n.mul(&n, self.scale)?;
         let mut i = 3u64;
@@ -996,7 +1091,12 @@ impl Vm {
             x = x.negate();
         }
         self.scale = 0;
-        let n = x.div(&v, 0)?.unwrap_or_default().add(&int(2), 0)?.div(&int(4), 0)?.unwrap_or_default();
+        let n = x
+            .div(&v, 0)?
+            .unwrap_or_default()
+            .add(&int(2), 0)?
+            .div(&int(4), 0)?
+            .unwrap_or_default();
         x = x.sub(&int(4).mul(&n, 0)?.mul(&v, 0)?, 0)?;
         if !n.modulo(&int(2), 0)?.unwrap_or_default().is_zero() {
             x = x.negate();
@@ -1012,7 +1112,11 @@ impl Vm {
             e = e.mul(&s.div(&den, self.scale)?.unwrap_or_default(), self.scale)?;
             if e.compare(&zero) == Ordering::Equal {
                 self.scale = z;
-                return if m { Ok(v.negate().div(&one, z)?.unwrap_or_default()) } else { Ok(v.div(&one, z)?.unwrap_or_default()) };
+                return if m {
+                    Ok(v.negate().div(&one, z)?.unwrap_or_default())
+                } else {
+                    Ok(v.div(&one, z)?.unwrap_or_default())
+                };
             }
             v = v.add(&e, 0)?;
             i += 2;
@@ -1125,17 +1229,36 @@ impl Vm {
         let s15 = k("1.5").mul(&zn, self.scale)?;
         self.set_scale(&s15);
         let xn = x.raise(&n, self.scale).map(|r| r.0).unwrap_or_default();
-        let tn = int(2).raise(&n, self.scale).map(|r| r.0).unwrap_or_default();
-        f = xn.div(&tn, self.scale)?.unwrap_or_default().div(&f, self.scale)?.unwrap_or_default();
+        let tn = int(2)
+            .raise(&n, self.scale)
+            .map(|r| r.0)
+            .unwrap_or_default();
+        f = xn
+            .div(&tn, self.scale)?
+            .unwrap_or_default()
+            .div(&f, self.scale)?
+            .unwrap_or_default();
         let mut v = Num::one();
         let mut e = Num::one();
-        let s = x.negate().mul(&x, self.scale)?.div(&int(4), self.scale)?.unwrap_or_default();
-        let sc = k("1.5").mul(&zn, self.scale)?.add(&int(f.length()), 0)?.sub(&int(u64::from(f.scale())), 0)?;
+        let s = x
+            .negate()
+            .mul(&x, self.scale)?
+            .div(&int(4), self.scale)?
+            .unwrap_or_default();
+        let sc = k("1.5")
+            .mul(&zn, self.scale)?
+            .add(&int(f.length()), 0)?
+            .sub(&int(u64::from(f.scale())), 0)?;
         self.set_scale(&sc);
         let mut i = Num::one();
         loop {
             sysabi::sys::checkpoint();
-            e = e.mul(&s, self.scale)?.div(&i, self.scale)?.unwrap_or_default().div(&n.add(&i, 0)?, self.scale)?.unwrap_or_default();
+            e = e
+                .mul(&s, self.scale)?
+                .div(&i, self.scale)?
+                .unwrap_or_default()
+                .div(&n.add(&i, 0)?, self.scale)?
+                .unwrap_or_default();
             if e.compare(&zero) == Ordering::Equal {
                 self.scale = z;
                 let fv = if m { f.negate() } else { f.clone() };

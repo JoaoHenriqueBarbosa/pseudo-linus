@@ -110,7 +110,11 @@ fn run(args: &[OsString]) -> i32 {
         Some(p) => argv0[p + 1..].to_string(),
         None => argv0.clone(),
     };
-    let rest = if argv.is_empty() { &argv[..] } else { &argv[1..] };
+    let rest = if argv.is_empty() {
+        &argv[..]
+    } else {
+        &argv[1..]
+    };
     let mut dc = Dc::new(progname.clone());
     let mut g = Getopt::from_env(rest, "hVe:f:", LONGS);
     let mut did_eval = false;
@@ -163,12 +167,20 @@ fn run(args: &[OsString]) -> i32 {
 
 /// `%#o` do C: `0` sozinho pro zero, senão o octal com um `0` na frente.
 fn octal(c: u8) -> String {
-    if c == 0 { "0".to_string() } else { format!("0{c:o}") }
+    if c == 0 {
+        "0".to_string()
+    } else {
+        format!("0{c:o}")
+    }
 }
 
 /// `dc_show_id`: `'a' (0141)` pra caractere gráfico, só o octal pro resto.
 fn show_id(c: u8) -> String {
-    if c.is_ascii_graphic() { format!("'{}' ({})", char::from(c), octal(c)) } else { octal(c) }
+    if c.is_ascii_graphic() {
+        format!("'{}' ({})", char::from(c), octal(c))
+    } else {
+        octal(c)
+    }
 }
 
 /// Dígitos decimais da parte inteira mais a escala, sem contar o zero da parte inteira vazia
@@ -179,7 +191,11 @@ fn num_len(n: &Num) -> u64 {
         // O zero inteiro conta um dígito.
         return 1;
     }
-    let int_digits = if int.is_zero() { 0 } else { int.to_str_radix(10).len() as u64 };
+    let int_digits = if int.is_zero() {
+        0
+    } else {
+        int.to_str_radix(10).len() as u64
+    };
     int_digits + u64::from(n.scale())
 }
 
@@ -248,7 +264,13 @@ impl Dc {
             }
         };
         drop(file);
-        match self.exec(&mut Src::Bytes { code: Rc::from(data), pos: 0 }, 0) {
+        match self.exec(
+            &mut Src::Bytes {
+                code: Rc::from(data),
+                pos: 0,
+            },
+            0,
+        ) {
             Flow::Exit => Some(0),
             _ => None,
         }
@@ -271,7 +293,10 @@ impl Dc {
             }
             Src::Stdin => {
                 self.load_stdin();
-                let c = self.stdin.as_ref().and_then(|s| s.get(self.stdin_pos).copied());
+                let c = self
+                    .stdin
+                    .as_ref()
+                    .and_then(|s| s.get(self.stdin_pos).copied());
                 if c.is_some() {
                     self.stdin_pos += 1;
                 }
@@ -652,7 +677,9 @@ impl Dc {
     /// `<r`, `>r`, `=r` e as negações: tira os dois do topo e executa `r` se a condição vale entre o
     /// topo original e o segundo.
     fn compare(&mut self, src: &mut Src, depth: u64, cond: fn(Ordering) -> bool) -> Flow {
-        let Some(r) = self.reg_name(src) else { return Flow::Next };
+        let Some(r) = self.reg_name(src) else {
+            return Flow::Next;
+        };
         if self.stack.len() < 2 {
             self.stack_empty();
             return Flow::Next;
@@ -663,7 +690,11 @@ impl Dc {
             self.err("non-numeric value");
             return Flow::Next;
         };
-        if cond(a.compare(&b)) { self.exec_register(r, depth) } else { Flow::Next }
+        if cond(a.compare(&b)) {
+            self.exec_register(r, depth)
+        } else {
+            Flow::Next
+        }
     }
 
     /// `!comando`: o resto da linha vai pro `sh -c`.
@@ -790,7 +821,9 @@ impl Dc {
                                 continue;
                             }
                         }
-                        self.err(format!("input base must be a number between 2 and {IBASE_MAX} (inclusive)"));
+                        self.err(format!(
+                            "input base must be a number between 2 and {IBASE_MAX} (inclusive)"
+                        ));
                     }
                 }
                 b'o' => {
@@ -809,13 +842,17 @@ impl Dc {
                 b'I' => self.push_num(Num::from_u64(u64::from(self.ibase))),
                 b'O' => self.push_num(Num::from_u64(self.obase)),
                 b's' => {
-                    let Some(r) = self.reg_name(src) else { return Flow::Next };
+                    let Some(r) = self.reg_name(src) else {
+                        return Flow::Next;
+                    };
                     if let Some(v) = self.pop() {
                         self.reg_top(r).value = Some(v);
                     }
                 }
                 b'l' => {
-                    let Some(r) = self.reg_name(src) else { return Flow::Next };
+                    let Some(r) = self.reg_name(src) else {
+                        return Flow::Next;
+                    };
                     match self.regs[r].last().and_then(|e| e.value.clone()) {
                         Some(v) => self.push(v),
                         // Registrador vazio vale zero, sem mensagem.
@@ -823,20 +860,29 @@ impl Dc {
                     }
                 }
                 b'S' => {
-                    let Some(r) = self.reg_name(src) else { return Flow::Next };
+                    let Some(r) = self.reg_name(src) else {
+                        return Flow::Next;
+                    };
                     if let Some(v) = self.pop() {
-                        self.regs[r].push(RegEntry { value: Some(v), array: BTreeMap::new() });
+                        self.regs[r].push(RegEntry {
+                            value: Some(v),
+                            array: BTreeMap::new(),
+                        });
                     }
                 }
                 b'L' => {
-                    let Some(r) = self.reg_name(src) else { return Flow::Next };
+                    let Some(r) = self.reg_name(src) else {
+                        return Flow::Next;
+                    };
                     match self.regs[r].pop() {
                         Some(RegEntry { value: Some(v), .. }) => self.push(v),
                         _ => self.err(format!("stack register {} is empty", show_id(r as u8))),
                     }
                 }
                 b':' => {
-                    let Some(r) = self.reg_name(src) else { return Flow::Next };
+                    let Some(r) = self.reg_name(src) else {
+                        return Flow::Next;
+                    };
                     let Some(idx) = self.pop() else { continue };
                     let idx = match idx {
                         Value::Num(n) => self.num2int(&n),
@@ -850,7 +896,9 @@ impl Dc {
                     }
                 }
                 b';' => {
-                    let Some(r) = self.reg_name(src) else { return Flow::Next };
+                    let Some(r) = self.reg_name(src) else {
+                        return Flow::Next;
+                    };
                     let Some(idx) = self.pop() else { continue };
                     let idx = match idx {
                         Value::Num(n) => self.num2int(&n),
@@ -905,7 +953,13 @@ impl Dc {
                 }
                 b'?' => {
                     let line = self.read_stdin_line();
-                    match self.exec(&mut Src::Bytes { code: Rc::from(line), pos: 0 }, depth) {
+                    match self.exec(
+                        &mut Src::Bytes {
+                            code: Rc::from(line),
+                            pos: 0,
+                        },
+                        depth,
+                    ) {
                         Flow::Next => {}
                         f => return f,
                     }
@@ -922,7 +976,11 @@ impl Dc {
                     None => {}
                 },
                 b'q' => {
-                    return if depth <= 1 { Flow::Exit } else { Flow::Unwind(2) };
+                    return if depth <= 1 {
+                        Flow::Exit
+                    } else {
+                        Flow::Unwind(2)
+                    };
                 }
                 b'Q' => {
                     if let Some(v) = self.pop() {
@@ -940,7 +998,8 @@ impl Dc {
                 }
                 // O original manda essa pro stdout, sem o nome do programa.
                 _ => {
-                    let _ = io::stdout().write_all(format!("{} unimplemented\n", show_id(c)).as_bytes());
+                    let _ = io::stdout()
+                        .write_all(format!("{} unimplemented\n", show_id(c)).as_bytes());
                 }
             }
         }

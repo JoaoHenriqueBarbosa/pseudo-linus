@@ -17,7 +17,11 @@ struct Scan<'a> {
 
 impl<'a> Scan<'a> {
     fn new(s: &'a [u8], from: usize) -> Scan<'a> {
-        Scan { s, pos: from, count: 0 }
+        Scan {
+            s,
+            pos: from,
+            count: 0,
+        }
     }
 
     fn lit(&mut self, text: &[u8]) -> bool {
@@ -92,7 +96,14 @@ fn save_tc_inequality(buf: &mut Vec<u8>, c1: i32, c2: i32) {
 fn bcd_expression(s: &[u8], from: usize) -> usize {
     let mut sc = Scan::new(s, from);
     let (mut c1, mut c2) = (0u8, 0u8);
-    if sc.lit(b"%p") && sc.chr(&mut c1) && sc.lit(b"%{10}%/%{16}%*%p") && sc.chr(&mut c2) && c1.is_ascii_digit() && c2.is_ascii_digit() && c1 == c2 {
+    if sc.lit(b"%p")
+        && sc.chr(&mut c1)
+        && sc.lit(b"%{10}%/%{16}%*%p")
+        && sc.chr(&mut c2)
+        && c1.is_ascii_digit()
+        && c2.is_ascii_digit()
+        && c1 == c2
+    {
         28
     } else {
         0
@@ -145,7 +156,11 @@ pub fn infotocap(str_: &[u8], parameterized: i32, strict_bsd: bool) -> Option<Ve
         None => str_,
     };
     let at = |i: isize| -> u8 {
-        if i < 0 { 0 } else { s.get(i as usize).copied().unwrap_or(0) }
+        if i < 0 {
+            0
+        } else {
+            s.get(i as usize).copied().unwrap_or(0)
+        }
     };
     let mut buf: Vec<u8> = Vec::new();
     let (mut seenone, mut seentwo, mut saw_m, mut saw_n) = (false, false, 0, 0);
@@ -223,7 +238,10 @@ pub fn infotocap(str_: &[u8], parameterized: i32, strict_bsd: bool) -> Option<Ve
                             pad = 1;
                         }
                         let mut xx2: u8;
-                        if xx1 == b'0' && ((pad == 2) || at(i + 1) == b'0') && ((pad >= 1) || at(i + 2) == b'0') {
+                        if xx1 == b'0'
+                            && ((pad == 2) || at(i + 1) == b'0')
+                            && ((pad >= 1) || at(i + 2) == b'0')
+                        {
                             xx2 = b'2';
                         } else {
                             xx2 = b'0';
@@ -302,7 +320,12 @@ pub fn infotocap(str_: &[u8], parameterized: i32, strict_bsd: bool) -> Option<Ve
         } else if c == b'$' && at(i + 1) == b'<' {
             // descarta o preenchimento
             i += 2;
-            while at(i).is_ascii_digit() || at(i) == b'.' || at(i) == b'*' || at(i) == b'/' || at(i) == b'>' {
+            while at(i).is_ascii_digit()
+                || at(i) == b'.'
+                || at(i) == b'*'
+                || at(i) == b'/'
+                || at(i) == b'>'
+            {
                 i += 1;
             }
             i -= 1;
@@ -488,7 +511,10 @@ fn xterm_256(s: &[u8], from: usize, _ch1: &mut u8, _ch2: &mut u8) -> Option<(i32
         && sc.int(&mut in1)
         && sc.lit(b"%p1%{8}%-%d%e")
         && sc.int(&mut in2);
-    if ok && sc.count == 3 && ((in0 == 4 && in1 == 10 && in2 == 48) || (in0 == 3 && in1 == 9 && in2 == 38)) {
+    if ok
+        && sc.count == 3
+        && ((in0 == 4 && in1 == 10 && in2 == 48) || (in0 == 3 && in1 == 9 && in2 == 38))
+    {
         Some((in0, in2))
     } else {
         None
@@ -501,7 +527,10 @@ mod tests {
 
     #[test]
     fn converts_common_strings() {
-        assert_eq!(infotocap(b"\\E[%i%p1%d;%p2%dH", 1, false).unwrap(), b"\\E[%i%d;%dH");
+        assert_eq!(
+            infotocap(b"\\E[%i%p1%d;%p2%dH", 1, false).unwrap(),
+            b"\\E[%i%d;%dH"
+        );
         assert_eq!(infotocap(b"\\E[%p1%dm$<5>", 1, false).unwrap(), b"5\\E[%dm");
         assert_eq!(infotocap(b"^G", 0, false).unwrap(), b"^G");
         assert_eq!(infotocap(b"%p1%c", 1, false).unwrap(), b"%.");

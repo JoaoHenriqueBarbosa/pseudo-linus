@@ -118,7 +118,9 @@ fn init_term_caps(t: &terms::T) -> Caps {
     c.under_char = t.11;
     c.must_use_uc = c.under_char.is_some() && c.enter_underline.is_none();
     let (os, ul_flag) = (t.12, t.13);
-    if (os && c.enter_bold.is_none()) || (ul_flag && c.enter_underline.is_none() && c.under_char.is_none()) {
+    if (os && c.enter_bold.is_none())
+        || (ul_flag && c.enter_underline.is_none() && c.under_char.is_none())
+    {
         c.must_overstrike = true;
     }
     c
@@ -545,9 +547,12 @@ fn run(args: &[OsString]) -> i32 {
     let files = g.operands();
 
     // setupterm: 1 achou, 0 terminal desconhecido, -1 sem TERM (ou sem banco de terminfo).
-    let found = termtype
-        .as_deref()
-        .and_then(|name| terms::TERMS.iter().find(|(n, _)| n.as_bytes() == name).map(|(_, t)| t));
+    let found = termtype.as_deref().and_then(|name| {
+        terms::TERMS
+            .iter()
+            .find(|(n, _)| n.as_bytes() == name)
+            .map(|(_, t)| t)
+    });
     let caps_src: &terms::T = match (&termtype, found) {
         (_, Some(t)) => t,
         (maybe, None) => {
@@ -556,7 +561,10 @@ fn run(args: &[OsString]) -> i32 {
             }
             if opt_terminal {
                 let name = termtype.as_deref().map(io::lossy).unwrap_or_default();
-                ul::warnx(&short, format!("terminal `{name}' is not known, defaulting to `dumb'"));
+                ul::warnx(
+                    &short,
+                    format!("terminal `{name}' is not known, defaulting to `dumb'"),
+                );
             }
             match terms::TERMS.iter().find(|(n, _)| *n == "dumb") {
                 Some((_, t)) => t,
@@ -613,7 +621,10 @@ fn report<W: Write>(state: &mut Ul<W>, short: &str, f: Fail) -> i32 {
         Fail::Fgetwc(e) => ul::warn(short, "fgetwc() failed", e),
         Fail::Escape(c) => {
             let code = c.map_or(u32::MAX, |ch| ch as u32);
-            ul::warnx(short, format!("unknown escape sequence in input: {:o}, {:o}", 0o33, code));
+            ul::warnx(
+                short,
+                format!("unknown escape sequence in input: {:o}, {:o}", 0o33, code),
+            );
         }
     }
     1

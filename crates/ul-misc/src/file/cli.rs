@@ -167,7 +167,11 @@ fn errno_msg(e: Errno) -> String {
 }
 
 fn stat_of(path: &[u8], follow: bool) -> Result<sysabi::Stat, Errno> {
-    if follow { sys::stat(path) } else { sys::lstat(path) }
+    if follow {
+        sys::stat(path)
+    } else {
+        sys::lstat(path)
+    }
 }
 
 /// `handle_mime()`.
@@ -192,7 +196,10 @@ fn bad_link(ms: &mut MagicSet, err: Errno, buf: &[u8]) -> i32 {
         }
     } else if mime == 0 {
         if ms.flags & MAGIC_ERROR != 0 {
-            ms.file_error(err.0, &format!("broken symbolic link to {}", io::lossy(buf)));
+            ms.file_error(
+                err.0,
+                &format!("broken symbolic link to {}", io::lossy(buf)),
+            );
             return -1;
         }
         let mut t = b"broken symbolic link to ".to_vec();
@@ -267,8 +274,15 @@ fn file_fsmagic(ms: &mut MagicSet, fn_: Option<&[u8]>, sb: &mut Option<sysabi::S
                 } else if mime != 0 {
                     handle_mime(ms, mime, if chr { "chardevice" } else { "blockdevice" })?;
                 } else if !silent {
-                    let what = if chr { "character special" } else { "block special" };
-                    ms.print(format!("{}{what} ({}/{})", comma(), major(st.rdev), minor(st.rdev)).as_bytes())?;
+                    let what = if chr {
+                        "character special"
+                    } else {
+                        "block special"
+                    };
+                    ms.print(
+                        format!("{}{what} ({}/{})", comma(), major(st.rdev), minor(st.rdev))
+                            .as_bytes(),
+                    )?;
                 }
             }
             S_IFIFO => {
@@ -280,7 +294,9 @@ fn file_fsmagic(ms: &mut MagicSet, fn_: Option<&[u8]>, sb: &mut Option<sysabi::S
                 }
             }
             S_IFLNK => {
-                let link = sys::try_current().ok_or(Fail).and_then(|s| s.readlinkat(Fd::CWD, fname).map_err(|_| Fail));
+                let link = sys::try_current()
+                    .ok_or(Fail)
+                    .and_then(|s| s.readlinkat(Fd::CWD, fname).map_err(|_| Fail));
                 let buf = match link {
                     Ok(b) if !b.is_empty() => b,
                     _ => {
@@ -359,10 +375,14 @@ fn unreadable_info(ms: &mut MagicSet, md: u32, file: Option<&[u8]>) -> Result<()
     if let Some(f) = file
         && let Some(s) = sys::try_current()
     {
-        if s.faccessat(Fd::CWD, f, AccessMode::W_OK, AtFlags::empty()).is_ok() {
+        if s.faccessat(Fd::CWD, f, AccessMode::W_OK, AtFlags::empty())
+            .is_ok()
+        {
             ms.print(b"writable, ")?;
         }
-        if s.faccessat(Fd::CWD, f, AccessMode::X_OK, AtFlags::empty()).is_ok() {
+        if s.faccessat(Fd::CWD, f, AccessMode::X_OK, AtFlags::empty())
+            .is_ok()
+        {
             ms.print(b"executable, ")?;
         }
     }
@@ -383,7 +403,8 @@ fn file_or_fd(ms: &mut MagicSet, inname: Option<&[u8]>) -> Option<Vec<u8>> {
     }
     let sysc = sys::try_current()?;
     let (fd, opened) = match inname {
-        Some(name) => match sys::open(name, OFlags::RDONLY | OFlags::NONBLOCK | OFlags::CLOEXEC, 0) {
+        Some(name) => match sys::open(name, OFlags::RDONLY | OFlags::NONBLOCK | OFlags::CLOEXEC, 0)
+        {
             Ok(fd) => (fd, true),
             Err(_) => {
                 if let Ok(st) = sys::stat(name) {
@@ -491,7 +512,11 @@ fn process(ms: &mut MagicSet, o: &Opts, inname: &[u8], wid: usize, out: &mut Vec
         }
         if o.nulsep < 2 {
             out.extend_from_slice(&o.separator);
-            let w = if o.nopad { 0 } else { wid.saturating_sub(wchar::mbswidth(inname, ms.flags & MAGIC_RAW != 0)) };
+            let w = if o.nopad {
+                0
+            } else {
+                wid.saturating_sub(wchar::mbswidth(inname, ms.flags & MAGIC_RAW != 0))
+            };
             out.extend_from_slice(" ".repeat(w).as_bytes());
             out.push(b' ');
         }
@@ -524,8 +549,12 @@ fn flush(out: &mut Vec<u8>, now: bool) {
 }
 
 fn setparam(ms: &mut MagicSet, p: &str) -> Result<(), String> {
-    let Some((name, value)) = p.split_once('=') else { return Err(format!("missing = in {p}")) };
-    let v: usize = value.parse().map_err(|_| format!("Invalid parameter value {value}"))?;
+    let Some((name, value)) = p.split_once('=') else {
+        return Err(format!("missing = in {p}"));
+    };
+    let v: usize = value
+        .parse()
+        .map_err(|_| format!("Invalid parameter value {value}"))?;
     let pm = &mut ms.params;
     match name {
         "bytes" => pm.bytes_max = v,
@@ -558,11 +587,21 @@ fn run(args: &[OsString]) -> i32 {
     if sys::getenv("POSIXLY_CORRECT").is_some() {
         flags |= MAGIC_SYMLINK;
     }
-    let mut o = Opts { bflag: 0, nulsep: 0, nopad: false, nobuffer: false, separator: b":".to_vec() };
+    let mut o = Opts {
+        bflag: 0,
+        nulsep: 0,
+        nopad: false,
+        nobuffer: false,
+        separator: b":".to_vec(),
+    };
     let mut errflg = 0;
     let mut files_from: Vec<Vec<u8>> = Vec::new();
     let mut params: Vec<String> = Vec::new();
-    let mut g = Getopt::from_env(&argv[1.min(argv.len())..], "bcCde:Ef:F:hiklLm:nNpP:rsSvzZ0", LONGS);
+    let mut g = Getopt::from_env(
+        &argv[1.min(argv.len())..],
+        "bcCde:Ef:F:hiklLm:nNpP:rsSvzZ0",
+        LONGS,
+    );
     while let Some(opt) = g.next_opt() {
         let opt = match opt {
             Ok(o) => o,
@@ -609,7 +648,9 @@ fn run(args: &[OsString]) -> i32 {
                 b'r' => flags |= MAGIC_RAW,
                 b's' => flags |= MAGIC_DEVICES,
                 b'v' => {
-                    let _ = io::stdout().write_all(b"file-5.46\nmagic file from /etc/magic:/usr/share/misc/magic\n");
+                    let _ = io::stdout().write_all(
+                        b"file-5.46\nmagic file from /etc/magic:/usr/share/misc/magic\n",
+                    );
                     return 0;
                 }
                 b'z' => flags |= MAGIC_COMPRESS,
@@ -645,7 +686,11 @@ fn run(args: &[OsString]) -> i32 {
         return e;
     }
     let raw = ms.flags & MAGIC_RAW != 0;
-    let wid = operands.iter().map(|a| wchar::mbswidth(a, raw)).max().unwrap_or(0);
+    let wid = operands
+        .iter()
+        .map(|a| wchar::mbswidth(a, raw))
+        .max()
+        .unwrap_or(0);
     if o.bflag == 2 {
         o.bflag = u32::from(operands.len() <= 1);
     }
@@ -668,13 +713,28 @@ fn unwrap(ms: &mut MagicSet, o: &Opts, fname: &[u8], out: &mut Vec<u8>) -> i32 {
         Ok(d) => d,
         Err(err) => {
             flush(out, true);
-            io::eprint(format!("file: Cannot open `{}' ({})\n", io::lossy(fname), err.message()));
+            io::eprint(format!(
+                "file: Cannot open `{}' ({})\n",
+                io::lossy(fname),
+                err.message()
+            ));
             return 1;
         }
     };
-    let lines: Vec<&[u8]> = data.split_inclusive(|&c| c == b'\n').map(|l| l.strip_suffix(b"\n").unwrap_or(l)).collect();
+    let lines: Vec<&[u8]> = data
+        .split_inclusive(|&c| c == b'\n')
+        .map(|l| l.strip_suffix(b"\n").unwrap_or(l))
+        .collect();
     let raw = ms.flags & MAGIC_RAW != 0;
-    let wid = if fname == b"-" { 1 } else { lines.iter().map(|l| wchar::mbswidth(l, raw)).max().unwrap_or(0) };
+    let wid = if fname == b"-" {
+        1
+    } else {
+        lines
+            .iter()
+            .map(|l| wchar::mbswidth(l, raw))
+            .max()
+            .unwrap_or(0)
+    };
     let mut e = 0;
     for l in lines {
         e |= process(ms, o, l, wid, out);

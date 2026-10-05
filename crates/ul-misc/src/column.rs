@@ -294,7 +294,10 @@ fn run(args: &[OsString]) -> i32 {
     let mut out = io::stdout();
     match mode {
         Mode::FillCols | Mode::FillRows => {
-            let entries: Vec<&String> = lines.iter().filter(|l| o.keep_empty || !is_blank(l)).collect();
+            let entries: Vec<&String> = lines
+                .iter()
+                .filter(|l| o.keep_empty || !is_blank(l))
+                .collect();
             let text = fill(&entries, termwidth, o.use_spaces, mode == Mode::FillRows);
             let _ = out.write_all(text.as_bytes());
             i32::from(eval != 0)
@@ -307,7 +310,11 @@ fn run(args: &[OsString]) -> i32 {
             if table.rows.is_empty() {
                 return i32::from(eval != 0);
             }
-            let text = if o.json { table.to_json() } else { table.render_text(termwidth) };
+            let text = if o.json {
+                table.to_json()
+            } else {
+                table.render_text(termwidth)
+            };
             let _ = out.write_all(text.as_bytes());
             0
         }
@@ -315,7 +322,10 @@ fn run(args: &[OsString]) -> i32 {
 }
 
 fn getopt_failure(e: &GetoptError, argv0: &str) -> i32 {
-    io::eprint(format!("{}\nTry 'column --help' for more information.\n", e.message(argv0)));
+    io::eprint(format!(
+        "{}\nTry 'column --help' for more information.\n",
+        e.message(argv0)
+    ));
     1
 }
 
@@ -641,8 +651,14 @@ fn build_table(o: &Options, lines: &[String]) -> Result<Table, Fatal> {
         while columns.len() < cells.len() {
             columns.push(Column::new(String::new()));
         }
-        rows.try_reserve(1).map_err(|_| Fatal(Errno::ENOMEM.message()))?;
-        rows.push(cells.into_iter().map(|c| (!c.is_empty()).then_some(c)).collect());
+        rows.try_reserve(1)
+            .map_err(|_| Fatal(Errno::ENOMEM.message()))?;
+        rows.push(
+            cells
+                .into_iter()
+                .map(|c| (!c.is_empty()).then_some(c))
+                .collect(),
+        );
     }
     let ncols = columns.len();
     for r in &mut rows {
@@ -723,13 +739,19 @@ fn build_tree(rows: &[Vec<Option<String>>], column: usize, id: usize, parent: us
     let mut roots = Vec::new();
     for (i, row) in rows.iter().enumerate() {
         let p = row[parent].as_deref();
-        let found = p.and_then(|p| rows.iter().position(|r| r[id].as_deref() == Some(p))).filter(|&j| j != i);
+        let found = p
+            .and_then(|p| rows.iter().position(|r| r[id].as_deref() == Some(p)))
+            .filter(|&j| j != i);
         match found {
             Some(j) => children[j].push(i),
             None => roots.push(i),
         }
     }
-    Tree { column, roots, children }
+    Tree {
+        column,
+        roots,
+        children,
+    }
 }
 
 impl Table {
@@ -739,7 +761,13 @@ impl Table {
             return (0..self.rows.len()).map(|i| (i, String::new())).collect();
         };
         let mut out = Vec::new();
-        fn walk(tree: &Tree, node: usize, branch: &str, last: Option<bool>, out: &mut Vec<(usize, String)>) {
+        fn walk(
+            tree: &Tree,
+            node: usize,
+            branch: &str,
+            last: Option<bool>,
+            out: &mut Vec<(usize, String)>,
+        ) {
             let prefix = match last {
                 None => String::new(),
                 Some(true) => format!("{branch}\u{2514}\u{2500}"),
@@ -764,27 +792,56 @@ impl Table {
 
     fn cell_text(&self, row: usize, col: usize, prefix: &str) -> String {
         let data = self.rows[row][col].as_deref().unwrap_or("");
-        if self.tree.as_ref().is_some_and(|t| t.column == col) { format!("{prefix}{data}") } else { data.to_string() }
+        if self.tree.as_ref().is_some_and(|t| t.column == col) {
+            format!("{prefix}{data}")
+        } else {
+            data.to_string()
+        }
     }
 
     fn render_text(&mut self, termwidth: usize) -> String {
-        let visible: Vec<usize> = self.order.iter().copied().filter(|&i| !self.columns[i].hidden).collect();
+        let visible: Vec<usize> = self
+            .order
+            .iter()
+            .copied()
+            .filter(|&i| !self.columns[i].hidden)
+            .collect();
         let rows = self.ordered_rows();
-        let cells: Vec<Vec<String>> =
-            rows.iter().map(|(r, prefix)| visible.iter().map(|&c| self.cell_text(*r, c, prefix)).collect()).collect();
+        let cells: Vec<Vec<String>> = rows
+            .iter()
+            .map(|(r, prefix)| {
+                visible
+                    .iter()
+                    .map(|&c| self.cell_text(*r, c, prefix))
+                    .collect()
+            })
+            .collect();
         let sepw = display_width(&self.sep);
         // Larguras naturais: maior célula, ou o cabeçalho.
         let mut widths: Vec<usize> = Vec::with_capacity(visible.len());
         let mut minw: Vec<usize> = Vec::with_capacity(visible.len());
         for (k, &c) in visible.iter().enumerate() {
-            let head = if self.headings { display_width(&self.columns[c].name) } else { 0 };
-            let data = cells.iter().map(|r| display_width(&r[k])).max().unwrap_or(0);
+            let head = if self.headings {
+                display_width(&self.columns[c].name)
+            } else {
+                0
+            };
+            let data = cells
+                .iter()
+                .map(|r| display_width(&r[k]))
+                .max()
+                .unwrap_or(0);
             let min = if self.headings { head.max(1) } else { 1 };
-            let natural = if self.columns[c].noextreme { noextreme_width(&cells, k) } else { data };
+            let natural = if self.columns[c].noextreme {
+                noextreme_width(&cells, k)
+            } else {
+                data
+            };
             widths.push(natural.max(head).max(min));
             minw.push(min);
         }
-        let total = |w: &[usize]| -> usize { w.iter().sum::<usize>() + sepw * w.len().saturating_sub(1) };
+        let total =
+            |w: &[usize]| -> usize { w.iter().sum::<usize>() + sepw * w.len().saturating_sub(1) };
         let mut width = total(&widths);
         // Colunas -E ganham de volta o espaço que sobrar, até a maior célula.
         if width < termwidth {
@@ -792,7 +849,11 @@ impl Table {
                 if !self.columns[c].noextreme {
                     continue;
                 }
-                let max = cells.iter().map(|r| display_width(&r[k])).max().unwrap_or(0);
+                let max = cells
+                    .iter()
+                    .map(|r| display_width(&r[k]))
+                    .max()
+                    .unwrap_or(0);
                 let add = (termwidth - width).min(max.saturating_sub(widths[k]));
                 widths[k] += add;
                 width += add;
@@ -816,7 +877,11 @@ impl Table {
         // nenhuma passa do mínimo (o cabeçalho, ou 1).
         if width > termwidth && !visible.is_empty() {
             let natural = widths.clone();
-            let widest = (0..natural.len()).fold(0, |best, k| if natural[k] > natural[best] { k } else { best });
+            let widest =
+                (0..natural.len()).fold(
+                    0,
+                    |best, k| if natural[k] > natural[best] { k } else { best },
+                );
             let last = visible.len() - 1;
             let mut reducible: Vec<usize> = (0..visible.len())
                 .filter(|&k| {
@@ -852,7 +917,10 @@ impl Table {
         let mut out = String::new();
         let nvis = visible.len();
         if self.headings && nvis > 0 {
-            let heads: Vec<String> = visible.iter().map(|&c| self.columns[c].name.clone()).collect();
+            let heads: Vec<String> = visible
+                .iter()
+                .map(|&c| self.columns[c].name.clone())
+                .collect();
             self.emit_row(&mut out, &visible, &heads, &widths);
         }
         for (i, row) in cells.iter().enumerate() {
@@ -931,7 +999,12 @@ impl Table {
         let mut out = String::new();
         out.push_str("{\n");
         out.push_str(&format!("   {}: [\n", json_string(&self.name)));
-        let visible: Vec<usize> = self.order.iter().copied().filter(|&i| !self.columns[i].hidden).collect();
+        let visible: Vec<usize> = self
+            .order
+            .iter()
+            .copied()
+            .filter(|&i| !self.columns[i].hidden)
+            .collect();
         let roots: Vec<usize> = match &self.tree {
             Some(t) => t.roots.clone(),
             None => (0..self.rows.len()).collect(),
@@ -948,11 +1021,19 @@ impl Table {
             if n == 0 {
                 out.push_str(&format!("{pad}{{\n"));
             }
-            let kids: &[usize] = self.tree.as_ref().map(|t| t.children[r].as_slice()).unwrap_or(&[]);
+            let kids: &[usize] = self
+                .tree
+                .as_ref()
+                .map(|t| t.children[r].as_slice())
+                .unwrap_or(&[]);
             for (k, &c) in visible.iter().enumerate() {
                 let col = &self.columns[c];
                 let key = json_string(&col.name.to_lowercase());
-                let comma = if k + 1 < visible.len() || !kids.is_empty() { "," } else { "" };
+                let comma = if k + 1 < visible.len() || !kids.is_empty() {
+                    ","
+                } else {
+                    ""
+                };
                 let value = match &self.rows[r][c] {
                     None => "null".to_string(),
                     Some(v) => match col.json {
@@ -960,12 +1041,22 @@ impl Table {
                         JsonType::Number => v.clone(),
                         // Falso é o que começa com `0`, `N` ou `n` (até "false" sai true, como no original).
                         JsonType::Boolean => {
-                            if v.starts_with(['0', 'N', 'n']) { "false".into() } else { "true".into() }
+                            if v.starts_with(['0', 'N', 'n']) {
+                                "false".into()
+                            } else {
+                                "true".into()
+                            }
                         }
                         JsonType::ArrayString | JsonType::ArrayNumber => {
                             let items: Vec<String> = v
                                 .split('\n')
-                                .map(|i| if col.json == JsonType::ArrayString { json_string(i) } else { i.to_string() })
+                                .map(|i| {
+                                    if col.json == JsonType::ArrayString {
+                                        json_string(i)
+                                    } else {
+                                        i.to_string()
+                                    }
+                                })
                                 .collect();
                             let ipad = " ".repeat(indent + 7);
                             let mut s = String::from("[\n");
@@ -1006,7 +1097,11 @@ fn noextreme_width(cells: &[Vec<String>], k: usize) -> usize {
         return 0;
     }
     let avg = ws.iter().sum::<usize>() / ws.len();
-    ws.iter().copied().filter(|&w| w <= avg).max().unwrap_or(avg)
+    ws.iter()
+        .copied()
+        .filter(|&w| w <= avg)
+        .max()
+        .unwrap_or(avg)
 }
 
 fn truncate_to(text: &str, w: usize) -> String {
@@ -1092,7 +1187,10 @@ mod tests {
         let (out, _, _) = run(&["-x"], &input);
         assert!(out.starts_with("1\t2\t3\t4\t5\t6\t7\t8\t9\t10\n11\t"));
         let (out, _, _) = run(&["-S", "1"], "aaaaaaaaa\nb\nc\nd\ne\nf\ng\nh\ni\nj\n");
-        assert_eq!(out, "aaaaaaaaa c         e         g         i\nb         d         f         h         j\n");
+        assert_eq!(
+            out,
+            "aaaaaaaaa c         e         g         i\nb         d         f         h         j\n"
+        );
         let (out, _, _) = run(&[], "one two  three\nfour\n\nfive\n");
         assert_eq!(out, "one two  three\tfour\t\tfive\n");
     }
@@ -1101,13 +1199,25 @@ mod tests {
     fn table_basics_match_util_linux() {
         let (out, _, _) = run(&["-t"], "a   b c\n  dd\teee    f  \nx\n");
         assert_eq!(out, "a   b    c\ndd  eee  f\nx        \n");
-        let (out, _, _) = run(&["-t", "-s,"], "name,age,city\nana,30,são paulo\nbob,,rio\ncarl,5\n");
-        assert_eq!(out, "name  age  city\nana   30   são paulo\nbob        rio\ncarl  5    \n");
+        let (out, _, _) = run(
+            &["-t", "-s,"],
+            "name,age,city\nana,30,são paulo\nbob,,rio\ncarl,5\n",
+        );
+        assert_eq!(
+            out,
+            "name  age  city\nana   30   são paulo\nbob        rio\ncarl  5    \n"
+        );
         let (out, _, _) = run(&["-t", "-s,", "-o", " | "], "a,b,c\n1,22,333\n");
         assert_eq!(out, "a | b  | c\n1 | 22 | 333\n");
-        let (out, _, _) = run(&["-t", "-s,", "-N", "X,YY,Z", "-R", "YY,3"], "a,b,c\n1,22,333\n");
+        let (out, _, _) = run(
+            &["-t", "-s,", "-N", "X,YY,Z", "-R", "YY,3"],
+            "a,b,c\n1,22,333\n",
+        );
         assert_eq!(out, "X  YY    Z\na   b    c\n1  22  333\n");
-        let (out, _, _) = run(&["-t", "-s,", "-N", "X,YY,Z", "-O", "Z,X"], "a,b,c\n1,22,333\n");
+        let (out, _, _) = run(
+            &["-t", "-s,", "-N", "X,YY,Z", "-O", "Z,X"],
+            "a,b,c\n1,22,333\n",
+        );
         assert_eq!(out, "Z    X  YY\nc    a  b\n333  1  22\n");
         let (out, _, _) = run(&["-t", "-l", "2"], "a   b  c   d   \n");
         assert_eq!(out, "a  b  c   d   \n");
@@ -1124,27 +1234,50 @@ mod tests {
             out,
             "{\n   \"table\": [\n      {\n         \"a\": \"a\",\n         \"b\": null,\n         \"c\": \"c\"\n      },{\n         \"a\": \"1\",\n         \"b\": \"2\",\n         \"c\": null\n      }\n   ]\n}\n"
         );
-        let (out, _, _) =
-            run(&["-t", "-N", "ID,P,NAME", "-r", "NAME", "-i", "ID", "-p", "P"], "1 0 r\n2 1 c1\n3 2 c2\n4 0 r2\n");
-        assert_eq!(out, "ID  P  NAME\n1   0  r\n2   1  \u{2514}\u{2500}c1\n3   2    \u{2514}\u{2500}c2\n4   0  r2\n");
+        let (out, _, _) = run(
+            &["-t", "-N", "ID,P,NAME", "-r", "NAME", "-i", "ID", "-p", "P"],
+            "1 0 r\n2 1 c1\n3 2 c2\n4 0 r2\n",
+        );
+        assert_eq!(
+            out,
+            "ID  P  NAME\n1   0  r\n2   1  \u{2514}\u{2500}c1\n3   2    \u{2514}\u{2500}c2\n4   0  r2\n"
+        );
     }
 
     #[test]
     fn errors_and_exit_codes() {
         let (_, err, code) = run(&["--bogus"], "");
-        assert_eq!(err, "column: unrecognized option '--bogus'\nTry 'column --help' for more information.\n");
+        assert_eq!(
+            err,
+            "column: unrecognized option '--bogus'\nTry 'column --help' for more information.\n"
+        );
         assert_eq!(code, 1);
         let (_, err, code) = run(&["-J"], "a b\n");
-        assert_eq!(err, "column: option --table-columns or --table-column required for --json\n");
+        assert_eq!(
+            err,
+            "column: option --table-columns or --table-column required for --json\n"
+        );
         assert_eq!(code, 1);
         let (_, err, _) = run(&["-c", "-5"], "");
-        assert_eq!(err, "column: invalid columns argument: '-5': Numerical result out of range\n");
+        assert_eq!(
+            err,
+            "column: invalid columns argument: '-5': Numerical result out of range\n"
+        );
         let (_, err, _) = run(&["-t", "-x"], "");
-        assert_eq!(err, "column: mutually exclusive arguments: --table --fillrows\n");
+        assert_eq!(
+            err,
+            "column: mutually exclusive arguments: --table --fillrows\n"
+        );
         let (_, err, code) = run(&["-t", "-R", "zz"], "a b c\n");
-        assert_eq!((err.as_str(), code), ("column: undefined column name 'zz'\n", 1));
+        assert_eq!(
+            (err.as_str(), code),
+            ("column: undefined column name 'zz'\n", 1)
+        );
         let (out, err, code) = run(&["-t", "nope"], "");
-        assert_eq!((out.as_str(), err.as_str(), code), ("", "column: nope: No such file or directory\n", 1));
+        assert_eq!(
+            (out.as_str(), err.as_str(), code),
+            ("", "column: nope: No such file or directory\n", 1)
+        );
     }
 
     #[test]

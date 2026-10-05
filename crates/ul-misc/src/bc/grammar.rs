@@ -186,14 +186,26 @@ fn build() -> Bc {
     r(OptNewline, &[t(T::EndOfLine)], A::None);
     r(SemicolonList, &[], A::None);
     r(SemicolonList, &[n(StatementOrError)], A::None);
-    r(SemicolonList, &[n(SemicolonList), t(T::Semicolon), n(StatementOrError)], A::None);
+    r(
+        SemicolonList,
+        &[n(SemicolonList), t(T::Semicolon), n(StatementOrError)],
+        A::None,
+    );
     r(SemicolonList, &[n(SemicolonList), t(T::Semicolon)], A::None);
     r(StatementList, &[], A::None);
     r(StatementList, &[n(StatementOrError)], A::None);
     r(StatementList, &[n(StatementList), t(T::EndOfLine)], A::None);
-    r(StatementList, &[n(StatementList), t(T::EndOfLine), n(StatementOrError)], A::None);
+    r(
+        StatementList,
+        &[n(StatementList), t(T::EndOfLine), n(StatementOrError)],
+        A::None,
+    );
     r(StatementList, &[n(StatementList), t(T::Semicolon)], A::None);
-    r(StatementList, &[n(StatementList), t(T::Semicolon), n(StatementOrError)], A::None);
+    r(
+        StatementList,
+        &[n(StatementList), t(T::Semicolon), n(StatementOrError)],
+        A::None,
+    );
     r(StatementOrError, &[n(Statement)], A::None);
     r(StatementOrError, &[t(T::Error), n(Statement)], A::None);
     r(Statement, &[t(T::Warranty)], A::Warranty);
@@ -231,25 +243,55 @@ fn build() -> Bc {
     r(ForM4, &[], A::ForM4);
     r(
         Statement,
-        &[t(T::If), t(T::LParen), n(Expression), t(T::RParen), n(IfM1), n(OptNewline), n(Statement), n(OptElse)],
+        &[
+            t(T::If),
+            t(T::LParen),
+            n(Expression),
+            t(T::RParen),
+            n(IfM1),
+            n(OptNewline),
+            n(Statement),
+            n(OptElse),
+        ],
         A::None,
     );
     r(IfM1, &[], A::IfM1);
     r(OptElse, &[], A::IfNoElse);
-    r(OptElse, &[t(T::Else), n(ElseM1), n(OptNewline), n(Statement)], A::ElseEnd);
+    r(
+        OptElse,
+        &[t(T::Else), n(ElseM1), n(OptNewline), n(Statement)],
+        A::ElseEnd,
+    );
     r(ElseM1, &[], A::ElseM1);
     r(
         Statement,
-        &[t(T::While), n(WhileM1), t(T::LParen), n(Expression), t(T::RParen), n(WhileM2), n(OptNewline), n(Statement)],
+        &[
+            t(T::While),
+            n(WhileM1),
+            t(T::LParen),
+            n(Expression),
+            t(T::RParen),
+            n(WhileM2),
+            n(OptNewline),
+            n(Statement),
+        ],
         A::WhileEnd,
     );
     r(WhileM1, &[], A::WhileM1);
     r(WhileM2, &[], A::WhileM2);
-    r(Statement, &[t(T::LBrace), n(StatementList), t(T::RBrace)], A::None);
+    r(
+        Statement,
+        &[t(T::LBrace), n(StatementList), t(T::RBrace)],
+        A::None,
+    );
     r(Statement, &[t(T::Print), n(PrintM1), n(PrintList)], A::None);
     r(PrintM1, &[], A::PrintM1);
     r(PrintList, &[n(PrintElement)], A::None);
-    r(PrintList, &[n(PrintList), t(T::Comma), n(PrintElement)], A::None);
+    r(
+        PrintList,
+        &[n(PrintList), t(T::Comma), n(PrintElement)],
+        A::None,
+    );
     r(PrintElement, &[t(T::Str)], A::PrintStr);
     r(PrintElement, &[n(Expression)], A::PrintExpr);
     r(
@@ -277,55 +319,206 @@ fn build() -> Bc {
     r(OptParameterList, &[], A::None);
     r(OptParameterList, &[n(DefineList)], A::Pass1);
     r(OptAutoDefineList, &[], A::None);
-    r(OptAutoDefineList, &[t(T::Auto), n(DefineList), t(T::EndOfLine)], A::AutoList);
-    r(OptAutoDefineList, &[t(T::Auto), n(DefineList), t(T::Semicolon)], A::AutoList);
+    r(
+        OptAutoDefineList,
+        &[t(T::Auto), n(DefineList), t(T::EndOfLine)],
+        A::AutoList,
+    );
+    r(
+        OptAutoDefineList,
+        &[t(T::Auto), n(DefineList), t(T::Semicolon)],
+        A::AutoList,
+    );
     r(DefineList, &[t(T::Name)], A::DefVar);
-    r(DefineList, &[t(T::Name), t(T::LBracket), t(T::RBracket)], A::DefArray);
-    r(DefineList, &[t(T::Star), t(T::Name), t(T::LBracket), t(T::RBracket)], A::DefRef);
-    r(DefineList, &[t(T::Amp), t(T::Name), t(T::LBracket), t(T::RBracket)], A::DefRef);
-    r(DefineList, &[n(DefineList), t(T::Comma), t(T::Name)], A::DefListVar);
-    r(DefineList, &[n(DefineList), t(T::Comma), t(T::Name), t(T::LBracket), t(T::RBracket)], A::DefListArray);
-    r(DefineList, &[n(DefineList), t(T::Comma), t(T::Star), t(T::Name), t(T::LBracket), t(T::RBracket)], A::DefListRef);
-    r(DefineList, &[n(DefineList), t(T::Comma), t(T::Amp), t(T::Name), t(T::LBracket), t(T::RBracket)], A::DefListRef);
+    r(
+        DefineList,
+        &[t(T::Name), t(T::LBracket), t(T::RBracket)],
+        A::DefArray,
+    );
+    r(
+        DefineList,
+        &[t(T::Star), t(T::Name), t(T::LBracket), t(T::RBracket)],
+        A::DefRef,
+    );
+    r(
+        DefineList,
+        &[t(T::Amp), t(T::Name), t(T::LBracket), t(T::RBracket)],
+        A::DefRef,
+    );
+    r(
+        DefineList,
+        &[n(DefineList), t(T::Comma), t(T::Name)],
+        A::DefListVar,
+    );
+    r(
+        DefineList,
+        &[
+            n(DefineList),
+            t(T::Comma),
+            t(T::Name),
+            t(T::LBracket),
+            t(T::RBracket),
+        ],
+        A::DefListArray,
+    );
+    r(
+        DefineList,
+        &[
+            n(DefineList),
+            t(T::Comma),
+            t(T::Star),
+            t(T::Name),
+            t(T::LBracket),
+            t(T::RBracket),
+        ],
+        A::DefListRef,
+    );
+    r(
+        DefineList,
+        &[
+            n(DefineList),
+            t(T::Comma),
+            t(T::Amp),
+            t(T::Name),
+            t(T::LBracket),
+            t(T::RBracket),
+        ],
+        A::DefListRef,
+    );
     r(OptArgumentList, &[], A::ArgsEmpty);
     r(OptArgumentList, &[n(ArgumentList)], A::Pass1);
     r(ArgumentList, &[n(Expression)], A::ArgExpr);
-    r(ArgumentList, &[t(T::Name), t(T::LBracket), t(T::RBracket)], A::ArgArray);
-    r(ArgumentList, &[n(ArgumentList), t(T::Comma), n(Expression)], A::ArgListExpr);
-    r(ArgumentList, &[n(ArgumentList), t(T::Comma), t(T::Name), t(T::LBracket), t(T::RBracket)], A::ArgListArray);
+    r(
+        ArgumentList,
+        &[t(T::Name), t(T::LBracket), t(T::RBracket)],
+        A::ArgArray,
+    );
+    r(
+        ArgumentList,
+        &[n(ArgumentList), t(T::Comma), n(Expression)],
+        A::ArgListExpr,
+    );
+    r(
+        ArgumentList,
+        &[
+            n(ArgumentList),
+            t(T::Comma),
+            t(T::Name),
+            t(T::LBracket),
+            t(T::RBracket),
+        ],
+        A::ArgListArray,
+    );
     r(RequiredEol, &[], A::RequiredEolEmpty);
     r(RequiredEol, &[t(T::EndOfLine)], A::None);
     r(OptExpression, &[], A::OptExprEmpty);
     r(OptExpression, &[n(Expression)], A::Pass1);
     r(ReturnExpression, &[], A::RetEmpty);
     r(ReturnExpression, &[n(Expression)], A::RetExpr);
-    r(Expression, &[n(NamedExpression), t(T::AssignOp), n(AssignM1), n(Expression)], A::Assign);
+    r(
+        Expression,
+        &[
+            n(NamedExpression),
+            t(T::AssignOp),
+            n(AssignM1),
+            n(Expression),
+        ],
+        A::Assign,
+    );
     r(AssignM1, &[], A::AssignM1);
-    r(Expression, &[n(Expression), t(T::And), n(AndM1), n(Expression)], A::And);
+    r(
+        Expression,
+        &[n(Expression), t(T::And), n(AndM1), n(Expression)],
+        A::And,
+    );
     r(AndM1, &[], A::AndM1);
-    r(Expression, &[n(Expression), t(T::Or), n(OrM1), n(Expression)], A::Or);
+    r(
+        Expression,
+        &[n(Expression), t(T::Or), n(OrM1), n(Expression)],
+        A::Or,
+    );
     r(OrM1, &[], A::OrM1);
     r(Expression, &[t(T::Not), n(Expression)], A::Not);
-    r(Expression, &[n(Expression), t(T::RelOp), n(Expression)], A::Rel);
-    for (tok, op) in [(T::Plus, b'+'), (T::Minus, b'-'), (T::Star, b'*'), (T::Slash, b'/'), (T::Percent, b'%'), (T::Caret, b'^')] {
-        r(Expression, &[n(Expression), t(tok), n(Expression)], A::Binary(op));
+    r(
+        Expression,
+        &[n(Expression), t(T::RelOp), n(Expression)],
+        A::Rel,
+    );
+    for (tok, op) in [
+        (T::Plus, b'+'),
+        (T::Minus, b'-'),
+        (T::Star, b'*'),
+        (T::Slash, b'/'),
+        (T::Percent, b'%'),
+        (T::Caret, b'^'),
+    ] {
+        r(
+            Expression,
+            &[n(Expression), t(tok), n(Expression)],
+            A::Binary(op),
+        );
     }
     // '-' expression %prec UNARY_MINUS
-    rules.push((Expression, vec![t(T::Minus), n(Expression)], Some(T::UnaryMinus), A::Neg));
+    rules.push((
+        Expression,
+        vec![t(T::Minus), n(Expression)],
+        Some(T::UnaryMinus),
+        A::Neg,
+    ));
     let mut r = |lhs: N, rhs: &[S], act: A| rules.push((lhs, rhs.to_vec(), None, act));
     r(Expression, &[n(NamedExpression)], A::LoadNamed);
     r(Expression, &[t(T::Number)], A::Number);
-    r(Expression, &[t(T::LParen), n(Expression), t(T::RParen)], A::Paren);
-    r(Expression, &[t(T::Name), t(T::LParen), n(OptArgumentList), t(T::RParen)], A::Call);
-    r(Expression, &[t(T::IncrDecr), n(NamedExpression)], A::PreIncr);
-    r(Expression, &[n(NamedExpression), t(T::IncrDecr)], A::PostIncr);
-    r(Expression, &[t(T::Length), t(T::LParen), n(Expression), t(T::RParen)], A::Length);
-    r(Expression, &[t(T::Sqrt), t(T::LParen), n(Expression), t(T::RParen)], A::Sqrt);
-    r(Expression, &[t(T::Scale), t(T::LParen), n(Expression), t(T::RParen)], A::ScaleFn);
-    r(Expression, &[t(T::Read), t(T::LParen), t(T::RParen)], A::Read);
-    r(Expression, &[t(T::Random), t(T::LParen), t(T::RParen)], A::Random);
+    r(
+        Expression,
+        &[t(T::LParen), n(Expression), t(T::RParen)],
+        A::Paren,
+    );
+    r(
+        Expression,
+        &[t(T::Name), t(T::LParen), n(OptArgumentList), t(T::RParen)],
+        A::Call,
+    );
+    r(
+        Expression,
+        &[t(T::IncrDecr), n(NamedExpression)],
+        A::PreIncr,
+    );
+    r(
+        Expression,
+        &[n(NamedExpression), t(T::IncrDecr)],
+        A::PostIncr,
+    );
+    r(
+        Expression,
+        &[t(T::Length), t(T::LParen), n(Expression), t(T::RParen)],
+        A::Length,
+    );
+    r(
+        Expression,
+        &[t(T::Sqrt), t(T::LParen), n(Expression), t(T::RParen)],
+        A::Sqrt,
+    );
+    r(
+        Expression,
+        &[t(T::Scale), t(T::LParen), n(Expression), t(T::RParen)],
+        A::ScaleFn,
+    );
+    r(
+        Expression,
+        &[t(T::Read), t(T::LParen), t(T::RParen)],
+        A::Read,
+    );
+    r(
+        Expression,
+        &[t(T::Random), t(T::LParen), t(T::RParen)],
+        A::Random,
+    );
     r(NamedExpression, &[t(T::Name)], A::NamedVar);
-    r(NamedExpression, &[t(T::Name), t(T::LBracket), n(Expression), t(T::RBracket)], A::NamedArray);
+    r(
+        NamedExpression,
+        &[t(T::Name), t(T::LBracket), n(Expression), t(T::RBracket)],
+        A::NamedArray,
+    );
     r(NamedExpression, &[t(T::Ibase)], A::NamedSpecial(0));
     r(NamedExpression, &[t(T::Obase)], A::NamedSpecial(1));
     r(NamedExpression, &[t(T::Scale)], A::NamedSpecial(2));
@@ -367,7 +560,12 @@ fn build() -> Bc {
         term_prec,
     };
     let tables = g.build();
-    Bc { tables, actions: rules.iter().map(|r| r.3).collect(), eof: T::Eof as u16, error: T::Error as u16 }
+    Bc {
+        tables,
+        actions: rules.iter().map(|r| r.3).collect(),
+        eof: T::Eof as u16,
+        error: T::Error as u16,
+    }
 }
 
 #[cfg(test)]

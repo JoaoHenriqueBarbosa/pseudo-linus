@@ -5,7 +5,7 @@
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
 //! `getent` e `locale` (glibc 2.41).
 //! Do util-linux 2.41 também: `getopt`, `look`, `col`, `colrm`, `colcrt`, `ul`, `namei`, `rename.ul`,
-//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`. Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
+//! `whereis`, `mcookie`, `hardlink`, `mountpoint`, `setsid`, `fallocate`. Do debianutils 5.23 também: `tempfile`, `run-parts`, `ischroot`
 //! e, como os scripts originais rodando no `sh`, `savelog`, `add-shell` e `remove-shell`.
 //!
 //! Tudo passa por `sysabi`; nada toca o host.
@@ -13,11 +13,12 @@
 pub mod bc;
 pub mod col;
 pub mod colcrt;
-pub mod column;
 pub mod colrm;
+pub mod column;
 pub mod dc;
 pub mod debscripts;
 pub mod envsubst;
+pub mod fallocate;
 pub mod file;
 pub mod getconf;
 pub mod getent;
@@ -59,6 +60,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("colrm", colrm::main),
         Program::bin("dc", dc::main),
         Program::bin("envsubst", envsubst::main),
+        Program::bin("fallocate", fallocate::main),
         Program::bin("file", file::cli::main),
         Program::bin("getconf", getconf::main),
         Program::bin("getent", getent::main),

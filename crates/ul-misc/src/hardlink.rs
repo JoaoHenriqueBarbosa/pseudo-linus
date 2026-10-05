@@ -212,9 +212,17 @@ fn human_size(bytes: u64) -> String {
     let exp = shft - 10;
     let letters = b"BKMGTPE";
     let c = letters[if exp != 0 { (exp / 10) as usize } else { 0 }] as char;
-    let mut dec = if exp != 0 { bytes / (1u64 << exp) } else { bytes };
+    let mut dec = if exp != 0 {
+        bytes / (1u64 << exp)
+    } else {
+        bytes
+    };
     let mut frac = if exp != 0 { bytes % (1u64 << exp) } else { 0 };
-    let suffix = if c == 'B' { " B".to_string() } else { format!(" {c}iB") };
+    let suffix = if c == 'B' {
+        " B".to_string()
+    } else {
+        format!(" {c}iB")
+    };
     if frac != 0 {
         // três dígitos depois do ponto
         if frac >= u64::MAX / 1000 {
@@ -255,24 +263,60 @@ impl Hl {
     }
 
     fn print_stats(&self, start: &sysabi::TimeSpec) {
-        let end = sys::try_current().and_then(|s| s.clock_gettime(Clock::Monotonic).ok()).unwrap_or_default();
+        let end = sys::try_current()
+            .and_then(|s| s.clock_gettime(Clock::Monotonic).ok())
+            .unwrap_or_default();
         let mut sec = end.sec - start.sec;
         let mut usec = (i64::from(end.nsec) - i64::from(start.nsec)) / 1000;
         if usec < 0 {
             sec -= 1;
             usec += 1_000_000;
         }
-        self.jlog(JLOG_SUMMARY, format!("{:<25} {}", "Mode:", if self.o.dry_run { "dry-run" } else { "real" }));
+        self.jlog(
+            JLOG_SUMMARY,
+            format!(
+                "{:<25} {}",
+                "Mode:",
+                if self.o.dry_run { "dry-run" } else { "real" }
+            ),
+        );
         self.jlog(JLOG_SUMMARY, format!("{:<25} {}", "Method:", self.o.method));
-        self.jlog(JLOG_SUMMARY, format!("{:<25} {}", "Files:", self.stats.files));
-        self.jlog(JLOG_SUMMARY, format!("{:<25} {} files", "Linked:", self.stats.linked));
-        self.jlog(JLOG_SUMMARY, format!("{:<25} {} xattrs", "Compared:", self.stats.xattr_comparisons));
-        self.jlog(JLOG_SUMMARY, format!("{:<25} {} files", "Compared:", self.stats.comparisons));
+        self.jlog(
+            JLOG_SUMMARY,
+            format!("{:<25} {}", "Files:", self.stats.files),
+        );
+        self.jlog(
+            JLOG_SUMMARY,
+            format!("{:<25} {} files", "Linked:", self.stats.linked),
+        );
+        self.jlog(
+            JLOG_SUMMARY,
+            format!(
+                "{:<25} {} xattrs",
+                "Compared:", self.stats.xattr_comparisons
+            ),
+        );
+        self.jlog(
+            JLOG_SUMMARY,
+            format!("{:<25} {} files", "Compared:", self.stats.comparisons),
+        );
         if self.o.reflinks_skip {
-            self.jlog(JLOG_SUMMARY, format!("{:<25} {} files", "Skipped reflinks:", self.stats.ignored_reflinks));
+            self.jlog(
+                JLOG_SUMMARY,
+                format!(
+                    "{:<25} {} files",
+                    "Skipped reflinks:", self.stats.ignored_reflinks
+                ),
+            );
         }
-        self.jlog(JLOG_SUMMARY, format!("{:<25} {}", "Saved:", human_size(self.stats.saved)));
-        self.jlog(JLOG_SUMMARY, format!("{:<25} {}.{:06} seconds", "Duration:", sec, usec));
+        self.jlog(
+            JLOG_SUMMARY,
+            format!("{:<25} {}", "Saved:", human_size(self.stats.saved)),
+        );
+        self.jlog(
+            JLOG_SUMMARY,
+            format!("{:<25} {}.{:06} seconds", "Duration:", sec, usec),
+        );
     }
 
     fn match_any(list: &[Regex], what: &[u8]) -> bool {
@@ -287,7 +331,10 @@ impl Hl {
     fn dirname(f: &FileEnt) -> (usize, &[u8]) {
         let l = &f.links[0];
         let sz = l.basename.saturating_sub(l.dirname);
-        (sz, &l.path[l.dirname.min(l.path.len())..(l.dirname + sz).min(l.path.len())])
+        (
+            sz,
+            &l.path[l.dirname.min(l.path.len())..(l.dirname + sz).min(l.path.len())],
+        )
     }
 
     /// `file_compare`: positivo quando `a` deve ser o mestre em vez de `b`.
@@ -307,7 +354,11 @@ impl Hl {
             res = cmp(fa.tree, fb.tree);
         }
         if res == 0 {
-            res = if self.o.keep_oldest { cmp(fb.mtime, fa.mtime) } else { cmp(fa.mtime, fb.mtime) };
+            res = if self.o.keep_oldest {
+                cmp(fb.mtime, fa.mtime)
+            } else {
+                cmp(fa.mtime, fb.mtime)
+            };
         }
         if res == 0 {
             res = cmp(fb.ino, fa.ino);
@@ -351,7 +402,14 @@ impl Hl {
             if self.enabled(JLOG_INFO) {
                 let ssz = human_size(self.files[a].size);
                 let dry = if self.o.dry_run { "[DryRun] " } else { "" };
-                self.jlog(JLOG_INFO, format!("{dry}Linking {} to {} (-{ssz})", io::lossy(&a_path), io::lossy(&b_path)));
+                self.jlog(
+                    JLOG_INFO,
+                    format!(
+                        "{dry}Linking {} to {} (-{ssz})",
+                        io::lossy(&a_path),
+                        io::lossy(&b_path)
+                    ),
+                );
             }
 
             if !self.o.dry_run {
@@ -359,11 +417,29 @@ impl Hl {
                 new_path.extend_from_slice(b".hardlink-temporary");
                 let s = sys::current();
                 if let Err(e) = s.linkat(Fd::CWD, &a_path, Fd::CWD, &new_path, AtFlags::empty()) {
-                    ul::warn(&self.short, format!("cannot link {} to {}", io::lossy(&a_path), io::lossy(&new_path)), e);
+                    ul::warn(
+                        &self.short,
+                        format!(
+                            "cannot link {} to {}",
+                            io::lossy(&a_path),
+                            io::lossy(&new_path)
+                        ),
+                        e,
+                    );
                     return Err(Some(e));
                 }
-                if let Err(e) = s.renameat2(Fd::CWD, &new_path, Fd::CWD, &b_path, RenameFlags::empty()) {
-                    ul::warn(&self.short, format!("cannot rename {} to {}", io::lossy(&a_path), io::lossy(&new_path)), e);
+                if let Err(e) =
+                    s.renameat2(Fd::CWD, &new_path, Fd::CWD, &b_path, RenameFlags::empty())
+                {
+                    ul::warn(
+                        &self.short,
+                        format!(
+                            "cannot rename {} to {}",
+                            io::lossy(&a_path),
+                            io::lossy(&new_path)
+                        ),
+                        e,
+                    );
                     let _ = s.unlinkat(Fd::CWD, &new_path, AtFlags::empty());
                     return Err(Some(e));
                 }
@@ -398,29 +474,57 @@ impl Hl {
         }
         let included = Self::match_any(&self.o.include, fpath);
         let excluded = Self::match_any(&self.o.exclude, fpath);
-        if (!self.o.exclude.is_empty() && excluded && !included) || (self.o.exclude.is_empty() && !self.o.include.is_empty() && !included) {
-            self.jlog(JLOG_VERBOSE1, format!("Skipped (excluded) {}", io::lossy(fpath)));
+        if (!self.o.exclude.is_empty() && excluded && !included)
+            || (self.o.exclude.is_empty() && !self.o.include.is_empty() && !included)
+        {
+            self.jlog(
+                JLOG_VERBOSE1,
+                format!("Skipped (excluded) {}", io::lossy(fpath)),
+            );
             return;
         }
 
         self.stats.files += 1;
 
         if st.size < self.o.min_size {
-            self.jlog(JLOG_VERBOSE1, format!("Skipped (smaller than configured size) {}", io::lossy(fpath)));
+            self.jlog(
+                JLOG_VERBOSE1,
+                format!(
+                    "Skipped (smaller than configured size) {}",
+                    io::lossy(fpath)
+                ),
+            );
             return;
         }
 
         self.jlog(
             JLOG_VERBOSE2,
-            format!(" {:>5}: [{}/{}/{}] {}", self.stats.files, st.dev, st.ino, st.nlink, io::lossy(fpath)),
+            format!(
+                " {:>5}: [{}/{}/{}] {}",
+                self.stats.files,
+                st.dev,
+                st.ino,
+                st.nlink,
+                io::lossy(fpath)
+            ),
         );
 
         if self.o.max_size > 0 && st.size > self.o.max_size {
-            self.jlog(JLOG_VERBOSE1, format!("Skipped (greater than configured size) {}", io::lossy(fpath)));
+            self.jlog(
+                JLOG_VERBOSE1,
+                format!(
+                    "Skipped (greater than configured size) {}",
+                    io::lossy(fpath)
+                ),
+            );
             return;
         }
 
-        let link = Link { path: fpath.to_vec(), basename: base, dirname: self.rootbasesz };
+        let link = Link {
+            path: fpath.to_vec(),
+            basename: base,
+            dirname: self.rootbasesz,
+        };
         let ent = FileEnt {
             dev: st.dev,
             ino: st.ino,
@@ -436,7 +540,11 @@ impl Hl {
         let key: InoKey = (
             st.dev,
             st.ino,
-            if self.o.respect_name { Self::filename(&ent).to_vec() } else { Vec::new() },
+            if self.o.respect_name {
+                Self::filename(&ent).to_vec()
+            } else {
+                Vec::new()
+            },
             if self.o.respect_dir {
                 let (n, d) = Self::dirname(&ent);
                 (n, d.to_vec())
@@ -448,7 +556,10 @@ impl Hl {
         if let Some(&idx) = self.by_ino.get(&key) {
             // Already known inode, add link to inode information
             if self.files[idx].links.iter().any(|l| l.path == fpath) {
-                self.jlog(JLOG_VERBOSE1, format!("Skipped (specified more than once) {}", io::lossy(fpath)));
+                self.jlog(
+                    JLOG_VERBOSE1,
+                    format!("Skipped (specified more than once) {}", io::lossy(fpath)),
+                );
             } else {
                 let l = ent.links.into_iter().next();
                 if let Some(l) = l {
@@ -503,8 +614,12 @@ impl Hl {
             if self.o.within_mount && !top && st.dev != root_dev {
                 return;
             }
-            if !self.o.exclude_subtree.is_empty() && Self::match_any(&self.o.exclude_subtree, fpath) {
-                self.jlog(JLOG_VERBOSE1, format!("Skipped (excluded subtree) {}", io::lossy(fpath)));
+            if !self.o.exclude_subtree.is_empty() && Self::match_any(&self.o.exclude_subtree, fpath)
+            {
+                self.jlog(
+                    JLOG_VERBOSE1,
+                    format!("Skipped (excluded subtree) {}", io::lossy(fpath)),
+                );
                 return;
             }
             let entries = match sys::read_dir(fpath) {
@@ -594,7 +709,10 @@ impl Hl {
     /// `ul_fileeq`: o conteúdo dos dois inodes é igual?
     fn content_equal(&self, a: usize, b: usize) -> bool {
         let read = |p: &[u8]| File::open(p).and_then(|mut f| f.read_to_end_sys());
-        match (read(&self.files[a].links[0].path), read(&self.files[b].links[0].path)) {
+        match (
+            read(&self.files[a].links[0].path),
+            read(&self.files[b].links[0].path),
+        ) {
             (Ok(x), Ok(y)) => x == y,
             _ => false,
         }
@@ -656,13 +774,17 @@ fn run(args: &[OsString]) -> i32 {
             match excl_qv {
                 None => excl_qv = Some(cc),
                 Some(p) if p != cc => {
-                    io::eprint(format!("{short}: mutually exclusive arguments: --quiet --verbose\n"));
+                    io::eprint(format!(
+                        "{short}: mutually exclusive arguments: --quiet --verbose\n"
+                    ));
                     return 1;
                 }
                 _ => {}
             }
         }
-        let size_arg = |what: &str| -> Result<u64, String> { ul::strtosize_or_err(arg.as_deref().unwrap_or(b""), what) };
+        let size_arg = |what: &str| -> Result<u64, String> {
+            ul::strtosize_or_err(arg.as_deref().unwrap_or(b""), what)
+        };
         let regex_arg = |list: &mut Vec<Regex>| -> Result<(), String> {
             let pat = arg.clone().unwrap_or_default();
             match Regex::new(&pat, Syntax::POSIX_EXTENDED) {
@@ -671,7 +793,11 @@ fn run(args: &[OsString]) -> i32 {
                     list.insert(0, re);
                     Ok(())
                 }
-                Err(e) => Err(format!("could not compile regular expression {}: {}", io::lossy(&pat), e.message())),
+                Err(e) => Err(format!(
+                    "could not compile regular expression {}: {}",
+                    io::lossy(&pat),
+                    e.message()
+                )),
             }
         };
         let fail = |m: String| -> i32 {
@@ -783,7 +909,9 @@ fn run(args: &[OsString]) -> i32 {
         return 1;
     }
 
-    let start = sys::try_current().and_then(|s| s.clock_gettime(Clock::Monotonic).ok()).unwrap_or_default();
+    let start = sys::try_current()
+        .and_then(|s| s.clock_gettime(Clock::Monotonic).ok())
+        .unwrap_or_default();
 
     let mut hl = Hl {
         o,
@@ -798,7 +926,13 @@ fn run(args: &[OsString]) -> i32 {
 
     // ul_fileeq_init: memcmp, sha1 e sha256 existem; os outros caem em memcmp.
     if !matches!(hl.o.method.as_str(), "memcmp" | "sha1" | "sha256") {
-        hl.jlog(JLOG_INFO, format!("cannot initialize {} method, use 'memcmp' fallback", hl.o.method));
+        hl.jlog(
+            JLOG_INFO,
+            format!(
+                "cannot initialize {} method, use 'memcmp' fallback",
+                hl.o.method
+            ),
+        );
         hl.o.method = "memcmp".to_string();
     }
 
@@ -807,7 +941,11 @@ fn run(args: &[OsString]) -> i32 {
         let path = match sysio::fs::canonicalize(std::ffi::OsStr::from_bytes(arg)) {
             Ok(p) => p.as_os_str().as_bytes().to_vec(),
             Err(e) => {
-                ul::warn(&short, format!("cannot get realpath: {}", io::lossy(arg)), Errno::from_io(&e));
+                ul::warn(
+                    &short,
+                    format!("cannot get realpath: {}", io::lossy(arg)),
+                    Errno::from_io(&e),
+                );
                 continue;
             }
         };

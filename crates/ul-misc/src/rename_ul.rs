@@ -71,7 +71,10 @@ fn find_from(hay: &[u8], needle: &[u8], start: usize) -> Option<usize> {
     if needle.is_empty() {
         return Some(start);
     }
-    hay[start..].windows(needle.len()).position(|w| w == needle).map(|p| p + start)
+    hay[start..]
+        .windows(needle.len())
+        .position(|w| w == needle)
+        .map(|p| p + start)
 }
 
 /// `ul_basename`: o índice onde começa o último componente; corta as barras finais de `path`.
@@ -79,7 +82,9 @@ fn ul_basename(path: &mut Vec<u8>) -> usize {
     if path.is_empty() {
         return 0;
     }
-    let Some(mut p) = path.iter().rposition(|&b| b == b'/') else { return 0 };
+    let Some(mut p) = path.iter().rposition(|&b| b == b'/') else {
+        return 0;
+    };
     if p + 1 < path.len() {
         return p + 1;
     }
@@ -226,10 +231,20 @@ fn do_symlink(o: &Opts, short: &str, from: &[u8], to: &[u8], s: &[u8]) -> i32 {
         interactive = false;
     }
 
-    if ret == 1 && (nooverwrite || (interactive && (o.noact || !ask(short, newname.as_deref().unwrap_or(b""))))) {
+    if ret == 1
+        && (nooverwrite
+            || (interactive && (o.noact || !ask(short, newname.as_deref().unwrap_or(b"")))))
+    {
         if o.verbose {
             let mut out = io::stdout();
-            let _ = out.write_all(format!("Skipping existing link: `{}' -> `{}'\n", io::lossy(s), io::lossy(&target)).as_bytes());
+            let _ = out.write_all(
+                format!(
+                    "Skipping existing link: `{}' -> `{}'\n",
+                    io::lossy(s),
+                    io::lossy(&target)
+                )
+                .as_bytes(),
+            );
         }
         ret = 0;
     }
@@ -241,15 +256,23 @@ fn do_symlink(o: &Opts, short: &str, from: &[u8], to: &[u8], s: &[u8]) -> i32 {
                 ul::warn(short, format!("{}: unlink failed", io::lossy(s)), e);
                 ret = 2;
             } else if let Err(e) = sys::current().symlinkat(&n, Fd::CWD, s) {
-                ul::warn(short, format!("{}: symlinking to {} failed", io::lossy(s), io::lossy(&n)), e);
+                ul::warn(
+                    short,
+                    format!("{}: symlinking to {} failed", io::lossy(s), io::lossy(&n)),
+                    e,
+                );
                 ret = 2;
             }
         }
     }
     if o.verbose && (o.noact || ret == 1) {
-        let n = newname.as_deref().map_or_else(|| "(null)".to_string(), io::lossy);
+        let n = newname
+            .as_deref()
+            .map_or_else(|| "(null)".to_string(), io::lossy);
         let mut out = io::stdout();
-        let _ = out.write_all(format!("{}: `{}' -> `{}'\n", io::lossy(s), io::lossy(&target), n).as_bytes());
+        let _ = out.write_all(
+            format!("{}: `{}' -> `{}'\n", io::lossy(s), io::lossy(&target), n).as_bytes(),
+        );
     }
     ret
 }
@@ -263,7 +286,9 @@ fn do_file(o: &Opts, short: &str, from: &[u8], to: &[u8], s_in: &[u8]) -> i32 {
         return 2;
     }
     let mut s = s_in.to_vec();
-    let Some(newname) = string_replace(o, from, to, &mut s) else { return 0 };
+    let Some(newname) = string_replace(o, from, to, &mut s) else {
+        return 0;
+    };
 
     if (nooverwrite || interactive) && sys::stat(&newname).is_err() {
         nooverwrite = false;
@@ -273,18 +298,30 @@ fn do_file(o: &Opts, short: &str, from: &[u8], to: &[u8], s_in: &[u8]) -> i32 {
     if nooverwrite || (interactive && (o.noact || !ask(short, &newname))) {
         if o.verbose {
             let mut out = io::stdout();
-            let _ = out.write_all(format!("Skipping existing file: `{}'\n", io::lossy(&newname)).as_bytes());
+            let _ = out.write_all(
+                format!("Skipping existing file: `{}'\n", io::lossy(&newname)).as_bytes(),
+            );
         }
         ret = 0;
     } else if !o.noact
-        && let Err(e) = sys::current().renameat2(Fd::CWD, &s, Fd::CWD, &newname, RenameFlags::empty())
+        && let Err(e) =
+            sys::current().renameat2(Fd::CWD, &s, Fd::CWD, &newname, RenameFlags::empty())
     {
-        ul::warn(short, format!("{}: rename to {} failed", io::lossy(&s), io::lossy(&newname)), e);
+        ul::warn(
+            short,
+            format!(
+                "{}: rename to {} failed",
+                io::lossy(&s),
+                io::lossy(&newname)
+            ),
+            e,
+        );
         ret = 2;
     }
     if o.verbose && (o.noact || ret == 1) {
         let mut out = io::stdout();
-        let _ = out.write_all(format!("`{}' -> `{}'\n", io::lossy(&s), io::lossy(&newname)).as_bytes());
+        let _ =
+            out.write_all(format!("`{}' -> `{}'\n", io::lossy(&s), io::lossy(&newname)).as_bytes());
     }
     ret
 }
@@ -298,7 +335,14 @@ fn run(args: &[OsString]) -> i32 {
     let argv0 = io::argv0(args);
     let short = ul::short_name(args);
 
-    let mut o = Opts { all: false, last: false, verbose: false, noact: false, nooverwrite: false, interactive: false };
+    let mut o = Opts {
+        all: false,
+        last: false,
+        verbose: false,
+        noact: false,
+        nooverwrite: false,
+        interactive: false,
+    };
     let mut symlink = false;
     // err_exclusive_options: {a,l} e {i,o}.
     let mut excl_al: Option<char> = None;
@@ -368,7 +412,11 @@ fn run(args: &[OsString]) -> i32 {
 
     let mut ret = 0;
     for s in &ops[2..] {
-        ret |= if symlink { do_symlink(&o, &short, from, to, s) } else { do_file(&o, &short, from, to, s) };
+        ret |= if symlink {
+            do_symlink(&o, &short, from, to, s)
+        } else {
+            do_file(&o, &short, from, to, s)
+        };
         sys::checkpoint();
     }
     let _ = io::flush_stdout();
@@ -386,27 +434,53 @@ mod tests {
     use super::*;
 
     fn opts(all: bool, last: bool) -> Opts {
-        Opts { all, last, verbose: false, noact: false, nooverwrite: false, interactive: false }
+        Opts {
+            all,
+            last,
+            verbose: false,
+            noact: false,
+            nooverwrite: false,
+            interactive: false,
+        }
     }
 
     fn rep(o: &Opts, from: &str, to: &str, orig: &str) -> Option<String> {
         let mut v = orig.as_bytes().to_vec();
-        string_replace(o, from.as_bytes(), to.as_bytes(), &mut v).map(|r| String::from_utf8_lossy(&r).into_owned())
+        string_replace(o, from.as_bytes(), to.as_bytes(), &mut v)
+            .map(|r| String::from_utf8_lossy(&r).into_owned())
     }
 
     #[test]
     fn first_all_and_last_occurrence() {
-        assert_eq!(rep(&opts(false, false), "a", "X", "banana").as_deref(), Some("bXnana"));
-        assert_eq!(rep(&opts(true, false), "a", "X", "banana").as_deref(), Some("bXnXnX"));
-        assert_eq!(rep(&opts(false, true), "a", "X", "banana").as_deref(), Some("bananX"));
+        assert_eq!(
+            rep(&opts(false, false), "a", "X", "banana").as_deref(),
+            Some("bXnana")
+        );
+        assert_eq!(
+            rep(&opts(true, false), "a", "X", "banana").as_deref(),
+            Some("bXnXnX")
+        );
+        assert_eq!(
+            rep(&opts(false, true), "a", "X", "banana").as_deref(),
+            Some("bananX")
+        );
         assert_eq!(rep(&opts(false, false), "z", "X", "banana"), None);
     }
 
     #[test]
     fn only_last_component_without_slashes() {
-        assert_eq!(rep(&opts(false, false), "a", "X", "dir-a/a-file").as_deref(), Some("dir-a/X-file"));
-        assert_eq!(rep(&opts(false, false), "dir", "X", "dir/dir").as_deref(), Some("dir/X"));
+        assert_eq!(
+            rep(&opts(false, false), "a", "X", "dir-a/a-file").as_deref(),
+            Some("dir-a/X-file")
+        );
+        assert_eq!(
+            rep(&opts(false, false), "dir", "X", "dir/dir").as_deref(),
+            Some("dir/X")
+        );
         assert_eq!(rep(&opts(false, false), "d/", "X", "dir/dir"), None);
-        assert_eq!(rep(&opts(false, false), "", "pre-", "a/b").as_deref(), Some("a/pre-b"));
+        assert_eq!(
+            rep(&opts(false, false), "", "pre-", "a/b").as_deref(),
+            Some("a/pre-b")
+        );
     }
 }

@@ -11,8 +11,8 @@ use std::io::Write;
 
 use regex_posix::{Regex, Syntax};
 use sysabi::{
-    AccessMode, AtFlags, Ctx, Errno, Fd, FdAction, FileType, OFlags, PollEvents, PollFd, ProcAttrs, SpawnSpec, WaitOptions,
-    WaitStatus, WaitTarget, Whence, sys,
+    AccessMode, AtFlags, Ctx, Errno, Fd, FdAction, FileType, OFlags, PollEvents, PollFd, ProcAttrs,
+    SpawnSpec, WaitOptions, WaitStatus, WaitTarget, Whence, sys,
 };
 
 use crate::util::io;
@@ -130,7 +130,11 @@ fn parse_umask(s: &[u8]) -> Option<u32> {
     if i == start {
         return None;
     }
-    let v32 = if neg { (value as u32).wrapping_neg() } else { value as u32 };
+    let v32 = if neg {
+        (value as u32).wrapping_neg()
+    } else {
+        value as u32
+    };
     if v32 > 0o7777 {
         return None;
     }
@@ -140,13 +144,23 @@ fn parse_umask(s: &[u8]) -> Option<u32> {
 /// Compila as expressões do modo; `Err` com a mensagem do `regerror`.
 fn compile_patterns(mode: RegexMode, custom_ere: Option<&[u8]>) -> Result<Patterns, String> {
     let ere = |p: &[u8]| Regex::new(p, Syntax::POSIX_EXTENDED).map_err(|e| e.message().to_string());
-    let mut pt = Patterns { mode, custom: None, hier: None, excs: None, trad: None, classical: None };
+    let mut pt = Patterns {
+        mode,
+        custom: None,
+        hier: None,
+        excs: None,
+        trad: None,
+        classical: None,
+    };
     match mode {
         RegexMode::Ere => pt.custom = Some(ere(custom_ere.unwrap_or(b""))?),
         RegexMode::LsbSysinit => {
             pt.hier = Some(ere(b"^_?([a-z0-9_.]+-)+[a-z0-9]+$")?);
             pt.excs = Some(ere(b"^[a-z0-9-].*\\.dpkg-(old|dist|new|tmp)$")?);
-            pt.trad = Some(Regex::new(b"^[a-z0-9][a-z0-9_-]*$", Syntax::POSIX_BASIC).map_err(|e| e.message().to_string())?);
+            pt.trad = Some(
+                Regex::new(b"^[a-z0-9][a-z0-9_-]*$", Syntax::POSIX_BASIC)
+                    .map_err(|e| e.message().to_string())?,
+            );
         }
         RegexMode::Normal => pt.classical = Some(ere(b"^[a-zA-Z0-9_-]+$")?),
     }
@@ -229,11 +243,20 @@ fn run_part(st: &Settings, progname: &[u8], stdin_fd: Option<Fd>) -> Option<i32>
     {
         // O filho compartilha o deslocamento do arquivo: rebobina antes de cada programa.
         let _ = s.lseek(fd, 0, Whence::Set);
-        actions.push(FdAction::Dup2 { from: fd, to: Fd::STDIN });
+        actions.push(FdAction::Dup2 {
+            from: fd,
+            to: Fd::STDIN,
+        });
     }
     if let Some(((po_r, po_w), (pe_r, pe_w))) = pipes {
-        actions.push(FdAction::Dup2 { from: po_w, to: Fd::STDOUT });
-        actions.push(FdAction::Dup2 { from: pe_w, to: Fd::STDERR });
+        actions.push(FdAction::Dup2 {
+            from: po_w,
+            to: Fd::STDOUT,
+        });
+        actions.push(FdAction::Dup2 {
+            from: pe_w,
+            to: Fd::STDERR,
+        });
         actions.push(FdAction::Close(po_r));
         actions.push(FdAction::Close(pe_r));
         actions.push(FdAction::Close(po_w));
@@ -242,15 +265,27 @@ fn run_part(st: &Settings, progname: &[u8], stdin_fd: Option<Fd>) -> Option<i32>
 
     let mut argv: Vec<Vec<u8>> = vec![progname.to_vec()];
     argv.extend(st.args.iter().cloned());
-    let attrs = ProcAttrs { fd_actions: actions, new_session: st.new_session_mode, ..ProcAttrs::default() };
-    let spawned = s.spawn(SpawnSpec { path: progname.to_vec(), argv, attrs });
+    let attrs = ProcAttrs {
+        fd_actions: actions,
+        new_session: st.new_session_mode,
+        ..ProcAttrs::default()
+    };
+    let spawned = s.spawn(SpawnSpec {
+        path: progname.to_vec(),
+        argv,
+        attrs,
+    });
 
     let mut printflag = false;
     let status: WaitStatus;
     match spawned {
         Err(e) => {
             // O filho do original escreve a mensagem e sai com 1 (no stderr dele, ou seja, no pipe).
-            let msg = format!("run-parts: failed to exec {}: {}\n", io::lossy(progname), e.message());
+            let msg = format!(
+                "run-parts: failed to exec {}: {}\n",
+                io::lossy(progname),
+                e.message()
+            );
             if pipes.is_some() {
                 report_chunk(progname, true, msg.as_bytes(), &mut printflag);
             } else {
@@ -274,7 +309,8 @@ fn run_part(st: &Settings, progname: &[u8], stdin_fd: Option<Fd>) -> Option<i32>
                     if result.is_none() {
                         match s.wait4(WaitTarget::Pid(pid), WaitOptions::NOHANG) {
                             Ok(Some((_, w))) => {
-                                if matches!(w, WaitStatus::Exited(_) | WaitStatus::Signaled { .. }) {
+                                if matches!(w, WaitStatus::Exited(_) | WaitStatus::Signaled { .. })
+                                {
                                     // Programa morto: só lê o que sobrou, sem esperar (pode haver
                                     // netos segurando o pipe).
                                     result = Some(w);
@@ -291,11 +327,19 @@ fn run_part(st: &Settings, progname: &[u8], stdin_fd: Option<Fd>) -> Option<i32>
                     let mut which: Vec<usize> = Vec::new();
                     for (i, f) in open.iter().enumerate() {
                         if let Some(fd) = f {
-                            pfds.push(PollFd { fd: *fd, events: PollEvents::IN, revents: PollEvents::empty() });
+                            pfds.push(PollFd {
+                                fd: *fd,
+                                events: PollEvents::IN,
+                                revents: PollEvents::empty(),
+                            });
                             which.push(i);
                         }
                     }
-                    let timeout = if result.is_some() { Some(std::time::Duration::ZERO) } else { None };
+                    let timeout = if result.is_some() {
+                        Some(std::time::Duration::ZERO)
+                    } else {
+                        None
+                    };
                     let n = match s.poll(&mut pfds, timeout) {
                         Ok(n) => n,
                         Err(Errno::EINTR) => continue,
@@ -321,7 +365,9 @@ fn run_part(st: &Settings, progname: &[u8], stdin_fd: Option<Fd>) -> Option<i32>
                         }
                         let Some(fd) = open[*idx] else { continue };
                         match s.read(fd, &mut buf) {
-                            Ok(c) if c > 0 => report_chunk(progname, *idx == 1, &buf[..c], &mut printflag),
+                            Ok(c) if c > 0 => {
+                                report_chunk(progname, *idx == 1, &buf[..c], &mut printflag)
+                            }
                             Ok(_) => {
                                 let _ = s.close(fd);
                                 open[*idx] = None;
@@ -329,7 +375,11 @@ fn run_part(st: &Settings, progname: &[u8], stdin_fd: Option<Fd>) -> Option<i32>
                             Err(e) => {
                                 let _ = s.close(fd);
                                 open[*idx] = None;
-                                let which_pipe = if *idx == 0 { "stdout pipe" } else { "error pipe" };
+                                let which_pipe = if *idx == 0 {
+                                    "stdout pipe"
+                                } else {
+                                    "error pipe"
+                                };
                                 error(format!("failed to read from {which_pipe}: {}", e.message()));
                             }
                         }
@@ -352,11 +402,19 @@ fn run_part(st: &Settings, progname: &[u8], stdin_fd: Option<Fd>) -> Option<i32>
 
     match status {
         WaitStatus::Exited(code) if code != 0 => {
-            error(format!("{} exited with return code {}", io::lossy(progname), code));
+            error(format!(
+                "{} exited with return code {}",
+                io::lossy(progname),
+                code
+            ));
             Some(code)
         }
         WaitStatus::Signaled { signal, .. } => {
-            error(format!("{} exited because of uncaught signal {}", io::lossy(progname), signal.0));
+            error(format!(
+                "{} exited because of uncaught signal {}",
+                io::lossy(progname),
+                signal.0
+            ));
             Some(1)
         }
         _ => None,
@@ -374,8 +432,16 @@ fn copy_stdin() -> Option<Fd> {
         let _ = s.getrandom(&mut rnd);
         let mut path = tmpdir.clone();
         path.extend_from_slice(b"/run-parts.stdin.");
-        path.extend(rnd.iter().map(|b| ALPHABET[usize::from(*b) % ALPHABET.len()]));
-        match s.openat(Fd::CWD, &path, OFlags::RDWR | OFlags::CREAT | OFlags::EXCL | OFlags::CLOEXEC, 0o600) {
+        path.extend(
+            rnd.iter()
+                .map(|b| ALPHABET[usize::from(*b) % ALPHABET.len()]),
+        );
+        match s.openat(
+            Fd::CWD,
+            &path,
+            OFlags::RDWR | OFlags::CREAT | OFlags::EXCL | OFlags::CLOEXEC,
+            0o600,
+        ) {
             Ok(f) => {
                 let _ = s.unlinkat(Fd::CWD, &path, AtFlags::empty());
                 fd = Some(f);
@@ -414,7 +480,9 @@ fn run_parts(st: &Settings, pt: &Patterns, dirnames: &[Vec<u8>], exitstatus_in: 
     // 1st step: gather a list of all files in the given directories
     let mut basenames: Vec<Vec<u8>> = Vec::new();
     for dir in dirnames {
-        let Ok(entries) = sys::read_dir(dir) else { continue };
+        let Ok(entries) = sys::read_dir(dir) else {
+            continue;
+        };
         for e in entries {
             if !pt.valid_name(&e.name, st.debug_mode) {
                 continue;
@@ -471,7 +539,11 @@ fn run_parts(st: &Settings, pt: &Patterns, dirnames: &[Vec<u8>], exitstatus_in: 
     }
 
     // 5th step: process the list of full paths
-    let order: Vec<usize> = if st.reverse_mode { (0..full_paths.len()).rev().collect() } else { (0..full_paths.len()).collect() };
+    let order: Vec<usize> = if st.reverse_mode {
+        (0..full_paths.len()).rev().collect()
+    } else {
+        (0..full_paths.len()).collect()
+    };
     let mut out = io::stdout();
     let s = sys::current();
     for i in order {
@@ -482,7 +554,11 @@ fn run_parts(st: &Settings, pt: &Patterns, dirnames: &[Vec<u8>], exitstatus_in: 
         let stat = match sys::stat(filename) {
             Ok(x) => x,
             Err(e) => {
-                error(format!("failed to stat component {}: {}", io::lossy(filename), e.message()));
+                error(format!(
+                    "failed to stat component {}: {}",
+                    io::lossy(filename),
+                    e.message()
+                ));
                 if st.exit_on_error_mode {
                     sys::exit(1);
                 }
@@ -491,8 +567,12 @@ fn run_parts(st: &Settings, pt: &Patterns, dirnames: &[Vec<u8>], exitstatus_in: 
         };
         match stat.file_type() {
             FileType::Regular => {
-                let can_exec = s.faccessat(Fd::CWD, filename, AccessMode::X_OK, AtFlags::empty()).is_ok();
-                let can_read = s.faccessat(Fd::CWD, filename, AccessMode::R_OK, AtFlags::empty()).is_ok();
+                let can_exec = s
+                    .faccessat(Fd::CWD, filename, AccessMode::X_OK, AtFlags::empty())
+                    .is_ok();
+                let can_read = s
+                    .faccessat(Fd::CWD, filename, AccessMode::R_OK, AtFlags::empty())
+                    .is_ok();
                 if can_exec {
                     if st.test_mode {
                         let _ = out.write_all(filename);
@@ -528,7 +608,10 @@ fn run_parts(st: &Settings, pt: &Patterns, dirnames: &[Vec<u8>], exitstatus_in: 
             FileType::Directory => {}
             _ => {
                 if !st.list_mode {
-                    error(format!("run-parts: component {} is not an executable plain file\n", io::lossy(filename)));
+                    error(format!(
+                        "run-parts: component {} is not an executable plain file\n",
+                        io::lossy(filename)
+                    ));
                     exitstatus = 1;
                 }
             }
@@ -568,7 +651,10 @@ fn run(args: &[OsString]) -> i32 {
         let o = match r {
             Ok(o) => o,
             Err(e) => {
-                io::eprint(format!("{}\nTry `run-parts --help' for more information.\n", e.message(&argv0)));
+                io::eprint(format!(
+                    "{}\nTry `run-parts --help' for more information.\n",
+                    e.message(&argv0)
+                ));
                 return 1;
             }
         };

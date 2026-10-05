@@ -62,14 +62,19 @@ pub fn format(fmt: &[u8], arg: Arg<'_>) -> Vec<u8> {
             i += 1;
         }
         while i < fmt.len() && is_digit(fmt[i]) {
-            sp.width = sp.width.saturating_mul(10).saturating_add(usize::from(fmt[i] - b'0'));
+            sp.width = sp
+                .width
+                .saturating_mul(10)
+                .saturating_add(usize::from(fmt[i] - b'0'));
             i += 1;
         }
         if i < fmt.len() && fmt[i] == b'.' {
             i += 1;
             let mut p = 0usize;
             while i < fmt.len() && is_digit(fmt[i]) {
-                p = p.saturating_mul(10).saturating_add(usize::from(fmt[i] - b'0'));
+                p = p
+                    .saturating_mul(10)
+                    .saturating_add(usize::from(fmt[i] - b'0'));
                 i += 1;
             }
             sp.prec = Some(p);
@@ -109,10 +114,14 @@ fn pad(out: &mut Vec<u8>, body: &[u8], sp: &Spec, zero_ok: bool) {
     } else if zero_ok && sp.zero {
         // Zeros entram depois do sinal e do prefixo `0x`.
         let mut split = 0;
-        if body.first().is_some_and(|c| matches!(c, b'-' | b'+' | b' ')) {
+        if body
+            .first()
+            .is_some_and(|c| matches!(c, b'-' | b'+' | b' '))
+        {
             split = 1;
         }
-        if body.len() >= split + 2 && body[split] == b'0' && matches!(body[split + 1], b'x' | b'X') {
+        if body.len() >= split + 2 && body[split] == b'0' && matches!(body[split + 1], b'x' | b'X')
+        {
             split += 2;
         }
         out.extend_from_slice(&body[..split]);
@@ -146,7 +155,11 @@ fn int_value(arg: Arg<'_>, len: i8, signed: bool) -> (bool, u64) {
             }
         }
     };
-    let masked = if bits == 64 { raw } else { raw & ((1u64 << bits) - 1) };
+    let masked = if bits == 64 {
+        raw
+    } else {
+        raw & ((1u64 << bits) - 1)
+    };
     if signed {
         let v: i64 = match bits {
             8 => masked as u8 as i8 as i64,
@@ -266,7 +279,14 @@ fn format_double(d: f64, sp: &Spec) -> Vec<u8> {
     let a = d.abs();
     if !d.is_finite() {
         let t = if d.is_nan() { "nan" } else { "inf" };
-        body.extend_from_slice(if upper { t.to_uppercase() } else { t.to_string() }.as_bytes());
+        body.extend_from_slice(
+            if upper {
+                t.to_uppercase()
+            } else {
+                t.to_string()
+            }
+            .as_bytes(),
+        );
         return body;
     }
     let prec = sp.prec.unwrap_or(6);
@@ -286,7 +306,10 @@ fn format_double(d: f64, sp: &Spec) -> Vec<u8> {
                 0
             } else {
                 let e = exp_format(a, p - 1, false);
-                e.rsplit('e').next().and_then(|s| s.parse::<i32>().ok()).unwrap_or(0)
+                e.rsplit('e')
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0)
             };
             let mut t = if p as i32 > x && x >= -4 {
                 let fp = (p as i32 - 1 - x) as usize;
@@ -321,7 +344,11 @@ fn strip_g_zeros(t: &str) -> String {
         Some(i) => (&t[..i], &t[i..]),
         None => (t, ""),
     };
-    let mant = if mant.contains('.') { mant.trim_end_matches('0').trim_end_matches('.') } else { mant };
+    let mant = if mant.contains('.') {
+        mant.trim_end_matches('0').trim_end_matches('.')
+    } else {
+        mant
+    };
     format!("{mant}{exp}")
 }
 
@@ -368,7 +395,9 @@ fn first_conv(fmt: &[u8]) -> Option<Option<Kind>> {
             i += 1;
         }
         let k = match fmt.get(i)? {
-            b'd' | b'i' | b'u' | b'o' | b'x' | b'X' | b'c' => Kind::Int(if len < 0 { 0 } else { len }),
+            b'd' | b'i' | b'u' | b'o' | b'x' | b'X' | b'c' => {
+                Kind::Int(if len < 0 { 0 } else { len })
+            }
             b's' => Kind::Str,
             b'e' | b'E' | b'f' | b'F' | b'g' | b'G' | b'a' | b'A' => Kind::Double,
             _ => return None,

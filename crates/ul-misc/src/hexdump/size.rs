@@ -30,7 +30,10 @@ fn strtoumax(s: &[u8], i: usize) -> (u64, usize, bool) {
         }
         _ => false,
     };
-    let (base, mut k) = if at(s, j) == b'0' && matches!(at(s, j + 1), b'x' | b'X') && at(s, j + 2).is_ascii_hexdigit() {
+    let (base, mut k) = if at(s, j) == b'0'
+        && matches!(at(s, j + 1), b'x' | b'X')
+        && at(s, j + 2).is_ascii_hexdigit()
+    {
         (16, j + 2)
     } else if at(s, j) == b'0' {
         (8, j)
@@ -41,7 +44,10 @@ fn strtoumax(s: &[u8], i: usize) -> (u64, usize, bool) {
     let mut v: u64 = 0;
     let mut overflow = false;
     while let Some(d) = (at(s, k) as char).to_digit(base) {
-        match v.checked_mul(u64::from(base)).and_then(|x| x.checked_add(u64::from(d))) {
+        match v
+            .checked_mul(u64::from(base))
+            .and_then(|x| x.checked_add(u64::from(d)))
+        {
             Some(x) => v = x,
             None => overflow = true,
         }
@@ -134,7 +140,11 @@ pub fn parse_size(s: &[u8]) -> Result<u64, Errno> {
     const SUF: &[u8] = b"KMGTPEZY";
     const SUF2: &[u8] = b"kmgtpezy";
     let c = at(s, p);
-    let pwr = match SUF.iter().position(|&b| b == c && c != 0).or_else(|| SUF2.iter().position(|&b| b == c && c != 0)) {
+    let pwr = match SUF
+        .iter()
+        .position(|&b| b == c && c != 0)
+        .or_else(|| SUF2.iter().position(|&b| b == c && c != 0))
+    {
         Some(i) => i as u32 + 1,
         None => return Err(Errno::EINVAL),
     };
