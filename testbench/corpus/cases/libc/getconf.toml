@@ -1,0 +1,345 @@
+tool = "getconf"
+source = "manual"
+
+# getconf da glibc 2.41. Os valores que dependem da máquina (ARG_MAX por limite de pilha aparte,
+# OPEN_MAX, CHILD_MAX, páginas de memória, número de CPUs, caches) ficam fora das comparações diretas;
+# o -a é conferido pelos nomes e pelas linhas de valor fixo.
+
+[[case]]
+id = "getconf-version"
+argv = ["getconf", "--version"]
+
+[[case]]
+id = "getconf-version-extra-arg"
+argv = ["getconf", "--version", "x"]
+
+[[case]]
+id = "getconf-help"
+argv = ["getconf", "--help"]
+
+[[case]]
+id = "getconf-no-args"
+argv = ["getconf"]
+
+[[case]]
+id = "getconf-unknown-variable"
+argv = ["getconf", "FOO"]
+
+[[case]]
+id = "getconf-unknown-posix-prefix"
+argv = ["getconf", "POSIX_ARG_MAX"]
+
+[[case]]
+id = "getconf-unknown-option-like"
+argv = ["getconf", "-x"]
+
+[[case]]
+id = "getconf-unknown-long-option-like"
+argv = ["getconf", "--vers"]
+
+[[case]]
+id = "getconf-capital-v"
+argv = ["getconf", "-V"]
+
+[[case]]
+id = "getconf-double-dash"
+argv = ["getconf", "--", "PAGESIZE"]
+
+[[case]]
+id = "getconf-double-dash-only"
+argv = ["getconf", "--"]
+
+[[case]]
+id = "getconf-too-many-args"
+argv = ["getconf", "PAGESIZE", "extra"]
+
+[[case]]
+id = "getconf-too-many-args-path"
+argv = ["getconf", "PATH_MAX", "/", "extra"]
+
+[[case]]
+id = "getconf-path-variable-without-path"
+argv = ["getconf", "PATH_MAX"]
+
+[[case]]
+id = "getconf-path-variable-without-path-linkmax"
+argv = ["getconf", "LINK_MAX"]
+
+[[case]]
+id = "getconf-sysconf-with-path"
+argv = ["getconf", "LONG_BIT", "/"]
+
+[[case]]
+id = "getconf-confstr-with-path"
+argv = ["getconf", "PATH", "/"]
+
+[[case]]
+id = "getconf-a-extra"
+argv = ["getconf", "-a", "/", "x"]
+
+# ---- sysconf constantes ----
+
+[[case]]
+id = "getconf-pagesize"
+argv = ["getconf", "PAGESIZE"]
+
+[[case]]
+id = "getconf-page-size"
+argv = ["getconf", "PAGE_SIZE"]
+
+[[case]]
+id = "getconf-limits-c"
+script = '''
+for v in CHAR_BIT CHAR_MAX CHAR_MIN SCHAR_MAX SCHAR_MIN UCHAR_MAX SHRT_MAX SHRT_MIN USHRT_MAX INT_MAX INT_MIN UINT_MAX ULONG_MAX LONG_BIT WORD_BIT MB_LEN_MAX SSIZE_MAX; do
+  echo "$v=$(getconf $v)"
+done
+'''
+
+[[case]]
+id = "getconf-ulong-max"
+argv = ["getconf", "ULONG_MAX"]
+
+[[case]]
+id = "getconf-limits-posix2"
+script = '''
+for v in BC_BASE_MAX BC_DIM_MAX BC_SCALE_MAX BC_STRING_MAX CHARCLASS_NAME_MAX COLL_WEIGHTS_MAX EQUIV_CLASS_MAX EXPR_NEST_MAX LINE_MAX RE_DUP_MAX POSIX2_BC_BASE_MAX POSIX2_LINE_MAX _POSIX2_LINE_MAX POSIX2_RE_DUP_MAX POSIX2_VERSION POSIX2_C_BIND POSIX2_C_DEV POSIX2_C_VERSION POSIX2_CHAR_TERM POSIX2_LOCALEDEF POSIX2_SW_DEV POSIX2_FORT_DEV POSIX2_FORT_RUN POSIX2_UPE POSIX2_PBS; do
+  echo "$v=$(getconf $v)"
+done
+'''
+
+[[case]]
+id = "getconf-limits-system"
+script = '''
+for v in CLK_TCK IOV_MAX UIO_MAXIOV _T_IOV_MAX LOGNAME_MAX LOGIN_NAME_MAX HOST_NAME_MAX TTY_NAME_MAX NL_ARGMAX NL_LANGMAX NL_MSGMAX NL_NMAX NL_SETMAX NL_TEXTMAX NSS_BUFLEN_GROUP NSS_BUFLEN_PASSWD NZERO PASS_MAX ATEXIT_MAX STREAM_MAX TZNAME_MAX SYMLOOP_MAX RTSIG_MAX SEM_VALUE_MAX SEM_NSEMS_MAX DELAYTIMER_MAX AIO_MAX AIO_LISTIO_MAX AIO_PRIO_DELTA_MAX MQ_OPEN_MAX MQ_PRIO_MAX TIMER_MAX NGROUPS_MAX PTHREAD_KEYS_MAX PTHREAD_STACK_MIN PTHREAD_THREADS_MAX PTHREAD_DESTRUCTOR_ITERATIONS; do
+  echo "$v=$(getconf $v)"
+done
+'''
+
+[[case]]
+id = "getconf-arg-max"
+argv = ["getconf", "ARG_MAX"]
+
+[[case]]
+id = "getconf-posix-versions"
+script = '''
+for v in _POSIX_VERSION _POSIX_JOB_CONTROL _POSIX_SAVED_IDS _POSIX_THREADS _POSIX_TIMERS _POSIX_SEMAPHORES _POSIX_SHARED_MEMORY_OBJECTS _POSIX_SPAWN _POSIX_REGEXP _POSIX_SHELL _POSIX_MONOTONIC_CLOCK _POSIX_CPUTIME _POSIX_THREAD_CPUTIME _POSIX_TIMEOUTS _POSIX_BARRIERS _POSIX_SPIN_LOCKS _POSIX_READER_WRITER_LOCKS _POSIX_CLOCK_SELECTION _POSIX_ADVISORY_INFO _POSIX_IPV6 _POSIX_RAW_SOCKETS IPV6 RAW_SOCKETS _POSIX_THREAD_ROBUST_PRIO_INHERIT _POSIX_THREAD_PROCESS_SHARED _POSIX_ASYNCHRONOUS_IO _POSIX_FSYNC _POSIX_MAPPED_FILES _POSIX_MEMLOCK _POSIX_MESSAGE_PASSING _POSIX_PRIORITIZED_IO _POSIX_PRIORITY_SCHEDULING _POSIX_REALTIME_SIGNALS _POSIX_SYNCHRONIZED_IO _POSIX_SSIZE_MAX _POSIX_STREAM_MAX _POSIX_PII _POSIX_SELECT _POSIX_POLL _POSIX_TRACE _POSIX_USER_GROUPS _POSIX_TYPED_MEMORY_OBJECTS _POSIX_SPORADIC_SERVER; do
+  echo "$v=$(getconf $v)"
+done
+'''
+
+[[case]]
+id = "getconf-posix-prefix-stripped"
+script = '''
+for v in VERSION JOB_CONTROL THREADS V7_LP64_OFF64 V6_LP64_OFF64 V7_ILP32_OFF32 SAVED_IDS TIMERS NO_TRUNC V7_WIDTH_RESTRICTED_ENVS; do
+  echo "$v=$(getconf $v 2>&1)"
+done
+getconf POSIX_NO_TRUNC /
+echo "rc=$?"
+getconf NO_TRUNC /
+echo "rc=$?"
+'''
+
+[[case]]
+id = "getconf-xopen"
+script = '''
+for v in _XOPEN_VERSION _XOPEN_XCU_VERSION _XOPEN_UNIX _XOPEN_CRYPT _XOPEN_ENH_I18N _XOPEN_LEGACY _XOPEN_REALTIME _XOPEN_REALTIME_THREADS _XOPEN_SHM _XOPEN_XPG2 _XOPEN_XPG3 _XOPEN_XPG4; do
+  echo "$v=$(getconf $v)"
+done
+'''
+
+[[case]]
+id = "getconf-cache-names-defined"
+script = '''
+for v in LEVEL1_ICACHE_SIZE LEVEL1_DCACHE_LINESIZE LEVEL2_CACHE_SIZE LEVEL3_CACHE_SIZE LEVEL4_CACHE_SIZE; do
+  getconf $v >/dev/null 2>&1
+  echo "$v rc=$?"
+done
+'''
+
+# ---- confstr ----
+
+[[case]]
+id = "getconf-path"
+argv = ["getconf", "PATH"]
+
+[[case]]
+id = "getconf-cs-path"
+argv = ["getconf", "CS_PATH"]
+
+[[case]]
+id = "getconf-libc-version"
+argv = ["getconf", "GNU_LIBC_VERSION"]
+
+[[case]]
+id = "getconf-libpthread-version"
+argv = ["getconf", "GNU_LIBPTHREAD_VERSION"]
+
+[[case]]
+id = "getconf-lfs"
+script = '''
+for v in LFS_CFLAGS LFS_LDFLAGS LFS_LIBS LFS_LINTFLAGS LFS64_CFLAGS LFS64_LDFLAGS LFS64_LIBS LFS64_LINTFLAGS; do
+  echo "$v=[$(getconf $v)]"
+done
+'''
+
+[[case]]
+id = "getconf-environments"
+script = '''
+for v in _POSIX_V7_LP64_OFF64 POSIX_V7_LP64_OFF64_CFLAGS POSIX_V7_LP64_OFF64_LDFLAGS POSIX_V7_LP64_OFF64_LIBS POSIX_V7_LP64_OFF64_LINTFLAGS _POSIX_V7_ILP32_OFF32 POSIX_V7_ILP32_OFF32_CFLAGS _POSIX_V7_ILP32_OFFBIG _POSIX_V7_LPBIG_OFFBIG POSIX_V7_WIDTH_RESTRICTED_ENVS _POSIX_V7_WIDTH_RESTRICTED_ENVS _POSIX_V6_LP64_OFF64 POSIX_V6_LP64_OFF64_CFLAGS POSIX_V6_WIDTH_RESTRICTED_ENVS _XBS5_LP64_OFF64 XBS5_LP64_OFF64_CFLAGS XBS5_LP64_OFF64_LDFLAGS _XBS5_ILP32_OFF32 XBS5_WIDTH_RESTRICTED_ENVS _XBS5_WIDTH_RESTRICTED_ENVS; do
+  echo "$v=[$(getconf $v)]"
+done
+'''
+
+# ---- -v ----
+
+[[case]]
+id = "getconf-v-separate"
+argv = ["getconf", "-v", "POSIX_V7_LP64_OFF64", "PAGESIZE"]
+
+[[case]]
+id = "getconf-v-attached"
+argv = ["getconf", "-vPOSIX_V7_LP64_OFF64", "PAGESIZE"]
+
+[[case]]
+id = "getconf-v-unknown-spec"
+argv = ["getconf", "-v", "bogus", "PAGESIZE"]
+
+[[case]]
+id = "getconf-v-without-arg"
+argv = ["getconf", "-v"]
+
+[[case]]
+id = "getconf-v-spec-only"
+argv = ["getconf", "-v", "spec"]
+
+[[case]]
+id = "getconf-v-attached-only"
+argv = ["getconf", "-vspec"]
+
+[[case]]
+id = "getconf-v-with-flags"
+argv = ["getconf", "-v", "POSIX_V7_LP64_OFF64", "POSIX_V7_LP64_OFF64_CFLAGS"]
+
+[[case]]
+id = "getconf-v-then-a"
+script = '''
+getconf -v POSIX_V7_LP64_OFF64 -a | wc -l
+'''
+
+[[case]]
+id = "getconf-v-after-variable"
+argv = ["getconf", "PAGESIZE", "-v"]
+
+# ---- pathconf ----
+
+[[case]]
+id = "getconf-path-vars-root"
+script = '''
+for v in PATH_MAX _POSIX_PATH_MAX NAME_MAX _POSIX_NAME_MAX LINK_MAX _POSIX_LINK_MAX MAX_CANON MAX_INPUT PIPE_BUF _POSIX_PIPE_BUF _POSIX_CHOWN_RESTRICTED _POSIX_NO_TRUNC _POSIX_VDISABLE SOCK_MAXBUF _POSIX_ASYNC_IO _POSIX_PRIO_IO _POSIX_SYNC_IO FILESIZEBITS POSIX2_SYMLINKS SYMLINK_MAX POSIX_REC_INCR_XFER_SIZE POSIX_REC_MAX_XFER_SIZE POSIX_REC_MIN_XFER_SIZE POSIX_REC_XFER_ALIGN POSIX_ALLOC_SIZE_MIN; do
+  echo "$v=$(getconf $v / 2>&1)"
+done
+'''
+
+[[case]]
+id = "getconf-path-vars-dot"
+script = '''
+for v in PATH_MAX NAME_MAX LINK_MAX FILESIZEBITS POSIX_REC_XFER_ALIGN _POSIX_ASYNC_IO POSIX2_SYMLINKS; do
+  echo "$v=$(getconf $v . 2>&1)"
+done
+'''
+
+[[case]]
+id = "getconf-path-vars-regular-file"
+script = '''
+echo data > file.txt
+for v in _POSIX_ASYNC_IO PATH_MAX NAME_MAX LINK_MAX POSIX_REC_MIN_XFER_SIZE; do
+  echo "$v=$(getconf $v file.txt 2>&1)"
+done
+'''
+
+[[case]]
+id = "getconf-path-vars-device"
+script = '''
+for v in _POSIX_ASYNC_IO NAME_MAX; do
+  echo "$v=$(getconf $v /dev/null 2>&1)"
+done
+'''
+
+[[case]]
+id = "getconf-path-nonexistent"
+script = '''
+for v in PATH_MAX NAME_MAX LINK_MAX _POSIX_ASYNC_IO MAX_CANON PIPE_BUF _POSIX_NO_TRUNC _POSIX_CHOWN_RESTRICTED FILESIZEBITS POSIX2_SYMLINKS POSIX_REC_XFER_ALIGN SYMLINK_MAX SOCK_MAXBUF; do
+  getconf $v /nonexistent/path
+  echo "$v rc=$?"
+done
+'''
+
+[[case]]
+id = "getconf-path-empty"
+script = '''
+for v in PATH_MAX NAME_MAX LINK_MAX _POSIX_VDISABLE; do
+  getconf $v ""
+  echo "$v rc=$?"
+done
+'''
+
+[[case]]
+id = "getconf-path-not-a-directory"
+script = '''
+echo data > file.txt
+getconf NAME_MAX file.txt/child
+echo "rc=$?"
+getconf PATH_MAX file.txt/child
+echo "rc=$?"
+'''
+
+[[case]]
+id = "getconf-path-with-spaces"
+script = '''
+mkdir "a b"
+getconf NAME_MAX "a b"
+echo "rc=$?"
+'''
+
+# ---- -a ----
+
+[[case]]
+id = "getconf-a-names"
+script = '''
+getconf -a | cut -c1-35 | sed 's/ *$//' | md5sum
+getconf -a | wc -l
+getconf -a | head -n 1
+getconf -a | tail -n 1
+'''
+
+[[case]]
+id = "getconf-a-fixed-lines"
+script = '''
+getconf -a | grep -v -E '^(ARG_MAX|CHILD_MAX|OPEN_MAX|_AVPHYS_PAGES|_PHYS_PAGES|_NPROCESSORS_CONF|NPROCESSORS_CONF|_NPROCESSORS_ONLN|NPROCESSORS_ONLN|_POSIX_ARG_MAX|_POSIX_CHILD_MAX|_POSIX_OPEN_MAX|SIGQUEUE_MAX|LEVEL[0-9])'
+'''
+
+[[case]]
+id = "getconf-a-with-path"
+script = '''
+getconf -a /dev/null | head -n 19
+'''
+
+[[case]]
+id = "getconf-a-nonexistent-path"
+script = '''
+getconf -a /nonexistent | head -n 20
+echo "pipeline done"
+'''
+
+[[case]]
+id = "getconf-a-empty-path"
+script = '''
+getconf -a "" | head -n 12
+'''
+
+[[case]]
+id = "getconf-a-padding"
+script = '''
+getconf -a | head -n 3 | cat -A
+getconf -a | grep -E '^(GNU_LIBC_VERSION|PATH|LFS_CFLAGS|ULONG_MAX|UINT_MAX|TZNAME_MAX) ' | cat -A
+'''
