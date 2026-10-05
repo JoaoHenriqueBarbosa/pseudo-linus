@@ -1,0 +1,32 @@
+tool = "dpkg-trigger"
+source = "manual"
+
+# dpkg-trigger 1.22 (Debian 13): ajuda, versão, --check-supported e erros de uso.
+
+[[case]]
+id = "dt-help"
+script = "dpkg-trigger --help; echo \"rc=$?\""
+
+[[case]]
+id = "dt-version"
+script = "dpkg-trigger --version; echo \"rc=$?\""
+
+[[case]]
+id = "dt-check-supported"
+script = "dpkg-trigger --check-supported; echo \"rc=$?\""
+
+[[case]]
+id = "dt-no-args"
+script = "dpkg-trigger 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dt-two-args"
+script = "dpkg-trigger a b 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dt-unknown-option"
+script = "dpkg-trigger --bogus 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dt-no-act"
+script = "dpkg-trigger --no-act some-trigger; echo \"rc=$?\""

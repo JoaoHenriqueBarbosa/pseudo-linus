@@ -1,0 +1,60 @@
+tool = "ld"
+source = "manual"
+
+# ld (GNU ld, ld.bfd) do binutils 2.44. Nenhum golden foi gerado aqui. Só ajuda, versão e erros:
+# o port não liga de verdade. O --help não é coberto (o texto do meio não foi reproduzido).
+
+[[case]]
+id = "ld-version"
+argv = ["ld", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "ld-short-v"
+argv = ["ld", "-v"]
+tags = ["help"]
+
+[[case]]
+id = "ld-bfd-version"
+argv = ["ld.bfd", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "ld-no-input"
+script = "ld 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ld-no-input-with-output"
+script = "cd $(mktemp -d); ld -o x 2>&1; echo $?; ls"
+tags = ["error"]
+
+[[case]]
+id = "ld-missing-file"
+script = "ld nao-existe.o 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ld-missing-library"
+script = "ld -lnao-existe-mesmo 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ld-missing-library-dir"
+script = "ld -L/tmp -lnao-existe-mesmo -o x 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ld-bad-option"
+script = "ld --opcao-inexistente 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ld-o-without-arg"
+script = "ld -o 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ld-triplet-version"
+argv = ["x86_64-linux-gnu-ld", "--version"]
+tags = ["help"]

@@ -1,0 +1,44 @@
+tool = "apt-mark"
+source = "manual"
+
+# apt-mark 3.0.3 (Debian 13): ajuda, versão, erros de uso e os comandos show* sem extended_states.
+
+[[case]]
+id = "am-help"
+script = "apt-mark --help; echo \"rc=$?\""
+
+[[case]]
+id = "am-version"
+script = "apt-mark --version; echo \"rc=$?\""
+
+[[case]]
+id = "am-no-command"
+script = "apt-mark; echo \"rc=$?\""
+
+[[case]]
+id = "am-unknown-option"
+script = "apt-mark --bogus 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "am-invalid-operation"
+script = "apt-mark frobnicate 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "am-showmanual-no-states"
+script = "apt-mark -o Dir::State::extended_states=/nonexistent showmanual > out.txt; echo \"rc=$?\"; wc -c < out.txt"
+
+[[case]]
+id = "am-showauto-no-states"
+script = "apt-mark -o Dir::State::extended_states=/nonexistent showauto > out.txt; echo \"rc=$?\"; wc -c < out.txt"
+
+[[case]]
+id = "am-showhold"
+script = "apt-mark showhold > out.txt; echo \"rc=$?\"; wc -c < out.txt"
+
+[[case]]
+id = "am-manual-no-packages"
+script = "apt-mark manual 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "am-manual-unknown"
+script = "apt-mark manual nonexistent-pkg-xyz 2>&1; echo \"rc=$?\""

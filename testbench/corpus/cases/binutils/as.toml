@@ -1,0 +1,40 @@
+tool = "as"
+source = "manual"
+
+# as (GNU assembler) do binutils 2.44. Nenhum golden foi gerado aqui. Só entram casos de ajuda,
+# versão e erro: a montagem de entrada válida não é coberta (o port não tem montador).
+
+[[case]]
+id = "as-version"
+argv = ["as", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "as-help"
+argv = ["as", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "as-missing-file"
+script = "as nao-existe.s 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "as-missing-file-output-opt"
+script = "cd $(mktemp -d); as -o x.o nao-existe.s 2>&1; echo $?; ls"
+tags = ["error"]
+
+[[case]]
+id = "as-bad-option"
+script = "as --opcao-inexistente 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "as-o-without-arg"
+script = "as -o 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "as-triplet-version"
+argv = ["x86_64-linux-gnu-as", "--version"]
+tags = ["help"]

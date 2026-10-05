@@ -1,0 +1,45 @@
+tool = "gprofng"
+source = "manual"
+
+# Família gprofng do binutils 2.44. Nenhum golden foi gerado aqui. Só versão (confiável); os
+# textos de ajuda e de erro do port são reconstruções e não entram no corpus até haver golden.
+
+[[case]]
+id = "gprofng-version"
+argv = ["gprofng", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "gprofng-archive-version"
+argv = ["gprofng-archive", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "gprofng-collect-app-version"
+argv = ["gprofng-collect-app", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "gprofng-display-text-version"
+argv = ["gprofng-display-text", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "gprofng-display-html-version"
+argv = ["gprofng-display-html", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "gprofng-display-src-version"
+argv = ["gprofng-display-src", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "gp-archive-version"
+argv = ["gp-archive", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "gp-display-text-version"
+argv = ["gp-display-text", "--version"]
+tags = ["help"]

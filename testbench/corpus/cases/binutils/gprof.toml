@@ -1,0 +1,60 @@
+tool = "gprof"
+source = "manual"
+
+# gprof do binutils 2.44. Nenhum golden foi gerado aqui. Só ajuda, versão e erros de arquivo:
+# a análise de perfil não é coberta.
+
+[[case]]
+id = "gprof-version"
+argv = ["gprof", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "gprof-help"
+argv = ["gprof", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "gprof-short-help"
+argv = ["gprof", "-h"]
+tags = ["help"]
+
+[[case]]
+id = "gprof-no-args"
+script = "cd $(mktemp -d); gprof 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "gprof-missing-image"
+script = "gprof nao-existe 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "gprof-missing-gmon"
+script = "cd $(mktemp -d); cp /bin/true t; gprof t 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "gprof-bad-gmon"
+script = "cd $(mktemp -d); cp /bin/true t; printf 'xxxxxxxxxxxxxxxxxxxxxxxx' > gmon.out; gprof t 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "gprof-short-gmon"
+script = "cd $(mktemp -d); cp /bin/true t; printf 'ab' > gmon.out; gprof t 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "gprof-not-elf-image"
+script = "cd $(mktemp -d); printf 'texto\\n' > t; gprof t 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "gprof-bad-option"
+script = "gprof --opcao-inexistente 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "gprof-bad-short-option"
+script = "gprof -j 2>&1; echo $?"
+tags = ["error"]

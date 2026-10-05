@@ -1,0 +1,117 @@
+tool = "dpkg"
+source = "manual"
+
+# dpkg 1.22 (Debian 13): ajuda, versão, erros de uso, --compare-versions, arquiteturas, asserts e as
+# ações de consulta contra um --admindir local com status e info/*.list de exemplo.
+
+[[case]]
+id = "dpkg-help"
+script = "dpkg --help; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-version"
+script = "dpkg --version; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-no-action"
+script = "dpkg 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-unknown-option"
+script = "dpkg --bogus 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-conflicting-actions"
+script = "dpkg -l -s 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-print-architecture"
+script = "dpkg --print-architecture; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-print-foreign-architectures"
+script = "dpkg --print-foreign-architectures; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-assert-ok"
+script = "dpkg --assert-multi-arch; echo \"rc=$?\"; dpkg --assert-working-epoch; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-compare-versions-lt"
+script = "dpkg --compare-versions 1.0 lt 1.1; echo \"rc=$?\"; dpkg --compare-versions 1.1 lt 1.0; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-compare-versions-epoch-tilde"
+script = "dpkg --compare-versions 1:0.1 gt 9.9; echo \"rc=$?\"; dpkg --compare-versions 1.0~rc1 lt 1.0; echo \"rc=$?\"; dpkg --compare-versions 1.0-1 lt 1.0-1+b1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-compare-versions-ops"
+script = "for op in lt le eq ne ge gt '<<' '<=' '=' '>=' '>>' '<' '>'; do dpkg --compare-versions 2.0 \"$op\" 2.0; echo \"$op rc=$?\"; done"
+
+[[case]]
+id = "dpkg-compare-versions-empty"
+script = "dpkg --compare-versions '' lt 1; echo \"rc=$?\"; dpkg --compare-versions '' lt-nl 1; echo \"rc=$?\"; dpkg --compare-versions '' eq ''; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-compare-versions-bad-relation"
+script = "dpkg --compare-versions 1 foo 2 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-compare-versions-missing-args"
+script = "dpkg --compare-versions 1 lt 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-install-no-args"
+script = "dpkg -i 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-remove-no-args"
+script = "dpkg -r 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-purge-no-args"
+script = "dpkg -P 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-configure-no-args"
+script = "dpkg --configure 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-list-empty-admindir"
+script = "mkdir adm; dpkg --admindir $PWD/adm -l 2>&1 | sed 's#'$PWD'#PWD#g'; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-list-with-status"
+script = "mkdir adm; printf 'Package: foo\\nStatus: install ok installed\\nPriority: optional\\nSection: misc\\nInstalled-Size: 10\\nMaintainer: A <a@b.c>\\nArchitecture: amd64\\nVersion: 1.0-1\\nDescription: a foo\\n long text\\n\\nPackage: barlongname\\nStatus: deinstall ok config-files\\nArchitecture: all\\nVersion: 2:3.1~rc1-2\\nDescription: bar tool\\n' > adm/status; dpkg --admindir $PWD/adm -l; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-list-pattern"
+script = "mkdir adm; printf 'Package: foo\\nStatus: install ok installed\\nArchitecture: amd64\\nVersion: 1.0\\nDescription: a foo\\n\\nPackage: fob\\nStatus: install ok installed\\nArchitecture: amd64\\nVersion: 1.1\\nDescription: a fob\\n' > adm/status; dpkg --admindir $PWD/adm -l 'fo*'; dpkg --admindir $PWD/adm -l nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-status-package"
+script = "mkdir adm; printf 'Package: foo\\nStatus: install ok installed\\nArchitecture: amd64\\nVersion: 1.0\\nDescription: a foo\\n long\\n' > adm/status; dpkg --admindir $PWD/adm -s foo; echo \"rc=$?\"; dpkg --admindir $PWD/adm -s nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-listfiles"
+script = "mkdir -p adm/info; printf 'Package: foo\\nStatus: install ok installed\\nArchitecture: amd64\\nVersion: 1.0\\nDescription: a foo\\n' > adm/status; printf '/.\\n/usr\\n/usr/bin/foo\\n' > adm/info/foo.list; dpkg --admindir $PWD/adm -L foo; echo \"rc=$?\"; dpkg --admindir $PWD/adm -L nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-search"
+script = "mkdir -p adm/info; printf 'Package: foo\\nStatus: install ok installed\\nArchitecture: amd64\\nVersion: 1.0\\nDescription: a foo\\n' > adm/status; printf '/.\\n/usr\\n/usr/bin/foo\\n' > adm/info/foo.list; dpkg --admindir $PWD/adm -S /usr/bin/foo; dpkg --admindir $PWD/adm -S '*/bin/f*'; dpkg --admindir $PWD/adm -S /nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-get-selections"
+script = "mkdir adm; printf 'Package: foo\\nStatus: install ok installed\\nArchitecture: amd64\\nVersion: 1.0\\nDescription: a foo\\n\\nPackage: held\\nStatus: hold ok installed\\nArchitecture: amd64\\nVersion: 1.0\\nDescription: h\\n' > adm/status; dpkg --admindir $PWD/adm --get-selections | cat -A"
+
+[[case]]
+id = "dpkg-audit-clean"
+script = "mkdir adm; printf 'Package: foo\\nStatus: install ok installed\\nArchitecture: amd64\\nVersion: 1.0\\nDescription: a foo\\n' > adm/status; dpkg --admindir $PWD/adm -C; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-remove-not-installed"
+script = "mkdir adm; printf 'Package: foo\\nStatus: install ok installed\\nArchitecture: amd64\\nVersion: 1.0\\nDescription: a foo\\n' > adm/status; dpkg --admindir $PWD/adm -r nothere 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "dpkg-install-missing-archive"
+script = "mkdir adm; : > adm/status; dpkg --admindir $PWD/adm -i /nope.deb 2>&1; echo \"rc=$?\""
