@@ -1,0 +1,85 @@
+tool = "ar"
+source = "manual"
+
+# ar do binutils 2.44. Os arquivos são montados no próprio script (printf e o próprio ar), em
+# diretório temporário. Nenhum golden foi gerado aqui.
+
+[[case]]
+id = "ar-help"
+argv = ["ar", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "ar-version"
+argv = ["ar", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "ar-no-args"
+argv = ["ar"]
+tags = ["error"]
+
+[[case]]
+id = "ar-bad-option"
+argv = ["ar", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "ar-no-operation"
+script = "ar c x.a 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ar-missing-archive"
+script = "ar t nao-existe.a 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ar-missing-member-file"
+script = "cd $(mktemp -d); ar rc x.a nao-existe.txt 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ar-not-an-archive"
+script = "cd $(mktemp -d); printf 'texto\\n' > f.txt; ar t f.txt 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ar-create-warning"
+script = "cd $(mktemp -d); printf 'a\\n' > a.txt; ar r x.a a.txt 2>&1; echo $?"
+tags = ["create"]
+
+[[case]]
+id = "ar-create-list-extract"
+script = "cd $(mktemp -d); printf 'um\\n' > a.txt; printf 'dois\\n' > b.txt; ar rc x.a a.txt b.txt; ar t x.a; mkdir out; cd out; ar x ../x.a; cat a.txt b.txt"
+tags = ["create", "extract"]
+
+[[case]]
+id = "ar-verbose-list"
+script = "cd $(mktemp -d); printf 'um\\n' > a.txt; ar rcv x.a a.txt; ar tv x.a"
+tags = ["create"]
+
+[[case]]
+id = "ar-long-names"
+script = "cd $(mktemp -d); printf 'x\\n' > um-nome-bem-comprido-demais.txt; ar rc x.a um-nome-bem-comprido-demais.txt; ar t x.a; head -c 80 x.a | od -c | head -8"
+tags = ["create"]
+
+[[case]]
+id = "ar-print-member"
+script = "cd $(mktemp -d); printf 'conteudo\\n' > a.txt; ar rc x.a a.txt; ar p x.a a.txt"
+tags = ["print"]
+
+[[case]]
+id = "ar-delete"
+script = "cd $(mktemp -d); printf 'a\\n' > a.txt; printf 'b\\n' > b.txt; ar rc x.a a.txt b.txt; ar d x.a a.txt; ar t x.a"
+tags = ["delete"]
+
+[[case]]
+id = "ar-extract-missing-member"
+script = "cd $(mktemp -d); printf 'a\\n' > a.txt; ar rc x.a a.txt; ar x x.a nada.txt 2>&1; echo $?"
+tags = ["error", "extract"]
+
+[[case]]
+id = "ar-deterministic-bytes"
+script = "cd $(mktemp -d); printf 'a\\n' > a.txt; ar rc x.a a.txt; od -c x.a | head -6"
+tags = ["create"]

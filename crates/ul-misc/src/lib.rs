@@ -1,6 +1,6 @@
 //! Ferramentas diversas do pseudo-linus, fiéis às do Debian 13 byte a byte: `bc` e `dc` (GNU bc
 //! 1.07.1), `file` (5.46), `column`, `hexdump`/`hd` e `more` (util-linux 2.41), `tree` (2.2.1), `xxd`
-//! (vim 9.1), `strings` (binutils 2.44), `which` (debianutils 5.23), `envsubst`, `gettext` e
+//! (vim 9.1), `strings`, `ar`, `ranlib`, `size` e `nm` (binutils 2.44), `which` (debianutils 5.23), `envsubst`, `gettext` e
 //! `ngettext` (gettext 0.23), `less` não interativo, `lessecho` (less 668), `tput`, `clear`, `tset`/`reset`, `tabs`,
 //! `infocmp` e `toe` (ncurses 6.5.20250216, sobre o banco terminfo do ncurses-base), `getconf`,
 //! `getent`, `locale` e `iconv` (glibc 2.41). Do dpkg 1.22 também o `update-alternatives`.
@@ -11,6 +11,7 @@
 //! Tudo passa por `sysabi`; nada toca o host.
 
 pub mod bc;
+pub mod binutils;
 pub mod blkdiscard;
 pub mod blkid;
 pub mod blockdev;
@@ -109,7 +110,11 @@ use sysabi::Program;
 /// Tabela de programas do crate.
 pub fn programs() -> Vec<Program> {
     vec![
+        Program::bin("ar", binutils::ar::main),
         Program::bin("bc", bc::main),
+        Program::bin("nm", binutils::nm::main),
+        Program::bin("ranlib", binutils::ar::ranlib_main),
+        Program::bin("size", binutils::size::main),
         Program::bin("bzip2recover", bzip2recover::main),
         Program::bin("chage", shadowmisc::chage_main),
         Program::bin("captoinfo", term::tic::main),

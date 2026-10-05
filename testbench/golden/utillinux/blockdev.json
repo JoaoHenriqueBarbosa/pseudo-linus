@@ -1,0 +1,56 @@
+{
+  "blockdev-bad-command-argument": {
+    "stdout": "",
+    "stderr": "blockdev: failed to parse command argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blockdev-help": {
+    "stdout": "\nUsage:\n blockdev [-v|-q] commands devices\n blockdev --report [devices]\n blockdev -h|-V\n\nCall block device ioctls from the command line.\n\nOptions:\n -q             quiet mode\n -v             verbose mode\n     --report   print report for specified (or all) devices\n\n -h, --help     display this help\n -V, --version  display version\n\nAvailable commands:\n --getsz                   get size in 512-byte sectors\n --setro                   set read-only\n --setrw                   set read-write\n --getro                   get read-only\n --getdiscardzeroes        get discard zeroes support status\n --getss                   get logical block (sector) size\n --getpbsz                 get physical block (sector) size\n --getiomin                get minimum I/O size\n --getioopt                get optimal I/O size\n --getalignoff             get alignment offset in bytes\n --getmaxsect              get max sectors per request\n --getbsz                  get blocksize\n --setbsz <bytes>          set blocksize on file descriptor opening the block device\n --getsize                 get 32-bit sector count (deprecated, use --getsz)\n --getsize64               get size in bytes\n --setra <sectors>         set readahead\n --getra                   get readahead\n --setfra <sectors>        set filesystem readahead\n --getfra                  get filesystem readahead\n --getdiskseq              get disk sequence number\n --getzonesz               get zone size\n --flushbufs               flush buffers\n --rereadpt                reread partition table\n\nFor more details see blockdev(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "blockdev-missing-device": {
+    "stdout": "",
+    "stderr": "blockdev: cannot open /nonexistent/device: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blockdev-no-args": {
+    "stdout": "",
+    "stderr": "blockdev: not enough arguments\nTry 'blockdev --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blockdev-no-device": {
+    "stdout": "",
+    "stderr": "blockdev: no device specified\nTry 'blockdev --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blockdev-not-block-getss": {
+    "stdout": "",
+    "stderr": "blockdev: ioctl error on BLKSSZGET: Inappropriate ioctl for device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blockdev-not-block-getsz": {
+    "stdout": "",
+    "stderr": "blockdev: could not get device size\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blockdev-report-missing": {
+    "stdout": "RO    RA   SSZ   BSZ        StartSec            Size   Device\n",
+    "stderr": "blockdev: cannot open /nonexistent/device: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blockdev-version": {
+    "stdout": "blockdev from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

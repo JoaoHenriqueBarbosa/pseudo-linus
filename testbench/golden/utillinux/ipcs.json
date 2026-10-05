@@ -1,0 +1,32 @@
+{
+  "ipcs-bad-option": {
+    "stdout": "",
+    "stderr": "ipcs: invalid option -- 'Z'\nTry 'ipcs --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcs-help": {
+    "stdout": "\nUsage:\n ipcs [resource-option...] [output-option]\n ipcs -m|-q|-s -i <id>\n\nShow information on IPC facilities.\n\nOptions:\n -i, --id <id>  print details on resource identified by <id>\n -h, --help     display this help\n -V, --version  display version\n\nResource options:\n -m, --shmems      shared memory segments\n -q, --queues      message queues\n -s, --semaphores  semaphores\n -a, --all         all (default)\n\nOutput options:\n -t, --time        show attach, detach and change times\n -p, --pid         show PIDs of creator and last operator\n -c, --creator     show creator and owner\n -l, --limits      show resource limits\n -u, --summary     show status summary\n     --human       show sizes in human-readable format\n -b, --bytes       show sizes in bytes\n\nFor more details see ipcs(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ipcs-id-not-number": {
+    "stdout": "",
+    "stderr": "ipcs: failed to parse id argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcs-id-without-resource": {
+    "stdout": "",
+    "stderr": "ipcs: when using an ID, a single resource must be specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcs-version": {
+    "stdout": "ipcs from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

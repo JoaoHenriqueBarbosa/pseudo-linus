@@ -1,0 +1,34 @@
+tool = "size"
+source = "manual"
+
+# size do binutils 2.44. Nenhum golden foi gerado aqui.
+
+[[case]]
+id = "size-help"
+argv = ["size", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "size-version"
+argv = ["size", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "size-bad-option"
+argv = ["size", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "size-missing-file"
+argv = ["size", "nao-existe"]
+tags = ["error"]
+
+[[case]]
+id = "size-default-missing-a-out"
+script = "cd $(mktemp -d); size 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "size-not-elf"
+script = "cd $(mktemp -d); printf 'texto\\n' > f.txt; size f.txt 2>&1; echo $?"
+tags = ["error"]

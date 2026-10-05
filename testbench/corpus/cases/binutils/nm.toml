@@ -1,0 +1,24 @@
+tool = "nm"
+source = "manual"
+
+# nm do binutils 2.44. Nenhum golden foi gerado aqui.
+
+[[case]]
+id = "nm-version"
+argv = ["nm", "--version"]
+tags = ["help"]
+
+[[case]]
+id = "nm-bad-option"
+argv = ["nm", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "nm-missing-file"
+argv = ["nm", "nao-existe"]
+tags = ["error"]
+
+[[case]]
+id = "nm-not-elf"
+script = "cd $(mktemp -d); printf 'texto\\n' > f.txt; nm f.txt 2>&1; echo $?"
+tags = ["error"]

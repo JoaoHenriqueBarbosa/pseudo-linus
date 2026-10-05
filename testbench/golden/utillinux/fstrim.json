@@ -1,0 +1,56 @@
+{
+  "fstrim-help": {
+    "stdout": "\nUsage:\n fstrim [options] <-A|-a|mount point>\n\nDiscard unused blocks on a mounted filesystem.\n\nOptions:\n -a, --all                trim mounted filesystems\n -A, --fstab              trim filesystems from /etc/fstab\n -I, --listed-in <list>   trim filesystems listed in specified files\n -o, --offset <num>       the offset in bytes to start discarding from\n -l, --length <num>       the number of bytes to discard\n -m, --minimum <num>      the minimum extent length to discard\n -t, --types <list>       limit the set of filesystem types\n -v, --verbose            print number of discarded bytes\n     --quiet-unsupported  suppress error messages if trim unsupported\n -n, --dry-run            does everything, but trim\n\n -h, --help          display this help\n -V, --version       display version\n\nArguments:\n Values for <num> may be followed by a suffix: KiB, MiB,\n GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).\n\nFor more details see fstrim(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fstrim-invalid-option": {
+    "stdout": "",
+    "stderr": "fstrim: invalid option -- 'Z'\nTry 'fstrim --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "fstrim-length-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "fstrim: failed to parse length: 'abc': Invalid argument\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fstrim-minimum-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "fstrim: failed to parse minimum extent length: 'abc': Invalid argument\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fstrim-missing-dir": {
+    "stdout": "rc=1\n",
+    "stderr": "fstrim: stat of /nonexistent failed: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fstrim-no-mountpoint": {
+    "stdout": "rc=1\n",
+    "stderr": "fstrim: no mountpoint specified\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fstrim-offset-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "fstrim: failed to parse offset: 'abc': Invalid argument\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fstrim-unrecognized-option": {
+    "stdout": "",
+    "stderr": "fstrim: unrecognized option '--bogus'\nTry 'fstrim --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "fstrim-version": {
+    "stdout": "fstrim from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

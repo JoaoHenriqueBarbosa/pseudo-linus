@@ -1,0 +1,50 @@
+{
+  "blkdiscard-bad-offset": {
+    "stdout": "",
+    "stderr": "blkdiscard: failed to parse offset: 'abc': Invalid argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkdiscard-bad-option": {
+    "stdout": "",
+    "stderr": "blkdiscard: invalid option -- 'Z'\nTry 'blkdiscard --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkdiscard-help": {
+    "stdout": "\nUsage:\n blkdiscard [options] <device>\n\nDiscard the content of sectors on a device.\n\nOptions:\n -f, --force         disable all checking\n -l, --length <num>  length of bytes to discard from the offset\n -o, --offset <num>  offset in bytes to discard from\n -p, --step <num>    size of the discard iterations within the offset\n -q, --quiet         suppress warning messages\n -s, --secure        perform secure discard\n -v, --verbose       print aligned length and offset\n -z, --zeroout       zero-fill rather than discard\n\n -h, --help          display this help\n -V, --version       display version\n\nArguments:\n Values for <num> may be followed by a suffix: KiB, MiB,\n GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).\n\nFor more details see blkdiscard(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "blkdiscard-missing-device": {
+    "stdout": "",
+    "stderr": "blkdiscard: cannot open /nonexistent/device: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkdiscard-no-device": {
+    "stdout": "",
+    "stderr": "blkdiscard: no device specified\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkdiscard-not-block": {
+    "stdout": "",
+    "stderr": "blkdiscard: /dev/null: not a block device\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkdiscard-too-many": {
+    "stdout": "",
+    "stderr": "blkdiscard: unexpected number of arguments\nTry 'blkdiscard --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "blkdiscard-version": {
+    "stdout": "blkdiscard from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

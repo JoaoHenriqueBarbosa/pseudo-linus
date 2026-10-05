@@ -1,0 +1,50 @@
+{
+  "ipcrm-bad-option": {
+    "stdout": "",
+    "stderr": "ipcrm: unrecognized option '--bogus'\nTry 'ipcrm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcrm-help": {
+    "stdout": "\nUsage:\n ipcrm [options]\n ipcrm shm|msg|sem <id>...\n\nRemove certain IPC resources.\n\nOptions:\n -m, --shmem-id <id>        \t\t\t\tremove shared memory segment by id\n -M, --shmem-key <key>      \t\t\t\tremove shared memory segment by key\n     --posix-shmem <name>   \t\t\t\tremove POSIX shared memory segment by name\n -q, --queue-id <id>        \t\t\t\tremove message queue by id\n -Q, --queue-key <key>      \t\t\t\tremove message queue by key\n     --posix-mqueue <name>  \t\t\t\tremove POSIX message queue by name\n -s, --semaphore-id <id>    \t\t\t\tremove semaphore by id\n -S, --semaphore-key <key>  \t\t\t\tremove semaphore by key\n     --posix-semaphore <name> \t\t\t\tremove POSIX semaphore by name\n -a, --all[=shm|pshm|msg|pmsg|sem|psem]\tremove all (in the specified category)\n -v, --verbose              \t\t\t\texplain what is being done\n\n -h, --help                 display this help\n -V, --version              display version\n\nFor more details see ipcrm(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ipcrm-id-not-number": {
+    "stdout": "",
+    "stderr": "ipcrm: failed to parse argument: 'abc'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcrm-no-args": {
+    "stdout": "",
+    "stderr": "ipcrm: bad usage\nTry 'ipcrm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcrm-posix-missing-name": {
+    "stdout": "",
+    "stderr": "ipcrm: name `/nonexistent-ipcrm-case' not found\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcrm-shm-no-id": {
+    "stdout": "",
+    "stderr": "ipcrm: not enough arguments\nTry 'ipcrm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcrm-unknown-argument": {
+    "stdout": "",
+    "stderr": "ipcrm: unknown argument: foo\nTry 'ipcrm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcrm-version": {
+    "stdout": "ipcrm from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

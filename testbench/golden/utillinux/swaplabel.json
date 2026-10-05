@@ -1,0 +1,38 @@
+{
+  "swaplabel-bad-option": {
+    "stdout": "",
+    "stderr": "swaplabel: invalid option -- 'Z'\nTry 'swaplabel --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "swaplabel-empty-file": {
+    "stdout": "",
+    "stderr": "swaplabel: /dev/null: unable to probe device: Invalid argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "swaplabel-help": {
+    "stdout": "\nUsage:\n swaplabel [options] <device>\n\nDisplay or change the label or UUID of a swap area.\n\nOptions:\n -L, --label <label> specify a new label\n -U, --uuid <uuid>   specify a new uuid\n\n -h, --help          display this help\n -V, --version       display version\n\nFor more details see swaplabel(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "swaplabel-missing-device": {
+    "stdout": "",
+    "stderr": "swaplabel: /nonexistent/device: unable to probe device: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "swaplabel-no-device": {
+    "stdout": "",
+    "stderr": "swaplabel: no device specified\nTry 'swaplabel --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "swaplabel-version": {
+    "stdout": "swaplabel from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

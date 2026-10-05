@@ -1,0 +1,50 @@
+{
+  "dmesg-buffer-size-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "dmesg: invalid buffer size argument: 'abc'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "dmesg-facility-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "dmesg: unknown facility 'foo'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "dmesg-help": {
+    "stdout": "\nUsage:\n dmesg [options]\n\nDisplay or control the kernel ring buffer.\n\nOptions:\n -C, --clear                 clear the kernel ring buffer\n -c, --read-clear            read and clear all messages\n -D, --console-off           disable printing messages to console\n -E, --console-on            enable printing messages to console\n -F, --file <file>           use the file instead of the kernel log buffer\n -K, --kmsg-file <file>      use the file in kmsg format\n -f, --facility <list>       restrict output to defined facilities\n -H, --human                 human readable output\n -J, --json                  use JSON output format\n -k, --kernel                display kernel messages\n -L, --color[=<when>]        colorize messages (auto, always or never)\n                               colors are enabled by default\n -l, --level <list>          restrict output to defined levels\n -n, --console-level <level> set level of messages printed to console\n -P, --nopager               do not pipe output into a pager\n -p, --force-prefix          force timestamp output on each line of multi-line messages\n -r, --raw                   print the raw message buffer\n     --noescape              don't escape unprintable character\n -S, --syslog                force to use syslog(2) rather than /dev/kmsg\n -s, --buffer-size <size>    buffer size to query the kernel ring buffer\n -u, --userspace             display userspace messages\n -w, --follow                wait for new messages\n -W, --follow-new            wait and print only new messages\n -x, --decode                decode facility and level to readable string\n -d, --show-delta            show time delta between printed messages\n -e, --reltime               show local time and time delta in readable format\n -T, --ctime                 show human-readable timestamp (may be inaccurate!)\n -t, --notime                don't show any timestamp with messages\n     --time-format <format>  show timestamp using the given format:\n                               [delta|reltime|ctime|notime|iso|raw]\nSuspending/resume will make ctime and iso timestamps inaccurate.\n     --since <time>          display the lines since the specified time\n     --until <time>          display the lines until the specified time\n\n -h, --help                  display this help\n -V, --version               display version\n\nSupported log facilities:\n    kern - kernel messages\n    user - random user-level messages\n    mail - mail system\n  daemon - system daemons\n    auth - security/authorization messages\n  syslog - messages generated internally by syslogd\n     lpr - line printer subsystem\n    news - network news subsystem\n    uucp - UUCP subsystem\n    cron - clock daemon\n authpriv - security/authorization messages (private)\n     ftp - FTP daemon\n    res0 - reserved 0\n    res1 - reserved 1\n    res2 - reserved 2\n    res3 - reserved 3\n  local0 - local use 0\n  local1 - local use 1\n  local2 - local use 2\n  local3 - local use 3\n  local4 - local use 4\n  local5 - local use 5\n  local6 - local use 6\n  local7 - local use 7\n\nSupported log levels (priorities):\n   emerg - system is unusable\n   alert - action must be taken immediately\n    crit - critical conditions\n     err - error conditions\n    warn - warning conditions\n  notice - normal but significant condition\n    info - informational\n   debug - debug-level messages\n\nFor more details see dmesg(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dmesg-invalid-option": {
+    "stdout": "",
+    "stderr": "dmesg: invalid option -- 'Z'\nTry 'dmesg --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "dmesg-level-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "dmesg: unknown level 'foo'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "dmesg-time-format-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "dmesg: unknown time format: foo\n",
+    "exit": 0,
+    "files": {}
+  },
+  "dmesg-unrecognized-option": {
+    "stdout": "",
+    "stderr": "dmesg: unrecognized option '--bogus'\nTry 'dmesg --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "dmesg-version": {
+    "stdout": "dmesg from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "switch-root-help": {
+    "stdout": "\nUsage:\n switch_root [options] <newrootdir> <init> <args to init>\n\nSwitch to another filesystem as the root of the mount tree.\n\nOptions:\n -h, --help     display this help\n -V, --version  display version\n\nFor more details see switch_root(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "switch-root-invalid-option": {
+    "stdout": "",
+    "stderr": "switch_root: invalid option -- 'Z'\nTry 'switch_root --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "switch-root-no-args": {
+    "stdout": "rc=1\n",
+    "stderr": "switch_root: not enough arguments\nTry 'switch_root --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "switch-root-not-pid1": {
+    "stdout": "rc=1\n",
+    "stderr": "switch_root: failed to mount moving /tmp to /: Operation not permitted\nswitch_root: failed. Sorry.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "switch-root-unrecognized-option": {
+    "stdout": "",
+    "stderr": "switch_root: unrecognized option '--bogus'\nTry 'switch_root --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "switch-root-version": {
+    "stdout": "switch_root from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

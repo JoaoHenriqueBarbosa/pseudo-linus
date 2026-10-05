@@ -1,0 +1,43 @@
+{
+  "umount-help": {
+    "stdout": "\nUsage:\n umount [-hV]\n umount -a [options]\n umount [options] <source> | <directory>\n\nUnmount filesystems.\n\nOptions:\n -a, --all               unmount all filesystems\n -A, --all-targets       unmount all mountpoints for the given device in the\n                           current namespace\n -c, --no-canonicalize   don't canonicalize paths\n -d, --detach-loop       if mounted loop device, also free this loop device\n     --fake              dry run; skip the umount(2) syscall\n -f, --force             force unmount (in case of an unreachable NFS system)\n -i, --internal-only     don't call the umount.<type> helpers\n -n, --no-mtab           don't write to /etc/mtab\n -l, --lazy              detach the filesystem now, clean up things later\n -O, --test-opts <list>  limit the set of filesystems (use with -a)\n -R, --recursive         recursively unmount a target with all its children\n -r, --read-only         in case unmounting fails, try to remount read-only\n -t, --types <list>      limit the set of filesystem types\n -v, --verbose           say what is being done\n -q, --quiet             suppress 'not mounted' error messages\n -N, --namespace <ns>    perform umount in another namespace\n\n -h, --help              display this help\n -V, --version           display version\n\nFor more details see umount(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "umount-invalid-option": {
+    "stdout": "",
+    "stderr": "umount: invalid option -- 'Z'\nTry 'umount --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "umount-no-operand": {
+    "stdout": "rc=1\n",
+    "stderr": "umount: bad usage\nTry 'umount --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "umount-not-mounted": {
+    "stdout": "rc=32\n",
+    "stderr": "umount: d: must be superuser to unmount.\n",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "umount-unrecognized-option": {
+    "stdout": "",
+    "stderr": "umount: unrecognized option '--bogus'\nTry 'umount --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "umount-version": {
+    "stdout": "umount from util-linux 2.41.5 (libmount 2.41.5: selinux, smack, btrfs, verity, namespaces, idmapping, fd-based-mount, statmount, statx, assert, debug)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

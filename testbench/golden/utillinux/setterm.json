@@ -1,0 +1,20 @@
+{
+  "setterm-help": {
+    "stdout": "\nUsage:\n setterm [options]\n\nSet the attributes of a terminal.\n\nOptions:\n --term <terminal_name>        override TERM environment variable\n --reset                       reset terminal to power-on state\n --resize                      reset terminal rows and columns\n --initialize                  display init string, and use default settings\n --default                     use default terminal settings\n --store                       save current terminal settings as default\n\n --cursor on|off               display cursor\n --repeat on|off               keyboard repeat\n --appcursorkeys on|off        cursor key application mode\n --linewrap on|off             continue on a new line when a line is full\n --inversescreen on|off        swap colors for the whole screen\n\n --msg on|off                  send kernel messages to console\n --msglevel <0-8>              kernel console log level\n\n --foreground default|<color>  set foreground color\n --background default|<color>  set background color\n --ulcolor [bright] <color>    set underlined text color\n --hbcolor [bright] <color>    set half-bright text color\n        <color>: black blue cyan green grey magenta red white yellow\n\n --bold on|off                 bold\n --half-bright on|off          dim\n --blink on|off                blink\n --underline on|off            underline\n --reverse  on|off             swap foreground and background colors\n\n --clear[=<all|rest>]          clear screen and set cursor position\n --tabs[=<number>...]          set these tab stop positions, or show them\n --clrtabs[=<number>...]       clear these tab stop positions, or all\n --regtabs[=1-160]             set a regular tab stop interval\n --blank[=0-60|force|poke]     set time of inactivity before screen blanks\n\n --dump[=<number>]             write vcsa<number> console dump to file\n --append <number>             append vcsa<number> console dump to file\n --file <filename>             name of the dump file\n\n --powersave on|vsync|hsync|powerdown|off\n                               set vesa powersaving features\n --powerdown[=<0-60>]          set vesa powerdown interval in minutes\n\n --blength[=<0-2000>]          duration of the bell in milliseconds\n --bfreq[=<number>]            bell frequency in Hertz\n\n --help                        display this help\n --version                     display version\n\nFor more details see setterm(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "setterm-unrecognized-option": {
+    "stdout": "",
+    "stderr": "setterm: unrecognized option '--bogus'\nTry 'setterm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "setterm-version": {
+    "stdout": "",
+    "stderr": "setterm: unrecognized option '-V'\nTry 'setterm --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  }
+}

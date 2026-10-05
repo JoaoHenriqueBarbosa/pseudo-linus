@@ -1,0 +1,50 @@
+{
+  "script-echo-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "script: unsupported echo mode: 'foo'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "script-help": {
+    "stdout": "\nUsage:\n script [options] [file]\n\nMake a typescript of a terminal session.\n\nOptions:\n -I, --log-in <file>           log stdin to file\n -O, --log-out <file>          log stdout to file (default)\n -B, --log-io <file>           log stdin and stdout to file\n\n -T, --log-timing <file>       log timing information to file\n -t[<file>], --timing[=<file>] deprecated alias to -T (default file is stderr)\n -m, --logging-format <name>   force to 'classic' or 'advanced' format\n\n -a, --append                  append to the log file\n -c, --command <command>       run command rather than interactive shell\n -e, --return                  return exit code of the child process\n -f, --flush                   run flush after each write\n     --force                   use output file even when it is a link\n -E, --echo <when>             echo input in session (auto, always or never)\n -o, --output-limit <size>     terminate if output files exceed size\n -q, --quiet                   be quiet\n\n -h, --help                    display this help\n -V, --version                 display version\n\nArguments:\n Values for <size> may be followed by a suffix: KiB, MiB,\n GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).\n\nFor more details see script(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "script-invalid-option": {
+    "stdout": "",
+    "stderr": "script: invalid option -- 'Z'\nTry 'script --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "script-logging-format-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "script: unsupported logging format: 'foo'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "script-output-limit-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "script: failed to parse output limit size: 'abc': Invalid argument\n",
+    "exit": 0,
+    "files": {}
+  },
+  "script-too-many-args": {
+    "stdout": "rc=1\n",
+    "stderr": "script: unexpected number of arguments\nTry 'script --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "script-unrecognized-option": {
+    "stdout": "",
+    "stderr": "script: unrecognized option '--bogus'\nTry 'script --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "script-version": {
+    "stdout": "script from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

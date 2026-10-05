@@ -1,0 +1,38 @@
+{
+  "pivot-root-help": {
+    "stdout": "\nUsage:\n pivot_root [options] new_root put_old\n\nChange the root filesystem.\n\nOptions:\n -h, --help     display this help\n -V, --version  display version\n\nFor more details see pivot_root(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pivot-root-invalid-option": {
+    "stdout": "",
+    "stderr": "pivot_root: invalid option -- 'Z'\nTry 'pivot_root --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pivot-root-no-args": {
+    "stdout": "rc=1\n",
+    "stderr": "pivot_root: bad usage\nTry 'pivot_root --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "pivot-root-too-many-args": {
+    "stdout": "rc=1\n",
+    "stderr": "pivot_root: bad usage\nTry 'pivot_root --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "pivot-root-unrecognized-option": {
+    "stdout": "",
+    "stderr": "pivot_root: unrecognized option '--bogus'\nTry 'pivot_root --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "pivot-root-version": {
+    "stdout": "pivot_root from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

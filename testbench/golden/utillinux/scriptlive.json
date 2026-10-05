@@ -1,0 +1,38 @@
+{
+  "scriptlive-divisor-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "scriptlive: failed to parse number: 'abc'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "scriptlive-help": {
+    "stdout": "\nUsage:\n scriptlive [options] <timingfile> <typescript>\n\nExecute terminal typescript.\n\nOptions:\n -t, --timing <file>     script timing log file\n -T, --log-timing <file> alias to -t\n -I, --log-in <file>     script stdin log file\n -B, --log-io <file>     script stdin and stdout log file\n\n -c, --command <command> run command rather than interactive shell\n -d, --divisor <num>     speed up or slow down execution with time divisor\n -E, --echo <when>       echo input in session (auto, always or never)\n -m, --maxdelay <num>    wait at most this many seconds between updates\n\n -h, --help              display this help\n -V, --version           display version\n\nFor more details see scriptlive(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "scriptlive-invalid-option": {
+    "stdout": "",
+    "stderr": "scriptlive: invalid option -- 'Z'\nTry 'scriptlive --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "scriptlive-maxdelay-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "scriptlive: failed to parse maximal delay argument: 'abc'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "scriptlive-unrecognized-option": {
+    "stdout": "",
+    "stderr": "scriptlive: unrecognized option '--bogus'\nTry 'scriptlive --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "scriptlive-version": {
+    "stdout": "scriptlive from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

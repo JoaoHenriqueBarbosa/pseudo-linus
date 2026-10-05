@@ -1,0 +1,39 @@
+tool = "ranlib"
+source = "manual"
+
+# ranlib do binutils 2.44. Nenhum golden foi gerado aqui.
+
+[[case]]
+id = "ranlib-help"
+argv = ["ranlib", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "ranlib-version"
+argv = ["ranlib", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "ranlib-no-args"
+argv = ["ranlib"]
+tags = ["error"]
+
+[[case]]
+id = "ranlib-bad-option"
+argv = ["ranlib", "-Z", "x.a"]
+tags = ["error"]
+
+[[case]]
+id = "ranlib-missing-archive"
+script = "ranlib nao-existe.a 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ranlib-not-an-archive"
+script = "cd $(mktemp -d); printf 'texto\\n' > f.txt; ranlib f.txt 2>&1; echo $?"
+tags = ["error"]
+
+[[case]]
+id = "ranlib-text-members"
+script = "cd $(mktemp -d); printf 'a\\n' > a.txt; ar rcS x.a a.txt; ranlib x.a; echo $?; ar t x.a"
+tags = ["create"]

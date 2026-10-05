@@ -1,0 +1,44 @@
+{
+  "ipcmk-bad-elements": {
+    "stdout": "",
+    "stderr": "ipcmk: failed to parse elements: 'x'\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcmk-bad-option": {
+    "stdout": "",
+    "stderr": "ipcmk: invalid option -- 'Z'\nTry 'ipcmk --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcmk-bad-size": {
+    "stdout": "",
+    "stderr": "ipcmk: failed to parse size: 'abc': Invalid argument\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcmk-help": {
+    "stdout": "\nUsage:\n ipcmk [options]\n\nCreate various IPC resources.\n\nOptions:\n -M, --shmem <size>       create shared memory segment of size <size>\n -m, --posix-shmem <size> create POSIX shared memory segment of size <size>\n -S, --semaphore <number> create semaphore array with <number> elements\n -s, --posix-semaphore    create POSIX semaphore\n -Q, --queue              create message queue\n -q, --posix-mqueue       create POSIX message queue\n -p, --mode <mode>        permission for the resource (default is 0644)\n -n, --name <name>        name of the POSIX resource\n\n -h, --help               display this help\n -V, --version            display version\n\nArguments:\n Values for <size> may be followed by a suffix: KiB, MiB,\n GiB, TiB, PiB, EiB, ZiB, or YiB (where the \"iB\" is optional).\n\n -n, --name <name> option is required for POSIX IPC\n\nFor more details see ipcmk(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ipcmk-no-args": {
+    "stdout": "",
+    "stderr": "ipcmk: bad usage\nTry 'ipcmk --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcmk-posix-without-name": {
+    "stdout": "",
+    "stderr": "ipcmk: name is required for POSIX IPC\nTry 'ipcmk --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "ipcmk-version": {
+    "stdout": "ipcmk from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

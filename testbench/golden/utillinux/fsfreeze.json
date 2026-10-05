@@ -1,0 +1,44 @@
+{
+  "fsfreeze-help": {
+    "stdout": "\nUsage:\n fsfreeze [options] <mountpoint>\n\nSuspend access to a filesystem.\n\nOptions:\n -f, --freeze      freeze the filesystem\n -u, --unfreeze    unfreeze the filesystem\n\n -h, --help        display this help\n -V, --version     display version\n\nFor more details see fsfreeze(8).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fsfreeze-invalid-option": {
+    "stdout": "",
+    "stderr": "fsfreeze: invalid option -- 'Z'\nTry 'fsfreeze --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "fsfreeze-missing-dir": {
+    "stdout": "rc=1\n",
+    "stderr": "fsfreeze: cannot open /nonexistent: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fsfreeze-no-action": {
+    "stdout": "rc=1\n",
+    "stderr": "fsfreeze: neither --freeze or --unfreeze specified\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fsfreeze-no-filesystem": {
+    "stdout": "rc=1\n",
+    "stderr": "fsfreeze: no filename specified\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fsfreeze-unrecognized-option": {
+    "stdout": "",
+    "stderr": "fsfreeze: unrecognized option '--bogus'\nTry 'fsfreeze --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "fsfreeze-version": {
+    "stdout": "fsfreeze from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

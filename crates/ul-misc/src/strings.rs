@@ -61,7 +61,7 @@ const LONGOPTS: &[LongOpt] = &[
 const SHORT_WITH_ARG: &[u8] = b"ntTesU";
 
 /// Alvos que o BFD do Debian 13 (x86-64) conhece; nome fora da lista faz `-d` varrer o arquivo todo.
-const TARGETS: &[&str] = &[
+pub(crate) const TARGETS: &[&str] = &[
     "elf64-x86-64",
     "elf32-i386",
     "elf32-iamcu",
@@ -459,7 +459,7 @@ fn permuted_argv(argv: &[Vec<u8>], posix: bool) -> Vec<Vec<u8>> {
 /// Expande `@arquivo` como o `expandargv` do libiberty: o conteúdo (até o primeiro NUL) vira
 /// argumentos no lugar do `@arquivo`, que são examinados de novo; arquivo que não abre fica como
 /// está; diretório é erro fatal; mais de 2000 expansões também.
-fn expand_response_files(prog: &str, mut argv: Vec<Vec<u8>>) -> Result<Vec<Vec<u8>>, i32> {
+pub(crate) fn expand_response_files(prog: &str, mut argv: Vec<Vec<u8>>) -> Result<Vec<Vec<u8>>, i32> {
     let mut i = 1;
     let mut budget = 2000u32;
     while i < argv.len() {

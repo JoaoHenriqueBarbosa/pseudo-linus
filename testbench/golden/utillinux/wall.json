@@ -1,0 +1,38 @@
+{
+  "wall-help": {
+    "stdout": "\nUsage:\n wall [options] [<file> | <message>]\n\nWrite a message to all users.\n\nOptions:\n -g, --group <group>     only send message to group\n -n, --nobanner          do not print banner, works only for root\n -t, --timeout <timeout> write timeout in seconds\n\n -h, --help              display this help\n -V, --version           display version\n\nFor more details see wall(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "wall-invalid-option": {
+    "stdout": "",
+    "stderr": "wall: invalid option -- 'Z'\nTry 'wall --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wall-timeout-invalid": {
+    "stdout": "rc=1\n",
+    "stderr": "wall: invalid timeout argument: 'abc'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "wall-timeout-zero": {
+    "stdout": "rc=1\n",
+    "stderr": "wall: invalid timeout argument: 0\n",
+    "exit": 0,
+    "files": {}
+  },
+  "wall-unrecognized-option": {
+    "stdout": "",
+    "stderr": "wall: unrecognized option '--bogus'\nTry 'wall --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "wall-version": {
+    "stdout": "wall from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
