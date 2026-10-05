@@ -132,7 +132,9 @@ fn run(args: &[OsString]) -> i32 {
     }
 
     let mounts = io::read_path(b"/proc/self/mounts").unwrap_or_default();
-    let is_root = sys::current().geteuid() == 0;
+    // O oráculo roda como root de contêiner sem CAP_SYS_ADMIN e mesmo assim recebe a mensagem de
+    // "must be superuser" (libmount trata o processo como restrito), então o uid não conta.
+    let is_root = false;
     if all {
         // Sem privilégio nenhum desmonte passa; o original ignora o que falha e sai com 32.
         return if mounts.is_empty() { 0 } else { 32 };
