@@ -39,7 +39,6 @@ pub mod iconv;
 pub mod ionice;
 pub mod ischroot;
 pub mod isosize;
-pub mod last;
 pub mod lessecho;
 pub mod lesskey;
 pub mod locale;
@@ -82,7 +81,6 @@ pub mod update_alternatives;
 pub mod useradd;
 pub mod usermgmt;
 pub mod util;
-pub mod utmpdump;
 pub mod whereis;
 pub mod which;
 pub mod wipefs;
@@ -128,9 +126,6 @@ pub fn programs() -> Vec<Program> {
         Program::bin("ionice", ionice::main),
         Program::bin("ischroot", ischroot::main),
         Program::bin("isosize", isosize::main),
-        Program::bin("last", last::main),
-        Program::bin("lastb", last::main),
-        Program::bin("utmpdump", utmpdump::main),
         Program::bin("less", pager::less_main),
         Program::bin("lessecho", lessecho::main),
         Program::bin("lesskey", lesskey::main),
