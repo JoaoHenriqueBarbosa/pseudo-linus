@@ -1,0 +1,38 @@
+{
+  "lsmem-bad-long-option": {
+    "stdout": "",
+    "stderr": "lsmem: unrecognized option '--nope'\nTry 'lsmem --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lsmem-bad-option": {
+    "stdout": "",
+    "stderr": "lsmem: invalid option -- 'Z'\nTry 'lsmem --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lsmem-bad-usage": {
+    "stdout": "",
+    "stderr": "lsmem: bad usage\nTry 'lsmem --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lsmem-help": {
+    "stdout": "\nUsage:\n lsmem [options]\n\nList the ranges of available memory with their online status.\n\nOptions:\n -J, --json           use JSON output format\n -P, --pairs          use key=\"value\" output format\n -a, --all            list each individual memory block\n -b, --bytes          print SIZE in bytes rather than in human readable format\n -n, --noheadings     don't print headings\n -o, --output <list>  output columns\n     --output-all     output all columns\n -r, --raw            use raw output format\n -S, --split <list>   split ranges by specified columns\n -s, --sysroot <dir>  use the specified directory as system root\n     --summary[=when] print summary information (never,always or only)\n\n -h, --help           display this help\n -V, --version        display version\n\nAvailable output columns:\n      RANGE  start and end address of the memory range\n       SIZE  size of the memory range\n      STATE  online status of the memory range\n  REMOVABLE  memory is removable\n      BLOCK  memory block number or blocks range\n       NODE  numa node of memory\n      ZONES  valid zones for the memory range\n\nFor more details see lsmem(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lsmem-unknown-column": {
+    "stdout": "",
+    "stderr": "lsmem: unknown column: FOO\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lsmem-version": {
+    "stdout": "lsmem from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

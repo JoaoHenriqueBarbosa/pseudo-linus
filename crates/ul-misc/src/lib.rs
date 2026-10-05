@@ -41,6 +41,8 @@ pub mod lessecho;
 pub mod lesskey;
 pub mod locale;
 pub mod look;
+pub mod lscpu;
+pub mod lsmem;
 pub mod mcookie;
 pub mod uuidgen;
 pub mod mountpoint;
@@ -114,6 +116,8 @@ pub fn programs() -> Vec<Program> {
         Program::bin("lesskey", lesskey::main),
         Program::bin("locale", locale::main),
         Program::bin("look", look::main),
+        Program::bin("lscpu", lscpu::main),
+        Program::bin("lsmem", lsmem::main),
         Program::bin("mcookie", mcookie::main),
         Program::bin("uuidgen", uuidgen::main),
         Program::bin("mountpoint", mountpoint::main),

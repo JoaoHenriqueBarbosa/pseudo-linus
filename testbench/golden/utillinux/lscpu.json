@@ -1,0 +1,32 @@
+{
+  "lscpu-bad-long-option": {
+    "stdout": "",
+    "stderr": "lscpu: unrecognized option '--nope'\nTry 'lscpu --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lscpu-bad-option": {
+    "stdout": "",
+    "stderr": "lscpu: invalid option -- 'Z'\nTry 'lscpu --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lscpu-bad-usage": {
+    "stdout": "",
+    "stderr": "lscpu: bad usage\nTry 'lscpu --help' for more information.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "lscpu-help": {
+    "stdout": "\nUsage:\n lscpu [options]\n\nDisplay information about the CPU architecture.\n\nOptions:\n -a, --all               print both online and offline CPUs (default for -e)\n -b, --online            print online CPUs only (default for -p)\n -B, --bytes             print sizes in bytes rather than in human readable format\n -C, --caches[=<list>]   info about caches in extended readable format\n -c, --offline           print offline CPUs only\n -J, --json              use JSON for default or extended format\n -e, --extended[=<list>] print out an extended readable format\n -p, --parse[=<list>]    print out a parsable format\n -r, --raw               use raw output format (for -e, -p and -C)\n -s, --sysroot <dir>     use specified directory as system root\n -x, --hex               print hexadecimal masks rather than lists of CPUs\n -y, --physical          print physical instead of logical IDs\n     --hierarchic[=when] use subsections in summary (auto, never, always)\n     --output-all        print all available columns for -e, -p or -C\n\n -h, --help              display this help\n -V, --version           display version\n\nAvailable output columns for -e or -p:\n      BOGOMIPS  crude measurement of CPU speed\n           CPU  logical CPU number\n          CORE  logical core number\n        SOCKET  logical socket number\n       CLUSTER  logical cluster number\n          NODE  logical NUMA node number\n          BOOK  logical book number\n        DRAWER  logical drawer number\n         CACHE  shows how caches are shared between CPUs\n  POLARIZATION  CPU dispatching mode on virtual hardware\n       ADDRESS  physical address of a CPU\n    CONFIGURED  shows if the hypervisor has allocated the CPU\n        ONLINE  shows if Linux currently makes use of the CPU\n           MHZ  shows the current MHz of the CPU\n      SCALMHZ%  shows scaling percentage of the CPU frequency\n        MAXMHZ  shows the maximum MHz of the CPU\n        MINMHZ  shows the minimum MHz of the CPU\n     MODELNAME  shows CPU model name\n\nAvailable output columns for -C:\n      ALL-SIZE  size of all system caches\n         LEVEL  cache level\n          NAME  cache name\n      ONE-SIZE  size of one cache\n          TYPE  cache type\n          WAYS  ways of associativity\n  ALLOC-POLICY  allocation policy\n  WRITE-POLICY  write policy\n      PHY-LINE  number of physical cache lines per cache tag\n          SETS  number of sets in the cache (lines in a set have the same cache index)\n COHERENCY-SIZE  minimum amount of data in bytes transferred from memory to cache\n\nFor more details see lscpu(1).\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "lscpu-version": {
+    "stdout": "lscpu from util-linux 2.41.5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

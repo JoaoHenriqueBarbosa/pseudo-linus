@@ -1,0 +1,30 @@
+tool = "lscpu"
+source = "manual"
+
+# lscpu do util-linux 2.41. Só saídas determinísticas: a ajuda, a versão e erros de uso (o
+# conteúdo real depende do hardware da bancada).
+
+[[case]]
+id = "lscpu-help"
+argv = ["lscpu", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "lscpu-version"
+argv = ["lscpu", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "lscpu-bad-option"
+argv = ["lscpu", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "lscpu-bad-long-option"
+argv = ["lscpu", "--nope"]
+tags = ["error"]
+
+[[case]]
+id = "lscpu-bad-usage"
+argv = ["lscpu", "extra"]
+tags = ["error"]

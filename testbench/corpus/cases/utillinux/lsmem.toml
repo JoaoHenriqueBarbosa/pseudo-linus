@@ -1,0 +1,35 @@
+tool = "lsmem"
+source = "manual"
+
+# lsmem do util-linux 2.41. Só saídas determinísticas: a ajuda, a versão e erros de uso (as faixas
+# reais dependem da máquina da bancada).
+
+[[case]]
+id = "lsmem-help"
+argv = ["lsmem", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "lsmem-version"
+argv = ["lsmem", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "lsmem-bad-option"
+argv = ["lsmem", "-Z"]
+tags = ["error"]
+
+[[case]]
+id = "lsmem-bad-long-option"
+argv = ["lsmem", "--nope"]
+tags = ["error"]
+
+[[case]]
+id = "lsmem-bad-usage"
+argv = ["lsmem", "extra"]
+tags = ["error"]
+
+[[case]]
+id = "lsmem-unknown-column"
+argv = ["lsmem", "-o", "FOO"]
+tags = ["error"]
