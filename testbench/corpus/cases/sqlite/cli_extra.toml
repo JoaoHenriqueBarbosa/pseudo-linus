@@ -556,5 +556,7 @@ tags = ["cli", "error", "script"]
 
 [[case]]
 id = "sqlite-x-hot-journal-abrupt-exit"
-script = '''sqlite3 db.sqlite 'CREATE TABLE t(x); INSERT INTO t VALUES (1)'; sqlite3 db.sqlite 'BEGIN; DELETE FROM t; SELECT * FROM nada'; echo "exit=$?"; ls db.sqlite*; sqlite3 db.sqlite 'SELECT count(*) FROM t'; ls db.sqlite*'''
+script = '''sqlite3 db.sqlite 'CREATE TABLE t(x); INSERT INTO t VALUES (1)'; sqlite3 db.sqlite 'BEGIN; DELETE FROM t; SELECT * FROM nada'; echo "exit=$?"; ls db.sqlite*; wc -c < db.sqlite-journal; od -An -tx1 -N 12 db.sqlite-journal; od -An -tx1 -j 16 -N 12 db.sqlite-journal; sqlite3 db.sqlite 'SELECT count(*) FROM t'; ls db.sqlite*; rm -f db.sqlite-journal'''
+# A semente do checksum (bytes 12 a 15 e o fim de cada registro) vem do /dev/urandom no sqlite real:
+# o caso confere o resto do cabeçalho e o tamanho, e apaga o journal antes do retrato.
 tags = ["cli", "journal", "script"]
