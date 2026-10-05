@@ -48,10 +48,10 @@ Commands:
   automatic mode.
 
 Options:
-  --altdir <directory>     change the alternatives directory.
-                             (default is /etc/alternatives)
-  --admindir <directory>   change the administrative directory.
-                             (default is /var/lib/dpkg/alternatives)
+  --altdir <directory>     change the alternatives directory
+                             (default is /etc/alternatives).
+  --admindir <directory>   change the administrative directory
+                             (default is /var/lib/dpkg/alternatives).
   --instdir <directory>    change the installation directory.
   --root <directory>       change the filesystem root directory.
   --log <file>             change the log file.
@@ -65,7 +65,7 @@ Options:
   --version                show the version.
 ";
 
-const VERSION: &str = "Debian update-alternatives version 1.22.21.
+const VERSION: &str = "update-alternatives version 1.22.22.
 
 This is free software; see the GNU General Public License version 2 or
 later for copying conditions. There is NO warranty.
@@ -134,7 +134,7 @@ fn warning(msg: &str) {
 
 fn badusage(msg: &str) -> i32 {
     io::eprint(format!(
-        "{PROG}: error: {msg}\n\nUse '{PROG} --help' for program usage information.\n"
+        "{PROG}: {msg}\n\nUse '{PROG} --help' for program usage information.\n"
     ));
     2
 }
@@ -354,6 +354,15 @@ impl State {
         let c = &a.choices[idx];
         let alt = self.alt_link(&a.name);
         atomic_symlink(&c.path, &self.adm(&alt))?;
+        if announce && !self.quiet {
+            out(&format!(
+                "{PROG}: using {} to provide {} ({}) in {} mode\n",
+                c.path,
+                a.link,
+                a.name,
+                if a.auto { "auto" } else { "manual" }
+            ));
+        }
         let master = self.ins(&a.link);
         if self.can_replace(&master) {
             atomic_symlink(&alt, &master)?;
@@ -384,15 +393,6 @@ impl State {
             } else {
                 warning(&format!("not replacing {} with a link", sl.link));
             }
-        }
-        if announce && !self.quiet {
-            out(&format!(
-                "{PROG}: using {} to provide {} ({}) in {} mode\n",
-                c.path,
-                a.link,
-                a.name,
-                if a.auto { "auto" } else { "manual" }
-            ));
         }
         Ok(())
     }
@@ -585,7 +585,7 @@ impl State {
     fn check_name(&self, n: &str) -> R<()> {
         if n.contains('/') || n.contains(' ') {
             return Err(error(&format!(
-                "alternative name ({n}) must not contain '/' and spaces."
+                "alternative name ({n}) must not contain '/' and spaces"
             )));
         }
         Ok(())
@@ -620,7 +620,7 @@ impl State {
             let Some(o) = self.load(&other)? else { continue };
             if o.link == link {
                 return Err(error(&format!(
-                    "alternative link {link} is already managed by {}.",
+                    "alternative link {link} is already managed by {}",
                     o.name
                 )));
             }
@@ -764,34 +764,32 @@ impl State {
             out(&format!("No alternatives for {name}.\n"));
             return Ok(());
         }
-        if n == 1 {
-            out(&format!(
-                "There is only one alternative in link group {} (providing {}): {}\nNothing to configure.\n",
-                a.name, a.link, a.choices[0].path
-            ));
-            return Ok(());
-        }
         let cur = self.current(&a);
         let best = a.best().unwrap_or(0);
         let width = a.choices.iter().map(|c| c.path.len()).max().unwrap_or(0).max(4);
         let mut s = format!(
-            "There are {n} choices for the alternative {} (providing {}).\n\n",
-            a.name, a.link
+            "There {} {n} choice{} for the alternative {} (providing {}).\n\n",
+            if n == 1 { "is" } else { "are" },
+            if n == 1 { "" } else { "s" },
+            a.name,
+            a.link
         );
         s.push_str(&format!(
-            "  {:<12.12} {:<width$.width$} {:<10.10} {}\n",
-            "Selection", "Path", "Priority", "Status"
+            "  {:<12.12} {:<w1$.w1$} {:<10.10} {}\n",
+            "Selection", "Path", "Priority", "Status",
+            w1 = width + 1
         ));
         s.push_str("------------------------------------------------------------\n");
+        let w2 = width + 2;
         let mark0 = if a.auto { '*' } else { ' ' };
         s.push_str(&format!(
-            "{mark0} {:<12} {:<width$} {:<10} auto mode\n",
+            "{mark0} {:<12} {:<w2$} {:<9} auto mode\n",
             0, a.choices[best].path, a.choices[best].prio
         ));
         for (i, c) in a.choices.iter().enumerate() {
             let mark = if !a.auto && cur.as_deref() == Some(c.path.as_str()) { '*' } else { ' ' };
             s.push_str(&format!(
-                "{mark} {:<12} {:<width$} {:<10} manual mode\n",
+                "{mark} {:<12} {:<w2$} {:<9} manual mode\n",
                 i + 1,
                 c.path,
                 c.prio
@@ -973,11 +971,13 @@ fn run_inner(args: &[OsString]) -> R<()> {
                 slaves.push((argv[i].clone(), argv[i + 1].clone(), argv[i + 2].clone()));
                 i += 3;
             }
-            _ => return Err(badusage(&format!("unknown argument `{a}'"))),
+            _ => return Err(badusage(&format!("unknown option '{a}'"))),
         }
     }
     let Some(action) = action else {
-        return Err(badusage("no action specified"));
+        return Err(badusage(
+            "need --display, --query, --list, --get-selections, --config, --set, --set-selections, --install, --remove, --all, --remove-all or --auto",
+        ));
     };
     if action == "install" {
         match aargs[3].parse::<i64>() {

@@ -34,29 +34,48 @@ Options:
  -J, --json              use JSON for default or extended format
  -e, --extended[=<list>] print out an extended readable format
  -p, --parse[=<list>]    print out a parsable format
- -s, --sysroot <dir>     use directory DIR as system root
+ -r, --raw               use raw output format (for -e, -p and -C)
+ -s, --sysroot <dir>     use specified directory as system root
  -x, --hex               print hexadecimal masks rather than lists of CPUs
  -y, --physical          print physical instead of logical IDs
+     --hierarchic[=when] use subsections in summary (auto, never, always)
      --output-all        print all available columns for -e, -p or -C
 
  -h, --help              display this help
  -V, --version           display version
 
 Available output columns for -e or -p:
-          CPU  logical CPU number
-         CORE  logical core number
-       SOCKET  logical socket number
-         NODE  logical NUMA node number
-         BOOK  logical book number
-       DRAWER  logical drawer number
-        CACHE  shows how caches are shared between CPUs
- POLARIZATION  CPU dispatching mode on virtual hypervisors
-      ADDRESS  physical address of a CPU
-   CONFIGURED  shows if the hypervisor has allocated the CPU
-       ONLINE  shows if Linux currently makes use of the CPU
-       MAXMHZ  shows the maximum MHz of the CPU
-       MINMHZ  shows the minimum MHz of the CPU
-          MHZ  shows the current MHz of the CPU
+      BOGOMIPS  crude measurement of CPU speed
+           CPU  logical CPU number
+          CORE  logical core number
+        SOCKET  logical socket number
+       CLUSTER  logical cluster number
+          NODE  logical NUMA node number
+          BOOK  logical book number
+        DRAWER  logical drawer number
+         CACHE  shows how caches are shared between CPUs
+  POLARIZATION  CPU dispatching mode on virtual hardware
+       ADDRESS  physical address of a CPU
+    CONFIGURED  shows if the hypervisor has allocated the CPU
+        ONLINE  shows if Linux currently makes use of the CPU
+           MHZ  shows the current MHz of the CPU
+      SCALMHZ%  shows scaling percentage of the CPU frequency
+        MAXMHZ  shows the maximum MHz of the CPU
+        MINMHZ  shows the minimum MHz of the CPU
+     MODELNAME  shows CPU model name
+
+Available output columns for -C:
+      ALL-SIZE  size of all system caches
+         LEVEL  cache level
+          NAME  cache name
+      ONE-SIZE  size of one cache
+          TYPE  cache type
+          WAYS  ways of associativity
+  ALLOC-POLICY  allocation policy
+  WRITE-POLICY  write policy
+      PHY-LINE  number of physical cache lines per cache tag
+          SETS  number of sets in the cache (lines in a set have the same cache index)
+ COHERENCY-SIZE  minimum amount of data in bytes transferred from memory to cache
 
 For more details see {short}(1).
 "

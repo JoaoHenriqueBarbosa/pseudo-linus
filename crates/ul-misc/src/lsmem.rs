@@ -98,23 +98,23 @@ Options:
  -b, --bytes          print SIZE in bytes rather than in human readable format
  -n, --noheadings     don't print headings
  -o, --output <list>  output columns
-     --output-all     print all available columns
+     --output-all     output all columns
  -r, --raw            use raw output format
  -S, --split <list>   split ranges by specified columns
  -s, --sysroot <dir>  use the specified directory as system root
-     --summary[=<when>]  print summary information (never,always or only)
+     --summary[=when] print summary information (never,always or only)
 
  -h, --help           display this help
  -V, --version        display version
 
 Available output columns:
-     RANGE  start and end address of the memory range
-      SIZE  size of the memory range
-     STATE  online status of the memory range
- REMOVABLE  memory is removable
-     BLOCK  memory block number or blocks range
-      NODE  numa node of memory
-     ZONES  valid zones for the memory range
+      RANGE  start and end address of the memory range
+       SIZE  size of the memory range
+      STATE  online status of the memory range
+  REMOVABLE  memory is removable
+      BLOCK  memory block number or blocks range
+       NODE  numa node of memory
+      ZONES  valid zones for the memory range
 
 For more details see {short}(1).
 "
