@@ -440,6 +440,18 @@ mod tests {
     }
 
     #[test]
+    fn from_import() {
+        let src = "from json import dumps as d, loads\nfrom sys import argv\nprint(d([1]), loads('2'), argv)\n\
+                   try:\n    from json import nope\nexcept ImportError as e:\n    print(e)\n";
+        let out = run_source(src);
+        assert_eq!(out.stderr, "");
+        assert_eq!(
+            String::from_utf8_lossy(&out.stdout),
+            "[1] 2 ['-c']\ncannot import name 'nope' from 'json' (unknown location)\n"
+        );
+    }
+
+    #[test]
     fn sequence_builtins() {
         let src = "print(sorted([3, 1, 2]), min(4, 2, 9), max([1, 7]), sum([1, 2, 3]), abs(-5))\n\
                    print(list(zip([1, 2], 'ab')), list(enumerate('xy', start=1)), any([0, 1]), all([]))\n\

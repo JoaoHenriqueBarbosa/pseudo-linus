@@ -96,6 +96,8 @@ pub enum Op {
     Return,
     /// `import nome`: empilha o módulo.
     Import(u32),
+    /// `from m import nome`: com o módulo no topo, empilha o atributo ou levanta `ImportError`.
+    ImportName(u32),
 }
 
 /// Código compilado de um módulo ou de uma função.
@@ -432,7 +434,22 @@ impl Compiler {
                     self.emit_store(&bound);
                 }
             }
-            S::ImportFrom { .. } => return Err(self.unsupported("from-import")),
+            S::ImportFrom { module, names, level } => {
+                let Some(module) = module.as_ref().filter(|_| level.unwrap_or(0) == 0) else {
+                    return Err(self.unsupported("relative import"));
+                };
+                for alias in names {
+                    if alias.name == "*" {
+                        return Err(self.unsupported("import *"));
+                    }
+                    let m = self.name(module);
+                    self.emit(Op::Import(m));
+                    let n = self.name(&alias.name);
+                    self.emit(Op::ImportName(n));
+                    let bound = alias.asname.clone().unwrap_or_else(|| alias.name.clone());
+                    self.emit_store(&bound);
+                }
+            }
             S::TryStar { .. } => return Err(self.unsupported("except*")),
             S::Delete { .. } => return Err(self.unsupported("del")),
             S::With { .. } | S::AsyncWith { .. } => return Err(self.unsupported("with")),

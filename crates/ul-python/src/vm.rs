@@ -633,6 +633,23 @@ impl Vm {
                 };
                 stack.push(Slot::Val(Value::Module(m)));
             }
+            Op::ImportName(i) => {
+                let obj = pop(stack)?;
+                let name = &code.names[i as usize];
+                match self.load_attr(&obj, name) {
+                    Ok(v) => stack.push(Slot::Val(v)),
+                    Err(_) => {
+                        let module = match &obj {
+                            Value::Module(m) => *m,
+                            _ => "?",
+                        };
+                        return Err(exc(
+                            "ImportError",
+                            format!("cannot import name '{name}' from '{module}' (unknown location)"),
+                        ));
+                    }
+                }
+            }
             Op::LoadAttr(i) => {
                 let obj = pop(stack)?;
                 let name = &code.names[i as usize];
