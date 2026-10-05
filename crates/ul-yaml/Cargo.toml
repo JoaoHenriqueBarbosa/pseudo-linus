@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "yq 3.4.3 (kislyuk) do pseudo-linus: YAML do PyYAML 6.0.2 com o parser do libyaml, portado pra Rust seguro, e o jq como subprocesso"
+description = "yq 3.4.3 (kislyuk) do pseudo-linus: YAML do PyYAML 6.0.2 com o parser do libyaml, portado pra Rust seguro, e o jq como subprocesso; mais o python3 mínimo dos programas csv da bancada"
 
 [dependencies]
 sysabi = { workspace = true }
