@@ -1,0 +1,71 @@
+{
+  "iconvconfig-bad-long-option": {
+    "stdout": "",
+    "stderr": "iconvconfig: unrecognized option '--frobnicate'\nTry `iconvconfig --help' or `iconvconfig --usage' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "iconvconfig-bad-option": {
+    "stdout": "",
+    "stderr": "iconvconfig: invalid option -- 'x'\nTry `iconvconfig --help' or `iconvconfig --usage' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "iconvconfig-help": {
+    "stdout": "Usage: iconvconfig [OPTION...] [DIR...]\nCreate fastloading iconv module configuration file.\n\n      --nostdlib             Do not search standard directories, only those on\n                             the command line\n  -o, --output=FILE          Put output in FILE instead of installed location\n                             (--prefix does not apply to FILE)\n      --prefix=PATH          Prefix used for all file accesses\n  -?, --help                 Give this help list\n      --usage                Give a short usage message\n  -V, --version              Print program version\n\nMandatory or optional arguments to long options are also mandatory or optional\nfor any corresponding short options.\n\nFor bug reporting instructions, please see:\n<http://www.debian.org/Bugs/>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "iconvconfig-help-short": {
+    "stdout": "Usage: iconvconfig [OPTION...] [DIR...]\nCreate fastloading iconv module configuration file.\n\n      --nostdlib             Do not search standard directories, only those on\n                             the command line\n  -o, --output=FILE          Put output in FILE instead of installed location\n                             (--prefix does not apply to FILE)\n      --prefix=PATH          Prefix used for all file accesses\n  -?, --help                 Give this help list\n      --usage                Give a short usage message\n  -V, --version              Print program version\n\nMandatory or optional arguments to long options are also mandatory or optional\nfor any corresponding short options.\n\nFor bug reporting instructions, please see:\n<http://www.debian.org/Bugs/>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "iconvconfig-missing-argument": {
+    "stdout": "",
+    "stderr": "iconvconfig: option requires an argument -- 'o'\nTry `iconvconfig --help' or `iconvconfig --usage' for more information.\n",
+    "exit": 64,
+    "files": {}
+  },
+  "iconvconfig-output-created": {
+    "stdout": "exit=0\ngerado\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "gconv": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "gconv/gconv-modules": {
+        "kind": "file",
+        "mode": 420,
+        "size": 70,
+        "sha256": "7ab59a384a6c879c0eb30a59a9827608d83aa5ee7d255a97f8cb39fd736e0560",
+        "data": "alias ISO-FOO// ISO-8859-1//\nmodule ISO-8859-1// INTERNAL ISO8859-1 1\n"
+      },
+      "out.cache": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1172,
+        "sha256": "930833d1b9e8691de4eb5efd9cf52752cf36f78fd547ac48c8b4b0a8c39276a3",
+        "data": {
+          "b64": "JAMBIBAA+AJPADQElAQAAABPU0YwMDAxMDEwMC8vAE9TRjAwMDEwMDIwLy8ASVNPLTg4NTktMS8vAE9TRjA1MDEwMDAxLy8AT1NGMDAwMTAxMDEvLwBJU09fNjQ2LklSVjoxOTkxLy8AVUNTLTIvLwBPU0YwMDAxMDEwMi8vAFVDUzIvLwBJU08tSVItMTkzLy8AMTA2NDYtMToxOTkzLy8AVUNTLTQvLwBBTlNJX1gzLjQvLwBPU0YwMDAxMDEwNC8vAENTVUNTNC8vAE9TRjAwMDEwMTA1Ly8ASVNPLUlSLTYvLwBPU0YwMDAxMDEwNi8vAElTTy0xMDY0Ni8vAEFOU0lfWDMuNC0xOTg2Ly8ASUJNMzY3Ly8AQ1AzNjcvLwBVVEYtOC8vAEFOU0lfWDMuNC0xOTY4Ly8AVVRGOC8vAFVDUy0yQkUvLwBVQ1MtNEJFLy8AVUNTLTJMRS8vAFVDUy00TEUvLwBVTklDT0RFTElUVExFLy8AVU5JQ09ERUJJRy8vAFVTLUFTQ0lJLy8AQ1NBU0NJSS8vAElTTy1GT08vLwBJU082NDYtVVMvLwBXQ0hBUl9ULy8ASVNPLTEwNjQ2L1VDUzIvADEwNjQ2LTE6MTk5My9VQ1M0LwBJU08tMTA2NDYvVUNTNC8ASVNPLTEwNjQ2L1VURi04LwBJU08tMTA2NDYvVVRGOC8AZ2NvbnYvAD1JTlRFUk5BTC0+dWNzMgA9SU5URVJOQUwtPnVjczQAPUlOVEVSTkFMLT51dGY4AD11Y3MyLT5JTlRFUk5BTAA9dWNzNC0+SU5URVJOQUwAPXV0ZjgtPklOVEVSTkFMAD11Y3M0bGUtPklOVEVSTkFMAD11Y3MycmV2ZXJzZS0+SU5URVJOQUwAPWFzY2lpLT5JTlRFUk5BTAA9SU5URVJOQUwtPnVjczRsZQA9SU5URVJOQUwtPnVjczJyZXZlcnNlAD1JTlRFUk5BTC0+YXNjaWkASVNPODg1OS0xLnNvAN8BBAAAAAAAAAAAABoBAQBqAQIAAAAAAAAAAAAAAAAAAAAAAAAAAABOAgAAogEAAAAAAACdAQEAHQAHAAAAAABaAQYA8AABAL0ABQAAAAAAAAAAAAAAAAAAAAAArAEGAAAAAAB3AQEA5AAFAAAAAADWAAUAvAEFAG8ABgBhAAYAAAAAAJIABQAAAAAAKwEEAA8AAQAAAAAAmgABAAoBAQCWAQEAMgECAAAAAAAAAAAAdgAEAAAAAACDAAUAAAAAAAAAAAAAAAAAAAAAACoABAA8AQUAjAEHAAAAAAAAAAAAOAAGAIIBAQASAQQAAAAAAAAAAADwAQQARgEGAAEBAQAAAAAARgABAHoBAQAAAAAAtgAFAAAAAADPAQUAywABAKYABQBQAQMAWQAGAAEABgAAAAAAAAAAALQABQBOAgAAAAAAAAAAAAAaAQAAygIAAJACAABqAQAAswIAAHkCAABQAQAAoQIAAGcCAADwAQAAJwIAAFcCAADPAQAAFwIAAEcCAACsAQAABwIAADcCAAAdAAAAAAAAAtsCAAA="
+        }
+      }
+    }
+  },
+  "iconvconfig-usage": {
+    "stdout": "Usage: iconvconfig [-?V] [-o FILE] [--nostdlib] [--output=FILE] [--prefix=PATH]\n            [--help] [--usage] [--version] [DIR...]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "iconvconfig-version": {
+    "stdout": "iconvconfig (Debian GLIBC 2.41-12+deb13u4) 2.41\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\nWritten by Ulrich Drepper.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,435 @@
+{
+  "zic-bad-b": {
+    "stdout": "",
+    "stderr": "invalid option: -b 'thin'\n",
+    "exit": 1,
+    "files": {
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "0851d6b59a735ad9ebea880ab6a0337a32e9d7cf47ed3d98388a5b90dbf64e5d",
+        "data": "Zone Test/Fixed -3:00 - -03\n"
+      }
+    }
+  },
+  "zic-bad-option": {
+    "stdout": "",
+    "stderr": "zic: invalid option -- 'x'\nzic: usage is zic [ --version ] [ --help ] [ -v ] \\\n\t[ -b {slim|fat} ] [ -d directory ] [ -l localtime ] [ -L leapseconds ] \\\n\t[ -p posixrules ] [ -r '[@lo][/@hi]' ] [ -R '@hi' ] \\\n\t[ -t localtime-link ] \\\n\t[ filename ... ]\n\nReport bugs to <http://www.debian.org/Bugs/>.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "zic-dst-zdump": {
+    "stdout": "Test/Dst  -9223372036854775808 (gmtime failed) = -9223372036854775808 (localtime failed)\nTest/Dst  -67768040609740801 (gmtime failed) = -67768040609740801 (localtime failed)\nTest/Dst  Thu Jan  1 00:00:00 -2147481748 UT = -67768040609740800 (localtime failed)\nTest/Dst  Thu Jan  1 04:59:59 -2147481748 UT = -67768040609722801 (localtime failed)\nTest/Dst  Thu Jan  1 05:00:00 -2147481748 UT = Thu Jan  1 00:00:00 -2147481748 EST isdst=0 gmtoff=-18000\nTest/Dst  Sun Mar 12 06:59:59 2023 UT = Sun Mar 12 01:59:59 2023 EST isdst=0 gmtoff=-18000\nTest/Dst  Sun Mar 12 07:00:00 2023 UT = Sun Mar 12 03:00:00 2023 EDT isdst=1 gmtoff=-14400\nTest/Dst  Sun Nov  5 05:59:59 2023 UT = Sun Nov  5 01:59:59 2023 EDT isdst=1 gmtoff=-14400\nTest/Dst  Sun Nov  5 06:00:00 2023 UT = Sun Nov  5 01:00:00 2023 EST isdst=0 gmtoff=-18000\nTest/Dst  Sun Mar 10 06:59:59 2024 UT = Sun Mar 10 01:59:59 2024 EST isdst=0 gmtoff=-18000\nTest/Dst  Sun Mar 10 07:00:00 2024 UT = Sun Mar 10 03:00:00 2024 EDT isdst=1 gmtoff=-14400\nTest/Dst  Sun Nov  3 05:59:59 2024 UT = Sun Nov  3 01:59:59 2024 EDT isdst=1 gmtoff=-14400\nTest/Dst  Sun Nov  3 06:00:00 2024 UT = Sun Nov  3 01:00:00 2024 EST isdst=0 gmtoff=-18000\nTest/Dst  Wed Dec 31 23:59:59 2147485547 UT = Wed Dec 31 18:59:59 2147485547 EST isdst=0 gmtoff=-18000\nTest/Dst  67768036191676800 (gmtime failed) = Wed Dec 31 20:00:00 2147485547 EDT isdst=1 gmtoff=-14400\nTest/Dst  67768036191691199 (gmtime failed) = Wed Dec 31 23:59:59 2147485547 EDT isdst=1 gmtoff=-14400\nTest/Dst  67768036191691200 (gmtime failed) = 67768036191691200 (localtime failed)\nTest/Dst  9223372036854775807 (gmtime failed) = 9223372036854775807 (localtime failed)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Dst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 148,
+        "sha256": "8b895a73efc6ce576ee0dd6a703356ed808fe2c1881a6137a326a120aa099ab0",
+        "data": {
+          "b64": "VFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAVFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAgAAAAgAAAAAOMtAcAH//7mwAAT//8fAAQBFRFQARVNUAApFU1Q1RURULE0zLjIuMCxNMTEuMS4wCg=="
+        }
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 109,
+        "sha256": "2a539948037645eca959abd5800ecaaccb56d020eb95b6bb5233755743de28c7",
+        "data": "Rule TR 2000 max - Mar Sun>=8 2:00 1:00 D\nRule TR 2000 max - Nov Sun>=1 2:00 0 S\nZone Test/Dst -5:00 TR E%sT\n"
+      }
+    }
+  },
+  "zic-equals-operand": {
+    "stdout": "",
+    "stderr": "zic: usage is zic [ --version ] [ --help ] [ -v ] \\\n\t[ -b {slim|fat} ] [ -d directory ] [ -l localtime ] [ -L leapseconds ] \\\n\t[ -p posixrules ] [ -r '[@lo][/@hi]' ] [ -R '@hi' ] \\\n\t[ -t localtime-link ] \\\n\t[ filename ... ]\n\nReport bugs to <http://www.debian.org/Bugs/>.\n",
+    "exit": 1,
+    "files": {}
+  },
+  "zic-error-bad-month": {
+    "stdout": "",
+    "stderr": "\"z.in\", line 1: invalid month name\n",
+    "exit": 1,
+    "files": {
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 56,
+        "sha256": "f24f73ee58a32d2ef5fe10745c979cbc2864e96f897a571a83c140e5aafb5b22",
+        "data": "Rule X 2000 only - Foo 1 0 1:00 D\nZone Test/Bad 0 X %sT\n"
+      }
+    }
+  },
+  "zic-error-fields": {
+    "stdout": "",
+    "stderr": "\"z.in\", line 1: wrong number of fields on Zone line\n",
+    "exit": 1,
+    "files": {
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 16,
+        "sha256": "02541ed6a611502926a662f5849dda29d928b83daeca75f2dc889a18ee1bd572",
+        "data": "Zone Test/Bad 0\n"
+      }
+    }
+  },
+  "zic-error-unknown-line": {
+    "stdout": "",
+    "stderr": "\"z.in\", line 1: input line of unknown type\n",
+    "exit": 1,
+    "files": {
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "758df3801fa4a9143a7e12974fb2718531dc545f7658b492c3b6e126a441c0df",
+        "data": "Bogus a b c\n"
+      }
+    }
+  },
+  "zic-fat-dst-od": {
+    "stdout": " 54 5a 69 66 32 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 4c 00 00 00 04 00 00 00 08 38 cb 40 70\n 3a 04 f7 60 3a ab 22 70 3b e4 d9 60 3c 8b 04 70\n 3d c4 bb 60 3e 6a e6 70 3f a4 9d 60 40 54 02 f0\n 41 8d b9 e0 42 33 e4 f0 43 6d 9b e0 44 13 c6 f0\n 45 4d 7d e0 45 f3 a8 f0 47 2d 5f e0 47 d3 8a f0\n 49 0d 41 e0 49 b3 6c f0 4a ed 23 e0 4b 9c 89 70\n 4c d6 40 60 4d 7c 6b 70 4e b6 22 60 4f 5c 4d 70\n 50 96 04 60 51 3c 2f 70 52 75 e6 60 53 1c 11 70\n 54 55 c8 60 54 fb f3 70 56 35 aa 60 56 e5 0f f0\n 58 1e c6 e0 58 c4 f1 f0 59 fe a8 e0 5a a4 d3 f0\n 5b de 8a e0 5c 84 b5 f0 5d be 6c e0 5e 64 97 f0\n 5f 9e 4e e0 60 4d b4 70 61 87 6b 60 62 2d 96 70\n 63 67 4d 60 64 0d 78 70 65 47 2f 60 65 ed 5a 70\n 67 27 11 60 67 cd 3c 70 69 06 f3 60 69 ad 1e 70\n 6a e6 d5 60 6b 96 3a f0 6c cf f1 e0 6d 76 1c f0\n 6e af d3 e0 6f 55 fe f0 70 8f b5 e0 71 35 e0 f0\n 72 6f 97 e0 73 15 c2 f0 74 4f 79 e0 74 fe df 70\n 76 38 96 60 76 de c1 70 78 18 78 60 78 be a3 70\n 79 f8 5a 60 7a 9e 85 70 7b d8 3c 60 7c 7e 67 70\n 7d b8 1e 60 7e 5e 49 70 7f 98 00 60 01 00 01 00\n 01 00 01 00 01 00 01 00 01 00 01 00 01 00 01 00\n*\n 01 00 01 00 01 00 01 00 ff ff b9 b0 00 04 ff ff\n c7 c0 01 00 ff ff c7 c0 01 00 ff ff b9 b0 00 04\n 45 44 54 00 45 53 54 00 54 5a 69 66 32 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 4c 00 00 00 04\n 00 00 00 08 00 00 00 00 38 cb 40 70 00 00 00 00\n 3a 04 f7 60 00 00 00 00 3a ab 22 70 00 00 00 00\n 3b e4 d9 60 00 00 00 00 3c 8b 04 70 00 00 00 00\n 3d c4 bb 60 00 00 00 00 3e 6a e6 70 00 00 00 00\n 3f a4 9d 60 00 00 00 00 40 54 02 f0 00 00 00 00\n 41 8d b9 e0 00 00 00 00 42 33 e4 f0 00 00 00 00\n 43 6d 9b e0 00 00 00 00 44 13 c6 f0 00 00 00 00\n 45 4d 7d e0 00 00 00 00 45 f3 a8 f0 00 00 00 00\n 47 2d 5f e0 00 00 00 00 47 d3 8a f0 00 00 00 00\n 49 0d 41 e0 00 00 00 00 49 b3 6c f0 00 00 00 00\n 4a ed 23 e0 00 00 00 00 4b 9c 89 70 00 00 00 00\n 4c d6 40 60 00 00 00 00 4d 7c 6b 70 00 00 00 00\n 4e b6 22 60 00 00 00 00 4f 5c 4d 70 00 00 00 00\n 50 96 04 60 00 00 00 00 51 3c 2f 70 00 00 00 00\n 52 75 e6 60 00 00 00 00 53 1c 11 70 00 00 00 00\n 54 55 c8 60 00 00 00 00 54 fb f3 70 00 00 00 00\n 56 35 aa 60 00 00 00 00 56 e5 0f f0 00 00 00 00\n 58 1e c6 e0 00 00 00 00 58 c4 f1 f0 00 00 00 00\n 59 fe a8 e0 00 00 00 00 5a a4 d3 f0 00 00 00 00\n 5b de 8a e0 00 00 00 00 5c 84 b5 f0 00 00 00 00\n 5d be 6c e0 00 00 00 00 5e 64 97 f0 00 00 00 00\n 5f 9e 4e e0 00 00 00 00 60 4d b4 70 00 00 00 00\n 61 87 6b 60 00 00 00 00 62 2d 96 70 00 00 00 00\n 63 67 4d 60 00 00 00 00 64 0d 78 70 00 00 00 00\n 65 47 2f 60 00 00 00 00 65 ed 5a 70 00 00 00 00\n 67 27 11 60 00 00 00 00 67 cd 3c 70 00 00 00 00\n 69 06 f3 60 00 00 00 00 69 ad 1e 70 00 00 00 00\n 6a e6 d5 60 00 00 00 00 6b 96 3a f0 00 00 00 00\n 6c cf f1 e0 00 00 00 00 6d 76 1c f0 00 00 00 00\n 6e af d3 e0 00 00 00 00 6f 55 fe f0 00 00 00 00\n 70 8f b5 e0 00 00 00 00 71 35 e0 f0 00 00 00 00\n 72 6f 97 e0 00 00 00 00 73 15 c2 f0 00 00 00 00\n 74 4f 79 e0 00 00 00 00 74 fe df 70 00 00 00 00\n 76 38 96 60 00 00 00 00 76 de c1 70 00 00 00 00\n 78 18 78 60 00 00 00 00 78 be a3 70 00 00 00 00\n 79 f8 5a 60 00 00 00 00 7a 9e 85 70 00 00 00 00\n 7b d8 3c 60 00 00 00 00 7c 7e 67 70 00 00 00 00\n 7d b8 1e 60 00 00 00 00 7e 5e 49 70 00 00 00 00\n 7f 98 00 60 01 00 01 00 01 00 01 00 01 00 01 00\n 01 00 01 00 01 00 01 00 01 00 01 00 01 00 01 00\n*\n ff ff b9 b0 00 04 ff ff c7 c0 01 00 ff ff c7 c0\n 01 00 ff ff b9 b0 00 04 45 44 54 00 45 53 54 00\n 0a 45 53 54 35 45 44 54 2c 4d 33 2e 32 2e 30 2c\n 4d 31 31 2e 31 2e 30 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Dst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 1240,
+        "sha256": "6530a29f677790d6dd9954289845ff68eb1c391e3be5204bd482c988b277eafe",
+        "data": {
+          "b64": "VFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABMAAAABAAAAAg4y0BwOgT3YDqrInA75NlgPIsEcD3Eu2A+auZwP6SdYEBUAvBBjbngQjPk8ENtm+BEE8bwRU194EXzqPBHLV/gR9OK8EkNQeBJs2zwSu0j4EuciXBM1kBgTXxrcE62ImBPXE1wUJYEYFE8L3BSdeZgUxwRcFRVyGBU+/NwVjWqYFblD/BYHsbgWMTx8Fn+qOBapNPwW96K4FyEtfBdvmzgXmSX8F+eTuBgTbRwYYdrYGItlnBjZ01gZA14cGVHL2Bl7VpwZycRYGfNPHBpBvNgaa0ecGrm1WBrljrwbM/x4G12HPBur9Pgb1X+8HCPteBxNeDwcm+X4HMVwvB0T3ngdP7fcHY4lmB23sFweBh4YHi+o3B5+Fpgep6FcHvYPGB8fmdwfbgeYH5eSXB/mABgAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAP//ubAABP//x8ABAP//x8ABAP//ubAABEVEVABFU1QAVFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABMAAAABAAAAAgAAAAAOMtAcAAAAAA6BPdgAAAAADqrInAAAAAAO+TZYAAAAAA8iwRwAAAAAD3Eu2AAAAAAPmrmcAAAAAA/pJ1gAAAAAEBUAvAAAAAAQY254AAAAABCM+TwAAAAAENtm+AAAAAARBPG8AAAAABFTX3gAAAAAEXzqPAAAAAARy1f4AAAAABH04rwAAAAAEkNQeAAAAAASbNs8AAAAABK7SPgAAAAAEuciXAAAAAATNZAYAAAAABNfGtwAAAAAE62ImAAAAAAT1xNcAAAAABQlgRgAAAAAFE8L3AAAAAAUnXmYAAAAABTHBFwAAAAAFRVyGAAAAAAVPvzcAAAAABWNapgAAAAAFblD/AAAAAAWB7G4AAAAABYxPHwAAAAAFn+qOAAAAAAWqTT8AAAAABb3orgAAAAAFyEtfAAAAAAXb5s4AAAAABeZJfwAAAAAF+eTuAAAAAAYE20cAAAAABhh2tgAAAAAGItlnAAAAAAY2dNYAAAAABkDXhwAAAAAGVHL2AAAAAAZe1acAAAAABnJxFgAAAAAGfNPHAAAAAAaQbzYAAAAABprR5wAAAAAGrm1WAAAAAAa5Y68AAAAABsz/HgAAAAAG12HPAAAAAAbq/T4AAAAABvVf7wAAAAAHCPteAAAAAAcTXg8AAAAAByb5fgAAAAAHMVwvAAAAAAdE954AAAAAB0/t9wAAAAAHY4lmAAAAAAdt7BcAAAAAB4GHhgAAAAAHi+o3AAAAAAefhaYAAAAAB6noVwAAAAAHvYPGAAAAAAfH5ncAAAAAB9uB5gAAAAAH5eSXAAAAAAf5gAYAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQD//7mwAAT//8fAAQD//8fAAQD//7mwAARFRFQARVNUAApFU1Q1RURULE0zLjIuMCxNMTEuMS4wCg=="
+        }
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 109,
+        "sha256": "2a539948037645eca959abd5800ecaaccb56d020eb95b6bb5233755743de28c7",
+        "data": "Rule TR 2000 max - Mar Sun>=8 2:00 1:00 D\nRule TR 2000 max - Nov Sun>=1 2:00 0 S\nZone Test/Dst -5:00 TR E%sT\n"
+      }
+    }
+  },
+  "zic-fat-fixed-od": {
+    "stdout": " 54 5a 69 66 32 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 01 00 00 00 04 ff ff d5 d0\n 00 00 2d 30 33 00 54 5a 69 66 32 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00\n 00 04 ff ff d5 d0 00 00 2d 30 33 00 0a 3c 2d 30\n 33 3e 33 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Fixed": {
+        "kind": "file",
+        "mode": 420,
+        "size": 116,
+        "sha256": "406a18ac4d386d427e3b32f7eddb763194f917158d2e92433d55e025bb2d6190",
+        "data": {
+          "b64": "VFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAT//9XQAAAtMDMAVFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAT//9XQAAAtMDMACjwtMDM+Mwo="
+        }
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "0851d6b59a735ad9ebea880ab6a0337a32e9d7cf47ed3d98388a5b90dbf64e5d",
+        "data": "Zone Test/Fixed -3:00 - -03\n"
+      }
+    }
+  },
+  "zic-help": {
+    "stdout": "zic: usage is zic [ --version ] [ --help ] [ -v ] \\\n\t[ -b {slim|fat} ] [ -d directory ] [ -l localtime ] [ -L leapseconds ] \\\n\t[ -p posixrules ] [ -r '[@lo][/@hi]' ] [ -R '@hi' ] \\\n\t[ -t localtime-link ] \\\n\t[ filename ... ]\n\nReport bugs to <http://www.debian.org/Bugs/>.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "zic-history-zdump": {
+    "stdout": "\nTZ=\"Test/Hist\"\n-\t-\t-03\n1991-02-17\t01\t-02\t\t1\n1991-10-05\t23\t-03\n1992-02-16\t01\t-02\t\t1\n1992-10-03\t23\t-03\n1993-02-21\t01\t-02\t\t1\n1993-12-31\t22\t-04\n2000-06-15\t09:30\t-0230\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Hist": {
+        "kind": "file",
+        "mode": 420,
+        "size": 222,
+        "sha256": "ddf0d62dfe4d8bd6af6bd74550765a664545413658ab164692bc5392bba70783",
+        "data": {
+          "b64": "VFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAVFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAABAAAABIAAAAAJw6aMAAAAAAnvfGwAAAAACjubiAAAAAAKZ3TsAAAAAAqzlAgAAAAACuG8DAAAAAALSTZIAAAAAA5SMVAAAEAAQABAgP//9XQAAD//+PgAQT//8fAAAj//9zYAAwtMDMALTAyAC0wNAAtMDIzMAAKPC0wMjMwPjI6MzAK"
+        }
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 255,
+        "sha256": "0d7899eca5fc285207787771896c857e400adfa5785fb1544b1b07c828013cd5",
+        "data": "# Zona com várias linhas, regras históricas e fim em horário padrão fixo.\nRule Old 1990 1992 - Oct Sun>=1 0:00 0 -\nRule Old 1991 1993 - Feb Sun>=15 0:00 1:00 -\nZone Test/Hist -3:00 Old -03/-02 1994 Jan 1\n\t-4:00 - -04 2000 Jun 15 12:00u\n\t-2:30 - -0230\n"
+      }
+    }
+  },
+  "zic-link-hard": {
+    "stdout": "1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Alias": {
+        "kind": "file",
+        "mode": 420,
+        "size": 114,
+        "sha256": "4bcd52f59d3e57ed01e54fb44b43e76f1f1fbf6887b701352eb95993e7242eda",
+        "data": "TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0004\u0000\u0000\u000e\u0010\u0000\u0000+01\u0000\n<+01>-1\n"
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Real": {
+        "kind": "file",
+        "mode": 420,
+        "size": 114,
+        "sha256": "4bcd52f59d3e57ed01e54fb44b43e76f1f1fbf6887b701352eb95993e7242eda",
+        "data": "TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0004\u0000\u0000\u000e\u0010\u0000\u0000+01\u0000\n<+01>-1\n"
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "6db604cf8eff27339eb419a67cc1edfce57dd5f8075639f9199de368915b4ef8",
+        "data": "Zone Test/Real 1:00 - +01\nLink Test/Real Alias\n"
+      }
+    }
+  },
+  "zic-link-remove": {
+    "stdout": "Alias\nTest\n",
+    "stderr": "\"r.in\", line 1: blank TARGET field on Link line\n",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Alias": {
+        "kind": "file",
+        "mode": 420,
+        "size": 114,
+        "sha256": "4bcd52f59d3e57ed01e54fb44b43e76f1f1fbf6887b701352eb95993e7242eda",
+        "data": "TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0004\u0000\u0000\u000e\u0010\u0000\u0000+01\u0000\n<+01>-1\n"
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Real": {
+        "kind": "file",
+        "mode": 420,
+        "size": 114,
+        "sha256": "4bcd52f59d3e57ed01e54fb44b43e76f1f1fbf6887b701352eb95993e7242eda",
+        "data": "TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0004\u0000\u0000\u000e\u0010\u0000\u0000+01\u0000\n<+01>-1\n"
+      },
+      "r.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "ac95d5c698179601ae504a57fb6a2a4325eaf5fbaa3a9b8abe61c8348099bd04",
+        "data": "Link - Alias\n"
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 47,
+        "sha256": "6db604cf8eff27339eb419a67cc1edfce57dd5f8075639f9199de368915b4ef8",
+        "data": "Zone Test/Real 1:00 - +01\nLink Test/Real Alias\n"
+      }
+    }
+  },
+  "zic-missing-file": {
+    "stdout": "",
+    "stderr": "zic: Can't open nada.in: No such file or directory\n",
+    "exit": 1,
+    "files": {}
+  },
+  "zic-percent-z": {
+    "stdout": "Test/Pz  -9223372036854775808 (gmtime failed) = -9223372036854775808 (localtime failed)\nTest/Pz  -67768040609760601 (gmtime failed) = -67768040609760601 (localtime failed)\nTest/Pz  -67768040609760600 (gmtime failed) = Thu Jan  1 00:00:00 -2147481748 +0530 isdst=0 gmtoff=19800\nTest/Pz  -67768040609740801 (gmtime failed) = Thu Jan  1 05:29:59 -2147481748 +0530 isdst=0 gmtoff=19800\nTest/Pz  Thu Jan  1 00:00:00 -2147481748 UT = Thu Jan  1 05:30:00 -2147481748 +0530 isdst=0 gmtoff=19800\nTest/Pz  Wed Dec 31 18:29:59 2147485547 UT = Wed Dec 31 23:59:59 2147485547 +0530 isdst=0 gmtoff=19800\nTest/Pz  Wed Dec 31 18:30:00 2147485547 UT = 67768036191657000 (localtime failed)\nTest/Pz  Wed Dec 31 23:59:59 2147485547 UT = 67768036191676799 (localtime failed)\nTest/Pz  67768036191676800 (gmtime failed) = 67768036191676800 (localtime failed)\nTest/Pz  9223372036854775807 (gmtime failed) = 9223372036854775807 (localtime failed)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Pz": {
+        "kind": "file",
+        "mode": 420,
+        "size": 121,
+        "sha256": "787d59b61d5550df957e436e6aee3279a369b84402710a1cf163ff339f5b14cc",
+        "data": "TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0006\u0000\u0000MX\u0000\u0000+0530\u0000\n<+0530>-5:30\n"
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 23,
+        "sha256": "3c35429af7d0b7f7c6dfcfd289bf9e161e6eb145052ac1020bfd2b990099c429",
+        "data": "Zone Test/Pz 5:30 - %z\n"
+      }
+    }
+  },
+  "zic-range-r": {
+    "stdout": " 54 5a 69 66 32 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00\n 00 00 00 54 5a 69 66 32 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 02 00 00 00 02 00 00 00 08 00\n 00 00 00 00 00 00 00 00 00 00 00 3b 9a ca 00 01\n 00 00 00 00 00 00 00 ff ff d5 d0 00 04 2d 30 30\n 00 2d 30 33 00 0a 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Fixed": {
+        "kind": "file",
+        "mode": 420,
+        "size": 135,
+        "sha256": "3d62805be3d0e14741ee74016c0a0a5875eb5f630d90461196f9b0b7cd53d34a",
+        "data": {
+          "b64": "VFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAVFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAgAAAAgAAAAAAAAAAAAAAAA7msoAAQAAAAAAAAD//9XQAAQtMDAALTAzAAoK"
+        }
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "0851d6b59a735ad9ebea880ab6a0337a32e9d7cf47ed3d98388a5b90dbf64e5d",
+        "data": "Zone Test/Fixed -3:00 - -03\n"
+      }
+    }
+  },
+  "zic-slim-dst-od": {
+    "stdout": " 54 5a 69 66 32 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00\n 00 00 00 54 5a 69 66 32 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 01 00 00 00 02 00 00 00 08 00\n 00 00 00 38 cb 40 70 01 ff ff b9 b0 00 04 ff ff\n c7 c0 01 00 45 44 54 00 45 53 54 00 0a 45 53 54\n 35 45 44 54 2c 4d 33 2e 32 2e 30 2c 4d 31 31 2e\n 31 2e 30 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Dst": {
+        "kind": "file",
+        "mode": 420,
+        "size": 148,
+        "sha256": "8b895a73efc6ce576ee0dd6a703356ed808fe2c1881a6137a326a120aa099ab0",
+        "data": {
+          "b64": "VFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAVFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAgAAAAgAAAAAOMtAcAH//7mwAAT//8fAAQBFRFQARVNUAApFU1Q1RURULE0zLjIuMCxNMTEuMS4wCg=="
+        }
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 109,
+        "sha256": "2a539948037645eca959abd5800ecaaccb56d020eb95b6bb5233755743de28c7",
+        "data": "Rule TR 2000 max - Mar Sun>=8 2:00 1:00 D\nRule TR 2000 max - Nov Sun>=1 2:00 0 S\nZone Test/Dst -5:00 TR E%sT\n"
+      }
+    }
+  },
+  "zic-slim-fixed-od": {
+    "stdout": " 54 5a 69 66 32 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00\n 00 00 00 54 5a 69 66 32 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 01 00 00 00 04 ff\n ff d5 d0 00 00 2d 30 33 00 0a 3c 2d 30 33 3e 33\n 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Fixed": {
+        "kind": "file",
+        "mode": 420,
+        "size": 113,
+        "sha256": "ab70fd0cb7e64c1500a3860c9cd50d5142ab024292c0ce50faf7ac77d03a4994",
+        "data": {
+          "b64": "VFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAEAAAAAAAAAVFppZjIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAT//9XQAAAtMDMACjwtMDM+Mwo="
+        }
+      },
+      "z.in": {
+        "kind": "file",
+        "mode": 420,
+        "size": 28,
+        "sha256": "0851d6b59a735ad9ebea880ab6a0337a32e9d7cf47ed3d98388a5b90dbf64e5d",
+        "data": "Zone Test/Fixed -3:00 - -03\n"
+      }
+    }
+  },
+  "zic-stdin": {
+    "stdout": " 54 5a 69 66 32 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00\n 00 00 00 54 5a 69 66 32 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n 00 00 00 00 00 00 00 00 00 00 01 00 00 00 04 00\n 00 1c 20 00 00 45 45 54 00 0a 45 45 54 2d 32 0a\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "out/Test/Stdin": {
+        "kind": "file",
+        "mode": 420,
+        "size": 112,
+        "sha256": "9773c770f953ab4a7ada5b83e1c35ec51d2237829899e5c9b7acbc657949df8c",
+        "data": "TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000TZif2\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0004\u0000\u0000\u001c \u0000\u0000EET\u0000\nEET-2\n"
+      }
+    }
+  },
+  "zic-version": {
+    "stdout": "zic (Debian GLIBC 2.41-12+deb13u4) 2.41\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
