@@ -5,51 +5,51 @@ source = "manual"
 
 [[case]]
 id = "groupadd-basic"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; printf 'root:*::\\n' > etc/gshadow; groupadd -P . dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; printf 'root:*::\\n' > etc/gshadow; groupadd -P $PWD dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
 
 [[case]]
 id = "groupadd-no-gshadow"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P . dev; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P $PWD dev; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "groupadd-gid"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P . -g 4242 dev; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P $PWD -g 4242 dev; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "groupadd-gid-dup"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P . -g 0 dev 2>&1; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P $PWD -g 0 dev 2>&1; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "groupadd-gid-dup-non-unique"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P . -o -g 0 dev 2>&1; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P $PWD -o -g 0 dev 2>&1; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "groupadd-gid-dup-force"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P . -f -g 0 dev 2>&1; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P $PWD -f -g 0 dev 2>&1; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "groupadd-exists"
-script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; groupadd -P . dev 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; groupadd -P $PWD dev 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "groupadd-exists-force"
-script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; groupadd -P . -f dev 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; groupadd -P $PWD -f dev 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "groupadd-system"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P . -r svc; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P $PWD -r svc; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "groupadd-password"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; printf 'root:*::\\n' > etc/gshadow; groupadd -P . -p 'hash' dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; printf 'root:*::\\n' > etc/gshadow; groupadd -P $PWD -p 'hash' dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
 
 [[case]]
 id = "groupadd-bad-name"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P . 'Bad Name' 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P $PWD 'Bad Name' 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "groupadd-bad-gid"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P . -g abc dev 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupadd -P $PWD -g abc dev 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "groupadd-no-args"

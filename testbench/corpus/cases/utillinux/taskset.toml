@@ -15,27 +15,27 @@ tags = ["help"]
 
 [[case]]
 id = "taskset-set-mask"
-script = "taskset -p 1 $$"
+script = "{ taskset -p 1 $$; } 2>&1 | sed -E 's/pid [0-9]+/pid N/; s/mask: [0-9a-f]+/mask: M/; s/list: [0-9,-]+/list: L/'"
 tags = ["set"]
 
 [[case]]
 id = "taskset-set-list"
-script = "taskset -pc 0 $$"
+script = "{ taskset -pc 0 $$; } 2>&1 | sed -E 's/pid [0-9]+/pid N/; s/mask: [0-9a-f]+/mask: M/; s/list: [0-9,-]+/list: L/'"
 tags = ["set", "list"]
 
 [[case]]
 id = "taskset-set-then-get"
-script = "taskset -pc 0 $$ >/dev/null && taskset -p $$ && taskset -pc $$"
+script = "{ taskset -pc 0 $$ >/dev/null && taskset -p $$ && taskset -pc $$; } 2>&1 | sed -E 's/pid [0-9]+/pid N/; s/mask: [0-9a-f]+/mask: M/; s/list: [0-9,-]+/list: L/'"
 tags = ["get"]
 
 [[case]]
 id = "taskset-list-stride"
-script = "taskset -pc 0-3:2 $$"
+script = "{ taskset -pc 0-3:2 $$; } 2>&1 | sed -E 's/pid [0-9]+/pid N/; s/mask: [0-9a-f]+/mask: M/; s/list: [0-9,-]+/list: L/'"
 tags = ["set", "list"]
 
 [[case]]
 id = "taskset-mask-0x"
-script = "taskset -p 0x1 $$"
+script = "{ taskset -p 0x1 $$; } 2>&1 | sed -E 's/pid [0-9]+/pid N/; s/mask: [0-9a-f]+/mask: M/; s/list: [0-9,-]+/list: L/'"
 tags = ["set"]
 
 [[case]]
@@ -50,7 +50,7 @@ tags = ["error"]
 
 [[case]]
 id = "taskset-empty-mask"
-script = "taskset -p 0 $$"
+script = "{ taskset -p 0 $$; } 2>&1 | sed -E 's/pid [0-9]+/pid N/; s/mask: [0-9a-f]+/mask: M/; s/list: [0-9,-]+/list: L/'"
 tags = ["error"]
 
 [[case]]

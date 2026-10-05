@@ -1,0 +1,60 @@
+tool = "gpasswd"
+source = "manual"
+
+# gpasswd do shadow 4.17 sobre um prefixo (-Q .) montado no caso.
+
+[[case]]
+id = "gpasswd-add"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'dev:x:50:\\n' > etc/group; printf 'dev:!::\\n' > etc/gshadow; gpasswd -Q $PWD -a ana dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+
+[[case]]
+id = "gpasswd-add-second"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\nbob:x:1001:1001::/home/bob:/bin/sh\\n' > etc/passwd; printf 'dev:x:50:ana\\n' > etc/group; printf 'dev:!::ana\\n' > etc/gshadow; gpasswd -Q $PWD -a bob dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+
+[[case]]
+id = "gpasswd-add-already"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'dev:x:50:ana\\n' > etc/group; gpasswd -Q $PWD -a ana dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "gpasswd-add-no-user"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'dev:x:50:\\n' > etc/group; gpasswd -Q $PWD -a zed dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "gpasswd-delete"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'dev:x:50:ana,bob\\n' > etc/group; printf 'dev:!::ana,bob\\n' > etc/gshadow; gpasswd -Q $PWD -d ana dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+
+[[case]]
+id = "gpasswd-delete-not-member"
+script = "mkdir etc; printf 'dev:x:50:bob\\n' > etc/group; gpasswd -Q $PWD -d ana dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "gpasswd-members-admins"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\nbob:x:1001:1001::/home/bob:/bin/sh\\n' > etc/passwd; printf 'dev:x:50:\\n' > etc/group; printf 'dev:!::\\n' > etc/gshadow; gpasswd -Q $PWD -A ana -M ana,bob dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+
+[[case]]
+id = "gpasswd-remove-password"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; printf 'dev:$6$abc$def::\\n' > etc/gshadow; gpasswd -Q $PWD -r dev; echo \"rc=$?\"; cat etc/gshadow"
+
+[[case]]
+id = "gpasswd-restrict"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; printf 'dev::: \\n' > etc/gshadow; gpasswd -Q $PWD -R dev; echo \"rc=$?\"; cat etc/gshadow"
+
+[[case]]
+id = "gpasswd-no-group"
+script = "mkdir etc; printf 'dev:x:50:\\n' > etc/group; gpasswd -Q $PWD -r nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "gpasswd-combined"
+script = "gpasswd -a ana -d bob dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "gpasswd-no-args"
+script = "gpasswd 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "gpasswd-invalid-option"
+script = "gpasswd -Z dev 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "gpasswd-help"
+script = "gpasswd -h; echo \"rc=$?\""

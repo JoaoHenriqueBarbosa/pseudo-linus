@@ -156,9 +156,32 @@ impl Entry {
                 ExtVal::Str(s) => s.valid(),
             };
             if !present && valid {
+                // Um cancelamento (`nome@`, guardado como cadeia cancelada) de outro tipo cede ao
+                // valor que vem da base.
+                self.ext.retain(|c| {
+                    !(c.name == cap.name && matches!(c.val, ExtVal::Str(Str::Cancelled)))
+                });
                 self.ext.push(cap.clone());
             }
         }
+    }
+
+    /// As estendidas por tipo (booleanos, números, cadeias) e, dentro do tipo, em ordem de nome.
+    fn sorted_ext(&self) -> [Vec<&ExtCap>; 3] {
+        let mut b: Vec<&ExtCap> = Vec::new();
+        let mut n: Vec<&ExtCap> = Vec::new();
+        let mut s: Vec<&ExtCap> = Vec::new();
+        for c in &self.ext {
+            match c.val {
+                ExtVal::Bool(_) => b.push(c),
+                ExtVal::Num(_) => n.push(c),
+                ExtVal::Str(_) => s.push(c),
+            }
+        }
+        b.sort_by(|x, y| x.name.cmp(&y.name));
+        n.sort_by(|x, y| x.name.cmp(&y.name));
+        s.sort_by(|x, y| x.name.cmp(&y.name));
+        [b, n, s]
     }
 }
 
@@ -171,21 +194,22 @@ fn to_termtype(e: &Entry) -> TermType {
     tt.nums = e.nums.clone();
     tt.strs = e.strs.clone();
     let mut names: Vec<Vec<u8>> = Vec::new();
-    for c in &e.ext {
+    let [sb, sn, ss] = e.sorted_ext();
+    for c in sb {
         if let ExtVal::Bool(b) = c.val {
             tt.bools.push(b);
             tt.ext_bools += 1;
             names.push(c.name.clone());
         }
     }
-    for c in &e.ext {
+    for c in sn {
         if let ExtVal::Num(n) = c.val {
             tt.nums.push(n);
             tt.ext_nums += 1;
             names.push(c.name.clone());
         }
     }
-    for c in &e.ext {
+    for c in ss {
         if let ExtVal::Str(s) = &c.val {
             tt.strs.push(s.clone());
             tt.ext_strs += 1;
@@ -505,24 +529,26 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
     while qi < queue.len() {
         let fld = queue[qi].clone();
         qi += 1;
-        let mut f: &[u8] = trim_start(&fld.text);
+        let f: &[u8] = trim_start(&fld.text);
         if f.is_empty() {
             continue;
         }
-        // Um nome com ponto na frente é uma capacidade comentada: vale só com `-a`.
+        // Um nome com ponto na frente é uma capacidade comentada: vale só com `-a`, e então fica
+        // como estendida com o ponto no nome.
+        let mut dotted = false;
         if f[0] == b'.' {
             if !aflag {
                 continue;
             }
-            f = &f[1..];
-            if f.is_empty() {
+            if f.len() == 1 {
                 continue;
             }
+            dotted = true;
         }
         let (line, col) = fld.end;
         let term = e.names.clone();
         let warn = |msg: String| diag.warn(Some(line), Some(col), &term, &msg);
-        let c0 = f[0];
+        let c0 = if dotted { f[1] } else { f[0] };
         if !(c0.is_ascii_alphanumeric() || c0 == b'_' || b"@%&*!#".contains(&c0)) {
             // O scanner leu o caractere ilegal: a coluna avisada é a do caractere mais um.
             let off = f.as_ptr() as usize - fld.text.as_ptr() as usize;
@@ -598,7 +624,7 @@ fn parse_entry(raw: &Raw, xflag: bool, aflag: bool, diag: &Diag) -> Option<Entry
                 } else if let Some(i) = find_type_entry(name, Kind::Str) {
                     e.strs[i] = Str::Cancelled;
                 } else if xflag {
-                    set_ext(&mut e, name, ExtVal::Bool(-2));
+                    set_ext(&mut e, name, ExtVal::Str(Str::Cancelled));
                 } else {
                     warn(unknown());
                 }
@@ -799,29 +825,14 @@ fn table_offset(table: &mut Vec<u8>, s: &Str) -> i32 {
 /// `write_object`: o arquivo compilado (formato legado, ou estendido de 32 bits quando algum número
 /// não cabe em 16 bits) com a parte das capacidades estendidas quando existem.
 fn compile(e: &Entry) -> Vec<u8> {
-    let ext_b: Vec<&ExtCap> = e
-        .ext
-        .iter()
-        .filter(|c| matches!(c.val, ExtVal::Bool(_)))
-        .collect();
-    let ext_n: Vec<&ExtCap> = e
-        .ext
-        .iter()
-        .filter(|c| matches!(c.val, ExtVal::Num(_)))
-        .collect();
-    let ext_s: Vec<&ExtCap> = e
-        .ext
-        .iter()
-        .filter(|c| matches!(c.val, ExtVal::Str(_)))
-        .collect();
-    let wide = e.nums.iter().any(|n| *n > 0x7fff)
-        || ext_n
-            .iter()
-            .any(|c| matches!(c.val, ExtVal::Num(n) if n > 0x7fff));
+    let [ext_b, ext_n, ext_s] = e.sorted_ext();
+    // Só os números predefinidos decidem o formato; os estendidos seguem o formato escolhido.
+    let wide = e.nums.iter().any(|n| *n > 0x7fff);
 
+    // Só o booleano verdadeiro conta e é gravado como 1 (um cancelado vira 0).
     let bool_count = (0..BOOLWRITE.min(e.bools.len()))
         .rev()
-        .find(|i| e.bools[*i] != 0)
+        .find(|i| e.bools[*i] == 1)
         .map_or(0, |i| i + 1);
     let num_count = (0..NUMWRITE.min(e.nums.len()))
         .rev()
@@ -849,7 +860,7 @@ fn compile(e: &Entry) -> Vec<u8> {
     out.extend_from_slice(&e.names);
     out.push(0);
     for b in &e.bools[..bool_count] {
-        out.push(*b as u8);
+        out.push(u8::from(*b == 1));
     }
     if !(name_size + bool_count).is_multiple_of(2) {
         out.push(0);
@@ -889,7 +900,7 @@ fn compile(e: &Entry) -> Vec<u8> {
         push16(&mut out, etable.len() as i32);
         for c in &ext_b {
             if let ExtVal::Bool(b) = c.val {
-                out.push(b as u8);
+                out.push(u8::from(b == 1));
             }
         }
         if !ext_b.len().is_multiple_of(2) {
@@ -1317,7 +1328,7 @@ fn run(args: &[OsString]) -> i32 {
                 infodump = true;
                 outform = OutForm::Terminfo;
                 if sortmode == SortMode::Default {
-                    sortmode = SortMode::Variable;
+                    sortmode = SortMode::Terminfo;
                 }
                 tversion = None;
             }
@@ -1591,6 +1602,11 @@ fn run(args: &[OsString]) -> i32 {
                 io::lossy(&dir)
             ));
         }
+        return 0;
+    }
+
+    // O `-K` (termcap BSD estrito) do ncurses 6.5 sai com 0 sem escrever nada (golden `tic-text-K-bsd-termcap`).
+    if strict_bsd {
         return 0;
     }
 

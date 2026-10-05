@@ -1,6 +1,6 @@
 {
   "chrt-batch": {
-    "stdout": "pid 56's current scheduling policy: SCHED_BATCH\npid 56's current scheduling priority: 0\npid 56's current runtime parameter: 2800000\n",
+    "stdout": "pid N's current scheduling policy: SCHED_BATCH\npid N's current scheduling priority: 0\npid N's current runtime parameter: 2800000\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -12,13 +12,13 @@
     "files": {}
   },
   "chrt-batch-pid-verbose": {
-    "stdout": "pid 71's current scheduling policy: SCHED_OTHER\npid 71's current scheduling priority: 0\npid 71's current runtime parameter: 2800000\npid 71's new scheduling policy: SCHED_BATCH\npid 71's new scheduling priority: 0\npid 71's new runtime parameter: 2800000\npid 71's current scheduling policy: SCHED_BATCH\npid 71's current scheduling priority: 0\npid 71's current runtime parameter: 2800000\n",
+    "stdout": "pid N's current scheduling policy: SCHED_OTHER\npid N's current scheduling priority: 0\npid N's current runtime parameter: 2800000\npid N's new scheduling policy: SCHED_BATCH\npid N's new scheduling priority: 0\npid N's new runtime parameter: 2800000\npid N's current scheduling policy: SCHED_BATCH\npid N's current scheduling priority: 0\npid N's current runtime parameter: 2800000\n",
     "stderr": "",
     "exit": 0,
     "files": {}
   },
   "chrt-batch-reset-on-fork": {
-    "stdout": "pid 76's current scheduling policy: SCHED_BATCH|SCHED_RESET_ON_FORK\npid 76's current scheduling priority: 0\npid 76's current runtime parameter: 2800000\n",
+    "stdout": "pid N's current scheduling policy: SCHED_BATCH|SCHED_RESET_ON_FORK\npid N's current scheduling priority: 0\npid N's current runtime parameter: 2800000\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -48,8 +48,8 @@
     "files": {}
   },
   "chrt-fifo-pid-eperm": {
-    "stdout": "exit 1\n",
-    "stderr": "chrt: failed to set pid 43's policy: Operation not permitted\n",
+    "stdout": "chrt: failed to set pid N's policy: Operation not permitted\nexit 1\n",
+    "stderr": "",
     "exit": 0,
     "files": {}
   },
@@ -66,7 +66,7 @@
     "files": {}
   },
   "chrt-idle": {
-    "stdout": "pid 61's current scheduling policy: SCHED_IDLE\npid 61's current scheduling priority: 0\n",
+    "stdout": "pid N's current scheduling policy: SCHED_IDLE\npid N's current scheduling priority: 0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -114,7 +114,7 @@
     "files": {}
   },
   "chrt-other": {
-    "stdout": "pid 66's current scheduling policy: SCHED_OTHER\npid 66's current scheduling priority: 0\npid 66's current runtime parameter: 2800000\n",
+    "stdout": "pid N's current scheduling policy: SCHED_OTHER\npid N's current scheduling priority: 0\npid N's current runtime parameter: 2800000\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -144,7 +144,7 @@
     "files": {}
   },
   "chrt-show-self": {
-    "stdout": "pid 19's current scheduling policy: SCHED_OTHER\npid 19's current scheduling priority: 0\npid 19's current runtime parameter: 2800000\n",
+    "stdout": "pid N's current scheduling policy: SCHED_OTHER\npid N's current scheduling priority: 0\npid N's current runtime parameter: 2800000\n",
     "stderr": "",
     "exit": 0,
     "files": {}

@@ -1,7 +1,7 @@
 {
   "groupdel-basic": {
-    "stdout": "rc=3\nroot:x:0:\ndev:x:50:\nroot:*::\ndev:!::\n",
-    "stderr": "groupdel: prefix must be an absolute path\n",
+    "stdout": "rc=0\nroot:x:0:\nroot:*::\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -11,11 +11,25 @@
       "etc/group": {
         "kind": "file",
         "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      },
+      "etc/group-": {
+        "kind": "file",
+        "mode": 420,
         "size": 20,
         "sha256": "0695b5a0f06374bed7fb46734dd43b21241cc98e463dc95d0cc2bedfa5156041",
         "data": "root:x:0:\ndev:x:50:\n"
       },
       "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "9a88132bee751d3afab1256ee560fbf9cc881d31a0d5c51b6dbac0269a6afa33",
+        "data": "root:*::\n"
+      },
+      "etc/gshadow-": {
         "kind": "file",
         "mode": 420,
         "size": 17,
@@ -37,7 +51,7 @@
     "files": {}
   },
   "groupdel-missing": {
-    "stdout": "groupdel: prefix must be an absolute path\nrc=3\n",
+    "stdout": "groupdel: group 'nope' does not exist\nrc=6\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -61,7 +75,7 @@
     "files": {}
   },
   "groupdel-primary-group": {
-    "stdout": "groupdel: prefix must be an absolute path\nrc=3\nroot:x:0:\ndev:x:50:\n",
+    "stdout": "groupdel: cannot remove the primary group of user 'bob'\nrc=8\nroot:x:0:\ndev:x:50:\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -86,7 +100,7 @@
     }
   },
   "groupdel-primary-group-force": {
-    "stdout": "groupdel: prefix must be an absolute path\nrc=3\nroot:x:0:\ndev:x:50:\n",
+    "stdout": "rc=0\nroot:x:0:\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -95,6 +109,13 @@
         "mode": 493
       },
       "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      },
+      "etc/group-": {
         "kind": "file",
         "mode": 420,
         "size": 20,

@@ -1,0 +1,178 @@
+{
+  "userdel-basic": {
+    "stdout": "rc=3\nroot:x:0:0:r:/root:/bin/sh\nbob:x:1000:1000:b:/home/bob:/bin/sh\nroot:*:1:::::\\:\nbob:!:1:0:99999:7:::\nroot:x:0:\nbob:x:1000:\nstaff:x:50:bob,root\nroot:*::\nbob:!::\nstaff:!:bob:bob,root\n",
+    "stderr": "userdel: prefix must be an absolute path\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 42,
+        "sha256": "a076462a94aa59928bf199edbcd4e67582d8dbc008c3df4de2bf6995f577d9dd",
+        "data": "root:x:0:\nbob:x:1000:\nstaff:x:50:bob,root\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 38,
+        "sha256": "b861f80e835c32cf9ae1c33a4affe11b40d9cfe75e427a02abe9dd3da0dcd241",
+        "data": "root:*::\nbob:!::\nstaff:!:bob:bob,root\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 63,
+        "sha256": "ff863ae0d7d16f4d1d14148a545e7dcafe071de8eaf3bb899afed68b13ca8042",
+        "data": "root:x:0:0:r:/root:/bin/sh\nbob:x:1000:1000:b:/home/bob:/bin/sh\n"
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 37,
+        "sha256": "20bb88c65a4c3ad312156e722092d4ecebbf76c8ddaa5ebe6f55872408a58381",
+        "data": "root:*:1:::::\\:\nbob:!:1:0:99999:7:::\n"
+      }
+    }
+  },
+  "userdel-group-has-other-members": {
+    "stdout": "userdel: prefix must be an absolute path\nrc=3\nbob:x:1000:1000:b:/h:/bin/sh\nann:x:1001:1000:a:/h2:/bin/sh\nbob:x:1000:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "55e4296365b2e5f767bc1d6dc6fc1b333d6d75622a480c70c169382f8806a9e0",
+        "data": "bob:x:1000:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 59,
+        "sha256": "7a6040e76f30f1cc802d360da7de3200990b4f3721546e5d2bdea005ac429bf2",
+        "data": "bob:x:1000:1000:b:/h:/bin/sh\nann:x:1001:1000:a:/h2:/bin/sh\n"
+      }
+    }
+  },
+  "userdel-help": {
+    "stdout": "Usage: userdel [options] LOGIN\n\nOptions:\n  -f, --force                   force some actions that would fail otherwise\n                                e.g. removal of user still logged in\n                                or files, even if not owned by the user\n  -h, --help                    display this help message and exit\n  -r, --remove                  remove home directory and mail spool\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -Z, --selinux-user            remove any SELinux user mapping for the user\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "userdel-invalid-option": {
+    "stdout": "userdel: invalid option -- 'k'\nUsage: userdel [options] LOGIN\n\nOptions:\n  -f, --force                   force some actions that would fail otherwise\n                                e.g. removal of user still logged in\n                                or files, even if not owned by the user\n  -h, --help                    display this help message and exit\n  -r, --remove                  remove home directory and mail spool\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -Z, --selinux-user            remove any SELinux user mapping for the user\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "userdel-missing": {
+    "stdout": "userdel: prefix must be an absolute path\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
+        "data": "root:x:0:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 27,
+        "sha256": "0a243b6d8183a4e5f7e68b0468c2e72b33017cca2c67e63fd43ea85a5dbdf0fb",
+        "data": "root:x:0:0:r:/root:/bin/sh\n"
+      }
+    }
+  },
+  "userdel-no-args": {
+    "stdout": "Usage: userdel [options] LOGIN\n\nOptions:\n  -f, --force                   force some actions that would fail otherwise\n                                e.g. removal of user still logged in\n                                or files, even if not owned by the user\n  -h, --help                    display this help message and exit\n  -r, --remove                  remove home directory and mail spool\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       prefix directory where are located the /etc/* files\n  -Z, --selinux-user            remove any SELinux user mapping for the user\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "userdel-remove-home": {
+    "stdout": "userdel: prefix must be an absolute path\nrc=3\nbob\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "c257e6e15406ee1f0a8a50855c26d1aafe7f5fcd572926653c59549bfc9e579d",
+        "data": "bob:x:0:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "a0897a04f326cc1322112e8db39bf5c76c7edd0d25a2e9d24ef5a98fd372fe25",
+        "data": "bob:x:0:0:b:./home/bob:/bin/sh\n"
+      },
+      "home": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "home/bob": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "home/bob/sub": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "home/bob/sub/f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 2,
+        "sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+        "data": "x\n"
+      }
+    }
+  },
+  "userdel-remove-home-missing": {
+    "stdout": "userdel: prefix must be an absolute path\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 12,
+        "sha256": "55e4296365b2e5f767bc1d6dc6fc1b333d6d75622a480c70c169382f8806a9e0",
+        "data": "bob:x:1000:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 36,
+        "sha256": "7dc7e088dda07a23e3666b94a7d3d178ec1245cfd2261e18eb2d6c5c247fec02",
+        "data": "bob:x:1000:1000:b:/home/bob:/bin/sh\n"
+      }
+    }
+  }
+}

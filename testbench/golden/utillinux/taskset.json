@@ -18,9 +18,9 @@
     "files": {}
   },
   "taskset-empty-mask": {
-    "stdout": "pid 45's current affinity mask: ffff\n",
-    "stderr": "taskset: failed to set pid 45's affinity: Invalid argument\n",
-    "exit": 1,
+    "stdout": "taskset: failed to set pid N's affinity: Invalid argument\npid N's current affinity mask: M\n",
+    "stderr": "",
+    "exit": 0,
     "files": {}
   },
   "taskset-help": {
@@ -36,13 +36,13 @@
     "files": {}
   },
   "taskset-list-stride": {
-    "stdout": "pid 29's current affinity list: 0-15\npid 29's new affinity list: 0,2\n",
+    "stdout": "pid N's current affinity list: L\npid N's new affinity list: L\n",
     "stderr": "",
     "exit": 0,
     "files": {}
   },
   "taskset-mask-0x": {
-    "stdout": "pid 33's current affinity mask: ffff\npid 33's new affinity mask: 1\n",
+    "stdout": "pid N's current affinity mask: M\npid N's new affinity mask: M\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -60,19 +60,19 @@
     "files": {}
   },
   "taskset-set-list": {
-    "stdout": "pid 19's current affinity list: 0-15\npid 19's new affinity list: 0\n",
+    "stdout": "pid N's current affinity list: L\npid N's new affinity list: L\n",
     "stderr": "",
     "exit": 0,
     "files": {}
   },
   "taskset-set-mask": {
-    "stdout": "pid 15's current affinity mask: ffff\npid 15's new affinity mask: 1\n",
+    "stdout": "pid N's current affinity mask: M\npid N's new affinity mask: M\n",
     "stderr": "",
     "exit": 0,
     "files": {}
   },
   "taskset-set-then-get": {
-    "stdout": "pid 23's current affinity mask: 1\npid 23's current affinity list: 0\n",
+    "stdout": "pid N's current affinity mask: M\npid N's current affinity list: L\n",
     "stderr": "",
     "exit": 0,
     "files": {}

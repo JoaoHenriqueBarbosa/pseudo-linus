@@ -1,0 +1,36 @@
+tool = "userdel"
+source = "manual"
+
+# userdel do shadow 4.17 sobre um prefixo (-P .) montado no caso.
+
+[[case]]
+id = "userdel-basic"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\nbob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; printf 'root:*:1:::::\\:\\nbob:!:1:0:99999:7:::\\n' > etc/shadow; printf 'root:x:0:\\nbob:x:1000:\\nstaff:x:50:bob,root\\n' > etc/group; printf 'root:*::\\nbob:!::\\nstaff:!:bob:bob,root\\n' > etc/gshadow; userdel -P . bob; echo \"rc=$?\"; cat etc/passwd etc/shadow etc/group etc/gshadow"
+
+[[case]]
+id = "userdel-missing"
+script = "mkdir etc; printf 'root:x:0:0:r:/root:/bin/sh\\n' > etc/passwd; printf 'root:x:0:\\n' > etc/group; userdel -P . nope 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "userdel-group-has-other-members"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/h:/bin/sh\\nann:x:1001:1000:a:/h2:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\n' > etc/group; userdel -P . bob 2>&1; echo \"rc=$?\"; cat etc/passwd etc/group"
+
+[[case]]
+id = "userdel-remove-home"
+script = "mkdir -p etc home/bob/sub; echo x > home/bob/sub/f; printf 'bob:x:%s:%s:b:./home/bob:/bin/sh\\n' $(id -u) $(id -g) > etc/passwd; printf 'bob:x:%s:\\n' $(id -g) > etc/group; userdel -P . -r bob 2>&1; echo \"rc=$?\"; ls home"
+
+[[case]]
+id = "userdel-remove-home-missing"
+script = "mkdir etc; printf 'bob:x:1000:1000:b:/home/bob:/bin/sh\\n' > etc/passwd; printf 'bob:x:1000:\\n' > etc/group; userdel -P . -r bob 2>&1 | sed 's|/[^ ]*home|HOME|'; echo \"rc=$?\""
+
+[[case]]
+id = "userdel-no-args"
+script = "userdel 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "userdel-invalid-option"
+script = "userdel -k bob 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "userdel-help"
+script = "userdel -h; echo \"rc=$?\""

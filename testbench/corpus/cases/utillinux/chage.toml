@@ -1,0 +1,60 @@
+tool = "chage"
+source = "manual"
+
+# chage do shadow 4.17 sobre um prefixo (-P .) montado no caso.
+
+[[case]]
+id = "chage-list"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'ana:!:19000:0:99999:7:::\\n' > etc/shadow; chage -P $PWD -l ana; echo \"rc=$?\""
+
+[[case]]
+id = "chage-list-limits"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'ana:!:19000:1:90:14:30:20000:\\n' > etc/shadow; chage -P $PWD -l ana; echo \"rc=$?\""
+
+[[case]]
+id = "chage-list-iso"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'ana:!:19000:1:90:14:30:20000:\\n' > etc/shadow; chage -P $PWD -i -l ana; echo \"rc=$?\""
+
+[[case]]
+id = "chage-list-must-change"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'ana:!:0:0:99999:7:::\\n' > etc/shadow; chage -P $PWD -l ana; echo \"rc=$?\""
+
+[[case]]
+id = "chage-set-all"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'ana:!:19000:0:99999:7:::\\n' > etc/shadow; chage -P $PWD -d 19500 -E 20000 -I 5 -m 2 -M 60 -W 10 ana; echo \"rc=$?\"; cat etc/shadow"
+
+[[case]]
+id = "chage-set-date"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'ana:!:19000:0:99999:7:::\\n' > etc/shadow; chage -P $PWD -d 2024-01-15 -E 2030-12-31 ana; echo \"rc=$?\"; cat etc/shadow"
+
+[[case]]
+id = "chage-clear-expire"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'ana:!:19000:0:99999:7:5:20000:\\n' > etc/shadow; chage -P $PWD -E -1 -I -1 ana; echo \"rc=$?\"; cat etc/shadow"
+
+[[case]]
+id = "chage-no-user"
+script = "mkdir etc; printf 'ana:x:1000:1000::/home/ana:/bin/sh\\n' > etc/passwd; printf 'ana:!:19000:0:99999:7:::\\n' > etc/shadow; chage -P $PWD -l bob 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chage-bad-date"
+script = "chage -d abc ana 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chage-bad-number"
+script = "chage -M abc ana 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chage-list-with-flags"
+script = "chage -l -M 10 ana 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chage-no-args"
+script = "chage 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chage-invalid-option"
+script = "chage -Z ana 2>&1; echo \"rc=$?\""
+
+[[case]]
+id = "chage-help"
+script = "chage -h; echo \"rc=$?\""

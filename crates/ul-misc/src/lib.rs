@@ -56,6 +56,7 @@ pub mod run_parts;
 pub mod scriptreplay;
 pub mod setarch;
 pub mod setsid;
+pub mod shadowmisc;
 pub mod start_stop_daemon;
 pub mod strings;
 pub mod taskset;
@@ -64,6 +65,7 @@ pub mod term;
 pub mod tree;
 pub mod underline;
 pub mod update_alternatives;
+pub mod usermgmt;
 pub mod util;
 pub mod whereis;
 pub mod which;
@@ -77,6 +79,7 @@ pub fn programs() -> Vec<Program> {
     vec![
         Program::bin("bc", bc::main),
         Program::bin("bzip2recover", bzip2recover::main),
+        Program::bin("chage", shadowmisc::chage_main),
         Program::bin("captoinfo", term::tic::main),
         Program::bin("choom", choom::main),
         Program::bin("chrt", chrt::main),
@@ -96,6 +99,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("getent", getent::main),
         Program::bin("getopt", getopt_cmd::main),
         Program::bin("gettext", gettext::gettext_main),
+        Program::bin("gpasswd", shadowmisc::gpasswd_main),
         Program::bin("hardlink", hardlink::main),
         Program::bin("hexdump", hexdump::main),
         Program::bin("hd", hexdump::main),
@@ -155,5 +159,7 @@ pub fn programs() -> Vec<Program> {
         Program::sbin("pwck", pwck::main),
         Program::sbin("remove-shell", debscripts::remove_shell_main),
         Program::sbin("start-stop-daemon", start_stop_daemon::main),
+        Program::sbin("userdel", usermgmt::userdel_main),
+        Program::sbin("usermod", usermgmt::usermod_main),
     ]
 }

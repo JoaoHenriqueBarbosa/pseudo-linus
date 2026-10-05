@@ -5,19 +5,19 @@ source = "manual"
 
 [[case]]
 id = "groupdel-basic"
-script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'root:*::\\ndev:!::\\n' > etc/gshadow; groupdel -P . dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'root:*::\\ndev:!::\\n' > etc/gshadow; groupdel -P $PWD dev; echo \"rc=$?\"; cat etc/group etc/gshadow"
 
 [[case]]
 id = "groupdel-missing"
-script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupdel -P . nope 2>&1; echo \"rc=$?\""
+script = "mkdir etc; printf 'root:x:0:\\n' > etc/group; groupdel -P $PWD nope 2>&1; echo \"rc=$?\""
 
 [[case]]
 id = "groupdel-primary-group"
-script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'bob:x:1000:50:b:/:/bin/sh\\n' > etc/passwd; groupdel -P . dev 2>&1; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'bob:x:1000:50:b:/:/bin/sh\\n' > etc/passwd; groupdel -P $PWD dev 2>&1; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "groupdel-primary-group-force"
-script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'bob:x:1000:50:b:/:/bin/sh\\n' > etc/passwd; groupdel -P . -f dev 2>&1; echo \"rc=$?\"; cat etc/group"
+script = "mkdir etc; printf 'root:x:0:\\ndev:x:50:\\n' > etc/group; printf 'bob:x:1000:50:b:/:/bin/sh\\n' > etc/passwd; groupdel -P $PWD -f dev 2>&1; echo \"rc=$?\"; cat etc/group"
 
 [[case]]
 id = "groupdel-no-args"

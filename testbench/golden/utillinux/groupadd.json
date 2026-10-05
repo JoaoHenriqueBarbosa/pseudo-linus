@@ -1,6 +1,6 @@
 {
   "groupadd-bad-gid": {
-    "stdout": "groupadd: prefix must be an absolute path\nrc=3\n",
+    "stdout": "groupadd: invalid group ID 'abc'\nrc=3\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -18,7 +18,7 @@
     }
   },
   "groupadd-bad-name": {
-    "stdout": "groupadd: prefix must be an absolute path\nrc=3\n",
+    "stdout": "groupadd: 'Bad Name' is not a valid group name\nrc=3\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -36,8 +36,8 @@
     }
   },
   "groupadd-basic": {
-    "stdout": "rc=3\nroot:x:0:\nroot:*::\n",
-    "stderr": "groupadd: prefix must be an absolute path\n",
+    "stdout": "rc=0\nroot:x:0:\ndev:x:1000:\nroot:*::\ndev:!::\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -47,11 +47,25 @@
       "etc/group": {
         "kind": "file",
         "mode": 420,
+        "size": 22,
+        "sha256": "4fabecb39e84bb8ba50c85a9a2eb9f6d3dece6c56c0c5052f38834a5d968d26b",
+        "data": "root:x:0:\ndev:x:1000:\n"
+      },
+      "etc/group-": {
+        "kind": "file",
+        "mode": 420,
         "size": 10,
         "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
         "data": "root:x:0:\n"
       },
       "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "abd8a351f7fd8a1c6ed260e9ef17d6915380b58e223cabc5d5d8ce32e626c5f2",
+        "data": "root:*::\ndev:!::\n"
+      },
+      "etc/gshadow-": {
         "kind": "file",
         "mode": 420,
         "size": 9,
@@ -61,7 +75,7 @@
     }
   },
   "groupadd-exists": {
-    "stdout": "groupadd: prefix must be an absolute path\nrc=3\n",
+    "stdout": "groupadd: group 'dev' already exists\nrc=9\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -79,7 +93,7 @@
     }
   },
   "groupadd-exists-force": {
-    "stdout": "groupadd: prefix must be an absolute path\nrc=3\n",
+    "stdout": "rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -97,8 +111,8 @@
     }
   },
   "groupadd-gid": {
-    "stdout": "rc=3\nroot:x:0:\n",
-    "stderr": "groupadd: prefix must be an absolute path\n",
+    "stdout": "rc=0\nroot:x:0:\ndev:x:4242:\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -108,6 +122,13 @@
       "etc/group": {
         "kind": "file",
         "mode": 420,
+        "size": 22,
+        "sha256": "a4080d38a942fffeb664f387c395adc670306947d23aa964f07f56cbeba04b4f",
+        "data": "root:x:0:\ndev:x:4242:\n"
+      },
+      "etc/group-": {
+        "kind": "file",
+        "mode": 420,
         "size": 10,
         "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
         "data": "root:x:0:\n"
@@ -115,7 +136,7 @@
     }
   },
   "groupadd-gid-dup": {
-    "stdout": "groupadd: prefix must be an absolute path\nrc=3\nroot:x:0:\n",
+    "stdout": "groupadd: GID '0' already exists\nrc=4\nroot:x:0:\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -133,7 +154,7 @@
     }
   },
   "groupadd-gid-dup-force": {
-    "stdout": "groupadd: prefix must be an absolute path\nrc=3\nroot:x:0:\n",
+    "stdout": "rc=0\nroot:x:0:\ndev:x:1000:\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -144,6 +165,13 @@
       "etc/group": {
         "kind": "file",
         "mode": 420,
+        "size": 22,
+        "sha256": "4fabecb39e84bb8ba50c85a9a2eb9f6d3dece6c56c0c5052f38834a5d968d26b",
+        "data": "root:x:0:\ndev:x:1000:\n"
+      },
+      "etc/group-": {
+        "kind": "file",
+        "mode": 420,
         "size": 10,
         "sha256": "7a696fcfba89a55a6d73fa1a03c7f071fad2141340027b17a25db249e26b9be8",
         "data": "root:x:0:\n"
@@ -151,7 +179,7 @@
     }
   },
   "groupadd-gid-dup-non-unique": {
-    "stdout": "groupadd: prefix must be an absolute path\nrc=3\nroot:x:0:\n",
+    "stdout": "rc=0\nroot:x:0:\ndev:x:0:\n",
     "stderr": "",
     "exit": 0,
     "files": {
@@ -160,6 +188,13 @@
         "mode": 493
       },
       "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 19,
+        "sha256": "ddd5749a666b7618812fa5a4b8bae8c80fb3e10f6eb64b074d233e62ac7c9a4e",
+        "data": "root:x:0:\ndev:x:0:\n"
+      },
+      "etc/group-": {
         "kind": "file",
         "mode": 420,
         "size": 10,
@@ -187,8 +222,8 @@
     "files": {}
   },
   "groupadd-no-gshadow": {
-    "stdout": "rc=3\nroot:x:0:\n",
-    "stderr": "groupadd: prefix must be an absolute path\n",
+    "stdout": "rc=0\nroot:x:0:\ndev:x:1000:\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -196,6 +231,13 @@
         "mode": 493
       },
       "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "4fabecb39e84bb8ba50c85a9a2eb9f6d3dece6c56c0c5052f38834a5d968d26b",
+        "data": "root:x:0:\ndev:x:1000:\n"
+      },
+      "etc/group-": {
         "kind": "file",
         "mode": 420,
         "size": 10,
@@ -205,8 +247,8 @@
     }
   },
   "groupadd-password": {
-    "stdout": "rc=3\nroot:x:0:\nroot:*::\n",
-    "stderr": "groupadd: prefix must be an absolute path\n",
+    "stdout": "rc=0\nroot:x:0:\ndev:x:1000:\nroot:*::\ndev:hash::\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -214,6 +256,13 @@
         "mode": 493
       },
       "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 22,
+        "sha256": "4fabecb39e84bb8ba50c85a9a2eb9f6d3dece6c56c0c5052f38834a5d968d26b",
+        "data": "root:x:0:\ndev:x:1000:\n"
+      },
+      "etc/group-": {
         "kind": "file",
         "mode": 420,
         "size": 10,
@@ -223,6 +272,13 @@
       "etc/gshadow": {
         "kind": "file",
         "mode": 420,
+        "size": 20,
+        "sha256": "72ebb2889c6ef0ec53dffdd7fa4a6cacc3515ab4ccbd177fd442c9c31cfe9522",
+        "data": "root:*::\ndev:hash::\n"
+      },
+      "etc/gshadow-": {
+        "kind": "file",
+        "mode": 420,
         "size": 9,
         "sha256": "9a88132bee751d3afab1256ee560fbf9cc881d31a0d5c51b6dbac0269a6afa33",
         "data": "root:*::\n"
@@ -230,8 +286,8 @@
     }
   },
   "groupadd-system": {
-    "stdout": "rc=3\nroot:x:0:\n",
-    "stderr": "groupadd: prefix must be an absolute path\n",
+    "stdout": "rc=0\nroot:x:0:\nsvc:x:999:\n",
+    "stderr": "",
     "exit": 0,
     "files": {
       "etc": {
@@ -239,6 +295,13 @@
         "mode": 493
       },
       "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "10eec7707965aaebb5f6631d8b89129a6abe49b59bccc667d4a3d3b21f9b5ffb",
+        "data": "root:x:0:\nsvc:x:999:\n"
+      },
+      "etc/group-": {
         "kind": "file",
         "mode": 420,
         "size": 10,

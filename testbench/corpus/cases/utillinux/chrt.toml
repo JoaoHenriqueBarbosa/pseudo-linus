@@ -21,7 +21,7 @@ tags = ["max"]
 
 [[case]]
 id = "chrt-show-self"
-script = "chrt -p $$"
+script = "{ chrt -p $$; } 2>&1 | sed -E 's/pid [0-9]+/pid N/'"
 tags = ["show"]
 
 [[case]]
@@ -51,7 +51,7 @@ tags = ["eperm"]
 
 [[case]]
 id = "chrt-fifo-pid-eperm"
-script = "chrt -f -p 10 $$; echo \"exit $?\""
+script = "{ chrt -f -p 10 $$; echo \"exit $?\"; } 2>&1 | sed -E 's/pid [0-9]+/pid N/'"
 tags = ["eperm"]
 
 [[case]]
@@ -66,27 +66,27 @@ tags = ["eperm", "verbose"]
 
 [[case]]
 id = "chrt-batch"
-script = "chrt -b 0 sh -c 'chrt -p $$'"
+script = "{ chrt -b 0 sh -c 'chrt -p $$'; } 2>&1 | sed -E 's/pid [0-9]+/pid N/'"
 tags = ["batch"]
 
 [[case]]
 id = "chrt-idle"
-script = "chrt -i 0 sh -c 'chrt -p $$'"
+script = "{ chrt -i 0 sh -c 'chrt -p $$'; } 2>&1 | sed -E 's/pid [0-9]+/pid N/'"
 tags = ["idle"]
 
 [[case]]
 id = "chrt-other"
-script = "chrt -o 0 sh -c 'chrt -p $$'"
+script = "{ chrt -o 0 sh -c 'chrt -p $$'; } 2>&1 | sed -E 's/pid [0-9]+/pid N/'"
 tags = ["other"]
 
 [[case]]
 id = "chrt-batch-pid-verbose"
-script = "chrt -v -b -p 0 $$ && chrt -p $$"
+script = "{ chrt -v -b -p 0 $$ && chrt -p $$; } 2>&1 | sed -E 's/pid [0-9]+/pid N/'"
 tags = ["batch", "verbose"]
 
 [[case]]
 id = "chrt-batch-reset-on-fork"
-script = "chrt -b -R 0 sh -c 'chrt -p $$'"
+script = "{ chrt -b -R 0 sh -c 'chrt -p $$'; } 2>&1 | sed -E 's/pid [0-9]+/pid N/'"
 tags = ["batch", "reset"]
 
 [[case]]

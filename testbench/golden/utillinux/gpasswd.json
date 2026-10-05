@@ -1,0 +1,290 @@
+{
+  "gpasswd-add": {
+    "stdout": "rc=1\ndev:x:50:\ndev:!::\n",
+    "stderr": "gpasswd: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "a72dc6b2b10980bc1e42ce99be8599ea01b4dd86ac0838560ba9829fbef06f9d",
+        "data": "dev:!::\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      }
+    }
+  },
+  "gpasswd-add-already": {
+    "stdout": "gpasswd: Cannot determine your user name.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "6becfe2f458cb95ff4e4404ffad52fe4b94cce15174cfb62fc1765893c585182",
+        "data": "dev:x:50:ana\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      }
+    }
+  },
+  "gpasswd-add-no-user": {
+    "stdout": "gpasswd: Cannot determine your user name.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      }
+    }
+  },
+  "gpasswd-add-second": {
+    "stdout": "rc=1\ndev:x:50:ana\ndev:!::ana\n",
+    "stderr": "gpasswd: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "6becfe2f458cb95ff4e4404ffad52fe4b94cce15174cfb62fc1765893c585182",
+        "data": "dev:x:50:ana\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 11,
+        "sha256": "21578da4769bbc796077b7194b0617ef95c16e1c1a3a61912acb74f46c14e38d",
+        "data": "dev:!::ana\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 70,
+        "sha256": "302ac972baeee0963d977ea623276f93e5808420f2346ba97b95ed4c81f128a8",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\nbob:x:1001:1001::/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "gpasswd-combined": {
+    "stdout": "gpasswd: user 'ana' does not exist\nrc=3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gpasswd-delete": {
+    "stdout": "rc=1\ndev:x:50:ana,bob\ndev:!::ana,bob\n",
+    "stderr": "gpasswd: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "b7368dc81c84943d4d52cc57ed385468cf36e0674114063c74fb3b526240eaea",
+        "data": "dev:x:50:ana,bob\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 15,
+        "sha256": "f00a9fa9d29547f391185708264c6fcef70cc087293d6b8754bcbaeb1312ccdb",
+        "data": "dev:!::ana,bob\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      }
+    }
+  },
+  "gpasswd-delete-not-member": {
+    "stdout": "gpasswd: Cannot determine your user name.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 13,
+        "sha256": "d6346ed68dc762091f62d6f1f0e76531e1118264722bbda83ed71787e7784df9",
+        "data": "dev:x:50:bob\n"
+      }
+    }
+  },
+  "gpasswd-help": {
+    "stdout": "Usage: gpasswd [option] GROUP\n\nOptions:\n  -a, --add USER                add USER to GROUP\n  -d, --delete USER             remove USER from GROUP\n  -h, --help                    display this help message and exit\n  -Q, --root CHROOT_DIR         directory to chroot into\n  -r, --remove-password         remove the GROUP's password\n  -R, --restrict                restrict access to GROUP to its members\n  -M, --members USER,...        set the list of members of GROUP\n  -A, --administrators ADMIN,...\n                                set the list of administrators for GROUP\nExcept for the -A and -M options, the options cannot be combined.\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gpasswd-invalid-option": {
+    "stdout": "gpasswd: invalid option -- 'Z'\nUsage: gpasswd [option] GROUP\n\nOptions:\n  -a, --add USER                add USER to GROUP\n  -d, --delete USER             remove USER from GROUP\n  -h, --help                    display this help message and exit\n  -Q, --root CHROOT_DIR         directory to chroot into\n  -r, --remove-password         remove the GROUP's password\n  -R, --restrict                restrict access to GROUP to its members\n  -M, --members USER,...        set the list of members of GROUP\n  -A, --administrators ADMIN,...\n                                set the list of administrators for GROUP\nExcept for the -A and -M options, the options cannot be combined.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gpasswd-members-admins": {
+    "stdout": "rc=1\ndev:x:50:\ndev:!::\n",
+    "stderr": "gpasswd: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "a72dc6b2b10980bc1e42ce99be8599ea01b4dd86ac0838560ba9829fbef06f9d",
+        "data": "dev:!::\n"
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 70,
+        "sha256": "302ac972baeee0963d977ea623276f93e5808420f2346ba97b95ed4c81f128a8",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\nbob:x:1001:1001::/home/bob:/bin/sh\n"
+      }
+    }
+  },
+  "gpasswd-no-args": {
+    "stdout": "Usage: gpasswd [option] GROUP\n\nOptions:\n  -a, --add USER                add USER to GROUP\n  -d, --delete USER             remove USER from GROUP\n  -h, --help                    display this help message and exit\n  -Q, --root CHROOT_DIR         directory to chroot into\n  -r, --remove-password         remove the GROUP's password\n  -R, --restrict                restrict access to GROUP to its members\n  -M, --members USER,...        set the list of members of GROUP\n  -A, --administrators ADMIN,...\n                                set the list of administrators for GROUP\nExcept for the -A and -M options, the options cannot be combined.\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "gpasswd-no-group": {
+    "stdout": "gpasswd: Cannot determine your user name.\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      }
+    }
+  },
+  "gpasswd-remove-password": {
+    "stdout": "rc=1\ndev:$6$abc$def::\n",
+    "stderr": "gpasswd: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 17,
+        "sha256": "73b7308bac74c7181bb6b600cfd32cccae5ce1068c8897e75175e3cd6e6f47dc",
+        "data": "dev:$6$abc$def::\n"
+      }
+    }
+  },
+  "gpasswd-restrict": {
+    "stdout": "rc=1\ndev::: \n",
+    "stderr": "gpasswd: Cannot determine your user name.\n",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/group": {
+        "kind": "file",
+        "mode": 420,
+        "size": 10,
+        "sha256": "49476bd8383cc418050919273b96fdc30ce16968cb1b527b372f5b8361b617e4",
+        "data": "dev:x:50:\n"
+      },
+      "etc/gshadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "5f783f308bf87c72f32f25e6b565b73ec5f31b014c5d0c1d21e31f8b120f0c0f",
+        "data": "dev::: \n"
+      }
+    }
+  }
+}

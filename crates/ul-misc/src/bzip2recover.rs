@@ -96,11 +96,22 @@ fn run(args: &[OsString]) -> i32 {
         ));
         return 1;
     }
-    let Ok(data) = io::read_path(in_name) else {
+    let Ok(mut in_file) = io::File::open(in_name) else {
         io::eprint(format!("{prog}: can't read `{}'\n", io::lossy(in_name)));
         return 1;
     };
     io::eprint(format!("{prog}: searching for block boundaries ...\n"));
+    let data = match in_file.read_to_end_sys() {
+        Ok(d) => d,
+        Err(e) => {
+            io::eprint(format!(
+                "{prog}: I/O error reading `{}', possible reason follows.\n{prog}: {}\n{prog}: warning: output file(s) may be incomplete.\n",
+                io::lossy(in_name),
+                e.message()
+            ));
+            return 1;
+        }
+    };
 
     let nbits = data.len() as u64 * 8;
     let mut bits_read: u64 = 0;
@@ -131,7 +142,7 @@ fn run(args: &[OsString]) -> i32 {
         let endmark = (hi & 0xffff) == ENDMARK_HI && lo == ENDMARK_LO;
         if header || endmark {
             ends[cur] = if bits_read > 49 { bits_read - 49 } else { 0 };
-            if cur > 0 && ends[cur].wrapping_sub(starts[cur]) >= 130 && ends[cur] >= starts[cur] {
+            if cur > 0 && ends[cur].wrapping_sub(starts[cur]) >= 130 {
                 io::eprint(format!(
                     "   block {} runs from {} to {}\n",
                     found.len() + 1,
@@ -159,18 +170,20 @@ fn run(args: &[OsString]) -> i32 {
     }
     io::eprint(format!("{prog}: splitting into blocks\n"));
 
-    let level = data.get(3).copied().unwrap_or(0);
-    let base: &[u8] = match in_name.iter().rposition(|&c| c == b'/') {
-        Some(i) => &in_name[i + 1..],
-        None => in_name,
+    // O original sempre grava o nível 9 no cabeçalho, qualquer que seja o do arquivo de entrada.
+    let level = b'9';
+    let (dir, base): (&[u8], &[u8]) = match in_name.iter().rposition(|&c| c == b'/') {
+        Some(i) => (&in_name[..=i], &in_name[i + 1..]),
+        None => (&[], in_name),
     };
     let stem: &[u8] = base.strip_suffix(b".bz2").unwrap_or(base);
     for (i, &(s, e)) in found.iter().enumerate() {
-        let mut name = format!("rec{:05}", i + 1).into_bytes();
+        let mut name = dir.to_vec();
+        name.extend_from_slice(format!("rec{:05}", i + 1).as_bytes());
         name.extend_from_slice(stem);
         name.extend_from_slice(b".bz2");
         let shown = io::lossy(&name);
-        io::eprint(format!("{prog}: writing block {} to `{shown}' ...\n", i + 1));
+        io::eprint(format!("   writing block {} to `{shown}' ...\n", i + 1));
 
         let mut w = BitWriter::new();
         for c in [b'B', b'Z', b'h', level] {
@@ -199,7 +212,7 @@ fn run(args: &[OsString]) -> i32 {
         let file = io::File::open_with(
             &name,
             OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC,
-            0o666,
+            0o600,
         );
         let ok = match file {
             Ok(mut f) => f.write_all(&bytes).is_ok(),

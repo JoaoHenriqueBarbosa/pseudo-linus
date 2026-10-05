@@ -1,0 +1,259 @@
+{
+  "chage-bad-date": {
+    "stdout": "chage: invalid date 'abc'\nUsage: chage [options] LOGIN\n\nOptions:\n  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -h, --help                    display this help message and exit\n  -i, --iso8601                 use YYYY-MM-DD when printing dates\n  -I, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --list                    show account aging information\n  -m, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -M, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chage-bad-number": {
+    "stdout": "chage: invalid numeric argument 'abc'\nUsage: chage [options] LOGIN\n\nOptions:\n  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -h, --help                    display this help message and exit\n  -i, --iso8601                 use YYYY-MM-DD when printing dates\n  -I, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --list                    show account aging information\n  -m, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -M, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chage-clear-expire": {
+    "stdout": "rc=0\nana:!:19000:0:99999:7:::\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "4f5fbbafb7d1c6171f40afd030ef768716051864d3d8d07a3c41acc5856378b0",
+        "data": "ana:!:19000:0:99999:7:::\n"
+      },
+      "etc/shadow-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 31,
+        "sha256": "c64c27b6d75d1a1df1a72bd9de49311ad9b42562879a8df8ba8c5e0828982c25",
+        "data": "ana:!:19000:0:99999:7:5:20000:\n"
+      }
+    }
+  },
+  "chage-help": {
+    "stdout": "Usage: chage [options] LOGIN\n\nOptions:\n  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -h, --help                    display this help message and exit\n  -i, --iso8601                 use YYYY-MM-DD when printing dates\n  -I, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --list                    show account aging information\n  -m, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -M, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chage-invalid-option": {
+    "stdout": "chage: invalid option -- 'Z'\nUsage: chage [options] LOGIN\n\nOptions:\n  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -h, --help                    display this help message and exit\n  -i, --iso8601                 use YYYY-MM-DD when printing dates\n  -I, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --list                    show account aging information\n  -m, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -M, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chage-list": {
+    "stdout": "Last password change\t\t\t\t\t: Jan 08, 2022\nPassword expires\t\t\t\t\t: never\nPassword inactive\t\t\t\t\t: never\nAccount expires\t\t\t\t\t\t: never\nMinimum number of days between password change\t\t: 0\nMaximum number of days between password change\t\t: 99999\nNumber of days of warning before password expires\t: 7\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "4f5fbbafb7d1c6171f40afd030ef768716051864d3d8d07a3c41acc5856378b0",
+        "data": "ana:!:19000:0:99999:7:::\n"
+      }
+    }
+  },
+  "chage-list-iso": {
+    "stdout": "Last password change\t\t\t\t\t: 2022-01-08\nPassword expires\t\t\t\t\t: 2022-04-08\nPassword inactive\t\t\t\t\t: 2022-05-08\nAccount expires\t\t\t\t\t\t: 2024-10-04\nMinimum number of days between password change\t\t: 1\nMaximum number of days between password change\t\t: 90\nNumber of days of warning before password expires\t: 14\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "8a30d3b86bcb93078fbdccbdde95c8febb6c1d72bd8f9571e2758f800bbcf512",
+        "data": "ana:!:19000:1:90:14:30:20000:\n"
+      }
+    }
+  },
+  "chage-list-limits": {
+    "stdout": "Last password change\t\t\t\t\t: Jan 08, 2022\nPassword expires\t\t\t\t\t: Apr 08, 2022\nPassword inactive\t\t\t\t\t: May 08, 2022\nAccount expires\t\t\t\t\t\t: Oct 04, 2024\nMinimum number of days between password change\t\t: 1\nMaximum number of days between password change\t\t: 90\nNumber of days of warning before password expires\t: 14\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "8a30d3b86bcb93078fbdccbdde95c8febb6c1d72bd8f9571e2758f800bbcf512",
+        "data": "ana:!:19000:1:90:14:30:20000:\n"
+      }
+    }
+  },
+  "chage-list-must-change": {
+    "stdout": "Last password change\t\t\t\t\t: password must be changed\nPassword expires\t\t\t\t\t: password must be changed\nPassword inactive\t\t\t\t\t: password must be changed\nAccount expires\t\t\t\t\t\t: never\nMinimum number of days between password change\t\t: 0\nMaximum number of days between password change\t\t: 99999\nNumber of days of warning before password expires\t: 7\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 21,
+        "sha256": "836ad0c964152624c076caa1bfe0b381f9e8cfbde9a44de349ebee0d0e0763d3",
+        "data": "ana:!:0:0:99999:7:::\n"
+      }
+    }
+  },
+  "chage-list-with-flags": {
+    "stdout": "chage: do not include \"l\" with other flags\nUsage: chage [options] LOGIN\n\nOptions:\n  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -h, --help                    display this help message and exit\n  -i, --iso8601                 use YYYY-MM-DD when printing dates\n  -I, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --list                    show account aging information\n  -m, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -M, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chage-no-args": {
+    "stdout": "Usage: chage [options] LOGIN\n\nOptions:\n  -d, --lastday LAST_DAY        set date of last password change to LAST_DAY\n  -E, --expiredate EXPIRE_DATE  set account expiration date to EXPIRE_DATE\n  -h, --help                    display this help message and exit\n  -i, --iso8601                 use YYYY-MM-DD when printing dates\n  -I, --inactive INACTIVE       set password inactive after expiration\n                                to INACTIVE\n  -l, --list                    show account aging information\n  -m, --mindays MIN_DAYS        set minimum number of days before password\n                                change to MIN_DAYS\n  -M, --maxdays MAX_DAYS        set maximum number of days before password\n                                change to MAX_DAYS\n  -R, --root CHROOT_DIR         directory to chroot into\n  -P, --prefix PREFIX_DIR       directory prefix\n  -W, --warndays WARN_DAYS      set expiration warning days to WARN_DAYS\n\nrc=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "chage-no-user": {
+    "stdout": "chage: user 'bob' does not exist in /work/case//etc/passwd\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "4f5fbbafb7d1c6171f40afd030ef768716051864d3d8d07a3c41acc5856378b0",
+        "data": "ana:!:19000:0:99999:7:::\n"
+      }
+    }
+  },
+  "chage-set-all": {
+    "stdout": "rc=0\nana:!:19500:2:60:10:5:20000:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 29,
+        "sha256": "4a1642096cfa479d6f220bb3c87dfa4bd5d6ae8de20a13e9cacb9e137937539a",
+        "data": "ana:!:19500:2:60:10:5:20000:\n"
+      },
+      "etc/shadow-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "4f5fbbafb7d1c6171f40afd030ef768716051864d3d8d07a3c41acc5856378b0",
+        "data": "ana:!:19000:0:99999:7:::\n"
+      }
+    }
+  },
+  "chage-set-date": {
+    "stdout": "rc=0\nana:!:19737:0:99999:7::22279:\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "etc": {
+        "kind": "dir",
+        "mode": 493
+      },
+      "etc/passwd": {
+        "kind": "file",
+        "mode": 420,
+        "size": 35,
+        "sha256": "2ac50be00f75ad84936ef3bf6ba69da1d772afcc63437617dd6a2d0e6a52c16e",
+        "data": "ana:x:1000:1000::/home/ana:/bin/sh\n"
+      },
+      "etc/shadow": {
+        "kind": "file",
+        "mode": 420,
+        "size": 30,
+        "sha256": "b46533c0b6c0af1974b0995ff627666479f1c71cb266815d3ff3832d4a8b12a6",
+        "data": "ana:!:19737:0:99999:7::22279:\n"
+      },
+      "etc/shadow-": {
+        "kind": "file",
+        "mode": 420,
+        "size": 25,
+        "sha256": "4f5fbbafb7d1c6171f40afd030ef768716051864d3d8d07a3c41acc5856378b0",
+        "data": "ana:!:19000:0:99999:7:::\n"
+      }
+    }
+  }
+}
