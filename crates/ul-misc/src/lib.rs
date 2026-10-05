@@ -54,6 +54,7 @@ pub mod mcookie;
 pub mod mountpoint;
 pub mod namei;
 pub mod nologin;
+pub mod nsenter;
 pub mod pager;
 pub mod prlimit;
 pub mod pwck;
@@ -137,6 +138,7 @@ pub fn programs() -> Vec<Program> {
         Program::bin("lsmem", lsmem::main),
         Program::bin("lsns", lsns::main),
         Program::bin("mcookie", mcookie::main),
+        Program::bin("nsenter", nsenter::main),
         Program::bin("prlimit", prlimit::main),
         Program::bin("mountpoint", mountpoint::main),
         Program::bin("namei", namei::main),

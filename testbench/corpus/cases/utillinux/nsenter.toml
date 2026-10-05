@@ -1,0 +1,49 @@
+tool = "nsenter"
+source = "manual"
+
+# nsenter do util-linux 2.41: só os casos determinísticos (ajuda, versão e erros de argumento).
+
+[[case]]
+id = "nsenter-help"
+argv = ["nsenter", "--help"]
+tags = ["help"]
+
+[[case]]
+id = "nsenter-version"
+argv = ["nsenter", "-V"]
+tags = ["help"]
+
+[[case]]
+id = "nsenter-bad-option"
+argv = ["nsenter", "-x"]
+tags = ["error"]
+
+[[case]]
+id = "nsenter-bad-long-option"
+argv = ["nsenter", "--bogus", "true"]
+tags = ["error"]
+
+[[case]]
+id = "nsenter-all-without-target"
+argv = ["nsenter", "--all", "true"]
+tags = ["error"]
+
+[[case]]
+id = "nsenter-bad-pid"
+argv = ["nsenter", "-t", "abc", "-m", "true"]
+tags = ["error"]
+
+[[case]]
+id = "nsenter-missing-pid"
+argv = ["nsenter", "-t", "999999", "-m", "true"]
+tags = ["error"]
+
+[[case]]
+id = "nsenter-mount-without-target"
+argv = ["nsenter", "-m", "true"]
+tags = ["error"]
+
+[[case]]
+id = "nsenter-bad-setuid"
+argv = ["nsenter", "-S", "abc", "true"]
+tags = ["error"]
