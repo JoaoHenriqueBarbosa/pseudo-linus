@@ -440,6 +440,19 @@ mod tests {
     }
 
     #[test]
+    fn sequence_builtins() {
+        let src = "print(sorted([3, 1, 2]), min(4, 2, 9), max([1, 7]), sum([1, 2, 3]), abs(-5))\n\
+                   print(list(zip([1, 2], 'ab')), list(enumerate('xy', start=1)), any([0, 1]), all([]))\n\
+                   print(float('1.5'), bool(''), ord('a'), chr(98), tuple([1]), sorted([1, 2], reverse=True))\n";
+        let out = run_source(src);
+        assert_eq!(out.stderr, "");
+        assert_eq!(
+            String::from_utf8_lossy(&out.stdout),
+            "[1, 2, 3] 2 7 6 5\n[(1, 'a'), (2, 'b')] [(1, 'x'), (2, 'y')] True True\n1.5 False 97 b (1,) [2, 1]\n"
+        );
+    }
+
+    #[test]
     fn getopt_captures_command() {
         let args: Vec<Vec<u8>> = vec![b"-c".to_vec(), b"print(1)".to_vec(), b"x".to_vec()];
         let mut g = GetOpt { args: &args, optind: 0, pos: 0, optarg: None };
