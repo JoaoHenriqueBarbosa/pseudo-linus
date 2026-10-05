@@ -5265,6 +5265,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ul-python"
+version = "0.1.0"
+dependencies = [
+ "sysabi",
+]
+
+[[package]]
 name = "ul-sqlite"
 version = "0.1.0"
 dependencies = [
@@ -5417,6 +5424,7 @@ dependencies = [
  "ul-misc",
  "ul-net",
  "ul-procps",
+ "ul-python",
  "ul-sqlite",
  "ul-textproc",
  "ul-yaml",
