@@ -64,7 +64,6 @@ fn run(args: &[OsString]) -> i32 {
             match argv.get(i).and_then(|s| parse_signal(s)) {
                 Some(v) => sig = v,
                 None => {
-                    io::eprint(USAGE);
                     return 1;
                 }
             }

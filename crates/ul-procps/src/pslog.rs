@@ -20,7 +20,7 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 
 fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
-    if argv.len() != 2 {
+    if argv.len() < 2 {
         io::eprint(USAGE);
         return 255;
     }
@@ -40,19 +40,18 @@ fn run(args: &[OsString]) -> i32 {
         return 1;
     }
     let sysc = sys::current();
-    let mut s = Vec::new();
+    // O original abre o diretório do processo antes de qualquer saída e só olha o primeiro operando.
+    if let Err(e) = sys::read_dir(format!("/proc/{pid}").as_bytes()) {
+        io::eprint(format!("opendir: {}\n", e.message()));
+        return 1;
+    }
+    let mut s = format!("Pid no {}:\n", String::from_utf8_lossy(a)).into_bytes();
     for (label, path) in [("Path", format!("/proc/{pid}/cwd")), ("Stdout", format!("/proc/{pid}/fd/1")), ("Stderr", format!("/proc/{pid}/fd/2"))] {
-        match sysc.readlinkat(Fd::CWD, path.as_bytes()) {
-            Ok(t) => {
-                s.extend_from_slice(label.as_bytes());
-                s.extend_from_slice(b"\t: ");
-                s.extend_from_slice(&t);
-                s.push(b'\n');
-            }
-            Err(e) => {
-                io::eprint(format!("pslog: cannot read {path}: {}\n", e.message()));
-                return 1;
-            }
+        if let Ok(t) = sysc.readlinkat(Fd::CWD, path.as_bytes()) {
+            s.extend_from_slice(label.as_bytes());
+            s.extend_from_slice(b"\t: ");
+            s.extend_from_slice(&t);
+            s.push(b'\n');
         }
     }
     out(s);
