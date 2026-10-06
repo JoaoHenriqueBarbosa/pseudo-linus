@@ -115,6 +115,16 @@ def abspath(path):
     return normpath(path)
 
 
+class _AllowMissing:
+    """`os.path.ALLOW_MISSING`: `strict` que só tolera caminhos inexistentes."""
+
+    def __repr__(self):
+        return 'os.path.ALLOW_MISSING'
+
+
+ALLOW_MISSING = _AllowMissing()
+
+
 def realpath(filename, *, strict=False):
     filename = _fspath(filename)
     path = abspath(filename)
@@ -132,7 +142,7 @@ def realpath(filename, *, strict=False):
         try:
             st = _os.stat(candidate, False)
         except OSError:
-            if strict:
+            if strict and strict is not ALLOW_MISSING:
                 raise
             resolved = candidate
             continue

@@ -5,7 +5,7 @@ import stat
 
 __all__ = ['copyfileobj', 'copyfile', 'copymode', 'copystat', 'copy', 'copy2', 'copytree', 'move',
            'rmtree', 'Error', 'SameFileError', 'which', 'get_terminal_size',
-           'ignore_patterns', 'make_archive', 'unpack_archive']
+           'ignore_patterns', 'make_archive', 'unpack_archive', 'get_archive_formats', 'get_unpack_formats', 'disk_usage']
 
 
 class Error(OSError):
@@ -207,6 +207,21 @@ def move(src, dst, copy_function=copy2):
     return real_dst
 
 
+import collections as _collections
+
+_ntuple_diskusage = _collections.namedtuple('usage', 'total used free')
+
+
+def disk_usage(path):
+    """Uso do disco do ponto de montagem de `path` (via `df`, que o sandbox implementa)."""
+    import subprocess
+    os.stat(path)
+    out = subprocess.run(['df', '-Pk', os.fspath(path)], capture_output=True, text=True).stdout.splitlines()
+    fields = out[-1].split()
+    total, used, free = (int(fields[1]) * 1024, int(fields[2]) * 1024, int(fields[3]) * 1024)
+    return _ntuple_diskusage(total, used, free)
+
+
 def which(cmd, mode=os.F_OK | os.X_OK, path=None):
     if os.path.dirname(cmd):
         if os.path.exists(cmd) and os.access(cmd, mode) and not os.path.isdir(cmd):
@@ -244,34 +259,70 @@ def get_terminal_size(fallback=(80, 24)):
     return os.terminal_size((columns, lines))
 
 
-def make_archive(base_name, format, root_dir=None, base_dir=None, **kwargs):
-    if format in ('zip',):
+_TAR_FORMATS = {'tar': ('', ''), 'gztar': ('gz', '.gz'), 'bztar': ('bz2', '.bz2'), 'xztar': ('xz', '.xz')}
+
+
+def get_archive_formats():
+    return [('bztar', "bzip2'ed tar-file"), ('gztar', "gzip'ed tar-file"), ('tar', 'uncompressed tar file'),
+            ('xztar', "xz'ed tar-file"), ('zip', 'ZIP file')]
+
+
+def get_unpack_formats():
+    return [('bztar', ['.tar.bz2', '.tbz2'], "bzip2'ed tar-file"), ('gztar', ['.tar.gz', '.tgz'], "gzip'ed tar-file"),
+            ('tar', ['.tar'], 'uncompressed tar file'), ('xztar', ['.tar.xz', '.txz'], "xz'ed tar-file"),
+            ('zip', ['.zip'], 'ZIP file')]
+
+
+def make_archive(base_name, format, root_dir=None, base_dir=None, verbose=0, dry_run=0, owner=None, group=None,
+                 logger=None):
+    base_name = os.fspath(base_name)
+    root = os.fspath(root_dir) if root_dir is not None else os.curdir
+    base = os.fspath(base_dir) if base_dir is not None else os.curdir
+    if format not in _TAR_FORMATS and format != 'zip':
+        raise ValueError('unknown archive format %r' % format)
+    if root_dir is not None:
+        base_name = os.path.abspath(base_name)
+    top = os.path.join(root, base) if base != os.curdir else root
+    if format == 'zip':
         import zipfile
-        root = root_dir or os.curdir
-        base = base_dir or os.curdir
         archive = base_name + '.zip'
         with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as zf:
-            top = os.path.join(root, base) if base != os.curdir else root
             for dirpath, dirnames, filenames in os.walk(top):
                 dirnames.sort()
-                rel = os.path.relpath(dirpath, root)
+                rel = os.path.normpath(os.path.relpath(dirpath, root))
                 if rel != '.':
                     zf.write(dirpath, rel)
                 for fn in sorted(filenames):
                     full = os.path.join(dirpath, fn)
-                    zf.write(full, os.path.relpath(full, root))
+                    zf.write(full, os.path.normpath(os.path.relpath(full, root)))
         return archive
-    raise ValueError('unknown archive format %r' % format)
+    import tarfile
+    comp, ext = _TAR_FORMATS[format]
+    archive = base_name + '.tar' + ext
+    with tarfile.open(archive, 'w:' + comp if comp else 'w') as tf:
+        rel_top = os.path.normpath(os.path.relpath(top, root))
+        tf.add(top, arcname=rel_top)
+    return archive
 
 
 def unpack_archive(filename, extract_dir=None, format=None, **kwargs):
-    if extract_dir is None:
-        extract_dir = os.getcwd()
+    filename = os.fspath(filename)
+    extract_dir = os.fspath(extract_dir) if extract_dir is not None else os.getcwd()
     if format is None:
-        format = 'zip' if str(filename).endswith('.zip') else None
+        for fmt, exts, _ in get_unpack_formats():
+            if any(filename.endswith(e) for e in exts):
+                format = fmt
+                break
+        else:
+            raise ReadError('Unknown archive format %r' % filename)
     if format == 'zip':
         import zipfile
         with zipfile.ZipFile(filename) as zf:
             zf.extractall(extract_dir)
         return
-    raise ReadError('Unknown archive format %r' % (filename,))
+    if format in _TAR_FORMATS:
+        import tarfile
+        with tarfile.open(filename) as tf:
+            tf.extractall(extract_dir, filter=kwargs.get('filter', 'data'))
+        return
+    raise ValueError('Unknown unpack format %r' % format)
