@@ -333,7 +333,7 @@ fn interactive(t: &mut dyn Target) -> u8 {
     loop {
         let mut line = String::new();
         if let Some(ed) = editor.as_mut() {
-            let prompt = format!("{}osh:{cwd}# ", if buf.is_empty() { "" } else { "> " });
+            let prompt = if buf.is_empty() { format!("osh:{cwd}# ") } else { "> ".to_string() };
             match ed.readline(&prompt) {
                 Ok(l) => {
                     line = l;
@@ -351,7 +351,11 @@ fn interactive(t: &mut dyn Target) -> u8 {
             }
         } else {
             if tty {
-                eprint!("{}osh:{cwd}# ", if buf.is_empty() { "" } else { "> " });
+                if buf.is_empty() {
+                    eprint!("osh:{cwd}# ");
+                } else {
+                    eprint!("> ");
+                }
                 let _ = std::io::stderr().flush();
             }
             match stdin.lock().read_line(&mut line) {
