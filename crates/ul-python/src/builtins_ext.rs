@@ -320,6 +320,8 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
         }
     }
     let separate = locals.as_ref().filter(|l| !crate::object::is(l, &gdict));
+    // Com `locals` separado, o que o código cria não pode vazar para as globais vivas do módulo.
+    let backup = if live.is_some() && separate.is_some() { Some(map.borrow().clone()) } else { None };
     let mut lwas: Vec<String> = Vec::new();
     if let Some(Value::Dict(l)) = separate {
         let litems: Vec<(Value, Value)> = l.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
@@ -335,6 +337,9 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
     let result = inner.run(&code).map_err(|e| e.exc);
     let value = if eval { map.borrow_mut().remove("__eval_value__").unwrap_or(Value::None) } else { Value::None };
     let snapshot = map.borrow().clone();
+    if let Some(original) = backup {
+        *map.borrow_mut() = original;
+    }
     match separate {
         Some(l) => {
             // Só o que o código criou ou mudou vai para o `locals`; o resto é das globais.

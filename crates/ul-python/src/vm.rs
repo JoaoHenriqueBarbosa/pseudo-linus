@@ -3257,7 +3257,8 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
                 Some(Value::Bool(b)) => Ok(Value::Float(f64::from(u8::from(*b)))),
                 Some(Value::Float(x)) => Ok(Value::Float(*x)),
                 Some(v @ Value::Str(s)) => {
-                    let t = s.as_str().trim().replace('_', "");
+                    let folded = crate::modules::unicodedata::fold_decimal_digits(s.as_str());
+                    let t = folded.as_deref().unwrap_or(s.as_str()).trim().replace('_', "");
                     let low = t.to_ascii_lowercase();
                     let parsed = match low.trim_start_matches(['+', '-']) {
                         "inf" | "infinity" => Some(if low.starts_with('-') { f64::NEG_INFINITY } else { f64::INFINITY }),

@@ -117,6 +117,26 @@ fn bidirectional(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::str(code.to_string()))
 }
 
+fn decomposition(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let a = bind("decomposition", args, kw, &["chr"], 1)?;
+    let c = one_char("decomposition", a[0].as_ref())?;
+    let s = c.to_string();
+    // Hangul e uso de decomposição completa: o CPython mostra só o mapeamento de um passo; aqui
+    // a decomposição canônica ou de compatibilidade (NFD/NFKD) é a aproximação.
+    let canon = DecomposingNormalizer::new_nfd().normalize(&s).into_owned();
+    let (tag, text) = if canon != s {
+        ("", canon)
+    } else {
+        let compat = DecomposingNormalizer::new_nfkd().normalize(&s).into_owned();
+        if compat == s {
+            return Ok(Value::str(String::new()));
+        }
+        ("<compat> ", compat)
+    };
+    let hex: Vec<String> = text.chars().map(|ch| format!("{:04X}", ch as u32)).collect();
+    Ok(Value::str(format!("{tag}{}", hex.join(" "))))
+}
+
 fn mirrored(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     use icu_properties::props::BidiMirrored;
     use icu_properties::CodePointSetData;
@@ -313,6 +333,7 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("east_asian_width", east_asian_width)
         .func("bidirectional", bidirectional)
         .func("mirrored", mirrored)
+        .func("decomposition", decomposition)
         .func("name", name)
         .func("lookup", lookup)
         .func("normalize", normalize)

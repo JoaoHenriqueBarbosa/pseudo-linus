@@ -5249,3 +5249,40 @@ a   b ***abc*** ab   |00042|ff|1.234568e+04|A|% 000x -005 ['a', 'b', '', 'c'] ['
 "##
     );
 }
+
+#[test]
+fn float_unicode_digits_and_decomposition() {
+    let src = r##"
+import timeit, unicodedata
+print(float('١٢.٥'), float(' ٣ '), unicodedata.decomposition('é'), unicodedata.decomposition('a'), unicodedata.decomposition('ﬁ'))
+print(len(timeit.repeat("1+1", number=10, repeat=3)))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"12.5 3.0 0065 0301  <compat> 0066 0069
+3
+"##
+    );
+}
+
+#[test]
+fn exec_separate_locals_does_not_leak() {
+    let src = r##"
+g = {}
+for i in range(3):
+    ns = {}
+    exec(compile('def inner(): return 1', '<s>', 'exec'), g, ns)
+    print(i, sorted(ns), 'inner' in g)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"0 ['inner'] False
+1 ['inner'] False
+2 ['inner'] False
+"##
+    );
+}

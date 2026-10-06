@@ -1610,6 +1610,7 @@ fn b_float(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Some(Value::Float(x)) => Ok(Value::Float(*x)),
         Some(v @ (Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_))) => {
             let text = text_of(v).unwrap_or_default();
+            let text = crate::modules::unicodedata::fold_decimal_digits(&text).unwrap_or(text);
             parse_float_text(&text)
                 .map(Value::Float)
                 .ok_or_else(|| value_error(format!("could not convert string to float: {}", repr(v))))
