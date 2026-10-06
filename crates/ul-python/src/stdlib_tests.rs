@@ -2237,3 +2237,21 @@ True False
 "##
     );
 }
+
+#[test]
+fn keyerror_subclass_str() {
+    let src = r##"
+class E(KeyError): pass
+print(str(KeyError('a')), str(E('a')), repr(E('a')), str(E('a', 'b')), str(E()))
+try: {}['x']
+except KeyError as e: print(e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"'a' 'a' E('a') ('a', 'b') 
+'x'
+"##
+    );
+}

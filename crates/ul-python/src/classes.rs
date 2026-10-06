@@ -1028,6 +1028,9 @@ impl Vm {
             if is_str {
                 return match args.as_slice() {
                     [] => String::new(),
+                    [one] if i.class.builtin_base.is_some_and(|b| crate::object::exc_is_subclass(b, "KeyError")) => {
+                        crate::object::repr(one)
+                    }
                     [one] => to_str(one),
                     _ => to_str(&Value::tuple(args)),
                 };

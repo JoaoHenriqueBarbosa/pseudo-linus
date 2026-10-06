@@ -250,7 +250,23 @@ class tzinfo:
         raise NotImplementedError
 
     def fromutc(self, dt):
-        return dt + self.utcoffset(dt)
+        if not isinstance(dt, datetime):
+            raise TypeError('fromutc() requires a datetime argument')
+        if dt.tzinfo is not self:
+            raise ValueError('dt.tzinfo is not self')
+        dtoff = dt.utcoffset()
+        if dtoff is None:
+            raise ValueError('fromutc() requires a non-None utcoffset() result')
+        dtdst = dt.dst()
+        if dtdst is None:
+            raise ValueError('fromutc() requires a non-None dst() result')
+        delta = dtoff - dtdst
+        if delta:
+            dt += delta
+            dtdst = dt.dst()
+            if dtdst is None:
+                raise ValueError('fromutc(): dt.dst gave inconsistent results; cannot convert')
+        return dt + dtdst if dtdst else dt
 
 
 class timezone(tzinfo):
@@ -608,7 +624,8 @@ class time:
                           self._minute if minute is None else minute,
                           self._second if second is None else second,
                           self._microsecond if microsecond is None else microsecond,
-                          self._tzinfo if tzinfo is True else tzinfo)
+                          self._tzinfo if tzinfo is True else tzinfo,
+                          fold=self._fold if fold is None else fold)
 
     def _cmpkey(self):
         off = self.utcoffset()
@@ -705,7 +722,7 @@ class datetime(date):
         tt = _time.gmtime(whole)
         dt = cls(tt[0], tt[1], tt[2], tt[3], tt[4], tt[5], us)
         if tz is not None:
-            dt = (dt + tz.utcoffset(None)).replace(tzinfo=tz)
+            dt = tz.fromutc(dt.replace(tzinfo=tz))
         return dt
 
     @classmethod
@@ -777,11 +794,13 @@ class datetime(date):
     def astimezone(self, tz=None):
         if tz is None:
             tz = timezone.utc
-        if self._tzinfo is None:
-            utc = self
-        else:
-            utc = (self - self.utcoffset()).replace(tzinfo=None)
-        return (utc + tz.utcoffset(None)).replace(tzinfo=tz)
+        if self._tzinfo is tz:
+            return self
+        off = self.utcoffset()
+        if off is None:
+            off = timedelta(0)
+        utc = (self - off).replace(tzinfo=tz)
+        return tz.fromutc(utc)
 
     def timestamp(self):
         off = self.utcoffset() or timedelta(0)
@@ -830,7 +849,8 @@ class datetime(date):
                           self._minute if minute is None else minute,
                           self._second if second is None else second,
                           self._microsecond if microsecond is None else microsecond,
-                          self._tzinfo if tzinfo is True else tzinfo)
+                          self._tzinfo if tzinfo is True else tzinfo,
+                          fold=self._fold if fold is None else fold)
 
     def __repr__(self):
         parts = [self._year, self._month, self._day, self._hour, self._minute, self._second, self._microsecond]
