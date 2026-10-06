@@ -217,6 +217,30 @@ async fn large_file_statistics() -> anyhow::Result<()> {
     s.finish().await
 }
 
+/// Script bash escrito pelo modelo com função, trap EXIT, `while read` e `set -euo pipefail`.
+#[tokio::test(flavor = "multi_thread")]
+async fn agent_writes_and_runs_bash_script() -> anyhow::Result<()> {
+    let s = Scenario::start("bash_script").await?;
+    s.sandbox.exec("setup", "mkdir -p /in && printf 'alice 30\\nbob 25\\ncarol 41\\n' > /in/people.txt", None).await?;
+    let t = s
+        .agent(
+            "main",
+            "The file /in/people.txt already exists with real data: do not modify it. Write /usr/local/bin/report.sh, \
+             a bash script with `set -euo pipefail` that: defines a function `log` \
+             writing to stderr; installs `trap` on EXIT that writes `cleanup` to /tmp/trap.log; reads /in/people.txt \
+             with a `while read -r name age` loop; prints `NAME is AGE` for each line with the name uppercased; and \
+             finally prints the average age. Make it executable, run it, and show its stdout.",
+        )
+        .await?;
+    assert!(!t.is_error, "{}", t.final_text);
+    assert_eq!(s.sandbox.read_file("/in/people.txt").await?, "alice 30\nbob 25\ncarol 41\n", "o modelo mexeu nos dados");
+    let r = s.sandbox.exec("check", "rm -f /tmp/trap.log; report.sh 2>/dev/null; cat /tmp/trap.log", None).await?;
+    assert!(r.stdout.contains("ALICE is 30") && r.stdout.contains("CAROL is 41"), "{r:?}");
+    assert!(r.stdout.contains("32"), "média 32: {r:?}");
+    assert!(r.stdout.trim_end().ends_with("cleanup"), "{r:?}");
+    s.finish().await
+}
+
 /// Exercício livre: o modelo monta e roda um pipeline de verdade (compilar C, testar, empacotar).
 #[tokio::test(flavor = "multi_thread")]
 async fn build_test_package_pipeline() -> anyhow::Result<()> {
