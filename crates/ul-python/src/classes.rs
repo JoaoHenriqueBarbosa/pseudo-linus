@@ -970,6 +970,10 @@ impl Vm {
         let Value::Instance(i) = obj else { return None };
         let user = match i.class.lookup(name) {
             Some(Value::Function(f)) => Some(f),
+            // Atributo de classe que já é um chamável preso (`__next__ = gerador.__next__`): chama direto.
+            Some(bound @ (Value::Bound(_) | Value::BoundFn(_) | Value::Ext(_) | Value::NativeFn(_))) => {
+                return Some(self.call_value(&bound, args, Vec::new()));
+            }
             _ => None,
         };
         let Some(f) = user else {

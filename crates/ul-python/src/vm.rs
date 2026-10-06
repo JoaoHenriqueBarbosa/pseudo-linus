@@ -238,7 +238,21 @@ pub(crate) fn get_iter(v: &Value) -> PyResult<PyIter> {
                     it @ Value::Instance(_) => PyIter::Inst(it),
                     other => get_iter(&other)?,
                 },
-                None => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
+                None => {
+                    // Protocolo antigo de sequência: `__getitem__(0)`, `__getitem__(1)`... até `IndexError`.
+                    let mut items = Vec::new();
+                    let mut i = 0i64;
+                    loop {
+                        match vm.call_dunder(v, "__getitem__", vec![Value::Int(i)]) {
+                            None => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
+                            Some(Ok(item)) => items.push(item),
+                            Some(Err(e)) if e.kind == "IndexError" || e.kind == "StopIteration" => break,
+                            Some(Err(e)) => return Err(e),
+                        }
+                        i += 1;
+                    }
+                    PyIter::Items(items, 0)
+                }
             }
         }
         _ => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),

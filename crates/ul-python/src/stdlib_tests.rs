@@ -997,3 +997,90 @@ False <Thread(worker,
 "#
     );
 }
+
+#[test]
+fn xml_etree_and_xlsx_reading() {
+    let src = r#"
+import xml.etree.ElementTree as ET, io, zipfile
+doc = '''<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns="http://x/ns" xmlns:a="http://a/ns" id="1">
+  <!-- comment -->
+  <item a:k="v" n="2">text &amp; more &#233; &lt;</item>
+  <item n="3"><![CDATA[raw <b>]]></item>
+  <empty/>
+  <nested><deep>1</deep><deep>2</deep></nested>
+</root>'''
+root = ET.fromstring(doc)
+print(root.tag, root.attrib)
+for it in root.iter("{http://x/ns}item"):
+    print(it.attrib, repr(it.text))
+print([e.tag for e in root], root.find("{http://x/ns}nested/{http://x/ns}deep").text)
+print(ET.tostring(ET.fromstring("<a x='1'><b>t</b><c/></a>")))
+a = ET.Element("sheet", name="s1")
+r = ET.SubElement(a, "row", n="1")
+c = ET.SubElement(r, "c")
+c.text = "v<&>"
+print(ET.tostring(a, encoding="unicode"))
+ET.indent(a)
+print(ET.tostring(a, encoding="unicode"))
+tree = ET.ElementTree(a)
+buf = io.BytesIO()
+tree.write(buf, encoding="utf-8", xml_declaration=True)
+print(buf.getvalue())
+print([ (e.tag, e.get("n")) for e in ET.fromstring("<a><b n='1'/><b n='2'/></a>").findall("b")])
+try:
+    ET.fromstring("<a><b></a>")
+except ET.ParseError as e:
+    print("ParseError", e)
+try:
+    ET.fromstring("")
+except ET.ParseError as e:
+    print("ParseError", e)
+# xlsx minimo
+z = io.BytesIO()
+with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
+    zf.writestr(zipfile.ZipInfo("xl/sharedStrings.xml", (2024, 1, 1, 0, 0, 0)), '<?xml version="1.0"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><t>Nome</t></si><si><t>Ana</t></si></sst>')
+    zf.writestr(zipfile.ZipInfo("xl/worksheets/sheet1.xml", (2024, 1, 1, 0, 0, 0)), '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1"><v>42</v></c></row><row r="2"><c r="A2" t="s"><v>1</v></c><c r="B2"><v>3.5</v></c></row></sheetData></worksheet>')
+ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+with zipfile.ZipFile(io.BytesIO(z.getvalue())) as zf:
+    strings = [t.text for t in ET.fromstring(zf.read("xl/sharedStrings.xml")).iterfind(".//m:t", ns)]
+    sheet = ET.fromstring(zf.read("xl/worksheets/sheet1.xml"))
+    for row in sheet.iterfind(".//m:row", ns):
+        vals = []
+        for c in row.findall("m:c", ns):
+            v = c.find("m:v", ns).text
+            vals.append(strings[int(v)] if c.get("t") == "s" else float(v))
+        print(vals)
+for ev, el in ET.iterparse(io.BytesIO(b"<a><b>1</b><b>2</b></a>"), events=("start", "end")):
+    print(ev, el.tag)
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"{http://x/ns}root {'id': '1'}
+{'{http://a/ns}k': 'v', 'n': '2'} 'text & more é <'
+{'n': '3'} 'raw <b>'
+['{http://x/ns}item', '{http://x/ns}item', '{http://x/ns}empty', '{http://x/ns}nested'] 1
+b'<a x="1"><b>t</b><c /></a>'
+<sheet name="s1"><row n="1"><c>v&lt;&amp;&gt;</c></row></sheet>
+<sheet name="s1">
+  <row n="1">
+    <c>v&lt;&amp;&gt;</c>
+  </row>
+</sheet>
+b'<?xml version=\'1.0\' encoding=\'utf-8\'?>\n<sheet name="s1">\n  <row n="1">\n    <c>v&lt;&amp;&gt;</c>\n  </row>\n</sheet>'
+[('b', '1'), ('b', '2')]
+ParseError mismatched tag: line 1, column 8
+ParseError no element found: line 1, column 0
+['Nome', 42.0]
+['Ana', 3.5]
+start a
+start b
+end b
+start b
+end b
+end a
+"#
+    );
+}
