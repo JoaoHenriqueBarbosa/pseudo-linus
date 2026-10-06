@@ -2825,6 +2825,11 @@ impl TtSize {
         Ok(LoadSetup { no_hinting, widthp })
     }
 
+    /// `GS.scan_control` e `GS.scan_type` do contexto depois da carga do glifo.
+    pub fn scan_mode(&self) -> Option<i32> {
+        self.exec.as_ref().filter(|e| e.gs.scan_control).map(|e| e.gs.scan_type)
+    }
+
     /// `TT_Hint_Glyph`: `zone` já tem `cur`, `orus` e os quatro fantasmas no fim. Devolve os
     /// fantasmas a copiar de volta para o carregador, ou `None` no modo de compatibilidade.
     pub fn hint_glyph(&mut self, zone: Zone, ins: Option<Rc<[u8]>>, is_composite: bool) -> (Zone, Option<[Vector; 4]>, Option<u8>) {

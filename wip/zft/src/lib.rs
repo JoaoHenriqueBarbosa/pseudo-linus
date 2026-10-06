@@ -10,6 +10,7 @@ pub mod calc;
 mod glyf;
 pub mod outline;
 pub mod raster;
+pub mod raster_mono;
 mod sfnt;
 mod tt;
 
@@ -168,6 +169,11 @@ impl Slot {
     /// `FT_Render_Glyph` com `FT_RENDER_MODE_NORMAL`.
     pub fn render(&self) -> Option<raster::Bitmap> {
         raster::render(&self.outline, self.outline.overlap)
+    }
+
+    /// `FT_Render_Glyph` com `FT_RENDER_MODE_MONO`: um bit por pixel, `pitch` bytes por linha.
+    pub fn render_mono(&self) -> Option<raster::Bitmap> {
+        raster_mono::render(&self.outline)
     }
 }
 
@@ -441,7 +447,21 @@ impl Face {
             }
             widthp = setup.widthp;
         }
-        let l = glyf::load(&self.sfnt, &self.data, gid, scale, hint, widthp)?;
+        let mut l = glyf::load(&self.sfnt, &self.data, gid, scale, hint, widthp)?;
+        // `TT_Load_Glyph`: o modo de varredura do bytecode vira marcas de dropout no contorno.
+        if flags & LOAD_NO_HINTING == 0 && flags & LOAD_NO_SCALE == 0 {
+            use raster_mono::{OUTLINE_IGNORE_DROPOUTS as IGNORE, OUTLINE_INCLUDE_STUBS as STUBS, OUTLINE_SMART_DROPOUTS as SMART};
+            l.outline.flags |= match self.tt.scan_mode() {
+                Some(0) => STUBS,
+                Some(1) => 0,
+                Some(4) => SMART | STUBS,
+                Some(5) => SMART,
+                _ => IGNORE,
+            };
+        }
+        if flags & LOAD_NO_SCALE == 0 && self.size.y_ppem < 24 {
+            l.outline.flags |= raster_mono::OUTLINE_HIGH_PRECISION;
+        }
         let linear = if scale.is_some() { mul_div(l.linear, self.size.x_scale, 64) } else { l.linear };
         let mut slot = Slot {
             outline: l.outline,

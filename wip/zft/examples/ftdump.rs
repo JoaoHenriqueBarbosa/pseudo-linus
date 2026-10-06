@@ -49,8 +49,9 @@ fn main() {
         println!();
         let b = o.cbox();
         println!("cbox {} {} {} {}", b.x_min >> 6, b.y_min >> 6, (b.x_max + 63) >> 6, (b.y_max + 63) >> 6);
-        let bm = g.render().expect("render");
-        println!("bitmap left={} top={} rows={} width={} pitch={} mode=2", bm.left, bm.top, bm.rows, bm.width, bm.pitch);
+        let bm = if f & 2 != 0 { g.render_mono() } else { g.render() }.expect("render");
+        let mode = if f & 2 != 0 { 1 } else { 2 };
+        println!("bitmap left={} top={} rows={} width={} pitch={} mode={mode}", bm.left, bm.top, bm.rows, bm.width, bm.pitch);
         for y in 0..bm.rows as usize {
             for x in 0..bm.pitch as usize {
                 print!("{:02x}", bm.buffer[y * bm.pitch as usize + x]);

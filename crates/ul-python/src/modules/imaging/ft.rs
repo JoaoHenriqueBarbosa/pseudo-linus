@@ -241,6 +241,7 @@ impl FontObj {
             return Err(exc("OSError", "unsupported bitmap pixel mode"));
         }
         let color = a.color();
+        let mask = a.mask();
         let glyphs = self.layout(string, &a)?;
         let load_flags = a.load_flags();
         let (mut width, mut height, x_offset, y_offset) = self.bbox(anchor.as_deref(), a.horizontal(), &glyphs, load_flags)?;
@@ -261,7 +262,7 @@ impl FontObj {
             let px = pixel(x + g.x_offset);
             let py = pixel(y + g.y_offset);
             let slot = face.load_glyph(g.index, load_flags).map_err(ft_error)?;
-            let (left, top) = slot.render().map_or((0, 0), |b| (i64::from(b.left), i64::from(b.top)));
+            let (left, top) = render_slot(&slot, mask).map_or((0, 0), |b| (i64::from(b.left), i64::from(b.top)));
             y_max = y_max.max(top + py);
             x_min = x_min.min(left + px);
             x += g.x_advance;
@@ -276,7 +277,7 @@ impl FontObj {
             let px = pixel(x + g.x_offset);
             let py = pixel(y + g.y_offset);
             let slot = face.load_glyph(g.index, load_flags).map_err(ft_error)?;
-            if let Some(bm) = slot.render() {
+            if let Some(bm) = render_slot(&slot, mask) {
                 let xx = px + i64::from(bm.left);
                 let mut yy = -(py + i64::from(bm.top));
                 let x0 = if xx < 0 { -xx } else { 0 };
@@ -319,6 +320,27 @@ impl FontObj {
         drop(im);
         Ok(result(image))
     }
+}
+
+/// `FT_Load_Glyph` com `FT_LOAD_RENDER`; no modo mono, o `FT_Bitmap_Convert` com alinhamento 1 e
+/// o `convert_scale` de 255 do `font_render`, que deixam um byte por pixel, 0 ou 255.
+fn render_slot(slot: &zft::Slot, mask: bool) -> Option<zft::raster::Bitmap> {
+    if !mask {
+        return slot.render();
+    }
+    let mut bm = slot.render_mono()?;
+    let (w, pitch) = (bm.width as usize, bm.pitch as usize);
+    let mut out = vec![0u8; w * bm.rows as usize];
+    for (r, line) in out.chunks_mut(w.max(1)).enumerate().take(bm.rows as usize) {
+        for (k, px) in line.iter_mut().enumerate() {
+            if bm.buffer[r * pitch + k / 8] & (0x80 >> (k & 7)) != 0 {
+                *px = 255;
+            }
+        }
+    }
+    bm.buffer = out;
+    bm.pitch = w as i32;
+    Some(bm)
 }
 
 fn not_supported() -> PyException {

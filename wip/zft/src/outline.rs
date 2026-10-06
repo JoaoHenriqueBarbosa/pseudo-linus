@@ -19,6 +19,8 @@ pub struct Outline {
     pub contours: Vec<usize>,
     /// `FT_OUTLINE_OVERLAP`: contornos que se sobrepõem, renderizados com superamostragem.
     pub overlap: bool,
+    /// Os demais `FT_OUTLINE_*` que o rasterizador mono lê (dropouts e precisão).
+    pub flags: u32,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
