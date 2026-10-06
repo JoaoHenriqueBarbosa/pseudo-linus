@@ -315,6 +315,13 @@ fn report(r: &ExecResult) -> u8 {
     (r.status & 0xff) as u8
 }
 
+/// A última linha termina em `\` sem escape (número ímpar de barras), que junta a linha seguinte.
+fn ends_with_line_continuation(buf: &str) -> bool {
+    let body = buf.strip_suffix('\n').unwrap_or(buf);
+    let last = body.rsplit('\n').next().unwrap_or("");
+    last.len() - last.trim_end_matches('\\').len() & 1 == 1
+}
+
 fn interactive(t: &mut dyn Target) -> u8 {
     let stdin = std::io::stdin();
     let tty = stdin.is_terminal();
@@ -336,12 +343,12 @@ fn interactive(t: &mut dyn Target) -> u8 {
             }
         }
         let trimmed = line.trim_end_matches(['\n', '\r']);
-        if let Some(cont) = trimmed.strip_suffix('\\') {
-            buf.push_str(cont);
-            buf.push('\n');
+        buf.push_str(trimmed);
+        buf.push('\n');
+        // Comando incompleto (here-document, aspas, if/for/while abertos, `\` ou `|` no fim): pede mais linhas.
+        if ends_with_line_continuation(&buf) || shell_parser::entry::needs_more_input(&buf) {
             continue;
         }
-        buf.push_str(trimmed);
         let cmd = std::mem::take(&mut buf);
         if cmd.trim().is_empty() {
             continue;

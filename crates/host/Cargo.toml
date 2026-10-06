@@ -43,6 +43,8 @@ fake-backend = []
 sysabi = { workspace = true }
 kernel = { workspace = true, optional = true }
 userland = { workspace = true, optional = true }
+# Só o parser, pro osh saber quando o comando digitado ainda não fechou (here-document, aspas, blocos).
+shell-parser = { package = "shell", path = "../shell" }
 
 anyhow = "1"
 thiserror = "2"

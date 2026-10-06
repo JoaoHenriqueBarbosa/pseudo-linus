@@ -229,6 +229,16 @@ fn incomplete(msg: &str) -> bool {
     msg.contains("unexpected end of file") || msg.contains("unexpected EOF")
 }
 
+/// O texto digitado ainda não fecha um comando (here-document sem delimitador final, aspas ou
+/// `if`/`for`/`while`/`case`/`{`/`(` abertos, `|`/`&&` no fim)? Os front-ends interativos usam isto
+/// pra mostrar o prompt de continuação em vez de mandar um comando pela metade.
+pub fn needs_more_input(src: &str) -> bool {
+    match parse_text(src, 0, &Arc::from(""), &crate::parse::ParseEnv::default()) {
+        Ok(p) => !p.heredoc_eof.is_empty(),
+        Err(e) => incomplete(&e.message),
+    }
+}
+
 /// Script pela entrada padrão: lê linha a linha e executa cada comando completo assim que ele
 /// fecha (um `read` no script lê a linha seguinte do mesmo stdin, como no bash).
 fn run_stdin(sh: &mut Shell) -> Result<i32, Flow> {
