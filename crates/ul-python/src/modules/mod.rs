@@ -7,8 +7,21 @@
 //! Para acrescentar um módulo: crie `modules/<nome>.rs` com `pub fn build(vm: &mut Vm) -> Rc<ModuleObj>`,
 //! declare `pub mod <nome>;` aqui e acrescente o nome na tabela de [`import`].
 
+pub mod base64;
+pub mod binascii;
 pub mod csv;
+pub mod fnmatch;
+pub mod hashlib;
+pub mod html;
 pub mod json;
+pub mod math;
+pub mod operator;
+pub mod pystruct;
+pub mod re;
+pub mod re_engine;
+pub mod shlex;
+pub mod string;
+pub mod textwrap;
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -56,6 +69,18 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "sys" => builtin::sys(vm),
         "csv" => builtin::csv(),
         "json" => builtin::json(),
+        "re" => re::build(vm),
+        "math" => math::build(vm),
+        "base64" => base64::build(vm),
+        "binascii" => binascii::build(vm),
+        "hashlib" => hashlib::build(vm),
+        "html" => html::build(vm),
+        "string" => string::build(vm),
+        "textwrap" => textwrap::build(vm),
+        "shlex" => shlex::build(vm),
+        "fnmatch" => fnmatch::build(vm),
+        "struct" => pystruct::build(vm),
+        "operator" => operator::build(vm),
         _ => return None,
     };
     vm.modules.insert(name.to_string(), m.clone());
