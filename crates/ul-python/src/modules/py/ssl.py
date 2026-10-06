@@ -109,6 +109,35 @@ def _create_unverified_context(*args, **kwargs):
 _create_default_https_context = create_default_context
 
 
+class SSLSocket:
+    """Sem TLS neste sandbox: a classe existe para `isinstance` e anotações, nunca é instanciada."""
+
+    def __init__(self, *args, **kwargs):
+        raise SSLError(1, '[SSL] sem TLS neste sandbox (sem rede)')
+
+
+class SSLObject:
+    def __init__(self, *args, **kwargs):
+        raise SSLError(1, '[SSL] sem TLS neste sandbox (sem rede)')
+
+
+class MemoryBIO:
+    def __init__(self):
+        self.pending = 0
+        self.eof = False
+
+
+def _create_stdlib_context(protocol=PROTOCOL_TLS, *, cert_reqs=CERT_NONE, check_hostname=False, **kwargs):
+    ctx = SSLContext(protocol)
+    ctx.verify_mode = cert_reqs
+    ctx.check_hostname = check_hostname
+    return ctx
+
+
+_create_unverified_https_context = _create_unverified_context
+SSLSession = object
+
+
 def get_default_verify_paths():
     return ('', '', '', '', '')
 

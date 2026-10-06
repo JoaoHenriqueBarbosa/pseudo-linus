@@ -3624,3 +3624,71 @@ No closing quotation
 "##
     );
 }
+
+#[test]
+fn marshal_resource_fcntl_readline_protocol_modules() {
+    let src = r##"
+import fcntl
+import ftplib
+import marshal
+import netrc
+import readline
+import resource
+import smtplib
+import wsgiref.util
+import xmlrpc.client
+
+blob = marshal.dumps((1, 'a', [2.5, None, True], {'k': b'v'}, {1, 2}, frozenset({3}), 2 ** 70, -(2 ** 40), 'é', 1 + 2j, ...))
+print(marshal.loads(blob))
+print(marshal.loads(b'\xa9\x02\xfa\x01x\xdf\xe9\x01\x00\x00\x00'[:0] or marshal.dumps(('x', 'x'))))
+print(marshal.dumps(None), [marshal.loads(marshal.dumps(v)) for v in (1, (1, 2), [1], 1.5, 'x' * 300, b'zz', -5, 2 ** 31)])
+print(marshal.loads(b'\xe9\x01\x00\x00\x00'), marshal.loads(b'\xa9\x02\xfa\x01x\x72\x01\x00\x00\x00'), marshal.loads(b'\xe7\x00\x00\x00\x00\x00\x00\xf8?'))
+print(resource.RLIMIT_NOFILE, resource.getrlimit(resource.RLIMIT_CORE), resource.getpagesize(), resource.getrusage(resource.RUSAGE_SELF).ru_utime >= 0)
+fcntl.flock(1, fcntl.LOCK_EX | fcntl.LOCK_NB)
+fcntl.flock(1, fcntl.LOCK_UN)
+print(fcntl.LOCK_SH, fcntl.LOCK_EX, fcntl.LOCK_NB, fcntl.LOCK_UN, fcntl.F_GETFL)
+readline.add_history('one')
+readline.add_history('two')
+print(readline.get_current_history_length(), readline.get_history_item(2), readline.get_history_item(9))
+readline.parse_and_bind('tab: complete')
+print(smtplib.SMTP_PORT, smtplib.CRLF.encode(), ftplib.FTP.port if hasattr(ftplib.FTP, 'port') else None, ftplib.MAXLINE)
+print(xmlrpc.client.dumps((1, 'a', [2.5]), 'm'))
+print(xmlrpc.client.loads('<methodResponse><params><param><value><int>7</int></value></param></params></methodResponse>'))
+env = {'wsgi.url_scheme': 'http', 'HTTP_HOST': 'x.org:8080', 'SCRIPT_NAME': '/app', 'PATH_INFO': '/a b', 'QUERY_STRING': 'q=1'}
+print(wsgiref.util.request_uri(env), wsgiref.util.application_uri(env))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"(1, 'a', [2.5, None, True], {'k': b'v'}, {1, 2}, frozenset({3}), 1180591620717411303424, -1099511627776, 'é', (1+2j), Ellipsis)
+('x', 'x')
+b'N' [1, (1, 2), [1], 1.5, 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', b'zz', -5, 2147483648]
+1 ('x', 'x') 1.5
+7 (-1, -1) 4096 True
+1 2 4 8 3
+2 two None
+25 b'\r\n' 21 8192
+<?xml version='1.0'?>
+<methodCall>
+<methodName>m</methodName>
+<params>
+<param>
+<value><int>1</int></value>
+</param>
+<param>
+<value><string>a</string></value>
+</param>
+<param>
+<value><array><data>
+<value><double>2.5</double></value>
+</data></array></value>
+</param>
+</params>
+</methodCall>
+
+((7,), None)
+http://x.org:8080/app/a%20b?q=1 http://x.org:8080/app
+"##
+    );
+}
