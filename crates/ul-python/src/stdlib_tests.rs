@@ -2787,3 +2787,45 @@ PNF No package metadata was found for nope
 "##
     );
 }
+
+#[test]
+fn exception_chaining() {
+    let src = r##"
+import sys
+def f():
+    try:
+        {}["k"]
+    except KeyError as e:
+        raise ValueError("bad") from e
+def g():
+    try:
+        f()
+    except ValueError:
+        raise RuntimeError("wrapped")
+try:
+    g()
+except RuntimeError as e:
+    print(repr(e.__context__), repr(e.__context__.__cause__), e.__suppress_context__)
+import traceback
+try:
+    g()
+except RuntimeError as e:
+    lines = traceback.format_exception(e)
+    print([l for l in lines if "exception" in l.lower()])
+class MyErr(Exception): pass
+try:
+    try: raise KeyError(1)
+    except KeyError as k: raise MyErr("m") from k
+except MyErr as m:
+    print(repr(m.__cause__), m.__context__ is m.__cause__, m.__suppress_context__)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"ValueError('bad') KeyError('k') False
+['\nThe above exception was the direct cause of the following exception:\n\n', '\nDuring handling of the above exception, another exception occurred:\n\n']
+KeyError(1) True True
+"##
+    );
+}

@@ -189,7 +189,9 @@ class Signature:
         return '<Signature %s>' % self
 
 
-def signature(obj):
+def signature(obj, *, follow_wrapped=True):
+    if follow_wrapped:
+        obj = unwrap(obj)
     obj = _unwrap_method(obj)
     code = getattr(obj, '__code__', None)
     if code is None:

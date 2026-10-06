@@ -28,7 +28,18 @@ impl TracebackObj {
     }
 }
 
+impl TracebackObj {
+    /// Os quadros que este traceback cobre (do mais externo para o mais interno) e o arquivo padrão.
+    pub fn frames(&self) -> (Vec<(usize, String, Rc<str>)>, Rc<str>) {
+        (self.entries[self.idx..].to_vec(), self.filename.clone())
+    }
+}
+
 impl ExtObject for TracebackObj {
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+
     fn type_name(&self) -> &'static str {
         "traceback"
     }

@@ -116,6 +116,10 @@ pub trait ExtObject {
     }
     /// `type(obj).__name__` (ex.: `Pattern`, `Match`).
     fn type_name(&self) -> &'static str;
+    /// Acesso ao tipo concreto (só os objetos que o runtime precisa reabrir, como o traceback).
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        None
+    }
     /// `repr(obj)`.
     fn repr(&self) -> String {
         format!("<{} object>", self.type_name())
@@ -440,16 +444,26 @@ impl fmt::Debug for InstanceObj {
 
 /// Instância de uma exceção embutida.
 #[derive(Debug)]
+/// Encadeamento de exceções: `__cause__` (`raise X from Y`), `__context__` (levantada durante um
+/// tratamento) e `__suppress_context__`.
+#[derive(Default, Clone)]
+pub struct ExcChain {
+    pub cause: Option<Value>,
+    pub context: Option<Value>,
+    pub suppress: bool,
+}
+
 pub struct ExcObj {
     pub kind: &'static str,
     pub args: Vec<Value>,
     /// `__traceback__`: preenchido quando a exceção é capturada por um `except`.
     pub traceback: RefCell<Option<Value>>,
+    pub chain: RefCell<ExcChain>,
 }
 
 impl ExcObj {
     pub fn new(kind: &'static str, args: Vec<Value>) -> ExcObj {
-        ExcObj { kind, args, traceback: RefCell::new(None) }
+        ExcObj { kind, args, traceback: RefCell::new(None), chain: RefCell::new(ExcChain::default()) }
     }
 }
 

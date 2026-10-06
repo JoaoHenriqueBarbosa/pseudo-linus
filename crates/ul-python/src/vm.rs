@@ -40,9 +40,64 @@ pub struct PyException {
     pub tb: Vec<(usize, String, Rc<str>)>,
 }
 
+/// `(__cause__, __context__, __suppress_context__)` de uma exceção.
+pub(crate) fn exc_chain(v: &Value) -> (Option<Value>, Option<Value>, bool) {
+    match v {
+        Value::Exception(e) => {
+            let c = e.chain.borrow();
+            (c.cause.clone(), c.context.clone(), c.suppress)
+        }
+        Value::Instance(i) => {
+            let d = i.dict.borrow();
+            let get = |k: &str| d.get(k).filter(|x| !matches!(x, Value::None)).cloned();
+            (get("__cause__"), get("__context__"), matches!(d.get("__suppress_context__"), Some(Value::Bool(true))))
+        }
+        _ => (None, None, false),
+    }
+}
+
+/// `raise X from cause`: grava `__cause__` (`None` para `from None`) e suprime o contexto.
+pub(crate) fn exc_set_cause(v: &Value, cause: Value) {
+    match v {
+        Value::Exception(e) => {
+            let mut c = e.chain.borrow_mut();
+            c.cause = if matches!(cause, Value::None) { None } else { Some(cause) };
+            c.suppress = true;
+        }
+        Value::Instance(i) => {
+            let mut d = i.dict.borrow_mut();
+            d.insert("__cause__".to_string(), cause);
+            d.insert("__suppress_context__".to_string(), Value::Bool(true));
+        }
+        _ => {}
+    }
+}
+
+/// Contexto implícito: a exceção em tratamento quando outra é levantada (sem sobrescrever e sem ciclo).
+pub(crate) fn exc_set_context(v: &Value, ctx: &Value) {
+    if crate::object::is(v, ctx) {
+        return;
+    }
+    match v {
+        Value::Exception(e) => {
+            let mut c = e.chain.borrow_mut();
+            if c.context.is_none() {
+                c.context = Some(ctx.clone());
+            }
+        }
+        Value::Instance(i) => {
+            let mut d = i.dict.borrow_mut();
+            if !matches!(d.get("__context__"), Some(x) if !matches!(x, Value::None)) {
+                d.insert("__context__".to_string(), ctx.clone());
+            }
+        }
+        _ => {}
+    }
+}
+
 impl PyException {
     /// A instância que `except ... as e` enxerga.
-    fn to_value(&self) -> Value {
+    pub(crate) fn to_value(&self) -> Value {
         if let Some(v) = &self.value {
             return v.clone();
         }
@@ -161,8 +216,82 @@ pub(crate) fn source_line(file: &str, line: usize) -> Option<String> {
     SOURCES.with(|s| s.borrow().get(file).and_then(|t| t.lines().nth(line.saturating_sub(1)).map(str::to_string)))
 }
 
+const CAUSE_MESSAGE: &str = "\nThe above exception was the direct cause of the following exception:\n\n";
+const CONTEXT_MESSAGE: &str = "\nDuring handling of the above exception, another exception occurred:\n\n";
+
+fn push_frame(out: &mut String, file: &str, src: Option<&str>, line: usize, name: &str, own: &str) {
+    let shown = if own.is_empty() { file } else { own };
+    out.push_str(&format!("  File \"{shown}\", line {line}, in {name}\n"));
+    let text = if own.is_empty() {
+        src.and_then(|s| s.lines().nth(line.saturating_sub(1))).map(str::to_string)
+    } else {
+        source_line(own, line)
+    };
+    if let Some(text) = text {
+        let t = text.trim();
+        if !t.is_empty() {
+            out.push_str(&format!("    {t}\n"));
+        }
+    }
+}
+
+/// As seções das exceções que antecedem `v` (causa ou contexto), do mais antigo para o mais novo,
+/// cada uma com o aviso que o CPython imprime entre elas.
+fn chain_prefix(v: &Value, file: &str, src: Option<&str>, seen: &mut Vec<Value>) -> String {
+    seen.push(v.clone());
+    let (cause, context, suppress) = exc_chain(v);
+    let link = match cause {
+        Some(c) => Some((c, CAUSE_MESSAGE)),
+        None if !suppress => context.map(|c| (c, CONTEXT_MESSAGE)),
+        None => None,
+    };
+    let Some((c, message)) = link else { return String::new() };
+    if seen.iter().any(|s| crate::object::is(s, &c)) {
+        return String::new();
+    }
+    let mut out = chain_prefix(&c, file, src, seen);
+    out.push_str(&exc_section(&c, file, src));
+    out.push_str(message);
+    out
+}
+
+/// Traceback e linha final de uma exceção já capturada (usa o `__traceback__` dela).
+fn exc_section(v: &Value, file: &str, src: Option<&str>) -> String {
+    let mut out = String::new();
+    let tb = match v {
+        Value::Exception(e) => e.traceback.borrow().clone(),
+        Value::Instance(i) => i.dict.borrow().get("__traceback__").cloned(),
+        _ => None,
+    };
+    let frames = match tb {
+        Some(Value::Ext(x)) => x
+            .as_any()
+            .and_then(|a| a.downcast_ref::<crate::tbobj::TracebackObj>())
+            .map(crate::tbobj::TracebackObj::frames),
+        _ => None,
+    };
+    if let Some((frames, _)) = frames {
+        out.push_str("Traceback (most recent call last):\n");
+        for (line, name, own) in &frames {
+            push_frame(&mut out, file, src, *line, name, own);
+        }
+    }
+    let pe = PyException::from_value(v);
+    if pe.msg.is_empty() {
+        out.push_str(pe.kind);
+        out.push('\n');
+    } else {
+        out.push_str(&format!("{}: {}\n", pe.kind, pe.msg));
+    }
+    out
+}
+
 pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) -> String {
-    let mut out = String::from("Traceback (most recent call last):\n");
+    let mut out = match &err.exc.value {
+        Some(v) => chain_prefix(v, file, src, &mut Vec::new()),
+        None => String::new(),
+    };
+    out.push_str("Traceback (most recent call last):\n");
     let frame = |out: &mut String, line: usize, name: &str, own: &str| {
         let shown = if own.is_empty() { file } else { own };
         out.push_str(&format!("  File \"{shown}\", line {line}, in {name}\n"));
@@ -631,6 +760,14 @@ impl Vm {
             }
         }
         Ok(Exit::Return(Value::None))
+    }
+
+    /// `__context__` implícito: a exceção em tratamento quando `e` é levantada.
+    pub(crate) fn link_context(&self, e: &mut PyException) {
+        let Some(ctx) = self.handled.borrow().last().cloned() else { return };
+        let value = e.to_value();
+        e.value = Some(value.clone());
+        exc_set_context(&value, &ctx);
     }
 
     pub(crate) fn call_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
@@ -1138,7 +1275,29 @@ impl Vm {
             }
             Op::Raise => {
                 let v = pop(stack)?;
-                return Err(self.raise_any(v)?);
+                let mut e = self.raise_any(v)?;
+                self.link_context(&mut e);
+                return Err(e);
+            }
+            Op::RaiseFrom => {
+                let cause = pop(stack)?;
+                let v = pop(stack)?;
+                let mut e = self.raise_any(v)?;
+                let cause = match cause {
+                    Value::Class(_) => {
+                        let pe = self.raise_any(cause)?;
+                        pe.to_value()
+                    }
+                    other => other,
+                };
+                if !matches!(cause, Value::None | Value::Exception(_) | Value::Instance(_)) {
+                    return Err(type_error("exception causes must derive from BaseException"));
+                }
+                let value = e.to_value();
+                e.value = Some(value.clone());
+                exc_set_cause(&value, cause);
+                self.link_context(&mut e);
+                return Err(e);
             }
             Op::ReraiseCurrent => {
                 let last = self.handled.borrow().last().cloned();
@@ -1985,7 +2144,14 @@ impl Vm {
             Value::Int(_) | Value::Big(_) | Value::Bool(_) if name == "denominator" => Ok(Value::Int(1)),
             Value::Float(x) if name == "real" => Ok(Value::Float(*x)),
             Value::Float(_) if name == "imag" => Ok(Value::Float(0.0)),
-            Value::Exception(_) if matches!(name, "__cause__" | "__context__") => Ok(Value::None),
+            Value::Exception(_) if matches!(name, "__cause__" | "__context__" | "__suppress_context__") => {
+                let (cause, context, suppress) = exc_chain(obj);
+                Ok(match name {
+                    "__cause__" => cause.unwrap_or(Value::None),
+                    "__context__" => context.unwrap_or(Value::None),
+                    _ => Value::Bool(suppress),
+                })
+            }
             Value::Str(_) | Value::Int(_) | Value::Big(_) | Value::Bool(_) | Value::Float(_) | Value::None
                 | Value::Tuple(_) | Value::List(_) | Value::Dict(_) | Value::Bytes(_)
                 if name == "__doc__" =>

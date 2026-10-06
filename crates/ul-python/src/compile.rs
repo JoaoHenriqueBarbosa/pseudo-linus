@@ -80,6 +80,8 @@ pub enum Op {
     ExcMatch,
     /// Levanta o topo da pilha.
     Raise,
+    /// `raise X from Y`: pilha `[X, Y]`.
+    RaiseFrom,
     /// `raise` sem argumento: levanta a exceção tratada mais recente.
     ReraiseCurrent,
     /// Relevanta a exceção do topo, descartando a tratada mais recente (fim de `except` sem casamento
@@ -786,13 +788,15 @@ impl Compiler {
                 match exc {
                     Some(e) => {
                         self.expr(e)?;
-                        // `raise X from Y`: o encadeamento não é impresso; `Y` é só avaliado.
+                        // `raise X from Y`: `Y` vira `__cause__` de `X`.
                         if let Some(c) = cause {
                             self.expr(c)?;
-                            self.emit(Op::Pop);
+                            self.line = stmt.pos.lineno;
+                            self.emit(Op::RaiseFrom);
+                        } else {
+                            self.line = stmt.pos.lineno;
+                            self.emit(Op::Raise);
                         }
-                        self.line = stmt.pos.lineno;
-                        self.emit(Op::Raise);
                     }
                     None => {
                         self.emit(Op::ReraiseCurrent);

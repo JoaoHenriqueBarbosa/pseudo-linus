@@ -226,14 +226,33 @@ def _parse_args(exc, value, tb):
     return exc, value, tb
 
 
-def format_exception(exc, /, value=_sentinel, tb=_sentinel, limit=None, chain=True, **kwargs):
-    exc, value, tb = _parse_args(exc, value, tb)
+_CAUSE_MESSAGE = "\nThe above exception was the direct cause of the following exception:\n\n"
+_CONTEXT_MESSAGE = "\nDuring handling of the above exception, another exception occurred:\n\n"
+
+
+def _format_one(exc, value, tb, limit, chain, seen):
     out = []
+    if chain and value is not None:
+        seen.add(id(value))
+        cause = getattr(value, '__cause__', None)
+        context = getattr(value, '__context__', None)
+        if cause is not None and id(cause) not in seen:
+            out.extend(_format_one(type(cause), cause, cause.__traceback__, limit, chain, seen))
+            out.append(_CAUSE_MESSAGE)
+        elif (context is not None and not getattr(value, '__suppress_context__', False)
+                and id(context) not in seen):
+            out.extend(_format_one(type(context), context, context.__traceback__, limit, chain, seen))
+            out.append(_CONTEXT_MESSAGE)
     if tb is not None:
         out.append('Traceback (most recent call last):\n')
         out.extend(format_tb(tb, limit))
     out.extend(format_exception_only(exc, value))
     return out
+
+
+def format_exception(exc, /, value=_sentinel, tb=_sentinel, limit=None, chain=True, **kwargs):
+    exc, value, tb = _parse_args(exc, value, tb)
+    return _format_one(exc, value, tb, limit, chain, set())
 
 
 def print_exception(exc, /, value=_sentinel, tb=_sentinel, limit=None, file=None, chain=True, **kwargs):
@@ -285,6 +304,12 @@ class TracebackException:
         yield _format_final_line(self.exc_type, self._value)
 
     def format(self, *, chain=True):
+        if chain and self._value is not None:
+            tb = getattr(self._value, '__traceback__', None)
+            lines = _format_one(self.exc_type, self._value, tb, None, True, set())
+            for line in lines:
+                yield line
+            return
         if self.stack:
             yield 'Traceback (most recent call last):\n'
             for line in self.stack.format():

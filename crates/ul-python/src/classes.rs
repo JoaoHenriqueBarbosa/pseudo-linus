@@ -127,7 +127,15 @@ impl ExtObject for SuperProxy {
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         if let Value::Class(recv) = &self.obj {
             // Receptor é uma classe (`__init_subclass__`, `__new__` de metaclasse, classmethods).
-            let mro = recv.mro();
+            let mut mro = recv.mro();
+            // Método de metaclasse chamando `super()`: o MRO que vale é o da metaclasse.
+            if !mro.iter().any(|c| Rc::ptr_eq(c, &self.cls)) {
+                if let Some(m) = &recv.meta {
+                    if m.mro().iter().any(|c| Rc::ptr_eq(c, &self.cls)) {
+                        mro = m.mro();
+                    }
+                }
+            }
             let start = mro.iter().position(|c| Rc::ptr_eq(c, &self.cls)).map_or(0, |i| i + 1);
             for c in &mro[start..] {
                 let attr = c.dict.borrow().get(name).cloned();
@@ -252,7 +260,11 @@ impl ExtObject for BuiltinSuperMethod {
                 },
                 "__init__" => Ok(Value::None),
                 // `super().__call__(...)` de uma metaclasse: instancia a classe normalmente.
-                "__call__" => match args.as_slice() {
+                "__call__" => match &self.obj {
+                    Value::Class(c) => vm.instantiate_default(c, args, kw),
+                    _ => Err(type_error("type.__call__() needs a class")),
+                },
+                "__call__x" => match args.as_slice() {
                     [Value::Class(c), rest @ ..] => vm.instantiate_default(c, rest.to_vec(), kw),
                     _ => Err(type_error("type.__call__() needs a class")),
                 },
@@ -758,6 +770,9 @@ impl Vm {
         }
         if name == "__doc__" {
             return Ok(inst.class.lookup("__doc__").unwrap_or(Value::None));
+        }
+        if inst.class.builtin_base.is_some() && matches!(name, "__cause__" | "__context__" | "__suppress_context__") {
+            return Ok(if name == "__suppress_context__" { Value::Bool(false) } else { Value::None });
         }
         if name == "with_traceback" && inst.class.builtin_base.is_some() {
             return Ok(Value::Ext(Rc::new(ExcWithTraceback { obj: obj.clone() })));
@@ -1269,7 +1284,14 @@ impl Vm {
                 [obj, Value::Str(cname)] => {
                     let mro = match obj {
                         Value::Instance(inst) => inst.class.mro(),
-                        Value::Class(c) => c.mro(),
+                        // `super()` num método de metaclasse (`__call__`): a busca segue o MRO da metaclasse.
+                        Value::Class(c) => {
+                            let own = c.mro();
+                            match &c.meta {
+                                Some(m) if !own.iter().any(|x| x.name == cname.as_str()) => m.mro(),
+                                _ => own,
+                            }
+                        }
                         _ => return Err(type_error("super(): __self__ is not an instance")),
                     };
                     let cls = mro
