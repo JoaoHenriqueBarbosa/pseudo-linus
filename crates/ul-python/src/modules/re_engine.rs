@@ -828,6 +828,24 @@ impl<'a> Parser<'a> {
             'r' => Ok(Node::Char('\r', fl)),
             't' => Ok(Node::Char('\t', fl)),
             'v' => Ok(Node::Char('\u{b}', fl)),
+            'N' => {
+                if self.peek() != Some('{') {
+                    return Err(ReError::at("missing {", self.i));
+                }
+                let open = self.i;
+                let close = (open..self.p.len()).find(|&k| self.p[k] == '}');
+                let Some(close) = close else {
+                    return Err(ReError::at("missing }, unterminated name", open + 1));
+                };
+                let name: String = self.p[open + 1..close].iter().collect();
+                match unicode_names2::character(&name) {
+                    Some(ch) => {
+                        self.i = close + 1;
+                        Ok(Node::Char(ch, fl))
+                    }
+                    None => Err(ReError::at(format!("undefined character name '{name}'"), start)),
+                }
+            }
             'x' => Ok(Node::Char(self.hex_esc(start, 2)?, fl)),
             'u' => Ok(Node::Char(self.hex_esc(start, 4)?, fl)),
             'U' => Ok(Node::Char(self.hex_esc(start, 8)?, fl)),

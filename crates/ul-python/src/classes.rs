@@ -1117,6 +1117,16 @@ impl Vm {
 
     /// `str(v)`, chamando `__str__` (ou `__repr__`) de usuário.
     pub(crate) fn str_of(&mut self, v: &Value) -> PyResult<String> {
+        if let Value::Class(c) = v {
+            for name in ["__str__", "__repr__"] {
+                if let Some(Value::Function(f)) = c.meta.as_ref().and_then(|m| m.lookup(name)) {
+                    return match self.call_function(&f, vec![v.clone()], Vec::new())? {
+                        Value::Str(s) => Ok(s.as_str().to_string()),
+                        other => Err(type_error(format!("{name} returned non-string (type {})", other.type_name()))),
+                    };
+                }
+            }
+        }
         if let Value::Instance(i) = v {
             for name in ["__str__", "__repr__"] {
                 // `str.__str__` devolve o próprio texto: o `__repr__` de usuário não entra em `str(x)`.
@@ -1138,6 +1148,14 @@ impl Vm {
 
     /// `repr(v)`, chamando `__repr__` de usuário.
     pub(crate) fn repr_of(&mut self, v: &Value) -> PyResult<String> {
+        if let Value::Class(c) = v {
+            if let Some(Value::Function(f)) = c.meta.as_ref().and_then(|m| m.lookup("__repr__")) {
+                return match self.call_function(&f, vec![v.clone()], Vec::new())? {
+                    Value::Str(s) => Ok(s.as_str().to_string()),
+                    other => Err(type_error(format!("__repr__ returned non-string (type {})", other.type_name()))),
+                };
+            }
+        }
         if let Value::Instance(i) = v {
             if let Some(Value::Function(f)) = i.class.lookup("__repr__") {
                 let r = self.call_function(&f, vec![v.clone()], Vec::new())?;
@@ -1356,6 +1374,21 @@ impl Vm {
 /// Texto de uma instância com `__str__`/`__repr__` de usuário, ou de exceção (`args`); `None` se a
 /// classe não define nada (o chamador usa o texto padrão).
 pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
+    if let Value::Class(c) = v {
+        // classe cuja metaclasse define `__repr__`/`__str__` (EnumType: `<enum 'Color'>`)
+        let meta = c.meta.as_ref()?;
+        let mut vm = current()?;
+        let names: &[&str] = if is_str { &["__str__", "__repr__"] } else { &["__repr__"] };
+        for name in names {
+            if let Some(Value::Function(f)) = meta.lookup(name) {
+                return match vm.call_function(&f, vec![v.clone()], Vec::new()) {
+                    Ok(Value::Str(s)) => Some(s.as_str().to_string()),
+                    _ => None,
+                };
+            }
+        }
+        return None;
+    }
     let Value::Instance(i) = v else { return None };
     let mut vm = current()?;
     let names: &[&str] = if is_str { &["__str__", "__repr__"] } else { &["__repr__"] };

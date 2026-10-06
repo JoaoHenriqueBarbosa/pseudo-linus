@@ -2229,7 +2229,9 @@ impl Vm {
             Value::Builtin(n) if name == "__init__" && EXC_CLASSES.iter().any(|(k, _)| k == n) => {
                 return Ok(Value::Builtin("BaseException.__init__"));
             }
-            Value::Builtin(n) if name == "__name__" || name == "__qualname__" => return Ok(Value::str(*n)),
+            Value::Builtin(n) if name == "__name__" || name == "__qualname__" => {
+                return Ok(Value::str(n.rsplit('.').next().unwrap_or(n)))
+            }
             Value::Builtin(_) | Value::NativeFn(_)
                 if matches!(name, "__mro__" | "__bases__") && crate::builtins::class_name(obj).is_some() =>
             {
@@ -2389,6 +2391,23 @@ impl Vm {
                     "text" => at(3),
                     "end_lineno" => at(4),
                     "end_offset" => at(5),
+                    _ => Value::None,
+                })
+            }
+            Value::Exception(e) if e.kind == "re.PatternError" && matches!(name, "msg" | "pattern" | "pos" | "lineno" | "colno") => {
+                let at = |i: usize| e.args.get(i).cloned().unwrap_or(Value::None);
+                Ok(match (name, at(2), at(3)) {
+                    ("msg", _, _) => at(1),
+                    ("pattern", p, _) => p,
+                    ("pos", _, p) => p,
+                    (_, Value::Str(p), Value::Int(pos)) => {
+                        let upto: Vec<char> = p.as_str().chars().take(pos.max(0) as usize).collect();
+                        match upto.iter().rposition(|c| *c == '\n') {
+                            _ if name == "lineno" => Value::Int(upto.iter().filter(|c| **c == '\n').count() as i64 + 1),
+                            Some(l) => Value::Int(pos - l as i64),
+                            None => Value::Int(pos + 1),
+                        }
+                    }
                     _ => Value::None,
                 })
             }

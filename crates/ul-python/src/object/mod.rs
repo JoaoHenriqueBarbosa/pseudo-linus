@@ -578,7 +578,7 @@ pub const EXC_CLASSES: &[(&str, &str)] = &[
     ("BytesWarning", "Warning"),
     ("ResourceWarning", "Warning"),
     ("EncodingWarning", "Warning"),
-    ("re.error", "Exception"),
+    ("re.PatternError", "Exception"),
     ("struct.error", "Exception"),
     ("binascii.Error", "ValueError"),
     ("zlib.error", "Exception"),
@@ -633,6 +633,7 @@ pub fn exc_str(e: &ExcObj) -> String {
             [file] => format!("[Errno {errno}] {}: {}", to_str(msg), repr(file)),
             _ => format!("[Errno {errno}] {}", to_str(msg)),
         },
+        [Value::Str(msg), Value::Str(_), Value::Str(_), _] if e.kind == "re.PatternError" => msg.as_str().to_string(),
         many => repr(&Value::tuple(many.to_vec())),
     }
 }
@@ -892,6 +893,10 @@ pub fn to_str(v: &Value) -> String {
             Some(text) => text,
             None => repr(v),
         },
+        Value::Class(c) if c.meta.is_some() => match crate::vm::instance_text(v, true) {
+            Some(text) => text,
+            None => repr(v),
+        },
         _ => repr(v),
     }
 }
@@ -936,7 +941,10 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
             Native::CsvWriter { .. } => out.push_str("<_csv.writer object>"),
         },
         Value::Bound(b) => out.push_str(&format!("<built-in method {} of {} object at {:#x}>", b.name, b.recv.type_name(), addr(b))),
-        Value::Class(c) => out.push_str(&format!("<class '{}{}'>", module_prefix(c), c.name)),
+        Value::Class(c) => match c.meta.is_some().then(|| crate::vm::instance_text(v, false)).flatten() {
+            Some(text) => out.push_str(&text),
+            None => out.push_str(&format!("<class '{}{}'>", module_prefix(c), c.name)),
+        },
         Value::Instance(i) => match crate::vm::instance_text(v, false) {
             Some(text) => out.push_str(&text),
             None => out.push_str(&format!("<{}{} object at {:#x}>", module_prefix(&i.class), i.class.name, addr(i))),

@@ -11,7 +11,7 @@ use std::rc::{Rc, Weak};
 use super::re_engine::{self as eng, Captures, IterState, Mode, ReError, Regex};
 use super::ModuleBuilder;
 use crate::native_util::{bind, exactly, no_kwargs, want_int};
-use crate::object::{repr, Dict, ExtObject, Kw, ModuleObj, Value};
+use crate::object::{repr, Dict, ExcObj, ExtObject, Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyException, PyResult, Vm};
 
 thread_local! {
@@ -27,8 +27,22 @@ fn to_py(e: &ReError, pattern: &[char]) -> PyException {
     if e.value_error {
         exc("ValueError", e.msg.clone())
     } else {
-        exc("re.error", e.format(pattern))
+        re_error(e, pattern)
     }
+}
+
+/// `re.error` com `msg`, `pattern` e `pos` guardados nos argumentos (o `str` mostra só o primeiro).
+fn re_error(e: &ReError, pattern: &[char]) -> PyException {
+    let formatted = e.format(pattern);
+    let pos = e.pos.map_or(Value::None, |p| Value::Int(p as i64));
+    let args = vec![
+        Value::str(formatted.clone()),
+        Value::str(e.msg.clone()),
+        Value::str(pattern.iter().collect::<String>()),
+        pos,
+    ];
+    let value = Value::Exception(Rc::new(ExcObj::new("re.PatternError", args)));
+    PyException { kind: "re.PatternError", msg: formatted, value: Some(value), tb: Vec::new() }
 }
 
 fn index_error() -> PyException {
@@ -210,7 +224,7 @@ pub enum Tpl {
 }
 
 fn terr(msg: impl Into<String>, pos: usize, tpl: &[char]) -> PyException {
-    exc("re.error", ReError::at(msg, pos).format(tpl))
+    re_error(&ReError::at(msg, pos), tpl)
 }
 
 /// Analisa `\1`, `\g<1>`, `\g<nome>`, `\n`... de um template de `sub`/`expand`.
@@ -984,7 +998,7 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("split", f_split)
         .func("escape", f_escape)
         .func("purge", f_purge)
-        .value("error", Value::Builtin("re.error"))
+        .value("error", Value::Builtin("re.PatternError"))
         .value("NOFLAG", Value::Int(0))
         .value("I", Value::Int(i64::from(eng::I)))
         .value("IGNORECASE", Value::Int(i64::from(eng::I)))
@@ -1100,8 +1114,8 @@ mod tests {
             Ok(_) => panic!("template {t:?} deveria falhar"),
             Err(e) => (e.kind, e.msg),
         };
-        assert_eq!(e("\\q"), ("re.error", "bad escape \\q at position 0".to_string()));
-        assert_eq!(e("\\3"), ("re.error", "invalid group reference 3 at position 1".to_string()));
+        assert_eq!(e("\\q"), ("re.PatternError", "bad escape \\q at position 0".to_string()));
+        assert_eq!(e("\\3"), ("re.PatternError", "invalid group reference 3 at position 1".to_string()));
         assert_eq!(e("\\g<x>"), ("IndexError", "unknown group name 'x'".to_string()));
     }
 
@@ -1194,7 +1208,7 @@ mod tests {
         }
         match get_pattern(&Value::str("["), 0) {
             Err(e) => {
-                assert_eq!(e.kind, "re.error");
+                assert_eq!(e.kind, "re.PatternError");
                 assert_eq!(e.msg, "unterminated character set at position 0");
             }
             Ok(_) => panic!("deveria falhar"),

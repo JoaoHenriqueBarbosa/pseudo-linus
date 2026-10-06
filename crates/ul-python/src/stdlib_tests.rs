@@ -3067,3 +3067,55 @@ hook ValueError B
 "##
     );
 }
+
+#[test]
+fn re_flags_error_scenario() {
+    let src = r##"
+import re
+print(re.I, re.IGNORECASE | re.M, repr(re.X | re.S), int(re.I), re.A.value, re.compile('a', re.I | re.M).flags, re.compile('a').flags)
+p = re.compile(r'''(?P<year>\d{4})-(?P<mon>\d\d)  # date
+                  (?:-(?P<day>\d\d))?''', re.VERBOSE)
+m = p.search('on 2026-10-06 and 2027-01'); print(m.groupdict(), m.span('mon'), m.lastgroup, m.lastindex, m.group(0, 'year'), m[2])
+print([mm.groupdict() for mm in p.finditer('2026-10-06 2027-01')], p.groups, p.groupindex)
+print(re.sub(r'(?P<w>\w+)@(\w+)', lambda m: m.group('w').upper() + '#' + m.group(2), 'bob@home x@y'), re.sub(r'(a)(b)?', r'[\1|\2]', 'ab a'), re.subn('a', 'b', 'aaa', count=2))
+print(re.split(r'(,)\s*', 'a, b,c'), re.split(r'\s+', ' a  b '), re.split('x*', 'axb'), re.findall(r'(\d)(\w)', '1a 2b'), re.findall(r'\d', 'a1b22'))
+print(re.match(r'(?<=a)b', 'ab'), re.search(r'(?<=a)b', 'ab').start(), re.search(r'(?<!a)b', 'ab cb').start(), re.fullmatch(r'a+', 'aaa'), re.fullmatch(r'a+', 'aab'))
+print(re.escape('a.b*c[d]'), re.escape('é ñ'), re.match(r'^(\w+)\s(?=\d)', 'abc 123').group(), re.search(r'(\w+) \1', 'hello hello world').group())
+print(re.findall(r'^\w+', 'one\ntwo', re.M), re.search(r'a.b', 'a\nb', re.S) is not None, re.search('A', 'a', re.I).group(), re.findall(r'(?i)ab', 'AB ab'))
+print(re.match(r'(?P<n>a)|(?P<m>b)', 'b').groupdict(), re.match(r'(a)?b', 'b').groups(), re.match(r'(a)?b', 'b').groups('d'), re.match(r'(a)*', 'aaa').group(1))
+try: re.compile('(')
+except re.error as e: print(type(e).__name__, e.msg, e.pattern, e.pos)
+try: re.compile('a{2,1}')
+except re.error as e: print(e)
+print(re.compile(r'\d+').pattern, repr(re.compile(r'\d+', re.I)), re.compile('x') is re.compile('x'))
+print(re.search(r'(\d+)', 'ab 123 cd').expand(r'<\1>'), re.match(r'(.)(.)', 'xy').regs, re.match('a', 'a').string, re.match('a', 'a').re.pattern, bool(re.match('', '')))
+print(re.findall(r'\bfoo\b', 'foo food foo.'), re.sub(r'\s+', ' ', 'a \n\t b'), re.sub(r'^', '> ', 'a\nb', flags=re.M), re.findall(r'[^\W\d_]+', 'ab_1cd'))
+print(re.match(r'(?:(?:a|b)+c)+', 'abcbac').group(), re.findall(r'a*?', 'aa'), re.findall(r'(a|ab)(c|bcd)(d*)', 'abcd'), re.sub('x*', '-', 'abxd'))
+print(re.search(r'\d{2,3}?', '12345').group(), re.search(r'(?x) a b # c', 'ab').group(), re.match(r'\A\d+\Z', '12\n'), re.match(r'\d+$', '12\n').group(), re.match(r'\N{LATIN SMALL LETTER A}', 'a') is not None if hasattr(re, 'NOFLAG') else 0)
+print(re.NOFLAG, re.RegexFlag, re.DOTALL.name, sorted(f.name for f in re.RegexFlag)[:3])
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"re.IGNORECASE re.IGNORECASE|re.MULTILINE re.DOTALL|re.VERBOSE 2 256 42 32
+{'year': '2026', 'mon': '10', 'day': '06'} (8, 10) day 3 ('2026-10-06', '2026') 10
+[{'year': '2026', 'mon': '10', 'day': '06'}, {'year': '2027', 'mon': '01', 'day': None}] 3 {'year': 1, 'mon': 2, 'day': 3}
+BOB#home X#y [a|b] [a|] ('bba', 2)
+['a', ',', 'b', ',', 'c'] ['', 'a', 'b', ''] ['', 'a', '', 'b', ''] [('1', 'a'), ('2', 'b')] ['1', '2', '2']
+None 1 4 <re.Match object; span=(0, 3), match='aaa'> None
+a\.b\*c\[d\] é\ ñ abc  hello hello
+['one', 'two'] True a ['AB', 'ab']
+{'n': None, 'm': 'b'} (None,) ('d',) a
+PatternError missing ), unterminated subpattern ( 0
+min repeat greater than max repeat at position 2
+\d+ re.compile('\\d+', re.IGNORECASE) True
+<123> ((0, 2), (0, 1), (1, 2)) a a True
+['foo', 'foo'] a b > a
+> b ['ab', 'cd']
+abcbac ['', 'a', '', 'a', ''] [('a', 'bcd', '')] -a-b--d-
+12 ab None 12 True
+re.NOFLAG <flag 'RegexFlag'> DOTALL ['ASCII', 'DEBUG', 'DOTALL']
+"##
+    );
+}

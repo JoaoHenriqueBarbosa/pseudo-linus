@@ -150,6 +150,9 @@ class EnumType(type):
     def __getitem__(cls, name):
         return cls._member_map_[name]
 
+    def __repr__(cls):
+        return "<%s %r>" % ('flag' if issubclass(cls, Flag) else 'enum', cls.__name__)
+
     @property
     def __members__(cls):
         return dict(cls._member_map_)
