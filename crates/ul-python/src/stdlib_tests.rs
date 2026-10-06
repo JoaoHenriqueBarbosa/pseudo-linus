@@ -3594,3 +3594,33 @@ cannot create weak reference to 'Slots' object
 "##
     );
 }
+
+#[test]
+fn shlex_official_module_with_lexer_class() {
+    let src = r##"
+import shlex
+print(shlex.split("a 'b c' \"d e\" f\\ g # c", comments=True), shlex.quote("it's"), shlex.quote(""), shlex.quote("safe-1.txt"), shlex.join(['a b', 'c']))
+lex = shlex.shlex("x = 'a b' ; y", posix=True)
+lex.whitespace_split = False
+print(list(lex))
+lx = shlex.shlex("foo bar # baz\nqux", posix=True)
+lx.whitespace_split = True
+print(list(lx))
+try:
+    shlex.split("a 'b")
+except ValueError as e:
+    print(e)
+print(shlex.split("a=1 b", posix=False), shlex.split(""), shlex.split("  x   y  "))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"['a', 'b c', 'd e', 'f g'] 'it'"'"'s' '' safe-1.txt 'a b' c
+['x', '=', 'a b', ';', 'y']
+['foo', 'bar', 'qux']
+No closing quotation
+['a=1', 'b'] [] ['x', 'y']
+"##
+    );
+}

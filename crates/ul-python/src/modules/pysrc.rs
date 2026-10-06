@@ -147,6 +147,8 @@ const SOURCES: &[(&str, &str)] = &[
     ("sqlite3.dbapi2", include_str!("py/sqlite3_dbapi2.py")),
     ("sqlite3.dump", include_str!("py/sqlite3_dump.py")),
     ("sysconfig", include_str!("py/sysconfig.py")),
+    ("pyclbr", include_str!("py/pyclbr.py")),
+    ("shlex", include_str!("py/shlex.py")),
     ("tabnanny", include_str!("py/tabnanny.py")),
     ("logging.config", include_str!("py/logging_config.py")),
     ("sqlite3.__main__", include_str!("py/sqlite3___main__.py")),
