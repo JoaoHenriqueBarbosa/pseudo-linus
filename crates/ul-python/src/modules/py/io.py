@@ -26,6 +26,22 @@ class IOBase:
         if self._closed:
             raise ValueError('I/O operation on closed file.')
 
+    def _checkClosed(self, msg=None):
+        if self.closed:
+            raise ValueError('I/O operation on closed file.' if msg is None else msg)
+
+    def _checkReadable(self, msg=None):
+        if not self.readable():
+            raise UnsupportedOperation('File or stream is not readable.' if msg is None else msg)
+
+    def _checkWritable(self, msg=None):
+        if not self.writable():
+            raise UnsupportedOperation('File or stream is not writable.' if msg is None else msg)
+
+    def _checkSeekable(self, msg=None):
+        if not self.seekable():
+            raise UnsupportedOperation('File or stream is not seekable.' if msg is None else msg)
+
     def close(self):
         if not self._closed:
             try:

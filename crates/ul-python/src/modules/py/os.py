@@ -37,6 +37,13 @@ class PathLike(metaclass=_ABCMeta):
         return hasattr(subclass, '__fspath__')
 
 
+def _get_exports_list(module):
+    try:
+        return list(module.__all__)
+    except AttributeError:
+        return [n for n in dir(module) if n[0] != '_']
+
+
 def fspath(p):
     if isinstance(p, (str, bytes)):
         return p

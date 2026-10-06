@@ -22,6 +22,7 @@ pub mod dictview;
 pub mod format;
 pub mod generator;
 pub mod generic;
+pub mod globalsview;
 #[cfg(test)]
 mod lang_tests;
 pub mod lazy;

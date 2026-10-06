@@ -928,6 +928,9 @@ impl Vm {
             let op = code.ops[*pc];
             self.cur_line.set(code.lines[*pc]);
             // Sinais capturados chegam entre instruções, como no CPython (só depois de um `signal.signal`).
+            if crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed) {
+                crate::globalsview::sync_pull();
+            }
             if SIGNALS_ARMED.load(std::sync::atomic::Ordering::Relaxed) && pending.is_none() {
                 signal_tick = signal_tick.wrapping_add(1);
                 if signal_tick & 0x1fff == 0 {
@@ -980,12 +983,19 @@ impl Vm {
                     Op::StoreName(i) => match stack.pop() {
                         Some(Slot::Val(v)) => {
                             let name = &code.names[i as usize];
-                            let mut g = self.globals.borrow_mut();
-                            match g.get_mut(name) {
-                                Some(slot) => *slot = v,
-                                None => {
-                                    g.insert(name.clone(), v);
+                            let armed = crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed);
+                            let copy = armed.then(|| v.clone());
+                            {
+                                let mut g = self.globals.borrow_mut();
+                                match g.get_mut(name) {
+                                    Some(slot) => *slot = v,
+                                    None => {
+                                        g.insert(name.clone(), v);
+                                    }
                                 }
+                            }
+                            if let Some(c) = copy {
+                                crate::globalsview::push(&self.globals, name, Some(&c));
                             }
                             Ok(None)
                         }
@@ -1409,12 +1419,19 @@ impl Vm {
             Op::StoreName(i) => {
                 let v = pop(stack)?;
                 let name = &code.names[i as usize];
-                let mut g = self.globals.borrow_mut();
-                match g.get_mut(name) {
-                    Some(slot) => *slot = v,
-                    None => {
-                        g.insert(name.clone(), v);
+                let armed = crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed);
+                let copy = armed.then(|| v.clone());
+                {
+                    let mut g = self.globals.borrow_mut();
+                    match g.get_mut(name) {
+                        Some(slot) => *slot = v,
+                        None => {
+                            g.insert(name.clone(), v);
+                        }
                     }
+                }
+                if let Some(c) = copy {
+                    crate::globalsview::push(&self.globals, name, Some(&c));
                 }
             }
             Op::StoreNonlocal(i) => {
@@ -1755,6 +1772,9 @@ impl Vm {
                 let name = &code.names[i as usize];
                 if locals.is_module {
                     self.globals.borrow_mut().remove(name);
+                    if crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed) {
+                        crate::globalsview::push(&self.globals, name, None);
+                    }
                 } else {
                     locals.vars.borrow_mut().remove(name);
                 }
@@ -1772,6 +1792,9 @@ impl Vm {
                 let name = &code.names[i as usize];
                 if self.globals.borrow_mut().remove(name).is_none() {
                     return Err(exc("NameError", format!("name '{name}' is not defined")));
+                }
+                if crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed) {
+                    crate::globalsview::push(&self.globals, name, None);
                 }
             }
             Op::CallEx { kwargs } => {
@@ -2230,6 +2253,27 @@ impl Vm {
             if let Some((kw, _)) = kwargs.first() {
                 return Err(type_error(format!("{name}() takes no keyword arguments ('{kw}' given)")));
             }
+            // `OSError(errno, msg)` escolhe a subclasse pelo errno, como `OSError_new` do CPython.
+            let kind = match (*kind, args.as_slice()) {
+                ("OSError", [Value::Int(code), _, ..]) => match *code {
+                    1 | 13 => "PermissionError",
+                    2 => "FileNotFoundError",
+                    3 => "ProcessLookupError",
+                    4 => "InterruptedError",
+                    10 => "ChildProcessError",
+                    11 | 114 | 115 => "BlockingIOError",
+                    17 => "FileExistsError",
+                    20 => "NotADirectoryError",
+                    21 => "IsADirectoryError",
+                    32 | 108 => "BrokenPipeError",
+                    103 => "ConnectionAbortedError",
+                    104 => "ConnectionResetError",
+                    110 => "TimeoutError",
+                    111 => "ConnectionRefusedError",
+                    _ => "OSError",
+                },
+                (k, _) => k,
+            };
             return Ok(Value::Exception(Rc::new(ExcObj::new(kind, args))));
         }
         if !matches!(name, "print" | "open" | "csv.reader" | "csv.writer" | "json.dumps" | "sorted" | "enumerate" | "module")
@@ -2753,11 +2797,16 @@ impl Vm {
                     }
                 }
                 if name == "__dict__" {
-                    // Instantâneo dos atributos (os do módulo vivo valem mais que os copiados).
-                    let mut all: std::collections::BTreeMap<String, Value> = m.attrs.borrow().clone();
-                    if let Some(g) = self.module_globals.borrow().get(m.name) {
-                        all.extend(g.borrow().iter().map(|(k, v)| (k.clone(), v.clone())));
+                    // O dict vivo das globais do módulo (escrever nele muda o módulo); os atributos de módulo
+                    // nativo entram como complemento.
+                    let live = self.module_globals.borrow().get(m.name).cloned();
+                    if let Some(map) = live {
+                        let view = crate::globalsview::view_for(&map, Some(m.attrs.borrow().clone()));
+                        crate::builtins_ext::module_dict_register(m.name, &view);
+                        return Ok(view);
                     }
+                    // Instantâneo dos atributos de um módulo só nativo.
+                    let all: std::collections::BTreeMap<String, Value> = m.attrs.borrow().clone();
                     let mut d = crate::object::Dict::new();
                     for (k, v) in all {
                         d.set(Value::str(k), v)?;

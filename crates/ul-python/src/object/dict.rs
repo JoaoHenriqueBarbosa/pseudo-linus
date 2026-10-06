@@ -6,11 +6,18 @@
 //! índice de hash para posições. Só a ordem é observável; a disposição da tabela do CPython não é.
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::{hash, is, py_eq, repr_into, ObjError, ReprStack, Value};
 
+/// Contador global das mutações: cada `set`/`remove` dá ao dict um número novo, que as visões vivas
+/// das globais (`globalsview`) comparam para saber se houve escrita desde a última sincronização.
+static GENERATION: AtomicU64 = AtomicU64::new(1);
+
 #[derive(Clone, Default)]
 pub struct Dict {
+    /// Número da última mutação (ver `GENERATION`); `0` num dict que nunca foi alterado.
+    pub generation: u64,
     /// Entradas na ordem de inserção: hash, chave e valor. `None` é entrada removida.
     entries: Vec<Option<(i64, Value, Value)>>,
     /// Hash da chave para as posições em `entries` que têm esse hash.
@@ -54,6 +61,7 @@ impl Dict {
     /// `insertdict` do CPython (`{1: 'a'}` seguido de `d[True] = 'b'` imprime `{1: 'b'}`).
     pub fn set(&mut self, key: Value, value: Value) -> Result<(), ObjError> {
         let h = hash(&key)?;
+        self.generation = GENERATION.fetch_add(1, Ordering::Relaxed);
         if let Some(i) = self.find(h, &key) {
             if let Some((_, _, v)) = &mut self.entries[i] {
                 *v = value;
@@ -70,6 +78,7 @@ impl Dict {
     pub fn remove(&mut self, key: &Value) -> Result<Option<Value>, ObjError> {
         let h = hash(key)?;
         let Some(i) = self.find(h, key) else { return Ok(None) };
+        self.generation = GENERATION.fetch_add(1, Ordering::Relaxed);
         let removed = self.entries[i].take().map(|(_, _, v)| v);
         if let Some(slots) = self.index.get_mut(&h) {
             slots.retain(|&s| s != i);

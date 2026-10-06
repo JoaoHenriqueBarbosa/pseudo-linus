@@ -133,6 +133,29 @@ class EnumType(type):
                     ns[item[0]] = item[1]
         return EnumMeta.__new__(EnumMeta, class_name, bases, ns)
 
+    def _convert_(cls, name, module, filter, source=None, *, boundary=None, as_global=False):
+        """Enum a partir das constantes globais de `module` (ou de `source`) que passam em `filter`."""
+        import sys
+        module_globals = sys.modules[module].__dict__
+        caller = sys._getframe(1).f_globals
+        if caller.get('__name__') == module:
+            module_globals = caller
+        source = source.__dict__ if source else module_globals
+        members = [(n, v) for n, v in source.items() if filter(n)]
+        try:
+            members.sort(key=lambda t: (t[1], t[0]))
+        except TypeError:
+            members.sort(key=lambda t: t[0])
+        ns = {n: v for n, v in members}
+        ns['__module__'] = module
+        new = EnumMeta.__new__(EnumMeta, name, (cls,), ns)
+        if as_global:
+            global_enum(new)
+        else:
+            sys.modules[new.__module__].__dict__.update(new.__members__)
+        module_globals[name] = new
+        return new
+
     def __iter__(cls):
         return iter([cls._member_map_[name] for name in cls._member_names_])
 

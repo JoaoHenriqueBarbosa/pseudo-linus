@@ -73,13 +73,7 @@ fn b_vars(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 fn b_globals(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    let mut d = Dict::new();
-    let mut items: Vec<(String, Value)> = vm.globals.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-    items.sort_by(|a, b| a.0.cmp(&b.0));
-    for (k, v) in items {
-        d.set(Value::str(k), v)?;
-    }
-    Ok(Value::dict(d))
+    Ok(crate::globalsview::view_for(&vm.globals, None))
 }
 
 /// Nomes que os protocolos (`collections.abc`, `numbers`, `io`) e os tipos embutidos costumam expor: o
@@ -227,6 +221,18 @@ fn module_of_dict(d: &Value) -> Option<&'static str> {
     MODULE_DICTS.with(|m| m.borrow().iter().find(|(_, v)| crate::object::is(v, d)).map(|(n, _)| *n))
 }
 
+/// Registra `dict` (a visão viva das globais do módulo) como o `__dict__` de `name`: `exec(codigo, mod.__dict__)`
+/// passa a rodar direto nas globais do módulo.
+pub(crate) fn module_dict_register(name: &'static str, dict: &Value) {
+    MODULE_DICTS.with(|m| {
+        let mut m = m.borrow_mut();
+        match m.iter_mut().find(|(n, _)| *n == name) {
+            Some(entry) => entry.1 = dict.clone(),
+            None => m.push((name, dict.clone())),
+        }
+    });
+}
+
 /// Substitui o conteúdo de `target` pelas globais `map`: nomes existentes na ordem de antes, os
 /// novos em ordem alfabética (o mapa de globais não guarda a ordem de inserção).
 fn write_back(target: &Value, map: &crate::object::VarMap, was: &[String]) -> PyResult<()> {
@@ -288,7 +294,8 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
             return Err(type_error("locals must be a mapping"));
         }
     }
-    let live = module_of_dict(&gdict).and_then(|n| vm.module_globals.borrow().get(n).cloned());
+    let live = crate::globalsview::map_of_dict(&gdict)
+        .or_else(|| module_of_dict(&gdict).and_then(|n| vm.module_globals.borrow().get(n).cloned()));
     let map: Rc<std::cell::RefCell<crate::object::VarMap>> = match &live {
         Some(m) => m.clone(),
         None => Rc::new(std::cell::RefCell::new(Default::default())),

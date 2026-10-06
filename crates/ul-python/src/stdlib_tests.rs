@@ -3692,3 +3692,56 @@ http://x.org:8080/app/a%20b?q=1 http://x.org:8080/app
 "##
     );
 }
+
+#[test]
+fn live_globals_and_oserror_errno_subclasses() {
+    let src = r##"
+import enum
+import sys
+
+globals()['A'] = 1
+globals().update(B=2)
+print(A, B)
+g = globals()
+C = 3
+print(g['C'], 'C' in g)
+del g['C']
+print('C' in globals())
+m = sys.modules[__name__]
+m.D = 4
+print(D, m.__dict__['D'], m.__dict__ is vars(m))
+vars(m)['E'] = 5
+print(E, sys._getframe(0).f_globals is globals())
+Q_A = 1
+Q_B = 2
+enum.IntEnum._convert_('X', __name__, lambda n: n.startswith('Q_'))
+print(list(X), X.Q_A)
+exec('F = A + B', globals())
+print(F)
+import errno
+print(type(OSError(errno.ECONNREFUSED, 'x')).__name__, type(OSError(errno.ENOENT, 'x')).__name__, type(OSError(errno.EAGAIN, 'x')).__name__)
+
+
+class E(OSError):
+    pass
+
+
+e = E(5, 'x')
+print(e.args, str(e), e.errno, e.strerror, e.filename)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"1 2
+3 True
+False
+4 4 True
+5 True
+[<X.Q_A: 1>, <X.Q_B: 2>] 1
+3
+ConnectionRefusedError FileNotFoundError BlockingIOError
+(5, 'x') [Errno 5] x 5 x None
+"##
+    );
+}

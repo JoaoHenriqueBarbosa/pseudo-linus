@@ -160,20 +160,13 @@ impl ExtObject for FrameObj {
             "f_globals" => {
                 // As globais do módulo cujo `__file__` é o do quadro (o script principal: as da VM).
                 let found = vm.module_globals.borrow().values().find_map(|g| {
-                    let g = g.borrow();
-                    match g.get("__file__") {
-                        Some(Value::Str(f)) if f.as_str() == &**filename => Some(g.clone()),
-                        _ => None,
-                    }
+                    let matches = match g.borrow().get("__file__") {
+                        Some(Value::Str(f)) => f.as_str() == &**filename,
+                        _ => false,
+                    };
+                    matches.then(|| g.clone())
                 });
-                let items = found.unwrap_or_else(|| vm.globals.borrow().clone());
-                let mut d = crate::object::Dict::new();
-                for (k, v) in items {
-                    if d.set(Value::str(k), v).is_err() {
-                        break;
-                    }
-                }
-                Value::dict(d)
+                crate::globalsview::view_for(&found.unwrap_or_else(|| vm.globals.clone()), None)
             }
             "f_locals" | "f_builtins" => Value::dict(crate::object::Dict::new()),
             _ => return None,

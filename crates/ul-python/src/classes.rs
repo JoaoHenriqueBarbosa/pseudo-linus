@@ -663,6 +663,15 @@ impl Vm {
         };
         if cls.builtin_base.is_some() {
             inst.dict.borrow_mut().insert("args".to_string(), Value::tuple(args.clone()));
+            // `OSError(errno, strerror[, filename])` expõe os campos como atributos.
+            if cls.builtin_base.is_some_and(|b| crate::object::exc_is_subclass(b, "OSError")) {
+                if let [errno @ Value::Int(_), msg, rest @ ..] = args.as_slice() {
+                    let mut d = inst.dict.borrow_mut();
+                    d.insert("errno".to_string(), errno.clone());
+                    d.insert("strerror".to_string(), msg.clone());
+                    d.insert("filename".to_string(), rest.first().cloned().unwrap_or(Value::None));
+                }
+            }
         }
         match cls.lookup("__init__") {
             Some(Value::Function(f)) => {
@@ -1134,6 +1143,11 @@ impl Vm {
                 _ => Vec::new(),
             };
             if is_str {
+                if let (Some(base), [Value::Int(_), _, ..]) = (i.class.builtin_base, args.as_slice())
+                    && crate::object::exc_is_subclass(base, "OSError")
+                {
+                    return crate::object::exc_str(&crate::object::ExcObj::new(base, args));
+                }
                 return match args.as_slice() {
                     [] => String::new(),
                     [one] if i.class.builtin_base.is_some_and(|b| crate::object::exc_is_subclass(b, "KeyError")) => {
