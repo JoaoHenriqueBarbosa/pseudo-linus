@@ -1,0 +1,17 @@
+[package]
+name = "zjpeg"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+# Tradução do decodificador e do codificador do libjpeg-turbo 2.1.5 (licença IJG e BSD de 3 cláusulas).
+license = "IJG AND BSD-3-Clause"
+publish = false
+description = "JPEG do libjpeg-turbo 2.1.5 traduzido sem unsafe, com pixels e bytes idênticos aos do Debian 13"
+
+# Fora do workspace principal enquanto amadurece (o Cargo.toml raiz exclui wip/).
+[workspace]
+
+[dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"
