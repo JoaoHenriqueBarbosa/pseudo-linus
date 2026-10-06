@@ -22,6 +22,10 @@ struct GenState {
     started: bool,
     done: bool,
     running: bool,
+    /// As exceções em tratamento dentro do gerador quando ele se suspendeu, e a altura da pilha
+    /// de fora naquele momento (o CPython guarda o `exc_info` no próprio gerador).
+    handled: Vec<Value>,
+    handled_base: usize,
 }
 
 /// O que uma retomada produziu: um valor entregue (`yield`/suspensão) ou o fim com o valor de retorno.
@@ -63,6 +67,8 @@ pub fn new_generator(vm: Vm, code: Rc<Code>, env: Rc<Env>) -> Value {
                 started: false,
                 done: false,
                 running: false,
+                handled: Vec::new(),
+                handled_base: 0,
             }),
         }),
     }))
@@ -147,10 +153,22 @@ impl GenCore {
             }
             st.started = true;
             st.running = true;
+            // Os blocos guardam a altura absoluta da pilha: retomado sob outra altura, rebaseia.
+            let base = self.vm.handled_len();
+            let old = st.handled_base;
+            if base != old {
+                for b in st.blocks.iter_mut() {
+                    b.handled = (b.handled + base).saturating_sub(old);
+                }
+            }
+            st.handled_base = base;
+            self.vm.handled_extend(std::mem::take(&mut st.handled));
             (std::mem::take(&mut st.stack), std::mem::take(&mut st.blocks), st.pc)
         };
         let mut vm = self.vm.clone();
+        let base = vm.handled_len().min(self.state.borrow().handled_base);
         let result = vm.run_loop(&self.code, &self.env, &mut stack, &mut blocks, &mut pc, inject);
+        let inner = vm.handled_split(base);
         let mut st = self.state.borrow_mut();
         st.running = false;
         match result {
@@ -158,6 +176,7 @@ impl GenCore {
                 st.stack = stack;
                 st.blocks = blocks;
                 st.pc = pc;
+                st.handled = inner;
                 Ok(Resumed::Yield(v))
             }
             Ok(Exit::Return(v)) => {

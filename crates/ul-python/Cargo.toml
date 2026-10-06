@@ -15,6 +15,7 @@ flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }
 zdeflate = { path = "../../wip/zdeflate" }
 # JPEG do libjpeg-turbo 2.1.5 traduzido sem unsafe, com os pixels do Pillow do Debian (fora do workspace).
 zjpeg = { path = "../../wip/zjpeg" }
+zft = { path = "../../wip/zft" }
 # `__dict__` de instâncias e classes na ordem de inserção, como no CPython.
 indexmap = "2"
 # `int` de precisão arbitrária (o que não cabe em `i64`).

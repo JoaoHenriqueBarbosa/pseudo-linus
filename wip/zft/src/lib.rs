@@ -173,6 +173,94 @@ impl Face {
         }
     }
 
+    /// `face->family_name`: o nome tipográfico (16) ou, na falta, o de família (1).
+    pub fn family_name(&self) -> Option<String> {
+        self.sfnt_name(16).or_else(|| self.sfnt_name(1))
+    }
+
+    /// `face->style_name`: a subfamília tipográfica (17) ou a subfamília (2); sem nenhuma,
+    /// o `sfnt_load_face` deduz do estilo.
+    pub fn style_name(&self) -> Option<String> {
+        self.sfnt_name(17).or_else(|| self.sfnt_name(2)).or_else(|| {
+            let bold = match self.sfnt.os2 {
+                Some(o) => o.fs_selection & 32 != 0,
+                None => self.sfnt.mac_style & 1 != 0,
+            };
+            Some(
+                match (bold, self.is_italic()) {
+                    (true, true) => "Bold Italic",
+                    (true, false) => "Bold",
+                    (false, true) => "Italic",
+                    (false, false) => "Regular",
+                }
+                .to_string(),
+            )
+        })
+    }
+
+    /// `tt_face_get_name`: escolhe o registro como o FreeType (Windows em inglês, depois Apple
+    /// em inglês ou Roman, depois Unicode) e converte para ASCII com `?` no lugar do resto.
+    fn sfnt_name(&self, id: u16) -> Option<String> {
+        use sfnt::u16_at;
+        let t = self.sfnt.table(&self.data, b"name")?;
+        let count = usize::from(u16_at(t, 2)?);
+        let storage = usize::from(u16_at(t, 4)?);
+        let (mut win, mut apple_en, mut apple_roman, mut unicode) = (None, None, None, None);
+        let mut is_english = false;
+        let mut recs = Vec::new();
+        for n in 0..count {
+            let o = 6 + n * 12;
+            let (Some(pid), Some(eid), Some(lang), Some(nid), Some(len), Some(off)) =
+                (u16_at(t, o), u16_at(t, o + 2), u16_at(t, o + 4), u16_at(t, o + 6), u16_at(t, o + 8), u16_at(t, o + 10))
+            else {
+                break;
+            };
+            let start = storage + usize::from(off);
+            let Some(bytes) = t.get(start..start + usize::from(len)) else { continue };
+            recs.push(bytes);
+            let r = recs.len() - 1;
+            if nid != id || len == 0 {
+                continue;
+            }
+            match pid {
+                0 | 2 => unicode = Some(r),
+                1 => {
+                    if lang == 0 {
+                        apple_en = Some(r);
+                    } else if eid == 0 {
+                        apple_roman = Some(r);
+                    }
+                }
+                3 if (win.is_none() || lang & 0x3FF == 9) && matches!(eid, 0 | 1 | 10) => {
+                    is_english = lang & 0x3FF == 9;
+                    win = Some(r);
+                }
+                _ => {}
+            }
+        }
+        let apple = apple_en.or(apple_roman);
+        let utf16 = |b: &[u8]| -> String {
+            b.chunks_exact(2)
+                .map(|c| u16::from_be_bytes([c[0], c[1]]))
+                .take_while(|&c| c != 0)
+                .map(|c| if (32..=127).contains(&c) { char::from(c as u8) } else { '?' })
+                .collect()
+        };
+        let other = |b: &[u8]| -> String {
+            b.iter()
+                .take_while(|&&c| c != 0)
+                .map(|&c| if (32..=127).contains(&c) { char::from(c) } else { '?' })
+                .collect()
+        };
+        if let Some(w) = win.filter(|_| !(apple.is_some() && !is_english)) {
+            Some(utf16(recs[w]))
+        } else if let Some(a) = apple {
+            Some(other(recs[a]))
+        } else {
+            unicode.map(|u| utf16(recs[u]))
+        }
+    }
+
     pub(crate) fn has_unicode_cmap(&self) -> bool {
         self.sfnt.unicode_cmap.is_some()
     }

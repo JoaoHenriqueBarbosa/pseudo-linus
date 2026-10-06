@@ -13,7 +13,19 @@ use std::path::{Path, PathBuf};
 /// `usr/share/terminfo`, `usr/share/tabset` e `etc/terminfo` são o conteúdo do ncurses-base
 /// (6.5+20250216-2): as descrições compiladas de terminais, os tabsets do `tabs` e o README do
 /// diretório do administrador.
-const TREES: &[&str] = &["usr/share/zoneinfo", "usr/lib/locale", "usr/share/terminfo", "usr/share/tabset", "etc/terminfo"];
+///
+/// `usr/share/fonts`, `usr/share/fontconfig` e `etc/fonts` vêm do fonts-dejavu-core, do
+/// fonts-dejavu-mono e do fontconfig-config, que o Pillow do Debian puxa.
+const TREES: &[&str] = &[
+    "usr/share/zoneinfo",
+    "usr/lib/locale",
+    "usr/share/terminfo",
+    "usr/share/tabset",
+    "etc/terminfo",
+    "usr/share/fonts",
+    "usr/share/fontconfig",
+    "etc/fonts",
+];
 
 /// Árvores cujos arquivos são scripts executáveis do oráculo (`/usr/bin/zgrep`, `/usr/sbin/service`...),
 /// instalados com modo 0o755. Os links simbólicos (`bzcmp -> bzdiff`) vêm junto.

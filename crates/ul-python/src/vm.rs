@@ -2593,6 +2593,22 @@ impl Vm {
         self.handled.borrow().last().cloned()
     }
 
+    pub(crate) fn handled_len(&self) -> usize {
+        self.handled.borrow().len()
+    }
+
+    /// Tira da pilha as exceções tratadas a partir de `at` (as de um gerador que se suspende ou
+    /// termina dentro de um `except`).
+    pub(crate) fn handled_split(&self, at: usize) -> Vec<Value> {
+        let mut h = self.handled.borrow_mut();
+        let at = at.min(h.len());
+        h.split_off(at)
+    }
+
+    pub(crate) fn handled_extend(&self, v: Vec<Value>) {
+        self.handled.borrow_mut().extend(v);
+    }
+
     /// Acrescenta ao buffer do stdout com a política do CPython: num terminal, descarrega a cada
     /// quebra de linha; num pipe ou arquivo, em blocos de 8 KiB. O resto sai no `flush` ou no fim.
     pub(crate) fn push_stdout(&self, data: &[u8]) {

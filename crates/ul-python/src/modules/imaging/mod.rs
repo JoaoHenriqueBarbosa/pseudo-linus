@@ -11,6 +11,7 @@
 pub mod codec;
 pub mod convert;
 pub mod draw;
+pub mod ft;
 pub mod image;
 pub mod math;
 pub mod ops;
