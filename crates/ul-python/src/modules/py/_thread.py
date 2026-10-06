@@ -1,11 +1,14 @@
-"""_thread mínimo: o interpretador roda um fluxo só, então os travões nunca bloqueiam."""
+"""_thread mínimo: o interpretador roda um fluxo só (as threads de `threading` rodam uma de cada vez, aninhadas),
+então os travões nunca bloqueiam de verdade."""
 
 error = RuntimeError
 
+# Pilha de identificadores: o da thread que está rodando é o último (`threading` empilha ao rodar uma thread).
+_idents = [1]
+
 
 def get_ident():
-    # Um fluxo só por interpretador: o identificador é fixo.
-    return 1
+    return _idents[-1]
 
 
 class LockType:

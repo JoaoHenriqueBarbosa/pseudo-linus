@@ -58,8 +58,14 @@ def thread_time():
     return _secs(2)
 
 
+_sleep_hooks = []
+
+
 def sleep(secs):
-    _os.sleep(secs)
+    for hook in _sleep_hooks:
+        secs = hook(secs)
+    if secs > 0:
+        _os.sleep(secs)
 
 
 def _is_leap(y):

@@ -969,6 +969,7 @@ with ThreadPoolExecutor(max_workers=3) as ex:
     print(len(done), len(pending), sorted(f.result() for f in as_completed(fs)))
 t = threading.Thread(target=lambda: print("in", threading.current_thread().name), name="worker")
 t.start()
+t.join()
 print(t.is_alive(), repr(t).split()[0])
 class Counter:
     def __init__(self):
@@ -978,8 +979,11 @@ class Counter:
         with self.lock:
             self.n += 1
 c = Counter()
-for _ in range(3):
-    threading.Thread(target=c.inc).start()
+workers = [threading.Thread(target=c.inc) for _ in range(3)]
+for w in workers:
+    w.start()
+for w in workers:
+    w.join()
 print(c.n)
 "#;
     let o = crate::run_source(src);
@@ -2989,6 +2993,77 @@ e = ValueError('z'); e.__traceback__ = None; print(e.__traceback__)
 [('<module>', 21), ('f', 3), ('g', 2)]
 [('<module>', 25)] [('<module>', 24), ('f', 3), ('g', 2)]
 None
+"##
+    );
+}
+
+#[test]
+fn cooperative_threading() {
+    let src = r##"
+import threading, queue, concurrent.futures as cf
+q = queue.Queue(); out = []
+def consumer():
+    while True:
+        item = q.get()
+        if item is None: break
+        out.append(item * 2); q.task_done()
+t = threading.Thread(target=consumer); t.start()
+for i in range(5): q.put(i)
+q.put(None); t.join(); print(out, t.is_alive())
+jobs = queue.Queue(); results = []
+def worker():
+    while True:
+        n = jobs.get(); results.append(n * n); jobs.task_done()
+workers = [threading.Thread(target=worker, daemon=True) for _ in range(3)]
+for w in workers: w.start()
+for n in range(6): jobs.put(n)
+jobs.join(); print(sorted(results))
+lock = threading.Lock(); n = [0]
+def inc():
+    for _ in range(500):
+        with lock: n[0] += 1
+ts = [threading.Thread(target=inc) for _ in range(4)]; [x.start() for x in ts]; [x.join() for x in ts]; print(n[0])
+with cf.ThreadPoolExecutor(2) as ex:
+    print([f.result() for f in [ex.submit(lambda x: x + 1, i) for i in range(4)]], list(ex.map(str, range(3))))
+cond = threading.Condition(); box = []
+def cons():
+    with cond:
+        while not box: cond.wait()
+        print('got', box)
+def prod():
+    with cond: box.append(1); cond.notify()
+c = threading.Thread(target=cons); p = threading.Thread(target=prod); c.start(); p.start(); c.join(); p.join()
+ev = threading.Event(); order = []
+def waiter(): order.append('wait'); ev.wait(); order.append('go')
+def setter(): order.append('set'); ev.set()
+a = threading.Thread(target=waiter); b = threading.Thread(target=setter); a.start(); b.start(); a.join(); b.join(); print(order)
+sem = threading.Semaphore(2); bar = threading.Barrier(3); seen = []
+def party(i): bar.wait(); seen.append(i)
+ps = [threading.Thread(target=party, args=(i,)) for i in range(3)]; [x.start() for x in ps]; [x.join() for x in ps]; print(sorted(seen))
+loc = threading.local(); loc.v = 'main'; got = []
+def readloc(): loc.v = 'child'; got.append(loc.v)
+x = threading.Thread(target=readloc); x.start(); x.join(); print(loc.v, got)
+names = []
+th = threading.Thread(target=lambda: names.append(threading.current_thread().name), name='custom'); th.start(); th.join()
+print(names, threading.current_thread().name, threading.active_count())
+def boom(): raise ValueError('in thread')
+threading.excepthook = lambda args: print('hook', args.exc_type.__name__, args.thread.name)
+bt = threading.Thread(target=boom, name='B'); bt.start(); bt.join()
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"[0, 2, 4, 6, 8] False
+[0, 1, 4, 9, 16, 25]
+2000
+[1, 2, 3, 4] ['0', '1', '2']
+got [1]
+['wait', 'set', 'go']
+[0, 1, 2]
+main ['child']
+['custom'] MainThread 4
+hook ValueError B
 "##
     );
 }
