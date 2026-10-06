@@ -291,10 +291,17 @@ impl ExtObject for BuiltinSuperMethod {
                 }
                 Ok(Value::None)
             }
-            "__getattribute__" | "__getattr__" => {
+            "__getattribute__" => {
+                // `object.__getattribute__` não passa pelo `__getattr__` da classe.
                 let n = args.first().map(to_str).unwrap_or_default();
-                vm.getattr(&self.obj, &n)
+                let own = inst.dict.borrow().get(n.as_str()).cloned();
+                match own {
+                    Some(v) => Ok(v),
+                    None => vm.instance_getattr_plain(&self.obj, inst, &n),
+                }
             }
+            // `object` não define `__getattr__`: quem chama via `super()` recebe `AttributeError`.
+            "__getattr__" => Err(exc("AttributeError", "'super' object has no attribute '__getattr__'")),
             "__new__" => Ok(self.obj.clone()),
             other => {
                 // Método herdado de `dict`/`list`/`str`...: age sobre o valor embutido.
@@ -679,6 +686,15 @@ impl Vm {
     }
 
     pub(crate) fn instance_getattr(&mut self, obj: &Value, inst: &Rc<InstanceObj>, name: &str) -> PyResult<Value> {
+        self.instance_getattr_with(obj, inst, name, true)
+    }
+
+    /// `object.__getattribute__`: a busca normal sem o gancho `__getattr__` da classe.
+    pub(crate) fn instance_getattr_plain(&mut self, obj: &Value, inst: &Rc<InstanceObj>, name: &str) -> PyResult<Value> {
+        self.instance_getattr_with(obj, inst, name, false)
+    }
+
+    fn instance_getattr_with(&mut self, obj: &Value, inst: &Rc<InstanceObj>, name: &str, hook: bool) -> PyResult<Value> {
         match name {
             "__class__" => return Ok(Value::Class(inst.class.clone())),
             "__dict__" => {
@@ -710,8 +726,10 @@ impl Vm {
         if let Some(attr) = class_attr {
             return self.bind_class_attr(&attr, obj.clone(), &inst.class);
         }
-        if let Some(Value::Function(f)) = inst.class.lookup("__getattr__") {
-            return self.call_function(&f, vec![obj.clone(), Value::str(name)], Vec::new());
+        if hook {
+            if let Some(Value::Function(f)) = inst.class.lookup("__getattr__") {
+                return self.call_function(&f, vec![obj.clone(), Value::str(name)], Vec::new());
+            }
         }
         let payload = inst.payload.borrow().clone();
         if let Some(p) = payload {

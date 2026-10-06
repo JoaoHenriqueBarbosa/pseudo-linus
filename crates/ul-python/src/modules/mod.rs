@@ -142,6 +142,25 @@ pub fn resolve_relative(vm: &mut Vm, rel: &str, level: usize) -> PyResult<String
     Ok(if rel.is_empty() { base } else { format!("{base}.{rel}") })
 }
 
+/// `types.ModuleType(name, doc=None)`: um módulo vazio, com globais vivas e sem entrada em `sys.modules`.
+pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+    let a = crate::native_util::bind("module", args, kwargs, &["name", "doc"], 1)?;
+    let name = crate::native_util::want_str("module", a[0].as_ref().unwrap_or(&Value::None))?.to_string();
+    let globals: Rc<RefCell<std::collections::HashMap<String, Value>>> = Rc::new(RefCell::new(Default::default()));
+    {
+        let mut g = globals.borrow_mut();
+        g.insert("__name__".into(), Value::str(name.clone()));
+        g.insert("__doc__".into(), a[1].clone().unwrap_or(Value::None));
+        g.insert("__package__".into(), Value::None);
+        g.insert("__loader__".into(), Value::None);
+        g.insert("__spec__".into(), Value::None);
+    }
+    let key: &'static str = crate::object::intern(&name);
+    let module = Rc::new(ModuleObj { name: key, attrs: RefCell::new(BTreeMap::new()) });
+    vm.module_globals.borrow_mut().insert(key, globals);
+    Ok(Value::Module(module))
+}
+
 /// Se `name` é um pacote embutido (algum módulo embutido tem `name.` como prefixo).
 pub fn is_embedded_package(name: &str) -> bool {
     pysrc::names().iter().any(|n| n.strip_prefix(name).is_some_and(|r| r.starts_with('.')))

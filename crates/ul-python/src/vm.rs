@@ -113,7 +113,7 @@ pub fn register_source(file: &str, text: &str) {
     SOURCES.with(|s| s.borrow_mut().insert(file.to_string(), Rc::from(text)));
 }
 
-fn source_line(file: &str, line: usize) -> Option<String> {
+pub(crate) fn source_line(file: &str, line: usize) -> Option<String> {
     SOURCES.with(|s| s.borrow().get(file).and_then(|t| t.lines().nth(line.saturating_sub(1)).map(str::to_string)))
 }
 
@@ -1462,7 +1462,7 @@ impl Vm {
             }
             return Ok(Value::Exception(Rc::new(ExcObj::new(kind, args))));
         }
-        if !matches!(name, "print" | "open" | "csv.reader" | "csv.writer" | "json.dumps" | "sorted" | "enumerate")
+        if !matches!(name, "print" | "open" | "csv.reader" | "csv.writer" | "json.dumps" | "sorted" | "enumerate" | "module")
             && let Some((kw, _)) = kwargs.first() {
                 return Err(type_error(match name {
                     "range" | "len" | "repr" | "json.loads" => format!("{name}() takes no keyword arguments"),
@@ -1470,6 +1470,7 @@ impl Vm {
                 }));
             }
         match name {
+            "module" => crate::modules::new_module(self, args, kwargs),
             "print" => self.print(args, kwargs),
             "open" => self.open(args, kwargs),
             "csv.reader" | "csv.writer" => self.csv_open(name, args, kwargs),
@@ -1749,6 +1750,18 @@ impl Vm {
                     if let Some(v) = g.borrow().get(name) {
                         return Ok(v.clone());
                     }
+                }
+                if name == "__dict__" {
+                    // Instantâneo dos atributos (os do módulo vivo valem mais que os copiados).
+                    let mut all: std::collections::BTreeMap<String, Value> = m.attrs.borrow().clone();
+                    if let Some(g) = self.module_globals.borrow().get(m.name) {
+                        all.extend(g.borrow().iter().map(|(k, v)| (k.clone(), v.clone())));
+                    }
+                    let mut d = crate::object::Dict::new();
+                    for (k, v) in all {
+                        d.set(Value::str(k), v)?;
+                    }
+                    return Ok(crate::builtins_ext::module_dict_value(m.name, d));
                 }
                 match m.attrs.borrow().get(name) {
                     Some(v) => Ok(v.clone()),

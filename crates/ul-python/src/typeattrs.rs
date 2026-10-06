@@ -242,7 +242,7 @@ fn object_getattribute(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value
                 Some(v) => Ok(v),
                 None => {
                     let obj = Value::Instance(i.clone());
-                    vm.instance_getattr(&obj, i, n.as_str())
+                    vm.instance_getattr_plain(&obj, i, n.as_str())
                 }
             }
         }

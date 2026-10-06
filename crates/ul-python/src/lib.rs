@@ -294,13 +294,28 @@ fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
             break;
         }
     }
-    let Some((path, package)) = found else {
-        write_stderr(&format!("{program}: No module named {name}\n"));
-        return 1;
+    let (path, text, package) = match found {
+        Some((path, package)) => {
+            let text = sys::read_file(path.as_bytes()).unwrap_or_default();
+            (path, String::from_utf8_lossy(&text).into_owned(), package)
+        }
+        None => {
+            // Módulos embutidos (`json.tool`, `unittest`): o fonte vive no binário.
+            let root = "/usr/lib/python3.13";
+            let as_path = name.replace('.', "/");
+            if let Some(src) = modules::pysrc::source(&format!("{name}.__main__")) {
+                (format!("{root}/{as_path}/__main__.py"), src.to_string(), name.to_string())
+            } else if let Some(src) = modules::pysrc::source(name) {
+                let package = parts[..parts.len() - 1].join(".");
+                (format!("{root}/{as_path}.py"), src.to_string(), package)
+            } else {
+                write_stderr(&format!("{program}: No module named {name}\n"));
+                return 1;
+            }
+        }
     };
-    let text = sys::read_file(path.as_bytes()).unwrap_or_default();
     let argv = std::iter::once(path.clone()).chain(rest.iter().map(|a| String::from_utf8_lossy(a).into_owned())).collect();
-    let outcome = run_main(&String::from_utf8_lossy(&text), argv, &path, true, Some((package, cwd)));
+    let outcome = run_main(&text, argv, &path, true, Some((package, cwd)));
     let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
     if !outcome.stderr.is_empty() {
         write_stderr(&outcome.stderr);
@@ -431,6 +446,7 @@ fn run_source_inner(
         }
     };
     let mut machine = vm::Vm::with_argv(argv);
+    machine.globals.borrow_mut().insert("__doc__".to_string(), object::Value::None);
     if file_mode && name != "<stdin>" {
         machine.globals.borrow_mut().insert("__file__".to_string(), object::Value::str(name));
     }
@@ -445,7 +461,7 @@ fn run_source_inner(
             }
         }
         // Como o CPython, importa o pacote pai (que roda o `__init__.py`) antes do módulo.
-        if !package.is_empty() && !name.ends_with("__main__.py") {
+        if !package.is_empty() {
             if let Err(e) = modules::import_checked(&mut machine, package) {
                 prelude = Err(vm::RuntimeError { exc: e, lineno: 0 });
             }

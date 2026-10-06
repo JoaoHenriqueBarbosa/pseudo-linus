@@ -1,6 +1,7 @@
 """traceback: formatação de tracebacks sobre `e.__traceback__` (sem as marcas de coluna `^^^^`)."""
 
 import sys
+import _sys
 
 __all__ = ['extract_stack', 'extract_tb', 'format_exception', 'format_exception_only', 'format_list',
            'format_stack', 'format_tb', 'print_exc', 'format_exc', 'print_exception', 'print_last',
@@ -14,6 +15,9 @@ _source_cache = {}
 def _source_line(filename, lineno):
     if filename.startswith('<'):
         return None
+    text = _sys._source_line(filename, lineno)
+    if text is not None:
+        return text.strip()
     lines = _source_cache.get(filename)
     if lines is None:
         try:

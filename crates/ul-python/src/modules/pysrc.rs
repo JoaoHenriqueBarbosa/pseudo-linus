@@ -75,6 +75,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("json", include_str!("py/json.py")),
     ("json.decoder", include_str!("py/json_decoder.py")),
     ("json.encoder", include_str!("py/json_encoder.py")),
+    ("json.tool", include_str!("py/json_tool.py")),
     ("json.scanner", include_str!("py/json_scanner.py")),
     ("configparser", include_str!("py/configparser.py")),
     ("queue", include_str!("py/queue.py")),
@@ -95,6 +96,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("csv", include_str!("py/csv.py")),
     ("signal", include_str!("py/signal.py")),
     ("unittest", include_str!("py/unittest.py")),
+    ("unittest.__main__", include_str!("py/unittest___main__.py")),
     ("unittest._log", include_str!("py/unittest__log.py")),
     ("unittest.case", include_str!("py/unittest_case.py")),
     ("unittest.loader", include_str!("py/unittest_loader.py")),
@@ -132,6 +134,14 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     {
         let mut g = globals.borrow_mut();
         g.insert("__name__".to_string(), Value::str(real));
+        g.insert("__doc__".to_string(), Value::None);
+        let as_path = real.replace('.', "/");
+        let file = if crate::modules::is_embedded_package(real) {
+            format!("/usr/lib/python3.13/{as_path}/__init__.py")
+        } else {
+            format!("/usr/lib/python3.13/{as_path}.py")
+        };
+        g.insert("__file__".to_string(), Value::str(file));
         // Pacote: `__package__` é ele mesmo e `__path__` existe (vazio); módulo: o pacote pai.
         if crate::modules::is_embedded_package(real) {
             g.insert("__package__".to_string(), Value::str(real));
@@ -163,6 +173,11 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         }
     }
     Some(module)
+}
+
+/// O texto-fonte do módulo embutido `name`.
+pub fn source(name: &str) -> Option<&'static str> {
+    SOURCES.iter().find(|(n, _)| *n == name).map(|(_, s)| *s)
 }
 
 /// Nomes de todos os módulos embutidos em Python (para os testes).

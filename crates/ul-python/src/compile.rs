@@ -237,10 +237,12 @@ pub fn compile_module(module: &Mod) -> Result<Code, CompileError> {
         return Err(CompileError { kind: "NotImplementedError", msg: "only modules can be compiled".into(), lineno: 1 });
     };
     let mut c = Compiler::new(Code { name: "<module>".into(), ..Code::default() }, 1);
-    let doc = docstring(body).map_or(Value::None, Value::str);
-    let k = c.constant(doc);
-    c.emit(Op::LoadConst(k));
-    c.emit_store("__doc__");
+    // Sem docstring, `__doc__` fica como o chamador definiu (`None` ao criar o módulo).
+    if let Some(doc) = docstring(body) {
+        let k = c.constant(Value::str(doc));
+        c.emit(Op::LoadConst(k));
+        c.emit_store("__doc__");
+    }
     c.block(body)?;
     Ok(c.code)
 }

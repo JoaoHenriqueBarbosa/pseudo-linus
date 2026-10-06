@@ -99,7 +99,12 @@ fn b_dir(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                 names.extend(k.dict.borrow().keys().cloned());
             }
         }
-        Some(Value::Module(m)) => names.extend(m.attrs.borrow().keys().cloned()),
+        Some(Value::Module(m)) => {
+            names.extend(m.attrs.borrow().keys().cloned());
+            if let Some(g) = vm.module_globals.borrow().get(m.name) {
+                names.extend(g.borrow().keys().cloned());
+            }
+        }
         Some(Value::Ext(e)) => names.extend(e.methods().iter().map(|s| (*s).to_string())),
         Some(_) => {}
     }
@@ -160,38 +165,161 @@ fn b_exit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 fn b_import(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("__import__", args, kw, &["name", "globals", "locals", "fromlist", "level"], 1)?;
     let name = want_str("__import__", a[0].as_ref().unwrap_or(&Value::None))?.to_string();
-    let top = name.split('.').next().unwrap_or("").to_string();
+    let level = match &a[4] {
+        Some(v) => crate::native_util::want_int(v)?.max(0) as usize,
+        None => 0,
+    };
     let wants_leaf = a[3].as_ref().is_some_and(Value::is_true);
-    let target = if wants_leaf { name.clone() } else { top };
-    match crate::modules::import(vm, &target) {
-        Some(m) => Ok(Value::Module(m)),
-        None => Err(exc("ModuleNotFoundError", format!("No module named '{name}'"))),
+    let full = if level > 0 { crate::modules::resolve_relative(vm, &name, level)? } else { name };
+    // Importa a cadeia inteira (`a.b.c` carrega `a`, `a.b`, `a.b.c`); sem `fromlist` devolve a raiz.
+    let leaf = crate::modules::import_checked(vm, &full)?;
+    if wants_leaf || level > 0 {
+        return Ok(Value::Module(leaf));
     }
+    let top = full.split('.').next().unwrap_or("").to_string();
+    Ok(Value::Module(crate::modules::import_checked(vm, &top)?))
 }
 
-/// Executa `src` como módulo na VM atual.
-fn run_text(vm: &mut Vm, src: &str) -> PyResult<()> {
-    let mut text = src.to_string();
+thread_local! {
+    /// `m.__dict__` de cada módulo: o mesmo objeto a cada leitura, para `exec(src, m.__dict__)` poder
+    /// rodar nas globais vivas do módulo.
+    static MODULE_DICTS: std::cell::RefCell<Vec<(&'static str, Value)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// O dict de `name.__dict__`, atualizado com o conteúdo `fresh` e sempre o mesmo objeto.
+pub(crate) fn module_dict_value(name: &'static str, fresh: Dict) -> Value {
+    MODULE_DICTS.with(|m| {
+        let mut m = m.borrow_mut();
+        if let Some((_, Value::Dict(d))) = m.iter().find(|(n, _)| *n == name) {
+            *d.borrow_mut() = fresh;
+            return Value::Dict(d.clone());
+        }
+        let v = Value::dict(fresh);
+        m.push((name, v.clone()));
+        v
+    })
+}
+
+fn module_of_dict(d: &Value) -> Option<&'static str> {
+    MODULE_DICTS.with(|m| m.borrow().iter().find(|(_, v)| crate::object::is(v, d)).map(|(n, _)| *n))
+}
+
+/// Substitui o conteúdo de `target` pelas globais `map`: nomes existentes na ordem de antes, os
+/// novos em ordem alfabética (o mapa de globais não guarda a ordem de inserção).
+fn write_back(target: &Value, map: &std::collections::HashMap<String, Value>, was: &[String]) -> PyResult<()> {
+    let Value::Dict(d) = target else { return Ok(()) };
+    let mut fresh = Dict::new();
+    let old: Vec<(Value, Value)> = d.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    for (k, v) in old {
+        match &k {
+            Value::Str(name) if was.iter().any(|w| w == name.as_str()) => {
+                if let Some(nv) = map.get(name.as_str()) {
+                    fresh.set(k.clone(), nv.clone())?;
+                }
+            }
+            _ => fresh.set(k, v)?,
+        }
+    }
+    let mut added: Vec<&String> = map.keys().filter(|k| !k.starts_with("__builtins__") && !fresh.contains(&Value::str((*k).clone())).unwrap_or(false)).collect();
+    added.sort();
+    for k in added {
+        fresh.set(Value::str(k.clone()), map[k].clone())?;
+    }
+    *d.borrow_mut() = fresh;
+    Ok(())
+}
+
+/// Roda `src` (`exec`) ou avalia a expressão (`eval`) nos espaços de nomes dados; sem eles, nas
+/// globais atuais. `globals`/`locals` são dicts: o conteúdo entra numa tabela de globais, o código
+/// roda nela, e o resultado volta para o dict (um dict de módulo roda direto nas globais do módulo).
+fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>, eval: bool, who: &str) -> PyResult<Value> {
+    let mut text = if eval { format!("__eval_value__ = ({})", src.trim()) } else { src.to_string() };
     if !text.ends_with('\n') {
         text.push('\n');
     }
-    let module = crate::parser::parse_module(&text)
-        .map_err(|e| exc("SyntaxError", e.msg))?;
-    let code = crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?;
-    vm.run(&Rc::new(code)).map_err(|e| e.exc)
+    let module = crate::parser::parse_module(&text).map_err(|e| {
+        let kind = match e.kind {
+            crate::parser::ErrorKind::Syntax => "SyntaxError",
+            crate::parser::ErrorKind::Indentation => "IndentationError",
+            crate::parser::ErrorKind::Tab => "TabError",
+        };
+        exc(kind, e.msg)
+    })?;
+    let code = Rc::new(crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?);
+    let globals = globals.filter(|g| !matches!(g, Value::None));
+    let locals = locals.filter(|l| !matches!(l, Value::None));
+    let Some(gdict) = globals else {
+        vm.run(&code).map_err(|e| e.exc)?;
+        let v = if eval { vm.globals.borrow_mut().remove("__eval_value__").unwrap_or(Value::None) } else { Value::None };
+        return Ok(v);
+    };
+    let Value::Dict(g) = &gdict else {
+        return Err(type_error(format!("{who}() globals must be a dict, not {}", gdict.type_name())));
+    };
+    if let Some(l) = &locals {
+        if !matches!(l, Value::Dict(_)) {
+            return Err(type_error("locals must be a mapping"));
+        }
+    }
+    let live = module_of_dict(&gdict).and_then(|n| vm.module_globals.borrow().get(n).cloned());
+    let map: Rc<std::cell::RefCell<std::collections::HashMap<String, Value>>> = match &live {
+        Some(m) => m.clone(),
+        None => Rc::new(std::cell::RefCell::new(std::collections::HashMap::new())),
+    };
+    let mut was: Vec<String> = Vec::new();
+    let gitems: Vec<(Value, Value)> = g.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    for (k, v) in gitems {
+        if let Value::Str(name) = &k {
+            was.push(name.as_str().to_string());
+            if live.is_none() {
+                map.borrow_mut().insert(name.as_str().to_string(), v);
+            }
+        }
+    }
+    let separate = locals.as_ref().filter(|l| !crate::object::is(l, &gdict));
+    let mut lwas: Vec<String> = Vec::new();
+    if let Some(Value::Dict(l)) = separate {
+        let litems: Vec<(Value, Value)> = l.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        for (k, v) in litems {
+            if let Value::Str(name) = &k {
+                lwas.push(name.as_str().to_string());
+                map.borrow_mut().insert(name.as_str().to_string(), v);
+            }
+        }
+    }
+    let mut inner = vm.clone();
+    inner.globals = map.clone();
+    let result = inner.run(&code).map_err(|e| e.exc);
+    let value = if eval { map.borrow_mut().remove("__eval_value__").unwrap_or(Value::None) } else { Value::None };
+    let snapshot = map.borrow().clone();
+    match separate {
+        Some(l) => {
+            // Só o que o código criou ou mudou vai para o `locals`; o resto é das globais.
+            let initial: Vec<(String, Value)> = was
+                .iter()
+                .filter_map(|n| g.borrow().get(&Value::str(n.clone())).ok().flatten().map(|v| (n.clone(), v)))
+                .collect();
+            let mut mine = snapshot.clone();
+            mine.retain(|k, v| {
+                lwas.contains(k) || !initial.iter().any(|(n, old)| n == k && crate::object::is(old, v)) && k != "__eval_value__"
+            });
+            write_back(l, &mine, &lwas)?
+        }
+        None => write_back(&gdict, &snapshot, &was)?,
+    }
+    result?;
+    Ok(value)
 }
 
 fn b_eval(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("eval", args, kw, &["source", "globals", "locals"], 1)?;
-    let src = want_str("eval", a[0].as_ref().unwrap_or(&Value::None))?.trim().to_string();
-    run_text(vm, &format!("__eval_value__ = ({src})"))?;
-    let v = vm.globals.borrow_mut().remove("__eval_value__").unwrap_or(Value::None);
-    Ok(v)
+    let src = want_str("eval", a[0].as_ref().unwrap_or(&Value::None))?.to_string();
+    run_ns(vm, &src, a[1].clone(), a[2].clone(), true, "eval")
 }
 
 fn b_exec(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("exec", args, kw, &["source", "globals", "locals"], 1)?;
     let src = want_str("exec", a[0].as_ref().unwrap_or(&Value::None))?.to_string();
-    run_text(vm, &src)?;
+    run_ns(vm, &src, a[1].clone(), a[2].clone(), false, "exec")?;
     Ok(Value::None)
 }

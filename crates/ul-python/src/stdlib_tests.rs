@@ -12,8 +12,8 @@ fn out(src: &str) -> String {
 
 #[test]
 fn every_embedded_module_imports() {
-    // `logging` (e `unittest._log`, que o importa) lê o relógio ao importar, e o relógio é do pseudo-processo (só existe na bancada).
-    const NEEDS_PROCESS: &[&str] = &[];
+    // `unittest.__main__` roda o `unittest.main()` ao ser importado: só vale como `python3 -m unittest`.
+    const NEEDS_PROCESS: &[&str] = &["unittest.__main__"];
     for name in crate::modules::pysrc::names() {
         if NEEDS_PROCESS.contains(&name) {
             continue;
@@ -1751,6 +1751,89 @@ test_c (__main__.T.test_c) ... skipped 'não'
 
 OK (skipped=1)
 2 15 default_int_handler
+"##
+    );
+}
+
+#[test]
+fn exec_eval_namespaces_match_cpython() {
+    let src = r##"
+ns = {"a": 2}
+exec("b = a * 3\ndef f(x): return x + b\nclass K: v = 1", ns)
+print(sorted(k for k in ns if not k.startswith("__")), ns["b"], ns["f"](1), ns["K"].v)
+print(eval("a + b", ns), eval("[i * a for i in range(3)]", {"a": 5}))
+loc = {}
+exec("q = 7\nr = q + 1", {"z": 1}, loc)
+print(loc)
+g = {"base": 10}
+print(eval("base + t", g, {"t": 5}))
+try:
+    exec("raise ValueError('boom')", {})
+except ValueError as e:
+    print("ve", e)
+d = {"n": 1}
+try:
+    exec("n = 2\n1/0", d)
+except ZeroDivisionError:
+    print(d["n"])
+exec("del n", d)
+print("n" in d)
+try:
+    eval("1 +", {})
+except SyntaxError as e:
+    print("syntax")
+def outer():
+    exec("w = 1")
+    return "ok"
+print(outer())
+x = 10
+print(eval("x * 2"))
+code = "total = sum(range(n))"
+env = {"n": 5}
+exec(code, env)
+print(env["total"])
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"['K', 'a', 'b', 'f'] 6 7 1
+8 [0, 5, 10]
+{'q': 7, 'r': 8}
+15
+ve boom
+2
+False
+syntax
+ok
+20
+10
+"##
+    );
+}
+
+#[test]
+fn module_type_and_sys_modules_match_cpython() {
+    let src = r##"
+import types, sys
+m = types.ModuleType("m", "doc!")
+print(m, m.__name__, m.__doc__, type(m) is type(sys), types.ModuleType.__name__)
+m.x = 5
+print(m.x, "x" in vars(m), sys.modules.get("m"))
+sys.modules["m"] = m
+import m as m2
+print(m2 is m, m2.x)
+exec("y = x + 1\ndef f(): return y * 2", m.__dict__)
+print(m.y, m.f())
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"<module 'm'> m doc! True module
+5 True None
+True 5
+6 12
 "##
     );
 }

@@ -53,6 +53,29 @@ fn getframe(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     crate::tbobj::frame_at(chain, depth).ok_or_else(|| exc("ValueError", "call stack is not deep enough"))
 }
 
+/// `_source_line(arquivo, número)`: a linha do fonte de um módulo carregado (embutido ou do usuário).
+fn source_line(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let (Some(Value::Str(file)), Some(Value::Int(line))) = (args.first(), args.get(1)) else {
+        return Ok(Value::None);
+    };
+    Ok(crate::vm::source_line(file.as_str(), *line as usize).map_or(Value::None, Value::str))
+}
+
+/// `sys.modules[nome] = módulo`: o `import nome` seguinte enxerga o módulo.
+fn set_module(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let (Some(Value::Str(name)), Some(Value::Module(m))) = (args.first(), args.get(1)) else {
+        return Ok(Value::Bool(false));
+    };
+    vm.modules.borrow_mut().insert(name.as_str().to_string(), m.clone());
+    Ok(Value::Bool(true))
+}
+
+/// `del sys.modules[nome]`: `True` se o módulo estava carregado.
+fn pop_module(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let Some(Value::Str(name)) = args.first() else { return Ok(Value::Bool(false)) };
+    Ok(Value::Bool(vm.modules.borrow_mut().remove(name.as_str()).is_some()))
+}
+
 fn getrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(1000))
 }
@@ -111,6 +134,9 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("exc_info", exc_info)
         .func("_getframe", getframe)
         .func("_modules", modules_snapshot)
+        .func("_source_line", source_line)
+        .func("_set_module", set_module)
+        .func("_pop_module", pop_module)
         .func("getrecursionlimit", getrecursionlimit)
         .func("setrecursionlimit", setrecursionlimit)
         .build()

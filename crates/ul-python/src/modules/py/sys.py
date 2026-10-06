@@ -55,12 +55,15 @@ class _Modules:
         return self._all()[key]
 
     def __setitem__(self, key, value):
-        self._extra[key] = value
+        if isinstance(key, str) and _sys._set_module(key, value):
+            self._extra.pop(key, None)
+        else:
+            self._extra[key] = value
 
     def __delitem__(self, key):
         if key in self._extra:
             del self._extra[key]
-        else:
+        elif not (isinstance(key, str) and _sys._pop_module(key)):
             raise KeyError(key)
 
     def __contains__(self, key):
@@ -87,6 +90,11 @@ class _Modules:
     def pop(self, key, *default):
         if key in self._extra:
             return self._extra.pop(key)
+        d = self._all()
+        if key in d:
+            value = d[key]
+            self.__delitem__(key)
+            return value
         if default:
             return default[0]
         raise KeyError(key)
@@ -95,8 +103,12 @@ class _Modules:
         d = self._all()
         if key in d:
             return d[key]
-        self._extra[key] = default
+        self[key] = default
         return default
+
+    def update(self, *args, **kwargs):
+        for key, value in dict(*args, **kwargs).items():
+            self[key] = value
 
     def copy(self):
         return dict(self._all())

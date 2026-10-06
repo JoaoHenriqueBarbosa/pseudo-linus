@@ -108,7 +108,7 @@ impl ExtObject for FrameObj {
         format!("<frame at {:p}, file '{}', line {}, code {}>", self, filename, line, name)
     }
 
-    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+    fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         let (line, code, filename) = &self.chain[self.idx];
         Some(Ok(match name {
             "f_lineno" => Value::Int(*line as i64),
@@ -120,7 +120,25 @@ impl ExtObject for FrameObj {
                     Value::None
                 }
             }
-            "f_globals" | "f_locals" | "f_builtins" => Value::dict(crate::object::Dict::new()),
+            "f_globals" => {
+                // As globais do módulo cujo `__file__` é o do quadro (o script principal: as da VM).
+                let found = vm.module_globals.borrow().values().find_map(|g| {
+                    let g = g.borrow();
+                    match g.get("__file__") {
+                        Some(Value::Str(f)) if f.as_str() == &**filename => Some(g.clone()),
+                        _ => None,
+                    }
+                });
+                let items = found.unwrap_or_else(|| vm.globals.borrow().clone());
+                let mut d = crate::object::Dict::new();
+                for (k, v) in items {
+                    if d.set(Value::str(k), v).is_err() {
+                        break;
+                    }
+                }
+                Value::dict(d)
+            }
+            "f_locals" | "f_builtins" => Value::dict(crate::object::Dict::new()),
             _ => return None,
         }))
     }
