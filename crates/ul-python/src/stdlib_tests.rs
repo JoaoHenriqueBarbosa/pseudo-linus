@@ -5782,3 +5782,93 @@ saindo
 "##
     );
 }
+
+#[test]
+fn cli_argparse_logs_config() {
+    let src = r##"
+import argparse, logging, sys, json, re, subprocess, shlex, os, textwrap, configparser, io, string, pprint
+from collections import Counter, defaultdict, OrderedDict, ChainMap
+from itertools import chain, islice, accumulate, pairwise, batched, zip_longest, product, combinations
+
+p = argparse.ArgumentParser(prog='ferramenta', description='Analisa logs.')
+p.add_argument('arquivos', nargs='*', default=['-'])
+p.add_argument('-n', '--top', type=int, default=3, help='quantos mostrar (padrão: %(default)s)')
+p.add_argument('--nivel', choices=['INFO', 'WARN', 'ERROR'], action='append')
+p.add_argument('-v', '--verbose', action='count', default=0)
+sub = p.add_subparsers(dest='cmd')
+r = sub.add_parser('resumo'); r.add_argument('--json', action='store_true')
+a = p.parse_args(['-n', '2', '--nivel', 'ERROR', '--nivel', 'WARN', '-vv', 'x.log', 'resumo', '--json'])
+print(a)
+print(p.format_usage().strip())
+print(repr(p.parse_args([]).nivel))
+log = """2026-10-06 10:00:01 INFO api GET /users 200 12ms
+2026-10-06 10:00:02 ERROR db timeout após 3000ms
+2026-10-06 10:00:03 WARN api GET /items 429 5ms
+2026-10-06 10:00:04 ERROR api POST /orders 500 87ms
+2026-10-06 10:00:05 INFO api GET /users 200 9ms"""
+pat = re.compile(r'(?P<ts>\S+ \S+) (?P<lvl>\w+) (?P<src>\w+) (?P<msg>.*)')
+recs = [m.groupdict() for m in map(pat.match, log.splitlines()) if m]
+c = Counter(r['lvl'] for r in recs); print(c.most_common(), c.total())
+by = defaultdict(list)
+for r in recs: by[r['src']].append(r['msg'])
+pprint.pprint(dict(by), width=60)
+ms = [int(x) for x in re.findall(r'(\d+)ms', log)]
+print(list(accumulate(ms)), list(pairwise(ms[:3])), list(batched(ms, 2)), max(ms, key=abs))
+print(list(zip_longest('ab', [1], fillvalue='-')), len(list(product('ab', repeat=3))), list(combinations(range(4), 2))[:3])
+cfg = configparser.ConfigParser()
+cfg.read_string('[db]\nhost = localhost\nport = 5432\n[api]\ntimeout = 3.5\ndebug = yes\n')
+print(cfg['db'].getint('port'), cfg.getfloat('api', 'timeout'), cfg.getboolean('api', 'debug'), cfg.sections())
+s = io.StringIO(); cfg.write(s); print(s.getvalue().strip())
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format='%(levelname)-5s %(name)s: %(message)s')
+lg = logging.getLogger('ferr.sub')
+lg.debug('d %s', 1); lg.warning('w %d itens', 3)
+try:
+    1 / 0
+except ZeroDivisionError:
+    lg.exception('falhou')
+print(shlex.split("sh -c 'echo $0 \"$1\"; exit 3' a 'b c'")[2], shlex.join(['a b', "c'd"]), shlex.quote('x y'))
+print(string.Template('$a-${b}').safe_substitute(a=1), ChainMap({'a': 1}, {'a': 2, 'b': 3})['b'])
+print(textwrap.dedent('''\
+    linha 1
+      linha 2
+'''), end='')
+print(json.dumps(OrderedDict(z=1, a=[1, {'k': None}]), separators=(',', ':')))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"Namespace(arquivos=['x.log'], top=2, nivel=['ERROR', 'WARN'], verbose=2, cmd='resumo', json=True)
+usage: ferramenta [-h] [-n TOP] [--nivel {INFO,WARN,ERROR}] [-v]
+                  [arquivos ...] {resumo} ...
+None
+[('INFO', 2), ('ERROR', 2), ('WARN', 1)] 5
+{'api': ['GET /users 200 12ms',
+         'GET /items 429 5ms',
+         'POST /orders 500 87ms',
+         'GET /users 200 9ms'],
+ 'db': ['timeout após 3000ms']}
+[12, 3012, 3017, 3104, 3113] [(12, 3000), (3000, 5)] [(12, 3000), (5, 87), (9,)] 3000
+[('a', 1), ('b', '-')] 8 [(0, 1), (0, 2), (0, 3)]
+5432 3.5 True ['db', 'api']
+[db]
+host = localhost
+port = 5432
+
+[api]
+timeout = 3.5
+debug = yes
+DEBUG ferr.sub: d 1
+WARNING ferr.sub: w 3 itens
+ERROR ferr.sub: falhou
+Traceback (most recent call last):
+  File "<string>", line 39, in <module>
+ZeroDivisionError: division by zero
+echo $0 "$1"; exit 3 'a b' 'c'"'"'d' 'x y'
+1-${b} 3
+linha 1
+  linha 2
+{"z":1,"a":[1,{"k":null}]}
+"##
+    );
+}

@@ -785,6 +785,9 @@ pub struct Vm {
     pub(crate) globals: Rc<RefCell<crate::object::VarMap>>,
     /// Buffer do stdout, descarregado pelo chamador no fim.
     pub stdout: Rc<RefCell<Vec<u8>>>,
+    /// O que foi escrito no stderr sem pseudo-processo (o interpretador embutido nos testes): vai para o
+    /// `Outcome.stderr`, antes do traceback final.
+    pub stderr_capture: RefCell<String>,
     /// Exceções sendo tratadas (a mais recente por último), para `raise` sem argumento.
     handled: Rc<RefCell<Vec<Value>>>,
     /// Profundidade de chamadas de função em andamento.
@@ -896,6 +899,7 @@ impl Vm {
         let vm = Vm {
             globals: Rc::new(RefCell::new(crate::object::VarMap::from_iter([("__name__".into(), Value::str("__main__"))]))),
             stdout: Rc::new(RefCell::new(Vec::new())),
+            stderr_capture: RefCell::new(String::new()),
             handled: Rc::new(RefCell::new(Vec::new())),
             depth: Rc::new(std::cell::Cell::new(0)),
             cur_line: Rc::new(std::cell::Cell::new(0)),
@@ -2694,7 +2698,11 @@ impl Vm {
             FileKind::Stderr => {
                 // O stderr do CPython é sem buffer e independe do stdout: com stdout em pipe, o que está
                 // pendente só sai no fim (ou a cada 8 KiB), depois do que o stderr já escreveu.
-                let _ = sysabi::sys::write_all(sysabi::Fd::STDERR, text.as_bytes());
+                if sysabi::sys::try_current().is_none() {
+                    self.stderr_capture.borrow_mut().push_str(text);
+                } else {
+                    let _ = sysabi::sys::write_all(sysabi::Fd::STDERR, text.as_bytes());
+                }
             }
             _ => return Err(exc("UnsupportedOperation", "not writable")),
         }

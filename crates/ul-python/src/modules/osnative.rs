@@ -317,7 +317,8 @@ fn isatty(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 fn getpid(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    Ok(Value::Int(i64::from(sys::current().getpid())))
+    // Sem pseudo-processo (o interpretador embutido nos testes) não há pid: o `logging` pede um a cada registro.
+    Ok(Value::Int(sys::try_current().map_or(1, |s| i64::from(s.getpid()))))
 }
 
 fn getppid(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {

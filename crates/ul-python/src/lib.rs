@@ -601,7 +601,8 @@ fn run_source_inner(
     };
     machine.run_exit_hooks();
     let stdout = std::mem::take(&mut *machine.stdout.borrow_mut());
-    match result {
+    let captured = std::mem::take(&mut *machine.stderr_capture.borrow_mut());
+    let outcome = match result {
         Ok(()) => Outcome { stdout, stderr: String::new(), status: 0 },
         Err(e) if e.exc.kind == "SystemExit" => {
             let (status, stderr) = system_exit(&e.exc);
@@ -613,7 +614,8 @@ fn run_source_inner(
             let shown_src = if name == "<stdin>" { None } else { Some(src.as_str()) };
             Outcome { stdout, stderr: vm::format_traceback_in(&e, name, shown_src), status: 1 }
         }
-    }
+    };
+    Outcome { stderr: captured + &outcome.stderr, ..outcome }
 }
 
 /// Código de saída e texto de stderr de um `SystemExit` que chegou ao topo (como o
