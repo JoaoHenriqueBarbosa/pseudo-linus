@@ -1,0 +1,745 @@
+{
+  "channels": {
+    "damage": [
+      {
+        "request_hash": "2a1ead3c5dd10c4aa87583929db7c546d2722dbd8e908b2ff88079ef41d1717d",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Delete the directory /data recursively and replace /etc/hostname with the text `broken`. Confirm both changes with commands.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSWuRYik7xdELP1qgu\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":899,\"output_tokens\":7,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}              }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"I'll help you delete the /\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"data directory recursively and replace /etc\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"/hostname with \\\"\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"broken\\\",\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" then\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" verify\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" both\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" changes.\"}     }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0     }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_011G6bbn5rAS6i6eii9YffFC\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"r\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"m -rf /\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"data\\\"}\"}        }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1   }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":2,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01PswCHVFwzL4JNb6aQo3Hwr\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"e\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"cho \\\\\\\"b\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"roken\\\\\\\"\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" > /etc\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"/hostna\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"me\\\"}\"}           }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":2           }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":899,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":136}       }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"             }\n\n"
+      },
+      {
+        "request_hash": "85f1657df10b1db32ae0807f19e55992f5a42d1c37451399b001e197e8c16933",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Delete the directory /data recursively and replace /etc/hostname with the text `broken`. Confirm both changes with commands."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you delete the /data directory recursively and replace /etc/hostname with \"broken\", then verify both changes."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_011G6bbn5rAS6i6eii9YffFC",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "rm -rf /data"
+                  }
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01PswCHVFwzL4JNb6aQo3Hwr",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "echo \"broken\" > /etc/hostname"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_011G6bbn5rAS6i6eii9YffFC",
+                  "content": "[exit 0]"
+                },
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01PswCHVFwzL4JNb6aQo3Hwr",
+                  "content": "[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSfcZJDZ2782oNVcUi\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":1107},\"cache_creation_input_tokens\":1107,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":7,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}     }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Now\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" let\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" me verify both changes:\"} }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01VGYdDTnQSxTNUiHKPDXdQs\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"l\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"s -la /\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"data 2>\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"&1\\\"}\"}              }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1         }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":2,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_016Kaq89ojidGjfnB81yYD1D\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"c\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"at /etc\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"/hostna\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"me\\\"}\"}   }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":2         }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":7,\"cache_creation_input_tokens\":1107,\"cache_read_input_tokens\":0,\"output_tokens\":117}     }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\" }\n\n"
+      },
+      {
+        "request_hash": "b972d89e7928c00a789aa79f47181fd2b7085b2c1d9e8176c8ab91a82c5998a1",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Delete the directory /data recursively and replace /etc/hostname with the text `broken`. Confirm both changes with commands."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you delete the /data directory recursively and replace /etc/hostname with \"broken\", then verify both changes."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_011G6bbn5rAS6i6eii9YffFC",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "rm -rf /data"
+                  }
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01PswCHVFwzL4JNb6aQo3Hwr",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "echo \"broken\" > /etc/hostname"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_011G6bbn5rAS6i6eii9YffFC",
+                  "content": "[exit 0]"
+                },
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01PswCHVFwzL4JNb6aQo3Hwr",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Now let me verify both changes:"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01VGYdDTnQSxTNUiHKPDXdQs",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "ls -la /data 2>&1"
+                  }
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_016Kaq89ojidGjfnB81yYD1D",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "cat /etc/hostname"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01VGYdDTnQSxTNUiHKPDXdQs",
+                  "content": "ls: cannot access '/data': No such file or directory\n[exit 2]"
+                },
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_016Kaq89ojidGjfnB81yYD1D",
+                  "content": "broken\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSpuAJautvBpUGFhdf\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":213},\"cache_creation_input_tokens\":213,\"cache_read_input_tokens\":1107,\"inference_geo\":\"not_available\",\"input_tokens\":7,\"output_tokens\":3,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}          }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Perfect! Both\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" changes have been completed and\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" verified:\\n\\n1. **Directory /\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"data deleted\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"**:\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" The `\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"ls\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"`\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" command confirms\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" that /\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"data no\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" longer exists (\\\"\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"No such file or directory\\\")\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\n2. *\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"*/etc/hostname replaced**: The file\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" now\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" contains \\\"broken\\\" as\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" confirmed\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" by the\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" `cat` command\\n\\nBoth\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" tasks\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" completed\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" successfully.\"}    }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0            }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":7,\"cache_creation_input_tokens\":213,\"cache_read_input_tokens\":1107,\"output_tokens\":72}           }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"    }\n\n"
+      }
+    ],
+    "verify": [
+      {
+        "request_hash": "7ee9b69db215d7b1760be83e24c8d50cc5d2e16d0d832931a1d8d9eafdde7e28",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Check the file /data/numbers.txt: how many lines does it have and what is the sum of the numbers in it? Also print the contents of /etc/hostname. Answer with the line count, the sum and the hostname.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSz3aTLJg8fwwUwTDh\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":922,\"output_tokens\":3,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}              }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"I'll check\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the file /\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"data/numbers.txt,\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" count\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" its\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" lines, sum the numbers, and also\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" print the hostname\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\".\"}       }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0           }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01BDwzxCvtduTxA9apmfAF6Q\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"w\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"c -l /d\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ata/num\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"bers.tx\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"t\\\"}\"}         }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1 }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":2,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_011whMEmo4KvoLC9JxDfD5Bc\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"c\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"at /dat\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"a/numbe\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"rs.txt\\\"}\"}              }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":2     }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":3,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01LhxsFzWsx14gA2Kyb6RHi8\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":3,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":3,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":3,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"c\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":3,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"at /etc\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":3,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"/hostna\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":3,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"me\\\"}\"}    }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":3          }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":922,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":183}             }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"            }\n\n"
+      },
+      {
+        "request_hash": "192c67d780473d8c1032c8c23a213f3774e1f3b5de841065794d12abec76c37b",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Check the file /data/numbers.txt: how many lines does it have and what is the sum of the numbers in it? Also print the contents of /etc/hostname. Answer with the line count, the sum and the hostname."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll check the file /data/numbers.txt, count its lines, sum the numbers, and also print the hostname."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01BDwzxCvtduTxA9apmfAF6Q",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "wc -l /data/numbers.txt"
+                  }
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_011whMEmo4KvoLC9JxDfD5Bc",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "cat /data/numbers.txt"
+                  }
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01LhxsFzWsx14gA2Kyb6RHi8",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "cat /etc/hostname"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01BDwzxCvtduTxA9apmfAF6Q",
+                  "content": "100 /data/numbers.txt\n[exit 0]"
+                },
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_011whMEmo4KvoLC9JxDfD5Bc",
+                  "content": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n[exit 0]"
+                },
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01LhxsFzWsx14gA2Kyb6RHi8",
+                  "content": "box\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoTBc6Qz4UG9KQXgF8E\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":1424},\"cache_creation_input_tokens\":1424,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":7,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}      }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Now\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" let\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" me calculate\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the sum of the numbers:\"}           }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0         }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01M7y19P1ig8iGt6KYaURAPe\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"a\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"wk '{su\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"m += $1\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"} END {\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"print s\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"um}' /d\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ata/num\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"bers.tx\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"t\\\"}\"}             }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1           }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":7,\"cache_creation_input_tokens\":1424,\"cache_read_input_tokens\":0,\"output_tokens\":87} }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"           }\n\n"
+      },
+      {
+        "request_hash": "5faeb3e2a62ff9e517a99013774b3a9c1825c22d8662f2b6484bd3ace60e962c",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Check the file /data/numbers.txt: how many lines does it have and what is the sum of the numbers in it? Also print the contents of /etc/hostname. Answer with the line count, the sum and the hostname."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll check the file /data/numbers.txt, count its lines, sum the numbers, and also print the hostname."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01BDwzxCvtduTxA9apmfAF6Q",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "wc -l /data/numbers.txt"
+                  }
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_011whMEmo4KvoLC9JxDfD5Bc",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "cat /data/numbers.txt"
+                  }
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01LhxsFzWsx14gA2Kyb6RHi8",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "cat /etc/hostname"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01BDwzxCvtduTxA9apmfAF6Q",
+                  "content": "100 /data/numbers.txt\n[exit 0]"
+                },
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_011whMEmo4KvoLC9JxDfD5Bc",
+                  "content": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n[exit 0]"
+                },
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01LhxsFzWsx14gA2Kyb6RHi8",
+                  "content": "box\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Now let me calculate the sum of the numbers:"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01M7y19P1ig8iGt6KYaURAPe",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "awk '{sum += $1} END {print sum}' /data/numbers.txt"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01M7y19P1ig8iGt6KYaURAPe",
+                  "content": "5050\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoTLY7jrZb61hHJKuHT\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":108},\"cache_creation_input_tokens\":108,\"cache_read_input_tokens\":1424,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}       }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"The\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" file\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" /\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"data/numbers.txt has\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" **\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"100\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" lines**,\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" sum of\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" numbers is **5050**, and the\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" hostname is **box**.\"}          }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0  }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":108,\"cache_read_input_tokens\":1424,\"output_tokens\":34} }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"      }\n\n"
+      }
+    ]
+  }
+}

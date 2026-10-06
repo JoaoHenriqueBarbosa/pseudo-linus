@@ -213,6 +213,8 @@ pub(crate) struct SbInner {
     pub devfs: Arc<Tmpfs>,
     pub workfs: Arc<Tmpfs>,
     programs: HashMap<Vec<u8>, Program>,
+    /// Build-id do ELF de cada programa embutido -> caminho na tabela (ver `exec::builtin_file`).
+    builtin_ids: HashMap<[u8; 20], Vec<u8>>,
     pub table: Mutex<Table>,
     pub hostname: Mutex<Vec<u8>>,
     /// `domainname` do UTS (`/proc/sys/kernel/domainname`); o Linux começa com `(none)`.
@@ -266,6 +268,15 @@ impl SbInner {
 
     pub(crate) fn program(&self, path: &[u8]) -> Option<Program> {
         self.programs.get(path).copied()
+    }
+
+    /// O programa embutido que um ELF com esse build-id roda. O `true` real tem o build-id do
+    /// Debian e roda o `/usr/bin/true` da tabela.
+    pub(crate) fn builtin_path(&self, id: &[u8; 20]) -> Option<Vec<u8>> {
+        if crate::exec::is_real_true_id(id) {
+            return Some(b"/usr/bin/true".to_vec());
+        }
+        self.builtin_ids.get(id).cloned()
     }
 
     /// Caller de root com cwd em `/` (operações diretas do host e montagem da imagem).
@@ -515,6 +526,7 @@ impl Sandbox {
             rootfs,
             devfs,
             workfs,
+            builtin_ids: programs.keys().map(|p| (crate::exec::build_id(p), p.clone())).collect(),
             programs,
             table: Mutex::new(Table::new(init)),
             hostname: Mutex::new(hostname),

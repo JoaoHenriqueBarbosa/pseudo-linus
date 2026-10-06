@@ -1,0 +1,1600 @@
+{
+  "channels": {
+    "main": [
+      {
+        "request_hash": "73a0be2449951ae07924803b042c1a59b642cbed9c910a0850ef678f08f26002",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSWnk2hcNcaU2tfpSK\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":960,\"output_tokens\":8,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}             }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"I'll help you create a git repository\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\", set\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" it\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" up with\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the specified\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" configuration\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\", create\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" branches\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\", and\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" perform the merge. Let me do\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" this step by step.\"}       }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0               }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01NNbbaRnH2zsxVAwThdNt3w\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"\\\\\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n# Crea\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"te the \"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"/repo d\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"irector\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"y and i\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nitiali\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ze git \"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"reposit\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ory\\\\nmk\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"dir -p \"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"/repo\\\\n\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"cd /rep\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"o\\\\ngit \"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"init\\\\n\\\"}\"}        }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1  }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":960,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":115}              }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\" }\n\n"
+      },
+      {
+        "request_hash": "96e636dbaa5a6b5ab2617cd31672fa06dc2f215c29d25b15241d0d3b85b096ef",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you create a git repository, set it up with the specified configuration, create branches, and perform the merge. Let me do this step by step."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create the /repo directory and initialize git repository\nmkdir -p /repo\ncd /repo\ngit init\n"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "content": "Initialized empty Git repository in /repo/.git/\n[stderr]\nhint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSg27vvwJXvy1gPGCL\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":1236},\"cache_creation_input_tokens\":1236,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01UdZ4V63cMMoihycvaNGMiS\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}            }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"\\\\\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n# Set \"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"git use\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"r confi\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"guratio\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n\\\\ncd /\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"repo\\\\ng\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"it conf\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ig user\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\".name \\\\\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"Bot\\\\\\\"\\\\\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ngit co\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nfig us\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"er.emai\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"l \\\\\\\"bot\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"@exampl\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"e.com\\\\\\\"\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\\n\\\"}\"}   }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":1236,\"cache_read_input_tokens\":0,\"output_tokens\":89}         }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"           }\n\n"
+      },
+      {
+        "request_hash": "b35d86229b74abc20d61747ebc1273fa9af0f2827fb4306610af2b08539c6337",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you create a git repository, set it up with the specified configuration, create branches, and perform the merge. Let me do this step by step."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create the /repo directory and initialize git repository\nmkdir -p /repo\ncd /repo\ngit init\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "content": "Initialized empty Git repository in /repo/.git/\n[stderr]\nhint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Set git user configuration\ncd /repo\ngit config user.name \"Bot\"\ngit config user.email \"bot@example.com\"\n"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "content": "[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSoV5p2HLEB8HsSBGH\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":105},\"cache_creation_input_tokens\":105,\"cache_read_input_tokens\":1236,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_015JCkYV19zoTGW9XEZXKEVB\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}}\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"\\\\\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n# Crea\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"te READ\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ME.md w\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ith \\\\\\\"v\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"1\\\\\\\" and\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" commit\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" it\\\\ncd\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" /repo\\\\\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"necho \\\\\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"v1\\\\\\\" >\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" README\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\".md\\\\ngi\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"t add R\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"EADME.m\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"d\\\\ngit \"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"commit \"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"-m \\\\\\\"In\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"itial c\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ommit w\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ith REA\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"DME.md\\\\\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"\\\\n\\\"}\"}               }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0   }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":105,\"cache_read_input_tokens\":1236,\"output_tokens\":104}          }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"            }\n\n"
+      },
+      {
+        "request_hash": "e30fb5daf83dd282e5fb9b84d956a4fea5af5489a5e68bdad4c2e29933054b9b",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you create a git repository, set it up with the specified configuration, create branches, and perform the merge. Let me do this step by step."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create the /repo directory and initialize git repository\nmkdir -p /repo\ncd /repo\ngit init\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "content": "Initialized empty Git repository in /repo/.git/\n[stderr]\nhint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Set git user configuration\ncd /repo\ngit config user.name \"Bot\"\ngit config user.email \"bot@example.com\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create README.md with \"v1\" and commit it\ncd /repo\necho \"v1\" > README.md\ngit add README.md\ngit commit -m \"Initial commit with README.md\"\n"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "content": "[master (root-commit) b648935] Initial commit with README.md\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSvz215Kc2kZ23b3uu\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":163},\"cache_creation_input_tokens\":163,\"cache_read_input_tokens\":1341,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01QkDDFbsR4jic4DW7V9cQtQ\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}  }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"\\\\\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n# Crea\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"te feat\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ure bra\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nch\\\\ncd\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" /repo\\\\\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ngit br\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"anch fe\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ature\\\\n\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"git che\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ckout f\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"eature\\\\\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n\\\"}\"}        }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0             }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":163,\"cache_read_input_tokens\":1341,\"output_tokens\":74}     }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"               }\n\n"
+      },
+      {
+        "request_hash": "011e3980e10ff5518997b0e662d980e44d379d43aad8afec3438e9188d4150dd",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you create a git repository, set it up with the specified configuration, create branches, and perform the merge. Let me do this step by step."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create the /repo directory and initialize git repository\nmkdir -p /repo\ncd /repo\ngit init\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "content": "Initialized empty Git repository in /repo/.git/\n[stderr]\nhint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Set git user configuration\ncd /repo\ngit config user.name \"Bot\"\ngit config user.email \"bot@example.com\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create README.md with \"v1\" and commit it\ncd /repo\necho \"v1\" > README.md\ngit add README.md\ngit commit -m \"Initial commit with README.md\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "content": "[master (root-commit) b648935] Initial commit with README.md\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create feature branch\ncd /repo\ngit branch feature\ngit checkout feature\n"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "content": "[stderr]\nSwitched to branch 'feature'\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoT33txPDRajpywc3W6\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":103},\"cache_creation_input_tokens\":103,\"cache_read_input_tokens\":1504,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_013EUmbVLLwqCZCAMSSZEkXS\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}       }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"\\\\\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n# Add \"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"feature\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\".txt wi\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"th \\\\\\\"do\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ne\\\\\\\" an\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"d commi\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"t it\\\\nc\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"d /repo\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\\necho \"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\\\\\"done\\\\\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\" > fea\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ture.tx\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"t\\\\ngit \"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"add fea\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ture.tx\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"t\\\\ngit \"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"commit \"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"-m \\\\\\\"Ad\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"d featu\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"re.txt\\\\\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"\\\\n\\\"}\"}         }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0    }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":103,\"cache_read_input_tokens\":1504,\"output_tokens\":100}           }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      },
+      {
+        "request_hash": "ef196fa852de7ff61ba4364796928f85c9990fcbb9fd9bc695cb89f162791bbe",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you create a git repository, set it up with the specified configuration, create branches, and perform the merge. Let me do this step by step."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create the /repo directory and initialize git repository\nmkdir -p /repo\ncd /repo\ngit init\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "content": "Initialized empty Git repository in /repo/.git/\n[stderr]\nhint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Set git user configuration\ncd /repo\ngit config user.name \"Bot\"\ngit config user.email \"bot@example.com\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create README.md with \"v1\" and commit it\ncd /repo\necho \"v1\" > README.md\ngit add README.md\ngit commit -m \"Initial commit with README.md\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "content": "[master (root-commit) b648935] Initial commit with README.md\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create feature branch\ncd /repo\ngit branch feature\ngit checkout feature\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "content": "[stderr]\nSwitched to branch 'feature'\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013EUmbVLLwqCZCAMSSZEkXS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Add feature.txt with \"done\" and commit it\ncd /repo\necho \"done\" > feature.txt\ngit add feature.txt\ngit commit -m \"Add feature.txt\"\n"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013EUmbVLLwqCZCAMSSZEkXS",
+                  "content": "[feature d03c770] Add feature.txt\n 1 file changed, 1 insertion(+)\n create mode 100644 feature.txt\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoTAXcQuCdSC6UTR5u8\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":153},\"cache_creation_input_tokens\":153,\"cache_read_input_tokens\":1607,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01YHgRqbMZA1SoZT7Q5Uu84p\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}         }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"\\\\\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n# Go b\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ack to \"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"master \"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"branch \"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"and mer\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ge feat\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ure\\\\ncd\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" /repo\\\\\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ngit ch\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"eckout \"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"master\\\\\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ngit me\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"rge fea\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ture\\\\n\\\"}\"}        }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0    }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":153,\"cache_read_input_tokens\":1607,\"output_tokens\":79}    }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"     }\n\n"
+      },
+      {
+        "request_hash": "6c33c922e3d7f8eacef2708b704fa51508e223b26255c322e579f7d53faa83cd",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you create a git repository, set it up with the specified configuration, create branches, and perform the merge. Let me do this step by step."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create the /repo directory and initialize git repository\nmkdir -p /repo\ncd /repo\ngit init\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "content": "Initialized empty Git repository in /repo/.git/\n[stderr]\nhint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Set git user configuration\ncd /repo\ngit config user.name \"Bot\"\ngit config user.email \"bot@example.com\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create README.md with \"v1\" and commit it\ncd /repo\necho \"v1\" > README.md\ngit add README.md\ngit commit -m \"Initial commit with README.md\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "content": "[master (root-commit) b648935] Initial commit with README.md\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create feature branch\ncd /repo\ngit branch feature\ngit checkout feature\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "content": "[stderr]\nSwitched to branch 'feature'\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013EUmbVLLwqCZCAMSSZEkXS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Add feature.txt with \"done\" and commit it\ncd /repo\necho \"done\" > feature.txt\ngit add feature.txt\ngit commit -m \"Add feature.txt\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013EUmbVLLwqCZCAMSSZEkXS",
+                  "content": "[feature d03c770] Add feature.txt\n 1 file changed, 1 insertion(+)\n create mode 100644 feature.txt\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01YHgRqbMZA1SoZT7Q5Uu84p",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Go back to master branch and merge feature\ncd /repo\ngit checkout master\ngit merge feature\n"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01YHgRqbMZA1SoZT7Q5Uu84p",
+                  "content": "Updating b648935..d03c770\nFast-forward\n feature.txt | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 feature.txt\n[stderr]\nSwitched to branch 'master'\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoTJQ8htdgrF9evVRTq\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":159},\"cache_creation_input_tokens\":159,\"cache_read_input_tokens\":1760,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_013NizPAiW1cygJYDpFUa5Fu\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}             }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"\\\\\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n# Show\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" git lo\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"g --one\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"line\\\\nc\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"d /repo\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\\ngit l\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"og --on\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"eline\\\\n\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"}\"}       }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0  }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":159,\"cache_read_input_tokens\":1760,\"output_tokens\":75}              }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"    }\n\n"
+      },
+      {
+        "request_hash": "265dfd5fa7401887b89eecf58cc204e44cabae781566ddc53ae6765bcbacce39",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you create a git repository, set it up with the specified configuration, create branches, and perform the merge. Let me do this step by step."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create the /repo directory and initialize git repository\nmkdir -p /repo\ncd /repo\ngit init\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "content": "Initialized empty Git repository in /repo/.git/\n[stderr]\nhint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Set git user configuration\ncd /repo\ngit config user.name \"Bot\"\ngit config user.email \"bot@example.com\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create README.md with \"v1\" and commit it\ncd /repo\necho \"v1\" > README.md\ngit add README.md\ngit commit -m \"Initial commit with README.md\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "content": "[master (root-commit) b648935] Initial commit with README.md\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create feature branch\ncd /repo\ngit branch feature\ngit checkout feature\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "content": "[stderr]\nSwitched to branch 'feature'\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013EUmbVLLwqCZCAMSSZEkXS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Add feature.txt with \"done\" and commit it\ncd /repo\necho \"done\" > feature.txt\ngit add feature.txt\ngit commit -m \"Add feature.txt\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013EUmbVLLwqCZCAMSSZEkXS",
+                  "content": "[feature d03c770] Add feature.txt\n 1 file changed, 1 insertion(+)\n create mode 100644 feature.txt\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01YHgRqbMZA1SoZT7Q5Uu84p",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Go back to master branch and merge feature\ncd /repo\ngit checkout master\ngit merge feature\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01YHgRqbMZA1SoZT7Q5Uu84p",
+                  "content": "Updating b648935..d03c770\nFast-forward\n feature.txt | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 feature.txt\n[stderr]\nSwitched to branch 'master'\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013NizPAiW1cygJYDpFUa5Fu",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Show git log --oneline\ncd /repo\ngit log --oneline\n"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013NizPAiW1cygJYDpFUa5Fu",
+                  "content": "d03c770 Add feature.txt\nb648935 Initial commit with README.md\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoTQrKanvzQkVTYmJFT\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":113},\"cache_creation_input_tokens\":113,\"cache_read_input_tokens\":1919,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01ULbPyfXsBjQnwpkA7x1gEh\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}             }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"\\\\\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"n# List\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" the fi\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"les\\\\ncd\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" /repo\\\\\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nls -la\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\\n\\\"}\"}       }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0   }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":113,\"cache_read_input_tokens\":1919,\"output_tokens\":70}             }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"     }\n\n"
+      },
+      {
+        "request_hash": "7b93c44162889fee6441fb565993223c1bf33eadbc43421cfbad8543c90e6270",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you create a git repository, set it up with the specified configuration, create branches, and perform the merge. Let me do this step by step."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create the /repo directory and initialize git repository\nmkdir -p /repo\ncd /repo\ngit init\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01NNbbaRnH2zsxVAwThdNt3w",
+                  "content": "Initialized empty Git repository in /repo/.git/\n[stderr]\nhint: Using 'master' as the name for the initial branch. This default branch name\nhint: is subject to change. To configure the initial branch name to use in all\nhint: of your new repositories, which will suppress this warning, call:\nhint:\nhint: \tgit config --global init.defaultBranch <name>\nhint:\nhint: Names commonly chosen instead of 'master' are 'main', 'trunk' and\nhint: 'development'. The just-created branch can be renamed via this command:\nhint:\nhint: \tgit branch -m <name>\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Set git user configuration\ncd /repo\ngit config user.name \"Bot\"\ngit config user.email \"bot@example.com\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01UdZ4V63cMMoihycvaNGMiS",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create README.md with \"v1\" and commit it\ncd /repo\necho \"v1\" > README.md\ngit add README.md\ngit commit -m \"Initial commit with README.md\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_015JCkYV19zoTGW9XEZXKEVB",
+                  "content": "[master (root-commit) b648935] Initial commit with README.md\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Create feature branch\ncd /repo\ngit branch feature\ngit checkout feature\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01QkDDFbsR4jic4DW7V9cQtQ",
+                  "content": "[stderr]\nSwitched to branch 'feature'\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013EUmbVLLwqCZCAMSSZEkXS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Add feature.txt with \"done\" and commit it\ncd /repo\necho \"done\" > feature.txt\ngit add feature.txt\ngit commit -m \"Add feature.txt\"\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013EUmbVLLwqCZCAMSSZEkXS",
+                  "content": "[feature d03c770] Add feature.txt\n 1 file changed, 1 insertion(+)\n create mode 100644 feature.txt\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01YHgRqbMZA1SoZT7Q5Uu84p",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Go back to master branch and merge feature\ncd /repo\ngit checkout master\ngit merge feature\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01YHgRqbMZA1SoZT7Q5Uu84p",
+                  "content": "Updating b648935..d03c770\nFast-forward\n feature.txt | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 feature.txt\n[stderr]\nSwitched to branch 'master'\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013NizPAiW1cygJYDpFUa5Fu",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# Show git log --oneline\ncd /repo\ngit log --oneline\n"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013NizPAiW1cygJYDpFUa5Fu",
+                  "content": "d03c770 Add feature.txt\nb648935 Initial commit with README.md\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01ULbPyfXsBjQnwpkA7x1gEh",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "\n# List the files\ncd /repo\nls -la\n"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01ULbPyfXsBjQnwpkA7x1gEh",
+                  "content": "total 8\ndrwxr-xr-x  3 root root 100 Oct  6 22:50 .\ndrwxr-xr-x 19 root root 460 Oct  6 22:50 ..\ndrwxr-xr-x  8 root root 280 Oct  6 22:50 .git\n-rw-r--r--  1 root root   3 Oct  6 22:50 README.md\n-rw-r--r--  1 root root   5 Oct  6 22:50 feature.txt\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoTXdcRTTjgEf5k7c2h\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":229},\"cache_creation_input_tokens\":229,\"cache_read_input_tokens\":2032,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}      }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Perfect\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"! I\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"'ve successfully completed\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" all\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the tasks\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\".\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" Here\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"'s what\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" was\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" done\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\":\\n\\n1. Created\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" a git\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" repository in\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" `/repo`\\n2. Configured\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" git with user\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\".\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"name=\\\"\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Bot\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\\" and user.email=\\\"bot@\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"example.com\\\"\\n3. Created\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" README\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\".md with \\\"\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"v\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"1\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\\"\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" and\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" committed\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" it\\n4. Created a `\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"feature`\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" branch,\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" added feature\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\".txt with\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" \\\"done\\\", and committed it\\n5\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\". Switched back\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" to the master\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" branch and\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" merged the `\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"feature` branch\\n6. The\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" merge was a\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" fast-forward merge\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\n\\n**\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Git\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" log (on\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"eline):**\\n-\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" d03c770 Add feature.\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"txt\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\n- b648935 Initial commit with\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" README.md\\n\\n**Files in the\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" repository:**\\n- README.md\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\n- feature.txt\\n\\nBoth\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" files are now present\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" in the master\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" branch after\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the successful\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" merge.\"}            }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0              }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":229,\"cache_read_input_tokens\":2032,\"output_tokens\":182}              }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"     }\n\n"
+      }
+    ]
+  }
+}

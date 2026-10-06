@@ -1,0 +1,672 @@
+{
+  "channels": {
+    "main": [
+      {
+        "request_hash": "1e675f4486604a1b38bc5c97982fd1d2146044f8aeb3f55ba6b43d2dff3b63fb",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "In the shell session named \"server\", create /srv/www/index.html containing exactly the text `hello from the web box`, then start `python3 -m http.server 8080 --directory /srv/www` in the background in that same session. Then, in a DIFFERENT session named \"client\", fetch http://127.0.0.1:8080/index.html with curl and tell me the body you got.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011Cfmqv8x6gwfAKtVQTdDHQ\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":969,\"output_tokens\":5,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}              }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"I'll help you set\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" up a\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" web server in\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" one\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" session and fetch the\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" content from another session.\"}               }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0   }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01352HkGSiBanizxbg9nk9pG\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"m\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"kdir -p\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" /srv/w\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ww && e\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"cho 'he\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"llo fro\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"m the w\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"eb box'\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" > /srv\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"/www/in\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"dex.htm\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"l && ca\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"t /srv/\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"www/ind\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ex.html\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"server\\\"}\"}           }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1  }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":969,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":130}   }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"      }\n\n"
+      },
+      {
+        "request_hash": "7c203702347bfb34173398edec0d04bdff384ed85cddb8b7c14ab4551473e447",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "In the shell session named \"server\", create /srv/www/index.html containing exactly the text `hello from the web box`, then start `python3 -m http.server 8080 --directory /srv/www` in the background in that same session. Then, in a DIFFERENT session named \"client\", fetch http://127.0.0.1:8080/index.html with curl and tell me the body you got."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you set up a web server in one session and fetch the content from another session."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01352HkGSiBanizxbg9nk9pG",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /srv/www && echo 'hello from the web box' > /srv/www/index.html && cat /srv/www/index.html",
+                    "session": "server"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01352HkGSiBanizxbg9nk9pG",
+                  "content": "hello from the web box\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmqvKXb9Y6W4ppyFpz1f\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":1116},\"cache_creation_input_tokens\":1116,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_0144FePCRWPAnwPQ4m2qxTZB\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}   }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"p\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ython3 \"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"-m http\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\".server\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" 8080 -\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"-direct\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ory /sr\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"v/www &\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"server\\\"}\"}      }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0          }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":1116,\"cache_read_input_tokens\":0,\"output_tokens\":92}            }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"       }\n\n"
+      },
+      {
+        "request_hash": "aa4fef9f590b1d92b8ab639427aac1bd0403b53252e2c97f91ba091fa494ae2f",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "In the shell session named \"server\", create /srv/www/index.html containing exactly the text `hello from the web box`, then start `python3 -m http.server 8080 --directory /srv/www` in the background in that same session. Then, in a DIFFERENT session named \"client\", fetch http://127.0.0.1:8080/index.html with curl and tell me the body you got."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you set up a web server in one session and fetch the content from another session."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01352HkGSiBanizxbg9nk9pG",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /srv/www && echo 'hello from the web box' > /srv/www/index.html && cat /srv/www/index.html",
+                    "session": "server"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01352HkGSiBanizxbg9nk9pG",
+                  "content": "hello from the web box\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_0144FePCRWPAnwPQ4m2qxTZB",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "python3 -m http.server 8080 --directory /srv/www &",
+                    "session": "server"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_0144FePCRWPAnwPQ4m2qxTZB",
+                  "content": "[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmqvSMMUuaSaV7dxSkBH\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":108},\"cache_creation_input_tokens\":108,\"cache_read_input_tokens\":1116,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01Jkp17gUyE6kkQ3pStWBZ9D\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}          }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"s\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"leep 1 \"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"&& curl\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" http:/\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"/127.0.\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"0.1:808\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"0/index\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\".html\\\"\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"client\\\"}\"}        }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0   }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":108,\"cache_read_input_tokens\":1116,\"output_tokens\":95}           }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"          }\n\n"
+      },
+      {
+        "request_hash": "37573e234b66eb852eed3104886e757e48ff79221daeb5abb65e5d3df6fa2ad3",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "In the shell session named \"server\", create /srv/www/index.html containing exactly the text `hello from the web box`, then start `python3 -m http.server 8080 --directory /srv/www` in the background in that same session. Then, in a DIFFERENT session named \"client\", fetch http://127.0.0.1:8080/index.html with curl and tell me the body you got."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you set up a web server in one session and fetch the content from another session."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01352HkGSiBanizxbg9nk9pG",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /srv/www && echo 'hello from the web box' > /srv/www/index.html && cat /srv/www/index.html",
+                    "session": "server"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01352HkGSiBanizxbg9nk9pG",
+                  "content": "hello from the web box\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_0144FePCRWPAnwPQ4m2qxTZB",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "python3 -m http.server 8080 --directory /srv/www &",
+                    "session": "server"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_0144FePCRWPAnwPQ4m2qxTZB",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01Jkp17gUyE6kkQ3pStWBZ9D",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "sleep 1 && curl http://127.0.0.1:8080/index.html",
+                    "session": "client"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01Jkp17gUyE6kkQ3pStWBZ9D",
+                  "content": "hello from the web box\n[stderr]\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r100    23  100    23    0     0   1563      0 --:--:-- --:--:-- --:--:--  1563\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmqvdcmTr6biARAMvCgG\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":234},\"cache_creation_input_tokens\":234,\"cache_read_input_tokens\":1224,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}            }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Perfect\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"! Let\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" me verify\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the server\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" is still\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" running:\"}   }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0               }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01DHoSErz22ad3WKf3jpiiiX\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"j\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"obs\\\"\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"server\\\"}\"} }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1  }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":234,\"cache_read_input_tokens\":1224,\"output_tokens\":86}        }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"           }\n\n"
+      },
+      {
+        "request_hash": "d814d1f09a2c66fb417e9dca61a5d872bf61300e94d1d77b9e06f18f94839bfc",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "In the shell session named \"server\", create /srv/www/index.html containing exactly the text `hello from the web box`, then start `python3 -m http.server 8080 --directory /srv/www` in the background in that same session. Then, in a DIFFERENT session named \"client\", fetch http://127.0.0.1:8080/index.html with curl and tell me the body you got."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you set up a web server in one session and fetch the content from another session."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01352HkGSiBanizxbg9nk9pG",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /srv/www && echo 'hello from the web box' > /srv/www/index.html && cat /srv/www/index.html",
+                    "session": "server"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01352HkGSiBanizxbg9nk9pG",
+                  "content": "hello from the web box\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_0144FePCRWPAnwPQ4m2qxTZB",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "python3 -m http.server 8080 --directory /srv/www &",
+                    "session": "server"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_0144FePCRWPAnwPQ4m2qxTZB",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01Jkp17gUyE6kkQ3pStWBZ9D",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "sleep 1 && curl http://127.0.0.1:8080/index.html",
+                    "session": "client"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01Jkp17gUyE6kkQ3pStWBZ9D",
+                  "content": "hello from the web box\n[stderr]\n  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r100    23  100    23    0     0   1563      0 --:--:-- --:--:-- --:--:--  1563\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Perfect! Let me verify the server is still running:"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01DHoSErz22ad3WKf3jpiiiX",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "jobs",
+                    "session": "server"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01DHoSErz22ad3WKf3jpiiiX",
+                  "content": "[1]+  Running                 python3 -m http.server 8080 --directory /srv/www\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011Cfmqvm6UQcmVFwikmLFiB\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":128},\"cache_creation_input_tokens\":128,\"cache_read_input_tokens\":1458,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}            }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"The\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" body\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" I\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" got from fet\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"ching http\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"://127.0.0.1\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\":8080/index.html is\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\":\\n\\n**\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"`\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"hello from the web box`**\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\n\\nThe web\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" server is successfully\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" running in\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the background in\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" \\\"server\\\" session,\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" and the\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" \\\"\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"client\\\" session was\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" able to fetch the index\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\".html file containing\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" exactly\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the text you\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" specified\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\".\"}             }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0          }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":128,\"cache_read_input_tokens\":1458,\"output_tokens\":77}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"              }\n\n"
+      }
+    ]
+  }
+}

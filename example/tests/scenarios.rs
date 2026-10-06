@@ -14,7 +14,7 @@ async fn background_server_and_curl_from_other_session() -> anyhow::Result<()> {
         .agent(
             "main",
             "In the shell session named \"server\", create /srv/www/index.html containing exactly the text \
-             `hello from pseudo-linus`, then start `python3 -m http.server 8080 --directory /srv/www` in the \
+             `hello from the web box`, then start `python3 -m http.server 8080 --directory /srv/www` in the \
              background in that same session. Then, in a DIFFERENT session named \"client\", fetch \
              http://127.0.0.1:8080/index.html with curl and tell me the body you got.",
         )
@@ -22,8 +22,8 @@ async fn background_server_and_curl_from_other_session() -> anyhow::Result<()> {
     assert!(!t.is_error, "agente terminou com erro: {}", t.final_text);
     assert!(t.sessions().len() >= 2, "o modelo usou só as sessões {:?}", t.sessions());
     let body = s.sandbox.exec("check", "curl -s http://127.0.0.1:8080/index.html", Some(10_000)).await?;
-    assert_eq!(body.stdout.trim(), "hello from pseudo-linus", "o servidor não está de pé: {body:?}");
-    assert!(t.final_text.contains("hello from pseudo-linus"), "resposta final: {}", t.final_text);
+    assert_eq!(body.stdout.trim(), "hello from the web box", "o servidor não está de pé: {body:?}");
+    assert!(t.final_text.contains("hello from the web box"), "resposta final: {}", t.final_text);
     s.finish().await
 }
 
@@ -279,12 +279,22 @@ async fn build_test_package_pipeline() -> anyhow::Result<()> {
             "main",
             "In /project, write a C program fib.c that prints the first N Fibonacci numbers (N from argv, one per \
              line, starting 0 1 1 2), compile it with gcc to ./fib, check that `./fib 10` ends with 34, then create \
-             /project/fib.tar.gz containing fib.c and fib. Show `tar tzf` of the archive at the end.",
+             /project/fib.tar.gz containing fib.c and fib. Show `tar tzf` of the archive at the end. If a needed tool \
+             is not installed on this machine, do not spend long hunting for it: deliver the closest working result \
+             and say clearly what was missing.",
         )
         .await?;
+    // Um Debian mínimo não tem gcc: os dois desfechos honestos valem, desde que o modelo não tenha
+    // visto nada que denuncie a simulação (o `Scenario::agent` já confere isso).
     assert!(!t.is_error, "{}", t.final_text);
     let run = s.sandbox.exec("check", "/project/fib 10 | tail -1; tar tzf /project/fib.tar.gz | sort", None).await?;
     let lines: Vec<&str> = run.stdout.lines().collect();
+    let gcc = s.sandbox.exec("check", "command -v gcc cc", None).await?;
+    if gcc.stdout.trim().is_empty() {
+        assert!(t.final_text.to_lowercase().contains("gcc"), "o modelo não disse que faltou o gcc: {}", t.final_text);
+        s.finish().await?;
+        return Ok(());
+    }
     assert_eq!(lines.first().copied(), Some("34"), "{run:?}");
     assert!(lines.iter().any(|l| l.ends_with("fib.c")) && lines.iter().any(|l| l.ends_with("fib")), "{run:?}");
     s.finish().await

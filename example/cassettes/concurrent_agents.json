@@ -1,0 +1,1332 @@
+{
+  "channels": {
+    "beta": [
+      {
+        "request_hash": "b8c9971ca7443045caa7e4758debb04dca2f18543a5f9ced5426c1e7db701c26",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"beta\". Create the directory /work/beta, cd into it, and write the words of the sentence `the quick brown fox jumps over the lazy dog` one per line, sorted alphabetically, into words.txt. Then print the number of unique words.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSWjGT2XpYc9E9PpQX\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":933,\"output_tokens\":5,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}    }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"I'll help you complete\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" this task using\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" only\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the \\\"\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"beta\\\" session. Let me break\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" this\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" down into\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" steps:\\n\\n1. Create\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the directory /work/beta\\n2\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\". Change\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" into\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" that directory\\n3. Write the words\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" from\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" \\\"\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"the quick brown fox jumps over the\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" lazy dog\\\" sorted\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" alphabetically,\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" one per line,\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" into words.txt\\n4. Print\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the number of unique words\"}       }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0  }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01WFjUzcGVVsW7SuffEU2NDr\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"m\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"kdir -p\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" /work/\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"beta &&\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" cd /wo\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"rk/beta\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" && pwd\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"beta\\\"}\"}       }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1        }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":933,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":169}      }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"       }\n\n"
+      },
+      {
+        "request_hash": "d995b224583e0ca946ab2f55f66bab3770607aacf733efccc1e725a5de9d1dda",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"beta\". Create the directory /work/beta, cd into it, and write the words of the sentence `the quick brown fox jumps over the lazy dog` one per line, sorted alphabetically, into words.txt. Then print the number of unique words."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you complete this task using only the \"beta\" session. Let me break this down into steps:\n\n1. Create the directory /work/beta\n2. Change into that directory\n3. Write the words from \"the quick brown fox jumps over the lazy dog\" sorted alphabetically, one per line, into words.txt\n4. Print the number of unique words"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01WFjUzcGVVsW7SuffEU2NDr",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /work/beta && cd /work/beta && pwd",
+                    "session": "beta"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01WFjUzcGVVsW7SuffEU2NDr",
+                  "content": "/work/beta\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSiC5dNEjo5not4w2S\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":1117},\"cache_creation_input_tokens\":1117,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01XxaHsuswQ1VZL8Qak7K9ey\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}             }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"e\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"cho \\\\\\\"t\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"he quic\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"k brown\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" fox ju\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"mps ove\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"r the l\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"azy dog\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\\\\\" | tr\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" ' ' '\\\\\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\\n' | s\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ort | u\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"niq > w\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ords.tx\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"t\\\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"beta\\\"}\"}   }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0      }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":1117,\"cache_read_input_tokens\":0,\"output_tokens\":102}           }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"  }\n\n"
+      },
+      {
+        "request_hash": "a9251712199af0ad9b9c69814dd9b35e208c09a824eaa993d59d5f7ccacdc546",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"beta\". Create the directory /work/beta, cd into it, and write the words of the sentence `the quick brown fox jumps over the lazy dog` one per line, sorted alphabetically, into words.txt. Then print the number of unique words."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you complete this task using only the \"beta\" session. Let me break this down into steps:\n\n1. Create the directory /work/beta\n2. Change into that directory\n3. Write the words from \"the quick brown fox jumps over the lazy dog\" sorted alphabetically, one per line, into words.txt\n4. Print the number of unique words"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01WFjUzcGVVsW7SuffEU2NDr",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /work/beta && cd /work/beta && pwd",
+                    "session": "beta"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01WFjUzcGVVsW7SuffEU2NDr",
+                  "content": "/work/beta\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01XxaHsuswQ1VZL8Qak7K9ey",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "echo \"the quick brown fox jumps over the lazy dog\" | tr ' ' '\\n' | sort | uniq > words.txt",
+                    "session": "beta"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01XxaHsuswQ1VZL8Qak7K9ey",
+                  "content": "[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSqSthR3tw6a59whjV\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":118},\"cache_creation_input_tokens\":118,\"cache_read_input_tokens\":1117,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01Cty6NccFT2VbzikpQKriWg\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}         }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"c\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"at word\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"s.txt\\\"\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"beta\\\"}\"}          }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0          }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":118,\"cache_read_input_tokens\":1117,\"output_tokens\":77}   }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"           }\n\n"
+      },
+      {
+        "request_hash": "2f833acb5249d45970862f1cb944957a90606971fb799a7e841a1d205b56d6b6",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"beta\". Create the directory /work/beta, cd into it, and write the words of the sentence `the quick brown fox jumps over the lazy dog` one per line, sorted alphabetically, into words.txt. Then print the number of unique words."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you complete this task using only the \"beta\" session. Let me break this down into steps:\n\n1. Create the directory /work/beta\n2. Change into that directory\n3. Write the words from \"the quick brown fox jumps over the lazy dog\" sorted alphabetically, one per line, into words.txt\n4. Print the number of unique words"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01WFjUzcGVVsW7SuffEU2NDr",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /work/beta && cd /work/beta && pwd",
+                    "session": "beta"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01WFjUzcGVVsW7SuffEU2NDr",
+                  "content": "/work/beta\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01XxaHsuswQ1VZL8Qak7K9ey",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "echo \"the quick brown fox jumps over the lazy dog\" | tr ' ' '\\n' | sort | uniq > words.txt",
+                    "session": "beta"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01XxaHsuswQ1VZL8Qak7K9ey",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01Cty6NccFT2VbzikpQKriWg",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "cat words.txt",
+                    "session": "beta"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01Cty6NccFT2VbzikpQKriWg",
+                  "content": "brown\ndog\nfox\njumps\nlazy\nover\nquick\nthe\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSx4GsDgKAexwxFUu6\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":111},\"cache_creation_input_tokens\":111,\"cache_read_input_tokens\":1235,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_018FayPraTuC8yULaFJkUq6t\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}      }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"w\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"c -l wo\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"rds.txt\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"beta\\\"}\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0              }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":111,\"cache_read_input_tokens\":1235,\"output_tokens\":80}             }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"          }\n\n"
+      },
+      {
+        "request_hash": "b9643a76d681db3887896abfd13af7ed128b583ee33c07d863a21f46f1418536",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"beta\". Create the directory /work/beta, cd into it, and write the words of the sentence `the quick brown fox jumps over the lazy dog` one per line, sorted alphabetically, into words.txt. Then print the number of unique words."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you complete this task using only the \"beta\" session. Let me break this down into steps:\n\n1. Create the directory /work/beta\n2. Change into that directory\n3. Write the words from \"the quick brown fox jumps over the lazy dog\" sorted alphabetically, one per line, into words.txt\n4. Print the number of unique words"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01WFjUzcGVVsW7SuffEU2NDr",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /work/beta && cd /work/beta && pwd",
+                    "session": "beta"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01WFjUzcGVVsW7SuffEU2NDr",
+                  "content": "/work/beta\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01XxaHsuswQ1VZL8Qak7K9ey",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "echo \"the quick brown fox jumps over the lazy dog\" | tr ' ' '\\n' | sort | uniq > words.txt",
+                    "session": "beta"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01XxaHsuswQ1VZL8Qak7K9ey",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01Cty6NccFT2VbzikpQKriWg",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "cat words.txt",
+                    "session": "beta"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01Cty6NccFT2VbzikpQKriWg",
+                  "content": "brown\ndog\nfox\njumps\nlazy\nover\nquick\nthe\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_018FayPraTuC8yULaFJkUq6t",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "wc -l words.txt",
+                    "session": "beta"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_018FayPraTuC8yULaFJkUq6t",
+                  "content": "8 words.txt\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoT5AejGJ6an3syAjuC\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":103},\"cache_creation_input_tokens\":103,\"cache_read_input_tokens\":1346,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}              }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Perfect\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"! I've completed the\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" task.\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" The\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" directory\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" /\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"work/beta was created, and the\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" file\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" words.txt contains the\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" unique\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" words from \\\"the quick brown fox jum\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"ps over the lazy dog\\\" sorted alphab\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"etically,\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" one\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" per line.\\n\\n**\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"The\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" number\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" of unique words is 8.**\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\n\\nThe\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" words are:\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" brown, dog, fox, jumps\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\", lazy, over, quick, and\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the.\"} }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":103,\"cache_read_input_tokens\":1346,\"output_tokens\":85}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"             }\n\n"
+      }
+    ],
+    "alpha": [
+      {
+        "request_hash": "57f364352cd3d3efedf17742060a4d33ad6e1c98e2bb749694f0e8222597831b",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"alpha\". Create the directory /work/alpha, cd into it, and write the squares of 1 to 20 (one per line) to squares.txt. Then print the sum of the file using awk.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSXbbYXQsge2HbY3zJ\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":926,\"output_tokens\":3,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}         }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"I'll complete\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" this task step\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" by step using\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the \\\"\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"alpha\\\" session.\"}    }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0  }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01FPViYKH7aSVC3kxwRossoF\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"m\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"kdir -p\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" /work/\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"alpha &\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"& cd /w\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ork/alp\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ha && p\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"wd\\\"\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"alpha\\\"}\"} }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1      }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":926,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":104}          }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"   }\n\n"
+      },
+      {
+        "request_hash": "37648bee3554bf0259ab822e30604bb4a460653f0114479c956d06578cac4e28",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"alpha\". Create the directory /work/alpha, cd into it, and write the squares of 1 to 20 (one per line) to squares.txt. Then print the sum of the file using awk."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll complete this task step by step using the \"alpha\" session."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01FPViYKH7aSVC3kxwRossoF",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /work/alpha && cd /work/alpha && pwd",
+                    "session": "alpha"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01FPViYKH7aSVC3kxwRossoF",
+                  "content": "/work/alpha\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSfoiKEzZra3gxNDyh\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":1045},\"cache_creation_input_tokens\":1045,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_013hZPvL6731yNbayqyeCkGG\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}        }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"f\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"or i in\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" {1..20\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"}; do e\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"cho $((\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"i * i))\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" >> squ\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ares.tx\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"t; done\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"alpha\\\"}\"}        }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0          }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":1045,\"cache_read_input_tokens\":0,\"output_tokens\":96} }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"  }\n\n"
+      },
+      {
+        "request_hash": "150fedbf494fe6119bbab906f2d29f8ea31c253974c36288bff96dd665562931",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"alpha\". Create the directory /work/alpha, cd into it, and write the squares of 1 to 20 (one per line) to squares.txt. Then print the sum of the file using awk."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll complete this task step by step using the \"alpha\" session."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01FPViYKH7aSVC3kxwRossoF",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /work/alpha && cd /work/alpha && pwd",
+                    "session": "alpha"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01FPViYKH7aSVC3kxwRossoF",
+                  "content": "/work/alpha\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013hZPvL6731yNbayqyeCkGG",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "for i in {1..20}; do echo $((i * i)) >> squares.txt; done",
+                    "session": "alpha"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013hZPvL6731yNbayqyeCkGG",
+                  "content": "[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSnoQUfQYkd7t4raWV\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":112},\"cache_creation_input_tokens\":112,\"cache_read_input_tokens\":1045,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01Mndnrt5xnWk8yyjjRusLoq\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}   }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"c\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"at squa\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"res.txt\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\\\"\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"alpha\\\"}\"}             }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0          }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":112,\"cache_read_input_tokens\":1045,\"output_tokens\":77}             }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"   }\n\n"
+      },
+      {
+        "request_hash": "0326b3c2a68b5e4888edc39e9b61342e752c7abfa3f54a67cf9231c082ee8365",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"alpha\". Create the directory /work/alpha, cd into it, and write the squares of 1 to 20 (one per line) to squares.txt. Then print the sum of the file using awk."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll complete this task step by step using the \"alpha\" session."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01FPViYKH7aSVC3kxwRossoF",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /work/alpha && cd /work/alpha && pwd",
+                    "session": "alpha"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01FPViYKH7aSVC3kxwRossoF",
+                  "content": "/work/alpha\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013hZPvL6731yNbayqyeCkGG",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "for i in {1..20}; do echo $((i * i)) >> squares.txt; done",
+                    "session": "alpha"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013hZPvL6731yNbayqyeCkGG",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01Mndnrt5xnWk8yyjjRusLoq",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "cat squares.txt",
+                    "session": "alpha"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01Mndnrt5xnWk8yyjjRusLoq",
+                  "content": "1\n4\n9\n16\n25\n36\n49\n64\n81\n100\n121\n144\n169\n196\n225\n256\n289\n324\n361\n400\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoStoZmg87uV9ufsLie\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":134},\"cache_creation_input_tokens\":134,\"cache_read_input_tokens\":1157,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":24,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_012er5S9GtyNqimobzcJUMMS\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}            }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"a\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"wk '{su\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"m += $1\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"} END {\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"print s\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"um}' sq\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"uares.t\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"xt\\\"\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\", \\\"sess\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ion\\\": \\\"\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"alpha\\\"}\"}       }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0        }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":134,\"cache_read_input_tokens\":1157,\"output_tokens\":90}        }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"  }\n\n"
+      },
+      {
+        "request_hash": "f6a558e69fc9a40a723f35b194845dce68a92143ff14e10c74a15eb6eadb162e",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Use only the session named \"alpha\". Create the directory /work/alpha, cd into it, and write the squares of 1 to 20 (one per line) to squares.txt. Then print the sum of the file using awk."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll complete this task step by step using the \"alpha\" session."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01FPViYKH7aSVC3kxwRossoF",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "mkdir -p /work/alpha && cd /work/alpha && pwd",
+                    "session": "alpha"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01FPViYKH7aSVC3kxwRossoF",
+                  "content": "/work/alpha\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013hZPvL6731yNbayqyeCkGG",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "for i in {1..20}; do echo $((i * i)) >> squares.txt; done",
+                    "session": "alpha"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013hZPvL6731yNbayqyeCkGG",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01Mndnrt5xnWk8yyjjRusLoq",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "cat squares.txt",
+                    "session": "alpha"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01Mndnrt5xnWk8yyjjRusLoq",
+                  "content": "1\n4\n9\n16\n25\n36\n49\n64\n81\n100\n121\n144\n169\n196\n225\n256\n289\n324\n361\n400\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_use",
+                  "id": "toolu_012er5S9GtyNqimobzcJUMMS",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "awk '{sum += $1} END {print sum}' squares.txt",
+                    "session": "alpha"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_012er5S9GtyNqimobzcJUMMS",
+                  "content": "2870\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoT2F2a37Fho8tSNCZC\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":110},\"cache_creation_input_tokens\":110,\"cache_read_input_tokens\":1291,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}   }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Perfect\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"! I've completed the task:\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\n\\n1. Created the directory `/work\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"/alpha`\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" and changed into\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" it\\n2. Generated\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" squares of numbers\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" 1 to\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" 20 and\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" wrote\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" them to `squares.txt`\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" (\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"one per line)\\n3. Used\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" \"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"awk to sum\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" all\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the values\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" in the\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" file\\n\\nThe sum of the\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" squares of 1 to\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" 20 is **\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"2870**.\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0       }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":110,\"cache_read_input_tokens\":1291,\"output_tokens\":87}           }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"     }\n\n"
+      }
+    ]
+  }
+}

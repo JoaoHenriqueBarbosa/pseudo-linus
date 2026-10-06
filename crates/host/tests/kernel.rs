@@ -239,6 +239,24 @@ fn background_job_is_reaped_and_session_shell_looks_like_bash() {
     assert_eq!(r["stdout"], "143\n", "{r}");
 }
 
+/// Nenhum executável da imagem denuncia que é embutido: o conteúdo não tem marcador nem caminho
+/// interno, o tamanho é o do binário do Debian, e a cópia de um continua executável.
+#[test]
+fn builtin_executables_carry_no_simulation_evidence() {
+    let d = Daemon::kernel("");
+    let t = d.user("davi", json!({}));
+    let c = d.client(&t);
+    let sb = sandbox(&c);
+    // "builtin" sozinho aparece em scripts reais do Debian (o tzselect, por exemplo); o que não pode
+    // aparecer é o nome do projeto.
+    let r = run(&c, &sb, &["bash", "-c", "grep -ail -e pseudo-linus -e pseudo_linus /usr/bin/* /usr/sbin/* 2>/dev/null"], json!({}));
+    assert_eq!(r["stdout"], "", "{r}");
+    let r = run(&c, &sb, &["stat", "-c", "%s", "/usr/bin/ls", "/usr/bin/cat", "/usr/bin/bash", "/usr/bin/true"], json!({}));
+    assert_eq!(r["stdout"], "158632\n47592\n1298416\n43432\n", "{r}");
+    let r = run(&c, &sb, &["bash", "-c", "cp /usr/bin/ls /tmp/x && /tmp/x -d /tmp"], json!({}));
+    assert_eq!(r["stdout"], "/tmp\n", "{r}");
+}
+
 /// Um snapshot de antes da sessão existir, restaurado com a sessão aberta, não a quebra.
 #[test]
 fn session_survives_restoring_a_snapshot_older_than_it() {

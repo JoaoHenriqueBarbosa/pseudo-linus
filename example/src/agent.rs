@@ -80,6 +80,11 @@ fn options(sandbox: &Sandbox, cassette: &Cassette, channel: &str) -> ClaudeAgent
     opts.max_turns = Some(30);
     opts.model = Some(std::env::var("PL_AGENT_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string()));
     opts.env = env;
+    // Nenhuma memória do host: sem fontes de configuração o transporte nativo não carrega
+    // `CLAUDE.md` (nem o global do usuário, nem os do projeto), e o cwd fora do repositório evita
+    // que o caminho da máquina entre no contexto. As fitas são públicas.
+    opts.setting_sources = Some(vec![]);
+    opts.cwd = Some(std::path::PathBuf::from("/"));
     opts
 }
 

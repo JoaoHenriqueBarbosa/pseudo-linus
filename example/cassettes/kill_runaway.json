@@ -1,0 +1,682 @@
+{
+  "channels": {
+    "main": [
+      {
+        "request_hash": "49bda024643968887ceaafd104345fb94cf0519819d36876665100c201a51444",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Some shell loop running `sleep 1` forever was left in the background on this machine. Find it with ps, kill it (and only it), and prove it is gone.",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSWoUaT3pCDVaEU9SY\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":910,\"output_tokens\":8,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}            }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"I'll help you find and kill the\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" shell\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" loop running\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" `sleep 1` forever. Let\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" me start by examining\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the running\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" processes.\"}             }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0 }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01JAyEpWndhKC8Yv4rCrPmQx\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"p\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"s aux\\\"}\"}            }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1            }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":910,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":86} }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"      }\n\n"
+      },
+      {
+        "request_hash": "fd92c93c573ee237e6871a312b8834e74d4aa7738aab3cdfcc87fa564ae98140",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Some shell loop running `sleep 1` forever was left in the background on this machine. Find it with ps, kill it (and only it), and prove it is gone."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you find and kill the shell loop running `sleep 1` forever. Let me start by examining the running processes."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01JAyEpWndhKC8Yv4rCrPmQx",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "ps aux"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01JAyEpWndhKC8Yv4rCrPmQx",
+                  "content": "USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.6   3280  1768 ?        Ss   22:50   0:00 /sbin/init\nroot           2  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           3  0.0  0.6   2672  1680 ?        S    22:50   0:00 sh -c while :; do sleep 1; done\nroot           7  0.0  0.6   3280  1768 ?        S    22:50   0:00 sleep 1\nroot           8  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           9  0.0  0.6   3280  1768 ?        R    22:50   0:00 ps aux\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSeb3Vbne7LGoumq88\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":1245},\"cache_creation_input_tokens\":1245,\"cache_read_input_tokens\":0,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}            }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Great\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"! I can\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" see the\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" probl\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"ematic process.\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" There\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"'s a shell\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" loop at\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" P\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"ID 3\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" running\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" `sh\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" -c while :; do sleep \"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"1; done`. This\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" is the\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" parent\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" process that keeps\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" spaw\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"ning `\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"sleep 1` commands\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\".\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" Let me kill this process:\"}       }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0            }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_01QjUa26rLsH6sXnfcEunkz3\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"k\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"ill 3\\\"}\"}        }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1           }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":1245,\"cache_read_input_tokens\":0,\"output_tokens\":118}       }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"               }\n\n"
+      },
+      {
+        "request_hash": "dc0d972dc57fcd8d27bba0386ae42e2e308b0eb16822926c03b627993f715cc7",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Some shell loop running `sleep 1` forever was left in the background on this machine. Find it with ps, kill it (and only it), and prove it is gone."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you find and kill the shell loop running `sleep 1` forever. Let me start by examining the running processes."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01JAyEpWndhKC8Yv4rCrPmQx",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "ps aux"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01JAyEpWndhKC8Yv4rCrPmQx",
+                  "content": "USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.6   3280  1768 ?        Ss   22:50   0:00 /sbin/init\nroot           2  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           3  0.0  0.6   2672  1680 ?        S    22:50   0:00 sh -c while :; do sleep 1; done\nroot           7  0.0  0.6   3280  1768 ?        S    22:50   0:00 sleep 1\nroot           8  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           9  0.0  0.6   3280  1768 ?        R    22:50   0:00 ps aux\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Great! I can see the problematic process. There's a shell loop at PID 3 running `sh -c while :; do sleep 1; done`. This is the parent process that keeps spawning `sleep 1` commands. Let me kill this process:"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01QjUa26rLsH6sXnfcEunkz3",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "kill 3"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01QjUa26rLsH6sXnfcEunkz3",
+                  "content": "[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSqqDNLc4LtW6VanM6\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":134},\"cache_creation_input_tokens\":134,\"cache_read_input_tokens\":1245,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":1,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}            }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Now\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" let me verify that the process is gone\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" by\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" checking the process\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" list again\"}               }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\":\"}             }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0         }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_017yEqoFiU3J9Cuxb5HEgx2V\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"p\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"s aux\\\"}\"}         }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1       }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":134,\"cache_read_input_tokens\":1245,\"output_tokens\":75}  }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"        }\n\n"
+      },
+      {
+        "request_hash": "d5471ab474d726652549cb08e90e010abe370747676e570625ad91a7b8079cf0",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Some shell loop running `sleep 1` forever was left in the background on this machine. Find it with ps, kill it (and only it), and prove it is gone."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you find and kill the shell loop running `sleep 1` forever. Let me start by examining the running processes."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01JAyEpWndhKC8Yv4rCrPmQx",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "ps aux"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01JAyEpWndhKC8Yv4rCrPmQx",
+                  "content": "USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.6   3280  1768 ?        Ss   22:50   0:00 /sbin/init\nroot           2  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           3  0.0  0.6   2672  1680 ?        S    22:50   0:00 sh -c while :; do sleep 1; done\nroot           7  0.0  0.6   3280  1768 ?        S    22:50   0:00 sleep 1\nroot           8  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           9  0.0  0.6   3280  1768 ?        R    22:50   0:00 ps aux\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Great! I can see the problematic process. There's a shell loop at PID 3 running `sh -c while :; do sleep 1; done`. This is the parent process that keeps spawning `sleep 1` commands. Let me kill this process:"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01QjUa26rLsH6sXnfcEunkz3",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "kill 3"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01QjUa26rLsH6sXnfcEunkz3",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Now let me verify that the process is gone by checking the process list again:"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_017yEqoFiU3J9Cuxb5HEgx2V",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "ps aux"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_017yEqoFiU3J9Cuxb5HEgx2V",
+                  "content": "USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.6   3280  1768 ?        Ss   22:50   0:00 /sbin/init\nroot           2  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           8  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot          14  0.0  0.6   3280  1768 ?        R    22:50   0:00 ps aux\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoSxgy37pdRwRqkHHit\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":253},\"cache_creation_input_tokens\":253,\"cache_read_input_tokens\":1379,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":3,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}   }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Perfect! Let\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" me also verify by checking for\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" any process\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" containing\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" \\\"sleep\\\"\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" to\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" be\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" absolutely\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" sure:\"}        }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0   }\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_013fwmVDHcNSPymQrysUVZS9\",\"name\":\"mcp__sandbox__osh\",\"input\":{},\"caller\":{\"type\":\"direct\"}}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"comma\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"nd\\\": \\\"p\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"s aux |\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\" grep s\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"leep\\\"}\"}               }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1            }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":253,\"cache_read_input_tokens\":1379,\"output_tokens\":82}            }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\" }\n\n"
+      },
+      {
+        "request_hash": "1ac272a64c02d8e64eaaa1bf0eea77c256b42a0b3558919457af6f4e0d9a4ac3",
+        "request": {
+          "model": "claude-sonnet-4-5",
+          "max_tokens": 16384,
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "<system-reminder>\nAs you answer the user's questions, you can use the following context:\n# currentDate\nToday's date is 2026-10-06.\n\n      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n</system-reminder>\n"
+                },
+                {
+                  "type": "text",
+                  "text": "Some shell loop running `sleep 1` forever was left in the background on this machine. Find it with ps, kill it (and only it), and prove it is gone."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I'll help you find and kill the shell loop running `sleep 1` forever. Let me start by examining the running processes."
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01JAyEpWndhKC8Yv4rCrPmQx",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "ps aux"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01JAyEpWndhKC8Yv4rCrPmQx",
+                  "content": "USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.6   3280  1768 ?        Ss   22:50   0:00 /sbin/init\nroot           2  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           3  0.0  0.6   2672  1680 ?        S    22:50   0:00 sh -c while :; do sleep 1; done\nroot           7  0.0  0.6   3280  1768 ?        S    22:50   0:00 sleep 1\nroot           8  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           9  0.0  0.6   3280  1768 ?        R    22:50   0:00 ps aux\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Great! I can see the problematic process. There's a shell loop at PID 3 running `sh -c while :; do sleep 1; done`. This is the parent process that keeps spawning `sleep 1` commands. Let me kill this process:"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_01QjUa26rLsH6sXnfcEunkz3",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "kill 3"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_01QjUa26rLsH6sXnfcEunkz3",
+                  "content": "[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Now let me verify that the process is gone by checking the process list again:"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_017yEqoFiU3J9Cuxb5HEgx2V",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "ps aux"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_017yEqoFiU3J9Cuxb5HEgx2V",
+                  "content": "USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.6   3280  1768 ?        Ss   22:50   0:00 /sbin/init\nroot           2  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot           8  0.0  1.5   5116  3956 ?        Ss   22:50   0:00 bash\nroot          14  0.0  0.6   3280  1768 ?        R    22:50   0:00 ps aux\n[exit 0]"
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Perfect! Let me also verify by checking for any process containing \"sleep\" to be absolutely sure:"
+                },
+                {
+                  "type": "tool_use",
+                  "id": "toolu_013fwmVDHcNSPymQrysUVZS9",
+                  "name": "mcp__sandbox__osh",
+                  "input": {
+                    "command": "ps aux | grep sleep"
+                  },
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "tool_result",
+                  "tool_use_id": "toolu_013fwmVDHcNSPymQrysUVZS9",
+                  "content": "root          17  0.0  0.7   3932  2096 ?        S    22:50   0:00 grep sleep\n[exit 0]",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "5m"
+                  }
+                }
+              ]
+            }
+          ],
+          "system": [
+            {
+              "type": "text",
+              "text": "x-anthropic-billing-header: cc_version=2.1.90.8bd; cc_entrypoint=sdk-rs;"
+            },
+            {
+              "type": "text",
+              "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+            },
+            {
+              "type": "text",
+              "text": "You are operating a Linux machine (Debian 13) through a single tool, `osh`, which runs bash commands in persistent shell sessions. Do the task completely, verify the result with real commands, and finish with a short plain-text answer stating what you found or did.",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "mcp__sandbox__osh",
+              "description": "Run a bash command inside the Linux sandbox. Each `session` is a separate, persistent shell: cwd, environment variables and background jobs (`cmd &`) survive between calls of the same session. Use different session names to run things concurrently (for example a server in one session and a client in another). Returns stdout, stderr and the exit code.",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "description": "The bash command line to run."
+                  },
+                  "session": {
+                    "type": "string",
+                    "description": "Shell session name. Defaults to \"main\"."
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "description": "Time limit for this command in milliseconds."
+                  }
+                },
+                "required": [
+                  "command"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ],
+          "stream": true
+        },
+        "status": 200,
+        "content_type": "text/event-stream",
+        "body": "event: message_start\ndata: {\"message\":{\"container\":null,\"content\":[],\"diagnostics\":null,\"id\":\"msg_011CfmoT6ehL38AC7kgMmyhL\",\"model\":\"claude-sonnet-4-5\",\"role\":\"assistant\",\"stop_details\":null,\"stop_reason\":null,\"stop_sequence\":null,\"type\":\"message\",\"usage\":{\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":132},\"cache_creation_input_tokens\":132,\"cache_read_input_tokens\":1632,\"inference_geo\":\"not_available\",\"input_tokens\":6,\"output_tokens\":5,\"service_tier\":\"standard\"}},\"type\":\"message_start\"}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}        }\n\nevent: ping\ndata: {\"type\": \"ping\"}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Excellent! The only\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" result\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" is the `\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"grep\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"`\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" command itself\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\",\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" which confirms\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" there\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" are\"}     }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" no more\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" `\"}       }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"sleep`\"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" processes running.\\n\\n**\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Task\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" completed successfully!\"}              }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"** \"}            }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"\\n\\nI found the\"}      }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" background\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" shell\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" loop at\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" PID 3 (`\"}    }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"sh -c while :; do sleep\"} }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" 1; done`) that was continuously\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" spawning `sleep 1` commands\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\". I\"}   }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" killed it\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" using\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" `kill 3`,\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" and\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" verified it\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"'s gone by running\"}          }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" `ps aux` again -\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" neither\"}             }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the shell\"}  }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" loop nor any\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" `\"}         }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"sleep` processes remain in\"}        }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" the process\"}           }\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" list.\"}   }\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0   }\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null,\"stop_details\":null,\"container\":null},\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":132,\"cache_read_input_tokens\":1632,\"output_tokens\":114}       }\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"         }\n\n"
+      }
+    ]
+  }
+}

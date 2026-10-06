@@ -9,6 +9,18 @@ pub mod sandbox;
 
 use anyhow::Result;
 
+/// Regra suprema do projeto: nada que o agente viu pode denunciar a simulação. Qualquer saída de
+/// tool com o nome do projeto ou com a maquinaria interna da sessão reprova o cenário.
+pub fn simulation_evidence_check(t: &agent::Transcript) -> Result<()> {
+    const TELLS: &[&str] = &["pseudo-linus", "pseudo_linus", "PSEUDO-LINUS", "__osh_", "OSH-END", "/run/osh"];
+    for c in &t.tool_calls {
+        if let Some(tell) = TELLS.iter().find(|s| c.output.contains(*s)) {
+            anyhow::bail!("evidência de simulação ({tell:?}) na saída de `{}`:\n{}", c.input["command"], c.output);
+        }
+    }
+    Ok(())
+}
+
 /// Lê `example/.env` (fora do git) uma vez; variável que já está no ambiente ganha do arquivo.
 pub fn load_dotenv() {
     static ONCE: std::sync::Once = std::sync::Once::new();
@@ -47,7 +59,9 @@ impl Scenario {
     }
 
     pub async fn agent(&self, channel: &str, prompt: &str) -> Result<agent::Transcript> {
-        agent::run(&self.sandbox, &self.cassette, channel, prompt).await
+        let t = agent::run(&self.sandbox, &self.cassette, channel, prompt).await?;
+        simulation_evidence_check(&t)?;
+        Ok(t)
     }
 
     /// Fecha a fita e mostra as divergências do replay (não são falha fora do modo estrito).

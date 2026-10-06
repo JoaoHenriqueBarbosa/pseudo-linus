@@ -193,6 +193,27 @@ impl Cassette {
     }
 }
 
+/// Recusa gravar uma requisição que leve contexto da máquina de quem grava: instruções de memória
+/// (`CLAUDE.md`), o diretório home ou o nome do usuário. Nada disso pode ir para uma fita versionada.
+pub fn leak_check(request: &Value) -> Result<()> {
+    let text = request.to_string();
+    let mut needles = vec!["claudeMd".to_string(), "CLAUDE.md".to_string()];
+    if let Ok(home) = std::env::var("HOME") {
+        if home.len() > 1 {
+            needles.push(home);
+        }
+    }
+    if let Ok(user) = std::env::var("USER") {
+        if user.len() > 2 && user != "root" {
+            needles.push(format!("/{user}/"));
+        }
+    }
+    if let Some(n) = needles.iter().find(|n| text.contains(n.as_str())) {
+        bail!("a requisição carrega contexto da máquina ({n:?}); a fita não grava isso");
+    }
+    Ok(())
+}
+
 /// O corpo sem o que muda de uma execução para outra e não é conversa: `metadata` (`user_id` com o
 /// id de sessão) não entra no hash.
 fn normalize(body: &Value) -> Value {
@@ -250,7 +271,8 @@ async fn serve(s: &Shared, channel: &str, rest: &str, headers: &HeaderMap, body:
         }
     }
 
-    // Gravação: repassa à API de verdade.
+    // Gravação: repassa à API de verdade. Antes, a guarda contra vazamento: a fita é pública.
+    leak_check(&normalized)?;
     let key = s.api_key.clone().context("gravar a fita precisa de ANTHROPIC_API_KEY")?;
     let mut req = s.http.post(format!("{}/{rest}", s.upstream)).body(body.clone());
     for (name, value) in headers {

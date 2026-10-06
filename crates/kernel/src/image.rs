@@ -8,6 +8,20 @@ use vfs::{Caller, Namespace, Opened, Start, WritePos, makedev};
 use crate::dev;
 use crate::exec::builtin_file;
 
+/// Tamanhos dos executáveis reais do Debian 13, tirados do oráculo (`real/sizes.txt`).
+const REAL_SIZES: &str = include_str!("../real/sizes.txt");
+
+/// O tamanho do executável `path` no Debian, quando ele é maior que o molde do ELF embutido.
+fn real_size(path: &str) -> Option<u64> {
+    REAL_SIZES
+        .lines()
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| l.split_once(' '))
+        .find(|(_, p)| *p == path)
+        .and_then(|(s, _)| s.parse::<u64>().ok())
+        .filter(|s| *s > crate::exec::REAL_TRUE.len() as u64)
+}
+
 /// mtime dos arquivos da imagem: 2026-09-18 00:00:00 UTC (a data da imagem do oráculo).
 pub(crate) const IMAGE_TIME: TimeSpec = TimeSpec { sec: 1_789_689_600, nsec: 0 };
 
@@ -124,13 +138,22 @@ fn mkdir(ns: &Namespace, cx: &Caller, path: &[u8], mode: u32) -> Result<(), Errn
 
 /// Cria (ou substitui) um arquivo regular com conteúdo e modo exatos.
 pub(crate) fn put_file(ns: &Namespace, cx: &Caller, path: &[u8], data: &[u8], mode: u32) -> Result<(), Errno> {
+    put_file_sized(ns, cx, path, data, mode, None)
+}
+
+/// [`put_file`] que estende o arquivo até `size`: o que passa de `data` vira buraco, que não ocupa
+/// memória (é como um executável embutido ganha o tamanho do binário real do Debian).
+fn put_file_sized(ns: &Namespace, cx: &Caller, path: &[u8], data: &[u8], mode: u32, size: Option<u64>) -> Result<(), Errno> {
     let o = ns.open(cx, &Start::Cwd, path, OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC | OFlags::NOFOLLOW, mode & 0o7777)?;
     match o {
-        Opened::File { handle, .. } => {
+        Opened::File { handle, loc, .. } => {
             let mut off = 0usize;
             while off < data.len() {
                 let (n, _) = handle.write(cx, WritePos::At(off as u64), &data[off..])?;
                 off += n;
+            }
+            if let Some(size) = size {
+                ns.truncate_loc(cx, &loc, size, false)?;
             }
         }
         _ => return Err(Errno::EISDIR),
@@ -178,7 +201,7 @@ pub(crate) fn build_root(ns: &Namespace, cx: &Caller, programs: &[Program], host
                 Err(e) => return Err(e),
             }
         }
-        put_file(ns, cx, path.as_bytes(), &builtin_file(&path), 0o755)?;
+        put_file_sized(ns, cx, path.as_bytes(), &builtin_file(&path), 0o755, real_size(&path))?;
         stamped.push(path.into_bytes());
     }
     // Carimbos por último (criar filhos mexe no mtime dos diretórios).

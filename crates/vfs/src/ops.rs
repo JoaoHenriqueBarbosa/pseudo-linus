@@ -58,6 +58,11 @@ pub struct ExecFile {
 /// Quantos bytes o `execve` lê do começo do arquivo (`BINPRM_BUF_SIZE`).
 pub const BINPRM_BUF_SIZE: usize = 256;
 
+/// Quantos bytes o [`Namespace::exec_open`] devolve: o `#!` só olha os primeiros
+/// [`BINPRM_BUF_SIZE`], mas o reconhecimento de um ELF embutido lê o build-id, que fica depois dos
+/// cabeçalhos de programa (como o loader de ELF do Linux, que também lê além do `bprm->buf`).
+pub const EXEC_HEAD_SIZE: usize = 1024;
+
 /// Caller interno do kernel: root, raiz e cwd em `root`.
 pub fn kernel_caller(root: Loc) -> Caller {
     Caller {
@@ -937,7 +942,7 @@ impl Namespace {
     }
 
     /// Abre um executável pro `execve` (`do_open_execat`): arquivo regular, montagem sem noexec,
-    /// permissão de execução; devolve os primeiros [`BINPRM_BUF_SIZE`] bytes.
+    /// permissão de execução; devolve os primeiros [`EXEC_HEAD_SIZE`] bytes.
     pub fn exec_open(&self, cx: &Caller, start: &Start, path: &[u8]) -> SysResult<ExecFile> {
         let (loc, st) = match self.resolve(cx, start, path, true)? {
             Resolved::Loc(l, st) => (l, st),
@@ -948,8 +953,15 @@ impl Namespace {
         }
         perm::inode_permission(&cx.cred, &st, MAY_EXEC, false)?;
         let h = loc.fs().clone().open(cx, loc.ino, OFlags::RDONLY)?;
-        let mut head = vec![0u8; BINPRM_BUF_SIZE];
-        let n = h.read(cx, 0, &mut head)?;
+        let mut head = vec![0u8; EXEC_HEAD_SIZE];
+        let mut n = 0;
+        while n < head.len() {
+            let got = h.read(cx, n as u64, &mut head[n..])?;
+            if got == 0 {
+                break;
+            }
+            n += got;
+        }
         head.truncate(n);
         Ok(ExecFile { loc, stat: st, head })
     }
