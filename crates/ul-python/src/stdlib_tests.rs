@@ -140,6 +140,95 @@ print(s)
 }
 
 #[test]
+fn dataclasses_module() {
+    let src = r#"
+from dataclasses import dataclass, field, fields, asdict, astuple, replace, is_dataclass, FrozenInstanceError, KW_ONLY
+from typing import List, Optional, ClassVar
+import copy
+
+@dataclass
+class Point:
+    x: int
+    y: int = 0
+    tags: List[str] = field(default_factory=list)
+    count: ClassVar[int] = 0
+
+p = Point(1, tags=['a'])
+print(p, p == Point(1, 0, ['a']), p.tags, Point.count)
+print(asdict(p), astuple(p), replace(p, y=5), is_dataclass(p), [f.name for f in fields(p)])
+
+@dataclass(frozen=True, order=True)
+class V:
+    a: int
+    b: str = 'z'
+v = V(1)
+try:
+    v.a = 2
+except FrozenInstanceError as e:
+    print('frozen:', e)
+print(v, v < V(2), hash(v) == hash(V(1)), {v: 1}[V(1)])
+
+@dataclass
+class Q:
+    n: int
+    def __post_init__(self):
+        self.double = self.n * 2
+print(Q(4).double, Q(4))
+
+try:
+    Point()
+except TypeError as e:
+    print(e)
+try:
+    Point(1, 2, [], 4)
+except TypeError as e:
+    print(e)
+
+@dataclass
+class Child(Point):
+    z: int = 9
+print(Child(1, 2), Child.__mro__[1].__name__)
+
+@dataclass
+class N:
+    items: list = field(default_factory=list)
+    name: str = field(default='n', repr=False)
+a = N(); b = N(); a.items.append(1)
+print(a, b, a == b)
+c = copy.deepcopy(a); c.items.append(2)
+print(a.items, c.items)
+@dataclass
+class K:
+    a: int
+    _: KW_ONLY
+    b: int = 3
+print(K(1, b=4), K(1))
+try:
+    @dataclass
+    class Bad:
+        a: int = 1
+        b: int
+except TypeError as e:
+    print(e)
+"#;
+    assert_eq!(
+        out(src),
+        "Point(x=1, y=0, tags=['a']) True ['a'] 0\n\
+         {'x': 1, 'y': 0, 'tags': ['a']} (1, 0, ['a']) Point(x=1, y=5, tags=['a']) True ['x', 'y', 'tags']\n\
+         frozen: cannot assign to field 'a'\n\
+         V(a=1, b='z') True True 1\n\
+         8 Q(n=4)\n\
+         Point.__init__() missing 1 required positional argument: 'x'\n\
+         Point.__init__() takes from 2 to 4 positional arguments but 5 were given\n\
+         Child(x=1, y=2, tags=[], z=9) Point\n\
+         N(items=[1]) N(items=[]) False\n\
+         [1] [1, 2]\n\
+         K(a=1, b=4) K(a=1, b=3)\n\
+         non-default argument 'b' follows default argument 'a'\n"
+    );
+}
+
+#[test]
 fn typing_module() {
     let src = r#"
 from typing import List, Dict, Optional, Union, Any, Tuple, Callable, TypeVar, Generic, NamedTuple, TypedDict, Iterable, ClassVar, Literal, cast, get_type_hints

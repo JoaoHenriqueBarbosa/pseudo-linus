@@ -26,6 +26,8 @@ const SOURCES: &[(&str, &str)] = &[
     ("enum", include_str!("py/enum.py")),
     ("collections.abc", include_str!("py/collections_abc.py")),
     ("typing", include_str!("py/typing.py")),
+    ("copy", include_str!("py/copy.py")),
+    ("dataclasses", include_str!("py/dataclasses.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.

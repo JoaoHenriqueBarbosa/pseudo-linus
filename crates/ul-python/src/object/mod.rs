@@ -859,6 +859,10 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Class(c) => Ok((Rc::as_ptr(c) as usize >> 4) as i64),
         Value::Instance(i) => match crate::vm::instance_hash(v) {
             Some(h) => Ok(h),
+            // `__hash__ = None` na classe: instâncias não são hasheáveis.
+            None if matches!(i.class.lookup("__hash__"), Some(Value::None)) => {
+                Err(ObjError::TypeError(format!("unhashable type: '{}'", i.class.name)))
+            }
             None => Ok((Rc::as_ptr(i) as usize >> 4) as i64),
         },
         Value::BoundFn(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
