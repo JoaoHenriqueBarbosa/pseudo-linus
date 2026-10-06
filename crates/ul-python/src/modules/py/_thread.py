@@ -4,8 +4,8 @@ error = RuntimeError
 
 
 def get_ident():
-    import os
-    return os.getpid()
+    # Um fluxo só por interpretador: o identificador é fixo.
+    return 1
 
 
 class LockType:
