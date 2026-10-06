@@ -371,6 +371,7 @@ impl Vm {
             "object" => Ok(Value::Builtin("object")),
             "NotImplemented" => Ok(not_implemented()),
             "Ellipsis" => Ok(Value::Builtin("Ellipsis")),
+            "__debug__" => Ok(Value::Bool(true)),
             "staticmethod" => Ok(Value::Builtin("staticmethod")),
             "classmethod" => Ok(Value::Builtin("classmethod")),
             "property" => Ok(Value::Builtin("property")),
@@ -795,6 +796,12 @@ impl Vm {
         if name == "__new__" && cls.data_base.is_none() && cls.builtin_base.is_none() {
             return Ok(crate::typeattrs::object_new_value());
         }
+        // Os métodos de `object` (`__init__`, `__eq__`, `__setattr__`...) valem para toda classe comum.
+        if cls.data_base.is_none() && cls.builtin_base.is_none() && name != "__name__" {
+            if let Some(v) = crate::typeattrs::object_attr(name) {
+                return Ok(v);
+            }
+        }
         Err(exc("AttributeError", format!("type object '{}' has no attribute '{name}'", cls.name)))
     }
 
@@ -1191,6 +1198,7 @@ impl Vm {
                 let get = it.next().unwrap_or(Value::None);
                 let set = it.next().filter(|v| !matches!(v, Value::None));
                 let del = it.next().filter(|v| !matches!(v, Value::None));
+                let _doc = it.next();
                 let mut get = get;
                 let (mut set, mut del) = (set, del);
                 for (k, v) in kw {
@@ -1198,6 +1206,7 @@ impl Vm {
                         "fget" => get = v,
                         "fset" => set = Some(v),
                         "fdel" => del = Some(v),
+                        "doc" => {}
                         _ => return Err(type_error(format!("property() got an unexpected keyword argument '{k}'"))),
                     }
                 }

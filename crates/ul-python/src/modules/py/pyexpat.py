@@ -7,11 +7,14 @@ O DTD externo não é lido."""
 
 import re as _re
 
-__all__ = ['ParserCreate', 'ExpatError', 'error', 'XMLParserType', 'errors', 'model', 'version_info', 'EXPAT_VERSION']
+__all__ = ['ParserCreate', 'ExpatError', 'error', 'XMLParserType', 'errors', 'model', 'version_info', 'EXPAT_VERSION',
+           'ErrorString', 'native_encoding', 'features', 'XML_PARAM_ENTITY_PARSING_NEVER',
+           'XML_PARAM_ENTITY_PARSING_UNLESS_STANDALONE', 'XML_PARAM_ENTITY_PARSING_ALWAYS']
 
 EXPAT_VERSION = 'expat_2.7.1'
 version_info = (2, 7, 1)
 native_encoding = 'UTF-8'
+features = [('sizeof(XML_Char)', 1), ('sizeof(XML_LChar)', 1), ('XML_DTD', 0), ('XML_CONTEXT_BYTES', 1024), ('XML_NS', 0)]
 XML_PARAM_ENTITY_PARSING_NEVER = 0
 XML_PARAM_ENTITY_PARSING_UNLESS_STANDALONE = 1
 XML_PARAM_ENTITY_PARSING_ALWAYS = 2
@@ -69,6 +72,7 @@ _WS = ' \t\r\n'
 class XMLParserType:
     def __init__(self, encoding, namespace_separator, intern):
         self.encoding = encoding
+        self.intern = {} if intern is None else intern
         self._sep = namespace_separator
         self.buffer_text = False
         self.buffer_size = 8192

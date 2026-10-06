@@ -10,7 +10,8 @@ from _weakref import ref
 ReferenceType = type(ref(type('_probe', (), {})))
 KeyedRef = ref
 
-__all__ = ['ref', 'WeakMethod', 'WeakSet', 'WeakKeyDictionary', 'WeakValueDictionary', 'ReferenceType', 'finalize']
+__all__ = ['ref', 'WeakMethod', 'WeakSet', 'WeakKeyDictionary', 'WeakValueDictionary', 'ReferenceType', 'finalize',
+           'proxy', 'ProxyType', 'CallableProxyType', 'getweakrefcount', 'getweakrefs']
 
 
 class WeakMethod:
@@ -348,3 +349,79 @@ class finalize:
         obj = self._ref()
         if obj is not None and self._info is not None:
             return (obj, self._info[0], self._info[1], self._info[2])
+
+
+class ProxyType:
+    """Procurador fraco: repassa atributos e chamadas ao referente enquanto ele existir."""
+
+    def __init__(self, obj, callback=None):
+        object.__setattr__(self, '_wref', ref(obj, callback) if callback is not None else ref(obj))
+
+    def _target(self):
+        obj = object.__getattribute__(self, '_wref')()
+        if obj is None:
+            raise ReferenceError('weakly-referenced object no longer exists')
+        return obj
+
+    def __getattr__(self, name):
+        return getattr(self._target(), name)
+
+    def __setattr__(self, name, value):
+        setattr(self._target(), name, value)
+
+    def __delattr__(self, name):
+        delattr(self._target(), name)
+
+    def __repr__(self):
+        return '<weakproxy at %#x to %s at %#x>' % (id(self), type(self._target()).__name__, id(self._target()))
+
+    def __str__(self):
+        return str(self._target())
+
+    def __bool__(self):
+        return bool(self._target())
+
+    def __len__(self):
+        return len(self._target())
+
+    def __iter__(self):
+        return iter(self._target())
+
+    def __contains__(self, item):
+        return item in self._target()
+
+    def __getitem__(self, key):
+        return self._target()[key]
+
+    def __setitem__(self, key, value):
+        self._target()[key] = value
+
+    def __delitem__(self, key):
+        del self._target()[key]
+
+    def __eq__(self, other):
+        return self._target() == other
+
+    def __ne__(self, other):
+        return self._target() != other
+
+    def __hash__(self):
+        raise TypeError("unhashable type: 'weakproxy'")
+
+    def __call__(self, *args, **kwargs):
+        return self._target()(*args, **kwargs)
+
+
+CallableProxyType = ProxyType
+
+
+def proxy(obj, callback=None):
+    return ProxyType(obj, callback)
+
+
+def getweakrefcount(obj):
+    return 0
+
+
+def getweakrefs(obj):
+    return []

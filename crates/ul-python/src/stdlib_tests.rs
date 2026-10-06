@@ -2125,3 +2125,48 @@ KeyError "undefined character name 'NOT A NAME'"
 "##
     );
 }
+
+#[test]
+fn xml_minidom_sax() {
+    let src = r##"
+from xml.dom import minidom
+import xml.sax, io
+from xml.sax.saxutils import escape, quoteattr
+doc = minidom.parseString('<root a="1"><item id="x">hello &amp; bye</item><item id="y"/><!-- c --></root>')
+r = doc.documentElement
+print(r.tagName, r.getAttribute('a'), [i.getAttribute('id') for i in r.getElementsByTagName('item')])
+print(r.getElementsByTagName('item')[0].firstChild.data, r.childNodes.length)
+n = doc.createElement('new'); n.setAttribute('k', 'v<'); n.appendChild(doc.createTextNode('t&')); r.appendChild(n)
+print(doc.toxml())
+print(doc.toprettyxml(indent='  '))
+class H(xml.sax.ContentHandler):
+    def startElement(self, name, attrs): print('start', name, dict(attrs))
+    def characters(self, c): print('chars', repr(c))
+    def endElement(self, name): print('end', name)
+xml.sax.parseString(b'<a x="1"><b>t</b></a>', H())
+print(escape('<&>'), quoteattr('a"b'))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"root 1 ['x', 'y']
+hello & bye 3
+<?xml version="1.0" ?><root a="1"><item id="x">hello &amp; bye</item><item id="y"/><!-- c --><new k="v&lt;">t&amp;</new></root>
+<?xml version="1.0" ?>
+<root a="1">
+  <item id="x">hello &amp; bye</item>
+  <item id="y"/>
+  <!-- c -->
+  <new k="v&lt;">t&amp;</new>
+</root>
+
+start a {'x': '1'}
+start b {}
+chars 't'
+end b
+end a
+&lt;&amp;&gt; 'a"b'
+"##
+    );
+}
