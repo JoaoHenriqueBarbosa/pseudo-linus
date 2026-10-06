@@ -173,7 +173,7 @@ impl ExtObject for BuiltinSuperMethod {
                         };
                         Ok(Value::Instance(Rc::new(InstanceObj {
                             class: c.clone(),
-                            dict: RefCell::new(BTreeMap::new()),
+                            dict: RefCell::new(indexmap::IndexMap::new()),
                             payload: RefCell::new(payload),
                         })))
                     }
@@ -501,7 +501,7 @@ impl Vm {
         let user_new_defined = user_new.is_some();
         let fresh = Rc::new(InstanceObj {
             class: cls.clone(),
-            dict: RefCell::new(BTreeMap::new()),
+            dict: RefCell::new(indexmap::IndexMap::new()),
             payload: RefCell::new(None),
         });
         if let Some(t) = cls.data_base {
@@ -731,13 +731,13 @@ impl Vm {
                         return Ok(());
                     }
                 }
-                if inst.dict.borrow_mut().remove(name).is_none() {
+                if inst.dict.borrow_mut().shift_remove(name).is_none() {
                     return Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class.name)));
                 }
                 Ok(())
             }
             Value::Class(c) => {
-                if c.dict.borrow_mut().remove(name).is_none() {
+                if c.dict.borrow_mut().shift_remove(name).is_none() {
                     return Err(exc("AttributeError", format!("type object '{}' has no attribute '{name}'", c.name)));
                 }
                 Ok(())
@@ -1058,11 +1058,11 @@ impl Vm {
                     data_base: None,
                     meta: None,
                     is_meta: false,
-                    dict: RefCell::new(BTreeMap::new()),
+                    dict: RefCell::new(indexmap::IndexMap::new()),
                 });
                 Ok(Value::Instance(Rc::new(InstanceObj {
                     class: base,
-                    dict: RefCell::new(BTreeMap::new()),
+                    dict: RefCell::new(indexmap::IndexMap::new()),
                     payload: RefCell::new(None),
                 })))
             }

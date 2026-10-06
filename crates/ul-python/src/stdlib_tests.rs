@@ -721,3 +721,107 @@ eof Compressed file ended before the end-of-stream marker was reached
 "#
     );
 }
+
+#[test]
+fn argparse_module_matches_cpython() {
+    let src = r#"
+import argparse, sys
+
+p = argparse.ArgumentParser(prog="tool", description="Faz coisas com arquivos.", epilog="fim")
+p.add_argument("input", help="arquivo de entrada")
+p.add_argument("extra", nargs="*", help="outros")
+p.add_argument("-o", "--output", default="out.txt", help="saída (padrão: %(default)s)")
+p.add_argument("-v", "--verbose", action="count", default=0)
+p.add_argument("-q", action="store_true", help="quieto")
+p.add_argument("-n", type=int, choices=[1, 2, 3], metavar="N")
+p.add_argument("--tag", action="append", default=[])
+p.add_argument("--mode", choices=["fast", "slow"], required=False)
+g = p.add_mutually_exclusive_group()
+g.add_argument("--yes", action="store_true")
+g.add_argument("--no", action="store_true")
+p.add_argument("--version", action="version", version="tool 1.2")
+print(p.parse_args(["a.txt", "b", "c", "-vv", "-n", "2", "--tag", "x", "--tag=y", "-o", "res"]))
+print(p.parse_args(["a.txt", "--yes"]))
+print(p.parse_known_args(["a.txt", "--zzz", "q"]))
+print(p.format_usage(), end="")
+print(p.format_help())
+
+sub = argparse.ArgumentParser(prog="git")
+sp = sub.add_subparsers(dest="cmd", help="comandos")
+a = sp.add_parser("add", help="adiciona")
+a.add_argument("paths", nargs="+")
+a.add_argument("-f", action="store_true")
+c = sp.add_parser("commit", aliases=["ci"], help="comita")
+c.add_argument("-m", required=True)
+print(sub.parse_args(["add", "-f", "x", "y"]))
+print(sub.parse_args(["ci", "-m", "msg"]))
+sub.print_help()
+c.print_help()
+b = argparse.ArgumentParser(prog="b")
+b.add_argument("--color", action=argparse.BooleanOptionalAction, default=True)
+b.add_argument("pos", nargs="?", default="dflt")
+print(b.parse_args(["--no-color"]), b.parse_args([]))
+b.print_help()
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"Namespace(input='a.txt', extra=['b', 'c'], output='res', verbose=2, q=False, n=2, tag=['x', 'y'], mode=None, yes=False, no=False)
+Namespace(input='a.txt', extra=[], output='out.txt', verbose=0, q=False, n=None, tag=[], mode=None, yes=True, no=False)
+(Namespace(input='a.txt', extra=['q'], output='out.txt', verbose=0, q=False, n=None, tag=[], mode=None, yes=False, no=False), ['--zzz'])
+usage: tool [-h] [-o OUTPUT] [-v] [-q] [-n N] [--tag TAG] [--mode {fast,slow}]
+            [--yes | --no] [--version]
+            input [extra ...]
+usage: tool [-h] [-o OUTPUT] [-v] [-q] [-n N] [--tag TAG] [--mode {fast,slow}]
+            [--yes | --no] [--version]
+            input [extra ...]
+
+Faz coisas com arquivos.
+
+positional arguments:
+  input                arquivo de entrada
+  extra                outros
+
+options:
+  -h, --help           show this help message and exit
+  -o, --output OUTPUT  saída (padrão: out.txt)
+  -v, --verbose
+  -q                   quieto
+  -n N
+  --tag TAG
+  --mode {fast,slow}
+  --yes
+  --no
+  --version            show program's version number and exit
+
+fim
+
+Namespace(cmd='add', paths=['x', 'y'], f=True)
+Namespace(cmd='ci', m='msg')
+usage: git [-h] {add,commit,ci} ...
+
+positional arguments:
+  {add,commit,ci}  comandos
+    add            adiciona
+    commit (ci)    comita
+
+options:
+  -h, --help       show this help message and exit
+usage: git commit [-h] -m M
+
+options:
+  -h, --help  show this help message and exit
+  -m M
+Namespace(color=False, pos='dflt') Namespace(color=True, pos='dflt')
+usage: b [-h] [--color | --no-color] [pos]
+
+positional arguments:
+  pos
+
+options:
+  -h, --help           show this help message and exit
+  --color, --no-color
+"#
+    );
+}

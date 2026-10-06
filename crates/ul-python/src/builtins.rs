@@ -280,7 +280,13 @@ fn b_issubclass(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn b_callable(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("callable", args, &kw)?;
-    Ok(Value::Bool(matches!(v, Value::Function(_) | Value::Builtin(_) | Value::NativeFn(_) | Value::Bound(_))))
+    let callable = match &v {
+        Value::Function(_) | Value::Builtin(_) | Value::NativeFn(_) | Value::Bound(_) | Value::BoundFn(_) | Value::Class(_) => true,
+        Value::Instance(i) => matches!(i.class.lookup("__call__"), Some(Value::Function(_))),
+        Value::Ext(e) => e.methods().contains(&"__call__"),
+        _ => false,
+    };
+    Ok(Value::Bool(callable))
 }
 
 fn attr_name(v: &Value) -> PyResult<String> {

@@ -90,6 +90,8 @@ pub enum Op {
     LoadAttr(u32),
     /// Variável local da função em execução (`UnboundLocalError` se ainda sem valor).
     LoadLocal(u32),
+    /// `locals()` dentro de uma função: um dict com os locais ligados no momento.
+    Locals,
     StoreLocal(u32),
     /// `[anotação]`: grava em `__annotations__[nome]` do módulo ou do corpo de classe.
     Annotate(u32),
@@ -1403,6 +1405,13 @@ impl Compiler {
                     self.emit(Op::LoadConst(c));
                     self.line = expr.pos.lineno;
                     self.emit(Op::Call { argc: 2, kwnames: None });
+                    return Ok(());
+                }
+                if let (E::Name { id, .. }, true, true, true) = (&func.kind, args.is_empty(), keywords.is_empty(), self.code.is_function)
+                    && id == "locals"
+                {
+                    self.line = expr.pos.lineno;
+                    self.emit(Op::Locals);
                     return Ok(());
                 }
                 self.expr(func)?;

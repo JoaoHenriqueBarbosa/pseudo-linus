@@ -301,7 +301,7 @@ pub struct ClassObj {
     pub meta: Option<Rc<ClassObj>>,
     /// A classe herda de `type`: ela é uma metaclasse.
     pub is_meta: bool,
-    pub dict: RefCell<std::collections::BTreeMap<String, Value>>,
+    pub dict: RefCell<indexmap::IndexMap<String, Value>>,
 }
 
 impl fmt::Debug for ClassObj {
@@ -342,7 +342,7 @@ impl ClassObj {
 /// Instância de uma classe de usuário.
 pub struct InstanceObj {
     pub class: Rc<ClassObj>,
-    pub dict: RefCell<std::collections::BTreeMap<String, Value>>,
+    pub dict: RefCell<indexmap::IndexMap<String, Value>>,
     /// O valor embutido de uma instância cuja classe herda de `dict`, `list`, `tuple`, `str`, `int`...
     pub payload: RefCell<Option<Value>>,
 }

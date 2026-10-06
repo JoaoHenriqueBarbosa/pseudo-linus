@@ -72,7 +72,7 @@ impl ExtObject for NewFn {
         let payload = vm.call_value(&ctor, rest, kw)?;
         Ok(Value::Instance(Rc::new(crate::object::InstanceObj {
             class: c.clone(),
-            dict: std::cell::RefCell::new(std::collections::BTreeMap::new()),
+            dict: std::cell::RefCell::new(indexmap::IndexMap::new()),
             payload: std::cell::RefCell::new(Some(payload)),
         })))
     }
@@ -192,7 +192,7 @@ fn object_setattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 
 fn object_delattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.as_slice() {
-        [Value::Instance(i), Value::Str(n)] => match i.dict.borrow_mut().remove(n.as_str()) {
+        [Value::Instance(i), Value::Str(n)] => match i.dict.borrow_mut().shift_remove(n.as_str()) {
             Some(_) => Ok(Value::None),
             None => Err(crate::vm::exc("AttributeError", n.as_str().to_string())),
         },
@@ -220,7 +220,7 @@ fn object_new(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.first() {
         Some(Value::Class(c)) => Ok(Value::Instance(Rc::new(crate::object::InstanceObj {
             class: c.clone(),
-            dict: std::cell::RefCell::new(std::collections::BTreeMap::new()),
+            dict: std::cell::RefCell::new(indexmap::IndexMap::new()),
             payload: std::cell::RefCell::new(None),
         }))),
         _ => Err(type_error("object.__new__(X): X is not a type object")),

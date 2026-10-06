@@ -5295,6 +5295,7 @@ name = "ul-python"
 version = "0.1.0"
 dependencies = [
  "flate2",
+ "indexmap",
  "sysabi",
  "zdeflate",
 ]

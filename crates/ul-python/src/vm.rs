@@ -844,6 +844,29 @@ impl Vm {
                 store_subscript(&container, &index, value)?;
             }
             Op::SetupTry(_) | Op::PopBlock | Op::Return => {}
+            Op::Locals => {
+                let vars = locals.vars.borrow();
+                let mut d = Dict::new();
+                for p in code.params.iter().chain(code.vararg.iter()).chain(code.kwonly.iter()).chain(code.kwarg.iter()) {
+                    if let Some(v) = vars.get(p) {
+                        d.set(Value::str(p.clone()), v.clone())?;
+                    }
+                }
+                let mut rest: Vec<(&String, &Value)> = vars
+                    .iter()
+                    .filter(|(k, _)| {
+                        !code.params.contains(k)
+                            && code.vararg.as_ref() != Some(*k)
+                            && !code.kwonly.contains(k)
+                            && code.kwarg.as_ref() != Some(*k)
+                    })
+                    .collect();
+                rest.sort_by(|a, b| a.0.cmp(b.0));
+                for (k, v) in rest {
+                    d.set(Value::str(k.clone()), v.clone())?;
+                }
+                stack.push(Slot::Val(Value::dict(d)));
+            }
             Op::LoadLocal(i) => {
                 let name = &code.names[i as usize];
                 let found = locals.vars.borrow().get(name).cloned();
@@ -1519,6 +1542,27 @@ impl Vm {
         match obj {
             Value::Exception(e) if name == "args" => Ok(Value::tuple(e.args.clone())),
             Value::Exception(e) if name == "__traceback__" => Ok(e.traceback.borrow().clone().unwrap_or(Value::None)),
+            Value::Exception(e) if name == "code" && e.kind == "SystemExit" => Ok(match e.args.as_slice() {
+                [] => Value::None,
+                [one] => one.clone(),
+                many => Value::tuple(many.to_vec()),
+            }),
+            Value::Exception(e) if name == "value" && e.kind == "StopIteration" => {
+                Ok(e.args.first().cloned().unwrap_or(Value::None))
+            }
+            Value::Exception(e) if matches!(name, "errno" | "strerror" | "filename") && exc_is_subclass(&e.kind, "OSError") => {
+                let (errno, msg, file) = match e.args.as_slice() {
+                    [errno, msg] => (errno.clone(), msg.clone(), Value::None),
+                    [errno, msg, file, ..] => (errno.clone(), msg.clone(), file.clone()),
+                    _ => (Value::None, Value::None, Value::None),
+                };
+                Ok(match name {
+                    "errno" => errno,
+                    "strerror" => msg,
+                    _ => file,
+                })
+            }
+            Value::Exception(_) if matches!(name, "__cause__" | "__context__") => Ok(Value::None),
             Value::Module(m) => match m.attrs.borrow().get(name) {
                 Some(v) => Ok(v.clone()),
                 None => Err(exc("AttributeError", format!("module '{}' has no attribute '{name}'", m.name))),
