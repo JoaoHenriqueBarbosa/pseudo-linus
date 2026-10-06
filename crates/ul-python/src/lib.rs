@@ -234,9 +234,48 @@ pub(crate) static OPTIMIZE: std::sync::atomic::AtomicU8 = std::sync::atomic::Ato
 /// Versão completa de `-VV` e de `sys.version`.
 pub const VERSION_LONG: &str = "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]";
 
+/// Campos de `sys.flags` que vêm da linha de comando, na ordem do CPython 3.13 (`optimize` é o `OPTIMIZE`):
+/// debug, inspect, interactive, optimize, dont_write_bytecode, no_user_site, no_site, ignore_environment,
+/// verbose, bytes_warning, quiet, hash_randomization, isolated, dev_mode, utf8_mode, warn_default_encoding,
+/// safe_path, int_max_str_digits.
+pub(crate) static CLI_FLAGS: std::sync::Mutex<[i64; 18]> = std::sync::Mutex::new(DEFAULT_FLAGS);
+const DEFAULT_FLAGS: [i64; 18] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 4300];
+
+/// Aplica uma opção de uma letra de `python3` ao vetor de `sys.flags`.
+fn apply_flag(flags: &mut [i64; 18], letter: u8, optarg: Option<&[u8]>) {
+    match letter {
+        b'd' => flags[0] += 1,
+        b'i' => {
+            flags[1] = 1;
+            flags[2] = 1;
+        }
+        b'B' => flags[4] = 1,
+        b's' => flags[5] = 1,
+        b'S' => flags[6] = 1,
+        b'E' => flags[7] = 1,
+        b'v' => flags[8] += 1,
+        b'b' => flags[9] += 1,
+        b'q' => flags[10] = 1,
+        b'I' => {
+            flags[12] = 1;
+            flags[7] = 1;
+            flags[5] = 1;
+            flags[16] = 1;
+        }
+        b'P' => flags[16] = 1,
+        b'X' => match optarg {
+            Some(b"dev") => flags[13] = 1,
+            Some(b"utf8" | b"utf8=1") => flags[14] = 1,
+            _ => {}
+        },
+        _ => {}
+    }
+}
+
 fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     WARN_OPTIONS.lock().unwrap().clear();
     OPTIMIZE.store(0, std::sync::atomic::Ordering::Relaxed);
+    *CLI_FLAGS.lock().unwrap() = DEFAULT_FLAGS;
     let program = argv.first().map(|a| String::from_utf8_lossy(a.as_bytes()).into_owned());
     let program = program.unwrap_or_else(|| "python3".to_string());
     let args: Vec<Vec<u8>> = argv.iter().skip(1).map(|a| a.as_bytes().to_vec()).collect();
@@ -272,7 +311,10 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
                 module = getopt.optarg.take();
                 break;
             }
-            Opt::Found(_) => {}
+            Opt::Found(letter) => {
+                let arg = getopt.optarg.take();
+                apply_flag(&mut CLI_FLAGS.lock().unwrap(), letter, arg.as_deref());
+            }
         }
     }
     if print_version > 0 {
@@ -526,8 +568,10 @@ fn run_source_inner(
     };
     let mut machine = vm::Vm::with_argv(argv);
     machine.globals.borrow_mut().insert("__doc__".to_string(), object::Value::None);
-    if file_mode && name != "<stdin>" {
+    if file_mode {
         machine.globals.borrow_mut().insert("__file__".to_string(), object::Value::str(name));
+    }
+    if file_mode && name != "<stdin>" {
         vm::register_source(name, &src);
         vm::register_source(&absolute_path(name), &src);
     }

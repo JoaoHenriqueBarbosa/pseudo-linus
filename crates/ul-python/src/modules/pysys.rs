@@ -160,6 +160,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
             Value::list(crate::WARN_OPTIONS.lock().unwrap().iter().map(|s| Value::str(s.clone())).collect()),
         )
         .value("optimize", Value::Int(i64::from(crate::OPTIMIZE.load(std::sync::atomic::Ordering::Relaxed))))
+        .value("cli_flags", Value::tuple(crate::CLI_FLAGS.lock().unwrap().iter().map(|n| Value::Int(*n)).collect()))
         .value("stdin", Value::Native(vm.std_files[0].clone()))
         .value("stdout", Value::Native(vm.std_files[1].clone()))
         .value("stderr", Value::Native(vm.std_files[2].clone()))

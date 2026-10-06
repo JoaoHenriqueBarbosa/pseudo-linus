@@ -168,20 +168,43 @@ class _VersionInfo:
 version_info = _VersionInfo((3, 13, 5, 'final', 0))
 
 
-class _Flags:
-    optimize = _sys.optimize
-    debug = 0
-    verbose = 0
-    quiet = 0
-    interactive = 0
-    inspect = 0
-    dont_write_bytecode = 0
-    no_site = 0
-    ignore_environment = 0
-    utf8_mode = 1
+class flags:
+    """`sys.flags`: sequência nomeada somente leitura, na ordem do CPython 3.13."""
+
+    __module__ = 'sys'
+    _fields = ('debug', 'inspect', 'interactive', 'optimize', 'dont_write_bytecode', 'no_user_site', 'no_site',
+               'ignore_environment', 'verbose', 'bytes_warning', 'quiet', 'hash_randomization', 'isolated',
+               'dev_mode', 'utf8_mode', 'warn_default_encoding', 'safe_path', 'int_max_str_digits')
+
+    def __init__(self, values):
+        self._values = tuple(values)
+        for name, value in zip(self._fields, self._values):
+            self.__dict__[name] = value
+
+    def __getitem__(self, i):
+        return self._values[i]
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self):
+        return len(self._values)
+
+    def __eq__(self, other):
+        return self._values == tuple(other)
+
+    def __hash__(self):
+        return hash(self._values)
+
+    def __repr__(self):
+        return 'sys.flags(%s)' % ', '.join('%s=%r' % kv for kv in zip(self._fields, self._values))
 
 
-flags = _Flags()
+_cli = list(_sys.cli_flags)
+_cli[3] = _sys.optimize
+_cli[13] = bool(_cli[13])
+_cli[16] = bool(_cli[16])
+flags = flags(_cli)
 
 
 class _HashInfo:
