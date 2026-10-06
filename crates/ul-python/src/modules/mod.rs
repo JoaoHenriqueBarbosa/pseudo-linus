@@ -27,6 +27,7 @@ pub mod shlex;
 pub mod string;
 pub mod weakrefmod;
 pub mod textwrap;
+pub mod unicodedata;
 pub mod userimport;
 pub mod zlibnative;
 
@@ -86,6 +87,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "shlex" => shlex::build(vm),
         "fnmatch" => fnmatch::build(vm),
         "struct" => pystruct::build(vm),
+        "unicodedata" => unicodedata::build(vm),
         "_operator" => operator::build(vm),
         "_os" => osnative::build(vm),
         "_zlib" => zlibnative::build(vm),
@@ -172,7 +174,7 @@ pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -
 /// Módulos escritos em Rust, além dos que `pysrc` embute em Python.
 const NATIVE_MODULES: &[&str] = &[
     "_sys", "_csvimpl", "re", "math", "base64", "binascii", "builtins", "hashlib", "html", "textwrap", "shlex",
-    "fnmatch", "struct", "_operator", "_os", "_zlib", "_weakref",
+    "fnmatch", "struct", "unicodedata", "_operator", "_os", "_zlib", "_weakref",
 ];
 
 /// `name` é um módulo que o interpretador traz embutido (nativo ou em Python).

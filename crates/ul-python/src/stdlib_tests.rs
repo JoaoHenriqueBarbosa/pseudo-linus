@@ -2097,3 +2097,31 @@ True bBuwhHiIlLqQfd
 "##
     );
 }
+
+#[test]
+fn unicodedata_module() {
+    let src = r##"
+import unicodedata as u
+print(u.normalize('NFD', 'café'), len(u.normalize('NFD', 'é')), u.normalize('NFC', 'é') == 'é')
+print(u.normalize('NFKD', 'ﬁ½'), ''.join(c for c in u.normalize('NFKD', 'João Ação') if not u.combining(c)))
+print(u.category('a'), u.category('A'), u.category('1'), u.category(' '), u.category('é'), u.category('€'), u.category('́'))
+print(u.name('a'), u.name('é'), u.name('€'), u.lookup('GREEK SMALL LETTER ALPHA'), u.name('\x00', 'none'))
+print(u.decimal('7'), u.digit('٣'), u.numeric('½'), u.numeric('Ⅷ'), u.decimal('x', -1))
+print(u.is_normalized('NFC', 'é'), u.combining('́'), u.combining('a'))
+try: u.lookup('NOT A NAME')
+except KeyError as e: print('KeyError', e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"café 2 True
+fi1⁄2 Joao Acao
+Ll Lu Nd Zs Ll Sc Mn
+LATIN SMALL LETTER A LATIN SMALL LETTER E WITH ACUTE EURO SIGN α none
+7 3 0.5 8.0 -1
+True 230 0
+KeyError "undefined character name 'NOT A NAME'"
+"##
+    );
+}
